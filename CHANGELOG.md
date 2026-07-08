@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.21.0] - 2026-07-08
+
+### Added
+
+- **Quick Forms (#1184)** — Standalone public data-collection forms, deliberately not tied to equipment or teams: time sheets, secure-area checks, assembly-line checklists, and other job-site capture. Org owners/admins build forms (short/long text, number, date, checkbox fields, optional GPS request) on the new **Operations → Quick Forms** page, share them via rotating non-enumerable QR tokens (`/qr/quick-form/{token}`), and read an append-only submission ledger with CSV/Excel/PDF exports. Unauthenticated submitters go through a new `quick-form` edge function (token auth, hCaptcha when configured, per-form rate limiting). All form definitions, raw QR tokens, and submissions are owner/admin-only via RLS — plain members have no access because collected data may be sensitive.
+
 ## [3.18.0] - 2026-07-07
 
 ### Added

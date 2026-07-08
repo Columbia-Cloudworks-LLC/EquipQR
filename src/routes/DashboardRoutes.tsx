@@ -32,6 +32,7 @@ import {
   DSRCockpitPage,
   DSRCasePage,
   OperatorCheckInsPage,
+  QuickFormsPage,
 } from '@/routes/lazyDashboardPages';
 import { InventoryAccessGuard } from '@/features/inventory/components/InventoryAccessGuard';
 
@@ -62,6 +63,7 @@ export const dashboardRouteElements = (
     <Route path="/onboarding/getting-started" element={<GettingStartedOnboarding />} />
     <Route path="/reports" element={<Reports />} />
     <Route path="/operator-check-ins" element={<OperatorCheckInsPage />} />
+    <Route path="/quick-forms" element={<QuickFormsPage />} />
     <Route path="/inventory" element={<InventoryAccessGuard><InventoryList /></InventoryAccessGuard>} />
     <Route path="/inventory/bulk" element={<InventoryAccessGuard><BulkInventory /></InventoryAccessGuard>} />
     <Route path="/inventory/:itemId" element={<InventoryAccessGuard><InventoryItemDetail /></InventoryAccessGuard>} />

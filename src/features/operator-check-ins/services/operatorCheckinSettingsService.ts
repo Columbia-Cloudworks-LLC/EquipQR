@@ -1,4 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
+import {
+  getQrTokenSecret,
+  rotateQrTokenViaRpc,
+} from '@/features/public-forms/qrTokenSecretsService';
 
 export interface EquipmentOperatorCheckinAssignment {
   id: string;
@@ -96,17 +100,8 @@ export async function deleteEquipmentOperatorCheckinAssignment(assignmentId: str
   if (error) throw error;
 }
 
-export async function rotateOperatorCheckinToken(assignmentId: string): Promise<string> {
-  const { data, error } = await supabase.rpc('rotate_operator_checkin_token', {
-    p_settings_id: assignmentId,
-  });
-
-  if (error) throw error;
-  const row = Array.isArray(data) ? data[0] : data;
-  if (!row?.raw_token) {
-    throw new Error('Token rotation failed');
-  }
-  return row.raw_token as string;
+export function rotateOperatorCheckinToken(assignmentId: string): Promise<string> {
+  return rotateQrTokenViaRpc('rotate_operator_checkin_token', { p_settings_id: assignmentId });
 }
 
 /**
@@ -115,17 +110,9 @@ export async function rotateOperatorCheckinToken(assignmentId: string): Promise<
  * legacy in-memory cache miss). Legacy assignments minted before persistence
  * also resolve to null until their token is rotated.
  */
-export async function getOperatorCheckinToken(
+export function getOperatorCheckinToken(
   assignmentId: string,
   organizationId: string,
 ): Promise<string | null> {
-  const { data, error } = await supabase
-    .from('operator_checkin_token_secrets')
-    .select('raw_token')
-    .eq('settings_id', assignmentId)
-    .eq('organization_id', organizationId)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data?.raw_token ?? null;
+  return getQrTokenSecret('operator_checkin_token_secrets', 'settings_id', assignmentId, organizationId);
 }

@@ -222,6 +222,10 @@ verify_jwt = false
 verify_jwt = false
 # Public operator daily check-in load/submit (#1091). Token-scoped; hCaptcha + rate limits.
 
+[functions.quick-form]
+verify_jwt = false
+# Public quick form load/submit (#1184). Token-scoped; hCaptcha + rate limits.
+
 [functions.manage-dsr-request]
 verify_jwt = false
 # Internal admin endpoint for DSR lifecycle management. Requires authenticated admin/owner.

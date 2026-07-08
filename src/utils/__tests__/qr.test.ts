@@ -77,6 +77,17 @@ describe('parseEquipQRTarget', () => {
     expect(r.ok && r.kind === 'operatorCheckIn').toBe(true);
   });
 
+  it('parses quick form token path (#1184)', () => {
+    const r = parseEquipQRTarget('/qr/quick-form/token-qf', LOCAL_ORIGIN);
+    expect(r.ok && r.kind === 'quickForm' && r.token === 'token-qf').toBe(true);
+    if (r.ok && r.kind === 'quickForm') expect(r.path).toBe('/qr/quick-form/token-qf');
+  });
+
+  it('does not treat quick-form as legacy equipment id', () => {
+    const r = parseEquipQRTarget('/qr/quick-form/token-qf', LOCAL_ORIGIN);
+    expect(r.ok && r.kind === 'quickForm').toBe(true);
+  });
+
   it('encodes dynamic QR route segments before building redirect paths', () => {
     const equipment = parseEquipQRTarget('/qr/equipment/eq%2Funsafe', LOCAL_ORIGIN);
     expect(equipment.ok && equipment.kind === 'equipment' && equipment.path).toBe(

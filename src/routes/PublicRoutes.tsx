@@ -29,6 +29,7 @@ import {
   DoNotSellOrShare,
   Security,
   OperatorCheckInPublicPage,
+  QuickFormPublicPage,
 } from '@/routes/lazyPublicPages';
 import { LandingCanonicalRedirect } from '@/routes/redirects';
 import { qrRouteFallback, textRouteFallback } from '@/routes/routerConfig';
@@ -64,6 +65,7 @@ export const publicRouteElements = (
     <Route path="/invitation/:token" element={<LazyRoute><InvitationAccept /></LazyRoute>} />
     <Route path="/qr/inventory/:itemId" element={<Suspense fallback={qrRouteFallback}><InventoryQRRedirect /></Suspense>} />
     <Route path="/qr/operator-check-in/:token" element={<Suspense fallback={qrRouteFallback}><OperatorCheckInPublicPage /></Suspense>} />
+    <Route path="/qr/quick-form/:token" element={<Suspense fallback={qrRouteFallback}><QuickFormPublicPage /></Suspense>} />
     <Route path="/qr/equipment/:equipmentId" element={<Suspense fallback={qrRouteFallback}><EquipmentQRScan /></Suspense>} />
     <Route path="/qr/work-order/:workOrderId" element={<Suspense fallback={qrRouteFallback}><WorkOrderQRRedirect /></Suspense>} />
     {/* Legacy QR route: must remain after the more specific /qr/* routes so they are matched first. */}

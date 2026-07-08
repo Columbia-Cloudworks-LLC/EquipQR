@@ -30,3 +30,6 @@ export const Security = lazy(() => import('@/pages/Security'));
 export const OperatorCheckInPublicPage = lazy(
   () => import('@/features/operator-check-ins/pages/OperatorCheckInPublicPage'),
 );
+export const QuickFormPublicPage = lazy(
+  () => import('@/features/quick-forms/pages/QuickFormPublicPage'),
+);

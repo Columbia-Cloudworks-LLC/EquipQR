@@ -1,7 +1,8 @@
 {
   "anonPublicRpc": [
     "get_invitation_by_token_secure",
-    "resolve_operator_checkin_by_token"
+    "resolve_operator_checkin_by_token",
+    "resolve_quick_form_by_token"
   ],
   "rlsPredicateHelpers": [
     "can_user_manage_quickbooks",
@@ -30,6 +31,7 @@
     "count_equipment_matching_pm_rules",
     "create_google_workspace_oauth_session",
     "create_operator_checkin_assignment",
+    "create_quick_form",
     "create_historical_work_order_with_pm",
     "create_invitation_atomic",
     "create_manual_external_customer_contact",
@@ -85,6 +87,7 @@
     "revert_pm_completion",
     "delete_operator_checklist_template",
     "rotate_operator_checkin_token",
+    "rotate_quick_form_token",
     "revert_work_order_status",
     "select_google_workspace_members",
     "update_equipment_working_hours",

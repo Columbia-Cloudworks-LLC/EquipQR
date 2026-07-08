@@ -1,4 +1,4 @@
--- rpc-anon-grant-allowed: get_invitation_by_token_secure, resolve_operator_checkin_by_token (bulk lockdown migration #762)
+-- rpc-anon-grant-allowed: get_invitation_by_token_secure, resolve_operator_checkin_by_token, resolve_quick_form_by_token (bulk lockdown migration #762)
 -- rpc-authenticated-grant-allowed: bulk-lockdown (see scripts/security-definer-rpc-allowlists.json)
 -- ============================================================================
 -- Migration: Lock down SECURITY DEFINER function EXECUTE grants (issue #762)
@@ -94,7 +94,7 @@ DECLARE
     'update_member_quickbooks_permission',
     'validate_quickbooks_oauth_session'
   ];
-  anon_allowlist text[] := ARRAY['get_invitation_by_token_secure', 'resolve_operator_checkin_by_token'];
+  anon_allowlist text[] := ARRAY['get_invitation_by_token_secure', 'resolve_operator_checkin_by_token', 'resolve_quick_form_by_token'];
   -- RLS policies evaluate with the querying role's privileges; these predicates
   -- must stay EXECUTE-able for authenticated (but not anon).
   rls_helper_allowlist text[] := ARRAY[

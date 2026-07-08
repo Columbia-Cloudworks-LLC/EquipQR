@@ -1,18 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ExternalLink } from '@/components/ui/external-link';
 import { OPERATOR_DAILY_CHECK_INS_DOCS_URL } from '@/lib/documentationUrl';
-import { Checkbox } from '@/components/ui/checkbox';
 import HCaptchaComponent from '@/components/ui/HCaptcha';
 import { PageSEO } from '@/components/seo/PageSEO';
+import { PublicFormFieldInput } from '@/features/public-forms/PublicFormFieldInput';
+import {
+  PublicFormErrorState,
+  PublicFormLoadingState,
+  PublicFormSuccessCard,
+} from '@/features/public-forms/PublicFormStates';
+import {
+  formatPublicSubmittedAt,
+  usePublicFormSubmission,
+} from '@/features/public-forms/usePublicFormClientContext';
 import {
   loadOperatorCheckinForm,
   submitOperatorCheckin,
@@ -31,77 +36,6 @@ import {
 import { groupChecklistItemsBySection } from '@/utils/pmChecklistHelpers';
 import { OperatorCheckinChecklistItemRow } from '@/features/operator-check-ins/components/OperatorCheckinChecklistItemRow';
 
-function renderOperatorInput(
-  field: OperatorChecklistDataField,
-  value: unknown,
-  onChange: (fieldId: string, value: unknown) => void,
-) {
-  const inputType = field.inputType ?? 'text';
-  const fieldId = `operator-field-${field.id}`;
-
-  if (inputType === 'checkbox') {
-    return (
-      <div className="flex items-center gap-2">
-        <Checkbox
-          id={fieldId}
-          checked={value === true}
-          onCheckedChange={(checked) => onChange(field.id, checked === true)}
-        />
-        <Label htmlFor={fieldId}>{field.label}</Label>
-      </div>
-    );
-  }
-
-  if (inputType === 'textarea') {
-    return (
-      <div className="space-y-2">
-        <Label htmlFor={fieldId}>{field.label}{field.required ? ' *' : ''}</Label>
-        {field.helpText && <p className="text-xs text-muted-foreground">{field.helpText}</p>}
-        <Textarea
-          id={fieldId}
-          value={typeof value === 'string' ? value : ''}
-          onChange={(e) => onChange(field.id, e.target.value)}
-          rows={3}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={fieldId}>{field.label}{field.required ? ' *' : ''}</Label>
-      {field.helpText && <p className="text-xs text-muted-foreground">{field.helpText}</p>}
-      <Input
-        id={fieldId}
-        type={inputType === 'number' ? 'number' : inputType === 'date' ? 'date' : 'text'}
-        inputMode={inputType === 'number' ? 'decimal' : undefined}
-        value={typeof value === 'string' || typeof value === 'number' ? String(value) : ''}
-        onChange={(e) =>
-          onChange(
-            field.id,
-            inputType === 'number'
-              ? e.target.value.trim() === ''
-                ? ''
-                : Number(e.target.value)
-              : e.target.value,
-          )
-        }
-      />
-    </div>
-  );
-}
-
-function formatSubmittedAt(value: string): string {
-  try {
-    return new Intl.DateTimeFormat(undefined, {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-    }).format(new Date(value));
-  } catch {
-    return value;
-  }
-}
-
 export default function OperatorCheckInPublicPage() {
   const { token = '' } = useParams<{ token: string }>();
   const [loading, setLoading] = useState(true);
@@ -115,16 +49,24 @@ export default function OperatorCheckInPublicPage() {
   const [complianceNotice, setComplianceNotice] = useState('');
   const [operatorValues, setOperatorValues] = useState<Record<string, unknown>>({});
   const [answers, setAnswers] = useState<Record<string, OperatorChecklistAnswer>>({});
-  const [hcaptchaToken, setHcaptchaToken] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [submittedAt, setSubmittedAt] = useState<string | null>(null);
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [gpsStatus, setGpsStatus] = useState<'idle' | 'pending' | 'granted' | 'denied'>('idle');
 
-  const hcaptchaSiteKey = import.meta.env.VITE_HCAPTCHA_SITEKEY as string | undefined;
-  const showCaptcha = captchaRequired && Boolean(hcaptchaSiteKey);
-  const captchaMisconfigured = captchaRequired && !hcaptchaSiteKey;
+  const {
+    submitting,
+    setSubmitting,
+    submitted,
+    setSubmitted,
+    submittedAt,
+    setSubmittedAt,
+    hcaptchaToken,
+    setHcaptchaToken,
+    showCaptcha,
+    captchaMisconfigured,
+    coords,
+    gpsStatus,
+  } = usePublicFormSubmission({
+    captchaRequired,
+    collectGps: locationCollectionEnabled && Boolean(token),
+  });
 
   const grouped = useMemo(() => groupChecklistItemsBySection(items), [items]);
   const operatorFields = useMemo(
@@ -162,26 +104,6 @@ export default function OperatorCheckInPublicPage() {
       cancelled = true;
     };
   }, [token]);
-
-  useEffect(() => {
-    if (!locationCollectionEnabled || !token) return;
-    if (!navigator.geolocation) {
-      setGpsStatus('denied');
-      return;
-    }
-    setGpsStatus('pending');
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setGpsStatus('granted');
-      },
-      () => {
-        setCoords(null);
-        setGpsStatus('denied');
-      },
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 },
-    );
-  }, [locationCollectionEnabled, token]);
 
   const answerList = useMemo(() => Object.values(answers), [answers]);
   const checklistValidation = useMemo(
@@ -275,43 +197,23 @@ export default function OperatorCheckInPublicPage() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <p className="text-muted-foreground">Loading check-in form…</p>
-      </div>
-    );
+    return <PublicFormLoadingState message="Loading check-in form…" />;
   }
 
   if (loadError) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Alert className="max-w-md">
-          <AlertDescription>{loadError}</AlertDescription>
-        </Alert>
-      </div>
-    );
+    return <PublicFormErrorState message={loadError} />;
   }
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <Card className="max-w-md w-full">
-          <CardHeader className="text-center space-y-3">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-              <CheckCircle2 className="h-7 w-7 text-primary" aria-hidden />
-            </div>
-            <CardTitle>Check-in complete</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-muted-foreground text-center">
-            <p>
-              Your <strong className="text-foreground">{templateName}</strong> check-in was saved
-              {submittedAt ? ` at ${formatSubmittedAt(submittedAt)}` : ''}.
-            </p>
-            <p>{complianceNotice}</p>
-            <p className="text-xs">You can close this page. Submit again tomorrow with the same QR code.</p>
-          </CardContent>
-        </Card>
-      </div>
+      <PublicFormSuccessCard title="Check-in complete">
+        <p>
+          Your <strong className="text-foreground">{templateName}</strong> check-in was saved
+          {submittedAt ? ` at ${formatPublicSubmittedAt(submittedAt)}` : ''}.
+        </p>
+        <p>{complianceNotice}</p>
+        <p className="text-xs">You can close this page. Submit again tomorrow with the same QR code.</p>
+      </PublicFormSuccessCard>
     );
   }
 
@@ -348,9 +250,16 @@ export default function OperatorCheckInPublicPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {operatorFields.map((field) => (
-                <div key={field.id}>
-                  {renderOperatorInput(field, operatorValues[field.id], updateOperatorValue)}
-                </div>
+                <PublicFormFieldInput
+                  key={field.id}
+                  fieldId={`operator-field-${field.id}`}
+                  label={field.label}
+                  inputType={field.inputType ?? 'text'}
+                  required={field.required === true}
+                  helpText={field.helpText}
+                  value={operatorValues[field.id]}
+                  onChange={(value) => updateOperatorValue(field.id, value)}
+                />
               ))}
               {readOnlyFields.map((field) => (
                 <div key={field.id} className="space-y-1">
