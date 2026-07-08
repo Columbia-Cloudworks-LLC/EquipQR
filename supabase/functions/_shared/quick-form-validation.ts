@@ -69,7 +69,9 @@ export function validateQuickFormValues(
 ): QuickFormValidationResult {
   const errors: string[] = [];
   for (const field of fields) {
-    if (field.required && !isValuePresent(values[field.id], field.inputType)) {
+    // Match the admin editor + public page: fields are required unless
+    // explicitly marked `required: false`.
+    if (field.required !== false && !isValuePresent(values[field.id], field.inputType)) {
       errors.push(`"${field.label}" is required.`);
     }
   }

@@ -3,7 +3,7 @@
  * selected submissions. Heavy libraries (xlsx / jspdf) load on demand.
  */
 
-import { arrayToCsv, downloadBlob, downloadCsv, filenameWithDate } from '@/utils/exportUtils';
+import { arrayToCsv, downloadBlob, downloadCsv, filenameWithDate, sanitizeSpreadsheetCell } from '@/utils/exportUtils';
 import { formatQuickFormValue } from '@/features/quick-forms/types/quickForm';
 import type { QuickFormSubmission } from '@/features/quick-forms/services/quickFormSubmissionsService';
 
@@ -20,24 +20,30 @@ function gpsLabel(submission: QuickFormSubmission): string {
   return `${gps.latitude}, ${gps.longitude}`;
 }
 
+function sanitizeRow(values: string[]): string[] {
+  return values.map((value) => sanitizeSpreadsheetCell(value));
+}
+
 function submissionRow(submission: QuickFormSubmission): string[] {
-  return [
+  return sanitizeRow([
     formName(submission),
     submission.submitted_at,
     submission.client_context?.browser_timezone ?? '',
     gpsLabel(submission),
     submission.id,
-  ];
+  ]);
 }
 
 function fieldRows(submission: QuickFormSubmission): string[][] {
-  return (submission.field_values ?? []).map((field) => [
-    formName(submission),
-    submission.submitted_at,
-    field.label,
-    formatQuickFormValue(field.value),
-    submission.id,
-  ]);
+  return (submission.field_values ?? []).map((field) =>
+    sanitizeRow([
+      formName(submission),
+      submission.submitted_at,
+      field.label,
+      formatQuickFormValue(field.value),
+      submission.id,
+    ]),
+  );
 }
 
 export function downloadQuickFormSubmissionsCsv(submissions: QuickFormSubmission[]): void {

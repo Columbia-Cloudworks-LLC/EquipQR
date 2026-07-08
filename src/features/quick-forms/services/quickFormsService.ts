@@ -106,8 +106,30 @@ export async function deleteQuickForm(formId: string, organizationId: string): P
   if (error) throw error;
 }
 
-export function rotateQuickFormToken(formId: string): Promise<string> {
-  return rotateQrTokenViaRpc('rotate_quick_form_token', { p_quick_form_id: formId });
+export function rotateQuickFormToken(
+  formId: string,
+  organizationId: string,
+): Promise<string> {
+  return verifyQuickFormOrgScope(formId, organizationId).then(() =>
+    rotateQrTokenViaRpc('rotate_quick_form_token', { p_quick_form_id: formId }),
+  );
+}
+
+async function verifyQuickFormOrgScope(
+  formId: string,
+  organizationId: string,
+): Promise<void> {
+  const { data, error } = await supabase
+    .from('quick_forms')
+    .select('id')
+    .eq('id', formId)
+    .eq('organization_id', organizationId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) {
+    throw new Error('Quick form not found in this organization');
+  }
 }
 
 /**

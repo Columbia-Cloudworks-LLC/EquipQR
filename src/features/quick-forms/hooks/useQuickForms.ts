@@ -60,7 +60,7 @@ export function useDeleteQuickForm(organizationId: string | undefined) {
 export function useRotateQuickFormToken(organizationId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (formId: string) => rotateQuickFormToken(formId),
+    mutationFn: (formId: string) => rotateQuickFormToken(formId, organizationId!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: quickFormKeys.list(organizationId) });
     },

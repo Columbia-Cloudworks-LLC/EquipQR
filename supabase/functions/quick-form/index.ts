@@ -16,12 +16,13 @@ import {
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
 import { optionalSecret } from "../_shared/require-secret.ts";
-import { hashToken, normalizeTextValue } from "../_shared/operator-checklist-validation.ts";
+import { normalizeTextValue } from "../_shared/operator-checklist-validation.ts";
 import {
   buildQuickFormFieldValues,
   parseQuickFormData,
   validateQuickFormValues,
 } from "../_shared/quick-form-validation.ts";
+import { requireQuickFormToken } from "../_shared/quick-form-public-auth.ts";
 
 /** Public endpoint: Supabase session auth is intentionally omitted; access is gated by the form token hash. */
 
@@ -42,18 +43,6 @@ interface SubmitRequest {
 }
 
 type QuickFormRequest = LoadRequest | SubmitRequest;
-
-const MIN_TOKEN_LENGTH = 32;
-const MAX_TOKEN_LENGTH = 128;
-
-function isValidPublicQuickFormToken(token: string): boolean {
-  const trimmed = token.trim();
-  return (
-    trimmed.length >= MIN_TOKEN_LENGTH &&
-    trimmed.length <= MAX_TOKEN_LENGTH &&
-    /^[a-zA-Z0-9_-]+$/.test(trimmed)
-  );
-}
 
 function getHcaptchaSiteKey(): string | null {
   return optionalSecret("HCAPTCHA_SITE_KEY", { legacyAliases: ["VITE_HCAPTCHA_SITEKEY"] });
@@ -83,16 +72,6 @@ async function verifyCaptcha(token: string | undefined): Promise<boolean> {
   }
 }
 
-interface ResolvedQuickForm {
-  id: string;
-  organization_id: string;
-  name: string;
-  description: string | null;
-  form_data: unknown;
-  is_active: boolean;
-  organization_name: string;
-}
-
 Deno.serve(withCorrelationId(async (req, _ctx) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
@@ -112,27 +91,14 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     return createErrorResponse("Missing action or token", 400, { req });
   }
 
-  if (!isValidPublicQuickFormToken(body.token)) {
-    return createErrorResponse("Form is not available", 404, { req });
-  }
-
-  const tokenHash = await hashToken(body.token.trim());
   const supabase = createUserSupabaseClient(req);
-  const { data: resolved, error: resolveError } = await supabase.rpc(
-    "resolve_quick_form_by_token",
-    { p_token_hash: tokenHash },
-  );
-
-  if (resolveError) {
-    console.error("[QUICK-FORM] form lookup failed:", resolveError.message);
-    return createErrorResponse("Form is not available", 404, { req });
+  const tokenAuth = await requireQuickFormToken(supabase, body.token);
+  if (!tokenAuth.ok) {
+    return createErrorResponse(tokenAuth.error, tokenAuth.status, { req });
   }
 
-  const form = resolved as ResolvedQuickForm | null;
-  if (!form || form.is_active === false) {
-    return createErrorResponse("Form is not available", 404, { req });
-  }
-
+  const form = tokenAuth.form;
+  const tokenHash = tokenAuth.tokenHash;
   const formData = parseQuickFormData(form.form_data);
 
   if (body.action === "load") {

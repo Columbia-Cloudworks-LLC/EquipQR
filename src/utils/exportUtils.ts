@@ -7,11 +7,23 @@
 import { format } from 'date-fns';
 
 /**
+ * Neutralize spreadsheet formula injection when a cell begins with =, +, -, or @.
+ * Prefixing with an apostrophe forces spreadsheet clients to treat the value as text.
+ */
+export function sanitizeSpreadsheetCell(value: string): string {
+  if (/^[=+\-@]/.test(value.trimStart())) {
+    return `'${value}`;
+  }
+  return value;
+}
+
+/**
  * Generate a CSV string from an array of header names and 2-D row data.
  * Cell values are quoted and internal quotes are escaped.
  */
 export function arrayToCsv(headers: string[], rows: string[][]): string {
-  const escapeCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
+  const escapeCell = (value: string) =>
+    `"${sanitizeSpreadsheetCell(value).replace(/"/g, '""')}"`;
   const headerRow = headers.map(escapeCell).join(',');
   const dataRows = rows.map((row) => row.map(escapeCell).join(','));
   return [headerRow, ...dataRows].join('\n');
