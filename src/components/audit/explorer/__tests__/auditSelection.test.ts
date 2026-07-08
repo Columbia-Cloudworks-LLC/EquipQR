@@ -115,6 +115,13 @@ describe('pruneSelection', () => {
     expect(next.anchorId).toBeNull();
   });
 
+  it('clears a stale anchor when the selected-id count is unchanged', () => {
+    const state = selectionOf(['a', 'b'], 'zz');
+    const next = pruneSelection(state, entries);
+    expect([...next.ids]).toEqual(['a', 'b']);
+    expect(next.anchorId).toBeNull();
+  });
+
   it('returns the same state object when nothing changed', () => {
     const state = selectionOf(['a', 'b'], 'a');
     expect(pruneSelection(state, entries)).toBe(state);

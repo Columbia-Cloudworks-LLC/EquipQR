@@ -84,9 +84,8 @@ export function pruneSelection(
 ): AuditSelectionState {
   const valid = new Set(entries.map((e) => e.id));
   const ids = new Set([...state.ids].filter((id) => valid.has(id)));
-  if (ids.size === state.ids.size) return state;
-  return {
-    ids,
-    anchorId: state.anchorId && valid.has(state.anchorId) ? state.anchorId : null,
-  };
+  const anchorId =
+    state.anchorId && valid.has(state.anchorId) ? state.anchorId : null;
+  if (ids.size === state.ids.size && anchorId === state.anchorId) return state;
+  return { ids, anchorId };
 }

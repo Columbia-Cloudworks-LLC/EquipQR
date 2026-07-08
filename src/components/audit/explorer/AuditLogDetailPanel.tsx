@@ -49,6 +49,14 @@ function CopyContentButton({
   testId?: string;
 }) {
   const [copied, setCopied] = React.useState(false);
+  const copiedTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  React.useEffect(
+    () => () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    },
+    []
+  );
 
   const handleCopy = () => {
     if (!navigator.clipboard?.writeText) return;
@@ -56,7 +64,11 @@ function CopyContentButton({
       .writeText(getContent())
       .then(() => {
         setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
+        if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+        copiedTimerRef.current = setTimeout(() => {
+          setCopied(false);
+          copiedTimerRef.current = null;
+        }, 1500);
       })
       .catch(() => {
         // Silent fail when clipboard write is denied.

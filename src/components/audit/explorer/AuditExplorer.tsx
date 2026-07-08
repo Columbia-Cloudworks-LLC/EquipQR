@@ -189,6 +189,8 @@ export function AuditExplorer({ organizationId, initialFilters }: AuditExplorerP
     [entries, selection.ids]
   );
 
+  const selectedCount = selectedEntries.length;
+
   const clearSelection = () => setSelection(EMPTY_AUDIT_SELECTION);
 
   const handleRowClick = (entry: FormattedAuditEntry, modifiers: RowClickModifiers) => {
@@ -265,8 +267,6 @@ export function AuditExplorer({ organizationId, initialFilters }: AuditExplorerP
       setIsExporting,
     );
   };
-
-  const selectedCount = selection.ids.size;
 
   const renderEventsWidget = (contentHeight: number) => {
     const paginationHeight = totalPages > 1 ? 40 : 0;
