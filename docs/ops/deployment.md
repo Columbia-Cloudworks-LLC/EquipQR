@@ -216,9 +216,10 @@ See `docs/ops/preview-architecture-migration.md` (#1033) for the full cutover pl
 Pushes to `main` run **Production Release Readiness** (`.github/workflows/production-release-readiness.yml`). This workflow:
 
 1. Applies pending SQL migrations to the **production** Supabase project (`supabase link` + `supabase db push --include-all`).
-2. Re-runs the schema drift script in **strict** mode so `schema_migrations` matches `supabase/migrations/` by name.
-3. Polls the Vercel API until the **READY** deployment for the same `github.sha` on `main` exists for the SPA project (`prj_P9hRun4B2OdGy8ACCnb0f7jNG6UA`).
-4. Runs `vercel promote` for that deployment so **equipqr.app** serves the new build without a manual dashboard step.
+2. Deploys **all** Supabase Edge Functions to production (`supabase functions deploy`), including `verify_jwt` settings from `supabase/config.toml` — no manual CLI deploy after merge.
+3. Re-runs the schema drift script in **strict** mode so `schema_migrations` matches `supabase/migrations/` by name.
+4. Polls the Vercel API until the **READY** deployment for the same `github.sha` on `main` exists for the SPA project (`prj_P9hRun4B2OdGy8ACCnb0f7jNG6UA`).
+5. Runs `vercel promote` for that deployment so **equipqr.app** serves the new build without a manual dashboard step.
 
 When this workflow is green, production traffic should already match the merged commit.
 

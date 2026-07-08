@@ -1,7 +1,8 @@
 name: Production Release Readiness
 
 # After a merge to `main`, applies pending Supabase migrations to the production
-# project, verifies production schema_migrations alignment (strict drift check),
+# project, deploys Edge Functions (including verify_jwt settings from config.toml),
+# verifies production schema_migrations alignment (strict drift check),
 # waits until the Vercel deployment for the same commit is READY, then promotes
 # that deployment so equipqr.app serves the new build.
 #
@@ -20,7 +21,7 @@ permissions:
 
 jobs:
   production-release-readiness:
-    name: Migrate, verify schema, promote Vercel
+    name: Migrate, deploy edge, verify schema, promote Vercel
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -73,6 +74,13 @@ jobs:
           echo "::notice::Pushing migrations (include-all)..."
           supabase db push --include-all --yes
 
+      - name: Deploy edge functions to production
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "::notice::Deploying Edge Functions to production (ymxkzronkhwxzcdcbnwq)..."
+          supabase functions deploy --project-ref ymxkzronkhwxzcdcbnwq
+
       - name: Strict production schema drift check
         env:
           GITHUB_EVENT_NAME: workflow_dispatch
@@ -110,9 +118,9 @@ jobs:
           {
             echo "## Production release readiness"
             echo ""
-            echo "- **Supabase:** migrations applied to production; strict schema drift check passed."
+            echo "- **Supabase:** migrations applied; Edge Functions deployed; strict schema drift check passed."
             echo "- **Vercel:** main deployment READY and **promoted to production** (\`equipqr.app\`)."
             echo "- **Deployment:** ${{ steps.wait_vercel.outputs.deployment_url }}"
             echo ""
-            echo "No manual Vercel dashboard promote is required when this workflow succeeds."
+            echo "No manual Vercel dashboard promote or \`supabase functions deploy\` is required when this workflow succeeds."
           } >> "$GITHUB_STEP_SUMMARY"
