@@ -23,6 +23,10 @@ interface InventoryItemOverviewTabProps {
     field: 'name' | 'description' | 'sku' | 'external_id' | 'location',
     value: string
   ) => Promise<void>;
+  onNumericFieldUpdate: (
+    field: 'low_stock_threshold' | 'default_unit_cost',
+    value: string
+  ) => Promise<void>;
   onSaveStructuredLocation: (location: InventoryStructuredLocationFields) => Promise<void>;
   onDeleteImage: (image: InventoryItemImage) => Promise<void>;
   onUploadImages: (files: File[]) => Promise<void>;
@@ -35,6 +39,7 @@ const InventoryItemOverviewTab: React.FC<InventoryItemOverviewTabProps> = ({
   canEdit,
   itemImages,
   onFieldUpdate,
+  onNumericFieldUpdate,
   onSaveStructuredLocation,
   onDeleteImage,
   onUploadImages,
@@ -147,14 +152,37 @@ const InventoryItemOverviewTab: React.FC<InventoryItemOverviewTabProps> = ({
             </div>
             <div className="space-y-1.5">
               <Label className="text-muted-foreground">Low Stock Threshold</Label>
-              <p className="font-medium">{item.low_stock_threshold}</p>
-            </div>
-            {item.default_unit_cost && (
-              <div className="space-y-1.5">
-                <Label className="text-muted-foreground">Default Unit Cost</Label>
-                <p className="font-medium">${Number(item.default_unit_cost).toFixed(2)}</p>
+              <div className="mt-0.5">
+                <InlineEditField
+                  value={String(item.low_stock_threshold)}
+                  onSave={(value) => onNumericFieldUpdate('low_stock_threshold', value)}
+                  canEdit={canEdit}
+                  type="number"
+                  placeholder="Enter threshold"
+                  className="text-base font-medium"
+                  editAriaLabel="Edit low stock threshold"
+                />
               </div>
-            )}
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-muted-foreground">Default Unit Cost</Label>
+              <div className="mt-0.5">
+                <InlineEditField
+                  value={item.default_unit_cost != null ? String(item.default_unit_cost) : ''}
+                  onSave={(value) => onNumericFieldUpdate('default_unit_cost', value)}
+                  canEdit={canEdit}
+                  type="number"
+                  placeholder="Enter unit cost"
+                  className="text-base font-medium"
+                  displayNode={
+                    item.default_unit_cost != null
+                      ? `$${Number(item.default_unit_cost).toFixed(2)}`
+                      : undefined
+                  }
+                  editAriaLabel="Edit default unit cost"
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

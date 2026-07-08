@@ -9,7 +9,6 @@ import { useUnifiedPermissions } from "@/hooks/useUnifiedPermissions";
 import type { EquipmentTeamSummary } from "@/features/equipment/services/EquipmentService";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useTeams } from "@/features/teams/hooks/useTeamManagement";
-import { usePMTemplates } from "@/features/pm-templates/hooks/usePMTemplates";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEquipmentPMStatus, getPMComplianceLevel } from "@/features/equipment/hooks/useEquipmentPMStatus";
 import { logger } from '@/utils/logger';
@@ -57,9 +56,6 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
       : [];
   const equipmentPermissions = permissions.equipment.getPermissions(equipment.team_id || undefined);
   const canEdit = equipmentPermissions.canEdit;
-  const { data: pmTemplates = [] } = usePMTemplates({
-    enabled: canEdit || !!equipment.default_pm_template_id,
-  });
   const updateEquipmentMutation = useUpdateEquipment(currentOrganization?.id || '');
   const isMobile = useIsMobile();
   const { data: pmStatus } = useEquipmentPMStatus(equipment.id);
@@ -70,7 +66,6 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
   const modelFieldId = `equipment-model-${equipment.id}`;
   const serialNumberFieldId = `equipment-serial-number-${equipment.id}`;
   const assignedTeamFieldId = `equipment-assigned-team-${equipment.id}`;
-  const pmTemplateFieldId = `equipment-pm-template-${equipment.id}`;
   const descriptionFieldId = `equipment-description-${equipment.id}`;
   const installationDateFieldId = `equipment-installation-date-${equipment.id}`;
   const warrantyExpirationFieldId = `equipment-warranty-expiration-${equipment.id}`;
@@ -81,15 +76,11 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
     handleFieldUpdate,
     handleCustomAttributesUpdate,
     handleTeamAssignment,
-    handlePMTemplateAssignment,
     teamOptions,
-    pmTemplateOptions,
-    getCurrentPMTemplateDisplay,
     getCurrentTeamDisplay,
   } = useEquipmentDetailsTabActions({
     equipment,
     teams,
-    pmTemplates,
     updateEquipmentMutation,
   });
 
@@ -148,10 +139,6 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
         <EquipmentPMInfo
           equipment={equipment}
           canEdit={canEdit}
-          pmTemplateFieldId={pmTemplateFieldId}
-          pmTemplateOptions={pmTemplateOptions}
-          onPMTemplateAssignment={handlePMTemplateAssignment}
-          getCurrentPMTemplateDisplay={getCurrentPMTemplateDisplay}
           getCurrentTeamDisplay={getCurrentTeamDisplay}
           onCreatePMWorkOrder={onCreatePMWorkOrder}
         />
@@ -172,10 +159,6 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
         <EquipmentPMInfo
           equipment={equipment}
           canEdit={canEdit}
-          pmTemplateFieldId={pmTemplateFieldId}
-          pmTemplateOptions={pmTemplateOptions}
-          onPMTemplateAssignment={handlePMTemplateAssignment}
-          getCurrentPMTemplateDisplay={getCurrentPMTemplateDisplay}
           getCurrentTeamDisplay={getCurrentTeamDisplay}
           onCreatePMWorkOrder={onCreatePMWorkOrder}
         />

@@ -99,14 +99,7 @@ export const WorkOrderGeneralInfo: React.FC<WorkOrderGeneralInfoProps> = ({
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor={descriptionFieldId}>Description</Label>
-            <VoiceInputButton
-              isListening={isListening}
-              onToggle={toggleListening}
-              canUseVoice={canUseVoice}
-            />
-          </div>
+          <Label htmlFor={descriptionFieldId}>Description</Label>
           <div className="relative">
             <Textarea
               id={descriptionFieldId}
@@ -114,13 +107,20 @@ export const WorkOrderGeneralInfo: React.FC<WorkOrderGeneralInfoProps> = ({
                 `Describe the work needed for ${preSelectedEquipment.name}. Include any specific requirements, safety considerations, or special instructions...` :
                 "Provide detailed information about the work needed, including any specific requirements, safety considerations, or special instructions..."
               }
-              className="min-h-[120px]"
+              className="min-h-[120px] pb-12"
               value={values.description || ''}
               onChange={(e) => setValue('description', e.target.value)}
             />
             <VoiceInterimTranscript
               isListening={isListening}
               interimTranscript={interimTranscript}
+              className="bottom-12 left-2 right-2"
+            />
+            <VoiceInputButton
+              isListening={isListening}
+              onToggle={toggleListening}
+              canUseVoice={canUseVoice}
+              className="absolute bottom-2 left-2"
             />
           </div>
           {speechError && (

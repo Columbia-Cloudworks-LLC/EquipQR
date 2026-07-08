@@ -38,13 +38,16 @@ export interface UseSpeechToTextReturn {
   error: string | null;
   /** Interim transcript (in-progress speech, not yet final) */
   interimTranscript: string;
-  /** Start listening for speech input */
-  startListening: () => void;
+  /** Start listening for speech input (requests microphone consent first) */
+  startListening: () => Promise<void>;
   /** Stop listening for speech input */
   stopListening: () => void;
   /** Toggle listening state */
   toggleListening: () => void;
 }
+
+const MIC_DENIED_MESSAGE =
+  'Microphone access was denied. Click the microphone button to try again, or allow microphone access in your browser settings.';
 
 /**
  * Get a user-friendly error message for speech recognition errors
@@ -56,7 +59,7 @@ function getErrorMessage(errorCode: string): string {
     case 'audio-capture':
       return 'No microphone was found or microphone is not working.';
     case 'not-allowed':
-      return 'Microphone access was denied. Please allow microphone access in your browser settings.';
+      return MIC_DENIED_MESSAGE;
     case 'network':
       return 'A network error occurred. Please check your connection.';
     case 'aborted':
@@ -67,6 +70,50 @@ function getErrorMessage(errorCode: string): string {
       return 'The selected language is not supported.';
     default:
       return `Speech recognition error: ${errorCode}`;
+  }
+}
+
+/**
+ * Map a getUserMedia rejection to a user-friendly message.
+ */
+function getPermissionErrorMessage(err: unknown): string {
+  const name = err instanceof DOMException ? err.name : '';
+  switch (name) {
+    case 'NotAllowedError':
+    case 'PermissionDeniedError':
+    case 'SecurityError':
+      return MIC_DENIED_MESSAGE;
+    case 'NotFoundError':
+    case 'DevicesNotFoundError':
+      return 'No microphone was found or microphone is not working.';
+    case 'NotReadableError':
+    case 'TrackStartError':
+      return 'The microphone is already in use by another application.';
+    default:
+      return 'Could not access the microphone. Please check your browser settings and try again.';
+  }
+}
+
+/**
+ * Explicitly request microphone permission so the browser shows its consent
+ * prompt before speech recognition starts. The temporary stream is released
+ * immediately; only the permission grant is needed. Returns null on success
+ * or a user-facing error message on failure. Re-invoked on every click so a
+ * previously denied user can restart the consent flow.
+ */
+async function requestMicrophonePermission(): Promise<string | null> {
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+    // Older browsers without mediaDevices: let SpeechRecognition handle
+    // permissions itself.
+    return null;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach((track) => track.stop());
+    return null;
+  } catch (err) {
+    return getPermissionErrorMessage(err);
   }
 }
 
@@ -107,6 +154,8 @@ export function useSpeechToText(options: UseSpeechToTextOptions): UseSpeechToTex
   
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const isStoppingRef = useRef(false);
+  const isStartingRef = useRef(false);
+  const isMountedRef = useRef(true);
 
   // Check for browser support
   const SpeechRecognitionConstructor = getSpeechRecognitionConstructor();
@@ -114,7 +163,9 @@ export function useSpeechToText(options: UseSpeechToTextOptions): UseSpeechToTex
 
   // Cleanup on unmount
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       if (recognitionRef.current) {
         recognitionRef.current.abort();
         recognitionRef.current = null;
@@ -122,16 +173,39 @@ export function useSpeechToText(options: UseSpeechToTextOptions): UseSpeechToTex
     };
   }, []);
 
-  const startListening = useCallback(() => {
+  const startListening = useCallback(async () => {
     if (!isSupported || !SpeechRecognitionConstructor) {
       setError('Speech recognition is not supported in this browser.');
       return;
     }
 
+    // Ignore re-entrant clicks while the permission prompt is open
+    if (isStartingRef.current || recognitionRef.current) {
+      return;
+    }
+    isStartingRef.current = true;
+
     // Clear any previous error
     setError(null);
     setInterimTranscript('');
     isStoppingRef.current = false;
+
+    // Request microphone consent from the browser on every attempt so a
+    // denied user can restart the consent process by clicking again.
+    const permissionError = await requestMicrophonePermission();
+    isStartingRef.current = false;
+    if (!isMountedRef.current) {
+      return;
+    }
+    if (permissionError) {
+      setError(permissionError);
+      setIsListening(false);
+      return;
+    }
+    if (isStoppingRef.current) {
+      // User toggled off while the permission prompt was open.
+      return;
+    }
 
     // Create a new recognition instance
     const recognition = new SpeechRecognitionConstructor();
@@ -226,7 +300,7 @@ export function useSpeechToText(options: UseSpeechToTextOptions): UseSpeechToTex
     if (isListening) {
       stopListening();
     } else {
-      startListening();
+      void startListening();
     }
   }, [isListening, startListening, stopListening]);
 

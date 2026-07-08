@@ -19,10 +19,6 @@ type Equipment = Tables<'equipment'>;
 interface EquipmentPMInfoProps {
   equipment: Equipment;
   canEdit: boolean;
-  pmTemplateFieldId: string;
-  pmTemplateOptions: { value: string; label: string }[];
-  onPMTemplateAssignment: (templateId: string) => void | Promise<void>;
-  getCurrentPMTemplateDisplay: () => string;
   getCurrentTeamDisplay: () => string;
   onCreatePMWorkOrder?: () => void;
   onViewPM?: (pmId: string) => void;
@@ -58,10 +54,6 @@ const COMPLIANCE_CONFIG = {
 const EquipmentPMInfo: React.FC<EquipmentPMInfoProps> = ({
   equipment,
   canEdit,
-  pmTemplateFieldId,
-  pmTemplateOptions,
-  onPMTemplateAssignment,
-  getCurrentPMTemplateDisplay,
   getCurrentTeamDisplay,
   onCreatePMWorkOrder,
   onViewPM,
@@ -82,10 +74,6 @@ const EquipmentPMInfo: React.FC<EquipmentPMInfoProps> = ({
     <EquipmentPMConfigFields
       equipment={equipment}
       canEdit={canEdit}
-      pmTemplateFieldId={pmTemplateFieldId}
-      pmTemplateOptions={pmTemplateOptions}
-      onPMTemplateAssignment={onPMTemplateAssignment}
-      getCurrentPMTemplateDisplay={getCurrentPMTemplateDisplay}
       getCurrentTeamDisplay={getCurrentTeamDisplay}
     />
   );

@@ -37,6 +37,7 @@ import { HorizontalChipRow } from '@/components/layout/HorizontalChipRow';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getStockHealthPresentation } from '@/features/inventory/utils/stockHealth';
 import type { InventoryStructuredLocationFields } from '@/features/inventory/utils/inventoryLocationUtils';
+import { parseInventoryNumericField } from '@/features/inventory/utils/parseInventoryNumericField';
 import { useInventoryItemAdjustQuantity } from '@/features/inventory/hooks/useInventoryItemAdjustQuantity';
 import { useInventoryItemEquipmentDialog } from '@/features/inventory/hooks/useInventoryItemEquipmentDialog';
 import { useInventoryItemAlternateGroupDialogs } from '@/features/inventory/hooks/useInventoryItemAlternateGroupDialogs';
@@ -217,6 +218,25 @@ const InventoryItemDetail = () => {
     });
   };
 
+  // Inline numeric updates for cost and low-stock threshold (#1165). Changes
+  // are recorded in the audit log by the inventory_items audit trigger.
+  const handleNumericFieldUpdate = async (
+    field: 'low_stock_threshold' | 'default_unit_cost',
+    value: string
+  ) => {
+    if (!currentOrganization || !itemId) return;
+    const result = parseInventoryNumericField(field, value);
+    if (!result.ok) {
+      appToast.error({ description: result.error });
+      throw new Error(result.error);
+    }
+    await updateMutation.mutateAsync({
+      organizationId: currentOrganization.id,
+      itemId,
+      formData: result.formData,
+    });
+  };
+
   const handleStructuredLocationUpdate = async (
     location: InventoryStructuredLocationFields,
   ) => {
@@ -376,6 +396,7 @@ const InventoryItemDetail = () => {
               canEdit={canEdit}
               itemImages={itemImages}
               onFieldUpdate={handleFieldUpdate}
+              onNumericFieldUpdate={handleNumericFieldUpdate}
               onSaveStructuredLocation={handleStructuredLocationUpdate}
               onDeleteImage={async (img) => {
                 try {

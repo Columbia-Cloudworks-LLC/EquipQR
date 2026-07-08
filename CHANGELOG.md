@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.19.0] - 2026-07-07
+
+### Fixed
+
+- **Microphone voice input (#1170)** — Voice dictation buttons no longer fail: the `Permissions-Policy` header now allows microphone use on EquipQR's own pages (`microphone=(self)` in Vite dev, Vercel, and Netlify configs), and clicking a mic button explicitly requests browser microphone consent before starting speech recognition. If the user denies access, clicking the button again restarts the consent process with an actionable error message. Privacy policy copy updated to describe the browser-only dictation flow (audio is never recorded or stored by EquipQR).
+- **Inventory item cost and threshold editing (#1165)** — Parts managers and org owners/admins can now change **Default Unit Cost** and **Low Stock Threshold** inline on the inventory item Overview tab using the same click-to-edit pattern as other fields (with numeric validation; clearing the cost removes it). Changes are recorded in the audit log by the existing inventory audit trigger.
+
+### Changed
+
+- **Voice input placement (#1170)** — All voice dictation buttons now use one consistent icon style anchored to the bottom-left corner of the text box they control (notes composers, equipment form description, work order description, PM general notes, working-hours notes, and QR quick-action dialogs).
+- **PM template selector moved to Work Orders tab (#1169)** — The equipment PM template control moved from the Details tab to a prominent dropdown at the top of the Work Orders tab. The dropdown stays locked until the inline edit control is clicked, preventing accidental template changes; picking an option saves immediately and re-locks the control.
+
 ## [3.18.0] - 2026-07-07
 
 ### Added

@@ -35,7 +35,7 @@ interface InlineEditFieldProps {
   onSave: (newValue: string) => Promise<void>;
   canEdit: boolean;
   fieldId?: string;
-  type?: 'text' | 'textarea' | 'date' | 'select';
+  type?: 'text' | 'textarea' | 'date' | 'select' | 'number';
   selectOptions?: { value: string; label: string }[];
   placeholder?: string;
   className?: string;
@@ -197,6 +197,7 @@ const InlineEditField: React.FC<InlineEditFieldProps> = ({
           ref={textInputRef}
           id={fieldId}
           type={type}
+          inputMode={type === 'number' ? 'decimal' : undefined}
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
           onKeyDown={handleKeyDown}
