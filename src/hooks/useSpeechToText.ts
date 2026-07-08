@@ -280,8 +280,13 @@ export function useSpeechToText(options: UseSpeechToTextOptions): UseSpeechToTex
       recognition.start();
     } catch {
       // Clear the ref so the re-entrancy guard does not block future
-      // start attempts after a synchronous start() failure.
+      // start attempts after a synchronous start() failure, and detach all
+      // state-mutating handlers so an abort-emitted event cannot override
+      // the "failed to start" error below.
       recognitionRef.current = null;
+      recognition.onstart = null;
+      recognition.onresult = null;
+      recognition.onerror = null;
       recognition.onend = null;
       try {
         recognition.abort();
