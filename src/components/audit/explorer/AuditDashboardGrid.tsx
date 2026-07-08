@@ -170,6 +170,35 @@ function findVerticalSwapTarget(
   return swapIndex;
 }
 
+/** Reassign y within each column so items stack without vertical overlap. */
+function reflowLayoutRowsPreservingColumns(items: Layout): Layout {
+  const byColumn = new Map<number, LayoutItem[]>();
+  for (const item of items) {
+    const list = byColumn.get(item.x) ?? [];
+    list.push(item);
+    byColumn.set(item.x, list);
+  }
+
+  const orderIndex = new Map(items.map((item, i) => [item.i, i]));
+  const nextYById = new Map<string, number>();
+
+  for (const columnItems of byColumn.values()) {
+    const stacked = [...columnItems].sort(
+      (a, b) => (orderIndex.get(a.i) ?? 0) - (orderIndex.get(b.i) ?? 0),
+    );
+    let y = Math.min(...stacked.map((item) => item.y));
+    for (const item of stacked) {
+      nextYById.set(item.i, y);
+      y += item.h;
+    }
+  }
+
+  return items.map((item) => ({
+    ...item,
+    y: nextYById.get(item.i) ?? item.y,
+  }));
+}
+
 function moveWidgetInLayout(
   layout: Layout,
   widgetId: string,
@@ -181,18 +210,10 @@ function moveWidgetInLayout(
   const swapIndex = findVerticalSwapTarget(sorted, index, direction);
   if (swapIndex < 0 || swapIndex >= sorted.length) return layout;
 
-  const current = sorted[index];
-  const other = sorted[swapIndex];
+  const reordered = [...sorted];
+  [reordered[index], reordered[swapIndex]] = [reordered[swapIndex], reordered[index]];
 
-  return layout.map((item) => {
-    if (item.i === current.i) {
-      return { ...item, y: other.y };
-    }
-    if (item.i === other.i) {
-      return { ...item, y: current.y };
-    }
-    return item;
-  });
+  return reflowLayoutRowsPreservingColumns(reordered);
 }
 
 export interface AuditDashboardGridProps {
