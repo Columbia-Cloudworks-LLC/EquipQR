@@ -276,6 +276,10 @@ export function WorkOrderDetailsMobileContent({
           equipment_id: workOrder.equipment_id,
           organization_id: workOrder.organization_id,
           equipmentTeamId: equipment?.team_id,
+          invoice_status: workOrder.invoice_status,
+          quickbooks_invoice_number: workOrder.quickbooks_invoice_number,
+          invoice_balance_cents: workOrder.invoice_balance_cents,
+          invoice_paid_at: workOrder.invoice_paid_at,
         }}
         assignee={assigneeNameSummary}
         organizationId={currentOrganization.id}

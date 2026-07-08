@@ -13,16 +13,41 @@ import { __qboInvoiceApiTestables } from "./qbo-invoice-api.ts";
 const {
   buildInvoiceLines,
   buildPMInvoiceDescription,
+  buildPartsLineDescription,
   buildPrivateNote,
   escapeQuickBooksQueryValue,
   resolveIncomeAccountRef,
 } = __testables;
 const {
+  applyCustomerBillEmail,
   applyInvoiceTaxState,
   buildCustomerMemo,
   buildInvoiceCustomFields,
   deriveQuickBooksInvoiceStatus,
 } = __payloadTestables;
+
+Deno.test("applyCustomerBillEmail seeds BillEmail from the customer lookup", () => {
+  const invoice: QuickBooksInvoice = { CustomerRef: { value: "32" }, Line: [] };
+  const seeded = applyCustomerBillEmail(invoice, " customer@example.com ");
+  assertEquals(seeded.BillEmail?.Address, "customer@example.com");
+});
+
+Deno.test("applyCustomerBillEmail preserves an existing invoice BillEmail on update", () => {
+  const invoice: QuickBooksInvoice = { CustomerRef: { value: "32" }, Line: [] };
+  const seeded = applyCustomerBillEmail(
+    invoice,
+    "customer@example.com",
+    { Address: "edited-in-qbo@example.com" },
+  );
+  assertEquals(seeded.BillEmail?.Address, "edited-in-qbo@example.com");
+});
+
+Deno.test("applyCustomerBillEmail leaves the invoice untouched without an email", () => {
+  const invoice: QuickBooksInvoice = { CustomerRef: { value: "32" }, Line: [] };
+  assertEquals(applyCustomerBillEmail(invoice, null).BillEmail, undefined);
+  assertEquals(applyCustomerBillEmail(invoice, "   ").BillEmail, undefined);
+  assertEquals(applyCustomerBillEmail(invoice, undefined, { Address: "  " }).BillEmail, undefined);
+});
 
 const REALM = "realm-test-1";
 
@@ -162,6 +187,54 @@ function installQuickBooksItemFetchMock(
 
 Deno.test("escapeQuickBooksQueryValue escapes quotes and backslashes", () => {
   assertEquals(escapeQuickBooksQueryValue(`Bob's \\Parts`), `Bob\\'s \\\\Parts`);
+});
+
+Deno.test("buildPartsLineDescription lists billable rows and strips redundant Parts prefixes", () => {
+  const partsDescription = buildPartsLineDescription([
+    {
+      description: "Parts - engine oil, oil filter, hydraulic filter",
+      quantity: 1,
+      unit_price_cents: 18640,
+      total_price_cents: 18640,
+      inventory_item_id: null,
+    },
+    {
+      description: "Seal kit",
+      quantity: 1,
+      unit_price_cents: 2500,
+      total_price_cents: 2500,
+      inventory_item_id: "inv-1",
+    },
+    // Zero-amount rows are excluded from the invoice total, so they are
+    // excluded from the customer-facing breakdown too.
+    {
+      description: "Warranty adjustment",
+      quantity: 1,
+      unit_price_cents: 0,
+      total_price_cents: 0,
+      inventory_item_id: null,
+    },
+  ]);
+  assertEquals(
+    partsDescription,
+    "Parts:\n- engine oil, oil filter, hydraulic filter\n- Seal kit",
+  );
+});
+
+Deno.test("buildPartsLineDescription falls back to bare Parts when no descriptions survive", () => {
+  assertEquals(buildPartsLineDescription([]), "Parts");
+  assertEquals(
+    buildPartsLineDescription([
+      {
+        description: "Parts - ",
+        quantity: 1,
+        unit_price_cents: 500,
+        total_price_cents: 500,
+        inventory_item_id: null,
+      },
+    ]),
+    "Parts",
+  );
 });
 
 Deno.test("buildPMInvoiceDescription includes all-OK sentence when every condition is 1", () => {
@@ -437,8 +510,9 @@ Deno.test("buildInvoiceLines emits one Parts line for multiple inventory-backed 
       publicNotesText: "",
     });
 
-    const partsLines = lines.filter((l) => l.Description === "Parts");
+    const partsLines = lines.filter((l) => (l.Description ?? "").startsWith("Parts"));
     assertEquals(partsLines.length, 1);
+    assertEquals(partsLines[0]!.Description, "Parts:\n- Bolt A\n- Bolt B");
     assertEquals(partsLines[0]!.Amount, 5); // $5.00 total (100 + 400 cents)
     assertEquals(partsLines[0]!.SalesItemLineDetail.Qty, 1);
     assertEquals(partsLines[0]!.SalesItemLineDetail.UnitPrice, 5);
@@ -533,7 +607,7 @@ Deno.test("buildInvoiceLines produces Labor and Parts rows when both totals are 
 
     assertEquals(lines.length, 2);
     assertMatch(lines[0]!.Description ?? "", /Labor/);
-    assertEquals(lines[1]!.Description, "Parts");
+    assertEquals(lines[1]!.Description, "Parts:\n- Seal kit");
 
     const parsedPosts = postBodies.map((p) => JSON.parse(p) as { Name: string; Type: string });
     const laborCreate = parsedPosts.find((p) => p.Name === QBO_INVOICE_ITEM_NAMES.labor);
@@ -592,7 +666,7 @@ Deno.test(
       assertEquals(lines.length, 2);
       assertEquals(lines[0]!.Description, "Labor");
       assertEquals(lines[0]!.Amount, 60);
-      assertEquals(lines[1]!.Description, "Parts");
+      assertEquals(lines[1]!.Description, "Parts:\n- Seal kit\n- Shop supplies (manual)");
       // $25 + $15 = $40
       assertEquals(lines[1]!.Amount, 40);
 
@@ -628,7 +702,7 @@ Deno.test("buildInvoiceLines folds Truck Supplies cost row into summarized Parts
     });
 
     assertEquals(lines.length, 1);
-    assertEquals(lines[0]!.Description, "Parts");
+    assertEquals(lines[0]!.Description, "Parts:\n- Truck Supplies");
     assertEquals(lines[0]!.Amount, 35);
 
     const parsedPosts = postBodies.map((p) => JSON.parse(p) as { Name: string; Type: string });

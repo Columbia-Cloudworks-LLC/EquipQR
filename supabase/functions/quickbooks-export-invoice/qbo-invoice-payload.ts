@@ -42,6 +42,7 @@ export interface QuickBooksInvoice {
   DocNumber?: string;
   TxnDate?: string;
   DueDate?: string;
+  BillEmail?: { Address?: string };
   TxnTaxDetail?: {
     TotalTax?: number;
   };
@@ -54,6 +55,33 @@ export interface VerifiedTaxState {
   isTaxExempt: boolean | null;
   verified: boolean;
   source: "quickbooks" | "cache" | "unconfirmed";
+  /**
+   * Customer PrimaryEmailAddr captured during the QuickBooks customer lookup.
+   * Only present when the lookup succeeded (`source === "quickbooks"`).
+   */
+  customerPrimaryEmail?: string | null;
+}
+
+/**
+ * QuickBooks does not auto-fill BillEmail on API-created invoices even when
+ * the customer record has a primary email, which forces manual email entry at
+ * "Review and send" time. Seed it from the customer lookup, but never clobber
+ * a BillEmail that already exists on the invoice (the user may have edited it
+ * in QuickBooks between exports).
+ */
+export function applyCustomerBillEmail(
+  invoice: QuickBooksInvoice,
+  customerPrimaryEmail: string | null | undefined,
+  existingBillEmail?: QuickBooksInvoice["BillEmail"] | null,
+): QuickBooksInvoice {
+  if (existingBillEmail?.Address?.trim()) {
+    return { ...invoice, BillEmail: { Address: existingBillEmail.Address } };
+  }
+  const email = customerPrimaryEmail?.trim();
+  if (email) {
+    return { ...invoice, BillEmail: { Address: email } };
+  }
+  return invoice;
 }
 
 const formatTimelineTimestamp = (value: string): string => {
@@ -263,6 +291,7 @@ export function deriveQuickBooksInvoiceStatus(
 }
 
 export const __payloadTestables = {
+  applyCustomerBillEmail,
   applyInvoiceTaxState,
   applyTransactionTaxState,
   amountToCents,

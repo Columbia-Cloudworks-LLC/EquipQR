@@ -6,6 +6,7 @@ import {
 import type { TeamCustomerMapping } from "./qbo-tax-status.ts";
 import type { PreparedInvoiceArtifacts } from "./qbo-export-context.ts";
 import {
+  applyCustomerBillEmail,
   applyTransactionTaxState,
   type QuickBooksInvoice,
   type VerifiedTaxState,
@@ -118,6 +119,11 @@ export async function updateQuickBooksInvoice(
     PrivateNote: privateNote,
     CustomerMemo: { value: customerMemo },
   };
+  updatedInvoice = applyCustomerBillEmail(
+    updatedInvoice,
+    taxState.customerPrimaryEmail,
+    existingInvoice.BillEmail,
+  );
   updatedInvoice = applyTransactionTaxState(updatedInvoice, taxState);
 
   const updateUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/invoice`);
@@ -174,6 +180,7 @@ export async function createQuickBooksInvoice(
   if (workOrderDueDate) {
     newInvoice.DueDate = workOrderDueDate.split("T")[0];
   }
+  newInvoice = applyCustomerBillEmail(newInvoice, taxState.customerPrimaryEmail);
   newInvoice = applyTransactionTaxState(newInvoice, taxState);
 
   const createUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/invoice`);

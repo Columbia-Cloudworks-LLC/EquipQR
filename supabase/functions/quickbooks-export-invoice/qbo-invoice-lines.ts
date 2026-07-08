@@ -447,6 +447,23 @@ function capLineDescription(desc: string): string {
   return desc.slice(0, MAX_QBO_LINE_DESCRIPTION_CHARS - 20) + "\n... (truncated)";
 }
 
+/**
+ * Customer-facing description for the summarized Parts line. Lists the billable
+ * cost rows folded into the line so detail entered on the work order (e.g.
+ * "Parts - engine oil, oil filter") survives onto the invoice instead of only
+ * living in the hidden PrivateNote.
+ */
+export function buildPartsLineDescription(partCosts: WorkOrderCost[]): string {
+  const itemized = partCosts
+    .filter((cost) => getCostAmountCents(cost) > 0)
+    .map((cost) => cost.description.trim().replace(/^Parts\s*[-–—:]\s*/i, "").trim())
+    .filter((description) => description.length > 0);
+
+  const unique = [...new Set(itemized)];
+  if (unique.length === 0) return "Parts";
+  return `Parts:\n${unique.map((description) => `- ${description}`).join("\n")}`;
+}
+
 export async function buildInvoiceLines(
   accessToken: string,
   realmId: string,
@@ -582,10 +599,11 @@ export async function buildInvoiceLines(
       partsItemType,
       lazyIncomeRef,
     );
+    const partsBreakdown = buildPartsLineDescription(partCosts);
     const partsDescRaw =
       primary === "parts" && pmPublicDesc.trim().length > 0
-        ? `${pmPublicDesc.trim()}\n\nParts`
-        : "Parts";
+        ? `${pmPublicDesc.trim()}\n\n${partsBreakdown}`
+        : partsBreakdown;
     const partsDesc = capLineDescription(partsDescRaw);
 
     lines.push({
@@ -606,6 +624,7 @@ export async function buildInvoiceLines(
 export const __testables = {
   escapeQuickBooksQueryValue,
   buildPMInvoiceDescription,
+  buildPartsLineDescription,
   buildPrivateNote,
   buildInvoiceLines,
   resolveIncomeAccountRef,

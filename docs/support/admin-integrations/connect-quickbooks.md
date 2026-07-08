@@ -1,23 +1,23 @@
 ---
 title: "Connect QuickBooks"
 description: "Authorize EquipQR to create draft invoices in your QuickBooks Online company."
-lastReviewed: 2026-05-01
+lastReviewed: 2026-07-07
 personas: ["admin","owner"]
 requirement: "Must be Organization Owner or Admin."
 ---
 
 **For:** Admin, Owner  
-**Last reviewed:** 2026-05-01
+**Last reviewed:** 2026-07-07
 
 ::: info Requires
 Must be Organization Owner or Admin.
 :::
 
-The QuickBooks integration pushes work order details to QuickBooks Online as **draft invoices**. You still review and send from QuickBooks, so you keep full control over customer billing.
+The QuickBooks integration pushes completed work orders to QuickBooks Online as **draft invoices**. You still review and send every invoice from QuickBooks, so you keep full control over customer billing.
 
 ## 1. Open Organization → Integrations
 
-From the sidebar, open Organization, then click the Integrations tab.
+From the sidebar, open **Integrations** (or Organization → Integrations tab). The QuickBooks Online card is at the top of the list.
 
 ## 2. Click Connect to QuickBooks Online
 
@@ -29,10 +29,18 @@ Grant the requested scopes. EquipQR only reads customers and writes invoices —
 
 ## 4. Return to EquipQR
 
-You land back on the Integrations tab with a Connected status. Next, map your teams to QuickBooks customers.
+You land back on the Integrations tab with a **Connected** badge on the QuickBooks Online card. The card offers **Disconnect** and a shortcut to manage the connection inside QuickBooks.
+
+![Integrations page with QuickBooks Online connected](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/admin-integrations/desktop/qb-01-integrations-connected.png)
+
+The same card is available on mobile:
+
+![Mobile Integrations page with QuickBooks connected](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/admin-integrations/mobile/qb-01-integrations-connected.png)
+
+Next, map your teams to QuickBooks customers so invoice export knows where to post.
 
 ::: tip Note
-QuickBooks access tokens expire every 100 days. EquipQR auto-refreshes the connection every 15 minutes, so you rarely need to reconnect manually.
+QuickBooks access tokens expire every 100 days. EquipQR auto-refreshes the connection in the background, so you rarely need to reconnect manually. If the connection health indicator in the top bar turns red, reconnect from this page.
 :::
 
 ## Related articles

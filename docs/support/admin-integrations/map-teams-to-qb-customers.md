@@ -1,38 +1,55 @@
 ---
 title: "Map teams to QuickBooks customers"
-description: "Tell EquipQR which QuickBooks customer each team bills to so invoice export knows where to post."
-lastReviewed: 2026-05-01
+description: "Link each customer team to a QuickBooks customer so invoice export knows where to post."
+lastReviewed: 2026-07-07
 personas: ["admin","owner"]
-requirement: "QuickBooks must be connected. Only Organization Owners and Admins can map teams."
+requirement: "QuickBooks must be connected. Only Organization Owners and Admins can link customer accounts."
 ---
 
 **For:** Admin, Owner  
-**Last reviewed:** 2026-05-01
+**Last reviewed:** 2026-07-07
 
 ::: info Requires
-QuickBooks must be connected. Only Organization Owners and Admins can map teams.
+QuickBooks must be connected. Only Organization Owners and Admins can link customer accounts.
 :::
+
+In EquipQR, an external customer you service is represented as a **team of type Customer**. Linking that team's customer account to a QuickBooks customer tells invoice export where to post.
 
 ## 1. Open the team
 
-Go to Teams, then select the team you want to map.
+Go to **Teams** and open the team for your customer. Teams that are already linked show a green **QuickBooks synced** badge on the Teams list.
 
-## 2. Find the QuickBooks Customer card
+![Teams list with a QuickBooks synced badge on 3-A Equipment](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/admin-integrations/desktop/qb-02-teams-list-sync-badge.png)
 
-Scroll on the team page until you see the QuickBooks Customer card. It shows the current mapping (or 'Not mapped').
+## 2. Find the Customer account card
 
-## 3. Click Select Customer
+On a Customer-type team, the **Customer account** card sits at the top of the team page. It is the billing and service identity for the team — QuickBooks sync lives here, not in Edit Team.
 
-A searchable picker opens pulling live customers from QuickBooks. Pick the customer this team bills to.
+## 3. Link the QuickBooks customer
 
-## 4. Save
+Use the buttons under **QuickBooks invoice export**:
 
-The mapping saves automatically. The team card now shows the linked QuickBooks customer name, and invoice exports from this team post to that customer.
+- **Link different account** / **Change QB customer** — opens a searchable picker pulling live customers from QuickBooks. Pick the customer this team bills to.
+- **Sync from QuickBooks** — refreshes the cached name, contact details, and tax status from QuickBooks.
+- **Unlink** — removes the mapping (exports from this team will be blocked until re-linked).
+
+When linked, the card shows a green **Linked for invoice export** badge with the QuickBooks customer ID and last sync date.
+
+![Customer account card linked for invoice export](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/admin-integrations/desktop/qb-03-team-customer-account-linked.png)
+
+On mobile the same card appears at the top of the team page:
+
+![Mobile customer account card with QuickBooks link](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/admin-integrations/mobile/qb-02-team-customer-card.png)
+
+## 4. Contacts sync automatically
+
+QuickBooks-synced contacts (mobile, primary email, primary phone) appear read-only in the **Customer contacts** section below the account card. Team managers can still add manual external contacts alongside them.
 
 ::: tip Note
-Map every active team before you start exporting so you do not get blocked at invoicing time.
+Map every active customer team before you start exporting so you do not get blocked at invoicing time. The customer's tax-exempt status also syncs from QuickBooks and is applied to exported invoices.
 :::
 
 ## Related articles
 
 - [Export a work order to QuickBooks](./export-work-order-to-qb)
+- [Connect QuickBooks](./connect-quickbooks)

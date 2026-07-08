@@ -84,6 +84,47 @@ describe('FleetMapErrorBoundary', () => {
       expect(screen.queryByText('Fleet Map Error')).not.toBeInTheDocument();
     });
 
+    it('renders the Maps auth diagnostic when the crash is a Google Maps auth TypeError', () => {
+      const ThrowMapsCrash: React.FC = () => {
+        const error = new Error("Cannot read properties of undefined (reading 'keys')");
+        error.stack =
+          "TypeError: Cannot read properties of undefined (reading 'keys')\n" +
+          '    at HTMLElement.mK (https://maps.googleapis.com/maps-api-v3/api/js/65/6a/main.js:461:161)';
+        throw error;
+      };
+
+      render(
+        <FleetMapErrorBoundary>
+          <ThrowMapsCrash />
+        </FleetMapErrorBoundary>,
+      );
+
+      expect(screen.getByTestId('maps-auth-failure-card')).toBeInTheDocument();
+      expect(screen.getByTestId('maps-auth-failure-allowlist-entry')).toHaveTextContent(
+        `${window.location.origin}/*`,
+      );
+      expect(screen.queryByText('Fleet Map Error')).not.toBeInTheDocument();
+    });
+
+    it('keeps the generic card for non-Maps TypeErrors with the same message', () => {
+      const ThrowLookalike: React.FC = () => {
+        const error = new Error("Cannot read properties of undefined (reading 'keys')");
+        error.stack =
+          "TypeError: Cannot read properties of undefined (reading 'keys')\n" +
+          '    at somethingElse (https://preview.equipqr.app/assets/app.js:1:1)';
+        throw error;
+      };
+
+      render(
+        <FleetMapErrorBoundary>
+          <ThrowLookalike />
+        </FleetMapErrorBoundary>,
+      );
+
+      expect(screen.getByText('Fleet Map Error')).toBeInTheDocument();
+      expect(screen.queryByTestId('maps-auth-failure-card')).not.toBeInTheDocument();
+    });
+
     it('invokes onReset after the boundary state is cleared', () => {
       const onReset = vi.fn();
       const flag = { shouldThrow: true };

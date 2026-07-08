@@ -17,7 +17,8 @@ import {
 } from '@/features/equipment/components/inlineEditStyles';
 import { InlineEditWorkOrderAssignee } from '@/features/work-orders/components/InlineEditWorkOrderAssignee';
 import { useWorkOrderInlineFieldSave } from '@/features/work-orders/hooks/useWorkOrderInlineFieldSave';
-import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
+import QuickBooksInvoiceStatusBadge from '@/features/work-orders/components/QuickBooksInvoiceStatusBadge';
+import type { QuickBooksInvoiceStatus, WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 
 const PRIORITY_OPTIONS = [
   { value: 'low', label: 'Low' },
@@ -64,6 +65,10 @@ export interface MobileWorkOrderCompactSummaryProps {
     equipment_id?: string;
     organization_id?: string;
     equipmentTeamId?: string | null;
+    invoice_status?: QuickBooksInvoiceStatus | null;
+    quickbooks_invoice_number?: string | null;
+    invoice_balance_cents?: number | null;
+    invoice_paid_at?: string | null;
   };
   assignee?: { name: string } | null;
   organizationId: string;
@@ -182,6 +187,20 @@ export const MobileWorkOrderCompactSummary: React.FC<MobileWorkOrderCompactSumma
             {statusRowContent}
           </div>
         )}
+
+        {workOrder.invoice_status ? (
+          <div className={mobileInlineEditRowClassName}>
+            <div className={cn('flex min-w-0 items-center gap-2 text-base', mobileInlineEditValueClassName)}>
+              <span className="font-medium text-foreground">Invoice</span>
+              <QuickBooksInvoiceStatusBadge
+                status={workOrder.invoice_status}
+                invoiceNumber={workOrder.quickbooks_invoice_number}
+                balanceCents={workOrder.invoice_balance_cents}
+                paidAt={workOrder.invoice_paid_at}
+              />
+            </div>
+          </div>
+        ) : null}
 
         {canEditFields ? (
           <InlineEditField
