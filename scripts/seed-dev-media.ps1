@@ -148,20 +148,6 @@ function Invoke-PsqlNonQuery {
 
 . (Join-Path $PSScriptRoot 'Invoke-LocalDevStorageUpload.ps1')
 
-function Test-EquipmentExists {
-    param([string]$EquipmentId)
-    $id = Escape-SqlLiteral $EquipmentId
-    $sql = "SELECT EXISTS(SELECT 1 FROM equipment WHERE id = '$id' AND organization_id IN ($SeedOrganizationIdsSql))"
-    return (Invoke-PsqlScalar $sql) -eq 't'
-}
-
-function Test-WorkOrderInSeedScope {
-    param([string]$WorkOrderId)
-    $id = Escape-SqlLiteral $WorkOrderId
-    $sql = "SELECT EXISTS(SELECT 1 FROM work_orders WHERE id = '$id' AND organization_id IN ($SeedOrganizationIdsSql))"
-    return (Invoke-PsqlScalar $sql) -eq 't'
-}
-
 function Get-OrCreateEquipmentSeedNote {
     param([string]$EquipmentId)
     $equipmentIdSql = Escape-SqlLiteral $EquipmentId
@@ -255,20 +241,13 @@ function Insert-WorkOrderSeedNote {
     $workOrderIdSql = Escape-SqlLiteral $WorkOrderId
     $contentSql = Escape-SqlLiteral $Content
     $sql = @"
-WITH ins AS (
 INSERT INTO work_order_notes (id, work_order_id, author_id, content, hours_worked, is_private)
 SELECT '$noteIdSql', wo.id, '$SeedUploaderId', '$contentSql', 0, false
 FROM work_orders wo
 WHERE wo.id = '$workOrderIdSql'
   AND wo.organization_id IN ($SeedOrganizationIdsSql)
-RETURNING id
-)
-SELECT COUNT(*)::text FROM ins
 "@
-    $inserted = Invoke-PsqlScalar $sql
-    if ($inserted -ne '1') {
-        throw "work_order_notes insert no-op for work order $WorkOrderId (missing or out-of-scope)."
-    }
+    Invoke-PsqlNonQuery -Sql $sql -Label "insert work_order_notes"
 }
 
 function Insert-WorkOrderImageRow {
@@ -288,20 +267,13 @@ function Insert-WorkOrderImageRow {
     $mimeTypeSql = Escape-SqlLiteral $MimeType
     $descriptionSql = Escape-SqlLiteral $Description
     $sql = @"
-WITH ins AS (
 INSERT INTO work_order_images (work_order_id, note_id, file_name, file_url, file_size, mime_type, uploaded_by, description)
 SELECT wo.id, '$noteIdSql', '$fileNameSql', '$objectPathSql', $FileSize, '$mimeTypeSql', '$SeedUploaderId', '$descriptionSql'
 FROM work_orders wo
 WHERE wo.id = '$workOrderIdSql'
   AND wo.organization_id IN ($SeedOrganizationIdsSql)
-RETURNING id
-)
-SELECT COUNT(*)::text FROM ins
 "@
-    $inserted = Invoke-PsqlScalar $sql
-    if ($inserted -ne '1') {
-        throw "work_order_images insert no-op for work order $WorkOrderId (missing or out-of-scope)."
-    }
+    Invoke-PsqlNonQuery -Sql $sql -Label "insert work_order_images"
 }
 
 function Insert-EquipmentNoteImageRow {
@@ -368,13 +340,23 @@ $stats = @{
     SkippedMissingWorkOrder = 0
 }
 
+Write-Host "       Loading fixture-scoped equipment and work-order IDs..."
+$SeedScopeEquipmentIds = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+foreach ($equipmentId in @(Invoke-PsqlLines "SELECT id FROM equipment WHERE organization_id IN ($SeedOrganizationIdsSql)")) {
+    [void]$SeedScopeEquipmentIds.Add($equipmentId)
+}
+$SeedScopeWorkOrderIds = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+foreach ($workOrderId in @(Invoke-PsqlLines "SELECT id FROM work_orders WHERE organization_id IN ($SeedOrganizationIdsSql)")) {
+    [void]$SeedScopeWorkOrderIds.Add($workOrderId)
+}
+
 # ── Phase 1: explicit equipment display images (UUID filenames) ────────────
 $phase1Index = 0
 foreach ($img in $uuidEquipmentImages) {
     $phase1Index++
     $equipmentId = $img.BaseName
 
-    if (-not (Test-EquipmentExists -EquipmentId $equipmentId)) {
+    if (-not $SeedScopeEquipmentIds.Contains($equipmentId)) {
         Write-Host "       WARN: No equipment row for $($img.Name) - skipped."
         $stats.SkippedMissingEquipment++
         continue
@@ -402,7 +384,7 @@ foreach ($img in $workOrderImages) {
         continue
     }
 
-    if (-not (Test-WorkOrderInSeedScope -WorkOrderId $workOrderId)) {
+    if (-not $SeedScopeWorkOrderIds.Contains($workOrderId)) {
         Write-Host "       WARN: No in-scope work order for $($img.Name) - skipped."
         $stats.SkippedMissingWorkOrder++
         continue
