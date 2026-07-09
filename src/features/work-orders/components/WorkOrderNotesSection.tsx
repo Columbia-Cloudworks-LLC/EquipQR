@@ -37,6 +37,7 @@ import NoteCardList from '@/components/common/NoteCardList';
 import NotesVisibilityFilter from '@/components/common/NotesVisibilityFilter';
 import {
   filterNotesByVisibility,
+  resolveNoteActionPermissions,
   type NotesVisibilityFilterValue,
 } from '@/components/common/noteCardPermissions';
 import { createNoteMutationHandlers } from '@/components/common/noteMutationHandlers';
@@ -240,6 +241,15 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
     organizationId: currentOrganization?.id,
     setMutatingNoteId,
     invalidateNotes,
+    resolvePermissions: (note) =>
+      resolveNoteActionPermissions({
+        note,
+        currentUserId: user?.id,
+        isOrgAdmin,
+        isTeamManager,
+        isViewerOrRequestor,
+        editWindowHours,
+      }),
     updateNote: (note, updates) =>
       updateWorkOrderNote(currentOrganization!.id, workOrderId, note.id, updates),
     deleteNote: (note) => deleteWorkOrderNote(currentOrganization!.id, workOrderId, note.id),

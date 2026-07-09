@@ -12,7 +12,13 @@
   Runs automatically as step 5b in dev-start.bat -Force.
 #>
 param(
-    [int]$ApiPort = 54321
+    [int]$ApiPort = 54321,
+    [string]$AnonKey,
+    [string]$ServiceRoleKey,
+    [int]$RequestTimeoutSec = 30,
+    [int]$StorageReadyTimeoutSec = 120,
+    [int]$SupabaseStatusTimeoutSec = 45,
+    [int]$MaxRetries = 3
 )
 
 $ErrorActionPreference = 'Stop'
@@ -58,11 +64,54 @@ function Get-ImageContentType([string]$Path) {
     }
 }
 
-function Get-SupabaseKeys() {
-    $prevEAP = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
-    $envLines = & npx supabase status -o env 2>$null
-    $ErrorActionPreference = $prevEAP
+function Invoke-WithRetry {
+    param(
+        [scriptblock]$Action,
+        [string]$Label,
+        [int]$Retries = $MaxRetries
+    )
+    for ($attempt = 1; $attempt -le $Retries; $attempt++) {
+        try {
+            return & $Action
+        }
+        catch {
+            if ($attempt -ge $Retries) { throw }
+            Start-Sleep -Seconds ([Math]::Min(8, $attempt * 2))
+        }
+    }
+}
+
+function Get-SupabaseStatusEnvLines {
+    param([int]$TimeoutSec = $SupabaseStatusTimeoutSec)
+    $job = Start-Job -ArgumentList $repoRoot -ScriptBlock {
+        param($Root)
+        Set-Location -LiteralPath $Root
+        & npx supabase status -o env 2>$null
+    }
+    $completed = Wait-Job -Job $job -Timeout $TimeoutSec
+    if (-not $completed) {
+        Stop-Job -Job $job -Force -ErrorAction SilentlyContinue
+        Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+        return $null
+    }
+    $lines = @(Receive-Job -Job $job)
+    Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
+    return $lines
+}
+
+function Get-SupabaseKeys {
+    param(
+        [string]$PassedAnon,
+        [string]$PassedService
+    )
+    if ($PassedAnon -and $PassedService) {
+        return @{ Anon = $PassedAnon; Service = $PassedService }
+    }
+
+    $envLines = Get-SupabaseStatusEnvLines
+    if (-not $envLines) {
+        return @{ Anon = $null; Service = $null }
+    }
 
     $anonKey = $null
     $serviceKey = $null
@@ -71,6 +120,46 @@ function Get-SupabaseKeys() {
         if ($line -match '^SERVICE_ROLE_KEY="(.+)"') { $serviceKey = $Matches[1] }
     }
     return @{ Anon = $anonKey; Service = $serviceKey }
+}
+
+function Wait-ForStorageReady {
+    param(
+        [string]$Anon,
+        [string]$Service,
+        [int]$TimeoutSec = $StorageReadyTimeoutSec
+    )
+    $headers = @{
+        apikey        = $Anon
+        Authorization = "Bearer $Service"
+    }
+    $deadline = (Get-Date).AddSeconds($TimeoutSec)
+    $attempt = 0
+    Write-Host "       Waiting for Supabase Storage (up to ${TimeoutSec}s)..."
+    while ((Get-Date) -lt $deadline) {
+        $attempt++
+        try {
+            $probeUrl = "$baseUrl/storage/v1/bucket/equipment-note-images"
+            Invoke-WebRequest -Method Head -Uri $probeUrl -Headers $headers -TimeoutSec $RequestTimeoutSec -UseBasicParsing -ErrorAction Stop | Out-Null
+            Write-Host "       Supabase Storage is ready (attempt $attempt)."
+            return $true
+        }
+        catch {
+            Start-Sleep -Seconds 2
+        }
+    }
+    return $false
+}
+
+function Get-ResponseHeaderValue {
+    param(
+        $Response,
+        [string]$HeaderName
+    )
+    if ($null -eq $Response -or $null -eq $Response.Headers) { return $null }
+    $value = $Response.Headers[$HeaderName]
+    if ($null -eq $value) { $value = $Response.Headers[$HeaderName.ToLower()] }
+    if ($value -is [array]) { return $value[0] }
+    return $value
 }
 
 function Get-EncodedStorageObjectPath([string]$ObjectPath) {
@@ -123,7 +212,9 @@ function Invoke-StorageUpload {
     $uploadHeaders = $Headers.Clone()
     $uploadHeaders['Content-Type'] = Get-ImageContentType $FilePath
     $uploadHeaders['x-upsert'] = 'true'
-    Invoke-RestMethod -Method Post -Uri $uploadUrl -Headers $uploadHeaders -Body $bytes | Out-Null
+    Invoke-WithRetry -Label "storage upload $Bucket/$ObjectPath" -Action {
+        Invoke-RestMethod -Method Post -Uri $uploadUrl -Headers $uploadHeaders -Body $bytes -TimeoutSec $RequestTimeoutSec | Out-Null
+    } | Out-Null
 }
 
 function Invoke-RestPatch {
@@ -134,7 +225,9 @@ function Invoke-RestPatch {
         [hashtable]$Headers
     )
     $json = $Body | ConvertTo-Json -Compress
-    Invoke-RestMethod -Method Patch -Uri "$baseUrl/rest/v1/$Table$Filter" -Headers $Headers -Body $json | Out-Null
+    Invoke-WithRetry -Label "patch $Table$Filter" -Action {
+        Invoke-RestMethod -Method Patch -Uri "$baseUrl/rest/v1/$Table$Filter" -Headers $Headers -Body $json -TimeoutSec $RequestTimeoutSec | Out-Null
+    } | Out-Null
 }
 
 function Invoke-RestInsert {
@@ -144,8 +237,9 @@ function Invoke-RestInsert {
         [hashtable]$Headers
     )
     $json = if ($Body -is [array]) { $Body | ConvertTo-Json -Compress } else { $Body | ConvertTo-Json -Compress }
-    $response = Invoke-RestMethod -Method Post -Uri "$baseUrl/rest/v1/$Table" -Headers $Headers -Body $json
-    return $response
+    return Invoke-WithRetry -Label "insert $Table" -Action {
+        Invoke-RestMethod -Method Post -Uri "$baseUrl/rest/v1/$Table" -Headers $Headers -Body $json -TimeoutSec $RequestTimeoutSec
+    }
 }
 
 function Invoke-RestSelect {
@@ -154,7 +248,9 @@ function Invoke-RestSelect {
         [string]$Query,
         [hashtable]$Headers
     )
-    return Invoke-RestMethod -Method Get -Uri "$baseUrl/rest/v1/$Table$Query" -Headers $Headers
+    return Invoke-WithRetry -Label "select $Table" -Action {
+        Invoke-RestMethod -Method Get -Uri "$baseUrl/rest/v1/$Table$Query" -Headers $Headers -TimeoutSec $RequestTimeoutSec
+    }
 }
 
 if (-not (Test-Path $seedRoot)) {
@@ -184,9 +280,14 @@ if ($uuidCount -eq 0 -and $backfillCount -eq 0 -and $workOrderCount -eq 0) {
 
 Write-Host "       Seeding dev media ($uuidCount uuid-mapped, $backfillCount display backfill, $dropOnlyCount drop-only, $workOrderCount work-order)..."
 
-$keys = Get-SupabaseKeys
+$keys = Get-SupabaseKeys -PassedAnon $AnonKey -PassedService $ServiceRoleKey
 if (-not $keys.Anon -or -not $keys.Service) {
     Write-Host "       WARNING: Could not retrieve Supabase keys. Dev media seed skipped."
+    exit 1
+}
+
+if (-not (Wait-ForStorageReady -Anon $keys.Anon -Service $keys.Service)) {
+    Write-Host "       WARNING: Supabase Storage did not become ready in time. Dev media seed skipped."
     exit 1
 }
 
@@ -265,7 +366,9 @@ function Set-EquipmentDisplayImage {
 }
 
 # ── Phase 1: explicit equipment display images (UUID filenames) ────────────
+$phase1Index = 0
 foreach ($img in $uuidEquipmentImages) {
+    $phase1Index++
     $equipmentId = $img.BaseName
 
     if (-not (Test-EquipmentExists -EquipmentId $equipmentId -Headers $restHeaders)) {
@@ -277,6 +380,9 @@ foreach ($img in $uuidEquipmentImages) {
     try {
         Set-EquipmentDisplayImage -EquipmentId $equipmentId -FilePath $img.FullName -FileName $img.Name -RestHeaders $restHeaders -StorageHeaders $storageHeaders
         $stats.DisplayUpdated++
+        if ($phase1Index % 5 -eq 0 -or $phase1Index -eq $uuidEquipmentImages.Count) {
+            Write-Host "       Phase 1 progress: $phase1Index / $($uuidEquipmentImages.Count) uuid-mapped images"
+        }
     }
     catch {
         Write-Host "       WARN: Equipment display seed failed for $($img.Name)"
@@ -347,7 +453,7 @@ function Test-StorageObjectExists {
     if (-not $ObjectPath -or -not $ObjectPath.Trim()) { return $false }
     $checkUrl = Get-StorageObjectUrl -Bucket $Bucket -ObjectPath $ObjectPath
     try {
-        Invoke-WebRequest -Method Head -Uri $checkUrl -Headers $Headers | Out-Null
+        Invoke-WebRequest -Method Head -Uri $checkUrl -Headers $Headers -TimeoutSec $RequestTimeoutSec -UseBasicParsing | Out-Null
         return $true
     }
     catch {
@@ -496,12 +602,17 @@ if ($displayBackfillPool.Count -gt 0) {
 
 $verifyHeaders = $restHeaders.Clone()
 $verifyHeaders['Prefer'] = 'count=exact'
-$verifyResponse = Invoke-WebRequest -Uri "$baseUrl/rest/v1/equipment?select=id&image_url=not.is.null&$SeedOrganizationFilter&limit=1" -Headers $verifyHeaders -Method Get
-$withDisplay = 0
-$contentRange = $verifyResponse.Headers['Content-Range']
-if (-not $contentRange) { $contentRange = $verifyResponse.Headers['content-range'] }
-if ($contentRange -match '/(\d+)$') {
-    $withDisplay = [int]$Matches[1]
+try {
+    $verifyResponse = Invoke-WebRequest -Uri "$baseUrl/rest/v1/equipment?select=id&image_url=not.is.null&$SeedOrganizationFilter&limit=1" -Headers $verifyHeaders -Method Get -UseBasicParsing -TimeoutSec $RequestTimeoutSec
+    $withDisplay = 0
+    $contentRange = Get-ResponseHeaderValue -Response $verifyResponse -HeaderName 'Content-Range'
+    if ($contentRange -match '/(\d+)$') {
+        $withDisplay = [int]$Matches[1]
+    }
+}
+catch {
+    Write-Host "       WARN: Could not verify seeded display image count ($($_.Exception.Message))."
+    $withDisplay = -1
 }
 
 Write-Host "       Dev media seed: $($stats.DisplayUpdated) display, $($stats.NoteImages) equipment-note, $($stats.WorkOrderImages) work-order images, $($stats.Failed) failed, $($stats.SkippedMissingEquipment) uuid files without matching equipment."

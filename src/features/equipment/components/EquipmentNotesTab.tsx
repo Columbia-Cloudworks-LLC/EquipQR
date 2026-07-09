@@ -31,6 +31,7 @@ import NoteCardList from '@/components/common/NoteCardList';
 import NotesVisibilityFilter from '@/components/common/NotesVisibilityFilter';
 import {
   filterNotesByVisibility,
+  resolveNoteActionPermissions,
   type NotesVisibilityFilterValue,
 } from '@/components/common/noteCardPermissions';
 import { createNoteMutationHandlers } from '@/components/common/noteMutationHandlers';
@@ -158,6 +159,15 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
     organizationId: activeOrganizationId,
     setMutatingNoteId,
     invalidateNotes,
+    resolvePermissions: (note) =>
+      resolveNoteActionPermissions({
+        note,
+        currentUserId: user?.id,
+        isOrgAdmin,
+        isTeamManager,
+        isViewerOrRequestor,
+        editWindowHours,
+      }),
     updateNote: (note, updates) =>
       updateEquipmentNote(activeOrganizationId!, equipmentId, note.id, updates),
     deleteNote: (note) => deleteEquipmentNote(activeOrganizationId!, equipmentId, note.id),

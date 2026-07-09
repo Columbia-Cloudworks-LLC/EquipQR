@@ -311,7 +311,9 @@ BEGIN
   USING public.equipment_note_images ei
   WHERE ei.equipment_note_id = p_note_id
     AND o.bucket_id = 'equipment-note-images'
-    AND o.name = ei.file_url;
+    AND o.name = ei.file_url
+    AND (storage.foldername(o.name))[2]::uuid = p_equipment_id
+    AND (storage.foldername(o.name))[3]::uuid = p_note_id;
 
   DELETE FROM public.equipment_note_images WHERE equipment_note_id = p_note_id;
   DELETE FROM public.equipment_notes WHERE id = p_note_id;
@@ -489,7 +491,9 @@ BEGIN
   WHERE wi.note_id = p_note_id
     AND wi.work_order_id = p_work_order_id
     AND o.bucket_id = 'work-order-images'
-    AND o.name = wi.file_url;
+    AND o.name = wi.file_url
+    AND (storage.foldername(o.name))[2]::uuid = p_work_order_id
+    AND (storage.foldername(o.name))[3]::uuid = p_note_id;
 
   DELETE FROM public.work_order_images
   WHERE note_id = p_note_id AND work_order_id = p_work_order_id;
@@ -576,7 +580,9 @@ BEGIN
 
   DELETE FROM storage.objects
   WHERE bucket_id = 'equipment-note-images'
-    AND name = v_image.file_url;
+    AND name = v_image.file_url
+    AND (storage.foldername(name))[2]::uuid = p_equipment_id
+    AND (storage.foldername(name))[3]::uuid = v_image.equipment_note_id;
 
   DELETE FROM public.equipment_note_images WHERE id = p_image_id;
 
@@ -650,7 +656,9 @@ BEGIN
 
   DELETE FROM storage.objects
   WHERE bucket_id = 'work-order-images'
-    AND name = v_image.file_url;
+    AND name = v_image.file_url
+    AND (storage.foldername(name))[2]::uuid = p_work_order_id
+    AND (v_note_id IS NULL OR (storage.foldername(name))[3]::uuid = v_note_id);
 
   DELETE FROM public.work_order_images WHERE id = p_image_id;
 
