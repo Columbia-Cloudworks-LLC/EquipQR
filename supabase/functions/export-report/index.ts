@@ -4,10 +4,14 @@
  * Exports data (equipment, work orders, inventory, etc.) to CSV format.
  * Org admins get the full console; team requestors/viewers get scoped work-order CSV only.
  * Uses user-scoped client so RLS policies apply.
+ *
+ * Async mode (#1193): for equipment / work-orders, pass `{ async: true }` to enqueue
+ * a background job and receive `{ jobId, status }` instead of CSV bytes.
  */
 
 import {
   createErrorResponse,
+  createJsonResponse,
   handleCorsPreflightIfNeeded,
   withCorrelationId,
   requireAuthenticatedPost,
@@ -18,9 +22,9 @@ import {
 } from "../_shared/org-scoped-queries.ts";
 import { resolveWorkOrderExportAccess } from "../_shared/work-order-export-auth.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { isAsyncExportReportType } from "../_shared/export-job.ts";
 import {
   checkRateLimit,
-  type ExportFilters,
 } from "./rate-limit.ts";
 import { exportEquipment } from "./equipment-csv-export.ts";
 import { exportWorkOrders } from "./work-orders-csv-export.ts";
@@ -46,7 +50,8 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       return createErrorResponse(parsedBody.error, parsedBody.status, { req });
     }
 
-    const { reportType, organizationId, filters, columns, format } = parsedBody.data;
+    const { reportType, organizationId, filters, columns, format, async: wantAsync } =
+      parsedBody.data;
 
     if (format !== "csv") {
       return createErrorResponse("Unsupported format. Only CSV is currently supported.", 400, { req });
@@ -61,6 +66,65 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       return createErrorResponse(
         "Forbidden: Only work order summary exports are available for your role",
         403,
+        { req },
+      );
+    }
+
+    if (wantAsync) {
+      if (!isAsyncExportReportType(reportType)) {
+        return createErrorResponse(
+          "Async export is only supported for equipment and work-orders reports",
+          400,
+          { req },
+        );
+      }
+
+      const payload = {
+        filters: filters ?? {},
+        columns,
+        accessibleTeamIds: exportAccess.mode === "scoped" ? exportAccess.teamIds : null,
+      };
+
+      const { data: enqueueResult, error: enqueueError } = await supabase.rpc(
+        "enqueue_export_job",
+        {
+          p_organization_id: organizationId,
+          p_report_type: reportType,
+          p_payload: payload,
+        },
+      );
+
+      if (enqueueError) {
+        console.error("[EXPORT-REPORT] enqueue failed", enqueueError);
+        return createErrorResponse("Failed to enqueue export job", 500, { req });
+      }
+
+      const result = enqueueResult as {
+        success?: boolean;
+        code?: string;
+        error?: string;
+        jobId?: string;
+        status?: string;
+      } | null;
+
+      if (!result?.success) {
+        if (result?.code === "rate_limited") {
+          return createErrorResponse(
+            result.error ?? "Rate limit exceeded. Please wait before requesting another export.",
+            429,
+            { req },
+          );
+        }
+        return createErrorResponse(result?.error ?? "Failed to enqueue export job", 400, { req });
+      }
+
+      return createJsonResponse(
+        {
+          async: true,
+          jobId: result.jobId,
+          status: result.status ?? "pending",
+        },
+        202,
         { req },
       );
     }
@@ -82,6 +146,9 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
         report_type: reportType,
         row_count: 0,
         status: "pending",
+        job_mode: "sync",
+        delivery: "download",
+        request_payload: { filters: filters ?? {}, columns },
       })
       .select("id")
       .single();

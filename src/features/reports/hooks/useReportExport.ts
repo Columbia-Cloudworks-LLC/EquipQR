@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useAppToast } from '@/hooks/useAppToast';
 import { 
   exportReport, 
@@ -7,75 +7,47 @@ import {
   getReportRecordCount 
 } from '@/features/reports/services/reportExportService';
 import type { ReportType, ExportFilters } from '@/features/reports/types/reports';
+import {
+  downloadExportJobResult,
+  showExportLoadingToast,
+  waitForExportJob,
+} from '@/features/reports/utils/exportJobClient';
 
-interface UseReportExportOptions {
+async function runReportExportWithLoadingToast(options: {
   reportType: ReportType;
   organizationId: string;
   organizationName: string;
   filters: ExportFilters;
-}
-
-interface ExportMutationVariables {
   columns: string[];
-}
+}): Promise<void> {
+  const { reportType, organizationId, organizationName, filters, columns } = options;
+  const label = reportType.replace(/-/g, ' ');
+  const loading = showExportLoadingToast(`Preparing your ${label} report`);
 
-/**
- * Hook for exporting reports with TanStack Query mutation
- * 
- * Handles:
- * - Calling the export edge function
- * - Downloading the resulting CSV file
- * - Toast notifications for success/error
- * - Loading state management
- */
-function useReportExport({
-  reportType,
-  organizationId,
-  organizationName,
-  filters,
-}: UseReportExportOptions) {
-  const { toast } = useAppToast();
-
-  const mutation = useMutation({
-    mutationFn: async ({ columns }: ExportMutationVariables) => {
-      const blob = await exportReport(reportType, organizationId, filters, columns);
-      return blob;
-    },
-    onSuccess: (blob) => {
+  try {
+    const result = await exportReport(reportType, organizationId, filters, columns);
+    if (result instanceof Blob) {
       const filename = generateExportFilename(reportType, organizationName);
-      downloadBlob(blob, filename);
-      
-      toast({
-        title: 'Export Complete',
-        description: `Your ${reportType.replace('-', ' ')} report has been downloaded.`,
-        variant: 'success',
-      });
-    },
-    onError: (error: Error) => {
-      // Handle rate limiting specifically
-      if (error.message.includes('Rate limit')) {
-        toast({
-          title: 'Rate Limit Exceeded',
-          description: 'Please wait a moment before requesting another export.',
-          variant: 'warning',
-        });
-      } else {
-        toast({
-          title: 'Export Failed',
-          description: error.message || 'Failed to export report. Please try again.',
-          variant: 'error',
-        });
-      }
-    },
-  });
+      downloadBlob(result, filename);
+      loading.updateSuccess(`Your ${label} report has been downloaded.`);
+      return;
+    }
 
-  return {
-    exportReport: mutation.mutate,
-    exportReportAsync: mutation.mutateAsync,
-    isExporting: mutation.isPending,
-    error: mutation.error?.message ?? null,
-    reset: mutation.reset,
-  };
+    const status = await waitForExportJob(result.jobId);
+    if (status.status === 'failed') {
+      throw new Error(status.errorMessage || 'Export job failed');
+    }
+    const filename = generateExportFilename(reportType, organizationName);
+    await downloadExportJobResult(status, filename);
+    loading.updateSuccess(
+      `Your ${label} report is ready (${status.rowCount ?? 0} rows).`,
+      status.resultUrl ?? undefined,
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to export report';
+    loading.updateError(message);
+    throw error;
+  }
 }
 
 /**
@@ -98,8 +70,8 @@ export function useReportRecordCount(
       return getReportRecordCount(reportType, organizationId, filters, accessibleTeamIds);
     },
     enabled: !!organizationId && scopeReady,
-    staleTime: 30 * 1000, // 30 seconds - counts can change
-    gcTime: 60 * 1000, // 1 minute
+    staleTime: 30 * 1000,
+    gcTime: 60 * 1000,
   });
 }
 
@@ -127,32 +99,22 @@ export function useReportExportDialog(
     }
 
     try {
-      const blob = await exportReport(reportType, organizationId, filters, columns);
-      const filename = generateExportFilename(reportType, organizationName);
-      downloadBlob(blob, filename);
-      
-      toast({
-        title: 'Export Complete',
-        description: `Your ${reportType.replace('-', ' ')} report has been downloaded.`,
-        variant: 'success',
+      await runReportExportWithLoadingToast({
+        reportType,
+        organizationId,
+        organizationName,
+        filters,
+        columns,
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Export failed';
-      
       if (errorMessage.includes('Rate limit')) {
         toast({
           title: 'Rate Limit Exceeded',
           description: 'Please wait a moment before requesting another export.',
           variant: 'warning',
         });
-      } else {
-        toast({
-          title: 'Export Failed',
-          description: errorMessage,
-          variant: 'error',
-        });
       }
-      
       throw error;
     }
   };

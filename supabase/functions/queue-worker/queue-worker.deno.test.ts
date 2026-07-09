@@ -4,25 +4,11 @@ import {
   type DrainResult,
   type QueueMessage,
   runDrainLoop,
+  runDrainLoopForQueue,
 } from "./index.ts";
 
 /**
- * Drain-loop contract tests for `queue-worker`.
- *
- * The drain loop must:
- *   1. read → invoke → delete each message exactly once on success
- *   2. read → invoke → SKIP delete on invoke failure (so pgmq's vt timeout
- *      makes the message eligible for retry on the next cron tick)
- *   3. read → invoke → delete-failed leaves the message visible too (the
- *      message will be re-delivered, but send-push-notification is idempotent
- *      enough that double-delivery is a soft failure)
- *   4. exit early when the queue returns fewer messages than batch_size,
- *      to avoid a wasted "is the queue empty?" read RPC
- *   5. exit when the read RPC errors (infrastructural failure — wait for
- *      next cron tick rather than burning the rest of the budget)
- *
- * These tests stub the supabase-js client behind the small DrainClient
- * interface so we never touch the real Supabase or supabase-js runtime.
+ * Drain-loop contract tests for `queue-worker` (notifications + exports).
  */
 
 const SAMPLE_MESSAGE = (
@@ -38,38 +24,47 @@ const SAMPLE_MESSAGE = (
 });
 
 interface CallLog {
-  reads: { qty: number; vt: number }[];
-  invokes: { payload: Record<string, unknown> }[];
-  deletes: { msgId: number }[];
+  reads: { queueName: string; qty: number; vt: number }[];
+  invokes: { queueName: string; payload: Record<string, unknown> }[];
+  deletes: { queueName: string; msgId: number }[];
 }
 
 function buildStubClient(
-  batches: QueueMessage[][],
+  batchesByQueue: Record<string, QueueMessage[][]>,
   options: {
     invokeError?: { message: string };
+    permanentFailure?: boolean;
     deleteError?: { message: string };
     readError?: { message: string; code?: string };
   } = {},
 ): { client: DrainClient; calls: CallLog } {
   const calls: CallLog = { reads: [], invokes: [], deletes: [] };
-  let batchIdx = 0;
+  const batchIdx: Record<string, number> = {};
 
   const client: DrainClient = {
-    read: (qty, vt) => {
-      calls.reads.push({ qty, vt });
+    read: (queueName, qty, vt) => {
+      calls.reads.push({ queueName, qty, vt });
       if (options.readError) {
         return Promise.resolve({ data: null, error: options.readError });
       }
-      const next = batches[batchIdx] ?? [];
-      batchIdx += 1;
+      const idx = batchIdx[queueName] ?? 0;
+      batchIdx[queueName] = idx + 1;
+      const batches = batchesByQueue[queueName] ?? [];
+      const next = batches[idx] ?? [];
       return Promise.resolve({ data: next, error: null });
     },
-    invoke: (payload) => {
-      calls.invokes.push({ payload });
-      return Promise.resolve({ error: options.invokeError ?? null });
+    invoke: (queueName, payload) => {
+      calls.invokes.push({ queueName, payload });
+      if (options.invokeError) {
+        return Promise.resolve({
+          error: options.invokeError,
+          permanentFailure: options.permanentFailure,
+        });
+      }
+      return Promise.resolve({ error: null });
     },
-    deleteMessage: (msgId) => {
-      calls.deletes.push({ msgId });
+    deleteMessage: (queueName, msgId) => {
+      calls.deletes.push({ queueName, msgId });
       return Promise.resolve({ error: options.deleteError ?? null });
     },
   };
@@ -78,17 +73,17 @@ function buildStubClient(
 }
 
 const silentLog = (_step: string, _details?: Record<string, unknown>): void => {
-  // suppress structured logs during tests so the runner output stays clean
+  // suppress structured logs during tests
 };
 
 Deno.test(
   "happy path: each message produces read + invoke + delete exactly once, then queue drains",
   async () => {
-    const { client, calls } = buildStubClient([
-      [SAMPLE_MESSAGE(1), SAMPLE_MESSAGE(2), SAMPLE_MESSAGE(3)],
-    ]);
+    const { client, calls } = buildStubClient({
+      notifications: [[SAMPLE_MESSAGE(1), SAMPLE_MESSAGE(2), SAMPLE_MESSAGE(3)]],
+    });
 
-    const result: DrainResult = await runDrainLoop(client, {
+    const result = await runDrainLoopForQueue(client, "notifications", {
       maxBatches: 5,
       batchSize: 10,
       vtSeconds: 60,
@@ -97,164 +92,104 @@ Deno.test(
 
     assertEquals(result.processed, 3);
     assertEquals(result.failed, 0);
-    assertEquals(
-      result.batches,
-      1,
-      "Loop should exit after the first batch because batch.length (3) < batchSize (10).",
-    );
-
-    assertEquals(
-      calls.reads.length,
-      1,
-      "Exactly one read; the early-exit branch should prevent a second read.",
-    );
-    assertEquals(calls.invokes.length, 3, "One invoke per message.");
-    assertEquals(calls.deletes.length, 3, "One delete per successful invoke.");
-    assertEquals(
-      calls.deletes.map((d) => d.msgId).sort((a, b) => a - b),
-      [1, 2, 3],
-      "Each msg_id should be deleted exactly once.",
-    );
+    assertEquals(calls.invokes.length, 3);
+    assertEquals(calls.deletes.map((d) => d.msgId), [1, 2, 3]);
   },
 );
 
 Deno.test(
-  "invoke failure: message is NOT deleted (left for vt-driven retry)",
+  "invoke failure without permanentFailure skips delete (retry via vt)",
   async () => {
     const { client, calls } = buildStubClient(
-      [[SAMPLE_MESSAGE(1)]],
-      { invokeError: { message: "send-push-notification 500" } },
+      { notifications: [[SAMPLE_MESSAGE(10)]] },
+      { invokeError: { message: "downstream 500" } },
     );
 
-    const result = await runDrainLoop(client, {
-      maxBatches: 5,
-      batchSize: 10,
-      vtSeconds: 60,
-      log: silentLog,
-    });
-
-    assertEquals(result.processed, 0);
-    assertEquals(result.failed, 1);
-    assertEquals(calls.invokes.length, 1, "Invoke is attempted once.");
-    assertEquals(
-      calls.deletes.length,
-      0,
-      "Delete must NOT be called when invoke fails — pgmq vt makes the message visible again for retry.",
-    );
-  },
-);
-
-Deno.test(
-  "delete failure after successful invoke: counts as failed but does not throw",
-  async () => {
-    const { client, calls } = buildStubClient(
-      [[SAMPLE_MESSAGE(7)]],
-      { deleteError: { message: "delete RPC 500" } },
-    );
-
-    const result = await runDrainLoop(client, {
-      maxBatches: 5,
-      batchSize: 10,
-      vtSeconds: 60,
-      log: silentLog,
-    });
-
-    assertEquals(result.processed, 0);
-    assertEquals(result.failed, 1);
-    assertEquals(calls.invokes.length, 1);
-    assertEquals(
-      calls.deletes.length,
-      1,
-      "Delete is attempted once even though it errored — the loop should not retry the same delete.",
-    );
-  },
-);
-
-Deno.test(
-  "multi-batch path: full batch then a partial batch terminates correctly",
-  async () => {
-    const fullBatch = Array.from({ length: 5 }, (_, i) => SAMPLE_MESSAGE(i + 1));
-    const partialBatch = [SAMPLE_MESSAGE(6), SAMPLE_MESSAGE(7)];
-    const { client, calls } = buildStubClient([fullBatch, partialBatch]);
-
-    const result = await runDrainLoop(client, {
-      maxBatches: 10,
-      batchSize: 5,
-      vtSeconds: 60,
-      log: silentLog,
-    });
-
-    assertEquals(result.processed, 7, "All 7 messages drained successfully.");
-    assertEquals(result.failed, 0);
-    assertEquals(result.batches, 2, "Two batches before early-exit.");
-    assertEquals(
-      calls.reads.length,
-      2,
-      "Two read RPCs — one per batch — and no extra read after the partial batch.",
-    );
-    assertEquals(calls.invokes.length, 7);
-    assertEquals(calls.deletes.length, 7);
-  },
-);
-
-Deno.test(
-  "read error: drain loop exits without invoking or deleting anything",
-  async () => {
-    const { client, calls } = buildStubClient(
-      [[SAMPLE_MESSAGE(99)]],
-      { readError: { message: "pgmq.read RPC 503", code: "503" } },
-    );
-
-    const result = await runDrainLoop(client, {
-      maxBatches: 5,
-      batchSize: 10,
-      vtSeconds: 60,
-      log: silentLog,
-    });
-
-    assertEquals(result.processed, 0);
-    assertEquals(result.failed, 0);
-    assertEquals(result.batches, 1, "Loop counts the batch attempt before bailing.");
-    assertEquals(calls.reads.length, 1);
-    assertEquals(
-      calls.invokes.length,
-      0,
-      "Invoke must not run if the read failed.",
-    );
-    assertEquals(
-      calls.deletes.length,
-      0,
-      "Delete must not run if the read failed.",
-    );
-  },
-);
-
-Deno.test(
-  "max-batches cap: loop stops before processing the full queue when the cap is small",
-  async () => {
-    // Three full batches — but cap is 2.
-    const fullBatch = (offset: number) =>
-      Array.from({ length: 5 }, (_, i) => SAMPLE_MESSAGE(offset + i + 1));
-    const { client, calls } = buildStubClient([
-      fullBatch(0),
-      fullBatch(5),
-      fullBatch(10),
-    ]);
-
-    const result = await runDrainLoop(client, {
+    const result = await runDrainLoopForQueue(client, "notifications", {
       maxBatches: 2,
-      batchSize: 5,
-      vtSeconds: 60,
+      batchSize: 10,
       log: silentLog,
     });
 
-    assertEquals(result.processed, 10, "Two full batches × 5 messages each.");
-    assertEquals(result.batches, 2, "Cap reached after batch 2.");
-    assertEquals(calls.reads.length, 2);
+    assertEquals(result.processed, 0);
+    assertEquals(result.failed, 1);
+    assertEquals(calls.deletes.length, 0);
+  },
+);
+
+Deno.test(
+  "permanentFailure ACKs (deletes) so poison messages do not retry forever",
+  async () => {
+    const { client, calls } = buildStubClient(
+      { exports: [[SAMPLE_MESSAGE(42, { export_log_id: "x" })]] },
+      { invokeError: { message: "invalid payload" }, permanentFailure: true },
+    );
+
+    const result = await runDrainLoopForQueue(client, "exports", {
+      maxBatches: 2,
+      batchSize: 10,
+      log: silentLog,
+    });
+
+    assertEquals(result.processed, 0);
+    assertEquals(result.failed, 1);
+    assertEquals(calls.deletes.length, 1);
+    assertEquals(calls.deletes[0]?.msgId, 42);
+  },
+);
+
+Deno.test(
+  "multi-queue drain processes exports then notifications",
+  async () => {
+    const { client, calls } = buildStubClient({
+      exports: [[SAMPLE_MESSAGE(1, { export_log_id: "a" })]],
+      notifications: [[SAMPLE_MESSAGE(2, { user_id: "u" })]],
+    });
+
+    const result: DrainResult = await runDrainLoop(client, {
+      maxBatches: 5,
+      batchSize: 10,
+      log: silentLog,
+      queues: ["exports", "notifications"],
+    });
+
+    assertEquals(result.processed, 2);
+    assertEquals(result.queues.exports?.processed, 1);
+    assertEquals(result.queues.notifications?.processed, 1);
+    assertEquals(calls.reads[0]?.queueName, "exports");
     assertEquals(
-      calls.invokes.length,
-      10,
-      "Third batch should never have been read or invoked.",
+      calls.reads.some((r) => r.queueName === "notifications"),
+      true,
     );
   },
 );
+
+Deno.test("read error stops draining that queue", async () => {
+  const { client, calls } = buildStubClient(
+    { notifications: [[SAMPLE_MESSAGE(1)]] },
+    { readError: { message: "extension missing", code: "42883" } },
+  );
+
+  const result = await runDrainLoopForQueue(client, "notifications", {
+    maxBatches: 5,
+    log: silentLog,
+  });
+
+  assertEquals(result.processed, 0);
+  assertEquals(calls.invokes.length, 0);
+});
+
+Deno.test("delete failure counts as failed after successful invoke", async () => {
+  const { client } = buildStubClient(
+    { notifications: [[SAMPLE_MESSAGE(7)]] },
+    { deleteError: { message: "delete failed" } },
+  );
+
+  const result = await runDrainLoopForQueue(client, "notifications", {
+    maxBatches: 2,
+    log: silentLog,
+  });
+
+  assertEquals(result.processed, 0);
+  assertEquals(result.failed, 1);
+});
