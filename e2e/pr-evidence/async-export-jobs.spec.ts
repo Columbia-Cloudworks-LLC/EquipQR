@@ -11,31 +11,32 @@ import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
  */
 test.describe('Async export jobs @pr-evidence', () => {
   test('fleet export console shows export flow with loading feedback', async ({ browser }) => {
-    const { context, page } = await newPersonaPage(browser, 'owner', { pinOrgId: metroOrgId });
+    const { context, page } = await newPersonaPage(browser, 'metroOwner', { pinOrgId: metroOrgId });
 
     await gotoDashboardRoute(page, '/reports');
-    await expect(page.getByRole('heading', { name: /fleet export console|reports/i }).first()).toBeVisible({
+    await expect(page.getByRole('heading', { name: /fleet export console/i })).toBeVisible({
       timeout: 60_000,
     });
 
     await evidencePause(page, 800);
     await evidenceScreenshot(page, '01-reports-console');
 
-    const equipmentCard = page.getByRole('button', { name: /equipment/i }).first()
-      .or(page.getByText(/equipment inventory|equipment report/i).first());
-    await expect(equipmentCard).toBeVisible({ timeout: 30_000 });
-    await equipmentCard.click();
+    // Open the Fleet Asset Register (equipment) configure dialog.
+    const configure = page.getByRole('button', { name: /configure export/i }).first();
+    await expect(configure).toBeVisible({ timeout: 30_000 });
+    await configure.click();
 
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 15_000 });
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '02-export-dialog-open');
 
-    const exportButton = page.getByRole('button', { name: /^export$/i }).last();
-    await expect(exportButton).toBeVisible({ timeout: 15_000 });
+    const exportButton = page.getByRole('dialog').getByRole('button', { name: /export/i });
+    await expect(exportButton).toBeEnabled({ timeout: 15_000 });
     await exportButton.click();
 
     // Loading toast should appear while the export (sync or async) runs.
-    await expect(page.getByText(/export in progress|export complete|exporting/i).first()).toBeVisible({
-      timeout: 30_000,
+    await expect(page.getByText(/export in progress|export complete/i).first()).toBeVisible({
+      timeout: 90_000,
     });
 
     await evidencePause(page, 1000);
