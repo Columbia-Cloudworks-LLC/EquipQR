@@ -7,29 +7,35 @@ import {
 } from '@/features/reports/utils/exportCountQueries';
 
 /**
- * Export a report by calling the export-report edge function
- * 
- * @param reportType - The type of report to export
- * @param organizationId - The organization ID
- * @param filters - Filters to apply to the data
- * @param columns - Array of column keys to include in the export
- * @returns Promise that resolves to a Blob containing the CSV data
+ * Export a report by calling the export-report edge function.
+ * Equipment and work-orders use async jobs by default (#1193) when `asyncMode` is true.
  */
 export async function exportReport(
   reportType: ReportType,
   organizationId: string,
   filters: ExportFilters,
-  columns: string[]
-): Promise<Blob> {
-  const request: ExportRequest = {
+  columns: string[],
+  options?: { asyncMode?: boolean },
+): Promise<Blob | { async: true; jobId: string; status: string }> {
+  const asyncMode =
+    options?.asyncMode === true ||
+    (options?.asyncMode !== false && (reportType === 'equipment' || reportType === 'work-orders'));
+
+  const request: ExportRequest & { async?: boolean } = {
     reportType,
     organizationId,
     filters,
     columns,
     format: 'csv',
+    ...(asyncMode ? { async: true } : {}),
   };
 
-  logger.info('Initiating report export', { reportType, organizationId, columnCount: columns.length });
+  logger.info('Initiating report export', {
+    reportType,
+    organizationId,
+    columnCount: columns.length,
+    asyncMode,
+  });
 
   const invokeResult = await supabase.functions
     .invoke('export-report', {
@@ -47,25 +53,31 @@ export async function exportReport(
     throw new Error(invokeError.message || 'Failed to export report', { cause: invokeError });
   }
 
-  // Check if the response is an error JSON response
   if (data && typeof data === 'object' && 'error' in data) {
     const errorData = data as { error: string; details?: string };
     logger.error('Report export returned error', { error: errorData.error });
     throw new Error(errorData.details || errorData.error);
   }
 
-  // The edge function returns CSV text directly
-  // Convert to Blob for download
+  if (
+    data &&
+    typeof data === 'object' &&
+    'async' in data &&
+    (data as { async?: boolean }).async === true &&
+    'jobId' in data
+  ) {
+    const job = data as { async: true; jobId: string; status: string };
+    return { async: true, jobId: job.jobId, status: job.status };
+  }
+
   if (typeof data === 'string') {
     return new Blob([data], { type: 'text/csv;charset=utf-8;' });
   }
 
-  // If data is already a Blob (unlikely but handle it)
   if (data instanceof Blob) {
     return data;
   }
 
-  // Fallback: try to stringify if it's an object
   throw new Error('Unexpected response format from export function');
 }
 

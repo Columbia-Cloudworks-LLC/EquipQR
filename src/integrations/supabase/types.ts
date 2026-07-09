@@ -969,31 +969,55 @@ export type Database = {
       export_request_log: {
         Row: {
           completed_at: string | null
+          delivery: string
+          error_message: string | null
           id: string
+          job_mode: string
           organization_id: string
+          pgmq_msg_id: number | null
           report_type: string
+          request_payload: Json
           requested_at: string
+          result_storage_path: string | null
+          result_url: string | null
           row_count: number
+          started_at: string | null
           status: string
           user_id: string
         }
         Insert: {
           completed_at?: string | null
+          delivery?: string
+          error_message?: string | null
           id?: string
+          job_mode?: string
           organization_id: string
+          pgmq_msg_id?: number | null
           report_type: string
+          request_payload?: Json
           requested_at?: string
+          result_storage_path?: string | null
+          result_url?: string | null
           row_count?: number
+          started_at?: string | null
           status?: string
           user_id: string
         }
         Update: {
           completed_at?: string | null
+          delivery?: string
+          error_message?: string | null
           id?: string
+          job_mode?: string
           organization_id?: string
+          pgmq_msg_id?: number | null
           report_type?: string
+          request_payload?: Json
           requested_at?: string
+          result_storage_path?: string | null
+          result_url?: string | null
           row_count?: number
+          started_at?: string | null
           status?: string
           user_id?: string
         }
@@ -5009,6 +5033,10 @@ export type Database = {
           realm_id: string
         }[]
       }
+      cleanup_expired_export_results: {
+        Args: { p_retention_days?: number }
+        Returns: number
+      }
       cleanup_expired_gws_oauth_sessions: { Args: never; Returns: number }
       cleanup_expired_invitations: { Args: never; Returns: number }
       cleanup_expired_quickbooks_oauth_sessions: {
@@ -5290,6 +5318,39 @@ export type Database = {
           success: boolean
         }[]
       }
+      enqueue_export_job: {
+        Args: {
+          p_organization_id: string
+          p_payload?: Json
+          p_report_type: string
+        }
+        Returns: Json
+      }
+      export_equipment_csv_rows: {
+        Args: {
+          p_columns?: string[]
+          p_limit?: number
+          p_location?: string
+          p_organization_id: string
+          p_status?: string
+          p_team_id?: string
+        }
+        Returns: Json
+      }
+      export_work_orders_csv_rows: {
+        Args: {
+          p_accessible_team_ids?: string[]
+          p_columns?: string[]
+          p_date_from?: string
+          p_date_to?: string
+          p_limit?: number
+          p_organization_id: string
+          p_priority?: string
+          p_status?: string
+          p_team_id?: string
+        }
+        Returns: Json
+      }
       fulfill_dsr_deletion: {
         Args: { p_admin_user_id: string; p_dsr_request_id: string }
         Returns: Json
@@ -5481,6 +5542,7 @@ export type Database = {
           template_name: string
         }[]
       }
+      get_export_job_status: { Args: { p_job_id: string }; Returns: Json }
       get_fleet_efficiency: {
         Args: { p_org_id: string; p_team_ids?: string[] }
         Returns: {
@@ -6157,6 +6219,10 @@ export type Database = {
       snapshot_account_deletion_attribution: {
         Args: { p_user_id: string }
         Returns: undefined
+      }
+      storage_object_path_segment_uuid: {
+        Args: { p_object_name: string; p_segment_index: number }
+        Returns: string
       }
       submit_operator_checkin_public: {
         Args: {

@@ -126,6 +126,7 @@ Use when the agent hits **interactive or consent-bound** limits:
 | Branching / git + deploy | `docs/ops/git-and-deploy.md`, `.cursor/rules/branching.mdc` |
 | **Dev stack stop/start (batch files only)** | `.cursor/rules/dev-stack-lifecycle.mdc` |
 | Local E2E gate before preview push | `.cursor/rules/local-verify-before-preview-push.mdc` |
+| **Async export jobs (CSV)** | `docs/technical/async-export-jobs.md` |
 | **PR open → merge-ready (CI + Qodo + evidence)** | `.cursor/rules/pr-merge-ready-workflow.mdc` |
 | PR visual evidence (screenshots + GIF) | `.cursor/rules/pr-visual-evidence.mdc` |
 | PR CI gate (`npm ci` + green checks before handoff) | `.cursor/rules/pr-ci-gate-before-open.mdc` |

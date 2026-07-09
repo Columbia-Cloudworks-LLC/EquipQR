@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.24.0] - 2026-07-09
+
+### Added
+
+- **Async export jobs (#1193)** — Heavy equipment and work-order CSV exports enqueue via pgmq `exports`, process in `process-export-job`, store results in a private `export-results` bucket, and notify when ready. DB RPCs shape minimal columns to cut egress. Loading toasts cover Google Drive/Docs/Sheets and report exports until completion. Smaller report types remain synchronous.
+
+### Fixed
+
+- **Async export scope hardening (#1205)** — `enqueue_export_job` derives work-order `accessibleTeamIds` from DB memberships (non-admins cannot omit/forge org-wide scope); the worker re-checks admin vs scoped payload and rejects mismatched queue messages; client polling fails fast on `not_found` instead of timing out.
+
 ## [3.23.1] - 2026-07-09
 
 ### Changed

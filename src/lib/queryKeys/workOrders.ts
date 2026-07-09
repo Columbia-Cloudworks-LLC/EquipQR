@@ -42,6 +42,7 @@ export const workOrderMetrics = {
 export const workOrderExports = {
   excelCount: (orgId: string, filters: unknown) =>
     ['work-order-excel-count', orgId, filters] as const,
+  jobStatus: (jobId: string) => ['export-job-status', jobId] as const,
 };
 
 export const exportArtifacts = {
