@@ -48,8 +48,22 @@ const EquipmentImagesTab: React.FC<EquipmentImagesTabProps> = ({
 
   // Delete image mutation
   const deleteImageMutation = useMutation({
-    mutationFn: ({ imageId, sourceType }: { imageId: string; sourceType: 'equipment_note' | 'work_order_note' }) =>
-      deleteEquipmentImage(imageId, sourceType),
+    mutationFn: ({
+      imageId,
+      sourceType,
+      workOrderId,
+    }: {
+      imageId: string;
+      sourceType: 'equipment_note' | 'work_order_note';
+      workOrderId?: string;
+    }) =>
+      deleteEquipmentImage({
+        imageId,
+        sourceType,
+        organizationId,
+        equipmentId,
+        workOrderId,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ['equipment-images', equipmentId]
@@ -146,7 +160,8 @@ const EquipmentImagesTab: React.FC<EquipmentImagesTabProps> = ({
     
     await deleteImageMutation.mutateAsync({
       imageId,
-      sourceType: image.source_type
+      sourceType: image.source_type,
+      workOrderId: image.source_type === 'work_order_note' ? image.source_id : undefined,
     });
   };
 

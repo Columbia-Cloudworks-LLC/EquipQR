@@ -1,17 +1,21 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MessageSquare } from 'lucide-react';
-import NoteTimelineEntry from '@/components/common/NoteTimelineEntry';
 import { WorkOrderNoteTimelineEntry } from '@/features/work-orders/components/WorkOrderNoteTimelineEntry';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useNotesSectionContext } from '@/hooks/useNotesSectionContext';
 import { workOrders as workOrderQueryKeys, workOrderMetrics } from '@/lib/queryKeys';
 import {
   createWorkOrderNoteWithImages,
   getWorkOrderNotesWithImages,
+  deleteWorkOrderNote,
+  updateWorkOrderNote,
+  addImagesToWorkOrderNote,
+  deleteWorkOrderImage,
   type WorkOrderNote,
 } from '@/features/work-orders/services/workOrderNotesService';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
@@ -29,9 +33,17 @@ import {
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { useAttachedNoteImages } from '@/hooks/useAttachedNoteImages';
 import { logger } from '@/utils/logger';
+import NoteCardList from '@/components/common/NoteCardList';
+import NotesVisibilityFilter from '@/components/common/NotesVisibilityFilter';
+import {
+  filterNotesByVisibility,
+  type NotesVisibilityFilterValue,
+} from '@/components/common/noteCardPermissions';
+import { createNoteMutationHandlers } from '@/components/common/noteMutationHandlers';
 
 interface WorkOrderNotesSectionProps {
   workOrderId: string;
+  workOrderTeamId?: string;
   canAddNotes: boolean;
   showPrivateNotes: boolean;
   /** Hide labor hours on notes from customer-facing roles (requestor/viewer) */
@@ -50,6 +62,7 @@ interface WorkOrderNotesSectionProps {
 
 const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
   workOrderId,
+  workOrderTeamId,
   canAddNotes,
   showPrivateNotes,
   showLaborHours = false,
@@ -64,10 +77,14 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
   const { formatDate } = useFormatTimestamp();
   const { user } = useAuth();
   const { currentOrganization } = useOrganization();
+  const { isOrgAdmin, isTeamManager, editWindowHours, isViewerOrRequestor } =
+    useNotesSectionContext(workOrderTeamId);
   const queryClient = useQueryClient();
   const offlineCtx = useOfflineQueueOptional();
   const [showForm, setShowForm] = useState(autoOpenForm);
   const [attachRequestId, setAttachRequestId] = useState(0);
+  const [visibilityFilter, setVisibilityFilter] = useState<NotesVisibilityFilterValue>('all');
+  const [mutatingNoteId, setMutatingNoteId] = useState<string | null>(null);
 
   useEffect(() => {
     if (openFormTrigger && openFormTrigger > 0) {
@@ -202,13 +219,36 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
   };
 
   // Filter notes based on privacy settings
-  const visibleNotes = notes.filter(note => {
+  const baseVisibleNotes = notes.filter((note) => {
     if (!note.is_private) return true;
     if (!showPrivateNotes) return false;
-    return note.author_id === user?.id;
+    return note.author_id === user?.id || isOrgAdmin || isTeamManager;
   });
 
-  // Derive user display name for clipboard paste fallback
+  const visibleNotes = useMemo(
+    () => filterNotesByVisibility(baseVisibleNotes, visibilityFilter, user?.id),
+    [baseVisibleNotes, visibilityFilter, user?.id],
+  );
+
+  const invalidateNotes = () => {
+    queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.notesWithImages(workOrderId) });
+    queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.images(workOrderId) });
+    queryClient.invalidateQueries({ queryKey: workOrderMetrics.imageCount(workOrderId) });
+  };
+
+  const { handleEditNote, handleDeleteNote, handleToggleVisibility } = createNoteMutationHandlers<WorkOrderNote>({
+    organizationId: currentOrganization?.id,
+    setMutatingNoteId,
+    invalidateNotes,
+    updateNote: (note, updates) =>
+      updateWorkOrderNote(currentOrganization!.id, workOrderId, note.id, updates),
+    deleteNote: (note) => deleteWorkOrderNote(currentOrganization!.id, workOrderId, note.id),
+    deleteNoteImage: (imageId) =>
+      deleteWorkOrderImage(imageId, currentOrganization!.id, workOrderId),
+    addNoteImages: (note, files) =>
+      addImagesToWorkOrderNote(workOrderId, note.id, files, currentOrganization!.id),
+  });
+
   const userDisplayName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
   const showTimestampEditor = isHistorical && canEditNoteTimestamps;
 
@@ -266,37 +306,44 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {visibleNotes.map((note) => {
-                const typedNote = note as WorkOrderNote & { _isPendingSync?: boolean };
-                if (showTimestampEditor) {
-                  return (
-                    <WorkOrderNoteTimelineEntry
-                      key={note.id}
-                      note={typedNote}
-                      workOrderId={workOrderId}
-                      formatDate={formatDate}
-                      canEditTimestamp
-                      metaClassName="text-[13px] text-muted-foreground"
-                      contentClassName="prose prose-sm max-w-none dark:prose-invert"
-                      contentTextClassName="whitespace-pre-wrap text-[15px] text-foreground/90 leading-relaxed"
-                    />
-                  );
-                }
-
-                return (
-                  <NoteTimelineEntry
+            {baseVisibleNotes.length > 0 ? (
+              <div className="mb-4 flex justify-end">
+                <NotesVisibilityFilter value={visibilityFilter} onChange={setVisibilityFilter} />
+              </div>
+            ) : null}
+            <NoteCardList
+              notes={visibleNotes as (WorkOrderNote & { _isPendingSync?: boolean })[]}
+              formatDate={formatDate}
+              currentUserId={user?.id}
+              isOrgAdmin={isOrgAdmin}
+              isTeamManager={isTeamManager}
+              isViewerOrRequestor={isViewerOrRequestor}
+              editWindowHours={editWindowHours}
+              mutatingNoteId={mutatingNoteId}
+              onEdit={handleEditNote}
+              onDelete={handleDeleteNote}
+              onToggleVisibility={handleToggleVisibility}
+              showLaborHours={showLaborHours}
+              metaClassName="text-[13px] text-muted-foreground"
+              contentClassName="prose prose-sm max-w-none dark:prose-invert"
+              contentTextClassName="whitespace-pre-wrap text-[15px] text-foreground/90 leading-relaxed"
+              renderNote={(note, card) =>
+                showTimestampEditor ? (
+                  <WorkOrderNoteTimelineEntry
                     key={note.id}
-                    note={typedNote}
+                    note={note}
+                    workOrderId={workOrderId}
                     formatDate={formatDate}
-                    showLaborHours={showLaborHours}
+                    canEditTimestamp
                     metaClassName="text-[13px] text-muted-foreground"
                     contentClassName="prose prose-sm max-w-none dark:prose-invert"
                     contentTextClassName="whitespace-pre-wrap text-[15px] text-foreground/90 leading-relaxed"
                   />
-                );
-              })}
-            </div>
+                ) : (
+                  card
+                )
+              }
+            />
           </CardContent>
         </Card>
       )}

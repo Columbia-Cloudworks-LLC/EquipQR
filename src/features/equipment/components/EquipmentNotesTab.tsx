@@ -1,23 +1,21 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Images } from 'lucide-react';
-import NoteTimelineEntry from '@/components/common/NoteTimelineEntry';
+import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useNotesSectionContext } from '@/hooks/useNotesSectionContext';
 import { equipment as equipmentQueryKeys } from '@/lib/queryKeys';
 import {
   createEquipmentNoteWithImages,
   getEquipmentNotesWithImages,
-  getEquipmentImages,
+  deleteEquipmentNote,
+  updateEquipmentNote,
+  addImagesToEquipmentNote,
   deleteEquipmentNoteImage,
-  updateEquipmentDisplayImage,
 } from '@/features/equipment/services/equipmentNotesService';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { useOfflineMergedNotes } from '@/features/offline-queue/hooks/useOfflineMergedNotes';
-import ImageGallery from '@/components/common/ImageGallery';
 import NotesLoadingSkeleton from '@/components/common/NotesLoadingSkeleton';
 import { resolveNoteContentFromSubmit } from '@/components/common/noteContentHelpers';
 import type { NoteSubmitPayload } from '@/components/common/noteSubmitTypes';
@@ -27,21 +25,21 @@ import {
   showQueuedNoteCreateToasts,
 } from '@/components/common/noteCreateHelpers';
 import { NotesTabAddNoteSection } from '@/components/common/NotesTabAddNoteSection';
-import { useEquipmentNotesPermissions } from '@/features/equipment/hooks/useEquipmentNotesPermissions';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { useAttachedNoteImages } from '@/hooks/useAttachedNoteImages';
+import NoteCardList from '@/components/common/NoteCardList';
+import NotesVisibilityFilter from '@/components/common/NotesVisibilityFilter';
+import {
+  filterNotesByVisibility,
+  type NotesVisibilityFilterValue,
+} from '@/components/common/noteCardPermissions';
+import { createNoteMutationHandlers } from '@/components/common/noteMutationHandlers';
+import type { EquipmentNote } from '@/features/equipment/types/equipmentNotes';
 
 interface EquipmentNotesTabProps {
   equipmentId: string;
   organizationId?: string;
-  /** Team the equipment belongs to — used for permission checks. */
   equipmentTeamId?: string;
-  /**
-   * Current display image URL for the equipment. Passed from
-   * `EquipmentDetails` so this tab does not issue a duplicate
-   * `select image_url from equipment` query — the parent already has the
-   * full row cached via `useEquipmentById`.
-   */
   currentDisplayImage?: string | null;
 }
 
@@ -49,38 +47,52 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   equipmentId,
   organizationId,
   equipmentTeamId,
-  currentDisplayImage,
 }) => {
   const { user } = useAuth();
   const { currentOrganization } = useOrganization();
+  const { isOrgAdmin, isTeamManager, editWindowHours, isViewerOrRequestor } =
+    useNotesSectionContext(equipmentTeamId);
   const queryClient = useQueryClient();
   const offlineCtx = useOfflineQueueOptional();
   const [showForm, setShowForm] = useState(false);
   const [noteContent, setNoteContent] = useState('');
+  const [visibilityFilter, setVisibilityFilter] = useState<NotesVisibilityFilterValue>('all');
+  const [mutatingNoteId, setMutatingNoteId] = useState<string | null>(null);
   const { attachedImages, handleImagesAdd, handleImageRemove, clearAttachedImages } =
     useAttachedNoteImages();
   const activeOrganizationId = organizationId ?? currentOrganization?.id;
-  const permissions = useEquipmentNotesPermissions(equipmentTeamId);
   const { formatDate: formatNoteDate } = useFormatTimestamp();
 
-  // Fetch notes with images
   const { data: serverNotes = [], isLoading: notesLoading } = useQuery({
     queryKey: equipmentQueryKeys.notesWithImages(equipmentId),
     queryFn: () => getEquipmentNotesWithImages(equipmentId),
-    enabled: !!equipmentId
+    enabled: !!equipmentId,
   });
 
-  // Merge server notes with any pending offline note items
   const notes = useOfflineMergedNotes(serverNotes, 'equipment', equipmentId);
 
-  // Fetch images for gallery
-  const { data: images = [] } = useQuery({
-    queryKey: equipmentQueryKeys.images(equipmentId),
-    queryFn: () => getEquipmentImages(equipmentId),
-    enabled: !!equipmentId
-  });
+  const baseVisibleNotes = useMemo(
+    () =>
+      notes.filter((note) => {
+        if (!note.is_private) return true;
+        return note.author_id === user?.id || isOrgAdmin || isTeamManager;
+      }),
+    [notes, user?.id, isOrgAdmin, isTeamManager],
+  );
 
-  // Create note mutation — supports offline (text only; images when online)
+  const visibleNotes = useMemo(
+    () => filterNotesByVisibility(baseVisibleNotes, visibilityFilter, user?.id),
+    [baseVisibleNotes, visibilityFilter, user?.id],
+  );
+
+  const invalidateNotes = () => {
+    queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.notesWithImages(equipmentId) });
+    queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.images(equipmentId) });
+    if (activeOrganizationId) {
+      queryClient.invalidateQueries({ queryKey: ['equipment', activeOrganizationId] });
+    }
+  };
+
   const createNoteMutation = useMutation({
     mutationFn: (input) =>
       runOfflineAwareNoteCreate({
@@ -119,8 +131,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
         offlineCtx?.refresh();
       },
       onOnlineSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.notesWithImages(equipmentId) });
-        queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.images(equipmentId) });
+        invalidateNotes();
         toast.success('Note created successfully');
       },
       resetForm: () => {
@@ -131,56 +142,31 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
     }),
   });
 
-  // Delete image mutation
-  const deleteImageMutation = useMutation({
-    mutationFn: deleteEquipmentNoteImage,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.notesWithImages(equipmentId) });
-      queryClient.invalidateQueries({ queryKey: equipmentQueryKeys.images(equipmentId) });
-    }
-  });
-
-  // Set display image mutation
-  const setDisplayImageMutation = useMutation({
-    mutationFn: (imageUrl: string) => {
-      if (!permissions.canSetDisplayImage) {
-        throw new Error('You do not have permission to set the equipment display image');
-      }
-      if (!activeOrganizationId) {
-        throw new Error('No active organization selected');
-      }
-      return updateEquipmentDisplayImage(activeOrganizationId, equipmentId, imageUrl);
-    },
-    onSuccess: () => {
-      // Invalidate the canonical equipment cache root so both the by-id query
-      // (`['equipment', orgId, equipmentId]`) and the lightweight summaries
-      // query pick up the new display image.
-      if (activeOrganizationId) {
-        queryClient.invalidateQueries({ queryKey: ['equipment', activeOrganizationId] });
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['equipment'] });
-      }
-    }
-  });
-
   const handleNoteSubmit = async (data: NoteSubmitPayload) => {
     const userName = user?.email?.split('@')[0] || 'User';
     const finalContent = resolveNoteContentFromSubmit(data, userName, 'count');
-
     await createNoteMutation.mutateAsync({
       content: finalContent,
       hoursWorked: 0,
       isPrivate: data.isPrivate || false,
       images: data.images,
-      machineHours: data.machineHours
+      machineHours: data.machineHours,
     });
   };
 
-  const canDeleteImage = (image: { uploaded_by: string }) => {
-    return image.uploaded_by === user?.id;
-  };
+  const { handleEditNote, handleDeleteNote, handleToggleVisibility } = createNoteMutationHandlers<EquipmentNote>({
+    organizationId: activeOrganizationId,
+    setMutatingNoteId,
+    invalidateNotes,
+    updateNote: (note, updates) =>
+      updateEquipmentNote(activeOrganizationId!, equipmentId, note.id, updates),
+    deleteNote: (note) => deleteEquipmentNote(activeOrganizationId!, equipmentId, note.id),
+    deleteNoteImage: (imageId) =>
+      deleteEquipmentNoteImage(imageId, activeOrganizationId!, equipmentId),
+    addNoteImages: (note, files) =>
+      addImagesToEquipmentNote(equipmentId, note.id, files, activeOrganizationId!),
+  });
 
-  // Derive user display name for clipboard paste fallback
   const userDisplayName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
 
   if (notesLoading) {
@@ -190,7 +176,7 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   return (
     <div className="space-y-6">
       <NotesTabAddNoteSection
-        noteCount={notes.length}
+        noteCount={visibleNotes.length}
         showForm={showForm}
         onShowForm={() => setShowForm(true)}
         onCancelForm={() => {
@@ -210,46 +196,27 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
         userDisplayName={userDisplayName}
       />
 
-      {/* Notes List */}
-      <div className="space-y-4">
-        {notes.map((note) => (
-          <NoteTimelineEntry
-            key={note.id}
-            note={{
-              ...note,
-              _isPendingSync: (note as { _isPendingSync?: boolean })._isPendingSync,
-            }}
-            formatDate={formatNoteDate}
-          />
-        ))}
-      </div>
+      {baseVisibleNotes.length > 0 ? (
+        <div className="flex justify-end">
+          <NotesVisibilityFilter value={visibilityFilter} onChange={setVisibilityFilter} />
+        </div>
+      ) : null}
 
-      {/* Images Section */}
-      {images.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Images className="h-5 w-5" />
-              Equipment Images ({images.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ImageGallery
-              images={images.filter(img => !img.is_private_note || img.uploaded_by === user?.id)}
-              onDelete={deleteImageMutation.mutateAsync}
-              onSetDisplayImage={setDisplayImageMutation.mutateAsync}
-              canDelete={canDeleteImage}
-              canSetDisplayImage={permissions.canSetDisplayImage}
-              currentDisplayImage={currentDisplayImage ?? undefined}
-              title=""
-              emptyMessage="No images uploaded yet."
-            />
-          </CardContent>
-        </Card>
-      )}
+      <NoteCardList
+        notes={visibleNotes as (EquipmentNote & { _isPendingSync?: boolean })[]}
+        formatDate={formatNoteDate}
+        currentUserId={user?.id}
+        isOrgAdmin={isOrgAdmin}
+        isTeamManager={isTeamManager}
+        isViewerOrRequestor={isViewerOrRequestor}
+        editWindowHours={editWindowHours}
+        mutatingNoteId={mutatingNoteId}
+        onEdit={handleEditNote}
+        onDelete={handleDeleteNote}
+        onToggleVisibility={handleToggleVisibility}
+      />
     </div>
   );
 };
 
 export default EquipmentNotesTab;
-

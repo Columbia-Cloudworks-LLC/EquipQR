@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.23.0] - 2026-07-08
+
+### Added
+
+- **Dynamic image viewports and notes card UI (#1185)** — Bespoke hover/touch panning viewports with download and copy-to-clipboard controls on equipment and work order images. Notes refactored into functional cards (carousel left, post-style content right) with role-based edit/delete/visibility controls, org-configurable author edit window, public/private filters, and audited note mutations via SECURITY DEFINER RPCs. Removed duplicate equipment images gallery from the Notes tab.
+
 ## [3.22.0] - 2026-07-08
 
 ### Changed

@@ -299,7 +299,7 @@ describe('WorkOrderImagesSection', () => {
     await waitFor(() => {
       expect(deleteWorkOrderImage).toHaveBeenCalled();
     });
-    expect(vi.mocked(deleteWorkOrderImage).mock.calls[0][0]).toBe('del-1');
+    expect(vi.mocked(deleteWorkOrderImage).mock.calls[0]).toEqual(['del-1', 'org-1', 'wo-1']);
 
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: workOrderQueryKeys.images('wo-1'),

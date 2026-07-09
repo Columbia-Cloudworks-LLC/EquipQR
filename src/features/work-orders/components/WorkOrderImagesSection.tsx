@@ -23,6 +23,7 @@ import {
 import { Images, ChevronDown, Trash2, User, Clock } from 'lucide-react';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { toast } from 'sonner';
+import DynamicImageViewport from '@/components/common/DynamicImageViewport';
 import { cn } from '@/lib/utils';
 
 interface WorkOrderImagesSectionProps {
@@ -71,7 +72,15 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
   });
 
   const deleteImageMutation = useMutation({
-    mutationFn: deleteWorkOrderImage,
+    mutationFn: ({
+      imageId,
+      organizationId: orgId,
+      workOrderId: woId,
+    }: {
+      imageId: string;
+      organizationId: string;
+      workOrderId: string;
+    }) => deleteWorkOrderImage(imageId, orgId, woId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.images(workOrderId) });
       queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.notesWithImages(workOrderId) });
@@ -94,7 +103,11 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
 
   const handleDelete = async (image: WorkOrderCarouselImage) => {
     try {
-      await deleteImageMutation.mutateAsync(image.id);
+      await deleteImageMutation.mutateAsync({
+        imageId: image.id,
+        organizationId,
+        workOrderId,
+      });
       toast.success('Image deleted successfully');
     } catch (error) {
       console.error('Failed to delete image:', error);
@@ -201,12 +214,12 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
                                 Primary
                               </Badge>
                             ) : null}
-                            <img
+                            <DynamicImageViewport
                               src={image.file_url}
                               alt={image.file_name || 'Work order image'}
-                              className="h-full w-full object-contain"
-                              loading="lazy"
-                              decoding="async"
+                              fileName={image.file_name}
+                              className="aspect-video h-full w-full rounded-md"
+                              fit="contain"
                             />
                           </div>
                           <div className="space-y-2 text-sm">

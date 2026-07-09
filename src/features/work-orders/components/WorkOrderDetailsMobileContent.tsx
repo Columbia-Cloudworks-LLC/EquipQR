@@ -418,6 +418,7 @@ export function WorkOrderDetailsMobileContent({
         <div ref={notesSectionRef}>
           <WorkOrderNotesSection
             workOrderId={workOrder.id}
+            workOrderTeamId={workOrder.team_id ?? undefined}
             canAddNotes={canAddNotes}
             showPrivateNotes={canUsePrivateNotes}
             showLaborHours={canViewWorkOrderCosts}

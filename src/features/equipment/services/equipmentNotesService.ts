@@ -3,8 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { validateStorageQuota } from '@/utils/storageQuota';
 import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
 import {
-  uploadImageToStorage,
-  normalizeStoredObjectPath,
   displayUrlForStoredPrivateImage,
   deleteImageFromStorage,
   batchResolveEquipmentNoteImageDisplayUrls,
@@ -12,11 +10,75 @@ import {
 } from '@/services/imageUploadService';
 import type { EquipmentNote, EquipmentNoteImage } from '@/features/equipment/types/equipmentNotes';
 import { noteMachineHoursInsertFields } from '@/services/noteMachineHoursInsert';
-import { rollbackNoteImageAfterSigningFailure } from '@/services/noteImageSigningRollback';
 import {
-  assertNoteImageUploader,
-  fetchNoteImageForDeletion,
-} from '@/services/noteImageDeleteAuthorization';
+  deleteEquipmentNoteImageAuditedRpc,
+  deleteEquipmentNoteRpc,
+  updateEquipmentNoteRpc,
+} from '@/services/noteMutationRpc';
+import { uploadFilesToNoteImageBucket } from '@/services/noteImageUploadShared';
+
+async function validateEquipmentNoteImageQuota(
+  equipmentId: string,
+  organizationId: string,
+  images: File[],
+): Promise<void> {
+  const { data: equipmentRow, error: equipmentLookupError } = await supabase
+    .from('equipment')
+    .select('organization_id')
+    .eq('id', equipmentId)
+    .single();
+
+  if (equipmentLookupError) throw equipmentLookupError;
+
+  if (equipmentRow.organization_id !== organizationId) {
+    throw new Error('Organization mismatch for equipment note');
+  }
+
+  const totalFileSize = images.reduce((sum, file) => sum + file.size, 0);
+  await validateStorageQuota(equipmentRow.organization_id, totalFileSize);
+}
+
+async function uploadEquipmentNoteImages(
+  equipmentId: string,
+  noteId: string,
+  images: File[],
+  userId: string,
+): Promise<EquipmentNoteImage[]> {
+  return uploadFilesToNoteImageBucket<EquipmentNoteImage>({
+    bucket: 'equipment-note-images',
+    imagesTable: 'equipment_note_images',
+    images,
+    buildObjectKey: (file) => {
+      const fileExt = file.name.split('.').pop();
+      return `${userId}/${equipmentId}/${noteId}/${Date.now()}.${fileExt}`;
+    },
+    insertImageRecord: async (file, storedPath) => {
+      const { data, error } = await supabase
+        .from('equipment_note_images')
+        .insert({
+          equipment_note_id: noteId,
+          file_name: file.name,
+          file_url: storedPath,
+          file_size: file.size,
+          mime_type: file.type,
+          uploaded_by: userId,
+        })
+        .select()
+        .single();
+      if (error) {
+        logger.error('Failed to save image record:', error);
+        try {
+          await deleteImageFromStorage('equipment-note-images', storedPath);
+        } catch (cleanupError) {
+          logger.error('Failed to delete orphaned equipment note image after DB insert failure:', cleanupError);
+        }
+        return null;
+      }
+      return data as unknown as EquipmentNoteImage;
+    },
+    signDisplayUrls: (paths) => batchResolveEquipmentNoteImageDisplayUrls(paths),
+  });
+}
 
 // Get notes with images for equipment
 export const getEquipmentNotesWithImages = async (equipmentId: string): Promise<EquipmentNote[]> => {
@@ -89,20 +151,7 @@ export const createEquipmentNoteWithImages = async (
     throw new Error('organizationId is required to create an equipment note');
   }
 
-  const { data: equipmentRow, error: equipmentLookupError } = await supabase
-    .from('equipment')
-    .select('organization_id')
-    .eq('id', equipmentId)
-    .single();
-
-  if (equipmentLookupError) throw equipmentLookupError;
-
-  if (equipmentRow.organization_id !== organizationId) {
-    throw new Error('Organization mismatch for equipment note creation');
-  }
-
-  const totalFileSize = images.reduce((sum, file) => sum + file.size, 0);
-  await validateStorageQuota(equipmentRow.organization_id, totalFileSize);
+  await validateEquipmentNoteImageQuota(equipmentId, organizationId, images);
 
   // Create the note first
   const { data: note, error: noteError } = await supabase
@@ -120,72 +169,11 @@ export const createEquipmentNoteWithImages = async (
 
   if (noteError) throw noteError;
 
-  // Upload images if provided — collect DB records first, then batch-sign
-  type InsertedRecord = { record: EquipmentNoteImage; storedPath: string };
-  const insertedRecords: InsertedRecord[] = [];
-  for (const file of images) {
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}/${equipmentId}/${note.id}/${Date.now()}.${fileExt}`;
-      const storedPath = await uploadImageToStorage('equipment-note-images', fileName, file);
-
-      // Save image record to database
-      const { data: imageRecord, error: imageError } = await supabase
-        .from('equipment_note_images')
-        .insert({
-          equipment_note_id: note.id,
-          file_name: file.name,
-          file_url: storedPath,
-          file_size: file.size,
-          mime_type: file.type,
-          uploaded_by: userId
-        })
-        .select()
-        .single();
-
-      if (imageError) {
-        logger.error('Failed to save image record:', imageError);
-        try {
-          await deleteImageFromStorage('equipment-note-images', storedPath);
-        } catch (cleanupError) {
-          logger.error('Failed to delete orphaned equipment note image after DB insert failure:', cleanupError);
-        }
-        continue;
-      }
-
-      insertedRecords.push({ record: imageRecord as unknown as EquipmentNoteImage, storedPath });
-    } catch (error) {
-      logger.error('Error processing image:', error);
-    }
-  }
-
-  // Batch-sign all successfully inserted records in one round-trip
-  const signedBatch = insertedRecords.length > 0
-    ? await batchResolveEquipmentNoteImageDisplayUrls(insertedRecords.map(r => r.record.file_url))
-    : [];
-
-  const uploadedImages: EquipmentNoteImage[] = [];
-  for (let i = 0; i < insertedRecords.length; i++) {
-    const { record, storedPath } = insertedRecords[i];
-    const displayUrl = displayUrlForStoredPrivateImage(signedBatch[i] ?? null, record.file_url);
-    if (displayUrl != null) {
-      uploadedImages.push({ ...record, file_url: displayUrl });
-    } else {
-      // Signing failed — clean up DB row and storage to avoid orphaned resources.
-      // DB delete must succeed before storage delete; otherwise the DB row still
-      // exists and would point at a missing storage object, creating broken state.
-      await rollbackNoteImageAfterSigningFailure({
-        bucket: 'equipment-note-images',
-        imagesTable: 'equipment_note_images',
-        imageId: record.id,
-        storedPath,
-      });
-    }
-  }
+  const uploadedImages = await uploadEquipmentNoteImages(equipmentId, note.id, images, userId);
 
   return {
     ...note,
-    images: uploadedImages
+    images: uploadedImages,
   };
 };
 
@@ -234,25 +222,52 @@ export const getEquipmentImages = async (equipmentId: string) => {
     .filter((row): row is NonNullable<typeof row> => row != null);
 };
 
-// Delete an image
-export const deleteEquipmentNoteImage = async (imageId: string): Promise<void> => {
+// Delete an image (audited RPC)
+export const deleteEquipmentNoteImage = async (
+  imageId: string,
+  organizationId: string,
+  equipmentId: string,
+): Promise<void> => {
+  await deleteEquipmentNoteImageAuditedRpc({ organizationId, equipmentId, imageId });
+};
+
+export const updateEquipmentNote = async (
+  organizationId: string,
+  equipmentId: string,
+  noteId: string,
+  updates: { content?: string; isPrivate?: boolean },
+): Promise<void> => {
+  await updateEquipmentNoteRpc({
+    organizationId,
+    equipmentId,
+    noteId,
+    content: updates.content,
+    isPrivate: updates.isPrivate,
+  });
+};
+
+export const deleteEquipmentNote = async (
+  organizationId: string,
+  equipmentId: string,
+  noteId: string,
+): Promise<void> => {
+  await deleteEquipmentNoteRpc({ organizationId, equipmentId, noteId });
+};
+
+export const addImagesToEquipmentNote = async (
+  equipmentId: string,
+  noteId: string,
+  images: File[],
+  organizationId: string,
+): Promise<EquipmentNoteImage[]> => {
   const userId = await requireAuthUserIdFromClaims();
-
-  const image = await fetchNoteImageForDeletion('equipment_note_images', imageId);
-  assertNoteImageUploader(image.uploaded_by, userId);
-
-  // Delete from database
-  const { error: deleteError } = await supabase
-    .from('equipment_note_images')
-    .delete()
-    .eq('id', imageId);
-
-  if (deleteError) throw deleteError;
-
-  const filePath = normalizeStoredObjectPath(image.file_url, 'equipment-note-images');
-  if (filePath) {
-    await supabase.storage.from('equipment-note-images').remove([filePath]);
+  if (!organizationId) {
+    throw new Error('organizationId is required');
   }
+
+  await validateEquipmentNoteImageQuota(equipmentId, organizationId, images);
+
+  return uploadEquipmentNoteImages(equipmentId, noteId, images, userId);
 };
 
 // Update equipment display image
