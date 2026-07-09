@@ -105,9 +105,12 @@ describe('SessionStorageService', () => {
 
     it('logs when localStorage setItem fails', () => {
       const session = buildSession();
-      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      // Cover both prototype-bound (jsdom) and own-method (setup.ts memory Storage) paths.
+      const throwQuota = () => {
         throw new Error('quota');
-      });
+      };
+      const protoSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(throwQuota);
+      const instanceSpy = vi.spyOn(localStorage, 'setItem').mockImplementation(throwQuota);
 
       SessionStorageService.saveSessionToStorage(session);
 
@@ -116,7 +119,8 @@ describe('SessionStorageService', () => {
         expect.any(Error)
       );
 
-      setItemSpy.mockRestore();
+      protoSpy.mockRestore();
+      instanceSpy.mockRestore();
     });
   });
 

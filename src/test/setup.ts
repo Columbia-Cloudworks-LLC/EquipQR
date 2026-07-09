@@ -7,7 +7,7 @@ import { createMockSupabaseClient } from './utils/mock-supabase';
 /**
  * Newer Node runtimes can expose a global `localStorage` / `sessionStorage` that is not
  * Web Storage–compatible when `--localstorage-file` is invalid, which breaks
- * Vitest + jsdom (getItem/setItem/clear are not functions). Install a small
+ * Vitest + happy-dom/jsdom (getItem/setItem/clear are not functions). Install a small
  * in-memory Storage so app code and tests always see a real Storage API.
  */
 (function installTestWebStorage(): void {

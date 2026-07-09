@@ -152,8 +152,9 @@ jobs:
 
   test:
     # Sharded test execution. Each shard runs roughly 1/N of the suite in
-    # parallel. This converts the ~5-minute serial suite into ~75-90s wall
-    # clock by exploiting the matrix.
+    # parallel. Per-shard Vitest also uses up to 2 file workers on Linux CI
+    # (see vitest.config.ts; #1199). Coverage ratchet stays on the merged
+    # report for every PR — do not defer floors to main-only.
     name: Test Suite (shard ${{ matrix.shard }}/${{ matrix.shard_total }})
     runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
     timeout-minutes: 10

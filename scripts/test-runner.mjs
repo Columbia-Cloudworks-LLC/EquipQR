@@ -3,7 +3,7 @@
 /**
  * Test runner wrapper that prevents Vitest from hanging on Windows.
  *
- * Issue: Vitest workers don't exit cleanly due to open handles from jsdom,
+ * Issue: Vitest workers don't exit cleanly due to open handles from happy-dom/jsdom,
  * React Query cache, or other async operations. Tests complete successfully
  * but the process hangs indefinitely before printing the final summary.
  *

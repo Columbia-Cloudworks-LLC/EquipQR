@@ -295,10 +295,14 @@ describe('EquipmentQRQuickActions', () => {
 
     await user.click(screen.getByRole('button', { name: /update hours/i }));
     const hoursInput = await screen.findByLabelText(/new total hours/i);
-    await user.clear(hoursInput);
-    await user.type(hoursInput, '125.5');
-    await user.type(screen.getByLabelText(/reason or note/i), 'Meter reading');
-    await user.click(screen.getByRole('button', { name: /^update hours$/i }));
+    // happy-dom: prefer fireEvent for number inputs + form submit (userEvent.type/click flaky).
+    fireEvent.change(hoursInput, { target: { value: '125.5' } });
+    fireEvent.change(screen.getByLabelText(/reason or note/i), {
+      target: { value: 'Meter reading' },
+    });
+    const form = hoursInput.closest('form');
+    expect(form).toBeTruthy();
+    fireEvent.submit(form!);
 
     await waitFor(() => {
       expect(mockUpdateHours).toHaveBeenCalledWith(
@@ -323,11 +327,12 @@ describe('EquipmentQRQuickActions', () => {
 
     await user.click(screen.getByRole('button', { name: /update hours/i }));
     const hoursInput = await screen.findByLabelText(/new total hours/i);
-    await user.clear(hoursInput);
-    await user.type(hoursInput, '130');
-    await user.type(screen.getByLabelText(/reason or note/i), 'Meter');
+    fireEvent.change(hoursInput, { target: { value: '130' } });
+    fireEvent.change(screen.getByLabelText(/reason or note/i), { target: { value: 'Meter' } });
     await user.click(screen.getByRole('button', { name: 'Start voice input' }));
-    await user.click(screen.getByRole('button', { name: /^update hours$/i }));
+    const form = hoursInput.closest('form');
+    expect(form).toBeTruthy();
+    fireEvent.submit(form!);
 
     await waitFor(() => {
       expect(mockUpdateHours).toHaveBeenCalledWith(

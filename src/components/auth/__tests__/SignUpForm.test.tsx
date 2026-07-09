@@ -521,9 +521,12 @@ describe('SignUpForm', () => {
     });
 
     it('should not update email if prefillEmail matches current email', () => {
-      render(<SignUpForm {...defaultSignUpFormProps} prefillEmail="test@example.com" />, {
-        wrapper: RouterWrapper,
-      });
+      const { unmount } = render(
+        <SignUpForm {...defaultSignUpFormProps} prefillEmail="test@example.com" />,
+        {
+          wrapper: RouterWrapper,
+        },
+      );
 
       const emailInput = screen.getByLabelText(/email/i);
       expect(emailInput).toHaveValue('test@example.com');
@@ -531,12 +534,13 @@ describe('SignUpForm', () => {
       fireEvent.change(emailInput, { target: { value: '' } });
       fireEvent.change(emailInput, { target: { value: 'manual@example.com' } });
 
+      // Unmount before remounting — a second render() without cleanup stacks trees in happy-dom.
+      unmount();
       render(<SignUpForm {...defaultSignUpFormProps} prefillEmail="manual@example.com" />, {
         wrapper: RouterWrapper,
       });
 
-      const newEmailInput = screen.getByLabelText(/email/i);
-      expect(newEmailInput).toHaveValue('manual@example.com');
+      expect(screen.getByLabelText(/email/i)).toHaveValue('manual@example.com');
     });
 
     it('should validate email when prefillEmail changes to invalid value', async () => {

@@ -13,20 +13,23 @@ export default defineConfig({
   plugins: [react()],
   test: {
     globals: true,
+    // Staying on jsdom after #1199 happy-dom experiment: ~8–12% faster on hotspot
+    // files, but full-suite regressions (number inputs, form submit, Storage spies,
+    // media currentTime, computed styles). Revisit via #1201 after more suite slimming.
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: true,
     testTimeout: 10000,
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['supabase/**', 'node_modules/**'],
-    // Forks pool for process isolation; tuned to actually use the CI runner.
-    // ubuntu-latest has 4 vCPUs and ~16GB. Combined with CI sharding (--shard=N/M),
-    // serial workers per job avoid vitest fork IPC hangs on heavy Radix/jsdom shards.
-    // Native Windows stays serial (vitest-dev/vitest#8861); WSL test:ci uses Linux settings.
+    // Forks pool for process isolation. Combined with CI sharding (--shard=N/M).
+    // After Radix pins + slimmer component suites (#1199), CI allows modest
+    // in-shard file parallelism (2 workers). Windows stays serial
+    // (vitest-dev/vitest#8861). Revert CI workers to 1 if fork IPC hangs return.
     pool: 'forks',
     isolate: true,
-    fileParallelism: isWindows ? false : isCI ? false : true,
-    maxWorkers: isWindows ? 1 : isCI ? 1 : undefined,
+    fileParallelism: isWindows ? false : true,
+    maxWorkers: isWindows ? 1 : isCI ? 2 : undefined,
     // Ensure hooks don't hang
     hookTimeout: 30000,
     teardownTimeout: 10000,
