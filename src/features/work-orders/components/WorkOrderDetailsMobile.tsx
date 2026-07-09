@@ -10,6 +10,7 @@ import { humanizeAttributeKey, humanizeAttributeValue } from '@/features/work-or
 import type { EffectiveLocation } from '@/utils/effectiveLocation';
 import InlineEditField from '@/features/equipment/components/InlineEditField';
 import { EquipmentLocationMapPanel } from '@/components/location/EquipmentLocationMapPanel';
+import { EquipmentPrimaryMediaPanel } from '@/features/equipment/components/media/EquipmentPrimaryMediaPanel';
 import type { EquipmentLocationEditProps } from '@/components/location/equipmentLocationEditProps';
 import {
   toWorkOrderEquipmentMapInput,
@@ -284,20 +285,14 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
                 </button>
               </CollapsibleTrigger>
               <CollapsibleContent className="pm-collapsible-animate mt-3 space-y-3 overflow-hidden text-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 data-[state=open]:slide-in-from-top-2 data-[state=closed]:slide-out-to-top-2 data-[state=open]:duration-200 data-[state=closed]:duration-150">
-                <div className="overflow-hidden rounded-lg border">
-                  {equipment.image_url ? (
-                    <img
-                      src={equipment.image_url}
-                      alt={equipment.name}
-                      className="h-40 w-full object-cover"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  ) : (
-                    <div className="flex h-40 w-full items-center justify-center bg-muted">
-                      <Forklift className="h-12 w-12 text-muted-foreground" />
-                    </div>
-                  )}
+                <div className="overflow-hidden rounded-lg border p-2">
+                  <EquipmentPrimaryMediaPanel
+                    equipmentId={equipment.id}
+                    organizationId={organizationId}
+                    equipmentName={equipment.name}
+                    currentDisplayImage={equipment.image_url}
+                    emptyClassName="h-40"
+                  />
                 </div>
 
                 {isEquipmentDetailsExpanded ? (

@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import type { DuplicateEquipmentMatch } from '@/features/equipment/services/EquipmentService';
 import {
@@ -30,6 +29,10 @@ import EquipmentStatusLocationSection from './form/EquipmentStatusLocationSectio
 import EquipmentNotesSection from './form/EquipmentNotesSection';
 import EquipmentFormActions from './form/EquipmentFormActions';
 import TeamSelectionSection from './form/TeamSelectionSection';
+import {
+  EquipmentFormMediaSection,
+  type EquipmentFormPendingMedia,
+} from './form/EquipmentFormMediaSection';
 import { DuplicateSerialWarning } from './DuplicateSerialWarning';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useDuplicateSerialCheck, resolveDuplicateSerialAtSubmit } from '@/features/equipment/hooks/useDuplicateSerialCheck';
@@ -42,7 +45,8 @@ interface EquipmentFormProps {
 
 const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment }) => {
   const { attributes } = useCustomAttributes();
-  const { form, onSubmit, isEdit, isPending } = useEquipmentForm(equipment, onClose);
+  const pendingMediaRef = useRef<EquipmentFormPendingMedia>({ files: [], displayIndex: 0 });
+  const { form, onSubmit, isEdit, isPending } = useEquipmentForm(equipment, onClose, pendingMediaRef);
   const { hasRole } = usePermissions();
   const isAdmin = hasRole(['owner', 'admin']);
 
@@ -61,19 +65,21 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
   const [pendingDuplicateData, setPendingDuplicateData] = useState<EquipmentFormData | null>(null);
   const [confirmDuplicateMatch, setConfirmDuplicateMatch] = useState<DuplicateEquipmentMatch | null>(null);
 
-  const handleCustomAttributeChange = (attributes: CustomAttribute[]) => {
-    const attributesObject = attributes.reduce((acc, attr) => {
+  const handlePendingMediaChange = useCallback((media: EquipmentFormPendingMedia) => {
+    pendingMediaRef.current = media;
+  }, []);
+
+  const handleCustomAttributeChange = (nextAttributes: CustomAttribute[]) => {
+    const attributesObject = nextAttributes.reduce((acc, attr) => {
       acc[attr.key] = attr.value;
       return acc;
     }, {} as Record<string, string>);
-    
+
     form.setValue('custom_attributes', attributesObject);
   };
 
   const isUnassignedTeam = (teamId?: string) => !teamId || teamId === 'unassigned';
 
-  // Run the unassigned-team confirmation gate, then submit. Called either
-  // directly or after the operator acknowledges a possible-duplicate serial.
   const finalizeSubmit = (data: EquipmentFormData) => {
     if (!isEdit && isAdmin && isUnassignedTeam(data.team_id)) {
       setPendingUnassignedSelect(false);
@@ -135,9 +141,9 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
     setShowUnassignedConfirm(true);
   };
 
-  const handleUnassignedConfirmOpenChange = (open: boolean) => {
-    setShowUnassignedConfirm(open);
-    if (!open) {
+  const handleUnassignedConfirmOpenChange = (nextOpen: boolean) => {
+    setShowUnassignedConfirm(nextOpen);
+    if (!nextOpen) {
       setPendingSubmitData(null);
       setPendingUnassignedSelect(false);
     }
@@ -170,6 +176,14 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment 
                 />
                 <EquipmentStatusLocationSection form={form} />
               </div>
+
+              {!isEdit && (
+                <EquipmentFormMediaSection
+                  form={form}
+                  onPendingMediaChange={handlePendingMediaChange}
+                  disabled={isPending}
+                />
+              )}
 
               <EquipmentNotesSection form={form} />
 
