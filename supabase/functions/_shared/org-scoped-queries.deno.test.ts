@@ -71,6 +71,16 @@ Deno.test("parseJsonBody rejects invalid organizationId", () => {
     assert(parsed.error.includes("Invalid organizationId"));
   }
 });
+Deno.test("parseJsonBody rejects missing organizationId type", () => {
+  const parsed = parseJsonBody(geocodeLocationRequestSchema, {
+    organizationId: 123,
+    input: "123 Main St",
+  });
+  assert(!parsed.success);
+  if (!parsed.success) {
+    assert(parsed.error.includes("organizationId is required"));
+  }
+});
 
 Deno.test("exportReportRequestSchema requires columns", () => {
   const parsed = parseJsonBody(exportReportRequestSchema, {

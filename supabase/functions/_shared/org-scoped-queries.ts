@@ -122,17 +122,7 @@ export function parseJsonBody<T>(
   }
 
   const issues = result.error.issues
-    .map((issue) => {
-      const field = issue.path.length > 0 ? issue.path.join(".") : "";
-      if (field === "organizationId" && issue.code === "invalid_format") {
-        return "Invalid organizationId";
-      }
-      if (field === "organizationId" && issue.code === "invalid_type") {
-        return "organizationId is required";
-      }
-      const path = field ? `${field}: ` : "";
-      return `${path}${issue.message}`;
-    })
+    .map((issue) => formatValidationIssue(issue))
     .join("; ");
 
   return {
@@ -140,6 +130,19 @@ export function parseJsonBody<T>(
     error: `Invalid request body: ${issues}`,
     status: 400,
   };
+}
+
+function formatValidationIssue(issue: z.ZodIssue): string {
+  const field = issue.path.length > 0 ? issue.path.join(".") : "";
+  if (field === "organizationId") {
+    if (issue.code === "invalid_type") {
+      return "organizationId is required";
+    }
+    return "Invalid organizationId";
+  }
+
+  const path = field ? `${field}: ` : "";
+  return `${path}${issue.message}`;
 }
 
 /**
