@@ -9,11 +9,12 @@
  * Auth: service role only (same contract as queue-worker).
  */
 
-import { createClient } from "npm:@supabase/supabase-js@2.45.0";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import {
   createErrorResponse,
   createJsonResponse,
   handleCorsPreflightIfNeeded,
+  verifyOrgAdmin,
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
 import { requireSecret } from "../_shared/require-secret.ts";
@@ -34,10 +35,39 @@ import {
 const FUNCTION_NAME = "process-export-job";
 const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 
+type ExportQueryError = { message: string } | null;
+
+/** Chainable PostgREST-style builder used by the worker (stub-friendly, no `any`). */
+export type ExportJobQueryBuilder = {
+  select: (columns: string) => ExportJobQueryBuilder;
+  eq: (column: string, value: unknown) => ExportJobQueryBuilder;
+  in: (column: string, values: unknown[]) => ExportJobQueryBuilder;
+  not: (column: string, operator: string, value: unknown) => ExportJobQueryBuilder;
+  order: (
+    column: string,
+    options?: { ascending?: boolean },
+  ) => ExportJobQueryBuilder;
+  limit: (count: number) => ExportJobQueryBuilder;
+  ilike: (column: string, pattern: string) => ExportJobQueryBuilder;
+  gte: (column: string, value: unknown) => ExportJobQueryBuilder;
+  lte: (column: string, value: unknown) => ExportJobQueryBuilder;
+  update: (values: Record<string, unknown>) => ExportJobQueryBuilder;
+  insert: (
+    values: Record<string, unknown>,
+  ) => PromiseLike<{ error: ExportQueryError }>;
+  maybeSingle: () => PromiseLike<{
+    data: Record<string, unknown> | null;
+    error: ExportQueryError;
+  }>;
+  then: PromiseLike<{
+    data: Record<string, unknown>[] | null;
+    error: ExportQueryError;
+  }>["then"];
+};
+
 /** Minimal admin client surface used by the worker (keeps tests stub-friendly). */
 export type ExportJobAdminClient = {
-  // deno-lint-ignore no-explicit-any
-  from: (table: string) => any;
+  from: (table: string) => ExportJobQueryBuilder;
   storage: {
     from: (bucket: string) => {
       upload: (
@@ -55,6 +85,46 @@ export type ExportJobAdminClient = {
     };
   };
 };
+
+function asUuidArray(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  const ids = value.filter(
+    (v): v is string => typeof v === "string" && v.length > 0,
+  );
+  return ids;
+}
+
+/**
+ * Resolve work-order team scope for the async worker.
+ * Missing/invalid accessibleTeamIds is only allowed for org admins (re-checked via DB).
+ */
+export async function resolveWorkOrderExportTeamScope(
+  adminClient: ExportJobAdminClient,
+  userId: string,
+  organizationId: string,
+  payloadTeamIds: unknown,
+): Promise<{ ok: true; teamIds: string[] | null } | { ok: false; error: string }> {
+  const parsed = asUuidArray(payloadTeamIds);
+  const isAdmin = await verifyOrgAdmin(
+    adminClient as unknown as SupabaseClient,
+    userId,
+    organizationId,
+  );
+
+  if (isAdmin) {
+    return { ok: true, teamIds: parsed };
+  }
+
+  if (!parsed || parsed.length === 0) {
+    return {
+      ok: false,
+      error:
+        "Work-order export missing accessibleTeamIds for non-admin job owner",
+    };
+  }
+
+  return { ok: true, teamIds: parsed };
+}
 
 function validateServiceRoleAuth(req: Request): boolean {
   const authHeader = req.headers.get("Authorization");
@@ -160,6 +230,18 @@ export async function processExportJobPayload(
     return { ok: false, error: logError?.message ?? "Export log not found" };
   }
 
+  // Defense-in-depth: queue message must match the authoritative log row.
+  if (
+    logRow.organization_id !== message.organization_id ||
+    logRow.user_id !== message.user_id ||
+    logRow.report_type !== message.report_type
+  ) {
+    return {
+      ok: false,
+      error: "Export job message does not match export_request_log row",
+    };
+  }
+
   if (logRow.status === "completed") {
     logExportJobStep("already-completed", { export_log_id: message.export_log_id });
     return { ok: true, rowCount: 0 };
@@ -226,14 +308,20 @@ async function runExportAndStore(
       "equipment_name",
       "created_date",
     ]);
-    const accessibleTeamIds = Array.isArray(requestPayload.accessibleTeamIds)
-      ? (requestPayload.accessibleTeamIds as string[])
-      : null;
+    const scope = await resolveWorkOrderExportTeamScope(
+      adminClient,
+      message.user_id,
+      message.organization_id,
+      requestPayload.accessibleTeamIds,
+    );
+    if (!scope.ok) {
+      throw new Error(scope.error);
+    }
     rows = await fetchWorkOrderRows(
       adminClient,
       message.organization_id,
       filters,
-      accessibleTeamIds,
+      scope.teamIds,
       dateRange,
     );
   }

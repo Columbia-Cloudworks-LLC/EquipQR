@@ -3,7 +3,11 @@
  */
 
 import { assertEquals } from "jsr:@std/assert@1";
-import { processExportJobPayload } from "./index.ts";
+import {
+  processExportJobPayload,
+  resolveWorkOrderExportTeamScope,
+  type ExportJobAdminClient,
+} from "./index.ts";
 
 type TableState = {
   log?: Record<string, unknown>;
@@ -11,6 +15,8 @@ type TableState = {
   uploaded?: { path: string; bytes: number };
   notifications: Record<string, unknown>[];
   equipmentRows?: Record<string, unknown>[];
+  workOrderRows?: Record<string, unknown>[];
+  orgMemberRole?: string | null;
 };
 
 function thenableQuery(data: Record<string, unknown>[]) {
@@ -36,7 +42,7 @@ function thenableQuery(data: Record<string, unknown>[]) {
   return api;
 }
 
-function buildAdminStub(state: TableState) {
+function buildAdminStub(state: TableState): ExportJobAdminClient {
   return {
     from(table: string) {
       if (table === "export_request_log") {
@@ -60,7 +66,40 @@ function buildAdminStub(state: TableState) {
               eq: () => Promise.resolve({ error: null }),
             };
           },
-        };
+        } as never;
+      }
+      if (table === "organization_members") {
+        // undefined = default admin for happy-path stubs; null = non-admin.
+        const role = state.orgMemberRole === undefined
+          ? "owner"
+          : state.orgMemberRole;
+        return {
+          select() {
+            return {
+              eq() {
+                return {
+                  eq() {
+                    return {
+                      eq() {
+                        return {
+                          in() {
+                            return {
+                              maybeSingle: () =>
+                                Promise.resolve({
+                                  data: role ? { role } : null,
+                                  error: null,
+                                }),
+                            };
+                          },
+                        };
+                      },
+                    };
+                  },
+                };
+              },
+            };
+          },
+        } as never;
       }
       if (table === "equipment") {
         return thenableQuery(
@@ -76,10 +115,10 @@ function buildAdminStub(state: TableState) {
               teams: { name: "Fleet" },
             },
           ],
-        );
+        ) as never;
       }
       if (table === "work_orders") {
-        return thenableQuery([]);
+        return thenableQuery(state.workOrderRows ?? []) as never;
       }
       if (table === "notifications") {
         return {
@@ -87,7 +126,7 @@ function buildAdminStub(state: TableState) {
             state.notifications.push(row);
             return Promise.resolve({ error: null });
           },
-        };
+        } as never;
       }
       throw new Error(`unexpected table ${table}`);
     },
@@ -127,8 +166,7 @@ Deno.test("processExportJobPayload happy path: processing → upload → complet
     },
   };
 
-  // deno-lint-ignore no-explicit-any
-  const result = await processExportJobPayload(buildAdminStub(state) as any, {
+  const result = await processExportJobPayload(buildAdminStub(state), {
     export_log_id: "job-1",
     organization_id: "org-1",
     user_id: "user-1",
@@ -145,8 +183,7 @@ Deno.test("processExportJobPayload happy path: processing → upload → complet
 
 Deno.test("processExportJobPayload rejects invalid payload", async () => {
   const state: TableState = { updates: [], notifications: [] };
-  // deno-lint-ignore no-explicit-any
-  const result = await processExportJobPayload(buildAdminStub(state) as any, {
+  const result = await processExportJobPayload(buildAdminStub(state), {
     export_log_id: "x",
   });
   assertEquals(result.ok, false);
@@ -159,11 +196,13 @@ Deno.test("processExportJobPayload is idempotent when already completed", async 
     log: {
       id: "job-1",
       status: "completed",
+      organization_id: "org-1",
+      user_id: "user-1",
+      report_type: "equipment",
       request_payload: {},
     },
   };
-  // deno-lint-ignore no-explicit-any
-  const result = await processExportJobPayload(buildAdminStub(state) as any, {
+  const result = await processExportJobPayload(buildAdminStub(state), {
     export_log_id: "job-1",
     organization_id: "org-1",
     user_id: "user-1",
@@ -173,6 +212,29 @@ Deno.test("processExportJobPayload is idempotent when already completed", async 
   assertEquals(state.updates.length, 0);
 });
 
+Deno.test("processExportJobPayload rejects mismatched log ownership", async () => {
+  const state: TableState = {
+    updates: [],
+    notifications: [],
+    log: {
+      id: "job-1",
+      status: "pending",
+      organization_id: "org-other",
+      user_id: "user-1",
+      report_type: "equipment",
+      request_payload: {},
+    },
+  };
+  const result = await processExportJobPayload(buildAdminStub(state), {
+    export_log_id: "job-1",
+    organization_id: "org-1",
+    user_id: "user-1",
+    report_type: "equipment",
+  });
+  assertEquals(result.ok, false);
+  assertEquals(result.error?.includes("does not match"), true);
+});
+
 Deno.test("processExportJobPayload marks failed when upload errors", async () => {
   const state: TableState = {
     updates: [],
@@ -180,22 +242,13 @@ Deno.test("processExportJobPayload marks failed when upload errors", async () =>
     log: {
       id: "job-2",
       status: "pending",
+      organization_id: "org-1",
+      user_id: "user-1",
+      report_type: "equipment",
       request_payload: { columns: ["name"], filters: {} },
     },
   };
-  const stub = buildAdminStub(state) as {
-    storage: {
-      from: () => {
-        upload: (
-          path?: string,
-          bytes?: Uint8Array,
-        ) => Promise<{ error: { message: string } | null }>;
-        createSignedUrl: (
-          path?: string,
-        ) => Promise<{ data: { signedUrl: string } | null; error: { message: string } | null }>;
-      };
-    };
-  };
+  const stub = buildAdminStub(state);
   stub.storage.from = () => ({
     upload() {
       return Promise.resolve({ error: { message: "quota exceeded" } });
@@ -205,8 +258,7 @@ Deno.test("processExportJobPayload marks failed when upload errors", async () =>
     },
   });
 
-  // deno-lint-ignore no-explicit-any
-  const result = await processExportJobPayload(stub as any, {
+  const result = await processExportJobPayload(stub, {
     export_log_id: "job-2",
     organization_id: "org-1",
     user_id: "user-1",
@@ -215,4 +267,62 @@ Deno.test("processExportJobPayload marks failed when upload errors", async () =>
 
   assertEquals(result.ok, false);
   assertEquals(state.updates.some((u) => u.status === "failed"), true);
+});
+
+Deno.test("processExportJobPayload fails work-orders without team scope for non-admin", async () => {
+  const state: TableState = {
+    updates: [],
+    notifications: [],
+    orgMemberRole: null,
+    log: {
+      id: "job-wo",
+      status: "pending",
+      organization_id: "org-1",
+      user_id: "user-1",
+      report_type: "work-orders",
+      request_payload: { columns: ["title"], filters: {} },
+    },
+  };
+
+  const result = await processExportJobPayload(buildAdminStub(state), {
+    export_log_id: "job-wo",
+    organization_id: "org-1",
+    user_id: "user-1",
+    report_type: "work-orders",
+  });
+
+  assertEquals(result.ok, false);
+  assertEquals(result.error?.includes("accessibleTeamIds"), true);
+  assertEquals(state.updates.some((u) => u.status === "failed"), true);
+});
+
+Deno.test("resolveWorkOrderExportTeamScope allows null teams for admin", async () => {
+  const state: TableState = {
+    updates: [],
+    notifications: [],
+    orgMemberRole: "admin",
+  };
+  const scope = await resolveWorkOrderExportTeamScope(
+    buildAdminStub(state),
+    "user-1",
+    "org-1",
+    null,
+  );
+  assertEquals(scope.ok, true);
+  if (scope.ok) assertEquals(scope.teamIds, null);
+});
+
+Deno.test("resolveWorkOrderExportTeamScope rejects missing teams for non-admin", async () => {
+  const state: TableState = {
+    updates: [],
+    notifications: [],
+    orgMemberRole: null,
+  };
+  const scope = await resolveWorkOrderExportTeamScope(
+    buildAdminStub(state),
+    "user-1",
+    "org-1",
+    null,
+  );
+  assertEquals(scope.ok, false);
 });

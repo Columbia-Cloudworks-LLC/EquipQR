@@ -90,6 +90,23 @@ export async function waitForExportJob(
   while (Date.now() - started < timeoutMs) {
     const status = await getExportJobStatus(jobId);
     options?.onStatus?.(status);
+
+    if (status.success === false) {
+      if (status.code === 'not_found') {
+        throw new Error('Export job not found');
+      }
+      if (status.code === 'rate_limited' || status.status === 'rate_limited') {
+        throw new Error(
+          status.errorMessage ||
+            'Rate limit exceeded. Please wait before requesting another export.',
+        );
+      }
+      throw new Error(
+        status.errorMessage ||
+          (status.code ? `Export job error: ${status.code}` : 'Export job failed'),
+      );
+    }
+
     if (status.status && TERMINAL.has(status.status)) {
       return status;
     }

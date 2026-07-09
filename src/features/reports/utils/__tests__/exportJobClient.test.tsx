@@ -37,7 +37,11 @@ vi.mock('@/utils/logger', () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn() },
 }));
 
-import { showExportLoadingToast } from '@/features/reports/utils/exportJobClient';
+import {
+  showExportLoadingToast,
+  waitForExportJob,
+} from '@/features/reports/utils/exportJobClient';
+import { supabase } from '@/integrations/supabase/client';
 
 describe('showExportLoadingToast', () => {
   beforeEach(() => {
@@ -77,5 +81,43 @@ describe('showExportLoadingToast', () => {
         variant: 'destructive',
       }),
     );
+  });
+});
+
+describe('waitForExportJob', () => {
+  beforeEach(() => {
+    vi.mocked(supabase.rpc).mockReset();
+  });
+
+  it('fails immediately when get_export_job_status returns not_found', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: { success: false, code: 'not_found' },
+      error: null,
+    } as never);
+
+    await expect(
+      waitForExportJob('missing-job', { intervalMs: 10, timeoutMs: 1000 }),
+    ).rejects.toThrow('Export job not found');
+    expect(supabase.rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns when status reaches a terminal state', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: {
+        success: true,
+        status: 'completed',
+        jobId: 'job-1',
+        rowCount: 3,
+        resultUrl: 'https://example.test/file.csv',
+      },
+      error: null,
+    } as never);
+
+    const status = await waitForExportJob('job-1', {
+      intervalMs: 10,
+      timeoutMs: 1000,
+    });
+    expect(status.status).toBe('completed');
+    expect(status.rowCount).toBe(3);
   });
 });
