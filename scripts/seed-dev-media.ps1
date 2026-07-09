@@ -342,11 +342,17 @@ $stats = @{
 
 Write-Host "       Loading fixture-scoped equipment and work-order IDs..."
 $SeedScopeEquipmentIds = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-foreach ($equipmentId in @(Invoke-PsqlLines "SELECT id FROM equipment WHERE organization_id IN ($SeedOrganizationIdsSql)")) {
+$equipmentScopeLines = Invoke-WithRetry -Label 'load seed-scoped equipment ids' -Action {
+    @(Invoke-PsqlLines "SELECT id FROM equipment WHERE organization_id IN ($SeedOrganizationIdsSql)")
+}
+foreach ($equipmentId in $equipmentScopeLines) {
     [void]$SeedScopeEquipmentIds.Add($equipmentId)
 }
 $SeedScopeWorkOrderIds = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-foreach ($workOrderId in @(Invoke-PsqlLines "SELECT id FROM work_orders WHERE organization_id IN ($SeedOrganizationIdsSql)")) {
+$workOrderScopeLines = Invoke-WithRetry -Label 'load seed-scoped work-order ids' -Action {
+    @(Invoke-PsqlLines "SELECT id FROM work_orders WHERE organization_id IN ($SeedOrganizationIdsSql)")
+}
+foreach ($workOrderId in $workOrderScopeLines) {
     [void]$SeedScopeWorkOrderIds.Add($workOrderId)
 }
 
