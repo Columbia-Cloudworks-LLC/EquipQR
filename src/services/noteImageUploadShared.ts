@@ -1,7 +1,6 @@
 import { logger } from '@/utils/logger';
 import {
   uploadImageToStorage,
-  deleteImageFromStorage,
   displayUrlForStoredPrivateImage,
 } from '@/services/imageUploadService';
 import { rollbackNoteImageAfterSigningFailure } from '@/services/noteImageSigningRollback';

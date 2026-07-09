@@ -26,6 +26,7 @@ async function validateEquipmentNoteImageQuota(
     .from('equipment')
     .select('organization_id')
     .eq('id', equipmentId)
+    .eq('organization_id', organizationId)
     .single();
 
   if (equipmentLookupError) throw equipmentLookupError;
