@@ -340,7 +340,11 @@ describe('InventoryList — desktop table', () => {
     });
 
     const user = userEvent.setup();
-    await user.click(screen.getAllByRole('button', { name: /actions for healthy part/i })[0]!);
+    const [actionsTrigger] = screen.getAllByRole('button', { name: /actions for healthy part/i });
+    if (!actionsTrigger) {
+      throw new Error('Expected at least one row actions trigger for Healthy Part');
+    }
+    await user.click(actionsTrigger);
     await user.click(await screen.findByRole('menuitem', { name: /manage alternate groups/i }));
 
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/inventory/item-1?alternateAction=add');

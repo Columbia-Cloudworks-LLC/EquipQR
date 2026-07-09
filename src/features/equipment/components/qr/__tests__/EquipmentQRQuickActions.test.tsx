@@ -301,8 +301,10 @@ describe('EquipmentQRQuickActions', () => {
       target: { value: 'Meter reading' },
     });
     const form = hoursInput.closest('form');
-    expect(form).toBeTruthy();
-    fireEvent.submit(form!);
+    if (!(form instanceof HTMLFormElement)) {
+      throw new Error('Expected working-hours dialog to wrap inputs in a form');
+    }
+    fireEvent.submit(form);
 
     await waitFor(() => {
       expect(mockUpdateHours).toHaveBeenCalledWith(
@@ -331,8 +333,10 @@ describe('EquipmentQRQuickActions', () => {
     fireEvent.change(screen.getByLabelText(/reason or note/i), { target: { value: 'Meter' } });
     await user.click(screen.getByRole('button', { name: 'Start voice input' }));
     const form = hoursInput.closest('form');
-    expect(form).toBeTruthy();
-    fireEvent.submit(form!);
+    if (!(form instanceof HTMLFormElement)) {
+      throw new Error('Expected working-hours dialog to wrap inputs in a form');
+    }
+    fireEvent.submit(form);
 
     await waitFor(() => {
       expect(mockUpdateHours).toHaveBeenCalledWith(
