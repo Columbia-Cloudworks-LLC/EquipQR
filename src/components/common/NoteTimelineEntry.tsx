@@ -1,10 +1,9 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
-import { Clock, Gauge, Images, User, EyeOff } from 'lucide-react';
-import { PendingSyncBadge } from '@/features/offline-queue/components/PendingSyncBadge';
-import { formatNoteHoursWorked, formatNoteMachineHours } from '@/components/common/noteFormatHelpers';
+import { EyeOff } from 'lucide-react';
+import NoteEntryMeta from '@/components/common/NoteEntryMeta';
+import NoteImageCarousel from '@/components/common/NoteImageCarousel';
 
 export interface NoteTimelineImage {
   id: string;
@@ -46,73 +45,41 @@ const NoteTimelineEntry: React.FC<NoteTimelineEntryProps> = ({
   contentTextClassName = 'whitespace-pre-wrap',
   showLaborHours = false,
 }) => {
-  const machineLabel = formatNoteMachineHours(note.machine_hours);
-
   return (
     <Card key={note.id}>
       <CardContent standalone>
-        <div className="space-y-3">
-          <div className="flex items-start justify-between">
-            <div className={`flex items-center gap-2 flex-wrap ${metaClassName}`}>
-              <User className="h-4 w-4" />
-              <span>{note.author_name}</span>
-              {note._isPendingSync && <PendingSyncBadge />}
-              <span>•</span>
-              <span>{formatDate(note.created_at)}</span>
-              {showLaborHours && formatNoteHoursWorked(note.hours_worked) && (
-                <>
-                  <span>•</span>
-                  <Clock className="h-4 w-4" />
-                  <span title="Hours worked">{formatNoteHoursWorked(note.hours_worked)} worked</span>
-                </>
-              )}
-              {machineLabel && (
-                <>
-                  <span>•</span>
-                  <Gauge className="h-4 w-4" />
-                  <span title="Machine hours">{machineLabel} machine</span>
-                </>
-              )}
+        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+          {note.images && note.images.length > 0 ? (
+            <div className="w-full shrink-0 sm:w-40 md:w-48 lg:w-56">
+              <NoteImageCarousel images={note.images} />
             </div>
+          ) : null}
 
-            <div className="flex items-center gap-2">
-              {note.is_private && (
-                <Badge variant="outline" className="text-xs">
-                  <EyeOff className="h-3 w-3 mr-1" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <NoteEntryMeta
+                authorName={note.author_name}
+                createdAt={note.created_at}
+                formatDate={formatDate}
+                hoursWorked={note.hours_worked}
+                machineHours={note.machine_hours}
+                showLaborHours={showLaborHours}
+                isPendingSync={note._isPendingSync}
+                metaClassName={metaClassName}
+              />
+
+              {note.is_private ? (
+                <Badge variant="outline" className="text-xs shrink-0">
+                  <EyeOff className="mr-1 h-3 w-3" aria-hidden />
                   Private
                 </Badge>
-              )}
-              {note.images && note.images.length > 0 && (
-                <Badge variant="outline" className="text-xs">
-                  <Images className="h-3 w-3 mr-1" />
-                  {note.images.length} image{note.images.length !== 1 ? 's' : ''}
-                </Badge>
-              )}
+              ) : null}
+            </div>
+
+            <div className={contentClassName}>
+              <p className={contentTextClassName}>{note.content}</p>
             </div>
           </div>
-
-          <div className={contentClassName}>
-            <p className={contentTextClassName}>{note.content}</p>
-          </div>
-
-          {note.images && note.images.length > 0 && (
-            <>
-              <Separator />
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                {note.images.map((image) => (
-                  <div key={image.id} className="aspect-square bg-muted rounded overflow-hidden">
-                    <img
-                      src={image.file_url}
-                      alt={image.file_name}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
         </div>
       </CardContent>
     </Card>

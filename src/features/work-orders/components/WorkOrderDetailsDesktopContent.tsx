@@ -171,6 +171,7 @@ export function WorkOrderDetailsDesktopContent({
         >
           <WorkOrderNotesSection
             workOrderId={workOrder.id}
+            workOrderTeamId={workOrder.team_id ?? undefined}
             canAddNotes={canAddNotes}
             showPrivateNotes={canUsePrivateNotes}
             showLaborHours={canViewWorkOrderCosts}

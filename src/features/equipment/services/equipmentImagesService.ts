@@ -111,18 +111,24 @@ export const getAllEquipmentImages = async (
   }
 };
 
-// Delete an equipment image (delegates to appropriate service)
-export const deleteEquipmentImage = async (
-  imageId: string, 
-  sourceType: 'equipment_note' | 'work_order_note'
-): Promise<void> => {
-  if (sourceType === 'equipment_note') {
+// Delete an equipment image (delegates to appropriate audited service)
+export const deleteEquipmentImage = async (params: {
+  imageId: string;
+  sourceType: 'equipment_note' | 'work_order_note';
+  organizationId: string;
+  equipmentId: string;
+  workOrderId?: string;
+}): Promise<void> => {
+  if (params.sourceType === 'equipment_note') {
     const { deleteEquipmentNoteImage } = await import('./equipmentNotesService');
-    return deleteEquipmentNoteImage(imageId);
-  } else {
-    const { deleteWorkOrderImage } = await import('@/features/work-orders/services/workOrderNotesService');
-    return deleteWorkOrderImage(imageId);
+    return deleteEquipmentNoteImage(params.imageId, params.organizationId, params.equipmentId);
   }
+
+  if (!params.workOrderId) {
+    throw new Error('workOrderId is required to delete work order images');
+  }
+  const { deleteWorkOrderImage } = await import('@/features/work-orders/services/workOrderNotesService');
+  return deleteWorkOrderImage(params.imageId, params.organizationId, params.workOrderId);
 };
 
 // Update equipment display image

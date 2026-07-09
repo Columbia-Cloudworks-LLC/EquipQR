@@ -5,8 +5,6 @@ import { resolveWorkOrderOrganizationId } from '@/features/work-orders/services/
 import { validateStorageQuota } from '@/utils/storageQuota';
 import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
 import {
-  uploadImageToStorage,
-  normalizeStoredObjectPath,
   batchResolveWorkOrderImageDisplayUrls,
   displayUrlForStoredPrivateImage,
   deleteImageFromStorage,
@@ -18,9 +16,67 @@ import {
 import { verifyWorkOrderOrganizationScope } from '@/features/work-orders/services/workOrderOrganizationGate';
 import { noteMachineHoursInsertFields } from '@/services/noteMachineHoursInsert';
 import {
-  assertNoteImageUploader,
-  fetchNoteImageForDeletion,
-} from '@/services/noteImageDeleteAuthorization';
+  deleteWorkOrderNoteImageAuditedRpc,
+  deleteWorkOrderNoteRpc,
+  updateWorkOrderNoteRpc,
+} from '@/services/noteMutationRpc';
+import { uploadFilesToNoteImageBucket } from '@/services/noteImageUploadShared';
+
+async function prepareWorkOrderNoteImageUpload(
+  workOrderId: string,
+  organizationId: string | undefined,
+  images: File[],
+): Promise<{ userId: string; orgId: string }> {
+  const userId = await requireAuthUserIdFromClaims();
+  const orgId = await resolveWorkOrderOrganizationId(workOrderId, organizationId);
+  const totalFileSize = images.reduce((sum, file) => sum + file.size, 0);
+  await validateStorageQuota(orgId, totalFileSize);
+  return { userId, orgId };
+}
+
+async function uploadWorkOrderNoteImages(
+  workOrderId: string,
+  noteId: string,
+  images: File[],
+  userId: string,
+): Promise<WorkOrderNoteImage[]> {
+  return uploadFilesToNoteImageBucket<WorkOrderNoteImage>({
+    bucket: 'work-order-images',
+    imagesTable: 'work_order_images',
+    images,
+    buildObjectKey: (file) => {
+      const fileExt = file.name.split('.').pop();
+      return `${userId}/${workOrderId}/${noteId}/${Date.now()}.${fileExt}`;
+    },
+    insertImageRecord: async (file, storedPath) => {
+      const { data, error } = await supabase
+        .from('work_order_images')
+        .insert({
+          work_order_id: workOrderId,
+          note_id: noteId,
+          file_name: file.name,
+          file_url: storedPath,
+          file_size: file.size,
+          mime_type: file.type,
+          uploaded_by: userId,
+          description: `Attached to note: ${noteId}`,
+        })
+        .select()
+        .single();
+      if (error) {
+        logger.error('Failed to save work order image record:', error);
+        try {
+          await deleteImageFromStorage('work-order-images', storedPath);
+        } catch (cleanupError) {
+          logger.error('Failed to delete orphaned work-order image after DB insert failure:', cleanupError);
+        }
+        return null;
+      }
+      return { ...data, note_id: noteId } as WorkOrderNoteImage;
+    },
+    signDisplayUrls: (paths) => batchResolveWorkOrderImageDisplayUrls(paths),
+  });
+}
 
 export interface WorkOrderNote {
   id: string;
@@ -95,13 +151,7 @@ export const createWorkOrderNoteWithImages = async (
   organizationId?: string,
   machineHours?: number | null,
 ): Promise<WorkOrderNote> => {
-  const userId = await requireAuthUserIdFromClaims();
-
-  const orgId = await resolveWorkOrderOrganizationId(workOrderId, organizationId);
-
-  // Validate storage quota for all files before uploading
-  const totalFileSize = images.reduce((sum, file) => sum + file.size, 0);
-  await validateStorageQuota(orgId, totalFileSize);
+  const { userId } = await prepareWorkOrderNoteImageUpload(workOrderId, organizationId, images);
 
   // Create the note first
   const { data: note, error: noteError } = await supabase
@@ -119,61 +169,11 @@ export const createWorkOrderNoteWithImages = async (
 
   if (noteError) throw noteError;
 
-  // Upload images if provided
-  const uploadedImages: WorkOrderNoteImage[] = [];
-  for (const file of images) {
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}/${workOrderId}/${note.id}/${Date.now()}.${fileExt}`;
-
-      const storedPath = await uploadImageToStorage('work-order-images', fileName, file);
-
-      // Save image record to database with proper note_id association
-      const { data: imageRecord, error: imageError } = await supabase
-        .from('work_order_images')
-        .insert({
-          work_order_id: workOrderId,
-          note_id: note.id,
-          file_name: file.name,
-          file_url: storedPath,
-          file_size: file.size,
-          mime_type: file.type,
-          uploaded_by: userId,
-          description: `Attached to note: ${note.id}`
-        })
-        .select()
-        .single();
-
-      if (imageError) {
-        logger.error('Failed to save image record:', imageError);
-        try {
-          await deleteImageFromStorage('work-order-images', storedPath);
-        } catch (cleanupError) {
-          logger.error('Failed to delete orphaned work-order image after DB insert failure:', cleanupError);
-        }
-        continue;
-      }
-
-      uploadedImages.push({
-        ...imageRecord,
-        note_id: note.id,
-      });
-    } catch (error) {
-      logger.error('Error processing image:', error);
-    }
-  }
-
-  const signedCreated = await batchResolveWorkOrderImageDisplayUrls(uploadedImages.map(i => i.file_url));
-  const withDisplayUrls = uploadedImages
-    .map((img, i) => {
-      const url = displayUrlForStoredPrivateImage(signedCreated[i], img.file_url);
-      return url == null ? null : { ...img, file_url: url };
-    })
-    .filter((row): row is WorkOrderNoteImage => row != null);
+  const uploadedImages = await uploadWorkOrderNoteImages(workOrderId, note.id, images, userId);
 
   return {
     ...note,
-    images: withDisplayUrls,
+    images: uploadedImages,
   };
 };
 
@@ -430,25 +430,47 @@ export const getWorkOrderImages = async (
   }
 };
 
-// Delete an image
-export const deleteWorkOrderImage = async (imageId: string): Promise<void> => {
-  const userId = await requireAuthUserIdFromClaims();
+// Delete an image (audited RPC)
+export const deleteWorkOrderImage = async (
+  imageId: string,
+  organizationId: string,
+  workOrderId: string,
+): Promise<void> => {
+  await deleteWorkOrderNoteImageAuditedRpc({ organizationId, workOrderId, imageId });
+};
 
-  const image = await fetchNoteImageForDeletion('work_order_images', imageId);
-  assertNoteImageUploader(image.uploaded_by, userId);
+export const updateWorkOrderNote = async (
+  organizationId: string,
+  workOrderId: string,
+  noteId: string,
+  updates: { content?: string; isPrivate?: boolean },
+): Promise<void> => {
+  await updateWorkOrderNoteRpc({
+    organizationId,
+    workOrderId,
+    noteId,
+    content: updates.content,
+    isPrivate: updates.isPrivate,
+  });
+};
 
-  // Delete from database
-  const { error: deleteError } = await supabase
-    .from('work_order_images')
-    .delete()
-    .eq('id', imageId);
+export const deleteWorkOrderNote = async (
+  organizationId: string,
+  workOrderId: string,
+  noteId: string,
+): Promise<void> => {
+  await deleteWorkOrderNoteRpc({ organizationId, workOrderId, noteId });
+};
 
-  if (deleteError) throw deleteError;
+export const addImagesToWorkOrderNote = async (
+  workOrderId: string,
+  noteId: string,
+  images: File[],
+  organizationId?: string,
+): Promise<WorkOrderNoteImage[]> => {
+  const { userId } = await prepareWorkOrderNoteImageUpload(workOrderId, organizationId, images);
 
-  const filePath = normalizeStoredObjectPath(image.file_url, 'work-order-images');
-  if (filePath) {
-    await supabase.storage.from('work-order-images').remove([filePath]);
-  }
+  return uploadWorkOrderNoteImages(workOrderId, noteId, images, userId);
 };
 
 export type UpdateHistoricalWorkOrderNoteTimestampResult = {

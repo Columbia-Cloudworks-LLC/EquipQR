@@ -1983,6 +1983,88 @@ COMMENT ON FUNCTION "public"."can_access_work_order_costs"("p_work_order_id" "uu
 
 
 
+CREATE OR REPLACE FUNCTION "public"."can_edit_equipment_note"("p_user_id" "uuid", "p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") RETURNS boolean
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  v_note public.equipment_notes%ROWTYPE;
+  v_window_hours integer;
+BEGIN
+  SELECT en.* INTO v_note
+  FROM public.equipment_notes en
+  JOIN public.equipment e ON e.id = en.equipment_id
+  WHERE en.id = p_note_id
+    AND en.equipment_id = p_equipment_id
+    AND e.organization_id = p_organization_id;
+
+  IF NOT FOUND THEN
+    RETURN false;
+  END IF;
+
+  IF public.is_org_admin(p_user_id, p_organization_id)
+     OR public.is_equipment_team_manager(p_user_id, p_equipment_id) THEN
+    RETURN true;
+  END IF;
+
+  IF v_note.author_id IS DISTINCT FROM p_user_id THEN
+    RETURN false;
+  END IF;
+
+  SELECT COALESCE(o.note_author_edit_window_hours, 24)
+  INTO v_window_hours
+  FROM public.organizations o
+  WHERE o.id = p_organization_id;
+
+  RETURN v_note.created_at + make_interval(hours => v_window_hours) >= now();
+END;
+$$;
+
+
+ALTER FUNCTION "public"."can_edit_equipment_note"("p_user_id" "uuid", "p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."can_edit_work_order_note"("p_user_id" "uuid", "p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid") RETURNS boolean
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  v_note public.work_order_notes%ROWTYPE;
+  v_window_hours integer;
+BEGIN
+  SELECT won.* INTO v_note
+  FROM public.work_order_notes won
+  JOIN public.work_orders wo ON wo.id = won.work_order_id
+  WHERE won.id = p_note_id
+    AND won.work_order_id = p_work_order_id
+    AND wo.organization_id = p_organization_id;
+
+  IF NOT FOUND THEN
+    RETURN false;
+  END IF;
+
+  IF public.is_org_admin(p_user_id, p_organization_id)
+     OR public.is_work_order_team_manager(p_user_id, p_work_order_id) THEN
+    RETURN true;
+  END IF;
+
+  IF v_note.author_id IS DISTINCT FROM p_user_id THEN
+    RETURN false;
+  END IF;
+
+  SELECT COALESCE(o.note_author_edit_window_hours, 24)
+  INTO v_window_hours
+  FROM public.organizations o
+  WHERE o.id = p_organization_id;
+
+  RETURN v_note.created_at + make_interval(hours => v_window_hours) >= now();
+END;
+$$;
+
+
+ALTER FUNCTION "public"."can_edit_work_order_note"("p_user_id" "uuid", "p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."can_manage_inventory"("p_organization_id" "uuid", "p_user_id" "uuid" DEFAULT "auth"."uid"()) RETURNS boolean
     LANGUAGE "plpgsql"
     SET "search_path" TO ''
@@ -4178,6 +4260,167 @@ COMMENT ON FUNCTION "public"."create_workspace_organization_for_domain"("p_domai
 
 
 
+CREATE OR REPLACE FUNCTION "public"."delete_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_note public.equipment_notes%ROWTYPE;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Authentication required');
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = v_user_id
+      AND om.status = 'active'
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
+  SELECT en.* INTO v_note
+  FROM public.equipment_notes en
+  JOIN public.equipment e ON e.id = en.equipment_id
+  WHERE en.id = p_note_id
+    AND en.equipment_id = p_equipment_id
+    AND e.organization_id = p_organization_id
+  FOR UPDATE OF en;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Note not found');
+  END IF;
+
+  IF NOT (
+    public.is_org_admin(v_user_id, p_organization_id)
+    OR public.is_equipment_team_manager(v_user_id, p_equipment_id)
+    OR v_note.author_id = v_user_id
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
+  DELETE FROM storage.objects o
+  USING public.equipment_note_images ei
+  WHERE ei.equipment_note_id = p_note_id
+    AND o.bucket_id = 'equipment-note-images'
+    AND o.name = ei.file_url
+    AND (storage.foldername(o.name))[2]::uuid = p_equipment_id
+    AND (storage.foldername(o.name))[3]::uuid = p_note_id;
+
+  DELETE FROM public.equipment_note_images WHERE equipment_note_id = p_note_id;
+  DELETE FROM public.equipment_notes WHERE id = p_note_id;
+
+  PERFORM public.log_audit_entry(
+    p_organization_id,
+    'equipment',
+    p_equipment_id,
+    (SELECT e.name FROM public.equipment e WHERE e.id = p_equipment_id),
+    'DELETE',
+    jsonb_build_object('note_content', v_note.content),
+    jsonb_build_object('note_id', p_note_id, 'source', 'equipment_note_delete')
+  );
+
+  RETURN jsonb_build_object('success', true, 'note_id', p_note_id);
+EXCEPTION WHEN OTHERS THEN
+  RETURN jsonb_build_object('success', false, 'error', 'Failed to delete note: ' || SQLERRM);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."delete_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."delete_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") IS 'Delete equipment note with role checks and audit logging. Issue #1185.';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."delete_equipment_note_image_audited"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_image_id" "uuid") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_image public.equipment_note_images%ROWTYPE;
+  v_note public.equipment_notes%ROWTYPE;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Authentication required');
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = v_user_id
+      AND om.status = 'active'
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
+  SELECT ei.* INTO v_image
+  FROM public.equipment_note_images ei
+  JOIN public.equipment_notes en ON en.id = ei.equipment_note_id
+  JOIN public.equipment e ON e.id = en.equipment_id
+  WHERE ei.id = p_image_id
+    AND en.equipment_id = p_equipment_id
+    AND e.organization_id = p_organization_id
+  FOR UPDATE OF ei;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Image not found');
+  END IF;
+
+  SELECT en.* INTO v_note
+  FROM public.equipment_notes en
+  JOIN public.equipment e ON e.id = en.equipment_id
+  WHERE en.id = v_image.equipment_note_id
+    AND en.equipment_id = p_equipment_id
+    AND e.organization_id = p_organization_id;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Note not found');
+  END IF;
+
+  IF NOT (
+    public.is_org_admin(v_user_id, p_organization_id)
+    OR public.is_equipment_team_manager(v_user_id, p_equipment_id)
+    OR public.can_edit_equipment_note(v_user_id, p_organization_id, p_equipment_id, v_note.id)
+    OR v_image.uploaded_by = v_user_id
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
+  DELETE FROM storage.objects
+  WHERE bucket_id = 'equipment-note-images'
+    AND name = v_image.file_url
+    AND (storage.foldername(name))[2]::uuid = p_equipment_id
+    AND (storage.foldername(name))[3]::uuid = v_image.equipment_note_id;
+
+  DELETE FROM public.equipment_note_images WHERE id = p_image_id;
+
+  PERFORM public.log_audit_entry(
+    p_organization_id,
+    'equipment',
+    p_equipment_id,
+    (SELECT e.name FROM public.equipment e WHERE e.id = p_equipment_id),
+    'DELETE',
+    jsonb_build_object('image_file_name', v_image.file_name),
+    jsonb_build_object('note_id', v_note.id, 'image_id', p_image_id, 'source', 'equipment_note_image_delete')
+  );
+
+  RETURN jsonb_build_object('success', true, 'image_id', p_image_id);
+EXCEPTION WHEN OTHERS THEN
+  RETURN jsonb_build_object('success', false, 'error', 'Failed to delete image: ' || SQLERRM);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."delete_equipment_note_image_audited"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_image_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."delete_manual_external_customer_contact"("p_organization_id" "uuid", "p_contact_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
@@ -4505,6 +4748,160 @@ ALTER FUNCTION "public"."delete_work_order_cascade"("p_work_order_id" "uuid") OW
 
 COMMENT ON FUNCTION "public"."delete_work_order_cascade"("p_work_order_id" "uuid") IS 'Permanently deletes a work order, related rows, and storage objects. Org owners/admins only. Storage cleanup is best-effort and scoped to objects under the work order folder.';
 
+
+
+CREATE OR REPLACE FUNCTION "public"."delete_work_order_note"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_note public.work_order_notes%ROWTYPE;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Authentication required');
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = v_user_id
+      AND om.status = 'active'
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
+  SELECT won.* INTO v_note
+  FROM public.work_order_notes won
+  JOIN public.work_orders wo ON wo.id = won.work_order_id
+  WHERE won.id = p_note_id
+    AND won.work_order_id = p_work_order_id
+    AND wo.organization_id = p_organization_id
+  FOR UPDATE OF won;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Note not found');
+  END IF;
+
+  IF NOT (
+    public.is_org_admin(v_user_id, p_organization_id)
+    OR public.is_work_order_team_manager(v_user_id, p_work_order_id)
+    OR v_note.author_id = v_user_id
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
+  DELETE FROM storage.objects o
+  USING public.work_order_images wi
+  WHERE wi.note_id = p_note_id
+    AND wi.work_order_id = p_work_order_id
+    AND o.bucket_id = 'work-order-images'
+    AND o.name = wi.file_url
+    AND (storage.foldername(o.name))[2]::uuid = p_work_order_id
+    AND (storage.foldername(o.name))[3]::uuid = p_note_id;
+
+  DELETE FROM public.work_order_images
+  WHERE note_id = p_note_id AND work_order_id = p_work_order_id;
+
+  DELETE FROM public.work_order_notes WHERE id = p_note_id;
+
+  PERFORM public.log_audit_entry(
+    p_organization_id,
+    'work_order',
+    p_work_order_id,
+    (SELECT wo.title FROM public.work_orders wo WHERE wo.id = p_work_order_id),
+    'DELETE',
+    jsonb_build_object('note_content', v_note.content),
+    jsonb_build_object('note_id', p_note_id, 'source', 'work_order_note_delete')
+  );
+
+  RETURN jsonb_build_object('success', true, 'note_id', p_note_id);
+EXCEPTION WHEN OTHERS THEN
+  RETURN jsonb_build_object('success', false, 'error', 'Failed to delete note: ' || SQLERRM);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."delete_work_order_note"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."delete_work_order_note"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid") IS 'Delete work order note with role checks and audit logging. Issue #1185.';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."delete_work_order_note_image_audited"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_image_id" "uuid") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_image public.work_order_images%ROWTYPE;
+  v_note_id uuid;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Authentication required');
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = v_user_id
+      AND om.status = 'active'
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
+  SELECT wi.* INTO v_image
+  FROM public.work_order_images wi
+  JOIN public.work_orders wo ON wo.id = wi.work_order_id
+  WHERE wi.id = p_image_id
+    AND wi.work_order_id = p_work_order_id
+    AND wo.organization_id = p_organization_id
+  FOR UPDATE OF wi;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Image not found');
+  END IF;
+
+  v_note_id := v_image.note_id;
+
+  IF NOT (
+    public.is_org_admin(v_user_id, p_organization_id)
+    OR public.is_work_order_team_manager(v_user_id, p_work_order_id)
+    OR (v_note_id IS NOT NULL AND public.can_edit_work_order_note(v_user_id, p_organization_id, p_work_order_id, v_note_id))
+    OR v_image.uploaded_by = v_user_id
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
+  DELETE FROM storage.objects
+  WHERE bucket_id = 'work-order-images'
+    AND name = v_image.file_url
+    AND (storage.foldername(name))[2]::uuid = p_work_order_id
+    AND (v_note_id IS NULL OR (storage.foldername(name))[3]::uuid = v_note_id);
+
+  DELETE FROM public.work_order_images WHERE id = p_image_id;
+
+  PERFORM public.log_audit_entry(
+    p_organization_id,
+    'work_order',
+    p_work_order_id,
+    (SELECT wo.title FROM public.work_orders wo WHERE wo.id = p_work_order_id),
+    'DELETE',
+    jsonb_build_object('image_file_name', v_image.file_name),
+    jsonb_build_object('note_id', v_note_id, 'image_id', p_image_id, 'source', 'work_order_note_image_delete')
+  );
+
+  RETURN jsonb_build_object('success', true, 'image_id', p_image_id);
+EXCEPTION WHEN OTHERS THEN
+  RETURN jsonb_build_object('success', false, 'error', 'Failed to delete image: ' || SQLERRM);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."delete_work_order_note_image_audited"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_image_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."disconnect_google_workspace"("p_organization_id" "uuid", "p_also_unclaim_domain" boolean DEFAULT false) RETURNS "jsonb"
@@ -8023,6 +8420,24 @@ COMMENT ON FUNCTION "public"."invoke_quickbooks_token_refresh"() IS 'Calls the q
 
 
 
+CREATE OR REPLACE FUNCTION "public"."is_equipment_team_manager"("p_user_id" "uuid", "p_equipment_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.equipment e
+    JOIN public.team_members tm ON tm.team_id = e.team_id
+    WHERE e.id = p_equipment_id
+      AND tm.user_id = p_user_id
+      AND tm.role IN ('owner'::public.team_member_role, 'manager'::public.team_member_role)
+  );
+$$;
+
+
+ALTER FUNCTION "public"."is_equipment_team_manager"("p_user_id" "uuid", "p_equipment_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."is_org_admin"("user_uuid" "uuid", "org_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -8153,6 +8568,23 @@ COMMENT ON FUNCTION "public"."is_parts_manager"("p_organization_id" "uuid", "p_u
 
 
 
+CREATE OR REPLACE FUNCTION "public"."is_team_viewer_or_requestor"("p_user_id" "uuid", "p_team_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.team_members tm
+    WHERE tm.team_id = p_team_id
+      AND tm.user_id = p_user_id
+      AND tm.role IN ('viewer'::public.team_member_role, 'requestor'::public.team_member_role)
+  );
+$$;
+
+
+ALTER FUNCTION "public"."is_team_viewer_or_requestor"("p_user_id" "uuid", "p_team_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."is_user_google_oauth_verified"("p_user_id" "uuid") RETURNS boolean
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -8249,6 +8681,24 @@ ALTER FUNCTION "public"."is_valid_work_order_assignee"("p_equipment_id" "uuid", 
 
 COMMENT ON FUNCTION "public"."is_valid_work_order_assignee"("p_equipment_id" "uuid", "p_organization_id" "uuid", "p_assignee_id" "uuid") IS 'Validates that an assignee is valid for a work order: first verifies equipment belongs to the specified organization (cross-tenant guard), then allows org admin/owner (any equipment) or team member (manager/technician) when equipment has a team. Returns FALSE when equipment does not belong to the org, when equipment has no team and assignee is not an org admin/owner, or when assignee is not a valid team member.';
 
+
+
+CREATE OR REPLACE FUNCTION "public"."is_work_order_team_manager"("p_user_id" "uuid", "p_work_order_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.work_orders wo
+    JOIN public.team_members tm ON tm.team_id = wo.team_id
+    WHERE wo.id = p_work_order_id
+      AND tm.user_id = p_user_id
+      AND tm.role IN ('owner'::public.team_member_role, 'manager'::public.team_member_role)
+  );
+$$;
+
+
+ALTER FUNCTION "public"."is_work_order_team_manager"("p_user_id" "uuid", "p_work_order_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."latest_scans_for_equipment_ids"("p_organization_id" "uuid", "p_equipment_ids" "uuid"[]) RETURNS TABLE("equipment_id" "uuid", "location" "text", "scanned_at" timestamp with time zone)
@@ -13390,6 +13840,108 @@ $$;
 ALTER FUNCTION "public"."update_customers_updated_at"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."update_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid", "p_content" "text" DEFAULT NULL::"text", "p_is_private" boolean DEFAULT NULL::boolean) RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_note public.equipment_notes%ROWTYPE;
+  v_changes jsonb := '{}'::jsonb;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Authentication required');
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = v_user_id
+      AND om.status = 'active'
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
+  IF NOT public.can_edit_equipment_note(v_user_id, p_organization_id, p_equipment_id, p_note_id) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
+  SELECT en.* INTO v_note
+  FROM public.equipment_notes en
+  JOIN public.equipment e ON e.id = en.equipment_id
+  WHERE en.id = p_note_id
+    AND en.equipment_id = p_equipment_id
+    AND e.organization_id = p_organization_id
+  FOR UPDATE OF en;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Note not found');
+  END IF;
+
+  IF p_content IS NOT NULL AND p_content IS DISTINCT FROM v_note.content THEN
+    v_changes := v_changes || jsonb_build_object(
+      'content', jsonb_build_object('old', v_note.content, 'new', p_content)
+    );
+  END IF;
+
+  IF p_is_private IS NOT NULL AND p_is_private IS DISTINCT FROM v_note.is_private THEN
+    IF NOT (
+      public.is_org_admin(v_user_id, p_organization_id)
+      OR public.is_equipment_team_manager(v_user_id, p_equipment_id)
+      OR (
+        v_note.author_id = v_user_id
+        AND NOT public.is_team_viewer_or_requestor(
+          v_user_id,
+          (SELECT e.team_id FROM public.equipment e WHERE e.id = p_equipment_id)
+        )
+      )
+    ) THEN
+      RETURN jsonb_build_object('success', false, 'error', 'Permission denied for visibility change');
+    END IF;
+
+    v_changes := v_changes || jsonb_build_object(
+      'is_private', jsonb_build_object('old', v_note.is_private, 'new', p_is_private)
+    );
+  END IF;
+
+  IF v_changes = '{}'::jsonb THEN
+    RETURN jsonb_build_object('success', true, 'note_id', p_note_id, 'unchanged', true);
+  END IF;
+
+  UPDATE public.equipment_notes
+  SET
+    content = COALESCE(p_content, content),
+    is_private = COALESCE(p_is_private, is_private),
+    last_modified_by = v_user_id,
+    last_modified_at = now(),
+    updated_at = now()
+  WHERE id = p_note_id;
+
+  PERFORM public.log_audit_entry(
+    p_organization_id,
+    'equipment',
+    p_equipment_id,
+    (SELECT e.name FROM public.equipment e WHERE e.id = p_equipment_id),
+    'UPDATE',
+    v_changes,
+    jsonb_build_object('note_id', p_note_id, 'source', 'equipment_note_editor')
+  );
+
+  RETURN jsonb_build_object('success', true, 'note_id', p_note_id);
+EXCEPTION WHEN OTHERS THEN
+  RETURN jsonb_build_object('success', false, 'error', 'Failed to update note: ' || SQLERRM);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."update_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid", "p_content" "text", "p_is_private" boolean) OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."update_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid", "p_content" "text", "p_is_private" boolean) IS 'Update equipment note content/visibility with role checks and audit logging. Issue #1185.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."update_equipment_working_hours"("p_equipment_id" "uuid", "p_new_hours" numeric, "p_update_source" "text" DEFAULT 'manual'::"text", "p_work_order_id" "uuid" DEFAULT NULL::"uuid", "p_notes" "text" DEFAULT NULL::"text") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -13976,6 +14528,110 @@ $$;
 
 
 ALTER FUNCTION "public"."update_work_order_costs_updated_at"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."update_work_order_note"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid", "p_content" "text" DEFAULT NULL::"text", "p_is_private" boolean DEFAULT NULL::boolean) RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_note public.work_order_notes%ROWTYPE;
+  v_changes jsonb := '{}'::jsonb;
+  v_team_id uuid;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Authentication required');
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = v_user_id
+      AND om.status = 'active'
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
+  IF NOT public.can_edit_work_order_note(v_user_id, p_organization_id, p_work_order_id, p_note_id) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
+  SELECT won.* INTO v_note
+  FROM public.work_order_notes won
+  JOIN public.work_orders wo ON wo.id = won.work_order_id
+  WHERE won.id = p_note_id
+    AND won.work_order_id = p_work_order_id
+    AND wo.organization_id = p_organization_id
+  FOR UPDATE OF won;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Note not found');
+  END IF;
+
+  IF p_content IS NOT NULL AND p_content IS DISTINCT FROM v_note.content THEN
+    v_changes := v_changes || jsonb_build_object(
+      'content', jsonb_build_object('old', v_note.content, 'new', p_content)
+    );
+  END IF;
+
+  IF p_is_private IS NOT NULL AND p_is_private IS DISTINCT FROM v_note.is_private THEN
+    SELECT wo.team_id INTO v_team_id
+    FROM public.work_orders wo
+    WHERE wo.id = p_work_order_id;
+
+    IF NOT (
+      public.is_org_admin(v_user_id, p_organization_id)
+      OR public.is_work_order_team_manager(v_user_id, p_work_order_id)
+      OR (
+        v_note.author_id = v_user_id
+        AND (v_team_id IS NULL OR NOT public.is_team_viewer_or_requestor(v_user_id, v_team_id))
+      )
+    ) THEN
+      RETURN jsonb_build_object('success', false, 'error', 'Permission denied for visibility change');
+    END IF;
+
+    v_changes := v_changes || jsonb_build_object(
+      'is_private', jsonb_build_object('old', v_note.is_private, 'new', p_is_private)
+    );
+  END IF;
+
+  IF v_changes = '{}'::jsonb THEN
+    RETURN jsonb_build_object('success', true, 'note_id', p_note_id, 'unchanged', true);
+  END IF;
+
+  UPDATE public.work_order_notes
+  SET
+    content = COALESCE(p_content, content),
+    is_private = COALESCE(p_is_private, is_private),
+    last_modified_by = v_user_id,
+    last_modified_at = now(),
+    updated_at = now()
+  WHERE id = p_note_id;
+
+  PERFORM public.log_audit_entry(
+    p_organization_id,
+    'work_order',
+    p_work_order_id,
+    (SELECT wo.title FROM public.work_orders wo WHERE wo.id = p_work_order_id),
+    'UPDATE',
+    v_changes,
+    jsonb_build_object('note_id', p_note_id, 'source', 'work_order_note_editor')
+  );
+
+  RETURN jsonb_build_object('success', true, 'note_id', p_note_id);
+EXCEPTION WHEN OTHERS THEN
+  RETURN jsonb_build_object('success', false, 'error', 'Failed to update note: ' || SQLERRM);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."update_work_order_note"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid", "p_content" "text", "p_is_private" boolean) OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."update_work_order_note"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid", "p_content" "text", "p_is_private" boolean) IS 'Update work order note content/visibility with role checks and audit logging. Issue #1185.';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."user_has_access"("user_uuid" "uuid") RETURNS boolean
@@ -15308,7 +15964,8 @@ CREATE TABLE IF NOT EXISTS "public"."organizations" (
     "inventory_default_location_state" "text",
     "inventory_default_location_country" "text",
     "inventory_default_location_lat" double precision,
-    "inventory_default_location_lng" double precision
+    "inventory_default_location_lng" double precision,
+    "note_author_edit_window_hours" integer DEFAULT 24 NOT NULL
 );
 
 
@@ -15368,6 +16025,10 @@ COMMENT ON COLUMN "public"."organizations"."inventory_default_location_lat" IS '
 
 
 COMMENT ON COLUMN "public"."organizations"."inventory_default_location_lng" IS 'Longitude for the organization inventory default storage location.';
+
+
+
+COMMENT ON COLUMN "public"."organizations"."note_author_edit_window_hours" IS 'Hours after creation that note authors may edit their own notes. Org admins and team managers are not time-limited.';
 
 
 
@@ -16436,7 +17097,9 @@ CREATE TABLE IF NOT EXISTS "public"."work_order_notes" (
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "author_name" "text",
-    "machine_hours" numeric(10,2)
+    "machine_hours" numeric(10,2),
+    "last_modified_by" "uuid",
+    "last_modified_at" timestamp with time zone DEFAULT "now"()
 );
 
 
@@ -19111,6 +19774,11 @@ ALTER TABLE ONLY "public"."work_order_images"
 
 
 
+ALTER TABLE ONLY "public"."work_order_notes"
+    ADD CONSTRAINT "work_order_notes_last_modified_by_fkey" FOREIGN KEY ("last_modified_by") REFERENCES "public"."profiles"("id");
+
+
+
 ALTER TABLE ONLY "public"."work_order_status_history"
     ADD CONSTRAINT "work_order_status_history_changed_by_fkey" FOREIGN KEY ("changed_by") REFERENCES "public"."profiles"("id");
 
@@ -21409,6 +22077,16 @@ GRANT ALL ON FUNCTION "public"."can_access_work_order_costs"("p_work_order_id" "
 
 
 
+REVOKE ALL ON FUNCTION "public"."can_edit_equipment_note"("p_user_id" "uuid", "p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."can_edit_equipment_note"("p_user_id" "uuid", "p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."can_edit_work_order_note"("p_user_id" "uuid", "p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."can_edit_work_order_note"("p_user_id" "uuid", "p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."can_manage_inventory"("p_organization_id" "uuid", "p_user_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."can_manage_inventory"("p_organization_id" "uuid", "p_user_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."can_manage_inventory"("p_organization_id" "uuid", "p_user_id" "uuid") TO "service_role";
@@ -21669,6 +22347,18 @@ GRANT ALL ON FUNCTION "public"."create_workspace_organization_for_domain"("p_dom
 
 
 
+REVOKE ALL ON FUNCTION "public"."delete_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."delete_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."delete_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."delete_equipment_note_image_audited"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_image_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."delete_equipment_note_image_audited"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_image_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."delete_equipment_note_image_audited"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_image_id" "uuid") TO "authenticated";
+
+
+
 GRANT ALL ON FUNCTION "public"."delete_manual_external_customer_contact"("p_organization_id" "uuid", "p_contact_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."delete_manual_external_customer_contact"("p_organization_id" "uuid", "p_contact_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."delete_manual_external_customer_contact"("p_organization_id" "uuid", "p_contact_id" "uuid") TO "service_role";
@@ -21691,6 +22381,18 @@ GRANT ALL ON FUNCTION "public"."delete_organization"("p_organization_id" "uuid",
 GRANT ALL ON FUNCTION "public"."delete_work_order_cascade"("p_work_order_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."delete_work_order_cascade"("p_work_order_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."delete_work_order_cascade"("p_work_order_id" "uuid") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."delete_work_order_note"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."delete_work_order_note"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."delete_work_order_note"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."delete_work_order_note_image_audited"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_image_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."delete_work_order_note_image_audited"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_image_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."delete_work_order_note_image_audited"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_image_id" "uuid") TO "authenticated";
 
 
 
@@ -22055,6 +22757,11 @@ REVOKE ALL ON FUNCTION "public"."invoke_quickbooks_token_refresh"() FROM PUBLIC;
 
 
 
+REVOKE ALL ON FUNCTION "public"."is_equipment_team_manager"("p_user_id" "uuid", "p_equipment_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."is_equipment_team_manager"("p_user_id" "uuid", "p_equipment_id" "uuid") TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."is_org_admin"("user_uuid" "uuid", "org_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."is_org_admin"("user_uuid" "uuid", "org_id" "uuid") TO "service_role";
 GRANT ALL ON FUNCTION "public"."is_org_admin"("user_uuid" "uuid", "org_id" "uuid") TO "authenticated";
@@ -22089,6 +22796,11 @@ GRANT ALL ON FUNCTION "public"."is_parts_manager"("p_organization_id" "uuid", "p
 
 
 
+REVOKE ALL ON FUNCTION "public"."is_team_viewer_or_requestor"("p_user_id" "uuid", "p_team_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."is_team_viewer_or_requestor"("p_user_id" "uuid", "p_team_id" "uuid") TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."is_user_google_oauth_verified"("p_user_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."is_user_google_oauth_verified"("p_user_id" "uuid") TO "service_role";
 
@@ -22096,6 +22808,11 @@ GRANT ALL ON FUNCTION "public"."is_user_google_oauth_verified"("p_user_id" "uuid
 
 REVOKE ALL ON FUNCTION "public"."is_valid_work_order_assignee"("p_equipment_id" "uuid", "p_organization_id" "uuid", "p_assignee_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."is_valid_work_order_assignee"("p_equipment_id" "uuid", "p_organization_id" "uuid", "p_assignee_id" "uuid") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."is_work_order_team_manager"("p_user_id" "uuid", "p_work_order_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."is_work_order_team_manager"("p_user_id" "uuid", "p_work_order_id" "uuid") TO "service_role";
 
 
 
@@ -22477,6 +23194,12 @@ GRANT ALL ON FUNCTION "public"."update_customers_updated_at"() TO "service_role"
 
 
 
+REVOKE ALL ON FUNCTION "public"."update_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid", "p_content" "text", "p_is_private" boolean) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid", "p_content" "text", "p_is_private" boolean) TO "service_role";
+GRANT ALL ON FUNCTION "public"."update_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid", "p_content" "text", "p_is_private" boolean) TO "authenticated";
+
+
+
 REVOKE ALL ON FUNCTION "public"."update_equipment_working_hours"("p_equipment_id" "uuid", "p_new_hours" numeric, "p_update_source" "text", "p_work_order_id" "uuid", "p_notes" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_equipment_working_hours"("p_equipment_id" "uuid", "p_new_hours" numeric, "p_update_source" "text", "p_work_order_id" "uuid", "p_notes" "text") TO "service_role";
 GRANT ALL ON FUNCTION "public"."update_equipment_working_hours"("p_equipment_id" "uuid", "p_new_hours" numeric, "p_update_source" "text", "p_work_order_id" "uuid", "p_notes" "text") TO "authenticated";
@@ -22560,6 +23283,12 @@ GRANT ALL ON FUNCTION "public"."update_updated_at_column"() TO "service_role";
 
 REVOKE ALL ON FUNCTION "public"."update_work_order_costs_updated_at"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_work_order_costs_updated_at"() TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."update_work_order_note"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid", "p_content" "text", "p_is_private" boolean) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_work_order_note"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid", "p_content" "text", "p_is_private" boolean) TO "service_role";
+GRANT ALL ON FUNCTION "public"."update_work_order_note"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid", "p_content" "text", "p_is_private" boolean) TO "authenticated";
 
 
 

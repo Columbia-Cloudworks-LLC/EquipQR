@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Trash2, Download, Eye, Calendar, User, Star, StarOff } from 'lucide-react';
+import { Trash2, Eye, Calendar, User, Star, StarOff } from 'lucide-react';
+import DynamicImageViewport from '@/components/common/DynamicImageViewport';
 import { toast } from 'sonner';
 
 interface ImageData {
@@ -92,15 +93,6 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
     return mb > 1 ? `${mb.toFixed(1)}MB` : `${(bytes / 1024).toFixed(0)}KB`;
   };
 
-  const downloadImage = (image: ImageData) => {
-    const link = document.createElement('a');
-    link.href = image.file_url;
-    link.download = image.file_name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   const handleImagePreviewKeyDown = (e: React.KeyboardEvent<HTMLElement>, image: ImageData) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -137,15 +129,17 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                 <div className="aspect-square bg-muted rounded-lg overflow-hidden relative">
                 <button
                   type="button"
-                  className="block w-full h-full p-0 border-0 bg-transparent cursor-pointer overflow-hidden rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="block h-full w-full border-0 bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   onClick={() => setSelectedImage(image)}
                   onKeyDown={(e) => handleImagePreviewKeyDown(e, image)}
                   aria-label={`Open image ${image.file_name}`}
                 >
-                  <img
+                  <DynamicImageViewport
                     src={image.file_url}
-                    alt=""
-                    className="w-full h-full object-cover hover:scale-105 transition-transform pointer-events-none"
+                    alt={image.file_name}
+                    fileName={image.file_name}
+                    className="aspect-square h-full w-full rounded-lg"
+                    showControls={false}
                   />
                 </button>
                   
@@ -231,30 +225,18 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>{selectedImage?.file_name}</span>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => selectedImage && downloadImage(selectedImage)}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download
-                </Button>
-              </div>
-            </DialogTitle>
+            <DialogTitle>{selectedImage?.file_name}</DialogTitle>
           </DialogHeader>
           
           {selectedImage && (
             <div className="space-y-4">
-              <div className="flex min-h-[12rem] max-h-[72dvh] items-center justify-center overflow-auto rounded-lg bg-muted/30 p-2">
-                <img
-                  src={selectedImage.file_url}
-                  alt={selectedImage.file_name}
-                  className="mx-auto block max-h-[68dvh] w-auto max-w-full object-contain"
-                />
-              </div>
+              <DynamicImageViewport
+                src={selectedImage.file_url}
+                alt={selectedImage.file_name}
+                fileName={selectedImage.file_name}
+                className="mx-auto flex min-h-[12rem] max-h-[72dvh] w-full items-center justify-center rounded-lg"
+                fit="contain"
+              />
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div className="space-y-2">

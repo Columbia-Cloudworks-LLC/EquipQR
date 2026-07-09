@@ -2255,6 +2255,7 @@ export type Database = {
           member_count: number
           name: string
           next_billing_date: string | null
+          note_author_edit_window_hours: number
           plan: Database["public"]["Enums"]["organization_plan"]
           scan_location_collection_enabled: boolean
           storage_used_mb: number | null
@@ -2282,6 +2283,7 @@ export type Database = {
           member_count?: number
           name: string
           next_billing_date?: string | null
+          note_author_edit_window_hours?: number
           plan?: Database["public"]["Enums"]["organization_plan"]
           scan_location_collection_enabled?: boolean
           storage_used_mb?: number | null
@@ -2309,6 +2311,7 @@ export type Database = {
           member_count?: number
           name?: string
           next_billing_date?: string | null
+          note_author_edit_window_hours?: number
           plan?: Database["public"]["Enums"]["organization_plan"]
           scan_location_collection_enabled?: boolean
           storage_used_mb?: number | null
@@ -4345,6 +4348,8 @@ export type Database = {
           hours_worked: number | null
           id: string
           is_private: boolean
+          last_modified_at: string | null
+          last_modified_by: string | null
           machine_hours: number | null
           updated_at: string
           work_order_id: string
@@ -4357,6 +4362,8 @@ export type Database = {
           hours_worked?: number | null
           id?: string
           is_private?: boolean
+          last_modified_at?: string | null
+          last_modified_by?: string | null
           machine_hours?: number | null
           updated_at?: string
           work_order_id: string
@@ -4369,6 +4376,8 @@ export type Database = {
           hours_worked?: number | null
           id?: string
           is_private?: boolean
+          last_modified_at?: string | null
+          last_modified_by?: string | null
           machine_hours?: number | null
           updated_at?: string
           work_order_id?: string
@@ -4384,6 +4393,20 @@ export type Database = {
           {
             foreignKeyName: "fk_work_order_notes_author"
             columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "work_order_notes_last_modified_by_fkey"
+            columns: ["last_modified_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_notes_last_modified_by_fkey"
+            columns: ["last_modified_by"]
             isOneToOne: false
             referencedRelation: "user_entitlements"
             referencedColumns: ["user_id"]
@@ -4876,6 +4899,24 @@ export type Database = {
         Args: { p_user_id?: string; p_work_order_id: string }
         Returns: boolean
       }
+      can_edit_equipment_note: {
+        Args: {
+          p_equipment_id: string
+          p_note_id: string
+          p_organization_id: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      can_edit_work_order_note: {
+        Args: {
+          p_note_id: string
+          p_organization_id: string
+          p_user_id: string
+          p_work_order_id: string
+        }
+        Returns: boolean
+      }
       can_manage_inventory: {
         Args: { p_organization_id: string; p_user_id?: string }
         Returns: boolean
@@ -5182,6 +5223,22 @@ export type Database = {
           organization_id: string
         }[]
       }
+      delete_equipment_note: {
+        Args: {
+          p_equipment_id: string
+          p_note_id: string
+          p_organization_id: string
+        }
+        Returns: Json
+      }
+      delete_equipment_note_image_audited: {
+        Args: {
+          p_equipment_id: string
+          p_image_id: string
+          p_organization_id: string
+        }
+        Returns: Json
+      }
       delete_manual_external_customer_contact: {
         Args: { p_contact_id: string; p_organization_id: string }
         Returns: undefined
@@ -5200,6 +5257,22 @@ export type Database = {
       }
       delete_work_order_cascade: {
         Args: { p_work_order_id: string }
+        Returns: Json
+      }
+      delete_work_order_note: {
+        Args: {
+          p_note_id: string
+          p_organization_id: string
+          p_work_order_id: string
+        }
+        Returns: Json
+      }
+      delete_work_order_note_image_audited: {
+        Args: {
+          p_image_id: string
+          p_organization_id: string
+          p_work_order_id: string
+        }
         Returns: Json
       }
       disconnect_google_workspace: {
@@ -5751,6 +5824,10 @@ export type Database = {
       invoke_queue_worker: { Args: never; Returns: undefined }
       invoke_quickbooks_invoice_status_sync: { Args: never; Returns: undefined }
       invoke_quickbooks_token_refresh: { Args: never; Returns: undefined }
+      is_equipment_team_manager: {
+        Args: { p_equipment_id: string; p_user_id: string }
+        Returns: boolean
+      }
       is_org_admin: {
         Args: { org_id: string; user_uuid: string }
         Returns: boolean
@@ -5775,6 +5852,10 @@ export type Database = {
         Args: { p_organization_id: string; p_user_id?: string }
         Returns: boolean
       }
+      is_team_viewer_or_requestor: {
+        Args: { p_team_id: string; p_user_id: string }
+        Returns: boolean
+      }
       is_user_google_oauth_verified: {
         Args: { p_user_id: string }
         Returns: boolean
@@ -5785,6 +5866,10 @@ export type Database = {
           p_equipment_id: string
           p_organization_id: string
         }
+        Returns: boolean
+      }
+      is_work_order_team_manager: {
+        Args: { p_user_id: string; p_work_order_id: string }
         Returns: boolean
       }
       latest_scans_for_equipment_ids: {
@@ -6108,6 +6193,16 @@ export type Database = {
         Returns: Json
       }
       trigger_departure_processing: { Args: never; Returns: Json }
+      update_equipment_note: {
+        Args: {
+          p_content?: string
+          p_equipment_id: string
+          p_is_private?: boolean
+          p_note_id: string
+          p_organization_id: string
+        }
+        Returns: Json
+      }
       update_equipment_working_hours: {
         Args: {
           p_equipment_id: string
@@ -6174,6 +6269,16 @@ export type Database = {
       update_organization_billing_metrics: {
         Args: { org_id: string }
         Returns: undefined
+      }
+      update_work_order_note: {
+        Args: {
+          p_content?: string
+          p_is_private?: boolean
+          p_note_id: string
+          p_organization_id: string
+          p_work_order_id: string
+        }
+        Returns: Json
       }
       user_has_access: { Args: { user_uuid: string }; Returns: boolean }
       user_is_org_admin: {
