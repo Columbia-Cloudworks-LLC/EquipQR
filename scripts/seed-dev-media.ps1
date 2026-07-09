@@ -146,64 +146,7 @@ function Invoke-PsqlNonQuery {
     } | Out-Null
 }
 
-function Get-SupabaseLocalKeys {
-    $envLines = Get-SupabaseStatusEnvLines
-    if (-not $envLines) {
-        return @{ Anon = $null; Service = $null }
-    }
-
-    $anonKey = $null
-    $serviceKey = $null
-    foreach ($line in $envLines) {
-        if ($line -match '^ANON_KEY="(.+)"') { $anonKey = $Matches[1] }
-        if ($line -match '^SERVICE_ROLE_KEY="(.+)"') { $serviceKey = $Matches[1] }
-    }
-    return @{ Anon = $anonKey; Service = $serviceKey }
-}
-
-function Get-EncodedStorageObjectPath([string]$ObjectPath) {
-    return (($ObjectPath -split '/') | ForEach-Object { [uri]::EscapeDataString($_) }) -join '/'
-}
-
-function Invoke-StorageUpload {
-    param(
-        [string]$Bucket,
-        [string]$ObjectPath,
-        [string]$FilePath,
-        [hashtable]$StorageHeaders
-    )
-    $bytes = [System.IO.File]::ReadAllBytes($FilePath)
-    $encoded = Get-EncodedStorageObjectPath $ObjectPath
-    $uploadUrl = "http://127.0.0.1:$ApiPort/storage/v1/object/$Bucket/$encoded"
-    $uploadHeaders = $StorageHeaders.Clone()
-    $uploadHeaders['Content-Type'] = Get-ImageContentType $FilePath
-    $uploadHeaders['x-upsert'] = 'true'
-    Invoke-WithRetry -Label "storage upload $Bucket/$ObjectPath" -Action {
-        Invoke-RestMethod -Method Post -Uri $uploadUrl -Headers $uploadHeaders -Body $bytes -TimeoutSec $RequestTimeoutSec | Out-Null
-    } | Out-Null
-}
-
-function Wait-ForStorageReady {
-    param(
-        [hashtable]$StorageHeaders,
-        [int]$TimeoutSec = $StorageReadyTimeoutSec
-    )
-    $deadline = (Get-Date).AddSeconds($TimeoutSec)
-    $attempt = 0
-    Write-Host "       Waiting for Supabase Storage (up to ${TimeoutSec}s)..."
-    while ((Get-Date) -lt $deadline) {
-        $attempt++
-        try {
-            Invoke-WebRequest -Method Head -Uri "http://127.0.0.1:$ApiPort/storage/v1/bucket/equipment-note-images" -Headers $StorageHeaders -TimeoutSec $RequestTimeoutSec -UseBasicParsing -ErrorAction Stop | Out-Null
-            Write-Host "       Supabase Storage is ready (attempt $attempt)."
-            return $true
-        }
-        catch {
-            Start-Sleep -Seconds 2
-        }
-    }
-    return $false
-}
+. (Join-Path $PSScriptRoot 'Invoke-LocalDevStorageUpload.ps1')
 
 function Test-EquipmentExists {
     param([string]$EquipmentId)
@@ -240,7 +183,7 @@ function Set-EquipmentDisplayImage {
     )
     $noteId = Get-OrCreateEquipmentSeedNote -EquipmentId $EquipmentId
     $objectPath = "$SeedUploaderId/$EquipmentId/$noteId/$FileName"
-    Invoke-StorageUpload -Bucket 'equipment-note-images' -ObjectPath $objectPath -FilePath $FilePath -StorageHeaders $StorageHeaders
+    Invoke-LocalDevStorageUpload -Bucket 'equipment-note-images' -ObjectPath $objectPath -FilePath $FilePath -StorageHeaders $StorageHeaders -ApiPort $ApiPort -RequestTimeoutSec $RequestTimeoutSec
 
     $equipmentIdSql = Escape-SqlLiteral $EquipmentId
     $objectPathSql = Escape-SqlLiteral $objectPath
@@ -306,7 +249,10 @@ function Insert-WorkOrderSeedNote {
     $contentSql = Escape-SqlLiteral $Content
     $sql = @"
 INSERT INTO work_order_notes (id, work_order_id, author_id, content, hours_worked, is_private)
-VALUES ('$noteIdSql', '$workOrderIdSql', '$SeedUploaderId', '$contentSql', 0, false)
+SELECT '$noteIdSql', wo.id, '$SeedUploaderId', '$contentSql', 0, false
+FROM work_orders wo
+WHERE wo.id = '$workOrderIdSql'
+  AND wo.organization_id IN ($SeedOrganizationIdsSql)
 "@
     Invoke-PsqlNonQuery -Sql $sql -Label "insert work_order_notes"
 }
@@ -329,7 +275,10 @@ function Insert-WorkOrderImageRow {
     $descriptionSql = Escape-SqlLiteral $Description
     $sql = @"
 INSERT INTO work_order_images (work_order_id, note_id, file_name, file_url, file_size, mime_type, uploaded_by, description)
-VALUES ('$workOrderIdSql', '$noteIdSql', '$fileNameSql', '$objectPathSql', $FileSize, '$mimeTypeSql', '$SeedUploaderId', '$descriptionSql')
+SELECT wo.id, '$noteIdSql', '$fileNameSql', '$objectPathSql', $FileSize, '$mimeTypeSql', '$SeedUploaderId', '$descriptionSql'
+FROM work_orders wo
+WHERE wo.id = '$workOrderIdSql'
+  AND wo.organization_id IN ($SeedOrganizationIdsSql)
 "@
     Invoke-PsqlNonQuery -Sql $sql -Label "insert work_order_images"
 }
@@ -381,18 +330,11 @@ if ($uuidCount -eq 0 -and $backfillCount -eq 0 -and $workOrderCount -eq 0) {
 Write-Host "       Seeding dev media ($uuidCount uuid-mapped, $backfillCount display backfill, $dropOnlyCount drop-only, $workOrderCount work-order)..."
 
 Write-Host "       Resolving local Supabase keys for storage uploads (timeout-bound)..."
-$localKeys = Get-SupabaseLocalKeys
-if (-not $localKeys.Anon -or -not $localKeys.Service) {
-    Write-Host "       WARNING: Could not retrieve Supabase keys for storage uploads. Dev media seed skipped."
-    exit 1
+try {
+    $StorageHeaders = Initialize-LocalDevStorageSession -ApiPort $ApiPort -RequestTimeoutSec $RequestTimeoutSec -StorageReadyTimeoutSec $StorageReadyTimeoutSec
 }
-$StorageHeaders = @{
-    apikey        = $localKeys.Anon
-    Authorization = "Bearer $($localKeys.Service)"
-}
-
-if (-not (Wait-ForStorageReady -StorageHeaders $StorageHeaders)) {
-    Write-Host "       WARNING: Supabase Storage did not become ready in time. Dev media seed skipped."
+catch {
+    Write-Host "       WARNING: $($_.Exception.Message) Dev media seed skipped."
     exit 1
 }
 
@@ -441,7 +383,7 @@ foreach ($img in $workOrderImages) {
     try {
         $noteId = [guid]::NewGuid().ToString()
         $objectPath = "$SeedUploaderId/$workOrderId/$noteId/seed-$($img.Name)"
-        Invoke-StorageUpload -Bucket 'work-order-images' -ObjectPath $objectPath -FilePath $img.FullName -StorageHeaders $StorageHeaders
+        Invoke-LocalDevStorageUpload -Bucket 'work-order-images' -ObjectPath $objectPath -FilePath $img.FullName -StorageHeaders $StorageHeaders -ApiPort $ApiPort -RequestTimeoutSec $RequestTimeoutSec
 
         Insert-WorkOrderSeedNote -NoteId $noteId -WorkOrderId $workOrderId -Content 'Seed photo attached for local media testing.'
         Insert-WorkOrderImageRow -WorkOrderId $workOrderId -NoteId $noteId -FileName $img.Name -ObjectPath $objectPath `
@@ -506,7 +448,7 @@ LIMIT 40
             if ($target -eq 1 -and $noteQueue.Count -gt 0) {
                 $note = $noteQueue.Dequeue()
                 $objectPath = "$SeedUploaderId/$($note.equipment_id)/$($note.id)/seed-drop-$($img.Name)"
-                Invoke-StorageUpload -Bucket 'equipment-note-images' -ObjectPath $objectPath -FilePath $img.FullName -StorageHeaders $StorageHeaders
+                Invoke-LocalDevStorageUpload -Bucket 'equipment-note-images' -ObjectPath $objectPath -FilePath $img.FullName -StorageHeaders $StorageHeaders -ApiPort $ApiPort -RequestTimeoutSec $RequestTimeoutSec
                 Insert-EquipmentNoteImageRow -EquipmentNoteId $note.id -FileName $img.Name -ObjectPath $objectPath `
                     -FileSize $img.Length -MimeType (Get-ImageContentType $img.FullName)
                 $stats.NoteImages++
@@ -517,7 +459,7 @@ LIMIT 40
                 $workOrderId = $woQueue.Dequeue()
                 $noteId = [guid]::NewGuid().ToString()
                 $objectPath = "$SeedUploaderId/$workOrderId/$noteId/seed-drop-$($img.Name)"
-                Invoke-StorageUpload -Bucket 'work-order-images' -ObjectPath $objectPath -FilePath $img.FullName -StorageHeaders $StorageHeaders
+                Invoke-LocalDevStorageUpload -Bucket 'work-order-images' -ObjectPath $objectPath -FilePath $img.FullName -StorageHeaders $StorageHeaders -ApiPort $ApiPort -RequestTimeoutSec $RequestTimeoutSec
                 Insert-WorkOrderSeedNote -NoteId $noteId -WorkOrderId $workOrderId -Content 'Drop-folder seed photo for local media testing.'
                 Insert-WorkOrderImageRow -WorkOrderId $workOrderId -NoteId $noteId -FileName $img.Name -ObjectPath $objectPath `
                     -FileSize $img.Length -MimeType (Get-ImageContentType $img.FullName) -Description 'Local dev drop-folder seed'
