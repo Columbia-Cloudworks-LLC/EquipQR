@@ -167,7 +167,7 @@ IMMUTABLE
 SET search_path = ''
 AS $$
   SELECT CASE
-    WHEN (storage.foldername(p_object_name))[p_segment_index] ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    WHEN (storage.foldername(p_object_name))[p_segment_index] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
     THEN (storage.foldername(p_object_name))[p_segment_index]::uuid
     ELSE NULL
   END;
@@ -328,6 +328,7 @@ BEGIN
   WHERE ei.equipment_note_id = p_note_id
     AND o.bucket_id = 'equipment-note-images'
     AND o.name = ei.file_url
+    AND public.storage_object_path_segment_uuid(o.name, 1) = ei.uploaded_by
     AND public.storage_object_path_segment_uuid(o.name, 2) = p_equipment_id
     AND public.storage_object_path_segment_uuid(o.name, 3) = p_note_id;
 
@@ -508,6 +509,7 @@ BEGIN
     AND wi.work_order_id = p_work_order_id
     AND o.bucket_id = 'work-order-images'
     AND o.name = wi.file_url
+    AND public.storage_object_path_segment_uuid(o.name, 1) = wi.uploaded_by
     AND public.storage_object_path_segment_uuid(o.name, 2) = p_work_order_id
     AND public.storage_object_path_segment_uuid(o.name, 3) = p_note_id;
 
@@ -597,6 +599,7 @@ BEGIN
   DELETE FROM storage.objects
   WHERE bucket_id = 'equipment-note-images'
     AND name = v_image.file_url
+    AND public.storage_object_path_segment_uuid(name, 1) = v_image.uploaded_by
     AND public.storage_object_path_segment_uuid(name, 2) = p_equipment_id
     AND public.storage_object_path_segment_uuid(name, 3) = v_image.equipment_note_id;
 
@@ -673,6 +676,7 @@ BEGIN
   DELETE FROM storage.objects
   WHERE bucket_id = 'work-order-images'
     AND name = v_image.file_url
+    AND public.storage_object_path_segment_uuid(name, 1) = v_image.uploaded_by
     AND public.storage_object_path_segment_uuid(name, 2) = p_work_order_id
     AND (v_note_id IS NULL OR public.storage_object_path_segment_uuid(name, 3) = v_note_id);
 

@@ -27,7 +27,11 @@ $repoRoot = if ($PSScriptRoot) {
     (Get-Location).Path
 }
 
-$baseUrl = "http://127.0.0.1:$ApiPort"
+$configText = Get-Content (Join-Path $repoRoot 'supabase\config.toml') -Raw
+if ($configText -notmatch '(?m)^project_id\s*=\s*"([^"]+)"') {
+    throw 'Could not resolve project_id from supabase/config.toml for local DB container name.'
+}
+$DbContainer = "supabase_db_$($Matches[1])"
 $seedRoot = Join-Path $repoRoot 'supabase\seed-images'
 $equipmentDir = Join-Path $seedRoot "equipment"
 $dropDir = Join-Path $seedRoot "drop"
@@ -35,15 +39,22 @@ $workOrdersDir = Join-Path $seedRoot "work-orders"
 
 # owner@apex.test — stable uploader for local seed media
 $SeedUploaderId = 'bb0e8400-e29b-41d4-a716-446655440001'
-# Fixture orgs from supabase/seeds/99_cleanup_trigger_orgs.sql (service-role queries must scope tenants)
+# Fixture orgs from supabase/seeds/99_cleanup_trigger_orgs.sql (seed queries scope tenants)
 $SeedOrganizationIds = @(
     '660e8400-e29b-41d4-a716-446655440000',
     '660e8400-e29b-41d4-a716-446655440001',
     '660e8400-e29b-41d4-a716-446655440002',
     '660e8400-e29b-41d4-a716-446655440003'
 )
-$SeedOrganizationFilter = 'organization_id=in.(' + ($SeedOrganizationIds -join ',') + ')'
 $ImageExtensions = @('.jpg', '.jpeg', '.png', '.webp', '.gif')
+
+function Escape-SqlLiteral {
+    param([string]$Value)
+    if ($null -eq $Value) { return '' }
+    return $Value.Replace("'", "''")
+}
+
+$SeedOrganizationIdsSql = ($SeedOrganizationIds | ForEach-Object { "'" + (Escape-SqlLiteral $_) + "'" }) -join ','
 
 function Get-ImageFiles([string]$Directory) {
     if (-not (Test-Path $Directory)) { return @() }
@@ -97,8 +108,45 @@ function Get-SupabaseStatusEnvLines {
     return $lines
 }
 
-function Get-SupabaseKeys {
-    Write-Host "       Fetching local Supabase keys (timeout-bound)..."
+function Invoke-PsqlRaw {
+    param(
+        [string]$Sql,
+        [switch]$TuplesOnly
+    )
+    $dockerArgs = @('exec', $DbContainer, 'psql', '-U', 'postgres', '-d', 'postgres')
+    if ($TuplesOnly) {
+        $dockerArgs += @('-t', '-A')
+    }
+    $dockerArgs += @('-c', $Sql)
+    $output = & docker @dockerArgs 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "psql failed (exit $LASTEXITCODE): $output"
+    }
+    return ($output | Out-String)
+}
+
+function Invoke-PsqlScalar {
+    param([string]$Sql)
+    return (Invoke-PsqlRaw -Sql $Sql -TuplesOnly).Trim()
+}
+
+function Invoke-PsqlLines {
+    param([string]$Sql)
+    $result = Invoke-PsqlRaw -Sql $Sql -TuplesOnly
+    @($result -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' })
+}
+
+function Invoke-PsqlNonQuery {
+    param(
+        [string]$Sql,
+        [string]$Label = 'psql execute'
+    )
+    Invoke-WithRetry -Label $Label -Action {
+        Invoke-PsqlRaw -Sql $Sql | Out-Null
+    } | Out-Null
+}
+
+function Get-SupabaseLocalKeys {
     $envLines = Get-SupabaseStatusEnvLines
     if (-not $envLines) {
         return @{ Anon = $null; Service = $null }
@@ -113,24 +161,40 @@ function Get-SupabaseKeys {
     return @{ Anon = $anonKey; Service = $serviceKey }
 }
 
+function Get-EncodedStorageObjectPath([string]$ObjectPath) {
+    return (($ObjectPath -split '/') | ForEach-Object { [uri]::EscapeDataString($_) }) -join '/'
+}
+
+function Invoke-StorageUpload {
+    param(
+        [string]$Bucket,
+        [string]$ObjectPath,
+        [string]$FilePath,
+        [hashtable]$StorageHeaders
+    )
+    $bytes = [System.IO.File]::ReadAllBytes($FilePath)
+    $encoded = Get-EncodedStorageObjectPath $ObjectPath
+    $uploadUrl = "http://127.0.0.1:$ApiPort/storage/v1/object/$Bucket/$encoded"
+    $uploadHeaders = $StorageHeaders.Clone()
+    $uploadHeaders['Content-Type'] = Get-ImageContentType $FilePath
+    $uploadHeaders['x-upsert'] = 'true'
+    Invoke-WithRetry -Label "storage upload $Bucket/$ObjectPath" -Action {
+        Invoke-RestMethod -Method Post -Uri $uploadUrl -Headers $uploadHeaders -Body $bytes -TimeoutSec $RequestTimeoutSec | Out-Null
+    } | Out-Null
+}
+
 function Wait-ForStorageReady {
     param(
-        [string]$Anon,
-        [string]$Service,
+        [hashtable]$StorageHeaders,
         [int]$TimeoutSec = $StorageReadyTimeoutSec
     )
-    $headers = @{
-        apikey        = $Anon
-        Authorization = "Bearer $Service"
-    }
     $deadline = (Get-Date).AddSeconds($TimeoutSec)
     $attempt = 0
     Write-Host "       Waiting for Supabase Storage (up to ${TimeoutSec}s)..."
     while ((Get-Date) -lt $deadline) {
         $attempt++
         try {
-            $probeUrl = "$baseUrl/storage/v1/bucket/equipment-note-images"
-            Invoke-WebRequest -Method Head -Uri $probeUrl -Headers $headers -TimeoutSec $RequestTimeoutSec -UseBasicParsing -ErrorAction Stop | Out-Null
+            Invoke-WebRequest -Method Head -Uri "http://127.0.0.1:$ApiPort/storage/v1/bucket/equipment-note-images" -Headers $StorageHeaders -TimeoutSec $RequestTimeoutSec -UseBasicParsing -ErrorAction Stop | Out-Null
             Write-Host "       Supabase Storage is ready (attempt $attempt)."
             return $true
         }
@@ -141,107 +205,152 @@ function Wait-ForStorageReady {
     return $false
 }
 
-function Get-ResponseHeaderValue {
-    param(
-        $Response,
-        [string]$HeaderName
-    )
-    if ($null -eq $Response -or $null -eq $Response.Headers) { return $null }
-    $value = $Response.Headers[$HeaderName]
-    if ($null -eq $value) { $value = $Response.Headers[$HeaderName.ToLower()] }
-    if ($value -is [array]) { return $value[0] }
-    return $value
+function Test-EquipmentExists {
+    param([string]$EquipmentId)
+    $id = Escape-SqlLiteral $EquipmentId
+    $sql = "SELECT EXISTS(SELECT 1 FROM equipment WHERE id = '$id' AND organization_id IN ($SeedOrganizationIdsSql))"
+    return (Invoke-PsqlScalar $sql) -eq 't'
 }
 
-function Get-EncodedStorageObjectPath([string]$ObjectPath) {
-    return (($ObjectPath -split '/') | ForEach-Object { [uri]::EscapeDataString($_) }) -join '/'
-}
-
-function Get-StorageObjectUrl {
-    param(
-        [string]$Bucket,
-        [string]$ObjectPath,
-        [ValidateSet('object', 'object/sign')]
-        [string]$Verb = 'object'
-    )
-    $encoded = Get-EncodedStorageObjectPath $ObjectPath
-    return "$baseUrl/storage/v1/$Verb/$Bucket/$encoded"
-}
-
-function Invoke-RestSelectAll {
-    param(
-        [string]$Table,
-        [string]$BaseQuery,
-        [hashtable]$Headers,
-        [int]$PageSize = 1000
-    )
-    $all = [System.Collections.Generic.List[object]]::new()
-    $offset = 0
-    while ($true) {
-        $sep = if ($BaseQuery -match '\?') { '&' } else { '?' }
-        $pageQuery = "$BaseQuery${sep}limit=$PageSize&offset=$offset"
-        $raw = Invoke-RestSelect -Table $Table -Query $pageQuery -Headers $Headers
-        if ($null -eq $raw) { break }
-        $batch = @($raw)
-        if ($batch.Count -eq 0) { break }
-        $all.AddRange($batch)
-        if ($batch.Count -lt $PageSize) { break }
-        $offset += $PageSize
+function Get-OrCreateEquipmentSeedNote {
+    param([string]$EquipmentId)
+    $equipmentIdSql = Escape-SqlLiteral $EquipmentId
+    $existing = @(Invoke-PsqlLines "SELECT id FROM equipment_notes WHERE equipment_id = '$equipmentIdSql' ORDER BY created_at ASC LIMIT 1")
+    if ($existing.Count -gt 0) {
+        return [string]$existing[0]
     }
-    return @($all)
+
+    $noteId = [guid]::NewGuid().ToString()
+    $noteIdSql = Escape-SqlLiteral $noteId
+    $contentSql = Escape-SqlLiteral 'Auto-created seed note for local dev media.'
+    $sql = @"
+INSERT INTO equipment_notes (id, equipment_id, author_id, content, is_private)
+VALUES ('$noteIdSql', '$equipmentIdSql', '$SeedUploaderId', '$contentSql', false)
+"@
+    Invoke-PsqlNonQuery -Sql $sql -Label "insert equipment_notes for $EquipmentId"
+    return $noteId
 }
 
-function Invoke-StorageUpload {
+function Set-EquipmentDisplayImage {
     param(
-        [string]$Bucket,
-        [string]$ObjectPath,
+        [string]$EquipmentId,
         [string]$FilePath,
-        [hashtable]$Headers
+        [string]$FileName,
+        [hashtable]$StorageHeaders
     )
-    $bytes = [System.IO.File]::ReadAllBytes($FilePath)
-    $uploadUrl = Get-StorageObjectUrl -Bucket $Bucket -ObjectPath $ObjectPath
-    $uploadHeaders = $Headers.Clone()
-    $uploadHeaders['Content-Type'] = Get-ImageContentType $FilePath
-    $uploadHeaders['x-upsert'] = 'true'
-    Invoke-WithRetry -Label "storage upload $Bucket/$ObjectPath" -Action {
-        Invoke-RestMethod -Method Post -Uri $uploadUrl -Headers $uploadHeaders -Body $bytes -TimeoutSec $RequestTimeoutSec | Out-Null
-    } | Out-Null
+    $noteId = Get-OrCreateEquipmentSeedNote -EquipmentId $EquipmentId
+    $objectPath = "$SeedUploaderId/$EquipmentId/$noteId/$FileName"
+    Invoke-StorageUpload -Bucket 'equipment-note-images' -ObjectPath $objectPath -FilePath $FilePath -StorageHeaders $StorageHeaders
+
+    $equipmentIdSql = Escape-SqlLiteral $EquipmentId
+    $objectPathSql = Escape-SqlLiteral $objectPath
+    Invoke-PsqlNonQuery -Sql "UPDATE equipment SET image_url = '$objectPathSql' WHERE id = '$equipmentIdSql'" -Label "update equipment image_url"
+
+    $noteIdSql = Escape-SqlLiteral $noteId
+    $fileNameSql = Escape-SqlLiteral $FileName
+    $mimeTypeSql = Escape-SqlLiteral (Get-ImageContentType $FilePath)
+    $fileSize = (Get-Item $FilePath).Length
+    $imageSql = @"
+INSERT INTO equipment_note_images (equipment_note_id, file_name, file_url, file_size, mime_type, uploaded_by)
+VALUES ('$noteIdSql', '$fileNameSql', '$objectPathSql', $fileSize, '$mimeTypeSql', '$SeedUploaderId')
+"@
+    Invoke-PsqlNonQuery -Sql $imageSql -Label "insert equipment_note_images"
 }
 
-function Invoke-RestPatch {
-    param(
-        [string]$Table,
-        [string]$Filter,
-        [hashtable]$Body,
-        [hashtable]$Headers
-    )
-    $json = $Body | ConvertTo-Json -Compress
-    Invoke-WithRetry -Label "patch $Table$Filter" -Action {
-        Invoke-RestMethod -Method Patch -Uri "$baseUrl/rest/v1/$Table$Filter" -Headers $Headers -Body $json -TimeoutSec $RequestTimeoutSec | Out-Null
-    } | Out-Null
+function Get-EquipmentIdsMissingDisplay {
+    $lines = Invoke-PsqlLines @"
+SELECT id FROM equipment
+WHERE image_url IS NULL
+  AND organization_id IN ($SeedOrganizationIdsSql)
+ORDER BY id ASC
+"@
+    return @($lines)
 }
 
-function Invoke-RestInsert {
-    param(
-        [string]$Table,
-        [object]$Body,
-        [hashtable]$Headers
-    )
-    $json = if ($Body -is [array]) { $Body | ConvertTo-Json -Compress } else { $Body | ConvertTo-Json -Compress }
-    return Invoke-WithRetry -Label "insert $Table" -Action {
-        Invoke-RestMethod -Method Post -Uri "$baseUrl/rest/v1/$Table" -Headers $Headers -Body $json -TimeoutSec $RequestTimeoutSec
-    }
+function Get-EquipmentRowsWithDisplayImage {
+    $lines = Invoke-PsqlLines @"
+SELECT id, image_url FROM equipment
+WHERE image_url IS NOT NULL
+  AND organization_id IN ($SeedOrganizationIdsSql)
+ORDER BY id ASC
+"@
+    return @($lines | ForEach-Object {
+        $parts = $_ -split '\|', 2
+        [PSCustomObject]@{
+            id        = $parts[0]
+            image_url = if ($parts.Count -gt 1) { $parts[1] } else { $null }
+        }
+    })
 }
 
-function Invoke-RestSelect {
+function Test-StorageObjectExists {
     param(
-        [string]$Table,
-        [string]$Query,
-        [hashtable]$Headers
+        [string]$Bucket,
+        [string]$ObjectPath
     )
-    return Invoke-WithRetry -Label "select $Table" -Action {
-        Invoke-RestMethod -Method Get -Uri "$baseUrl/rest/v1/$Table$Query" -Headers $Headers -TimeoutSec $RequestTimeoutSec
-    }
+    if (-not $ObjectPath -or -not $ObjectPath.Trim()) { return $false }
+    $bucketSql = Escape-SqlLiteral $Bucket
+    $pathSql = Escape-SqlLiteral $ObjectPath
+    $sql = "SELECT EXISTS(SELECT 1 FROM storage.objects WHERE bucket_id = '$bucketSql' AND name = '$pathSql')"
+    return (Invoke-PsqlScalar $sql) -eq 't'
+}
+
+function Insert-WorkOrderSeedNote {
+    param(
+        [string]$NoteId,
+        [string]$WorkOrderId,
+        [string]$Content
+    )
+    $noteIdSql = Escape-SqlLiteral $NoteId
+    $workOrderIdSql = Escape-SqlLiteral $WorkOrderId
+    $contentSql = Escape-SqlLiteral $Content
+    $sql = @"
+INSERT INTO work_order_notes (id, work_order_id, author_id, content, hours_worked, is_private)
+VALUES ('$noteIdSql', '$workOrderIdSql', '$SeedUploaderId', '$contentSql', 0, false)
+"@
+    Invoke-PsqlNonQuery -Sql $sql -Label "insert work_order_notes"
+}
+
+function Insert-WorkOrderImageRow {
+    param(
+        [string]$WorkOrderId,
+        [string]$NoteId,
+        [string]$FileName,
+        [string]$ObjectPath,
+        [long]$FileSize,
+        [string]$MimeType,
+        [string]$Description
+    )
+    $workOrderIdSql = Escape-SqlLiteral $WorkOrderId
+    $noteIdSql = Escape-SqlLiteral $NoteId
+    $fileNameSql = Escape-SqlLiteral $FileName
+    $objectPathSql = Escape-SqlLiteral $ObjectPath
+    $mimeTypeSql = Escape-SqlLiteral $MimeType
+    $descriptionSql = Escape-SqlLiteral $Description
+    $sql = @"
+INSERT INTO work_order_images (work_order_id, note_id, file_name, file_url, file_size, mime_type, uploaded_by, description)
+VALUES ('$workOrderIdSql', '$noteIdSql', '$fileNameSql', '$objectPathSql', $FileSize, '$mimeTypeSql', '$SeedUploaderId', '$descriptionSql')
+"@
+    Invoke-PsqlNonQuery -Sql $sql -Label "insert work_order_images"
+}
+
+function Insert-EquipmentNoteImageRow {
+    param(
+        [string]$EquipmentNoteId,
+        [string]$FileName,
+        [string]$ObjectPath,
+        [long]$FileSize,
+        [string]$MimeType
+    )
+    $noteIdSql = Escape-SqlLiteral $EquipmentNoteId
+    $fileNameSql = Escape-SqlLiteral $FileName
+    $objectPathSql = Escape-SqlLiteral $ObjectPath
+    $mimeTypeSql = Escape-SqlLiteral $MimeType
+    $sql = @"
+INSERT INTO equipment_note_images (equipment_note_id, file_name, file_url, file_size, mime_type, uploaded_by)
+VALUES ('$noteIdSql', '$fileNameSql', '$objectPathSql', $FileSize, '$mimeTypeSql', '$SeedUploaderId')
+"@
+    Invoke-PsqlNonQuery -Sql $sql -Label "insert equipment_note_images"
 }
 
 if (-not (Test-Path $seedRoot)) {
@@ -271,26 +380,20 @@ if ($uuidCount -eq 0 -and $backfillCount -eq 0 -and $workOrderCount -eq 0) {
 
 Write-Host "       Seeding dev media ($uuidCount uuid-mapped, $backfillCount display backfill, $dropOnlyCount drop-only, $workOrderCount work-order)..."
 
-$keys = Get-SupabaseKeys
-if (-not $keys.Anon -or -not $keys.Service) {
-    Write-Host "       WARNING: Could not retrieve Supabase keys. Dev media seed skipped."
+Write-Host "       Resolving local Supabase keys for storage uploads (timeout-bound)..."
+$localKeys = Get-SupabaseLocalKeys
+if (-not $localKeys.Anon -or -not $localKeys.Service) {
+    Write-Host "       WARNING: Could not retrieve Supabase keys for storage uploads. Dev media seed skipped."
     exit 1
 }
+$StorageHeaders = @{
+    apikey        = $localKeys.Anon
+    Authorization = "Bearer $($localKeys.Service)"
+}
 
-if (-not (Wait-ForStorageReady -Anon $keys.Anon -Service $keys.Service)) {
+if (-not (Wait-ForStorageReady -StorageHeaders $StorageHeaders)) {
     Write-Host "       WARNING: Supabase Storage did not become ready in time. Dev media seed skipped."
     exit 1
-}
-
-$restHeaders = @{
-    apikey        = $keys.Anon
-    Authorization = "Bearer $($keys.Service)"
-    'Content-Type' = 'application/json'
-    Prefer        = 'return=representation'
-}
-$storageHeaders = @{
-    apikey        = $keys.Anon
-    Authorization = "Bearer $($keys.Service)"
 }
 
 $stats = @{
@@ -301,82 +404,27 @@ $stats = @{
     SkippedMissingEquipment = 0
 }
 
-function Test-EquipmentExists {
-    param(
-        [string]$EquipmentId,
-        [hashtable]$Headers
-    )
-    $rows = @(Invoke-RestSelect -Table 'equipment' -Query "?select=id&id=eq.$EquipmentId&$SeedOrganizationFilter&limit=1" -Headers $Headers)
-    return $rows.Count -gt 0
-}
-
-function Get-OrCreateEquipmentSeedNote {
-    param(
-        [string]$EquipmentId,
-        [hashtable]$Headers
-    )
-    $existing = Invoke-RestSelect -Table 'equipment_notes' -Query "?select=id&equipment_id=eq.$EquipmentId&order=created_at.asc&limit=1" -Headers $Headers
-    if ($existing -and $existing.Count -gt 0) {
-        return $existing[0].id
-    }
-
-    $noteId = [guid]::NewGuid().ToString()
-    $note = @{
-        id           = $noteId
-        equipment_id = $EquipmentId
-        author_id    = $SeedUploaderId
-        content      = 'Auto-created seed note for local dev media.'
-        is_private   = $false
-    }
-    Invoke-RestInsert -Table 'equipment_notes' -Body $note -Headers $Headers | Out-Null
-    return $noteId
-}
-
-function Set-EquipmentDisplayImage {
-    param(
-        [string]$EquipmentId,
-        [string]$FilePath,
-        [string]$FileName,
-        [hashtable]$RestHeaders,
-        [hashtable]$StorageHeaders
-    )
-    $noteId = Get-OrCreateEquipmentSeedNote -EquipmentId $EquipmentId -Headers $RestHeaders
-    $objectPath = "$SeedUploaderId/$EquipmentId/$noteId/$FileName"
-    Invoke-StorageUpload -Bucket 'equipment-note-images' -ObjectPath $objectPath -FilePath $FilePath -Headers $StorageHeaders
-    Invoke-RestPatch -Table 'equipment' -Filter "?id=eq.$EquipmentId" -Body @{ image_url = $objectPath } -Headers $RestHeaders
-
-    $imageRow = @{
-        equipment_note_id = $noteId
-        file_name         = $FileName
-        file_url          = $objectPath
-        file_size         = (Get-Item $FilePath).Length
-        mime_type         = (Get-ImageContentType $FilePath)
-        uploaded_by       = $SeedUploaderId
-    }
-    Invoke-RestInsert -Table 'equipment_note_images' -Body $imageRow -Headers $RestHeaders | Out-Null
-}
-
 # ── Phase 1: explicit equipment display images (UUID filenames) ────────────
 $phase1Index = 0
 foreach ($img in $uuidEquipmentImages) {
     $phase1Index++
     $equipmentId = $img.BaseName
 
-    if (-not (Test-EquipmentExists -EquipmentId $equipmentId -Headers $restHeaders)) {
+    if (-not (Test-EquipmentExists -EquipmentId $equipmentId)) {
         Write-Host "       WARN: No equipment row for $($img.Name) - skipped."
         $stats.SkippedMissingEquipment++
         continue
     }
 
     try {
-        Set-EquipmentDisplayImage -EquipmentId $equipmentId -FilePath $img.FullName -FileName $img.Name -RestHeaders $restHeaders -StorageHeaders $storageHeaders
+        Set-EquipmentDisplayImage -EquipmentId $equipmentId -FilePath $img.FullName -FileName $img.Name -StorageHeaders $StorageHeaders
         $stats.DisplayUpdated++
         if ($phase1Index % 5 -eq 0 -or $phase1Index -eq $uuidEquipmentImages.Count) {
             Write-Host "       Phase 1 progress: $phase1Index / $($uuidEquipmentImages.Count) uuid-mapped images"
         }
     }
     catch {
-        Write-Host "       WARN: Equipment display seed failed for $($img.Name)"
+        Write-Host "       WARN: Equipment display seed failed for $($img.Name) ($($_.Exception.Message))"
         $stats.Failed++
     }
 }
@@ -393,29 +441,11 @@ foreach ($img in $workOrderImages) {
     try {
         $noteId = [guid]::NewGuid().ToString()
         $objectPath = "$SeedUploaderId/$workOrderId/$noteId/seed-$($img.Name)"
-        Invoke-StorageUpload -Bucket 'work-order-images' -ObjectPath $objectPath -FilePath $img.FullName -Headers $storageHeaders
+        Invoke-StorageUpload -Bucket 'work-order-images' -ObjectPath $objectPath -FilePath $img.FullName -StorageHeaders $StorageHeaders
 
-        $note = @{
-            id             = $noteId
-            work_order_id  = $workOrderId
-            author_id      = $SeedUploaderId
-            content        = 'Seed photo attached for local media testing.'
-            hours_worked   = 0
-            is_private     = $false
-        }
-        Invoke-RestInsert -Table 'work_order_notes' -Body $note -Headers $restHeaders | Out-Null
-
-        $imageRow = @{
-            work_order_id = $workOrderId
-            note_id       = $noteId
-            file_name     = $img.Name
-            file_url      = $objectPath
-            file_size     = $img.Length
-            mime_type     = (Get-ImageContentType $img.FullName)
-            uploaded_by   = $SeedUploaderId
-            description   = 'Local dev seed image'
-        }
-        Invoke-RestInsert -Table 'work_order_images' -Body $imageRow -Headers $restHeaders | Out-Null
+        Insert-WorkOrderSeedNote -NoteId $noteId -WorkOrderId $workOrderId -Content 'Seed photo attached for local media testing.'
+        Insert-WorkOrderImageRow -WorkOrderId $workOrderId -NoteId $noteId -FileName $img.Name -ObjectPath $objectPath `
+            -FileSize $img.Length -MimeType (Get-ImageContentType $img.FullName) -Description 'Local dev seed image'
         $stats.WorkOrderImages++
     }
     catch {
@@ -424,43 +454,31 @@ foreach ($img in $workOrderImages) {
     }
 }
 
-function Get-EquipmentIdsMissingDisplay {
-    param([hashtable]$Headers)
-    $rows = Invoke-RestSelectAll -Table 'equipment' -BaseQuery "?select=id&image_url=is.null&$SeedOrganizationFilter&order=id.asc" -Headers $Headers
-    return @($rows | ForEach-Object { $_.id })
-}
-
-function Get-EquipmentRowsWithDisplayImage {
-    param([hashtable]$Headers)
-    return Invoke-RestSelectAll -Table 'equipment' -BaseQuery "?select=id,image_url&image_url=not.is.null&$SeedOrganizationFilter&order=id.asc" -Headers $Headers
-}
-
-function Test-StorageObjectExists {
-    param(
-        [string]$Bucket,
-        [string]$ObjectPath,
-        [hashtable]$Headers
-    )
-    if (-not $ObjectPath -or -not $ObjectPath.Trim()) { return $false }
-    $checkUrl = Get-StorageObjectUrl -Bucket $Bucket -ObjectPath $ObjectPath
-    try {
-        Invoke-WebRequest -Method Head -Uri $checkUrl -Headers $Headers -TimeoutSec $RequestTimeoutSec -UseBasicParsing | Out-Null
-        return $true
-    }
-    catch {
-        return $false
-    }
-}
-
 # ── Phase 3: drop/ folder only — round-robin display, notes, and work orders ─
 if ($dropImages.Count -gt 0) {
-    $equipmentNeedingDisplay = @(Get-EquipmentIdsMissingDisplay -Headers $restHeaders)
-    $equipmentNotes = @(
-        Invoke-RestSelect -Table 'equipment_notes' -Query "?select=id,equipment_id,equipment!inner(organization_id)&equipment.organization_id=in.($($SeedOrganizationIds -join ','))&order=created_at.asc&limit=100" -Headers $restHeaders
-    )
-    $workOrders = @(
-        Invoke-RestSelect -Table 'work_orders' -Query "?select=id&$SeedOrganizationFilter&status=in.(in_progress,assigned,accepted)&order=created_date.asc&limit=40" -Headers $restHeaders
-    )
+    $equipmentNeedingDisplay = @(Get-EquipmentIdsMissingDisplay)
+    $equipmentNoteLines = Invoke-PsqlLines @"
+SELECT en.id, en.equipment_id
+FROM equipment_notes en
+INNER JOIN equipment e ON e.id = en.equipment_id
+WHERE e.organization_id IN ($SeedOrganizationIdsSql)
+ORDER BY en.created_at ASC
+LIMIT 100
+"@
+    $equipmentNotes = @($equipmentNoteLines | ForEach-Object {
+        $parts = $_ -split '\|', 2
+        [PSCustomObject]@{
+            id           = $parts[0]
+            equipment_id = if ($parts.Count -gt 1) { $parts[1] } else { $null }
+        }
+    })
+    $workOrderIds = @(Invoke-PsqlLines @"
+SELECT id FROM work_orders
+WHERE organization_id IN ($SeedOrganizationIdsSql)
+  AND status IN ('in_progress', 'assigned', 'accepted')
+ORDER BY created_date ASC
+LIMIT 40
+"@)
 
     $displayQueue = [System.Collections.Generic.Queue[string]]::new()
     foreach ($equipmentId in $equipmentNeedingDisplay) { $displayQueue.Enqueue($equipmentId) }
@@ -469,7 +487,7 @@ if ($dropImages.Count -gt 0) {
     foreach ($row in $equipmentNotes) { $noteQueue.Enqueue($row) }
 
     $woQueue = [System.Collections.Generic.Queue[string]]::new()
-    foreach ($row in $workOrders) { $woQueue.Enqueue($row.id) }
+    foreach ($workOrderId in $workOrderIds) { $woQueue.Enqueue($workOrderId) }
 
     $dropIndex = 0
     foreach ($img in $dropImages) {
@@ -480,7 +498,7 @@ if ($dropImages.Count -gt 0) {
             if ($target -eq 0 -and $displayQueue.Count -gt 0) {
                 $equipmentId = $displayQueue.Dequeue()
                 $dropName = "drop-$($img.Name)"
-                Set-EquipmentDisplayImage -EquipmentId $equipmentId -FilePath $img.FullName -FileName $dropName -RestHeaders $restHeaders -StorageHeaders $storageHeaders
+                Set-EquipmentDisplayImage -EquipmentId $equipmentId -FilePath $img.FullName -FileName $dropName -StorageHeaders $StorageHeaders
                 $stats.DisplayUpdated++
                 continue
             }
@@ -488,16 +506,9 @@ if ($dropImages.Count -gt 0) {
             if ($target -eq 1 -and $noteQueue.Count -gt 0) {
                 $note = $noteQueue.Dequeue()
                 $objectPath = "$SeedUploaderId/$($note.equipment_id)/$($note.id)/seed-drop-$($img.Name)"
-                Invoke-StorageUpload -Bucket 'equipment-note-images' -ObjectPath $objectPath -FilePath $img.FullName -Headers $storageHeaders
-                $imageRow = @{
-                    equipment_note_id = $note.id
-                    file_name         = $img.Name
-                    file_url          = $objectPath
-                    file_size         = $img.Length
-                    mime_type         = (Get-ImageContentType $img.FullName)
-                    uploaded_by       = $SeedUploaderId
-                }
-                Invoke-RestInsert -Table 'equipment_note_images' -Body $imageRow -Headers $restHeaders | Out-Null
+                Invoke-StorageUpload -Bucket 'equipment-note-images' -ObjectPath $objectPath -FilePath $img.FullName -StorageHeaders $StorageHeaders
+                Insert-EquipmentNoteImageRow -EquipmentNoteId $note.id -FileName $img.Name -ObjectPath $objectPath `
+                    -FileSize $img.Length -MimeType (Get-ImageContentType $img.FullName)
                 $stats.NoteImages++
                 continue
             }
@@ -506,27 +517,10 @@ if ($dropImages.Count -gt 0) {
                 $workOrderId = $woQueue.Dequeue()
                 $noteId = [guid]::NewGuid().ToString()
                 $objectPath = "$SeedUploaderId/$workOrderId/$noteId/seed-drop-$($img.Name)"
-                Invoke-StorageUpload -Bucket 'work-order-images' -ObjectPath $objectPath -FilePath $img.FullName -Headers $storageHeaders
-                $note = @{
-                    id            = $noteId
-                    work_order_id = $workOrderId
-                    author_id     = $SeedUploaderId
-                    content       = 'Drop-folder seed photo for local media testing.'
-                    hours_worked  = 0
-                    is_private    = $false
-                }
-                Invoke-RestInsert -Table 'work_order_notes' -Body $note -Headers $restHeaders | Out-Null
-                $imageRow = @{
-                    work_order_id = $workOrderId
-                    note_id       = $noteId
-                    file_name     = $img.Name
-                    file_url      = $objectPath
-                    file_size     = $img.Length
-                    mime_type     = (Get-ImageContentType $img.FullName)
-                    uploaded_by   = $SeedUploaderId
-                    description   = 'Local dev drop-folder seed'
-                }
-                Invoke-RestInsert -Table 'work_order_images' -Body $imageRow -Headers $restHeaders | Out-Null
+                Invoke-StorageUpload -Bucket 'work-order-images' -ObjectPath $objectPath -FilePath $img.FullName -StorageHeaders $StorageHeaders
+                Insert-WorkOrderSeedNote -NoteId $noteId -WorkOrderId $workOrderId -Content 'Drop-folder seed photo for local media testing.'
+                Insert-WorkOrderImageRow -WorkOrderId $workOrderId -NoteId $noteId -FileName $img.Name -ObjectPath $objectPath `
+                    -FileSize $img.Length -MimeType (Get-ImageContentType $img.FullName) -Description 'Local dev drop-folder seed'
                 $stats.WorkOrderImages++
             }
         }
@@ -540,7 +534,7 @@ if ($dropImages.Count -gt 0) {
 
 # ── Phase 4: cyclic display backfill for remaining equipment ───────────────
 if ($displayBackfillPool.Count -gt 0) {
-    $remainingIds = @(Get-EquipmentIdsMissingDisplay -Headers $restHeaders)
+    $remainingIds = @(Get-EquipmentIdsMissingDisplay)
     if ($remainingIds.Count -gt 0) {
         Write-Host "       Backfilling $($remainingIds.Count) equipment without display images (cycling $($displayBackfillPool.Count) photos)..."
         $poolIndex = 0
@@ -549,7 +543,7 @@ if ($displayBackfillPool.Count -gt 0) {
             $poolIndex++
             try {
                 $backfillName = "backfill-$poolIndex-$($img.Name)"
-                Set-EquipmentDisplayImage -EquipmentId $equipmentId -FilePath $img.FullName -FileName $backfillName -RestHeaders $restHeaders -StorageHeaders $storageHeaders
+                Set-EquipmentDisplayImage -EquipmentId $equipmentId -FilePath $img.FullName -FileName $backfillName -StorageHeaders $StorageHeaders
                 $stats.DisplayUpdated++
             }
             catch {
@@ -563,12 +557,12 @@ if ($displayBackfillPool.Count -gt 0) {
 
 # ── Phase 5: repair display paths whose storage object is missing ───────────
 if ($displayBackfillPool.Count -gt 0) {
-    $rowsWithDisplay = @(Get-EquipmentRowsWithDisplayImage -Headers $restHeaders)
+    $rowsWithDisplay = @(Get-EquipmentRowsWithDisplayImage)
     $broken = @(
         $rowsWithDisplay | Where-Object {
             $path = $_.image_url
             if (-not $path) { return $true }
-            -not (Test-StorageObjectExists -Bucket 'equipment-note-images' -ObjectPath $path -Headers $storageHeaders)
+            -not (Test-StorageObjectExists -Bucket 'equipment-note-images' -ObjectPath $path)
         }
     )
     if ($broken.Count -gt 0) {
@@ -579,7 +573,7 @@ if ($displayBackfillPool.Count -gt 0) {
             $poolIndex++
             try {
                 $repairName = "repair-$poolIndex-$($img.Name)"
-                Set-EquipmentDisplayImage -EquipmentId $row.id -FilePath $img.FullName -FileName $repairName -RestHeaders $restHeaders -StorageHeaders $storageHeaders
+                Set-EquipmentDisplayImage -EquipmentId $row.id -FilePath $img.FullName -FileName $repairName -StorageHeaders $StorageHeaders
                 $stats.DisplayUpdated++
             }
             catch {
@@ -591,15 +585,12 @@ if ($displayBackfillPool.Count -gt 0) {
     }
 }
 
-$verifyHeaders = $restHeaders.Clone()
-$verifyHeaders['Prefer'] = 'count=exact'
 try {
-    $verifyResponse = Invoke-WebRequest -Uri "$baseUrl/rest/v1/equipment?select=id&image_url=not.is.null&$SeedOrganizationFilter&limit=1" -Headers $verifyHeaders -Method Get -UseBasicParsing -TimeoutSec $RequestTimeoutSec
-    $withDisplay = 0
-    $contentRange = Get-ResponseHeaderValue -Response $verifyResponse -HeaderName 'Content-Range'
-    if ($contentRange -match '/(\d+)$') {
-        $withDisplay = [int]$Matches[1]
-    }
+    $withDisplay = [int](Invoke-PsqlScalar @"
+SELECT COUNT(*) FROM equipment
+WHERE image_url IS NOT NULL
+  AND organization_id IN ($SeedOrganizationIdsSql)
+"@)
 }
 catch {
     Write-Host "       WARN: Could not verify seeded display image count ($($_.Exception.Message))."
