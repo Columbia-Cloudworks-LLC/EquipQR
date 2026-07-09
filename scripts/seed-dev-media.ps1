@@ -13,8 +13,6 @@
 #>
 param(
     [int]$ApiPort = 54321,
-    [string]$AnonKey,
-    [string]$ServiceRoleKey,
     [int]$RequestTimeoutSec = 30,
     [int]$StorageReadyTimeoutSec = 120,
     [int]$SupabaseStatusTimeoutSec = 45,
@@ -100,14 +98,7 @@ function Get-SupabaseStatusEnvLines {
 }
 
 function Get-SupabaseKeys {
-    param(
-        [string]$PassedAnon,
-        [string]$PassedService
-    )
-    if ($PassedAnon -and $PassedService) {
-        return @{ Anon = $PassedAnon; Service = $PassedService }
-    }
-
+    Write-Host "       Fetching local Supabase keys (timeout-bound)..."
     $envLines = Get-SupabaseStatusEnvLines
     if (-not $envLines) {
         return @{ Anon = $null; Service = $null }
@@ -280,7 +271,7 @@ if ($uuidCount -eq 0 -and $backfillCount -eq 0 -and $workOrderCount -eq 0) {
 
 Write-Host "       Seeding dev media ($uuidCount uuid-mapped, $backfillCount display backfill, $dropOnlyCount drop-only, $workOrderCount work-order)..."
 
-$keys = Get-SupabaseKeys -PassedAnon $AnonKey -PassedService $ServiceRoleKey
+$keys = Get-SupabaseKeys
 if (-not $keys.Anon -or -not $keys.Service) {
     Write-Host "       WARNING: Could not retrieve Supabase keys. Dev media seed skipped."
     exit 1

@@ -157,6 +157,22 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION public.storage_object_path_segment_uuid(
+  p_object_name text,
+  p_segment_index integer
+)
+RETURNS uuid
+LANGUAGE sql
+IMMUTABLE
+SET search_path = ''
+AS $$
+  SELECT CASE
+    WHEN (storage.foldername(p_object_name))[p_segment_index] ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    THEN (storage.foldername(p_object_name))[p_segment_index]::uuid
+    ELSE NULL
+  END;
+$$;
+
 CREATE OR REPLACE FUNCTION public.update_equipment_note(
   p_organization_id uuid,
   p_equipment_id uuid,
@@ -312,8 +328,8 @@ BEGIN
   WHERE ei.equipment_note_id = p_note_id
     AND o.bucket_id = 'equipment-note-images'
     AND o.name = ei.file_url
-    AND (storage.foldername(o.name))[2]::uuid = p_equipment_id
-    AND (storage.foldername(o.name))[3]::uuid = p_note_id;
+    AND public.storage_object_path_segment_uuid(o.name, 2) = p_equipment_id
+    AND public.storage_object_path_segment_uuid(o.name, 3) = p_note_id;
 
   DELETE FROM public.equipment_note_images WHERE equipment_note_id = p_note_id;
   DELETE FROM public.equipment_notes WHERE id = p_note_id;
@@ -492,8 +508,8 @@ BEGIN
     AND wi.work_order_id = p_work_order_id
     AND o.bucket_id = 'work-order-images'
     AND o.name = wi.file_url
-    AND (storage.foldername(o.name))[2]::uuid = p_work_order_id
-    AND (storage.foldername(o.name))[3]::uuid = p_note_id;
+    AND public.storage_object_path_segment_uuid(o.name, 2) = p_work_order_id
+    AND public.storage_object_path_segment_uuid(o.name, 3) = p_note_id;
 
   DELETE FROM public.work_order_images
   WHERE note_id = p_note_id AND work_order_id = p_work_order_id;
@@ -581,8 +597,8 @@ BEGIN
   DELETE FROM storage.objects
   WHERE bucket_id = 'equipment-note-images'
     AND name = v_image.file_url
-    AND (storage.foldername(name))[2]::uuid = p_equipment_id
-    AND (storage.foldername(name))[3]::uuid = v_image.equipment_note_id;
+    AND public.storage_object_path_segment_uuid(name, 2) = p_equipment_id
+    AND public.storage_object_path_segment_uuid(name, 3) = v_image.equipment_note_id;
 
   DELETE FROM public.equipment_note_images WHERE id = p_image_id;
 
@@ -657,8 +673,8 @@ BEGIN
   DELETE FROM storage.objects
   WHERE bucket_id = 'work-order-images'
     AND name = v_image.file_url
-    AND (storage.foldername(name))[2]::uuid = p_work_order_id
-    AND (v_note_id IS NULL OR (storage.foldername(name))[3]::uuid = v_note_id);
+    AND public.storage_object_path_segment_uuid(name, 2) = p_work_order_id
+    AND (v_note_id IS NULL OR public.storage_object_path_segment_uuid(name, 3) = v_note_id);
 
   DELETE FROM public.work_order_images WHERE id = p_image_id;
 
@@ -683,6 +699,7 @@ REVOKE ALL ON FUNCTION public.is_work_order_team_manager(uuid, uuid) FROM PUBLIC
 REVOKE ALL ON FUNCTION public.is_team_viewer_or_requestor(uuid, uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.can_edit_equipment_note(uuid, uuid, uuid, uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.can_edit_work_order_note(uuid, uuid, uuid, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.storage_object_path_segment_uuid(text, integer) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.update_equipment_note(uuid, uuid, uuid, text, boolean) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.delete_equipment_note(uuid, uuid, uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.update_work_order_note(uuid, uuid, uuid, text, boolean) FROM PUBLIC;
@@ -695,6 +712,7 @@ REVOKE ALL ON FUNCTION public.is_work_order_team_manager(uuid, uuid) FROM anon, 
 REVOKE ALL ON FUNCTION public.is_team_viewer_or_requestor(uuid, uuid) FROM anon, authenticated;
 REVOKE ALL ON FUNCTION public.can_edit_equipment_note(uuid, uuid, uuid, uuid) FROM anon, authenticated;
 REVOKE ALL ON FUNCTION public.can_edit_work_order_note(uuid, uuid, uuid, uuid) FROM anon, authenticated;
+REVOKE ALL ON FUNCTION public.storage_object_path_segment_uuid(text, integer) FROM anon, authenticated;
 REVOKE ALL ON FUNCTION public.update_equipment_note(uuid, uuid, uuid, text, boolean) FROM anon, authenticated;
 REVOKE ALL ON FUNCTION public.delete_equipment_note(uuid, uuid, uuid) FROM anon, authenticated;
 REVOKE ALL ON FUNCTION public.update_work_order_note(uuid, uuid, uuid, text, boolean) FROM anon, authenticated;

@@ -730,38 +730,7 @@ if (-not $Force) {
 
     Write-Host ""
     Write-Host " [5b] Seeding dev media into local storage..."
-    $seedAnonKey = $null
-    $seedServiceKey = $null
-    $seedKeyJob = Start-Job -ArgumentList $repoRoot -ScriptBlock {
-        param($Root)
-        Set-Location -LiteralPath $Root
-        $lines = & npx supabase status -o env 2>$null
-        $anon = $null
-        $service = $null
-        foreach ($line in @($lines)) {
-            if ($line -match '^ANON_KEY="(.+)"') { $anon = $Matches[1] }
-            if ($line -match '^SERVICE_ROLE_KEY="(.+)"') { $service = $Matches[1] }
-        }
-        [PSCustomObject]@{ Anon = $anon; Service = $service }
-    }
-    $seedKeyReady = Wait-Job -Job $seedKeyJob -Timeout 60
-    if ($seedKeyReady) {
-        $seedKeyResult = Receive-Job -Job $seedKeyJob
-        $seedAnonKey = $seedKeyResult.Anon
-        $seedServiceKey = $seedKeyResult.Service
-    }
-    else {
-        Stop-Job -Job $seedKeyJob -Force -ErrorAction SilentlyContinue
-        Write-Host "        WARNING: Timed out fetching Supabase keys for media seed; seed script will retry with its own timeout."
-    }
-    Remove-Job -Job $seedKeyJob -Force -ErrorAction SilentlyContinue
-
-    $seedScript = Join-Path $repoRoot 'scripts\seed-dev-media.ps1'
-    $seedArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $seedScript, '-ApiPort', $SUPABASE_API_PORT)
-    if ($seedAnonKey -and $seedServiceKey) {
-        $seedArgs += @('-AnonKey', $seedAnonKey, '-ServiceRoleKey', $seedServiceKey)
-    }
-    & powershell @seedArgs
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot 'scripts\seed-dev-media.ps1') -ApiPort $SUPABASE_API_PORT
     if ($LASTEXITCODE -ne 0) {
         Write-Host "        WARNING: Dev media seed had errors. Equipment/note/WO images may be missing."
     }
