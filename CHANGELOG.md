@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.23.1] - 2026-07-09
+
+### Changed
+
+- **CI unit-test velocity (#1199)** — Slimmed the slowest equipment/inventory component tests to wiring smokes (filter/sort covered by existing/new hook and util unit tests; ~60% faster on profiled hotspots), enabled modest in-shard file parallelism (`maxWorkers: 2`) on Linux CI, and completed a happy-dom experiment (kept jsdom — full-suite regressions outweighed ~8–12% hotspot gains). Coverage ratchet remains on the merged PR report.
+
 ## [3.23.0] - 2026-07-08
 
 ### Added
