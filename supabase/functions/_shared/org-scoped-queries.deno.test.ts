@@ -60,7 +60,7 @@ Deno.test("parseJsonBody accepts valid geocode request", () => {
   }
 });
 
-Deno.test("parseJsonBody rejects invalid organizationId", () => {
+Deno.test("parseJsonBody rejects invalid organizationId uuid", () => {
   const parsed = parseJsonBody(geocodeLocationRequestSchema, {
     organizationId: "not-a-uuid",
     input: "123 Main St",
@@ -68,17 +68,28 @@ Deno.test("parseJsonBody rejects invalid organizationId", () => {
   assert(!parsed.success);
   if (!parsed.success) {
     assertEquals(parsed.status, 400);
-    assert(parsed.error.includes("Invalid organizationId"));
+    assertEquals(parsed.error, "Invalid organizationId");
   }
 });
-Deno.test("parseJsonBody rejects missing organizationId type", () => {
+
+Deno.test("parseJsonBody rejects wrong organizationId type", () => {
   const parsed = parseJsonBody(geocodeLocationRequestSchema, {
     organizationId: 123,
     input: "123 Main St",
   });
   assert(!parsed.success);
   if (!parsed.success) {
-    assert(parsed.error.includes("organizationId is required"));
+    assertEquals(parsed.error, "Invalid organizationId");
+  }
+});
+
+Deno.test("parseJsonBody rejects missing organizationId", () => {
+  const parsed = parseJsonBody(geocodeLocationRequestSchema, {
+    input: "123 Main St",
+  });
+  assert(!parsed.success);
+  if (!parsed.success) {
+    assertEquals(parsed.error, "organizationId is required");
   }
 });
 

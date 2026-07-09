@@ -15,10 +15,25 @@ const MEMBERSHIP_QUERY_FAILED = "An unexpected error occurred" as const;
 // Common validation schemas
 // =============================================================================
 
+const ORGANIZATION_ID_UUID_PATTERN =
+  /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000)$/;
+
 /** Canonical organization UUID used across org-scoped edge functions. */
-export const organizationIdSchema = z
-  .string({ error: "organizationId is required" })
-  .uuid({ error: "Invalid organizationId" });
+export const organizationIdSchema = z.unknown().transform((val, ctx): string => {
+  if (val === undefined || val === null) {
+    ctx.addIssue({ code: "custom", message: "organizationId is required" });
+    return z.NEVER;
+  }
+  if (typeof val !== "string") {
+    ctx.addIssue({ code: "custom", message: "Invalid organizationId" });
+    return z.NEVER;
+  }
+  if (!ORGANIZATION_ID_UUID_PATTERN.test(val)) {
+    ctx.addIssue({ code: "custom", message: "Invalid organizationId" });
+    return z.NEVER;
+  }
+  return val;
+});
 
 /** Optional org context (e.g. current org hint on inventory scan). */
 export const optionalOrganizationIdSchema = organizationIdSchema.optional();
@@ -121,22 +136,35 @@ export function parseJsonBody<T>(
     return { success: true, data: result.data };
   }
 
-  const issues = result.error.issues
-    .map((issue) => formatValidationIssue(issue))
-    .join("; ");
+  const issues = result.error.issues.map((issue) => formatValidationIssue(issue));
+
+  if (
+    issues.length === 1 &&
+    isOrganizationIdField(result.error.issues[0]?.path[0])
+  ) {
+    return {
+      success: false,
+      error: issues[0]!,
+      status: 400,
+    };
+  }
 
   return {
     success: false,
-    error: `Invalid request body: ${issues}`,
+    error: `Invalid request body: ${issues.join("; ")}`,
     status: 400,
   };
 }
 
+function isOrganizationIdField(field: unknown): field is "organizationId" | "current_organization_id" {
+  return field === "organizationId" || field === "current_organization_id";
+}
+
 function formatValidationIssue(issue: z.ZodIssue): string {
   const field = issue.path.length > 0 ? issue.path.join(".") : "";
-  if (field === "organizationId") {
-    if (issue.code === "invalid_type") {
-      return "organizationId is required";
+  if (isOrganizationIdField(field)) {
+    if (issue.message === "organizationId is required" || issue.message === "Invalid organizationId") {
+      return issue.message;
     }
     return "Invalid organizationId";
   }
