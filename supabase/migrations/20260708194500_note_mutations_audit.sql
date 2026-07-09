@@ -83,7 +83,7 @@ DECLARE
   v_note public.equipment_notes%ROWTYPE;
   v_window_hours integer;
 BEGIN
-  SELECT * INTO v_note
+  SELECT en.* INTO v_note
   FROM public.equipment_notes en
   JOIN public.equipment e ON e.id = en.equipment_id
   WHERE en.id = p_note_id
@@ -178,6 +178,16 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Authentication required');
   END IF;
 
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = v_user_id
+      AND om.status = 'active'
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
   IF NOT public.can_edit_equipment_note(v_user_id, p_organization_id, p_equipment_id, p_note_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
@@ -267,6 +277,16 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Authentication required');
   END IF;
 
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = v_user_id
+      AND om.status = 'active'
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
   SELECT en.* INTO v_note
   FROM public.equipment_notes en
   JOIN public.equipment e ON e.id = en.equipment_id
@@ -332,6 +352,16 @@ DECLARE
 BEGIN
   IF v_user_id IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'Authentication required');
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = v_user_id
+      AND om.status = 'active'
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
 
   IF NOT public.can_edit_work_order_note(v_user_id, p_organization_id, p_work_order_id, p_note_id) THEN
@@ -424,6 +454,16 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Authentication required');
   END IF;
 
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = v_user_id
+      AND om.status = 'active'
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
   SELECT won.* INTO v_note
   FROM public.work_order_notes won
   JOIN public.work_orders wo ON wo.id = won.work_order_id
@@ -489,6 +529,16 @@ DECLARE
 BEGIN
   IF v_user_id IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'Authentication required');
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = v_user_id
+      AND om.status = 'active'
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
 
   SELECT ei.* INTO v_image
@@ -565,7 +615,17 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Authentication required');
   END IF;
 
-  SELECT * INTO v_image
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = v_user_id
+      AND om.status = 'active'
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
+  SELECT wi.* INTO v_image
   FROM public.work_order_images wi
   JOIN public.work_orders wo ON wo.id = wi.work_order_id
   WHERE wi.id = p_image_id

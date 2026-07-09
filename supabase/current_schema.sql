@@ -1991,9 +1991,12 @@ DECLARE
   v_note public.equipment_notes%ROWTYPE;
   v_window_hours integer;
 BEGIN
-  SELECT * INTO v_note
-  FROM public.equipment_notes
-  WHERE id = p_note_id AND equipment_id = p_equipment_id;
+  SELECT en.* INTO v_note
+  FROM public.equipment_notes en
+  JOIN public.equipment e ON e.id = en.equipment_id
+  WHERE en.id = p_note_id
+    AND en.equipment_id = p_equipment_id
+    AND e.organization_id = p_organization_id;
 
   IF NOT FOUND THEN
     RETURN false;
@@ -2029,9 +2032,12 @@ DECLARE
   v_note public.work_order_notes%ROWTYPE;
   v_window_hours integer;
 BEGIN
-  SELECT * INTO v_note
-  FROM public.work_order_notes
-  WHERE id = p_note_id AND work_order_id = p_work_order_id;
+  SELECT won.* INTO v_note
+  FROM public.work_order_notes won
+  JOIN public.work_orders wo ON wo.id = won.work_order_id
+  WHERE won.id = p_note_id
+    AND won.work_order_id = p_work_order_id
+    AND wo.organization_id = p_organization_id;
 
   IF NOT FOUND THEN
     RETURN false;
@@ -4266,10 +4272,23 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Authentication required');
   END IF;
 
-  SELECT * INTO v_note
-  FROM public.equipment_notes
-  WHERE id = p_note_id AND equipment_id = p_equipment_id
-  FOR UPDATE;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = v_user_id
+      AND om.status = 'active'
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
+  SELECT en.* INTO v_note
+  FROM public.equipment_notes en
+  JOIN public.equipment e ON e.id = en.equipment_id
+  WHERE en.id = p_note_id
+    AND en.equipment_id = p_equipment_id
+    AND e.organization_id = p_organization_id
+  FOR UPDATE OF en;
 
   IF NOT FOUND THEN
     RETURN jsonb_build_object('success', false, 'error', 'Note not found');
@@ -4283,6 +4302,13 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
 
+  DELETE FROM storage.objects o
+  USING public.equipment_note_images ei
+  WHERE ei.equipment_note_id = p_note_id
+    AND o.bucket_id = 'equipment-note-images'
+    AND o.name = ei.file_url;
+
+  DELETE FROM public.equipment_note_images WHERE equipment_note_id = p_note_id;
   DELETE FROM public.equipment_notes WHERE id = p_note_id;
 
   PERFORM public.log_audit_entry(
@@ -4322,18 +4348,35 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Authentication required');
   END IF;
 
-  SELECT * INTO v_image
-  FROM public.equipment_note_images
-  WHERE id = p_image_id
-  FOR UPDATE;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = v_user_id
+      AND om.status = 'active'
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
+  SELECT ei.* INTO v_image
+  FROM public.equipment_note_images ei
+  JOIN public.equipment_notes en ON en.id = ei.equipment_note_id
+  JOIN public.equipment e ON e.id = en.equipment_id
+  WHERE ei.id = p_image_id
+    AND en.equipment_id = p_equipment_id
+    AND e.organization_id = p_organization_id
+  FOR UPDATE OF ei;
 
   IF NOT FOUND THEN
     RETURN jsonb_build_object('success', false, 'error', 'Image not found');
   END IF;
 
-  SELECT * INTO v_note
-  FROM public.equipment_notes
-  WHERE id = v_image.equipment_note_id AND equipment_id = p_equipment_id;
+  SELECT en.* INTO v_note
+  FROM public.equipment_notes en
+  JOIN public.equipment e ON e.id = en.equipment_id
+  WHERE en.id = v_image.equipment_note_id
+    AND en.equipment_id = p_equipment_id
+    AND e.organization_id = p_organization_id;
 
   IF NOT FOUND THEN
     RETURN jsonb_build_object('success', false, 'error', 'Note not found');
@@ -4347,6 +4390,10 @@ BEGIN
   ) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
+
+  DELETE FROM storage.objects
+  WHERE bucket_id = 'equipment-note-images'
+    AND name = v_image.file_url;
 
   DELETE FROM public.equipment_note_images WHERE id = p_image_id;
 
@@ -4711,10 +4758,23 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Authentication required');
   END IF;
 
-  SELECT * INTO v_note
-  FROM public.work_order_notes
-  WHERE id = p_note_id AND work_order_id = p_work_order_id
-  FOR UPDATE;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = v_user_id
+      AND om.status = 'active'
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
+  SELECT won.* INTO v_note
+  FROM public.work_order_notes won
+  JOIN public.work_orders wo ON wo.id = won.work_order_id
+  WHERE won.id = p_note_id
+    AND won.work_order_id = p_work_order_id
+    AND wo.organization_id = p_organization_id
+  FOR UPDATE OF won;
 
   IF NOT FOUND THEN
     RETURN jsonb_build_object('success', false, 'error', 'Note not found');
@@ -4727,6 +4787,16 @@ BEGIN
   ) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
+
+  DELETE FROM storage.objects o
+  USING public.work_order_images wi
+  WHERE wi.note_id = p_note_id
+    AND wi.work_order_id = p_work_order_id
+    AND o.bucket_id = 'work-order-images'
+    AND o.name = wi.file_url;
+
+  DELETE FROM public.work_order_images
+  WHERE note_id = p_note_id AND work_order_id = p_work_order_id;
 
   DELETE FROM public.work_order_notes WHERE id = p_note_id;
 
@@ -4767,10 +4837,23 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Authentication required');
   END IF;
 
-  SELECT * INTO v_image
-  FROM public.work_order_images
-  WHERE id = p_image_id AND work_order_id = p_work_order_id
-  FOR UPDATE;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = v_user_id
+      AND om.status = 'active'
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
+  SELECT wi.* INTO v_image
+  FROM public.work_order_images wi
+  JOIN public.work_orders wo ON wo.id = wi.work_order_id
+  WHERE wi.id = p_image_id
+    AND wi.work_order_id = p_work_order_id
+    AND wo.organization_id = p_organization_id
+  FOR UPDATE OF wi;
 
   IF NOT FOUND THEN
     RETURN jsonb_build_object('success', false, 'error', 'Image not found');
@@ -4786,6 +4869,10 @@ BEGIN
   ) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
+
+  DELETE FROM storage.objects
+  WHERE bucket_id = 'work-order-images'
+    AND name = v_image.file_url;
 
   DELETE FROM public.work_order_images WHERE id = p_image_id;
 
@@ -13758,14 +13845,27 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Authentication required');
   END IF;
 
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = v_user_id
+      AND om.status = 'active'
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
   IF NOT public.can_edit_equipment_note(v_user_id, p_organization_id, p_equipment_id, p_note_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
 
-  SELECT * INTO v_note
-  FROM public.equipment_notes
-  WHERE id = p_note_id AND equipment_id = p_equipment_id
-  FOR UPDATE;
+  SELECT en.* INTO v_note
+  FROM public.equipment_notes en
+  JOIN public.equipment e ON e.id = en.equipment_id
+  WHERE en.id = p_note_id
+    AND en.equipment_id = p_equipment_id
+    AND e.organization_id = p_organization_id
+  FOR UPDATE OF en;
 
   IF NOT FOUND THEN
     RETURN jsonb_build_object('success', false, 'error', 'Note not found');
@@ -14436,14 +14536,27 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Authentication required');
   END IF;
 
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = v_user_id
+      AND om.status = 'active'
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
   IF NOT public.can_edit_work_order_note(v_user_id, p_organization_id, p_work_order_id, p_note_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
 
-  SELECT * INTO v_note
-  FROM public.work_order_notes
-  WHERE id = p_note_id AND work_order_id = p_work_order_id
-  FOR UPDATE;
+  SELECT won.* INTO v_note
+  FROM public.work_order_notes won
+  JOIN public.work_orders wo ON wo.id = won.work_order_id
+  WHERE won.id = p_note_id
+    AND won.work_order_id = p_work_order_id
+    AND wo.organization_id = p_organization_id
+  FOR UPDATE OF won;
 
   IF NOT FOUND THEN
     RETURN jsonb_build_object('success', false, 'error', 'Note not found');
@@ -21399,10 +21512,6 @@ ALTER TABLE "public"."workspace_personal_org_merge_requests" ENABLE ROW LEVEL SE
 ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
 
 
-
-
-
-
 ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."organization_members";
 
 
@@ -21960,14 +22069,12 @@ GRANT ALL ON FUNCTION "public"."can_access_work_order_costs"("p_work_order_id" "
 
 
 
-GRANT ALL ON FUNCTION "public"."can_edit_equipment_note"("p_user_id" "uuid", "p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."can_edit_equipment_note"("p_user_id" "uuid", "p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."can_edit_equipment_note"("p_user_id" "uuid", "p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."can_edit_equipment_note"("p_user_id" "uuid", "p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."can_edit_work_order_note"("p_user_id" "uuid", "p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."can_edit_work_order_note"("p_user_id" "uuid", "p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."can_edit_work_order_note"("p_user_id" "uuid", "p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."can_edit_work_order_note"("p_user_id" "uuid", "p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid") TO "service_role";
 
 
@@ -22232,15 +22339,15 @@ GRANT ALL ON FUNCTION "public"."create_workspace_organization_for_domain"("p_dom
 
 
 
-GRANT ALL ON FUNCTION "public"."delete_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."delete_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."delete_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."delete_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."delete_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") TO "authenticated";
 
 
 
-GRANT ALL ON FUNCTION "public"."delete_equipment_note_image_audited"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_image_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."delete_equipment_note_image_audited"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_image_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."delete_equipment_note_image_audited"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_image_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."delete_equipment_note_image_audited"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_image_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."delete_equipment_note_image_audited"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_image_id" "uuid") TO "authenticated";
 
 
 
@@ -22269,15 +22376,15 @@ GRANT ALL ON FUNCTION "public"."delete_work_order_cascade"("p_work_order_id" "uu
 
 
 
-GRANT ALL ON FUNCTION "public"."delete_work_order_note"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."delete_work_order_note"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."delete_work_order_note"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."delete_work_order_note"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."delete_work_order_note"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid") TO "authenticated";
 
 
 
-GRANT ALL ON FUNCTION "public"."delete_work_order_note_image_audited"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_image_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."delete_work_order_note_image_audited"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_image_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."delete_work_order_note_image_audited"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_image_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."delete_work_order_note_image_audited"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_image_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."delete_work_order_note_image_audited"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_image_id" "uuid") TO "authenticated";
 
 
 
@@ -22642,8 +22749,7 @@ REVOKE ALL ON FUNCTION "public"."invoke_quickbooks_token_refresh"() FROM PUBLIC;
 
 
 
-GRANT ALL ON FUNCTION "public"."is_equipment_team_manager"("p_user_id" "uuid", "p_equipment_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."is_equipment_team_manager"("p_user_id" "uuid", "p_equipment_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."is_equipment_team_manager"("p_user_id" "uuid", "p_equipment_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."is_equipment_team_manager"("p_user_id" "uuid", "p_equipment_id" "uuid") TO "service_role";
 
 
@@ -22682,8 +22788,7 @@ GRANT ALL ON FUNCTION "public"."is_parts_manager"("p_organization_id" "uuid", "p
 
 
 
-GRANT ALL ON FUNCTION "public"."is_team_viewer_or_requestor"("p_user_id" "uuid", "p_team_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."is_team_viewer_or_requestor"("p_user_id" "uuid", "p_team_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."is_team_viewer_or_requestor"("p_user_id" "uuid", "p_team_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."is_team_viewer_or_requestor"("p_user_id" "uuid", "p_team_id" "uuid") TO "service_role";
 
 
@@ -22698,8 +22803,7 @@ GRANT ALL ON FUNCTION "public"."is_valid_work_order_assignee"("p_equipment_id" "
 
 
 
-GRANT ALL ON FUNCTION "public"."is_work_order_team_manager"("p_user_id" "uuid", "p_work_order_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."is_work_order_team_manager"("p_user_id" "uuid", "p_work_order_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."is_work_order_team_manager"("p_user_id" "uuid", "p_work_order_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."is_work_order_team_manager"("p_user_id" "uuid", "p_work_order_id" "uuid") TO "service_role";
 
 
@@ -23082,9 +23186,9 @@ GRANT ALL ON FUNCTION "public"."update_customers_updated_at"() TO "service_role"
 
 
 
-GRANT ALL ON FUNCTION "public"."update_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid", "p_content" "text", "p_is_private" boolean) TO "anon";
-GRANT ALL ON FUNCTION "public"."update_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid", "p_content" "text", "p_is_private" boolean) TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."update_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid", "p_content" "text", "p_is_private" boolean) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid", "p_content" "text", "p_is_private" boolean) TO "service_role";
+GRANT ALL ON FUNCTION "public"."update_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid", "p_content" "text", "p_is_private" boolean) TO "authenticated";
 
 
 
@@ -23174,9 +23278,9 @@ GRANT ALL ON FUNCTION "public"."update_work_order_costs_updated_at"() TO "servic
 
 
 
-GRANT ALL ON FUNCTION "public"."update_work_order_note"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid", "p_content" "text", "p_is_private" boolean) TO "anon";
-GRANT ALL ON FUNCTION "public"."update_work_order_note"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid", "p_content" "text", "p_is_private" boolean) TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."update_work_order_note"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid", "p_content" "text", "p_is_private" boolean) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_work_order_note"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid", "p_content" "text", "p_is_private" boolean) TO "service_role";
+GRANT ALL ON FUNCTION "public"."update_work_order_note"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid", "p_content" "text", "p_is_private" boolean) TO "authenticated";
 
 
 
