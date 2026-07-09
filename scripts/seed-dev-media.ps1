@@ -155,6 +155,13 @@ function Test-EquipmentExists {
     return (Invoke-PsqlScalar $sql) -eq 't'
 }
 
+function Test-WorkOrderInSeedScope {
+    param([string]$WorkOrderId)
+    $id = Escape-SqlLiteral $WorkOrderId
+    $sql = "SELECT EXISTS(SELECT 1 FROM work_orders WHERE id = '$id' AND organization_id IN ($SeedOrganizationIdsSql))"
+    return (Invoke-PsqlScalar $sql) -eq 't'
+}
+
 function Get-OrCreateEquipmentSeedNote {
     param([string]$EquipmentId)
     $equipmentIdSql = Escape-SqlLiteral $EquipmentId
@@ -248,13 +255,20 @@ function Insert-WorkOrderSeedNote {
     $workOrderIdSql = Escape-SqlLiteral $WorkOrderId
     $contentSql = Escape-SqlLiteral $Content
     $sql = @"
+WITH ins AS (
 INSERT INTO work_order_notes (id, work_order_id, author_id, content, hours_worked, is_private)
 SELECT '$noteIdSql', wo.id, '$SeedUploaderId', '$contentSql', 0, false
 FROM work_orders wo
 WHERE wo.id = '$workOrderIdSql'
   AND wo.organization_id IN ($SeedOrganizationIdsSql)
+RETURNING id
+)
+SELECT COUNT(*)::text FROM ins
 "@
-    Invoke-PsqlNonQuery -Sql $sql -Label "insert work_order_notes"
+    $inserted = Invoke-PsqlScalar $sql
+    if ($inserted -ne '1') {
+        throw "work_order_notes insert no-op for work order $WorkOrderId (missing or out-of-scope)."
+    }
 }
 
 function Insert-WorkOrderImageRow {
@@ -274,13 +288,20 @@ function Insert-WorkOrderImageRow {
     $mimeTypeSql = Escape-SqlLiteral $MimeType
     $descriptionSql = Escape-SqlLiteral $Description
     $sql = @"
+WITH ins AS (
 INSERT INTO work_order_images (work_order_id, note_id, file_name, file_url, file_size, mime_type, uploaded_by, description)
 SELECT wo.id, '$noteIdSql', '$fileNameSql', '$objectPathSql', $FileSize, '$mimeTypeSql', '$SeedUploaderId', '$descriptionSql'
 FROM work_orders wo
 WHERE wo.id = '$workOrderIdSql'
   AND wo.organization_id IN ($SeedOrganizationIdsSql)
+RETURNING id
+)
+SELECT COUNT(*)::text FROM ins
 "@
-    Invoke-PsqlNonQuery -Sql $sql -Label "insert work_order_images"
+    $inserted = Invoke-PsqlScalar $sql
+    if ($inserted -ne '1') {
+        throw "work_order_images insert no-op for work order $WorkOrderId (missing or out-of-scope)."
+    }
 }
 
 function Insert-EquipmentNoteImageRow {
@@ -344,6 +365,7 @@ $stats = @{
     WorkOrderImages = 0
     Failed         = 0
     SkippedMissingEquipment = 0
+    SkippedMissingWorkOrder = 0
 }
 
 # ── Phase 1: explicit equipment display images (UUID filenames) ────────────
@@ -377,6 +399,12 @@ foreach ($img in $workOrderImages) {
     if ($workOrderId -notmatch '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') {
         Write-Host "       WARN: Skipping work-order file with non-UUID name: $($img.Name)"
         $stats.Failed++
+        continue
+    }
+
+    if (-not (Test-WorkOrderInSeedScope -WorkOrderId $workOrderId)) {
+        Write-Host "       WARN: No in-scope work order for $($img.Name) - skipped."
+        $stats.SkippedMissingWorkOrder++
         continue
     }
 
@@ -539,7 +567,7 @@ catch {
     $withDisplay = -1
 }
 
-Write-Host "       Dev media seed: $($stats.DisplayUpdated) display, $($stats.NoteImages) equipment-note, $($stats.WorkOrderImages) work-order images, $($stats.Failed) failed, $($stats.SkippedMissingEquipment) uuid files without matching equipment."
+Write-Host "       Dev media seed: $($stats.DisplayUpdated) display, $($stats.NoteImages) equipment-note, $($stats.WorkOrderImages) work-order images, $($stats.Failed) failed, $($stats.SkippedMissingEquipment) uuid files without matching equipment, $($stats.SkippedMissingWorkOrder) work-order files without in-scope target."
 Write-Host "       Verified: $withDisplay equipment row(s) now have image_url set."
 
 if ($stats.Failed -gt 0) { exit 1 }
