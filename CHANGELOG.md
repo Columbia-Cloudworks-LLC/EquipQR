@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.22.0] - 2026-07-08
+
+### Changed
+
+- **Edge function org-scoped helpers (#1194)** — Added `_shared/org-scoped-queries.ts` with reusable Zod request schemas, `parseJsonBody`, membership/admin guards, `withOrgScope` / `withOrgAdminScope`, and `applyOrganizationScope`. Refactored geocode-location, resolve-inventory-scan, export-report, get/set Google export destination, and manage-google-drive-destination-folder to use the shared patterns.
+
 ## [3.21.0] - 2026-07-08
 
 ### Added

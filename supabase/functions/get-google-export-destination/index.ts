@@ -1,19 +1,24 @@
 import {
   requireAuthenticatedPost,
-  verifyOrgAdmin,
   handleCorsPreflightIfNeeded,
   createErrorResponse,
+  createJsonResponse,
 } from "../_shared/supabase-clients.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import {
+  applyOrganizationScope,
+  getGoogleExportDestinationRequestSchema,
+  parseRequestJson,
+  requireOrgAdminAccess,
+} from "../_shared/org-scoped-queries.ts";
 
-interface GetDestinationRequest {
-  organizationId: string;
-  documentType?: "work-orders-internal-packet";
-}
+const ADMIN_FORBIDDEN_MESSAGE =
+  "Forbidden: Only owners and admins can manage export destinations";
 
 Deno.serve(async (req) => {
-  const corsResponse = handleCorsPreflightIfNeeded(req);
+  const corsResponse = handleCorsPreflightIfNeeded(req, { useValidatedOrigin: true });
   if (corsResponse) return corsResponse;
+
+  const corsOpts = { req };
 
   try {
     const authContext = await requireAuthenticatedPost(req);
@@ -22,43 +27,42 @@ Deno.serve(async (req) => {
     }
     const { supabase, user } = authContext;
 
-    let body: GetDestinationRequest;
-    try {
-      body = await req.json();
-    } catch {
-      return createErrorResponse("Invalid JSON body", 400);
+    const parsedBody = await parseRequestJson(req, getGoogleExportDestinationRequestSchema);
+    if (!parsedBody.success) {
+      return createErrorResponse(parsedBody.error, parsedBody.status, corsOpts);
     }
 
-    const organizationId = body.organizationId;
-    const documentType = body.documentType ?? "work-orders-internal-packet";
+    const { organizationId, documentType } = parsedBody.data;
 
-    if (!organizationId) {
-      return createErrorResponse("Missing required field: organizationId", 400);
+    const adminAccess = await requireOrgAdminAccess(
+      supabase,
+      user.id,
+      organizationId,
+      ADMIN_FORBIDDEN_MESSAGE,
+    );
+    if ("error" in adminAccess) {
+      return createErrorResponse(adminAccess.error, adminAccess.status, corsOpts);
     }
 
-    const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
-    if (!isAdmin) {
-      return createErrorResponse("Forbidden: Only owners and admins can manage export destinations", 403);
-    }
-
-    const { data, error } = await supabase
-      .from("organization_google_export_destinations")
-      .select("id, organization_id, document_type, selection_kind, drive_id, parent_id, display_name, web_view_link, configured_by, folder_by_team, folder_by_equipment, created_at, updated_at")
-      .eq("organization_id", organizationId)
+    const { data, error } = await applyOrganizationScope(
+      supabase
+        .from("organization_google_export_destinations")
+        .select(
+          "id, organization_id, document_type, selection_kind, drive_id, parent_id, display_name, web_view_link, configured_by, folder_by_team, folder_by_equipment, created_at, updated_at",
+        ),
+      organizationId,
+    )
       .eq("document_type", documentType)
       .maybeSingle();
 
     if (error) {
       console.error("[GET-GOOGLE-EXPORT-DESTINATION] Query error:", error);
-      return createErrorResponse("An unexpected error occurred", 500);
+      return createErrorResponse("An unexpected error occurred", 500, corsOpts);
     }
 
-    return new Response(
-      JSON.stringify({ destination: data ?? null }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return createJsonResponse({ destination: data ?? null }, 200, corsOpts);
   } catch (error) {
     console.error("[GET-GOOGLE-EXPORT-DESTINATION] Unexpected error:", error);
-    return createErrorResponse("An unexpected error occurred", 500);
+    return createErrorResponse("An unexpected error occurred", 500, corsOpts);
   }
 });

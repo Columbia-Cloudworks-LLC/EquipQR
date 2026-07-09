@@ -1,26 +1,27 @@
 import {
   createAdminSupabaseClient,
   requireAuthenticatedPost,
-  verifyOrgAdmin,
   createErrorResponse,
+  createJsonResponse,
   handleCorsPreflightIfNeeded,
 } from "../_shared/supabase-clients.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import {
+  parseRequestJson,
+  requireOrgAdminAccess,
+  setGoogleExportDestinationRequestSchema,
+  withOrgAdminScope,
+} from "../_shared/org-scoped-queries.ts";
 import { getGoogleWorkspaceAccessToken, GoogleWorkspaceTokenError } from "../_shared/google-workspace-token.ts";
 import { validateGoogleDriveDestination } from "../_shared/google-drive-picker-validation.ts";
 
-interface SetDestinationRequest {
-  organizationId: string;
-  documentType?: "work-orders-internal-packet";
-  selectionKind: "folder" | "shared_drive";
-  parentId: string;
-  folderByTeam?: boolean;
-  folderByEquipment?: boolean;
-}
+const ADMIN_FORBIDDEN_MESSAGE =
+  "Forbidden: Only owners and admins can manage export destinations";
 
 Deno.serve(async (req) => {
-  const corsResponse = handleCorsPreflightIfNeeded(req);
+  const corsResponse = handleCorsPreflightIfNeeded(req, { useValidatedOrigin: true });
   if (corsResponse) return corsResponse;
+
+  const corsOpts = { req };
 
   try {
     const authContext = await requireAuthenticatedPost(req);
@@ -29,34 +30,28 @@ Deno.serve(async (req) => {
     }
     const { supabase, user } = authContext;
 
-    let body: SetDestinationRequest;
-    try {
-      body = await req.json();
-    } catch {
-      return createErrorResponse("Invalid JSON body", 400);
+    const parsedBody = await parseRequestJson(req, setGoogleExportDestinationRequestSchema);
+    if (!parsedBody.success) {
+      return createErrorResponse(parsedBody.error, parsedBody.status, corsOpts);
     }
 
-    const organizationId = body.organizationId;
-    const documentType = body.documentType ?? "work-orders-internal-packet";
-    const selectionKind = body.selectionKind;
-    const parentId = body.parentId;
+    const {
+      organizationId,
+      documentType,
+      selectionKind,
+      parentId,
+      folderByTeam,
+      folderByEquipment,
+    } = parsedBody.data;
 
-    if (!organizationId || !selectionKind || !parentId) {
-      return createErrorResponse("Missing required fields for destination", 400);
-    }
-
-    if (!["folder", "shared_drive"].includes(selectionKind)) {
-      return createErrorResponse("Invalid selectionKind value", 400);
-    }
-
-    const SUPPORTED_DOCUMENT_TYPES = ["work-orders-internal-packet"];
-    if (!SUPPORTED_DOCUMENT_TYPES.includes(documentType)) {
-      return createErrorResponse("Unsupported format", 400);
-    }
-
-    const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
-    if (!isAdmin) {
-      return createErrorResponse("Forbidden: Only owners and admins can manage export destinations", 403);
+    const adminAccess = await requireOrgAdminAccess(
+      supabase,
+      user.id,
+      organizationId,
+      ADMIN_FORBIDDEN_MESSAGE,
+    );
+    if ("error" in adminAccess) {
+      return createErrorResponse(adminAccess.error, adminAccess.status, corsOpts);
     }
 
     const adminClient = createAdminSupabaseClient();
@@ -65,9 +60,10 @@ Deno.serve(async (req) => {
       tokenResult = await getGoogleWorkspaceAccessToken(adminClient, organizationId);
     } catch (tokenError) {
       if (tokenError instanceof GoogleWorkspaceTokenError) {
-        return new Response(
-          JSON.stringify({ error: tokenError.message, code: tokenError.code }),
-          { status: tokenError.code === "not_connected" ? 400 : 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        return createJsonResponse(
+          { error: tokenError.message, code: tokenError.code },
+          tokenError.code === "not_connected" ? 400 : 403,
+          corsOpts,
         );
       }
       throw tokenError;
@@ -81,16 +77,18 @@ Deno.serve(async (req) => {
       });
     } catch (validationError) {
       if (validationError instanceof GoogleWorkspaceTokenError) {
-        return new Response(
-          JSON.stringify({ error: validationError.message, code: validationError.code }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        return createJsonResponse(
+          { error: validationError.message, code: validationError.code },
+          403,
+          corsOpts,
         );
       }
 
-      const message = validationError instanceof Error ? validationError.message : "Unable to validate selected destination";
-      return new Response(
-        JSON.stringify({ error: message, code: "invalid_destination" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      const message = "Unable to validate selected destination";
+      return createJsonResponse(
+        { error: message, code: "invalid_destination" },
+        400,
+        corsOpts,
       );
     }
 
@@ -104,32 +102,42 @@ Deno.serve(async (req) => {
       web_view_link: destination.webViewLink,
       configured_by: user.id,
     };
-    if (typeof body.folderByTeam === "boolean") {
-      upsertPayload.folder_by_team = body.folderByTeam;
+    if (typeof folderByTeam === "boolean") {
+      upsertPayload.folder_by_team = folderByTeam;
     }
-    if (typeof body.folderByEquipment === "boolean") {
-      upsertPayload.folder_by_equipment = body.folderByEquipment;
+    if (typeof folderByEquipment === "boolean") {
+      upsertPayload.folder_by_equipment = folderByEquipment;
     }
 
-    const { data, error } = await supabase
-      .from("organization_google_export_destinations")
-      .upsert(upsertPayload, {
-        onConflict: "organization_id,document_type",
-      })
-      .select("id, organization_id, document_type, selection_kind, drive_id, parent_id, display_name, web_view_link, configured_by, folder_by_team, folder_by_equipment, created_at, updated_at")
-      .single();
+    const upsertResult = await withOrgAdminScope(
+      supabase,
+      user.id,
+      organizationId,
+      async () =>
+        await supabase
+          .from("organization_google_export_destinations")
+          .upsert(upsertPayload, {
+            onConflict: "organization_id,document_type",
+          })
+          .select("id, organization_id, document_type, selection_kind, drive_id, parent_id, display_name, web_view_link, configured_by, folder_by_team, folder_by_equipment, created_at, updated_at")
+          .single(),
+      ADMIN_FORBIDDEN_MESSAGE,
+    );
+
+    if (!upsertResult.ok) {
+      return createErrorResponse(upsertResult.error, upsertResult.status, corsOpts);
+    }
+
+    const { data, error } = upsertResult.data;
 
     if (error) {
       console.error("[SET-GOOGLE-EXPORT-DESTINATION] Upsert error:", error);
-      return createErrorResponse("An unexpected error occurred", 500);
+      return createErrorResponse("An unexpected error occurred", 500, corsOpts);
     }
 
-    return new Response(
-      JSON.stringify({ destination: data }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return createJsonResponse({ destination: data }, 200, corsOpts);
   } catch (error) {
     console.error("[SET-GOOGLE-EXPORT-DESTINATION] Unexpected error:", error);
-    return createErrorResponse("An unexpected error occurred", 500);
+    return createErrorResponse("An unexpected error occurred", 500, corsOpts);
   }
 });

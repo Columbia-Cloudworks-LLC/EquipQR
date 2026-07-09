@@ -27,6 +27,41 @@ Deno.serve(async (req) => {
 });
 ```
 
+For org-scoped endpoints, compose with helpers from `org-scoped-queries.ts`:
+
+```typescript
+import { createUserSupabaseClient, requireUser, createErrorResponse } from "../_shared/supabase-clients.ts";
+import {
+  geocodeLocationRequestSchema,
+  parseJsonBody,
+  requireOrgMembership,
+  applyOrganizationScope,
+} from "../_shared/org-scoped-queries.ts";
+
+Deno.serve(async (req) => {
+  const supabase = createUserSupabaseClient(req);
+  const auth = await requireUser(req, supabase);
+  if ("error" in auth) {
+    return createErrorResponse(auth.error, auth.status);
+  }
+
+  const parsed = parseJsonBody(geocodeLocationRequestSchema, await req.json());
+  if (!parsed.success) {
+    return createErrorResponse(parsed.error, parsed.status);
+  }
+
+  const access = await requireOrgMembership(supabase, auth.user.id, parsed.data.organizationId);
+  if ("error" in access) {
+    return createErrorResponse(access.error, access.status);
+  }
+
+  const { data } = await applyOrganizationScope(
+    supabase.from("geocoded_locations").select("*"),
+    access.organizationId,
+  );
+});
+```
+
 ## Functions Authorized to Use Service Role
 
 The following functions are explicitly authorized to use `createAdminSupabaseClient()` or `SUPABASE_SERVICE_ROLE_KEY`:
@@ -190,6 +225,7 @@ See `SAFE_ERROR_PATTERNS` in `supabase-clients.ts` for the allowlist and add new
 All auth helpers are in `supabase/functions/_shared/`:
 
 - `supabase-clients.ts` - Client creation, auth helpers, `createErrorResponse` allowlist, `withCorrelationId` wrapper
+- `org-scoped-queries.ts` - Org membership/admin guards, `withOrgScope` / `withOrgAdminScope`, shared Zod request schemas, `parseJsonBody`, `applyOrganizationScope`
 - `require-secret.ts` - `requireSecret` / `optionalSecret` / `MissingSecretError`
 - `admin-validation.ts` - Super admin validation
 - `cors.ts` - CORS headers (`corsHeaders` static + `getCorsHeaders(req)` validated-origin)

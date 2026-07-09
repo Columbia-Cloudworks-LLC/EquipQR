@@ -2,12 +2,16 @@ import {
   createUserSupabaseClient,
   createAdminSupabaseClient,
   requireUser,
-  verifyOrgAdmin,
   createErrorResponse,
   createJsonResponse,
   handleCorsPreflightIfNeeded,
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
+import {
+  manageGoogleDriveFolderRequestSchema,
+  parseRequestJson,
+  requireOrgAdminAccess,
+} from "../_shared/org-scoped-queries.ts";
 import {
   getGoogleWorkspaceAccessToken,
   GoogleWorkspaceTokenError,
@@ -21,18 +25,6 @@ import {
   resolveDriveCreateParentId,
   sanitizeDriveFolderName,
 } from "../_shared/google-drive-folder-management.ts";
-
-type ManageFolderAction = "create" | "delete";
-
-interface ManageFolderRequest {
-  action: ManageFolderAction;
-  organizationId: string;
-  parentId?: string | null;
-  driveId?: string | null;
-  name?: string;
-  folderId?: string;
-  confirmDataLoss?: boolean;
-}
 
 const tokenErrorStatusMap: Record<string, number> = {
   not_connected: 400,
@@ -59,27 +51,22 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       return createErrorResponse(auth.error, auth.status, { req });
     }
 
-    let body: ManageFolderRequest;
-    try {
-      body = await req.json();
-    } catch {
-      return createErrorResponse("Invalid JSON body", 400, { req });
+    const parsedBody = await parseRequestJson(req, manageGoogleDriveFolderRequestSchema);
+    if (!parsedBody.success) {
+      return createErrorResponse(parsedBody.error, parsedBody.status, { req });
     }
 
-    const organizationId = body.organizationId?.trim();
-    const action = body.action;
+    const { organizationId, action } = parsedBody.data;
+    const body = parsedBody.data;
 
-    if (!organizationId || !action) {
-      return createErrorResponse("Missing required fields: organizationId, action", 400, { req });
-    }
-
-    if (action !== "create" && action !== "delete") {
-      return createErrorResponse("Invalid action", 400, { req });
-    }
-
-    const isAdmin = await verifyOrgAdmin(supabase, auth.user.id, organizationId);
-    if (!isAdmin) {
-      return createErrorResponse("Forbidden: Only owners and admins can manage Drive folders", 403, { req });
+    const adminAccess = await requireOrgAdminAccess(
+      supabase,
+      auth.user.id,
+      organizationId,
+      "Forbidden: Only owners and admins can manage Google Drive folders",
+    );
+    if ("error" in adminAccess) {
+      return createErrorResponse(adminAccess.error, adminAccess.status, { req });
     }
 
     const adminClient = createAdminSupabaseClient();

@@ -5,6 +5,9 @@
  * - User-scoped clients (RLS enforced via JWT)
  * - Admin clients (service role, bypasses RLS - use sparingly)
  * - User extraction and validation
+ *
+ * Org-scoped query helpers and shared Zod request schemas live in
+ * `org-scoped-queries.ts` (compose with verifyOrgMembership / verifyOrgAdmin here).
  */
 
 import {
@@ -541,6 +544,7 @@ const EXACT_SAFE_ERROR_MESSAGE_BY_INPUT = new Map<string, string>([
   ["scanned_value is required", "scanned_value is required"],
   ["organizationId and input are required", "organizationId and input are required"],
   ["organizationId is required", "organizationId is required"],
+  ["Invalid organizationId", "Invalid organizationId"],
   ["expected_updated_at is required", "expected_updated_at is required"],
   ["Missing required field: dsrRequestId", "Missing required field: dsrRequestId"],
   [

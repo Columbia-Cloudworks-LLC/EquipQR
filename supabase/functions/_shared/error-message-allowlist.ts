@@ -167,6 +167,7 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   // DSR management errors
   /^Missing required field: dsrRequestId$/,
   /^organizationId is required$/,
+  /^Invalid organizationId$/,
   /^expected_updated_at is required$/,
   /^Invalid action$/,
   /^Invalid notice action$/,
