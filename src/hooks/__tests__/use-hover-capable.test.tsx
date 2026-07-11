@@ -15,7 +15,7 @@ describe('useHoverCapable', () => {
     });
   });
 
-  it('returns true when matchMedia is unavailable', async () => {
+  it('returns false when matchMedia is unavailable', async () => {
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
       configurable: true,
@@ -25,7 +25,7 @@ describe('useHoverCapable', () => {
     const { useHoverCapable } = await import('@/hooks/use-hover-capable');
 
     const { result } = renderHook(() => useHoverCapable());
-    expect(result.current).toBe(true);
+    expect(result.current).toBe(false);
   });
 
   it('returns false on touch-first devices', async () => {
