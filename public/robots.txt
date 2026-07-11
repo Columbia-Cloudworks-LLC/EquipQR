@@ -1,8 +1,28 @@
 User-agent: Googlebot
 Allow: /
+Disallow: /dashboard
+Disallow: /equipment
+Disallow: /inventory
+Disallow: /work-orders
+Disallow: /teams
+Disallow: /settings
+Disallow: /auth
+Disallow: /api
+Disallow: /tickets
+Disallow: /dsr
 
 User-agent: Bingbot
 Allow: /
+Disallow: /dashboard
+Disallow: /equipment
+Disallow: /inventory
+Disallow: /work-orders
+Disallow: /teams
+Disallow: /settings
+Disallow: /auth
+Disallow: /api
+Disallow: /tickets
+Disallow: /dsr
 
 User-agent: Twitterbot
 Allow: /
@@ -12,6 +32,16 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /dashboard
+Disallow: /equipment
+Disallow: /inventory
+Disallow: /work-orders
+Disallow: /teams
+Disallow: /settings
+Disallow: /auth
+Disallow: /api
+Disallow: /tickets
+Disallow: /dsr
 
 # Sitemap location
 Sitemap: https://equipqr.app/sitemap.xml
