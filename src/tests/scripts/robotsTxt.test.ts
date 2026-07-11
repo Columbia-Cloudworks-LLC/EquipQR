@@ -6,16 +6,16 @@ const ROBOTS_PATH = join(process.cwd(), 'public', 'robots.txt');
 
 /** Paths crawlers must not index (authenticated app + sensitive surfaces). */
 const REQUIRED_DISALLOW_PREFIXES = [
-  '/dashboard/',
-  '/equipment/',
-  '/inventory/',
-  '/work-orders/',
-  '/teams/',
-  '/settings/',
-  '/auth/',
-  '/api/',
-  '/tickets/',
-  '/dsr/',
+  '/dashboard',
+  '/equipment',
+  '/inventory',
+  '/work-orders',
+  '/teams',
+  '/settings',
+  '/auth',
+  '/api',
+  '/tickets',
+  '/dsr',
 ] as const;
 
 describe('public/robots.txt', () => {
@@ -32,8 +32,14 @@ describe('public/robots.txt', () => {
     }
   });
 
+  it('does not exempt search crawlers from authenticated route blocks', () => {
+    for (const bot of ['Googlebot', 'Bingbot']) {
+      expect(robotsTxt).not.toContain(`User-agent: ${bot}`);
+    }
+  });
+
   it('keeps social preview bots allowed at the site root', () => {
-    for (const bot of ['Googlebot', 'Bingbot', 'Twitterbot', 'facebookexternalhit']) {
+    for (const bot of ['Twitterbot', 'facebookexternalhit']) {
       const section = robotsTxt.split(`User-agent: ${bot}`)[1]?.split('User-agent:')[0] ?? '';
       expect(section).toContain('Allow: /');
     }
