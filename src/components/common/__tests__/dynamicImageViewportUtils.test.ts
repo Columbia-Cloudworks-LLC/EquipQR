@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi, afterEach } from 'vitest';
 import {
   calculatePanPosition,
   copyImageToClipboard,
@@ -16,6 +16,11 @@ import {
 } from '@/components/common/noteCardPermissions';
 
 describe('dynamicImageViewportUtils', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
   it('maps pointer position to object-position percentages', () => {
     expect(calculatePanPosition(50, 25, 100, 100)).toEqual({ x: 50, y: 25 });
     expect(calculatePanPosition(150, 0, 100, 200)).toEqual({ x: 100, y: 0 });
@@ -121,8 +126,11 @@ describe('dynamicImageViewportUtils', () => {
     await copyImageToClipboard('https://signed.example/eq.jpg', 'eq.jpg');
 
     expect(write).toHaveBeenCalledTimes(1);
-    const item = write.mock.calls[0][0][0] as { items: Record<string, Promise<Blob>> };
-    await expect(item.items['image/png']).resolves.toEqual(pngBlob);
+    const item = write.mock.calls[0][0][0] as { items: Record<string, Promise<File>> };
+    const file = await item.items['image/png'];
+    expect(file).toBeInstanceOf(File);
+    expect(file.name).toBe('eq.jpg');
+    expect(file.type).toBe('image/png');
   });
 
   it('converts non-png blobs before clipboard write', async () => {

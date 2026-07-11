@@ -92,10 +92,12 @@ export async function blobToPngBlob(blob: Blob): Promise<Blob> {
 }
 
 export async function copyImageToClipboard(imageUrl: string, fileName: string): Promise<void> {
-  void fileName;
-  // Pass an async Blob promise so clipboard.write stays tied to the click gesture
+  // Pass an async Blob/File promise so clipboard.write stays tied to the click gesture
   // while fetch/encode runs (awaiting fetch first breaks user activation in Chromium).
-  const pngPromise = fetchImageBlob(imageUrl).then((blob) => blobToPngBlob(blob));
+  const pngPromise = fetchImageBlob(imageUrl).then(async (blob) => {
+    const png = await blobToPngBlob(blob);
+    return new File([png], ensureImageFileName(fileName, 'image/png'), { type: 'image/png' });
+  });
   await navigator.clipboard.write([
     new ClipboardItem({
       'image/png': pngPromise,
