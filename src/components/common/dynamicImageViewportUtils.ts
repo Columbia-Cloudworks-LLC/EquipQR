@@ -65,14 +65,42 @@ export function ensureImageFileName(fileName: string, mimeType: string): string 
   return `${trimmed}.${subtype}`;
 }
 
+/** Normalize any fetched image blob to PNG for clipboard APIs (JPEG/WebP are often rejected). */
+export async function blobToPngBlob(blob: Blob): Promise<Blob> {
+  if (blob.type === 'image/png') {
+    return blob;
+  }
+  const bitmap = await createImageBitmap(blob);
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Canvas unavailable');
+    }
+    ctx.drawImage(bitmap, 0, 0);
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (result) => (result ? resolve(result) : reject(new Error('PNG encode failed'))),
+        'image/png',
+      );
+    });
+  } finally {
+    bitmap.close();
+  }
+}
+
 export async function copyImageToClipboard(imageUrl: string, fileName: string): Promise<void> {
-  const blob = await fetchImageBlob(imageUrl);
-  const type = blob.type.startsWith('image/') ? blob.type : 'image/png';
-  const clipboardBlob = blob.type.startsWith('image/') ? blob : new Blob([blob], { type });
-  const clipboardItem = new ClipboardItem({
-    [clipboardBlob.type]: clipboardBlob,
-  });
-  await navigator.clipboard.write([clipboardItem]);
+  void fileName;
+  // Pass an async Blob promise so clipboard.write stays tied to the click gesture
+  // while fetch/encode runs (awaiting fetch first breaks user activation in Chromium).
+  const pngPromise = fetchImageBlob(imageUrl).then((blob) => blobToPngBlob(blob));
+  await navigator.clipboard.write([
+    new ClipboardItem({
+      'image/png': pngPromise,
+    }),
+  ]);
 }
 
 export async function downloadImageFile(imageUrl: string, fileName: string): Promise<void> {

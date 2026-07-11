@@ -5,6 +5,7 @@ import {
   downloadImageFile,
   ensureImageFileName,
   fetchImageBlob,
+  blobToPngBlob,
   imageSupportsPanning,
 } from '@/components/common/dynamicImageViewportUtils';
 import {
@@ -79,14 +80,33 @@ describe('dynamicImageViewportUtils', () => {
   });
 
   it('copies fetched image bytes to the clipboard', async () => {
-    const blob = new Blob(['pixels'], { type: 'image/png' });
+    const jpegBlob = new Blob(['pixels'], { type: 'image/jpeg' });
+    const pngBlob = new Blob(['png'], { type: 'image/png' });
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
         ok: true,
-        blob: () => Promise.resolve(blob),
+        blob: () => Promise.resolve(jpegBlob),
       }),
     );
+    vi.stubGlobal(
+      'createImageBitmap',
+      vi.fn().mockResolvedValue({
+        width: 1,
+        height: 1,
+        close: vi.fn(),
+      }),
+    );
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      drawImage: vi.fn(),
+    } as unknown as CanvasRenderingContext2D);
+    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(function toBlob(
+      this: HTMLCanvasElement,
+      callback: BlobCallback,
+    ) {
+      callback(pngBlob);
+    });
+
     const write = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal('navigator', {
       clipboard: { write },
@@ -94,13 +114,38 @@ describe('dynamicImageViewportUtils', () => {
     vi.stubGlobal(
       'ClipboardItem',
       class ClipboardItemMock {
-        constructor(public items: Record<string, Blob>) {}
+        constructor(public items: Record<string, Blob | Promise<Blob>>) {}
       },
     );
 
-    await copyImageToClipboard('https://signed.example/eq.png', 'eq.png');
+    await copyImageToClipboard('https://signed.example/eq.jpg', 'eq.jpg');
 
     expect(write).toHaveBeenCalledTimes(1);
+    const item = write.mock.calls[0][0][0] as { items: Record<string, Promise<Blob>> };
+    await expect(item.items['image/png']).resolves.toEqual(pngBlob);
+  });
+
+  it('converts non-png blobs before clipboard write', async () => {
+    const jpegBlob = new Blob(['pixels'], { type: 'image/jpeg' });
+    const pngBlob = new Blob(['png'], { type: 'image/png' });
+    vi.stubGlobal(
+      'createImageBitmap',
+      vi.fn().mockResolvedValue({
+        width: 2,
+        height: 2,
+        close: vi.fn(),
+      }),
+    );
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      drawImage: vi.fn(),
+    } as unknown as CanvasRenderingContext2D);
+    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(function toBlob(
+      callback: BlobCallback,
+    ) {
+      callback(pngBlob);
+    });
+
+    await expect(blobToPngBlob(jpegBlob)).resolves.toEqual(pngBlob);
   });
 });
 
