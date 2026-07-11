@@ -23,7 +23,6 @@ vi.mock('sonner', () => ({
   toast: {
     success: vi.fn(),
     error: vi.fn(),
-    warning: vi.fn(),
   },
 }));
 
@@ -57,15 +56,22 @@ vi.mock('@/hooks/useAuth', () => ({
   }),
 }));
 
-import { useEquipmentForm } from '@/features/equipment/hooks/useEquipmentForm';
-import { EquipmentFormData, EquipmentRecord } from '@/features/equipment/types/equipment';
-import { toast } from 'sonner';
-import { createEquipmentNoteWithImages } from '@/features/equipment/services/equipmentNotesService';
+const mockWarningToast = vi.fn();
+vi.mock('@/hooks/useAppToast', () => ({
+  useAppToast: () => ({
+    warning: mockWarningToast,
+  }),
+}));
 
 vi.mock('@/features/equipment/services/equipmentNotesService', () => ({
   createEquipmentNoteWithImages: vi.fn(),
   updateEquipmentDisplayImage: vi.fn(),
 }));
+
+import { useEquipmentForm } from '@/features/equipment/hooks/useEquipmentForm';
+import { EquipmentFormData, EquipmentRecord } from '@/features/equipment/types/equipment';
+import { toast } from 'sonner';
+import { createEquipmentNoteWithImages } from '@/features/equipment/services/equipmentNotesService';
 
 const createWrapper = (client: QueryClient) =>
   ({ children }: { children: React.ReactNode }) => (
@@ -120,6 +126,7 @@ const baseValues: EquipmentFormData = {
 describe('useEquipmentForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockWarningToast.mockClear();
   });
 
   it('creates equipment successfully', async () => {
@@ -163,9 +170,32 @@ describe('useEquipmentForm', () => {
     });
 
     expect(onSuccess).toHaveBeenCalled();
-    expect(toast.warning).toHaveBeenCalledWith(
-      'Equipment created, but media upload failed. Add photos from the equipment details page.',
-    );
+    expect(mockWarningToast).toHaveBeenCalledWith({
+      description:
+        'Equipment created, but media upload failed. Add photos from the equipment details page.',
+    });
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('warns when post-create media returns no images', async () => {
+    vi.mocked(createEquipmentNoteWithImages).mockResolvedValueOnce({
+      id: 'note-1',
+      images: [],
+    } as Awaited<ReturnType<typeof createEquipmentNoteWithImages>>);
+
+    const client = new QueryClient();
+    const onSuccess = vi.fn();
+    const pendingMediaRef = { current: { files: [new File(['x'], 'a.jpg', { type: 'image/jpeg' })], displayIndex: 0 } };
+    const { result } = renderHook(() =>
+      useEquipmentForm(undefined, onSuccess, pendingMediaRef)
+    , { wrapper: createWrapper(client) });
+
+    await act(async () => {
+      await result.current.onSubmit(baseValues);
+    });
+
+    expect(onSuccess).toHaveBeenCalled();
+    expect(mockWarningToast).toHaveBeenCalled();
     expect(toast.error).not.toHaveBeenCalled();
   });
 });

@@ -15,6 +15,7 @@ import { createValidationContext } from '@/utils/validationHelpers';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { toast } from 'sonner';
+import { useAppToast } from '@/hooks/useAppToast';
 import { logEquipmentLocationChange } from '@/features/equipment/services/equipmentLocationHistoryService';
 import {
   buildEquipmentFormDefaultValues,
@@ -54,6 +55,7 @@ export const useEquipmentForm = (
   const { user } = useAuth();
   const { sessionData } = useSession();
   const offlineCtx = useOfflineQueueOptional();
+  const { warning: showWarningToast } = useAppToast();
   const localPendingRef = useRef<EquipmentFormPendingMedia>({ files: [], displayIndex: 0 });
   const mediaRef = pendingMediaRef ?? localPendingRef;
 
@@ -135,16 +137,30 @@ export const useEquipmentForm = (
             pending.files,
             currentOrganization.id,
           );
-          const displayImage =
-            note.images?.[pending.displayIndex] ?? note.images?.[0] ?? null;
-          if (displayImage?.file_url) {
-            const path =
-              extractEquipmentDisplayImagePath(displayImage.file_url) ?? displayImage.file_url;
-            await updateEquipmentDisplayImage(currentOrganization.id, result.data.id, path);
+          if (!note.images || note.images.length === 0) {
+            mediaUploadFailed = true;
+          } else {
+            if (note.images.length < pending.files.length) {
+              mediaUploadFailed = true;
+            }
+            const displayImage =
+              note.images[pending.displayIndex] ?? note.images[0] ?? null;
+            if (displayImage?.file_url) {
+              try {
+                const path =
+                  extractEquipmentDisplayImagePath(displayImage.file_url) ?? displayImage.file_url;
+                await updateEquipmentDisplayImage(currentOrganization.id, result.data.id, path);
+              } catch (displayError) {
+                console.error('Post-create equipment display image update failed:', displayError);
+                mediaUploadFailed = true;
+              }
+            }
           }
         } catch (error) {
           console.error('Post-create equipment media upload failed:', error);
           mediaUploadFailed = true;
+        }
+        if (mediaUploadFailed) {
           await queryClient.invalidateQueries({ queryKey: equipment.images(result.data.id) });
         }
       }
@@ -166,9 +182,10 @@ export const useEquipmentForm = (
           queryClient.invalidateQueries({ queryKey: equipment.images(data.id) });
         }
         if (data && 'mediaUploadFailed' in data && data.mediaUploadFailed) {
-          toast.warning(
-            'Equipment created, but media upload failed. Add photos from the equipment details page.',
-          );
+          showWarningToast({
+            description:
+              'Equipment created, but media upload failed. Add photos from the equipment details page.',
+          });
         } else {
           toast.success('Equipment created successfully');
         }
