@@ -47,7 +47,9 @@ test.describe('Docs media: Technician field work mobile @pr-evidence', () => {
       timeout: 30_000,
     });
     await settleForDemo(page, 800);
-    await evidenceScreenshot(page, '03-mobile-status-sheet');
+    await evidenceScreenshot(page, '03-mobile-status-sheet', {
+      target: page.getByRole('heading', { name: /change status/i }),
+    });
     await page.keyboard.press('Escape');
     await expect(page.getByRole('heading', { name: /change status/i })).toBeHidden({
       timeout: 15_000,

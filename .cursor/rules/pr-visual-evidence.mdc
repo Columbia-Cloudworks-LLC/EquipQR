@@ -22,10 +22,24 @@ Workflow-only PRs (`.cursor/**`, `AGENTS.md`, `scripts/mcp.template.json`) are e
    ```powershell
    .\scripts\pr-evidence\Invoke-PrEvidence.ps1 `
      -Flow "<short-slug>" `
+     -Spec "e2e/pr-evidence/<feature>.spec.ts" `
+     -CaptureOnly
+   ```
+   Use `-MobileViewport` when the change affects phone UX. In specs, pass `{ target: locator }` to `evidenceScreenshot()` for controls that must be fully framed.
+3. **Visual review (mandatory)** — open each PNG under `tmp/pr-evidence/<slug>/screenshots/` and walk `visual-review-checklist.md`. Confirm the layout is production-ready (fully visible targets, no horizontal scroll traps, intentional mobile stacking, reachable primary actions). Fix layout or re-capture on any failure. Record approval:
+   ```powershell
+   .\scripts\pr-evidence\Complete-PrEvidenceVisualReview.ps1 `
+     -Flow "<short-slug>" `
+     -Notes "<what you verified>"
+   ```
+   Upload/publish is blocked until `visual-review.json` has `approved: true`.
+4. **Upload** and merge `tmp/pr-evidence/<slug>/evidence-markdown.md` into the PR body under **Screenshots/Videos** (or paste the generated section verbatim):
+   ```powershell
+   .\scripts\pr-evidence\Invoke-PrEvidence.ps1 `
+     -Flow "<short-slug>" `
      -Spec "e2e/pr-evidence/<feature>.spec.ts"
    ```
-3. **Merge** `tmp/pr-evidence/<slug>/evidence-markdown.md` into the PR body under **Screenshots/Videos** (or paste the generated section verbatim).
-4. **After** `gh pr create`, **publish** the evidence comment (hosted URLs for inline playback):
+5. **After** `gh pr create`, **publish** the evidence comment (hosted URLs for inline playback):
    ```powershell
    .\scripts\pr-evidence\Invoke-PrEvidence.ps1 `
      -Flow "<short-slug>" `
@@ -39,8 +53,19 @@ If capture fails, **stop before opening the PR** — fix the spec or stack; do n
 ## When to add new Playwright specs
 
 - New route, form, dialog, integration UI, or UX change: **add** `e2e/pr-evidence/<feature>.spec.ts`.
-- Use `evidenceScreenshot()` from `e2e/pr-evidence/shared/evidence-helpers.ts` at each meaningful state.
+- Use `evidenceScreenshot()` from `e2e/pr-evidence/shared/evidence-helpers.ts` at each meaningful state. Pass `{ target: locator }` when a specific control must be fully visible in the PNG; capture asserts no horizontal overflow.
 - Reuse `equipqr-test` fixtures (`gotoDashboard`, personas) for deterministic seeded data.
+
+## Frame quality standard
+
+Evidence must show **production-ready layout**, not merely "the selector matched."
+
+| Check | Capture-time (Playwright) | Post-capture (agent) |
+|-------|---------------------------|----------------------|
+| No horizontal scroll | `assertEvidenceFrameReady` on every screenshot | Confirm in each PNG |
+| Target fully in frame | `{ target: locator }` on `evidenceScreenshot()` | Confirm control not clipped by header/FAB/sheet |
+| Mobile stacking | `-MobileViewport` + mobile spec | No crushed columns, overlapping text, or off-page flow |
+| Reachable actions | Scroll target into frame before capture | Primary actions visible or clearly reachable vertically |
 
 ## Touched user-visible behavior standard
 
@@ -66,6 +91,7 @@ PR handoff must cite:
 
 - Capture command run (copy-pasteable).
 - Spec file path.
+- Visual review completion (`Complete-PrEvidenceVisualReview.ps1` notes or `visual-review.json`).
 - Confirmation that screenshots **and** demo MP4 were uploaded (or PR comment URL after `-Publish`).
 
 ## Relationship to local verify

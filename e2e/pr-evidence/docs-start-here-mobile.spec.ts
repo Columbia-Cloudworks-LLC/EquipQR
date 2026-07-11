@@ -27,7 +27,9 @@ test.describe('Docs media: Start Here mobile @pr-evidence', () => {
     await gotoDashboard('/');
     await assertHealthyShell();
     await settleForDemo(page);
-    await evidenceScreenshot(page, '01-mobile-dashboard-welcome');
+    await evidenceScreenshot(page, '01-mobile-dashboard-welcome', {
+      target: page.getByRole('heading', { name: /dashboard/i }).first(),
+    });
 
     // --- navigation-tour: bottom navigation ---
     await focusAndClick(page, page.getByRole('link', { name: /equipment/i }).last());
@@ -56,7 +58,9 @@ test.describe('Docs media: Start Here mobile @pr-evidence', () => {
       `docs.demo.invite.m.${Date.now()}@example.com`,
     );
     await settleForDemo(page, 600);
-    await evidenceScreenshot(page, '04-mobile-invite-member-dialog');
+    await evidenceScreenshot(page, '04-mobile-invite-member-dialog', {
+      target: dialog.getByRole('heading', { name: /invite new member/i }),
+    });
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden({ timeout: 15_000 });
 

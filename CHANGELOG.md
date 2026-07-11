@@ -9,7 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [3.25.4] - 2026-07-11
+## [3.25.5] - 2026-07-11
+
+### Changed
+
+- **Help Center evidence quality gate (#1161)** — PR/docs capture now asserts frame quality at screenshot time (no horizontal overflow, controls fully in viewport via `evidence-frame-helpers.ts`) and requires a mandatory post-capture visual review (`visual-review-checklist.md` + `Complete-PrEvidenceVisualReview.ps1`) before upload/publish. `docs-demo-helpers.ts` shares the same frame assertions before spotlight choreography.
+
 
 ### Fixed
 
