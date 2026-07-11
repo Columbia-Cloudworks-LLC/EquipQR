@@ -793,6 +793,48 @@ function Write-PrEvidenceVisualReviewChecklist {
     return $checklistPath
 }
 
+function Test-PrEvidenceManifestMatchesInvocation {
+    param(
+        [Parameter(Mandatory)][string]$ManifestPath,
+        [Parameter(Mandatory)][string]$Spec,
+        [string]$BaseUrl = 'http://localhost:8080',
+        [switch]$MobileViewport
+    )
+
+    if (-not (Test-Path -LiteralPath $ManifestPath)) {
+        return $false
+    }
+
+    try {
+        $manifest = Get-Content -LiteralPath $ManifestPath -Raw -Encoding utf8 | ConvertFrom-Json
+    }
+    catch {
+        return $false
+    }
+
+    if ([string]$manifest.spec -ne $Spec) {
+        return $false
+    }
+
+    if ([string]$manifest.baseUrl -ne $BaseUrl) {
+        return $false
+    }
+
+    if (-not $manifest.viewport) {
+        return $false
+    }
+
+    $expectedViewport = Get-PrEvidenceRecordingViewport -MobileViewport:$MobileViewport
+    if ([int]$manifest.viewport.width -ne [int]$expectedViewport.width) {
+        return $false
+    }
+    if ([int]$manifest.viewport.height -ne [int]$expectedViewport.height) {
+        return $false
+    }
+
+    return $true
+}
+
 function Assert-PrEvidenceVisualReviewComplete {
     param(
         [Parameter(Mandatory)][string]$ArtifactDir,

@@ -42,9 +42,7 @@ param(
 
     [switch]$SkipStackStart,
 
-    [switch]$MobileViewport,
-
-    [switch]$SkipVisualReview
+    [switch]$MobileViewport
 )
 
 $ErrorActionPreference = 'Stop'
@@ -116,9 +114,14 @@ function Test-PrEvidenceCapturedManifest {
     return Test-Path -LiteralPath $videoFull
 }
 
-$shouldCapture = -not (Test-PrEvidenceCapturedManifest -Path $manifestPath)
+$manifestArtifactsReady = Test-PrEvidenceCapturedManifest -Path $manifestPath
+$manifestMatchesInvocation = Test-PrEvidenceManifestMatchesInvocation -ManifestPath $manifestPath -Spec $Spec -BaseUrl $BaseUrl -MobileViewport:$MobileViewport
+$shouldCapture = -not ($manifestArtifactsReady -and $manifestMatchesInvocation)
 if ($Recapture) {
     $shouldCapture = $true
+}
+if ($manifestArtifactsReady -and -not $manifestMatchesInvocation) {
+    Write-Host '[PR evidence] Existing capture does not match current -Spec/-BaseUrl/-MobileViewport; recapturing.'
 }
 if (-not $shouldCapture) {
     Write-Host ('[PR evidence] Reusing existing capture at {0}' -f $artifactDir)
@@ -156,9 +159,7 @@ if ($CaptureOnly) {
     exit 0
 }
 
-if (-not $SkipVisualReview) {
-    Assert-PrEvidenceVisualReviewComplete -ArtifactDir $artifactDir -FlowSlug $flowSlug
-}
+Assert-PrEvidenceVisualReviewComplete -ArtifactDir $artifactDir -FlowSlug $flowSlug
 
 $publishJsonFile = Join-Path $artifactDir 'publish-result.json'
 $publishOutput = & (Join-Path $here 'Publish-PrEvidence.ps1') -ManifestPath $manifestPath -MarkdownOut $markdownPath -Json
