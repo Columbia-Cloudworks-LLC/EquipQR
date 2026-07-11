@@ -793,6 +793,26 @@ function Write-PrEvidenceVisualReviewChecklist {
     return $checklistPath
 }
 
+function Normalize-PrEvidenceSpecPath {
+    param([string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return ''
+    }
+
+    return ($Path.Trim() -replace '\\', '/')
+}
+
+function Normalize-PrEvidenceBaseUrl {
+    param([string]$Url)
+
+    if ([string]::IsNullOrWhiteSpace($Url)) {
+        return ''
+    }
+
+    return $Url.Trim().TrimEnd('/')
+}
+
 function Test-PrEvidenceManifestMatchesInvocation {
     param(
         [Parameter(Mandatory)][string]$ManifestPath,
@@ -812,11 +832,11 @@ function Test-PrEvidenceManifestMatchesInvocation {
         return $false
     }
 
-    if ([string]$manifest.spec -ne $Spec) {
+    if (Normalize-PrEvidenceSpecPath -Path ([string]$manifest.spec) -ne (Normalize-PrEvidenceSpecPath -Path $Spec)) {
         return $false
     }
 
-    if ([string]$manifest.baseUrl -ne $BaseUrl) {
+    if (Normalize-PrEvidenceBaseUrl -Url ([string]$manifest.baseUrl) -ne (Normalize-PrEvidenceBaseUrl -Url $BaseUrl)) {
         return $false
     }
 

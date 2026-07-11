@@ -4,7 +4,6 @@ import type { APIRequestContext, APIResponse, Locator, Page } from '@playwright/
 import {
   assertEvidenceFrameReady,
   evidenceScreenshotTarget,
-  scrollLocatorIntoEvidenceFrame,
 } from './evidence-frame-helpers';
 
 export {
