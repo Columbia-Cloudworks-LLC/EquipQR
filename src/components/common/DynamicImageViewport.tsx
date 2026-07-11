@@ -95,14 +95,23 @@ const DynamicImageViewport: React.FC<DynamicImageViewportProps> = ({
   }, [isPanning]);
 
   const handleDownload = useCallback(
-    (event: React.MouseEvent) => {
+    async (event: React.MouseEvent) => {
       event.stopPropagation();
       event.preventDefault();
-      downloadImageFile(src, fileName || alt || 'image');
-      toast.success('Download started');
+      try {
+        await downloadImageFile(src, fileName || alt || 'image');
+        toast.success('Download started');
+      } catch (error) {
+        console.error('Failed to download image:', error);
+        toast.error('Could not download image');
+      }
     },
     [src, fileName, alt],
   );
+
+  const stopControlPointer = useCallback((event: React.PointerEvent) => {
+    event.stopPropagation();
+  }, []);
 
   const handleCopy = useCallback(
     async (event: React.MouseEvent) => {
@@ -169,6 +178,8 @@ const DynamicImageViewport: React.FC<DynamicImageViewportProps> = ({
         <div
           className="pointer-events-none absolute right-1.5 top-1.5 z-[2] flex gap-1 opacity-0 transition-opacity group-hover/viewport:opacity-100 group-focus-within/viewport:opacity-100"
           aria-hidden={false}
+          onPointerDown={stopControlPointer}
+          onPointerUp={stopControlPointer}
         >
           <Button
             type="button"
@@ -176,6 +187,7 @@ const DynamicImageViewport: React.FC<DynamicImageViewportProps> = ({
             variant="secondary"
             className="pointer-events-auto h-8 w-8 bg-background/70 shadow-sm backdrop-blur-sm"
             onClick={handleDownload}
+            onPointerDown={stopControlPointer}
             aria-label={`Download ${alt}`}
           >
             <Download className="h-4 w-4" />
@@ -186,6 +198,7 @@ const DynamicImageViewport: React.FC<DynamicImageViewportProps> = ({
             variant="secondary"
             className="pointer-events-auto h-8 w-8 bg-background/70 shadow-sm backdrop-blur-sm"
             onClick={handleCopy}
+            onPointerDown={stopControlPointer}
             disabled={isCopying}
             aria-label={`Copy ${alt} to clipboard`}
           >

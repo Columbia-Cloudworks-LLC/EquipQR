@@ -24,6 +24,8 @@ vi.mock('@/features/equipment/hooks/useEquipmentNotesPermissions', () => ({
     canEdit: true,
     canDelete: true,
     canSetDisplayImage: true,
+    canUploadImages: true,
+    canDeleteImages: true,
   }))
 }));
 
@@ -38,27 +40,48 @@ vi.mock('@/features/equipment/services/equipmentNotesService', () => ({
 }));
 
 vi.mock('@/components/common/ImageGallery', () => ({
-  default: ({ images }: { images?: Array<{ url: string }> }) => (
+  default: ({ images }: { images?: Array<{ file_url?: string; url?: string }> }) => (
     <div data-testid="image-gallery">
-      {images?.map((img: { url: string }, i: number) => (
-        <div key={i} data-testid={`image-${i}`}>{img.url}</div>
+      {images?.map((img, i) => (
+        <div key={i} data-testid={`image-${i}`}>{img.file_url ?? img.url}</div>
       ))}
     </div>
   )
 }));
 
 vi.mock('@/components/common/ImageUploadWithNote', () => ({
-  default: ({ onUpload, onCancel }: { onUpload: (files: File[]) => void; onCancel: () => void }) => (
+  default: ({ onUpload }: { onUpload: (files: File[]) => void }) => (
     <div data-testid="image-upload">
       <button onClick={() => onUpload([new File([], 'test.jpg')])}>Upload</button>
-      <button onClick={onCancel}>Cancel</button>
     </div>
   )
 }));
 
+vi.mock('@/features/equipment/components/media/EquipmentMediaExplorer', () => ({
+  EquipmentMediaExplorer: () => null,
+}));
+
+vi.mock('@/features/equipment/components/media/EquipmentMediaFiltersBar', () => ({
+  EquipmentMediaFiltersBar: () => <div data-testid="media-filters" />,
+}));
+
 const mockImages = [
-  { id: 'img-1', url: 'https://example.com/image1.jpg', sourceType: 'equipment_note' },
-  { id: 'img-2', url: 'https://example.com/image2.jpg', sourceType: 'work_order_note' }
+  {
+    id: 'img-1',
+    file_url: 'https://example.com/image1.jpg',
+    file_name: 'image1.jpg',
+    created_at: '2026-07-01T00:00:00.000Z',
+    uploaded_by: 'user-1',
+    source_type: 'equipment_note' as const,
+  },
+  {
+    id: 'img-2',
+    file_url: 'https://example.com/image2.jpg',
+    file_name: 'image2.jpg',
+    created_at: '2026-07-02T00:00:00.000Z',
+    uploaded_by: 'user-1',
+    source_type: 'work_order_note' as const,
+  },
 ];
 
 describe('EquipmentImagesTab', () => {

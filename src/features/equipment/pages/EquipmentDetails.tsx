@@ -406,6 +406,7 @@ const EquipmentDetails = () => {
                   organizationId={currentOrganization.id}
                   equipmentTeamId={equipment.team_id || undefined}
                   currentDisplayImage={equipment.image_url || undefined}
+                  equipmentName={equipment.name}
                 />
               </Suspense>
             )}

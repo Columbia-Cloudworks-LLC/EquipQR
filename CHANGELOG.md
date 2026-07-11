@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.0] - 2026-07-09
+
+### Added
+
+- **Equipment media & artifacts library (#1129)** - Searchable/filterable media library with dedicated explorer, details-tab summary strip, create-time display image capture, and display-first chronological carousels (reusing DynamicImageViewport / NoteImageCarousel from #1185/#1200) on equipment and work order details.
+
 ## [3.24.0] - 2026-07-09
 
 ### Added

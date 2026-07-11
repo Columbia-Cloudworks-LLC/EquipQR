@@ -19,6 +19,15 @@ import { EquipmentLifecycleCard } from "./EquipmentLifecycleCard";
 import { EquipmentMaintenanceNotesCard } from "./EquipmentMaintenanceNotesCard";
 import { useEquipmentDetailsTabActions } from "@/features/equipment/hooks/useEquipmentDetailsTabActions";
 import { EquipmentOperatorCheckinConfig } from "@/features/operator-check-ins/components/EquipmentOperatorCheckinConfig";
+import { EquipmentMediaSummaryStrip } from "@/features/equipment/components/media/EquipmentMediaSummaryStrip";
+import { EquipmentMediaExplorer } from "@/features/equipment/components/media/EquipmentMediaExplorer";
+import { useEquipmentMediaLibrary } from "@/features/equipment/hooks/useEquipmentMediaLibrary";
+import { useEquipmentNotesPermissions } from "@/features/equipment/hooks/useEquipmentNotesPermissions";
+import { updateEquipmentDisplayImage } from "@/features/equipment/services/equipmentImagesService";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { equipment as equipmentKeys } from "@/lib/queryKeys";
+import { toast } from "sonner";
+import { EquipmentPrimaryMediaPanel } from "@/features/equipment/components/media/EquipmentPrimaryMediaPanel";
 
 type Equipment = Tables<'equipment'>;
 
@@ -45,8 +54,10 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
 }) => {
   const [showWorkingHoursModal, setShowWorkingHoursModal] = useState(false);
   const [showAllBasicInfo, setShowAllBasicInfo] = useState(false);
+  const [mediaExplorerOpen, setMediaExplorerOpen] = useState(false);
   const permissions = useUnifiedPermissions();
   const { currentOrganization } = useOrganization();
+  const queryClient = useQueryClient();
   const canAssignTeams = permissions.organization?.canManageMembers ?? false;
   const { data: fetchedTeams = [] } = useTeams(currentOrganization?.id, { enabled: canAssignTeams });
   const teams: EquipmentTeamSummary[] = fetchedTeams.length > 0
@@ -60,6 +71,27 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
   const isMobile = useIsMobile();
   const { data: pmStatus } = useEquipmentPMStatus(equipment.id);
   const pmCompliance = getPMComplianceLevel(pmStatus);
+  const notesPermissions = useEquipmentNotesPermissions(equipment.team_id || undefined);
+  const orgId = organizationId || currentOrganization?.id || '';
+  const media = useEquipmentMediaLibrary({
+    equipmentId: equipment.id,
+    organizationId: orgId,
+    currentDisplayImage: equipment.image_url,
+    enabled: !!orgId,
+  });
+
+  const setDisplayImageMutation = useMutation({
+    mutationFn: (imageUrl: string) =>
+      updateEquipmentDisplayImage(orgId, equipment.id, imageUrl),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: equipmentKeys.images(equipment.id) });
+      queryClient.invalidateQueries({ queryKey: equipmentKeys.list(orgId) });
+      queryClient.invalidateQueries({ queryKey: equipmentKeys.byId(orgId, equipment.id) });
+      toast.success('Display image updated');
+    },
+    onError: () => toast.error('Failed to update display image'),
+  });
+
   const nameFieldId = `equipment-name-${equipment.id}`;
   const statusFieldId = `equipment-status-${equipment.id}`;
   const manufacturerFieldId = `equipment-manufacturer-${equipment.id}`;
@@ -112,6 +144,28 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
           pmCompliance={pmCompliance}
         />
       )}
+
+      {isMobile && orgId ? (
+        <div className="overflow-hidden rounded-lg border p-2">
+          <EquipmentPrimaryMediaPanel
+            equipmentId={equipment.id}
+            organizationId={orgId}
+            equipmentName={equipment.name}
+            currentDisplayImage={equipment.image_url}
+            emptyClassName="h-48"
+          />
+        </div>
+      ) : null}
+
+      {orgId ? (
+        <EquipmentMediaSummaryStrip
+          images={media.recentThumbnails}
+          totalCount={media.images.length}
+          equipmentName={equipment.name}
+          isLoading={media.isLoading}
+          onOpenExplorer={() => setMediaExplorerOpen(true)}
+        />
+      ) : null}
 
       <EquipmentBasicInfoCard
         equipment={equipment}
@@ -207,6 +261,31 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
           />
         </Suspense>
       )}
+
+      {orgId ? (
+        <EquipmentMediaExplorer
+          open={mediaExplorerOpen}
+          onOpenChange={setMediaExplorerOpen}
+          equipmentName={equipment.name}
+          images={media.images}
+          filteredImages={media.filteredImages}
+          filters={media.filters}
+          activeFilterCount={media.activeFilterCount}
+          isLoading={media.isLoading}
+          currentDisplayImage={equipment.image_url}
+          canSetDisplayImage={notesPermissions.canSetDisplayImage}
+          onSearchChange={media.setSearch}
+          onSourceChange={media.setSource}
+          onUploaderChange={media.setUploader}
+          onDateFromChange={media.setDateFrom}
+          onDateToChange={media.setDateTo}
+          onSortChange={media.setSort}
+          onClearFilters={media.clearFilters}
+          onSetDisplayImage={async (imageUrl) => {
+            await setDisplayImageMutation.mutateAsync(imageUrl);
+          }}
+        />
+      ) : null}
     </div>
   );
 };
