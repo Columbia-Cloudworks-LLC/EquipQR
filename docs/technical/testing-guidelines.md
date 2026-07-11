@@ -1,43 +1,105 @@
 # Testing Guidelines
 
-EquipQR follows a **journey-first** testing strategy that prioritizes user confidence over implementation-detail coverage.
+EquipQR follows a **testing trophy** strategy: fast unit and component tests carry most coverage; Playwright journey tests guard critical user flows.
 
 ## Philosophy
 
-### Why Journey Tests Over Unit Tests?
+### Why the Testing Trophy?
 
-As a fast-moving codebase with a solo/small team:
+As the product and test suite scale:
 
-1. **Refactor resilience**: Journey tests survive internal refactors (hook renames, service splits) because they test user-visible behavior.
-2. **Higher confidence per test**: A single journey test covers the full integration: routing, providers, data fetching, and UI rendering.
-3. **Lower maintenance burden**: Fewer mocks to update when implementation changes.
-4. **Real user perspective**: Tests answer "does the feature work?" not "does this function return the right shape?"
+1. **Velocity**: Pure logic tests in Node run in milliseconds; only React surfaces pay the jsdom cost.
+2. **Refactor resilience**: Component tests verify user-visible behavior; unit tests lock down pure business rules.
+3. **Reliable teardown**: Vitest runs natively with a forks pool (no log-watching wrapper); React Query caches and Supabase handles are cleared in global teardown.
+4. **Network isolation**: Vitest never hits real Supabase — the global client mock and scenario helpers intercept at the service boundary.
 
-### Testing Pyramid (EquipQR Style)
+### Testing Trophy (EquipQR Style)
 
 ```
          /\
-         /  \      ← Playwright user regression (`dev-test.bat`, `e2e/user/`)
+        /  \       ← Playwright user regression (~10%) — auth, WO lifecycle, offline sync
        /----\
-      /      \    ← Default: Journey tests (RTL + user-event + Vitest)
+      /      \     ← Component tests (~20%) — RTL + jsdom for complex UI
      /--------\
-    /          \  ← Selective: Unit tests (pure utils, complex business rules)
+    /          \   ← Unit tests (~70%) — pure utils, mappers, services, hook logic (mocked)
    --------------
 ```
 
+## Test Infrastructure
+
+### Vitest projects (environment isolation)
+
+`vitest.config.ts` defines two Vitest 4 projects:
+
+| Project | Environment | Scope |
+| --- | --- | --- |
+| `unit` | `node` | Pure-logic `*.test.ts` / `*.spec.ts` (feature utils, services, script tests) |
+| `component` | `jsdom` | `*.test.tsx` and browser-dependent co-located `*.test.ts` |
+
+On Windows, `npm test` and `npm run test:component` run component tests in **four sequential shards** (~80 files each) so you get a summary between chunks instead of a long silent stretch. Linux/macOS CI uses the same shard count via GitHub Actions.
+
+Run a single project (streams file results immediately):
+
+```bash
+npm run test:unit
+npm run test:component
+```
+
+Single shard or verbose per-test output:
+
+```bash
+vitest run --project component --shard=1/4
+vitest run --project component --reporter=verbose
+```
+
+### Network mocking (no real Supabase in Vitest)
+
+- `@/integrations/supabase/client` is mocked globally in `src/test/setup-shared.ts`.
+- Journey and component tests seed data via `seedSupabaseMock()` from `@/test/mocks/supabase-scenario`.
+- Do **not** point Vitest at local Docker Supabase — reserve real DB access for Playwright and pgTAP.
+
+### Teardown
+
+- `createTestQueryClient()` registers clients for `afterAll` cache clearing.
+- Supabase auth timers and WebSocket handles are never created thanks to the global mock.
+
 ## Test Categories
 
-### Journey Tests (Primary)
+### Unit Tests (Primary — ~70%)
 
-**Location**: `src/tests/journeys/`
+**Location**: Co-located with source (`*.test.ts`) or `src/test/unit/`
 
-Journey tests render real pages/components through the router and exercise them with user interactions.
+Appropriate for:
+
+- Pure utility functions, formatters, mappers
+- Service functions with mocked Supabase responses
+- Validation schemas (Zod)
+- Script and build-tool regression tests under `src/tests/scripts/`
+
+**Example**:
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { formatWorkingHours } from '@/utils/formatting';
+
+describe('formatWorkingHours', () => {
+  it('formats large numbers with commas', () => {
+    expect(formatWorkingHours(1500)).toBe('1,500');
+  });
+});
+```
+
+### Component Tests (~20%)
+
+**Location**: Co-located `*.test.tsx` or journey-style tests in `src/tests/journeys/`
+
+Mount UI with React Testing Library and jsdom. Mock only at external boundaries (Supabase), not internal hooks.
 
 **Characteristics**:
-- Render actual page components (not test stubs)
-- Use `userEvent` to simulate real user behavior
-- Assert on user-visible outcomes (text, navigation, button states, toasts)
-- Mock only at external boundaries (Supabase client), not hooks
+
+- Use `userEvent` for interactions
+- Assert on visible text, ARIA roles, navigation, toasts
+- Seed data via `seedSupabaseMock()`
 
 **Example**:
 
@@ -47,11 +109,10 @@ import userEvent from '@testing-library/user-event';
 import { screen, waitFor } from '@testing-library/react';
 import { renderJourney } from '@/test/journey/render-journey';
 import { seedSupabaseMock } from '@/test/mocks/supabase-scenario';
-import { equipment, workOrders } from '@/test/fixtures/entities';
+import { equipment } from '@/test/fixtures/entities';
 
 describe('Work Order Creation Journey', () => {
   beforeEach(() => {
-    // Seed the mock backend with test data
     seedSupabaseMock({
       equipment: [equipment.forklift1],
       work_orders: [],
@@ -60,26 +121,20 @@ describe('Work Order Creation Journey', () => {
 
   it('allows admin to create a work order from equipment details', async () => {
     const user = userEvent.setup();
-    
-    // Render real page via route
+
     renderJourney({
       persona: 'admin',
       route: `/dashboard/equipment/${equipment.forklift1.id}`,
     });
 
-    // Wait for page to load
     await waitFor(() => {
       expect(screen.getByText(equipment.forklift1.name)).toBeInTheDocument();
     });
 
-    // User action: click create work order
     await user.click(screen.getByRole('button', { name: /create work order/i }));
-
-    // Fill form
     await user.type(screen.getByLabelText(/title/i), 'Oil change required');
     await user.click(screen.getByRole('button', { name: /submit/i }));
 
-    // Assert: success feedback
     await waitFor(() => {
       expect(screen.getByText(/work order created/i)).toBeInTheDocument();
     });
@@ -88,139 +143,65 @@ describe('Work Order Creation Journey', () => {
 ```
 
 **Do's**:
-- ✅ Use `renderJourney({ persona, route })` to set up providers + router
+
+- ✅ Use `renderJourney({ persona, route })` for full-page flows
 - ✅ Use `userEvent.setup()` for interactions
-- ✅ Assert on visible text, ARIA roles, navigation changes
-- ✅ Use `waitFor` / `findBy*` for async operations
+- ✅ Assert on visible outcomes
 - ✅ Seed test data via `seedSupabaseMock()`
 
 **Don'ts**:
-- ❌ Import hooks directly (`@/hooks/*`, `@/features/**/hooks/*`)
-- ❌ Use `renderHook` or `renderHookAsPersona` 
-- ❌ Mock internal hooks with `vi.mock('@/features/.../hooks/useXyz')`
-- ❌ Assert on hook return values or internal state
-- ❌ Test implementation details (e.g., "this hook calls this service")
 
-### Unit Tests (Selective)
+- ❌ Mock internal hooks with `vi.mock('@/features/.../hooks/useXyz')` unless testing the hook itself
+- ❌ Assert on implementation details unrelated to user-visible behavior
+- ❌ Hit real Supabase from Vitest
 
-**Location**: Co-located with source (`*.test.ts` next to `*.ts`) or `src/test/unit/`
+### E2E Journey Tests (~10%)
 
-Unit tests are appropriate for:
-- Pure utility functions with stable I/O
-- Complex business logic that's hard to reach via UI
-- Regression tests for specific bugs with minimal surface area
-- Validation schemas (Zod)
+**Location**: `e2e/user/` (Playwright)
 
-**Example**:
-
-```typescript
-import { describe, it, expect } from 'vitest';
-import { formatWorkingHours, calculateCostTotal } from '@/utils/formatting';
-
-describe('formatWorkingHours', () => {
-  it('formats large numbers with commas', () => {
-    expect(formatWorkingHours(1500)).toBe('1,500');
-  });
-
-  it('handles null as zero', () => {
-    expect(formatWorkingHours(null)).toBe('0');
-  });
-});
-```
+Reserve for critical flows that need a real local stack: auth lifecycle, work order creation, offline sync, OAuth integrations. See [e2e-user-regression.md](./e2e-user-regression.md).
 
 ### Integration Tests
 
 **Location**: `src/tests/integration/`
 
-For testing cross-cutting concerns like routing, providers, or Supabase RPC behavior without full user interaction.
+Cross-cutting routing, providers, or RPC contract tests without full user interaction.
 
 ## Test Harness
 
 ### Persona-Based Rendering
 
-Use personas to test RBAC consistently:
-
 ```typescript
 import { renderJourney } from '@/test/journey/render-journey';
 
-// Available personas: 'owner', 'admin', 'teamManager', 'technician', 'viewer'
 renderJourney({
   persona: 'technician',
   route: '/dashboard/work-orders',
 });
 ```
 
-### Supabase Scenario Mock
+Available personas: `owner`, `admin`, `teamManager`, `technician`, `viewer`.
 
-The scenario mock provides realistic query behavior without hitting real Supabase:
+### Supabase Scenario Mock
 
 ```typescript
 import { seedSupabaseMock, resetSupabaseMock } from '@/test/mocks/supabase-scenario';
-import { equipment, workOrders, teams } from '@/test/fixtures/entities';
 
 beforeEach(() => {
-  // Start fresh
   resetSupabaseMock();
-  
-  // Seed with fixture data
   seedSupabaseMock({
     equipment: Object.values(equipment),
     work_orders: Object.values(workOrders),
-    teams: Object.values(teams),
   });
-});
-```
-
-### Common Patterns
-
-**Waiting for data to load**:
-
-```typescript
-// Wait for loading state to resolve
-await waitFor(() => {
-  expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
-});
-
-// Or wait for expected content
-expect(await screen.findByText('Forklift #1')).toBeInTheDocument();
-```
-
-**Testing error states**:
-
-```typescript
-import { seedSupabaseMock, setSupabaseError } from '@/test/mocks/supabase-scenario';
-
-it('shows error message when fetch fails', async () => {
-  setSupabaseError('equipment', { message: 'Network error' });
-
-  renderJourney({ persona: 'admin', route: '/dashboard/equipment' });
-
-  expect(await screen.findByText(/failed to load/i)).toBeInTheDocument();
-});
-```
-
-**Testing navigation**:
-
-```typescript
-import { renderJourney, getRouter } from '@/test/journey/render-journey';
-
-it('navigates to details on row click', async () => {
-  const user = userEvent.setup();
-  const { history } = renderJourney({ persona: 'admin', route: '/dashboard/equipment' });
-
-  await user.click(await screen.findByText('Forklift #1'));
-
-  expect(history.location.pathname).toBe(`/dashboard/equipment/${equipment.forklift1.id}`);
 });
 ```
 
 ## Playwright User Regression
 
-Local browser tests against `http://localhost:8080` with seeded Dev Quick Login users. See [e2e-user-regression.md](./e2e-user-regression.md).
+Local browser tests against `http://localhost:8080` with seeded Dev Quick Login users.
 
 ```powershell
 .\dev-test.bat              # headless critical (default)
-.\dev-test.bat watch        # visible, slowed, non-interactive
 npm run test:e2e:critical     # headless critical
 npm run test:e2e:full         # headless full suite
 ```
@@ -228,10 +209,10 @@ npm run test:e2e:full         # headless full suite
 ## Running Tests
 
 ```bash
-# Full test suite
+# Full Vitest suite (unit, then component — phased progress)
 npm test
 
-# Journey tests only
+# Journey component tests only
 npm run test:journeys
 
 # Watch mode
@@ -240,60 +221,38 @@ npm run test:watch
 # With coverage
 npm run test:coverage
 
-# Database tests (pgTAP)
-# Requires local Supabase running
+# Database tests (pgTAP) — requires local Supabase
 npm run db:start
 npm run test:db
 ```
 
 ## Database Tests (pgTAP)
 
-Database tests validate RLS policies, triggers, and schema constraints for critical tables.
-
 **Location**: `supabase/tests/`
 
-**Run**:
-
-```bash
-# Start local Supabase once per session
-npm run db:start
-
-# Run all pgTAP tests
-npm run test:db
-
-# Run a single file
-supabase test db supabase/tests/03_work_orders_rls_behavior.sql
-```
+Validates RLS policies, triggers, and schema constraints. Requires local Supabase — not run inside Vitest.
 
 ## Coverage Expectations
 
-- **Journeys**: Focus on happy paths + critical error states for core workflows
-- **Global threshold**: 70%+ (enforced by CI)
-- **Don't chase 100%**: Avoid writing brittle tests for edge cases that rarely matter
+- **Unit + component**: Broad happy paths and critical error states
+- **Global threshold**: Enforced by CI ratchet on merged shard coverage
+- **Don't chase 100%**: Avoid brittle edge-case tests with low product value
 
 ## File Organization
 
 ```
 src/
 ├── test/                         # Test utilities & harness
-│   ├── setup.ts                  # Global test setup
-│   ├── fixtures/                 # Test data
-│   │   ├── entities.ts           # Equipment, work orders, teams, etc.
-│   │   └── personas.ts           # User personas for RBAC testing
-│   ├── journey/                  # Journey test helpers
-│   │   └── render-journey.tsx    # renderJourney() helper
-│   ├── mocks/                    # Mock implementations
-│   │   ├── supabase-scenario.ts  # Scenario-driven Supabase mock
-│   │   └── testTypes.ts          # Type definitions
-│   └── utils/                    # General test utilities
-│       ├── TestProviders.tsx     # Provider wrapper
-│       └── test-utils.ts         # Re-exports
-├── tests/                        # Test files
-│   ├── journeys/                 # Journey tests (primary)
-│   │   ├── work-order-lifecycle.test.tsx
-│   │   ├── equipment-management.test.tsx
-│   │   └── ...
-│   └── integration/              # Integration tests
+│   ├── setup-shared.ts           # Supabase mock, env stubs (all projects)
+│   ├── setup.ts                  # jsdom DOM mocks + RTL cleanup (component project)
+│   ├── query-client-registry.ts  # React Query teardown registry
+│   ├── fixtures/
+│   ├── journey/
+│   └── mocks/
+│       └── supabase-scenario.ts  # Scenario-driven Supabase mock
+├── tests/
+│   ├── journeys/                 # Component journey tests
+│   └── integration/
 └── features/
     └── equipment/
         └── utils/
@@ -302,27 +261,19 @@ src/
 
 ## Migration from Old Patterns
 
-If you encounter old tests that:
-- Mock hooks directly
-- Use `renderHookAsPersona` for feature logic
-- Assert on hook return shapes
+If you encounter tests that:
 
-Consider whether they provide value. If the behavior is user-facing, rewrite as a journey. If it's a pure utility, keep as a unit test. Otherwise, remove.
+- Mock hooks directly for feature behavior → rewrite as a component/journey test or unit test the pure logic
+- Use `renderHookAsPersona` for feature logic → prefer `createTestQueryClient()` wrapper or journey test
+- Depend on `scripts/test-runner.mjs` → removed; use `vitest run` directly
 
 ## DSR Cockpit Required Coverage
 
-The US compliance wedge introduces mandatory guardrail tests:
-
 - `supabase/functions/manage-dsr-request/manage-dsr-request.deno.test.ts`
-  - validates lifecycle helper behavior and mutation/read action boundaries
 - `supabase/tests/07_dsr_cockpit_behavior.sql`
-  - validates schema/policy/index contracts for tenant-scoped DSR operations
 - `src/tests/e2e/dsr-cockpit.spec.ts`
-  - validates queue/case/export API flow behavior from the web app boundary
 
-### Compliance Regression Gate
-
-Before promoting cockpit changes, run:
+Before promoting cockpit changes:
 
 ```bash
 npm run test -- src/tests/integration/AppRoutes.test.tsx
@@ -330,5 +281,3 @@ npm run test -- src/tests/e2e/dsr-cockpit.spec.ts
 deno test --allow-env --allow-net supabase/functions/manage-dsr-request/manage-dsr-request.deno.test.ts
 npm run test:db
 ```
-
-The release gate fails if any DSR tenant-isolation, lifecycle-concurrency, or export-state contract test fails.
