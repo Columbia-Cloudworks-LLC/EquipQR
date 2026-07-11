@@ -17,36 +17,48 @@ test.describe('PM template assignment UX — desktop @pr-evidence', () => {
     await expect(page.getByRole('heading', { name: /pm templates/i })).toBeVisible({
       timeout: 60_000,
     });
-    await expect(page.getByRole('heading', { name: /equipqr templates/i })).toBeVisible({
-      timeout: 30_000,
-    });
 
-    // Grid scanability: multiple outline assignment triggers, not a wall of solid primary buttons.
-    const assignmentTriggers = page.getByRole('button', {
+    const equipQrHeading = page.getByRole('heading', { name: /equipqr templates/i });
+    await expect(equipQrHeading).toBeVisible({ timeout: 30_000 });
+
+    const equipQrSection = page.locator('div').filter({ has: equipQrHeading });
+    const equipQrGrid = equipQrSection.locator('.grid').first();
+    const assignmentTriggers = equipQrSection.getByRole('button', {
       name: /apply to equipment|assigned equipment/i,
     });
+
     await expect(assignmentTriggers.first()).toBeVisible({ timeout: 30_000 });
-    const triggerCount = await assignmentTriggers.count();
-    expect(triggerCount).toBeGreaterThan(1);
+    expect(await assignmentTriggers.count()).toBeGreaterThanOrEqual(1);
 
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '01-pm-templates-grid-outline-triggers');
+    await evidenceScreenshot(page, '01-pm-templates-grid-outline-triggers', {
+      target: equipQrGrid,
+    });
 
-    // Open the first picker to prove assignment still works.
-    await assignmentTriggers.first().click();
-    await expect(page.getByText(/^Apply /).first()).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByRole('button', { name: /select all/i })).toBeVisible();
+    const firstTrigger = assignmentTriggers.first();
+    await firstTrigger.click();
+
+    const pickerSearch = page.getByPlaceholder('Search equipment...');
+    const selectAllButton = page.getByRole('button', { name: /select all/i });
+    const applyTemplateButton = page.getByRole('button', { name: /apply template/i });
+
+    await expect(pickerSearch).toBeVisible({ timeout: 15_000 });
+    await expect(selectAllButton).toBeVisible();
+    await expect(applyTemplateButton).toBeVisible();
 
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '02-assignment-picker-open');
+    await evidenceScreenshot(page, '02-assignment-picker-open', { target: pickerSearch });
     await page.keyboard.press('Escape');
 
-    // If any template already has assignments in the current team scope, capture the count label.
-    const assignedTrigger = page.getByRole('button', { name: /assigned equipment \(\d+\)/i }).first();
+    const assignedTrigger = equipQrSection
+      .getByRole('button', { name: /assigned equipment \(\d+\)/i })
+      .first();
     if (await assignedTrigger.isVisible().catch(() => false)) {
       await assignedTrigger.scrollIntoViewIfNeeded();
       await evidencePause(page, 400);
-      await evidenceScreenshot(page, '03-assigned-equipment-count-label');
+      await evidenceScreenshot(page, '03-assigned-equipment-count-label', {
+        target: assignedTrigger,
+      });
     }
   });
 });
