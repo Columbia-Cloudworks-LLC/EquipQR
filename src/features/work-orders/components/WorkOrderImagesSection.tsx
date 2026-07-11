@@ -24,6 +24,7 @@ import { Images, ChevronDown, Trash2, User, Clock } from 'lucide-react';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { toast } from 'sonner';
 import DynamicImageViewport from '@/components/common/DynamicImageViewport';
+import { useImageLightbox } from '@/components/common/useImageLightbox';
 import { cn } from '@/lib/utils';
 
 interface WorkOrderImagesSectionProps {
@@ -52,6 +53,7 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
   const queryClient = useQueryClient();
   const { formatDateTime } = useFormatTimestamp();
   const [isOpen, setIsOpen] = useState(false);
+  const { openImage, lightbox } = useImageLightbox();
 
   const {
     data: countData,
@@ -220,6 +222,13 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
                               fileName={image.file_name}
                               className="aspect-video h-full w-full rounded-md"
                               fit="contain"
+                              onClick={() =>
+                                openImage({
+                                  src: image.file_url,
+                                  alt: image.file_name || 'Work order image',
+                                  fileName: image.file_name,
+                                })
+                              }
                             />
                           </div>
                           <div className="space-y-2 text-sm">
@@ -280,6 +289,7 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
           </CardContent>
         </CollapsibleContent>
       </Collapsible>
+      {lightbox}
     </Card>
   );
 };

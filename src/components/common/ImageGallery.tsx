@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Trash2, Eye, Calendar, User, Star, StarOff } from 'lucide-react';
+import { Trash2, Eye, Star, StarOff } from 'lucide-react';
 import DynamicImageViewport from '@/components/common/DynamicImageViewport';
+import ImageLightboxDialog from '@/components/common/ImageLightboxDialog';
 import { toast } from 'sonner';
 
 interface ImageData {
@@ -221,70 +221,23 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
         </CardContent>
       </Card>
 
-      {/* Image Detail Modal */}
-      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>{selectedImage?.file_name}</DialogTitle>
-          </DialogHeader>
-          
-          {selectedImage && (
-            <div className="space-y-4">
-              <DynamicImageViewport
-                src={selectedImage.file_url}
-                alt={selectedImage.file_name}
-                fileName={selectedImage.file_name}
-                className="mx-auto flex min-h-[12rem] max-h-[72dvh] w-full items-center justify-center rounded-lg"
-                fit="contain"
-              />
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>Uploaded: {new Date(selectedImage.created_at).toLocaleDateString()}</span>
-                  </div>
-                  
-                  {selectedImage.uploaded_by_name && (
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span>By: {selectedImage.uploaded_by_name}</span>
-                    </div>
-                  )}
-                  
-                  {selectedImage.file_size && (
-                    <div>
-                      <span className="font-medium">Size: </span>
-                      <span>{formatFileSize(selectedImage.file_size)}</span>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="space-y-2">
-                  {selectedImage.description && (
-                    <div>
-                      <span className="font-medium">Description: </span>
-                      <p className="text-muted-foreground">{selectedImage.description}</p>
-                    </div>
-                  )}
-                  
-                  {selectedImage.note_content && (
-                    <div>
-                      <span className="font-medium">Note: </span>
-                      <p className="text-muted-foreground">{selectedImage.note_content}</p>
-                      {selectedImage.note_author_name && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          by {selectedImage.note_author_name}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <ImageLightboxDialog
+        open={selectedImage !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedImage(null);
+          }
+        }}
+        image={
+          selectedImage
+            ? {
+                src: selectedImage.file_url,
+                alt: selectedImage.file_name,
+                fileName: selectedImage.file_name,
+              }
+            : null
+        }
+      />
     </>
   );
 };
