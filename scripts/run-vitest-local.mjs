@@ -20,9 +20,14 @@ const isWindows = process.platform === 'win32';
 const rawArgs = process.argv.slice(2);
 const reporterFlag = rawArgs.find((a) => a.startsWith('--reporter'));
 const projectIndex = rawArgs.indexOf('--project');
-const projectFilter = projectIndex >= 0 ? rawArgs[projectIndex + 1] : null;
+const projectValueIndex = projectIndex >= 0 ? projectIndex + 1 : null;
+const projectFilter = projectValueIndex == null ? null : rawArgs[projectValueIndex];
+// Preserve first args like --coverage or positional filters when --project is absent.
 const passthroughArgs = rawArgs.filter(
-  (a, i) => !a.startsWith('--reporter') && !(a === '--project') && i !== projectIndex + 1,
+  (a, i) =>
+    !a.startsWith('--reporter') &&
+    !(a === '--project') &&
+    (projectValueIndex == null || i !== projectValueIndex),
 );
 const reporterArgs = reporterFlag ? [reporterFlag] : ['--reporter=default'];
 
