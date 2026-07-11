@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { parseVitestLocalArgs } from '../../../scripts/lib/parse-vitest-local-args.mjs';
+import {
+  getVitestPathFilters,
+  parseVitestLocalArgs,
+} from './parse-vitest-local-args.mjs';
 
 describe('parseVitestLocalArgs', () => {
   it('preserves --coverage when --project is absent', () => {
@@ -16,5 +19,23 @@ describe('parseVitestLocalArgs', () => {
     const parsed = parseVitestLocalArgs(['--project', 'unit', '--coverage']);
     expect(parsed.projectFilter).toBe('unit');
     expect(parsed.passthroughArgs).toEqual(['--coverage']);
+  });
+
+  it('supports --project=unit form', () => {
+    const parsed = parseVitestLocalArgs(['--project=component', '--coverage']);
+    expect(parsed.projectFilter).toBe('component');
+    expect(parsed.passthroughArgs).toEqual(['--coverage']);
+  });
+});
+
+describe('getVitestPathFilters', () => {
+  it('ignores bare flags and option values', () => {
+    expect(getVitestPathFilters(['--coverage', 'default', 'verbose'])).toEqual([]);
+  });
+
+  it('keeps test file paths', () => {
+    expect(getVitestPathFilters(['--coverage', 'src/lib/utils.test.ts'])).toEqual([
+      'src/lib/utils.test.ts',
+    ]);
   });
 });

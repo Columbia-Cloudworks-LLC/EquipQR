@@ -109,7 +109,7 @@ export default defineConfig({
         test: {
           name: 'unit',
           environment: 'node',
-          include: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
+          include: ['src/**/*.test.ts', 'src/**/*.spec.ts', 'scripts/**/*.test.mjs'],
           exclude: [...JSDOM_TS_TEST_GLOBS, 'supabase/**', 'node_modules/**'],
           setupFiles: ['./src/test/setup-shared.ts'],
         },

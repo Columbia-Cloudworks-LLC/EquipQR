@@ -11,7 +11,7 @@
 import { spawnSync } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { parseVitestLocalArgs } from './lib/parse-vitest-local-args.mjs';
+import { parseVitestLocalArgs, getVitestPathFilters } from './lib/parse-vitest-local-args.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(__dirname, '..');
@@ -22,7 +22,7 @@ const rawArgs = process.argv.slice(2);
 const reporterFlag = rawArgs.find((a) => a.startsWith('--reporter'));
 const { projectFilter, passthroughArgs } = parseVitestLocalArgs(rawArgs);
 const reporterArgs = reporterFlag ? [reporterFlag] : ['--reporter=default'];
-const pathFilters = passthroughArgs.filter((a) => !a.startsWith('-'));
+const pathFilters = getVitestPathFilters(passthroughArgs);
 
 const COMPONENT_SHARDS = 4;
 
