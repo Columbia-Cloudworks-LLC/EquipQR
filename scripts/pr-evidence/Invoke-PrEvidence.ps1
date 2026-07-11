@@ -116,9 +116,11 @@ function Test-PrEvidenceCapturedManifest {
     return Test-Path -LiteralPath $videoFull
 }
 
-$shouldCapture = $true
-if ($Publish -and -not $Recapture -and (Test-PrEvidenceCapturedManifest -Path $manifestPath)) {
-    $shouldCapture = $false
+$shouldCapture = -not (Test-PrEvidenceCapturedManifest -Path $manifestPath)
+if ($Recapture) {
+    $shouldCapture = $true
+}
+if (-not $shouldCapture) {
     Write-Host ('[PR evidence] Reusing existing capture at {0}' -f $artifactDir)
 }
 
