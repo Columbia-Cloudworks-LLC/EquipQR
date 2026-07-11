@@ -2,6 +2,7 @@ import React from 'react';
 import { Timer } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 import { InlineEditPMSchedule } from './InlineEditPMSchedule';
+import { EquipmentPMTemplateField } from './EquipmentPMTemplateField';
 import { mobileInlineEditIconRowClassName } from './inlineEditStyles';
 
 type Equipment = Tables<'equipment'>;
@@ -12,8 +13,7 @@ export interface EquipmentPMConfigFieldsProps {
   getCurrentTeamDisplay: () => string;
 }
 
-// The PM template selector moved to the top of the Work Orders tab (#1169);
-// this card keeps the schedule configuration only.
+// Template selector and schedule configuration for Preventative Maintenance (#1212).
 export function EquipmentPMConfigFields({
   equipment,
   canEdit,
@@ -21,6 +21,8 @@ export function EquipmentPMConfigFields({
 }: EquipmentPMConfigFieldsProps) {
   return (
     <div className="grid grid-cols-1 gap-4">
+      <EquipmentPMTemplateField equipment={equipment} />
+
       <div>
         <span className="text-sm font-medium text-muted-foreground">PM Schedule</span>
         <div className={mobileInlineEditIconRowClassName}>

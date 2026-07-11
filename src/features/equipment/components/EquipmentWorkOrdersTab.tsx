@@ -11,7 +11,6 @@ import WorkOrderForm from '@/features/work-orders/components/WorkOrderForm';
 import MobileWorkOrderCard from './MobileWorkOrderCard';
 import DesktopWorkOrderCard from '@/features/work-orders/components/DesktopWorkOrderCard';
 import { HistoricalWorkOrderBadge } from '@/features/work-orders/components/HistoricalWorkOrderBadge';
-import EquipmentPMTemplateCard from './EquipmentPMTemplateCard';
 import EquipmentPMInfo from './EquipmentPMInfo';
 
 interface EquipmentWorkOrdersTabProps {
@@ -82,15 +81,12 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
   return (
     <div className="space-y-6">
       {equipment ? (
-        <>
-          <EquipmentPMTemplateCard equipment={equipment} />
-          <EquipmentPMInfo
-            equipment={equipment}
-            canEdit={canEdit}
-            getCurrentTeamDisplay={getCurrentTeamDisplay}
-            onCreatePMWorkOrder={onCreatePMWorkOrder}
-          />
-        </>
+        <EquipmentPMInfo
+          equipment={equipment}
+          canEdit={canEdit}
+          getCurrentTeamDisplay={getCurrentTeamDisplay}
+          onCreatePMWorkOrder={onCreatePMWorkOrder}
+        />
       ) : null}
 
       {/* Header */}
