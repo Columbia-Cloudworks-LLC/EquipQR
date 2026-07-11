@@ -4,6 +4,7 @@ import {
   copyImageToClipboard,
   downloadImageFile,
   ensureImageFileName,
+  ensurePngFileName,
   fetchImageBlob,
   blobToPngBlob,
   imageSupportsPanning,
@@ -34,6 +35,9 @@ describe('dynamicImageViewportUtils', () => {
   it('adds an extension when the download filename lacks one', () => {
     expect(ensureImageFileName('photo', 'image/jpeg')).toBe('photo.jpeg');
     expect(ensureImageFileName('photo.jpg', 'image/png')).toBe('photo.jpg');
+    expect(ensurePngFileName('CAT-301.7-CR-mini-excavator.jpeg')).toBe(
+      'CAT-301.7-CR-mini-excavator.png',
+    );
   });
 
   it('fetches image bytes for blob download/copy', async () => {
@@ -129,7 +133,7 @@ describe('dynamicImageViewportUtils', () => {
     const item = write.mock.calls[0][0][0] as { items: Record<string, Promise<File>> };
     const file = await item.items['image/png'];
     expect(file).toBeInstanceOf(File);
-    expect(file.name).toBe('eq.jpg');
+    expect(file.name).toBe('eq.png');
     expect(file.type).toBe('image/png');
   });
 

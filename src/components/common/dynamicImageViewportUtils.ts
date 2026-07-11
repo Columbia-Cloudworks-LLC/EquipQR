@@ -65,6 +65,13 @@ export function ensureImageFileName(fileName: string, mimeType: string): string 
   return `${trimmed}.${subtype}`;
 }
 
+/** Force a .png extension when clipboard payload is encoded as image/png. */
+export function ensurePngFileName(fileName: string): string {
+  const trimmed = fileName.trim() || 'image';
+  const base = trimmed.replace(/\.[^.]+$/, '') || trimmed;
+  return `${base}.png`;
+}
+
 /** Normalize any fetched image blob to PNG for clipboard APIs (JPEG/WebP are often rejected). */
 export async function blobToPngBlob(blob: Blob): Promise<Blob> {
   if (blob.type === 'image/png') {
@@ -96,7 +103,7 @@ export async function copyImageToClipboard(imageUrl: string, fileName: string): 
   // while fetch/encode runs (awaiting fetch first breaks user activation in Chromium).
   const pngPromise = fetchImageBlob(imageUrl).then(async (blob) => {
     const png = await blobToPngBlob(blob);
-    return new File([png], ensureImageFileName(fileName, 'image/png'), { type: 'image/png' });
+    return new File([png], ensurePngFileName(fileName), { type: 'image/png' });
   });
   await navigator.clipboard.write([
     new ClipboardItem({
