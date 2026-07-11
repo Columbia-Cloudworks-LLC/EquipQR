@@ -42,9 +42,7 @@ param(
 
     [switch]$SkipStackStart,
 
-    [switch]$MobileViewport,
-
-    [switch]$SkipVisualReview
+    [switch]$MobileViewport
 )
 
 $ErrorActionPreference = 'Stop'
@@ -75,7 +73,12 @@ function Resolve-PrEvidenceArtifactPath {
 }
 
 function Test-PrEvidenceCapturedManifest {
-    param([string]$Path)
+    param(
+        [string]$Path,
+        [string]$ExpectedSpec,
+        [string]$ExpectedBaseUrl,
+        [switch]$MobileViewport
+    )
 
     if (-not (Test-Path -LiteralPath $Path)) {
         return $false
@@ -85,6 +88,22 @@ function Test-PrEvidenceCapturedManifest {
         $manifest = Get-Content -LiteralPath $Path -Raw -Encoding utf8 | ConvertFrom-Json
     }
     catch {
+        return $false
+    }
+
+    if ([string]$manifest.spec -ne $ExpectedSpec) {
+        Write-Host ('[PR evidence] Existing capture spec differs ({0}); recapturing.' -f $manifest.spec)
+        return $false
+    }
+
+    if ([string]$manifest.baseUrl -ne $ExpectedBaseUrl) {
+        Write-Host ('[PR evidence] Existing capture baseUrl differs ({0}); recapturing.' -f $manifest.baseUrl)
+        return $false
+    }
+
+    $expectedViewport = Get-PrEvidenceRecordingViewport -MobileViewport:$MobileViewport
+    if (-not $manifest.viewport -or [int]$manifest.viewport.width -ne [int]$expectedViewport.width -or [int]$manifest.viewport.height -ne [int]$expectedViewport.height) {
+        Write-Host '[PR evidence] Existing capture viewport differs; recapturing.'
         return $false
     }
 
@@ -116,16 +135,12 @@ function Test-PrEvidenceCapturedManifest {
     return Test-Path -LiteralPath $videoFull
 }
 
-$shouldCapture = -not (Test-PrEvidenceCapturedManifest -Path $manifestPath)
+$shouldCapture = -not (Test-PrEvidenceCapturedManifest -Path $manifestPath -ExpectedSpec $Spec -ExpectedBaseUrl $BaseUrl -MobileViewport:$MobileViewport)
 if ($Recapture) {
     $shouldCapture = $true
 }
 if (-not $shouldCapture) {
     Write-Host ('[PR evidence] Reusing existing capture at {0}' -f $artifactDir)
-}
-
-if ($Publish -and $shouldCapture -and -not $Recapture -and -not (Test-PrEvidenceCapturedManifest -Path $manifestPath)) {
-    throw ('No captured evidence found at {0}. Run capture first: .\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow {1} -Spec {2} -CaptureOnly' -f $artifactDir, $Flow, $Spec)
 }
 
 if ($shouldCapture) {
@@ -156,9 +171,7 @@ if ($CaptureOnly) {
     exit 0
 }
 
-if (-not $SkipVisualReview) {
-    Assert-PrEvidenceVisualReviewComplete -ArtifactDir $artifactDir -FlowSlug $flowSlug
-}
+Assert-PrEvidenceVisualReviewComplete -ArtifactDir $artifactDir -FlowSlug $flowSlug
 
 $publishJsonFile = Join-Path $artifactDir 'publish-result.json'
 $publishOutput = & (Join-Path $here 'Publish-PrEvidence.ps1') -ManifestPath $manifestPath -MarkdownOut $markdownPath -Json
