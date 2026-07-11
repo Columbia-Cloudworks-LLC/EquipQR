@@ -58,7 +58,10 @@ export function EquipmentOperatorCheckinTemplateAssignmentMenu({
     [activeTemplates, assignedTemplateIds],
   );
 
-  const unassignedCount = activeTemplates.length - assignedTemplateIds.size;
+  const unassignedCount = useMemo(
+    () => activeTemplates.filter((template) => !assignedTemplateIds.has(template.id)).length,
+    [activeTemplates, assignedTemplateIds],
+  );
 
   return (
     <MultiSelectActionMenu

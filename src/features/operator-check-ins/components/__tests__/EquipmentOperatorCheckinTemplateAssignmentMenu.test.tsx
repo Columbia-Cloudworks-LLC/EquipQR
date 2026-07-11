@@ -122,4 +122,34 @@ describe('EquipmentOperatorCheckinTemplateAssignmentMenu', () => {
       expect(onAssignTemplateIds).toHaveBeenCalledWith(['template-2']);
     });
   });
+
+  it('counts only active unassigned templates when inactive templates remain assigned', async () => {
+    const inactiveAssignedTemplate = makeTemplate({
+      id: 'template-inactive',
+      name: 'Retired Checklist',
+      is_active: false,
+    });
+
+    render(
+      <EquipmentOperatorCheckinTemplateAssignmentMenu
+        equipmentId="eq-1"
+        equipmentName="Truck 101"
+        templates={[...templates, inactiveAssignedTemplate]}
+        assignments={[makeAssignment({ template_id: 'template-inactive' })]}
+        assignedCount={1}
+        isTemplatesLoading={false}
+        isAssignmentsLoading={false}
+        isAssigning={false}
+        onAssignTemplateIds={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Assign checklists/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/2 unassigned templates available/i),
+      ).toBeInTheDocument();
+    });
+  });
 });

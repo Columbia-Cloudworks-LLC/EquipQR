@@ -56,27 +56,30 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
       ? [assignedTeam]
       : [];
   const equipmentPermissions = permissions.equipment.getPermissions(equipment.team_id || undefined);
-  const canEdit = equipmentPermissions.canEdit;
-  const updateEquipmentMutation = useUpdateEquipment(currentOrganization?.id || '');
+  const organizationId = currentOrganization?.id;
+  const canEdit = equipmentPermissions.canEdit && Boolean(organizationId);
+  const updateEquipmentMutation = useUpdateEquipment(organizationId);
   const isMobile = useIsMobile();
   const { data: pmStatus } = useEquipmentPMStatus(equipment.id);
   const pmCompliance = getPMComplianceLevel(pmStatus);
   const notesPermissions = useEquipmentNotesPermissions(equipment.team_id || undefined);
-  const orgId = currentOrganization?.id || '';
   const media = useEquipmentMediaLibrary({
     equipmentId: equipment.id,
-    organizationId: orgId,
+    organizationId,
     currentDisplayImage: equipment.image_url,
-    enabled: !!orgId,
+    enabled: Boolean(organizationId),
   });
 
   const setDisplayImageMutation = useMutation({
-    mutationFn: (imageUrl: string) =>
-      updateEquipmentDisplayImage(orgId, equipment.id, imageUrl),
+    mutationFn: (imageUrl: string) => {
+      if (!organizationId) throw new Error('Organization ID required');
+      return updateEquipmentDisplayImage(organizationId, equipment.id, imageUrl);
+    },
     onSuccess: () => {
+      if (!organizationId) return;
       queryClient.invalidateQueries({ queryKey: equipmentKeys.images(equipment.id) });
-      queryClient.invalidateQueries({ queryKey: equipmentKeys.list(orgId) });
-      queryClient.invalidateQueries({ queryKey: equipmentKeys.byId(orgId, equipment.id) });
+      queryClient.invalidateQueries({ queryKey: equipmentKeys.list(organizationId) });
+      queryClient.invalidateQueries({ queryKey: equipmentKeys.byId(organizationId, equipment.id) });
       toast.success('Display image updated');
     },
     onError: () => toast.error('Failed to update display image'),
@@ -102,7 +105,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
     getCurrentTeamDisplay,
   } = useEquipmentDetailsTabActions({
     equipment,
-    organizationId: currentOrganization?.id,
+    organizationId,
     teams,
     updateEquipmentMutation,
   });
@@ -135,11 +138,11 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
         />
       )}
 
-      {isMobile && orgId ? (
+      {isMobile && organizationId ? (
         <div className="overflow-hidden rounded-lg border p-2">
           <EquipmentPrimaryMediaPanel
             equipmentId={equipment.id}
-            organizationId={orgId}
+            organizationId={organizationId}
             equipmentName={equipment.name}
             currentDisplayImage={equipment.image_url}
             emptyClassName="h-48"
@@ -147,7 +150,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
         </div>
       ) : null}
 
-      {orgId ? (
+      {organizationId ? (
         <EquipmentMediaSummaryStrip
           images={media.recentThumbnails}
           totalCount={media.images.length}
@@ -227,7 +230,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
         </Suspense>
       )}
 
-      {orgId ? (
+      {organizationId ? (
         <EquipmentMediaExplorer
           open={mediaExplorerOpen}
           onOpenChange={setMediaExplorerOpen}
