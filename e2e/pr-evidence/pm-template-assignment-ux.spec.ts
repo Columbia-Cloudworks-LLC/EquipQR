@@ -21,7 +21,7 @@ test.describe('PM template assignment UX — desktop @pr-evidence', () => {
     const equipQrHeading = page.getByRole('heading', { name: /equipqr templates/i });
     await expect(equipQrHeading).toBeVisible({ timeout: 30_000 });
 
-    const equipQrSection = page.locator('div').filter({ has: equipQrHeading });
+    const equipQrSection = equipQrHeading.locator('..');
     const equipQrGrid = equipQrSection.locator('.grid').first();
     const assignmentTriggers = equipQrSection.getByRole('button', {
       name: /apply to equipment|assigned equipment/i,
