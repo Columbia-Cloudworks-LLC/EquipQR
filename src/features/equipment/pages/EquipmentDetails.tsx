@@ -344,15 +344,6 @@ const EquipmentDetails = () => {
             <EquipmentDetailsTab
               equipment={equipment}
               assignedTeam={assignedTeam}
-              isAdmin={isAdmin}
-              organizationId={currentOrganization.id}
-              onOpenQrCodeForAssignment={(assignmentId) =>
-                handleOpenQrCode(`assignment:${assignmentId}`)
-              }
-              onCreatePMWorkOrder={() => {
-                setWorkOrderCreateMode('pm');
-                setIsWorkOrderFormOpen(true);
-              }}
             />
           </TabsContent>
 
@@ -380,6 +371,11 @@ const EquipmentDetails = () => {
                   equipmentModel={equipment.model}
                   equipmentSerialNumber={equipment.serial_number}
                   equipment={equipment}
+                  assignedTeamName={assignedTeam?.name ?? null}
+                  onCreatePMWorkOrder={() => {
+                    setWorkOrderCreateMode('pm');
+                    setIsWorkOrderFormOpen(true);
+                  }}
                 />
               </Suspense>
             )}
@@ -419,6 +415,10 @@ const EquipmentDetails = () => {
                   organizationId={currentOrganization.id}
                   equipmentId={equipment.id}
                   equipmentName={equipment.name}
+                  isAdmin={isAdmin}
+                  onOpenQrCodeForAssignment={(assignmentId) =>
+                    handleOpenQrCode(`assignment:${assignmentId}`)
+                  }
                 />
               </Suspense>
             )}

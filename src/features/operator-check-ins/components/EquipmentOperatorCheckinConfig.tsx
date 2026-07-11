@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import {
   ClipboardSignature,
   MoreVertical,
-  Plus,
   QrCode,
   RefreshCw,
   Trash2,
@@ -21,7 +20,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,13 +27,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ExternalLink } from '@/components/ui/external-link';
 import { OPERATOR_DAILY_CHECK_INS_DOCS_URL } from '@/lib/documentationUrl';
@@ -48,6 +39,8 @@ import {
   useRotateOperatorCheckinToken,
 } from '@/features/operator-check-ins/hooks/useOperatorCheckinSettings';
 import type { EquipmentOperatorCheckinAssignment } from '@/features/operator-check-ins/services/operatorCheckinSettingsService';
+import { isDuplicateOperatorCheckinAssignmentError } from '@/features/operator-check-ins/utils/operatorCheckinAssignmentErrors';
+import { EquipmentOperatorCheckinTemplateAssignmentMenu } from './EquipmentOperatorCheckinTemplateAssignmentMenu';
 
 interface EquipmentOperatorCheckinConfigProps {
   organizationId: string;
@@ -56,7 +49,7 @@ interface EquipmentOperatorCheckinConfigProps {
   onOpenQrCodeForAssignment: (assignmentId: string) => void;
 }
 
-function AssignmentRow({
+function AssignedChecklistRow({
   assignment,
   isBusy,
   onRotateToken,
@@ -79,9 +72,6 @@ function AssignmentRow({
   const templateName = assignment.template?.name ?? 'Checklist';
 
   const handleRotateRequest = () => {
-    // While the token query is still resolving we cannot prove the assignment
-    // has no live QR link, so always route through the rotate confirmation —
-    // rotating silently would invalidate any already-printed codes.
     if (hasStoredToken || isTokenPending) {
       setRotateDialogOpen(true);
       return;
@@ -95,22 +85,21 @@ function AssignmentRow({
   };
 
   return (
-    <div className="rounded-lg border p-4 space-y-3">
-      <p className="font-medium">{templateName}</p>
+    <li className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <p className="font-medium leading-tight">{templateName}</p>
+        {assignment.enabled && !hasStoredToken && !isTokenPending && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Generate a QR link from the actions menu before printing.
+          </p>
+        )}
+      </div>
 
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0 flex-1 space-y-2">
-          <Button type="button" variant="outline" size="sm" disabled={isBusy} onClick={onViewQrCode}>
-            <QrCode className="mr-2 h-4 w-4" />
-            View QR code
-          </Button>
-          {assignment.enabled && !hasStoredToken && !isTokenPending && (
-            <p className="text-xs text-muted-foreground">
-              Open the actions menu to generate a QR link for this checklist. Generated links stay
-              available to owners and admins on any device.
-            </p>
-          )}
-        </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <Button type="button" variant="outline" size="sm" disabled={isBusy} onClick={onViewQrCode}>
+          <QrCode className="mr-2 h-4 w-4" />
+          View QR code
+        </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -168,7 +157,7 @@ function AssignmentRow({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </li>
   );
 }
 
@@ -186,38 +175,46 @@ export function EquipmentOperatorCheckinConfig({
   const deleteMutation = useDeleteEquipmentOperatorCheckinAssignment(equipmentId, organizationId);
   const rotateMutation = useRotateOperatorCheckinToken(equipmentId, organizationId);
 
-  const [adding, setAdding] = useState(false);
-  const [selectedTemplateId, setSelectedTemplateId] = useState('');
-
   const isBusy =
     createMutation.isPending ||
     deleteMutation.isPending ||
     rotateMutation.isPending;
 
-  const assignedTemplateIds = useMemo(
-    () => new Set(assignments.map((assignment) => assignment.template_id)),
-    [assignments],
+  const activeTemplateCount = useMemo(
+    () => templates.filter((template) => template.is_active).length,
+    [templates],
   );
 
-  const availableTemplates = useMemo(
-    () => templates.filter((template) => template.is_active && !assignedTemplateIds.has(template.id)),
-    [templates, assignedTemplateIds],
-  );
+  async function handleAssignTemplateIds(templateIds: string[]) {
+    if (templateIds.length === 0) return;
 
-  async function handleAddAssignment() {
-    if (!selectedTemplateId) return;
+    let assignedCount = 0;
     try {
-      await createMutation.mutateAsync({
-        organizationId,
-        equipmentId,
-        templateId: selectedTemplateId,
-        enabled: true,
-      });
-      setSelectedTemplateId('');
-      setAdding(false);
-      toast.success('Checklist assigned. QR link is ready — open View QR code to print or share.');
+      for (const templateId of templateIds) {
+        try {
+          await createMutation.mutateAsync({
+            organizationId,
+            equipmentId,
+            templateId,
+            enabled: true,
+          });
+          assignedCount += 1;
+        } catch (error) {
+          if (!isDuplicateOperatorCheckinAssignmentError(error)) {
+            throw error;
+          }
+        }
+      }
+
+      if (assignedCount > 0) {
+        toast.success(
+          `Assigned ${assignedCount} checklist${assignedCount === 1 ? '' : 's'}. Open View QR code on each row to print or share.`,
+        );
+      } else {
+        toast.success('Selected checklists are already assigned to this equipment.');
+      }
     } catch {
-      toast.error('Unable to assign checklist.');
+      toast.error('Unable to assign checklists.');
     }
   }
 
@@ -281,79 +278,44 @@ export function EquipmentOperatorCheckinConfig({
           </Alert>
         ) : (
           <>
-            {assignments.length > 0 && (
-              <div className="space-y-3">
-                {assignments.map((assignment) => (
-                  <AssignmentRow
-                    key={assignment.id}
-                    assignment={assignment}
-                    isBusy={isBusy}
-                    onRotateToken={() => void handleRotateToken(assignment.id)}
-                    onRemove={() => void handleRemove(assignment.id)}
-                    onViewQrCode={() => onOpenQrCodeForAssignment(assignment.id)}
-                  />
-                ))}
+            {assignments.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-foreground">
+                  {assignments.length} checklist{assignments.length === 1 ? '' : 's'} assigned
+                </p>
+                <ul className="divide-y rounded-lg border">
+                  {assignments.map((assignment) => (
+                    <AssignedChecklistRow
+                      key={assignment.id}
+                      assignment={assignment}
+                      isBusy={isBusy}
+                      onRotateToken={() => void handleRotateToken(assignment.id)}
+                      onRemove={() => void handleRemove(assignment.id)}
+                      onViewQrCode={() => onOpenQrCodeForAssignment(assignment.id)}
+                    />
+                  ))}
+                </ul>
               </div>
-            )}
-
-            {assignments.length === 0 && !adding && (
+            ) : (
               <p className="text-sm text-muted-foreground">No daily check-in checklists assigned yet.</p>
             )}
 
-            {adding ? (
-              <div className="space-y-3 rounded-lg border border-dashed p-4">
-                <Label htmlFor={`add-checkin-template-${equipmentId}`}>Checklist template</Label>
-                <Select
-                  value={selectedTemplateId}
-                  onValueChange={setSelectedTemplateId}
-                  disabled={isBusy || availableTemplates.length === 0}
-                >
-                  <SelectTrigger id={`add-checkin-template-${equipmentId}`}>
-                    <SelectValue placeholder="Select a template" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableTemplates.map((template) => (
-                      <SelectItem key={template.id} value={template.id}>
-                        {template.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={isBusy || !selectedTemplateId}
-                    onClick={() => void handleAddAssignment()}
-                  >
-                    Save assignment
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    disabled={isBusy}
-                    onClick={() => {
-                      setAdding(false);
-                      setSelectedTemplateId('');
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-                {availableTemplates.length === 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    All active templates are already assigned to this equipment.
-                  </p>
-                )}
-              </div>
+            {activeTemplateCount > 0 ? (
+              <EquipmentOperatorCheckinTemplateAssignmentMenu
+                equipmentId={equipmentId}
+                equipmentName={equipmentName}
+                templates={templates}
+                assignments={assignments}
+                assignedCount={assignments.length}
+                isTemplatesLoading={templatesLoading}
+                isAssignmentsLoading={assignmentsLoading}
+                isAssigning={createMutation.isPending}
+                onAssignTemplateIds={handleAssignTemplateIds}
+              />
             ) : (
-              availableTemplates.length > 0 && (
-                <Button type="button" variant="outline" size="sm" disabled={isBusy} onClick={() => setAdding(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add check-in checklist
-                </Button>
-              )
+              <p className="text-xs text-muted-foreground">
+                All templates are inactive. Reactivate or create a template on the Daily Check-Ins page.
+              </p>
             )}
           </>
         )}
