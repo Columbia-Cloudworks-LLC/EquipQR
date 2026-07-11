@@ -52,21 +52,21 @@ export function EquipmentPMTemplateField({ equipment }: EquipmentPMTemplateField
   };
 
   return (
-    <div>
+    <div className="min-w-0">
       <Label htmlFor={fieldId} className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
         <Wrench className="h-4 w-4 shrink-0" />
         PM Template
       </Label>
-      <p className="mt-1 text-xs text-muted-foreground">
+      <p className="mt-1 text-xs text-muted-foreground lg:min-h-[2.5rem]">
         Default checklist applied when creating PM work orders for this equipment.
       </p>
-      <div className="mt-2 flex items-center gap-1.5">
+      <div className="mt-2 flex min-w-0 items-center gap-1.5">
         <Select
           value={currentValue}
           onValueChange={handleValueChange}
           disabled={!isUnlocked || isSaving}
         >
-          <SelectTrigger id={fieldId} className="w-full sm:max-w-sm" aria-label="PM Template">
+          <SelectTrigger id={fieldId} className="w-full min-w-0" aria-label="PM Template">
             <SelectValue placeholder="Select PM template" />
           </SelectTrigger>
           <SelectContent>

@@ -1,9 +1,8 @@
-import React from 'react';
+import { Label } from '@/components/ui/label';
 import { Timer } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 import { InlineEditPMSchedule } from './InlineEditPMSchedule';
 import { EquipmentPMTemplateField } from './EquipmentPMTemplateField';
-import { mobileInlineEditIconRowClassName } from './inlineEditStyles';
 
 type Equipment = Tables<'equipment'>;
 
@@ -13,20 +12,22 @@ export interface EquipmentPMConfigFieldsProps {
   getCurrentTeamDisplay: () => string;
 }
 
-// Template selector and schedule configuration for Preventative Maintenance (#1212).
+// Template and schedule share a two-column row on desktop (#1212).
 export function EquipmentPMConfigFields({
   equipment,
   canEdit,
   getCurrentTeamDisplay,
 }: EquipmentPMConfigFieldsProps) {
   return (
-    <div className="grid grid-cols-1 gap-4">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6 lg:items-start">
       <EquipmentPMTemplateField equipment={equipment} />
 
-      <div>
-        <span className="text-sm font-medium text-muted-foreground">PM Schedule</span>
-        <div className={mobileInlineEditIconRowClassName}>
-          <Timer className="h-4 w-4 text-muted-foreground mt-1 shrink-0" />
+      <div className="min-w-0">
+        <Label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <Timer className="h-4 w-4 shrink-0" />
+          PM Schedule
+        </Label>
+        <div className="mt-2 min-w-0">
           <InlineEditPMSchedule
             equipmentId={equipment.id}
             organizationId={equipment.organization_id}
