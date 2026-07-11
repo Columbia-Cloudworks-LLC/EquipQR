@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Copy, Download } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 import {
   applyPinchScale,
   DEFAULT_LIGHTBOX_TRANSFORM,
@@ -147,10 +146,7 @@ const ImageLightboxDialog: React.FC<ImageLightboxDialogProps> = ({
         </DialogHeader>
 
         <div
-          className={cn(
-            'relative flex h-[min(70dvh,32rem)] w-full items-center justify-center overflow-hidden rounded-lg bg-muted',
-            transform.scale > 1 && 'touch-none',
-          )}
+          className="relative flex h-[min(70dvh,32rem)] w-full touch-none items-center justify-center overflow-hidden rounded-lg bg-muted"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}

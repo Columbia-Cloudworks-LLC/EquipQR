@@ -2,11 +2,11 @@ import * as React from 'react';
 
 const HOVER_CAPABLE_QUERY = '(hover: hover) and (pointer: fine)';
 
-const getServerSnapshot = () => true;
+const getServerSnapshot = () => false;
 
 function getSnapshot() {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-    return true;
+    return false;
   }
   return window.matchMedia(HOVER_CAPABLE_QUERY).matches;
 }
