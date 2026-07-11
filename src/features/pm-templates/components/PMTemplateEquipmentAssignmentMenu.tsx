@@ -38,16 +38,28 @@ export function PMTemplateEquipmentAssignmentMenu({
   );
   const bulkAssignTemplate = useBulkAssignTemplate();
 
+  const scopedEquipment = useMemo(
+    () => filterEquipmentSummariesBySelectedTeam(equipmentSummaries, selectedTeamId),
+    [equipmentSummaries, selectedTeamId],
+  );
+
+  const assignedCount = useMemo(
+    () => scopedEquipment.filter((item) => item.default_pm_template_id === templateId).length,
+    [scopedEquipment, templateId],
+  );
+
+  const triggerLabel =
+    assignedCount === 0 ? 'Apply to Equipment' : `Assigned Equipment (${assignedCount})`;
+
   const options = useMemo<MultiSelectActionOption[]>(() => {
-    const scoped = filterEquipmentSummariesBySelectedTeam(equipmentSummaries, selectedTeamId);
-    return scoped.map((item) => ({
+    return scopedEquipment.map((item) => ({
       id: item.id,
       label: item.name,
       sublabel: `${item.serial_number ? `Unit ${item.serial_number}` : 'No serial number'} · ${item.team_name ?? 'Unassigned'}`,
       searchText: [item.manufacturer ?? '', item.model ?? '', item.location ?? ''].join(' '),
       lockedNote: item.default_pm_template_id === templateId ? 'Current default' : undefined,
     }));
-  }, [equipmentSummaries, selectedTeamId, templateId]);
+  }, [scopedEquipment, templateId]);
 
   return (
     <MultiSelectActionMenu
@@ -55,13 +67,14 @@ export function PMTemplateEquipmentAssignmentMenu({
       trigger={
         <Button
           type="button"
+          variant="outline"
           size="sm"
           className={fullWidthTrigger ? 'w-full' : undefined}
           disabled={bulkAssignTemplate.isPending}
           title="Set this template as the default PM on one or more equipment records"
         >
           <Wrench className="mr-2 h-4 w-4" />
-          Apply to Equipment
+          {triggerLabel}
         </Button>
       }
       title={`Apply ${templateName}`}
