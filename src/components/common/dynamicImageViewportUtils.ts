@@ -1,3 +1,5 @@
+import { downloadBlob } from '@/utils/exportUtils';
+
 export interface PanPosition {
   x: number;
   y: number;
@@ -41,24 +43,39 @@ export function imageSupportsPanning(
   return Math.abs(imageAspect - containerAspect) > 0.05;
 }
 
-export async function copyImageToClipboard(imageUrl: string, fileName: string): Promise<void> {
-  const response = await fetch(imageUrl);
+/** Fetch image bytes for download/copy (works with signed cross-origin storage URLs). */
+export async function fetchImageBlob(imageUrl: string): Promise<Blob> {
+  const response = await fetch(imageUrl, { mode: 'cors', credentials: 'omit' });
   if (!response.ok) {
     throw new Error(`Failed to fetch image: ${response.status}`);
   }
   const blob = await response.blob();
-  const type = blob.type || 'image/png';
+  if (!blob.size) {
+    throw new Error('Fetched image is empty');
+  }
+  return blob;
+}
+
+export function ensureImageFileName(fileName: string, mimeType: string): string {
+  const trimmed = fileName.trim() || 'image';
+  if (/\.[a-z0-9]{2,5}$/i.test(trimmed)) {
+    return trimmed;
+  }
+  const subtype = mimeType.split('/')[1]?.split('+')[0] || 'png';
+  return `${trimmed}.${subtype}`;
+}
+
+export async function copyImageToClipboard(imageUrl: string, fileName: string): Promise<void> {
+  const blob = await fetchImageBlob(imageUrl);
+  const type = blob.type.startsWith('image/') ? blob.type : 'image/png';
+  const clipboardBlob = blob.type.startsWith('image/') ? blob : new Blob([blob], { type });
   const clipboardItem = new ClipboardItem({
-    [type]: new File([blob], fileName, { type }),
+    [clipboardBlob.type]: clipboardBlob,
   });
   await navigator.clipboard.write([clipboardItem]);
 }
 
-export function downloadImageFile(imageUrl: string, fileName: string): void {
-  const link = document.createElement('a');
-  link.href = imageUrl;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+export async function downloadImageFile(imageUrl: string, fileName: string): Promise<void> {
+  const blob = await fetchImageBlob(imageUrl);
+  downloadBlob(blob, ensureImageFileName(fileName, blob.type || 'image/png'));
 }

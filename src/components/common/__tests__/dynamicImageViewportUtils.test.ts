@@ -1,6 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   calculatePanPosition,
+  copyImageToClipboard,
+  downloadImageFile,
+  ensureImageFileName,
+  fetchImageBlob,
   imageSupportsPanning,
 } from '@/components/common/dynamicImageViewportUtils';
 import {
@@ -19,6 +23,84 @@ describe('dynamicImageViewportUtils', () => {
   it('detects when panning is useful for mismatched aspect ratios', () => {
     expect(imageSupportsPanning(1600, 900, 300, 300)).toBe(true);
     expect(imageSupportsPanning(300, 300, 300, 300)).toBe(false);
+  });
+
+  it('adds an extension when the download filename lacks one', () => {
+    expect(ensureImageFileName('photo', 'image/jpeg')).toBe('photo.jpeg');
+    expect(ensureImageFileName('photo.jpg', 'image/png')).toBe('photo.jpg');
+  });
+
+  it('fetches image bytes for blob download/copy', async () => {
+    const blob = new Blob(['pixels'], { type: 'image/jpeg' });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        blob: () => Promise.resolve(blob),
+      }),
+    );
+
+    await expect(fetchImageBlob('https://example.com/a.jpg')).resolves.toEqual(blob);
+  });
+
+  it('downloads via blob URL instead of cross-origin anchor href', async () => {
+    const blob = new Blob(['pixels'], { type: 'image/jpeg' });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        blob: () => Promise.resolve(blob),
+      }),
+    );
+
+    const click = vi.fn();
+    const anchor = {
+      href: '',
+      download: '',
+      click,
+    } as unknown as HTMLAnchorElement;
+    const createElement = vi.spyOn(document, 'createElement').mockReturnValue(anchor);
+    const appendChild = vi.spyOn(document.body, 'appendChild').mockImplementation((node) => node);
+    const removeChild = vi.spyOn(document.body, 'removeChild').mockImplementation((node) => node);
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:local');
+    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+
+    await downloadImageFile('https://signed.example/eq.jpg', 'CAT-301.7');
+
+    expect(anchor.download).toBe('CAT-301.7.jpeg');
+    expect(click).toHaveBeenCalled();
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:local');
+
+    createElement.mockRestore();
+    appendChild.mockRestore();
+    removeChild.mockRestore();
+    createObjectURL.mockRestore();
+    revokeObjectURL.mockRestore();
+  });
+
+  it('copies fetched image bytes to the clipboard', async () => {
+    const blob = new Blob(['pixels'], { type: 'image/png' });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        blob: () => Promise.resolve(blob),
+      }),
+    );
+    const write = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', {
+      clipboard: { write },
+    });
+    vi.stubGlobal(
+      'ClipboardItem',
+      class ClipboardItemMock {
+        constructor(public items: Record<string, Blob>) {}
+      },
+    );
+
+    await copyImageToClipboard('https://signed.example/eq.png', 'eq.png');
+
+    expect(write).toHaveBeenCalledTimes(1);
   });
 });
 
