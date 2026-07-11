@@ -60,7 +60,7 @@ export function EquipmentPMTemplateField({ equipment }: EquipmentPMTemplateField
       <p className="mt-1 text-xs text-muted-foreground lg:min-h-[2.5rem]">
         Default checklist applied when creating PM work orders for this equipment.
       </p>
-      <div className="mt-2 flex min-w-0 items-center gap-1.5">
+      <div className="mt-2 flex min-h-10 min-w-0 items-center gap-1.5">
         <Select
           value={currentValue}
           onValueChange={handleValueChange}

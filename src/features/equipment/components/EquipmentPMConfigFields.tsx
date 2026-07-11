@@ -6,6 +6,9 @@ import { EquipmentPMTemplateField } from './EquipmentPMTemplateField';
 
 type Equipment = Tables<'equipment'>;
 
+const pmConfigHintClassName = 'mt-1 text-xs text-muted-foreground lg:min-h-[2.5rem]';
+const pmConfigControlRowClassName = 'mt-2 flex min-h-10 min-w-0 items-center gap-1.5';
+
 export interface EquipmentPMConfigFieldsProps {
   equipment: Equipment;
   canEdit: boolean;
@@ -27,7 +30,10 @@ export function EquipmentPMConfigFields({
           <Timer className="h-4 w-4 shrink-0" />
           PM Schedule
         </Label>
-        <div className="mt-2 min-w-0">
+        <p className={pmConfigHintClassName}>
+          Override the team or template default interval for this equipment.
+        </p>
+        <div className={pmConfigControlRowClassName}>
           <InlineEditPMSchedule
             equipmentId={equipment.id}
             organizationId={equipment.organization_id}
