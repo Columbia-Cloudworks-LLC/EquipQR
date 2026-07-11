@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.6] - 2026-07-11
+
+### Changed
+
+- **PM Templates assignment UX (#1209)** — Template card assignment triggers use outline styling so titles scan more easily, and the label shows **Assigned Equipment (count)** when equipment in the current team scope already uses the template as its default PM.
+
 ## [3.25.5] - 2026-07-11
 
 ### Changed
