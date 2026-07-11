@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   getVitestPathFilters,
+  parseReporterArgs,
   parseVitestLocalArgs,
-} from './parse-vitest-local-args.mjs';
+} from './lib/parse-vitest-local-args.mjs';
 
-describe('parseVitestLocalArgs', () => {
+describe('run-vitest-local argv parsing', () => {
   it('preserves --coverage when --project is absent', () => {
     expect(parseVitestLocalArgs(['--coverage']).passthroughArgs).toEqual(['--coverage']);
   });
@@ -25,6 +26,21 @@ describe('parseVitestLocalArgs', () => {
     const parsed = parseVitestLocalArgs(['--project=component', '--coverage']);
     expect(parsed.projectFilter).toBe('component');
     expect(parsed.passthroughArgs).toEqual(['--coverage']);
+  });
+
+  it('skips --reporter and its value', () => {
+    const parsed = parseVitestLocalArgs(['--reporter', 'verbose', '--coverage']);
+    expect(parsed.passthroughArgs).toEqual(['--coverage']);
+    expect(parseReporterArgs(['--reporter', 'verbose', '--coverage'])).toEqual([
+      '--reporter',
+      'verbose',
+    ]);
+  });
+
+  it('throws when --project is missing a value', () => {
+    expect(() => parseVitestLocalArgs(['--project', '--coverage'])).toThrow(
+      '--project requires unit or component',
+    );
   });
 });
 
