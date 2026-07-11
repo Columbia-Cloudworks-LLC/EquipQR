@@ -1,7 +1,8 @@
 import React from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
+import { createTestQueryClient } from '@/test/utils/query-client-wrapper';
 import { useSession } from '@/hooks/useSession';
 import { useAuth } from '@/hooks/useAuth';
 import { permissionEngine } from '@/services/permissions/PermissionEngine';
@@ -12,9 +13,7 @@ import {
 } from '@/test/utils/mock-provider-values';
 
 export const createUnifiedPermissionsWrapper = () => {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
+  const queryClient = createTestQueryClient();
 
   return ({ children }: { children: React.ReactNode }) => (
     <MemoryRouter>

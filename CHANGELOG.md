@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.2] - 2026-07-11
+
+### Changed
+
+- **Testing infrastructure (#1214)** — Remove the `scripts/test-runner.mjs` log-watching wrapper; run Vitest natively with a forks pool. Add Vitest 4 `unit` (Node) and `component` (jsdom) projects for environment isolation. On Windows, `npm test` / `npm run test:component` shard the component suite into four sequential chunks with visible phase banners. Clear React Query caches in global teardown; document the testing-trophy strategy in `docs/technical/testing-guidelines.md`.
+
 ## [3.25.1] - 2026-07-11
 
 ### Changed

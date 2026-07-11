@@ -23,7 +23,8 @@ if (isWindows) {
   process.exit(result.status ?? 1);
 }
 
-const coverage = spawnSync(process.execPath, [path.join(repoRoot, 'scripts', 'test-runner.mjs'), '--coverage'], {
+const vitestCli = path.join(repoRoot, 'node_modules', 'vitest', 'vitest.mjs');
+const coverage = spawnSync(process.execPath, [vitestCli, 'run', '--coverage'], {
   cwd: repoRoot,
   env: { ...process.env, CI: 'true' },
   stdio: 'inherit',

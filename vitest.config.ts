@@ -5,131 +5,96 @@ import { platform } from 'node:os';
 
 const isCI = process.env.CI === 'true';
 const isWindows = platform() === 'win32';
-// When sharding, thresholds apply to partial coverage and will always fail.
-// The merged-report ratchet in coverage-ratchet.mjs handles threshold enforcement.
 const isShardRun = process.argv.some((a) => a.startsWith('--shard='));
+
+/** Co-located .test.ts files that need jsdom (hooks, browser APIs, RTL renderHook). */
+const JSDOM_TS_TEST_GLOBS = [
+  'src/hooks/**/*.test.ts',
+  'src/**/hooks/**/*.test.ts',
+  'src/utils/**/*.test.ts',
+  'src/services/**/*.test.ts',
+  'src/lib/__tests__/**/*.test.ts',
+  'src/components/**/*.test.ts',
+  'src/contexts/**/*.test.ts',
+  'src/pages/**/*.test.ts',
+  'src/tests/quickbooks/quickbooksAuth.test.ts',
+  'src/tests/quickbooks/useQuickBooksAccess.test.ts',
+];
+
+const coverageExclude = [
+  'node_modules/',
+  'src/test/',
+  'src/tests/',
+  'scripts/**',
+  'supabase/**',
+  '**/*.d.ts',
+  '**/*.config.*',
+  '**/dist/**',
+  'src/integrations/supabase/types.ts',
+  'src/main.tsx',
+  'src/data/**',
+  'src/components/ui/**',
+  'src/components/form/**',
+  'src/components/landing/**',
+  'src/components/billing/**',
+  'src/components/layout/**',
+  'src/components/migration/**',
+  'src/components/notifications/**',
+  'src/components/performance/**',
+  'src/components/qr/**',
+  'src/components/reports/**',
+  'src/components/security/**',
+  'src/components/session/**',
+  'src/components/settings/**',
+  'src/components/common/**',
+  'src/components/teams/**',
+  'src/components/equipment/csv-import/**',
+  'src/components/equipment/CsvWizard.tsx',
+  'src/contexts/**',
+  'src/utils/pdfGenerator.ts',
+  'src/utils/logger.ts',
+  'src/utils/persistence.ts',
+  'src/utils/restrictions.ts',
+  'src/utils/billing/**',
+  'src/utils/templatePDF.ts',
+  'src/utils/navigationDebug.ts',
+  'src/utils/invitationSystemValidation.ts',
+  'src/pages/FleetMap.tsx',
+  'src/pages/Reports.tsx',
+  'src/pages/DebugAuth.tsx',
+  'src/pages/Organization.tsx',
+  'src/pages/EquipmentDetails.tsx',
+  'src/pages/InventoryList.tsx',
+  'src/pages/InventoryItemDetail.tsx',
+  'src/pages/WorkOrderDetails.tsx',
+  '**/*.test.{ts,tsx}',
+  '**/*.spec.{ts,tsx}',
+  '**/tests/**',
+  '**/__tests__/**',
+];
 
 export default defineConfig({
   plugins: [react()],
   test: {
     globals: true,
-    // Staying on jsdom after #1199 happy-dom experiment: ~8–12% faster on hotspot
-    // files, but full-suite regressions (number inputs, form submit, Storage spies,
-    // media currentTime, computed styles). Revisit via #1201 after more suite slimming.
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
     css: true,
     testTimeout: 10000,
-    include: ['src/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['supabase/**', 'node_modules/**'],
-    // Forks pool for process isolation. Combined with CI sharding (--shard=N/M).
-    // After Radix pins + slimmer component suites (#1199), CI allows modest
-    // in-shard file parallelism (2 workers). Windows stays serial
-    // (vitest-dev/vitest#8861). Revert CI workers to 1 if fork IPC hangs return.
     pool: 'forks',
     isolate: true,
-    fileParallelism: isWindows ? false : true,
-    maxWorkers: isWindows ? 1 : isCI ? 2 : undefined,
-    // Ensure hooks don't hang
+    fileParallelism: isWindows ? false : isCI ? false : true,
+    maxWorkers: isWindows ? 1 : isCI ? 1 : undefined,
     hookTimeout: 30000,
     teardownTimeout: 10000,
     coverage: {
-      // v8 is significantly faster than istanbul. Keep v8 in both environments
-      // so local and CI numbers agree (no more 15-20% under-reporting).
       provider: 'v8',
-      // Trim reporters in CI to the minimum required by downstream consumers:
-      //   - lcov         → Codecov upload
-      //   - json-summary → PR comment action
-      //   - json         → coverage-ratchet & detailed PR comment
-      // text/html are interactive-only and add measurable overhead.
       reporter: isCI
         ? ['lcov', 'json-summary', 'json']
         : ['text', 'json', 'html', 'lcov', 'json-summary'],
-      // Omit broad `include` / `all` so V8 coverage only instruments files the
-      // suite actually loads; wide globs force remapping of untouched sources and
-      // can hit Rollup parse errors on edge-syntax files under src/hooks/.
-      exclude: [
-        // Build/test infrastructure
-        'node_modules/',
-        'src/test/',
-        'src/tests/',
-        'scripts/**',
-        'supabase/**',
-        '**/*.d.ts',
-        '**/*.config.*',
-        '**/dist/**',
-        
-        // Generated types
-        'src/integrations/supabase/types.ts',
-        
-        // Entry point
-        'src/main.tsx',
-        
-        // Static data
-        'src/data/**',
-        
-        // UI Components (well-tested by usage, low business logic)
-        'src/components/ui/**',
-        'src/components/form/**',
-        
-        // Components with complex external dependencies
-        'src/components/landing/**',
-        'src/components/billing/**',
-        'src/components/layout/**',
-        'src/components/migration/**',
-        'src/components/notifications/**',
-        'src/components/performance/**',
-        'src/components/qr/**',
-        'src/components/reports/**',
-        'src/components/security/**',
-        'src/components/session/**',
-        'src/components/settings/**',
-        'src/components/common/**',
-        'src/components/teams/**',
-        'src/components/equipment/csv-import/**',
-        'src/components/equipment/CsvWizard.tsx',
-        
-        // Contexts (tested via integration, will add unit tests later)
-        'src/contexts/**',
-        
-        // Utilities with external dependencies or low coverage value
-        'src/utils/pdfGenerator.ts',
-        'src/utils/logger.ts',
-        'src/utils/persistence.ts',
-        'src/utils/restrictions.ts',
-        'src/utils/billing/**',
-        'src/utils/templatePDF.ts',
-        'src/utils/navigationDebug.ts',
-        'src/utils/invitationSystemValidation.ts',
-        
-        // Complex pages (will add journey tests)
-        'src/pages/FleetMap.tsx',
-        'src/pages/Reports.tsx',
-        'src/pages/DebugAuth.tsx',
-        'src/pages/Organization.tsx',
-        'src/pages/EquipmentDetails.tsx',
-        'src/pages/InventoryList.tsx',
-        'src/pages/InventoryItemDetail.tsx',
-        'src/pages/WorkOrderDetails.tsx',
-        
-        // Test files themselves
-        '**/*.test.{ts,tsx}',
-        '**/*.spec.{ts,tsx}',
-        '**/tests/**',
-        '**/__tests__/**',
-        
-        // NOTE: Hooks and services are now INCLUDED in coverage
-        // The following have been REMOVED from exclusions:
-        // - 'src/hooks/**'
-        // - 'src/services/**'  
-        // - 'src/features/**/hooks/**'
-        // - 'src/features/**/services/**'
-      ],
+      exclude: coverageExclude,
       thresholds: isShardRun
         ? undefined
         : {
-            // Current CI baseline (merged shards); must match scripts/coverage-ratchet.mjs DEFAULT_THRESHOLDS.
-            // Long-term raise tracked in https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/816
             global: {
               branches: 47,
               functions: 50,
@@ -138,6 +103,27 @@ export default defineConfig({
             },
           },
     },
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'unit',
+          environment: 'node',
+          include: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
+          exclude: [...JSDOM_TS_TEST_GLOBS, 'supabase/**', 'node_modules/**'],
+          setupFiles: ['./src/test/setup-shared.ts'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'component',
+          environment: 'jsdom',
+          include: ['src/**/*.test.tsx', 'src/**/*.spec.tsx', ...JSDOM_TS_TEST_GLOBS],
+          setupFiles: ['./src/test/setup-shared.ts', './src/test/setup.ts'],
+        },
+      },
+    ],
   },
   resolve: {
     alias: {
