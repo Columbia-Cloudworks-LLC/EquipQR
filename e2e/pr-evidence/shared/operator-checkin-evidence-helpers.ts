@@ -93,11 +93,12 @@ function getOperatorCheckinAssignmentRow(page: Page, templateName: string) {
     .first();
 }
 
-/** Assigns a template from the equipment details Daily Operator Check-In card (mobile-friendly). */
+/** Assigns a template from the equipment Check-Ins tab Daily Operator Check-In card. */
 export async function assignTemplateOnEquipmentDetails(
   page: Page,
   templateName: string,
 ): Promise<void> {
+  await page.getByRole('tab', { name: /check-ins/i }).click();
   await page.getByRole('button', { name: /add check-in checklist/i }).click();
   const templateSelect = page.locator('[id^="add-checkin-template-"]');
   await templateSelect.click();

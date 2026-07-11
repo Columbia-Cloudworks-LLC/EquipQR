@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,11 +6,13 @@ import { Plus, Clock } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 import { useEquipmentWorkOrders } from '@/features/equipment/hooks/useEquipment';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import WorkOrderForm from '@/features/work-orders/components/WorkOrderForm';
 import MobileWorkOrderCard from './MobileWorkOrderCard';
 import DesktopWorkOrderCard from '@/features/work-orders/components/DesktopWorkOrderCard';
 import { HistoricalWorkOrderBadge } from '@/features/work-orders/components/HistoricalWorkOrderBadge';
 import EquipmentPMTemplateCard from './EquipmentPMTemplateCard';
+import EquipmentPMInfo from './EquipmentPMInfo';
 
 interface EquipmentWorkOrdersTabProps {
   equipmentId: string;
@@ -20,8 +21,10 @@ interface EquipmentWorkOrdersTabProps {
   equipmentManufacturer?: string;
   equipmentModel?: string;
   equipmentSerialNumber?: string;
-  /** Full equipment record; enables the PM template selector at the top of the tab (#1169). */
+  /** Full equipment record; enables PM controls at the top of the tab (#1212). */
   equipment?: Tables<'equipment'>;
+  assignedTeamName?: string | null;
+  onCreatePMWorkOrder?: () => void;
 }
 
 const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
@@ -32,11 +35,27 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
   equipmentModel,
   equipmentSerialNumber,
   equipment,
+  assignedTeamName,
+  onCreatePMWorkOrder,
 }) => {
   const navigate = useNavigate();
   const [showWorkOrderForm, setShowWorkOrderForm] = useState(false);
   const { data: workOrders = [], isLoading } = useEquipmentWorkOrders(organizationId, equipmentId);
   const isMobile = useIsMobile();
+  const permissions = useUnifiedPermissions();
+  const canEdit = equipment
+    ? permissions.equipment.getPermissions(equipment.team_id || undefined).canEdit
+    : false;
+
+  const getCurrentTeamDisplay = useCallback(() => {
+    if (assignedTeamName) {
+      return assignedTeamName;
+    }
+    if (!equipment?.team_id) {
+      return 'Unassigned';
+    }
+    return 'Unknown Team';
+  }, [assignedTeamName, equipment?.team_id]);
 
   const handleCreateWorkOrder = () => {
     if (onCreateWorkOrder) {
@@ -62,8 +81,17 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* PM template selector — PMs are always relevant to work orders (#1169) */}
-      {equipment && <EquipmentPMTemplateCard equipment={equipment} />}
+      {equipment ? (
+        <>
+          <EquipmentPMTemplateCard equipment={equipment} />
+          <EquipmentPMInfo
+            equipment={equipment}
+            canEdit={canEdit}
+            getCurrentTeamDisplay={getCurrentTeamDisplay}
+            onCreatePMWorkOrder={onCreatePMWorkOrder}
+          />
+        </>
+      ) : null}
 
       {/* Header */}
       <div className={`flex items-center justify-between ${isMobile ? 'flex-col gap-3' : ''}`}>

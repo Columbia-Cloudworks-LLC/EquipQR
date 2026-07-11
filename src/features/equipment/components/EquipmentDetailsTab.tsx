@@ -12,13 +12,11 @@ import { useTeams } from "@/features/teams/hooks/useTeamManagement";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEquipmentPMStatus, getPMComplianceLevel } from "@/features/equipment/hooks/useEquipmentPMStatus";
 import { logger } from '@/utils/logger';
-import EquipmentPMInfo from "./EquipmentPMInfo";
 import { EquipmentMobilePMStatusBanner } from "./EquipmentMobilePMStatusBanner";
 import { EquipmentBasicInfoCard } from "./EquipmentBasicInfoCard";
 import { EquipmentLifecycleCard } from "./EquipmentLifecycleCard";
 import { EquipmentMaintenanceNotesCard } from "./EquipmentMaintenanceNotesCard";
 import { useEquipmentDetailsTabActions } from "@/features/equipment/hooks/useEquipmentDetailsTabActions";
-import { EquipmentOperatorCheckinConfig } from "@/features/operator-check-ins/components/EquipmentOperatorCheckinConfig";
 import { EquipmentMediaSummaryStrip } from "@/features/equipment/components/media/EquipmentMediaSummaryStrip";
 import { EquipmentMediaExplorer } from "@/features/equipment/components/media/EquipmentMediaExplorer";
 import { useEquipmentMediaLibrary } from "@/features/equipment/hooks/useEquipmentMediaLibrary";
@@ -38,19 +36,11 @@ const WorkingHoursTimelineModal = lazy(() =>
 interface EquipmentDetailsTabProps {
   equipment: Equipment;
   assignedTeam?: EquipmentTeamSummary | null;
-  onCreatePMWorkOrder?: () => void;
-  isAdmin?: boolean;
-  organizationId?: string;
-  onOpenQrCodeForAssignment?: (assignmentId: string) => void;
 }
 
 const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
   equipment,
   assignedTeam,
-  onCreatePMWorkOrder,
-  isAdmin = false,
-  organizationId,
-  onOpenQrCodeForAssignment,
 }) => {
   const [showWorkingHoursModal, setShowWorkingHoursModal] = useState(false);
   const [showAllBasicInfo, setShowAllBasicInfo] = useState(false);
@@ -72,7 +62,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
   const { data: pmStatus } = useEquipmentPMStatus(equipment.id);
   const pmCompliance = getPMComplianceLevel(pmStatus);
   const notesPermissions = useEquipmentNotesPermissions(equipment.team_id || undefined);
-  const orgId = organizationId || currentOrganization?.id || '';
+  const orgId = currentOrganization?.id || '';
   const media = useEquipmentMediaLibrary({
     equipmentId: equipment.id,
     organizationId: orgId,
@@ -167,66 +157,41 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
         />
       ) : null}
 
-      <EquipmentBasicInfoCard
-        equipment={equipment}
-        canEdit={canEdit}
-        canAssignTeams={canAssignTeams}
-        isMobile={isMobile}
-        showAllBasicInfo={showAllBasicInfo}
-        onShowAllBasicInfoChange={setShowAllBasicInfo}
-        onShowWorkingHoursModal={() => setShowWorkingHoursModal(true)}
-        nameFieldId={nameFieldId}
-        statusFieldId={statusFieldId}
-        manufacturerFieldId={manufacturerFieldId}
-        modelFieldId={modelFieldId}
-        serialNumberFieldId={serialNumberFieldId}
-        assignedTeamFieldId={assignedTeamFieldId}
-        descriptionFieldId={descriptionFieldId}
-        teamOptions={teamOptions}
-        lastMaintenanceLink={lastMaintenanceLink}
-        lastMaintenanceDisplay={lastMaintenanceDisplay}
-        onFieldUpdate={handleFieldUpdate}
-        onTeamAssignment={handleTeamAssignment}
-        getCurrentTeamDisplay={getCurrentTeamDisplay}
-      />
-
-      {isMobile && (
-        <EquipmentPMInfo
+      <div className={isMobile ? 'space-y-6' : 'grid grid-cols-1 lg:grid-cols-2 gap-6 items-start'}>
+        <EquipmentBasicInfoCard
           equipment={equipment}
           canEdit={canEdit}
+          canAssignTeams={canAssignTeams}
+          isMobile={isMobile}
+          showAllBasicInfo={showAllBasicInfo}
+          onShowAllBasicInfoChange={setShowAllBasicInfo}
+          onShowWorkingHoursModal={() => setShowWorkingHoursModal(true)}
+          nameFieldId={nameFieldId}
+          statusFieldId={statusFieldId}
+          manufacturerFieldId={manufacturerFieldId}
+          modelFieldId={modelFieldId}
+          serialNumberFieldId={serialNumberFieldId}
+          assignedTeamFieldId={assignedTeamFieldId}
+          descriptionFieldId={descriptionFieldId}
+          teamOptions={teamOptions}
+          lastMaintenanceLink={lastMaintenanceLink}
+          lastMaintenanceDisplay={lastMaintenanceDisplay}
+          onFieldUpdate={handleFieldUpdate}
+          onTeamAssignment={handleTeamAssignment}
           getCurrentTeamDisplay={getCurrentTeamDisplay}
-          onCreatePMWorkOrder={onCreatePMWorkOrder}
         />
-      )}
 
-      <EquipmentLifecycleCard
-        equipment={equipment}
-        canEdit={canEdit}
-        installationDateFieldId={installationDateFieldId}
-        warrantyExpirationFieldId={warrantyExpirationFieldId}
-        maintenanceDateFieldId={maintenanceDateFieldId}
-        lastMaintenanceLink={lastMaintenanceLink}
-        lastMaintenanceDisplay={lastMaintenanceDisplay}
-        onFieldUpdate={handleFieldUpdate}
-      />
-
-      {!isMobile && (
-        <EquipmentPMInfo
+        <EquipmentLifecycleCard
           equipment={equipment}
           canEdit={canEdit}
-          getCurrentTeamDisplay={getCurrentTeamDisplay}
-          onCreatePMWorkOrder={onCreatePMWorkOrder}
+          installationDateFieldId={installationDateFieldId}
+          warrantyExpirationFieldId={warrantyExpirationFieldId}
+          maintenanceDateFieldId={maintenanceDateFieldId}
+          lastMaintenanceLink={lastMaintenanceLink}
+          lastMaintenanceDisplay={lastMaintenanceDisplay}
+          onFieldUpdate={handleFieldUpdate}
         />
-      )}
-
-      {isAdmin && organizationId && onOpenQrCodeForAssignment && (
-        <EquipmentOperatorCheckinConfig
-          organizationId={organizationId}
-          equipmentId={equipment.id}
-          equipmentName={equipment.name}
-          onOpenQrCodeForAssignment={onOpenQrCodeForAssignment}
-        />
-      )}
+      </div>
 
       <Card>
         <CardHeader>
