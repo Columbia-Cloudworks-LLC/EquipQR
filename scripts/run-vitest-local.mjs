@@ -11,6 +11,7 @@
 import { spawnSync } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { parseVitestLocalArgs } from './lib/parse-vitest-local-args.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(__dirname, '..');
@@ -19,12 +20,9 @@ const isWindows = process.platform === 'win32';
 
 const rawArgs = process.argv.slice(2);
 const reporterFlag = rawArgs.find((a) => a.startsWith('--reporter'));
-const projectIndex = rawArgs.indexOf('--project');
-const projectFilter = projectIndex >= 0 ? rawArgs[projectIndex + 1] : null;
-const passthroughArgs = rawArgs.filter(
-  (a, i) => !a.startsWith('--reporter') && !(a === '--project') && i !== projectIndex + 1,
-);
+const { projectFilter, passthroughArgs } = parseVitestLocalArgs(rawArgs);
 const reporterArgs = reporterFlag ? [reporterFlag] : ['--reporter=default'];
+const pathFilters = passthroughArgs.filter((a) => !a.startsWith('-'));
 
 const COMPONENT_SHARDS = 4;
 
@@ -42,6 +40,11 @@ function runVitest(label, args) {
   });
 
   return result.status ?? 1;
+}
+
+// Path filters: let Vitest pick the matching project(s) once (avoid empty component shards).
+if (pathFilters.length > 0 && !projectFilter) {
+  process.exit(runVitest('filtered', ['run', ...reporterArgs, ...passthroughArgs]));
 }
 
 function componentPhases() {
