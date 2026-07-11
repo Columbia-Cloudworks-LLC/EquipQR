@@ -22,6 +22,68 @@ export interface FrameReadinessResult {
   violations: string[];
 }
 
+type ViewportEdge = 'top' | 'left' | 'bottom' | 'right';
+
+/** App chrome that intentionally hugs a viewport edge (bottom nav, sidebar, top bar). */
+export function isFullBleedChromeEdge(
+  rect: ViewportRect,
+  viewport: ViewportSize,
+  edge: ViewportEdge,
+): boolean {
+  const widthRatio = rect.width / viewport.width;
+  const heightRatio = rect.height / viewport.height;
+
+  switch (edge) {
+    case 'top':
+      return rect.top <= 2 && widthRatio >= 0.7;
+    case 'bottom':
+      return rect.bottom >= viewport.height - 2 && widthRatio >= 0.7;
+    case 'left':
+      return rect.left <= 2 && heightRatio >= 0.35;
+    case 'right':
+      return rect.right >= viewport.width - 2 && heightRatio >= 0.35;
+    default: {
+      const _exhaustive: never = edge;
+      return _exhaustive;
+    }
+  }
+}
+
+/** Bottom tab bar or fixed footer band (wide, short, pinned to viewport bottom). */
+export function isBottomChromeBand(rect: ViewportRect, viewport: ViewportSize): boolean {
+  const bandPx = 88;
+  const inBand = rect.bottom >= viewport.height - 2 && rect.top >= viewport.height - bandPx;
+  if (!inBand) {
+    return false;
+  }
+  const fullWidthChrome = rect.width / viewport.width >= 0.5;
+  const tabItem = rect.height <= bandPx;
+  return fullWidthChrome || tabItem;
+}
+
+/** Top app bar band (wide, short, pinned to viewport top). */
+export function isTopChromeBand(rect: ViewportRect, viewport: ViewportSize): boolean {
+  const bandPx = 72;
+  return rect.top <= 2 && rect.bottom <= bandPx && rect.width / viewport.width >= 0.5;
+}
+
+function isEdgeViolationAllowed(
+  rect: ViewportRect,
+  viewport: ViewportSize,
+  edge: ViewportEdge,
+): boolean {
+  if (isFullBleedChromeEdge(rect, viewport, edge)) {
+    return true;
+  }
+  if (edge === 'bottom' || edge === 'left' || edge === 'right') {
+    return isBottomChromeBand(rect, viewport);
+  }
+  if (edge === 'top') {
+    return isTopChromeBand(rect, viewport);
+  }
+  return false;
+}
+
 /**
  * Pure viewport math for unit tests and Playwright frame gates.
  */
@@ -43,18 +105,24 @@ export function evaluateFrameReadiness(
     if (targetRect.width <= 0 || targetRect.height <= 0) {
       violations.push('target control has zero rendered size');
     }
-    if (targetRect.top < padding) {
+    if (targetRect.top < padding && !isEdgeViolationAllowed(targetRect, viewport, 'top')) {
       violations.push(`target clipped at top (${Math.round(targetRect.top)}px < ${padding}px padding)`);
     }
-    if (targetRect.left < padding) {
+    if (targetRect.left < padding && !isEdgeViolationAllowed(targetRect, viewport, 'left')) {
       violations.push(`target clipped at left (${Math.round(targetRect.left)}px < ${padding}px padding)`);
     }
-    if (targetRect.bottom > viewport.height - padding) {
+    if (
+      targetRect.bottom > viewport.height - padding &&
+      !isEdgeViolationAllowed(targetRect, viewport, 'bottom')
+    ) {
       violations.push(
         `target clipped at bottom (${Math.round(targetRect.bottom)}px > ${viewport.height - padding}px)`,
       );
     }
-    if (targetRect.right > viewport.width - padding) {
+    if (
+      targetRect.right > viewport.width - padding &&
+      !isEdgeViolationAllowed(targetRect, viewport, 'right')
+    ) {
       violations.push(
         `target clipped at right (${Math.round(targetRect.right)}px > ${viewport.width - padding}px)`,
       );

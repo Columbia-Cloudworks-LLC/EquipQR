@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   EVIDENCE_FRAME_PADDING_PX,
   evaluateFrameReadiness,
+  isBottomChromeBand,
+  isFullBleedChromeEdge,
 } from '../../../e2e/pr-evidence/shared/evidence-frame-helpers';
 
 describe('evaluateFrameReadiness', () => {
@@ -34,18 +36,17 @@ describe('evaluateFrameReadiness', () => {
       viewport.width,
       {
         top: 2,
-        left: 2,
-        bottom: viewport.height - 2,
-        right: viewport.width - 2,
-        width: viewport.width - 4,
-        height: viewport.height - 4,
+        left: 20,
+        bottom: 120,
+        right: 220,
+        width: 200,
+        height: 118,
       },
       EVIDENCE_FRAME_PADDING_PX,
     );
 
     expect(result.ok).toBe(false);
     expect(result.violations.join(' ')).toMatch(/clipped at top/);
-    expect(result.violations.join(' ')).toMatch(/clipped at bottom/);
   });
 
   it('flags zero-size targets', () => {
@@ -60,5 +61,36 @@ describe('evaluateFrameReadiness', () => {
 
     expect(result.ok).toBe(false);
     expect(result.violations.join(' ')).toMatch(/zero rendered size/);
+  });
+
+  it('allows intentional full-bleed bottom navigation chrome', () => {
+    const bottomNav = {
+      top: 780,
+      left: 0,
+      bottom: 844,
+      right: 390,
+      width: 390,
+      height: 64,
+    };
+
+    expect(isFullBleedChromeEdge(bottomNav, viewport, 'bottom')).toBe(true);
+    expect(isBottomChromeBand(bottomNav, viewport)).toBe(true);
+
+    const result = evaluateFrameReadiness(viewport, viewport.width, bottomNav);
+    expect(result.ok).toBe(true);
+  });
+
+  it('allows bottom tab items inside the mobile chrome band', () => {
+    const equipmentTab = {
+      top: 792,
+      left: 48,
+      bottom: 844,
+      right: 126,
+      width: 78,
+      height: 52,
+    };
+
+    const result = evaluateFrameReadiness(viewport, viewport.width, equipmentTab);
+    expect(result.ok).toBe(true);
   });
 });

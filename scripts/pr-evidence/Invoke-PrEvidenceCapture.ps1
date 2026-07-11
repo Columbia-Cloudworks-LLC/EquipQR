@@ -67,12 +67,21 @@ if ($requiresDocs) {
 $stack = Test-PrEvidenceLocalStack -BaseUrl $BaseUrl -CheckDocs:$requiresDocs
 $stackReady = $stack.AppReady -and $stack.SupabaseReady -and (-not $requiresDocs -or $stack.DocsReady)
 if (-not $stackReady) {
+    for ($probeAttempt = 1; $probeAttempt -le 3 -and -not $stackReady; $probeAttempt++) {
+        Write-Host ("[PR evidence] Stack probe attempt {0}/3 not ready; retrying in 5s ..." -f $probeAttempt)
+        Start-Sleep -Seconds 5
+        $stack = Test-PrEvidenceLocalStack -BaseUrl $BaseUrl -CheckDocs:$requiresDocs
+        $stackReady = $stack.AppReady -and $stack.SupabaseReady -and (-not $requiresDocs -or $stack.DocsReady)
+    }
+}
+
+if (-not $stackReady) {
     if ($SkipStackStart) {
         $docsDetail = if ($requiresDocs) { ", docsReady=$($stack.DocsReady)" } else { '' }
         throw "Local stack probe failed for $BaseUrl (appReady=$($stack.AppReady), supabaseReady=$($stack.SupabaseReady)$docsDetail). Start the stack with .\dev-start.bat or omit -SkipStackStart."
     }
 
-    Write-Host "[PR evidence] Local stack not ready; starting dev-start.bat ..."
+    Write-Host "[PR evidence] Local stack not ready after probe retries; starting dev-start.bat ..."
     $devStart = Join-Path $repoRoot 'dev-start.bat'
     if (-not (Test-Path -LiteralPath $devStart)) {
         throw "dev-start.bat not found at $devStart"

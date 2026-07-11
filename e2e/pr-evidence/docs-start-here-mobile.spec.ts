@@ -28,7 +28,7 @@ test.describe('Docs media: Start Here mobile @pr-evidence', () => {
     await assertHealthyShell();
     await settleForDemo(page);
     await evidenceScreenshot(page, '01-mobile-dashboard-welcome', {
-      target: page.getByRole('navigation').last(),
+      target: page.getByRole('heading', { name: /dashboard/i }).first(),
     });
 
     // --- navigation-tour: bottom navigation ---
