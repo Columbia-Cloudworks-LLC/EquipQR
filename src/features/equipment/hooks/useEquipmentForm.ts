@@ -118,31 +118,40 @@ export const useEquipmentForm = (
         });
       }
 
+      let mediaUploadFailed = false;
       const pending = mediaRef.current;
       if (pending.files.length > 0) {
-        const userName = user.email?.split('@')[0] || 'User';
-        const noteContent =
-          pending.files.length === 1
-            ? `${userName} uploaded a display image`
-            : `${userName} uploaded ${pending.files.length} images at creation`;
-        const note = await createEquipmentNoteWithImages(
-          result.data.id,
-          noteContent,
-          0,
-          false,
-          pending.files,
-          currentOrganization.id,
-        );
-        const displayImage =
-          note.images?.[pending.displayIndex] ?? note.images?.[0] ?? null;
-        if (displayImage?.file_url) {
-          const path =
-            extractEquipmentDisplayImagePath(displayImage.file_url) ?? displayImage.file_url;
-          await updateEquipmentDisplayImage(currentOrganization.id, result.data.id, path);
+        try {
+          const userName = user.email?.split('@')[0] || 'User';
+          const noteContent =
+            pending.files.length === 1
+              ? `${userName} uploaded a display image`
+              : `${userName} uploaded ${pending.files.length} images at creation`;
+          const note = await createEquipmentNoteWithImages(
+            result.data.id,
+            noteContent,
+            0,
+            false,
+            pending.files,
+            currentOrganization.id,
+          );
+          const displayImage =
+            note.images?.[pending.displayIndex] ?? note.images?.[0] ?? null;
+          if (displayImage?.file_url) {
+            const path =
+              extractEquipmentDisplayImagePath(displayImage.file_url) ?? displayImage.file_url;
+            await updateEquipmentDisplayImage(currentOrganization.id, result.data.id, path);
+          }
+        } catch (error) {
+          console.error('Post-create equipment media upload failed:', error);
+          mediaUploadFailed = true;
+          await queryClient.invalidateQueries({ queryKey: equipment.images(result.data.id) });
         }
       }
 
-      return result.data;
+      return mediaUploadFailed
+        ? { ...result.data, mediaUploadFailed: true as const }
+        : result.data;
     },
     onSuccess: (data) => {
       const queuedOffline = data && 'queuedOffline' in data && data.queuedOffline;
@@ -156,7 +165,13 @@ export const useEquipmentForm = (
         if (data && 'id' in data && typeof data.id === 'string') {
           queryClient.invalidateQueries({ queryKey: equipment.images(data.id) });
         }
-        toast.success('Equipment created successfully');
+        if (data && 'mediaUploadFailed' in data && data.mediaUploadFailed) {
+          toast.warning(
+            'Equipment created, but media upload failed. Add photos from the equipment details page.',
+          );
+        } else {
+          toast.success('Equipment created successfully');
+        }
       }
       mediaRef.current = { files: [], displayIndex: 0 };
       form.reset();

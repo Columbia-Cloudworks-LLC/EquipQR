@@ -4,12 +4,11 @@ import NoteImageCarousel, {
   type NoteCarouselImage,
 } from '@/components/common/NoteImageCarousel';
 import type { EquipmentImageData } from '@/features/equipment/services/equipmentImagesService';
-import { orderEquipmentMediaForDisplayCarousel } from '@/features/equipment/utils/equipmentMediaFilters';
 import { cn } from '@/lib/utils';
 
 export interface EquipmentMediaCarouselProps {
+  /** Pre-ordered: display image first, then newest→oldest. */
   images: EquipmentImageData[];
-  currentDisplayImage?: string | null;
   equipmentName: string;
   className?: string;
   emptyClassName?: string;
@@ -22,25 +21,19 @@ export interface EquipmentMediaCarouselProps {
  */
 export function EquipmentMediaCarousel({
   images,
-  currentDisplayImage,
   equipmentName,
   className,
   emptyClassName,
   onImageClick,
 }: EquipmentMediaCarouselProps) {
-  const ordered = useMemo(
-    () => orderEquipmentMediaForDisplayCarousel(images, currentDisplayImage),
-    [images, currentDisplayImage],
-  );
-
   const carouselImages: NoteCarouselImage[] = useMemo(
     () =>
-      ordered.map((image) => ({
+      images.map((image) => ({
         id: image.id,
         file_url: image.file_url,
         file_name: image.file_name || `${equipmentName} photo`,
       })),
-    [ordered, equipmentName],
+    [images, equipmentName],
   );
 
   if (carouselImages.length === 0) {

@@ -23,6 +23,7 @@ vi.mock('sonner', () => ({
   toast: {
     success: vi.fn(),
     error: vi.fn(),
+    warning: vi.fn(),
   },
 }));
 
@@ -58,6 +59,13 @@ vi.mock('@/hooks/useAuth', () => ({
 
 import { useEquipmentForm } from '@/features/equipment/hooks/useEquipmentForm';
 import { EquipmentFormData, EquipmentRecord } from '@/features/equipment/types/equipment';
+import { toast } from 'sonner';
+import { createEquipmentNoteWithImages } from '@/features/equipment/services/equipmentNotesService';
+
+vi.mock('@/features/equipment/services/equipmentNotesService', () => ({
+  createEquipmentNoteWithImages: vi.fn(),
+  updateEquipmentDisplayImage: vi.fn(),
+}));
 
 const createWrapper = (client: QueryClient) =>
   ({ children }: { children: React.ReactNode }) => (
@@ -138,5 +146,26 @@ describe('useEquipmentForm', () => {
     , { wrapper: createWrapper(client) });
 
     expect(result.current.isEdit).toBe(true);
+  });
+
+  it('succeeds when post-create media upload fails', async () => {
+    vi.mocked(createEquipmentNoteWithImages).mockRejectedValueOnce(new Error('upload failed'));
+
+    const client = new QueryClient();
+    const onSuccess = vi.fn();
+    const pendingMediaRef = { current: { files: [new File(['x'], 'a.jpg', { type: 'image/jpeg' })], displayIndex: 0 } };
+    const { result } = renderHook(() =>
+      useEquipmentForm(undefined, onSuccess, pendingMediaRef)
+    , { wrapper: createWrapper(client) });
+
+    await act(async () => {
+      await result.current.onSubmit(baseValues);
+    });
+
+    expect(onSuccess).toHaveBeenCalled();
+    expect(toast.warning).toHaveBeenCalledWith(
+      'Equipment created, but media upload failed. Add photos from the equipment details page.',
+    );
+    expect(toast.error).not.toHaveBeenCalled();
   });
 });
