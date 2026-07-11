@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.3] - 2026-07-11
+
+### Fixed
+
+- **Mobile inline image viewports (#1216)** — Disable touch panning on phones/tablets so page scroll is not blocked on note and equipment photos; always show download/copy controls on mobile; tap opens a pinch-zoom lightbox with export actions. Work order image carousels and galleries reuse the shared lightbox.
+
 ## [3.25.2] - 2026-07-11
 
 ### Changed
