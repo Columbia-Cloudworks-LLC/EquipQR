@@ -68,7 +68,8 @@ export function ensureImageFileName(fileName: string, mimeType: string): string 
 /** Force a .png extension when clipboard payload is encoded as image/png. */
 export function ensurePngFileName(fileName: string): string {
   const trimmed = fileName.trim() || 'image';
-  const base = trimmed.replace(/\.[^.]+$/, '') || trimmed;
+  const hasKnownExtension = /\.[a-z0-9]{2,5}$/i.test(trimmed);
+  const base = hasKnownExtension ? trimmed.replace(/\.[a-z0-9]{2,5}$/i, '') : trimmed;
   return `${base}.png`;
 }
 

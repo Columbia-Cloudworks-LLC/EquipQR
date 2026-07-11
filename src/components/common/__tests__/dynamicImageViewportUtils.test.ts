@@ -38,6 +38,7 @@ describe('dynamicImageViewportUtils', () => {
     expect(ensurePngFileName('CAT-301.7-CR-mini-excavator.jpeg')).toBe(
       'CAT-301.7-CR-mini-excavator.png',
     );
+    expect(ensurePngFileName('CAT-301.7')).toBe('CAT-301.7.png');
   });
 
   it('fetches image bytes for blob download/copy', async () => {
