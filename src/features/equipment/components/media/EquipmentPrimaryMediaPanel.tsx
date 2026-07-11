@@ -47,7 +47,6 @@ export function EquipmentPrimaryMediaPanel({
   return (
     <EquipmentMediaCarousel
       images={displayOrderedImages}
-      currentDisplayImage={currentDisplayImage}
       equipmentName={equipmentName}
       className={className}
       emptyClassName={emptyClassName}
