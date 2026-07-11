@@ -120,25 +120,31 @@ export const useEquipmentForm = (
 
       const pending = mediaRef.current;
       if (pending.files.length > 0) {
-        const userName = user.email?.split('@')[0] || 'User';
-        const noteContent =
-          pending.files.length === 1
-            ? `${userName} uploaded a display image`
-            : `${userName} uploaded ${pending.files.length} images at creation`;
-        const note = await createEquipmentNoteWithImages(
-          result.data.id,
-          noteContent,
-          0,
-          false,
-          pending.files,
-          currentOrganization.id,
-        );
-        const displayImage =
-          note.images?.[pending.displayIndex] ?? note.images?.[0] ?? null;
-        if (displayImage?.file_url) {
-          const path =
-            extractEquipmentDisplayImagePath(displayImage.file_url) ?? displayImage.file_url;
-          await updateEquipmentDisplayImage(currentOrganization.id, result.data.id, path);
+        try {
+          const userName = user.email?.split('@')[0] || 'User';
+          const noteContent =
+            pending.files.length === 1
+              ? `${userName} uploaded a display image`
+              : `${userName} uploaded ${pending.files.length} images at creation`;
+          const note = await createEquipmentNoteWithImages(
+            result.data.id,
+            noteContent,
+            0,
+            false,
+            pending.files,
+            currentOrganization.id,
+          );
+          const displayImage =
+            note.images?.[pending.displayIndex] ?? note.images?.[0] ?? null;
+          if (displayImage?.file_url) {
+            const path =
+              extractEquipmentDisplayImagePath(displayImage.file_url) ?? displayImage.file_url;
+            await updateEquipmentDisplayImage(currentOrganization.id, result.data.id, path);
+          }
+        } catch (error) {
+          console.error('Equipment media upload error:', error);
+          queryClient.invalidateQueries({ queryKey: equipment.images(result.data.id) });
+          toast.warning('Equipment created, but media upload failed');
         }
       }
 
