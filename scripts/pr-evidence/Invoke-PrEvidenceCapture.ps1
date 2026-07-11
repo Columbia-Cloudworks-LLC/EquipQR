@@ -182,7 +182,11 @@ $manifest = [ordered]@{
 $manifestPath = Join-Path $artifactDir 'manifest.json'
 $manifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $manifestPath -Encoding utf8
 
+$checklistPath = Write-PrEvidenceVisualReviewChecklist -ArtifactDir $artifactDir -FlowSlug $flowSlug -ManifestPath $manifestPath
+
 Write-Host ('[PR evidence] Capture complete: {0} screenshot(s), video={1}' -f $screenshotFiles.Count, [bool]$manifest.video)
 Write-Host ('[PR evidence] Manifest: {0}' -f $manifestPath)
+Write-Host ('[PR evidence] Visual review checklist: {0}' -f $checklistPath)
+Write-Host '[PR evidence] Open each PNG and complete visual review before upload/publish.'
 
 exit 0

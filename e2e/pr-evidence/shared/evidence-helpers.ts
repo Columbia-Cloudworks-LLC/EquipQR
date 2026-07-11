@@ -1,6 +1,20 @@
 import fs from 'fs/promises';
 import path from 'path';
-import type { APIRequestContext, APIResponse, Page } from '@playwright/test';
+import type { APIRequestContext, APIResponse, Locator, Page } from '@playwright/test';
+import {
+  assertEvidenceFrameReady,
+  evidenceScreenshotTarget,
+  scrollLocatorIntoEvidenceFrame,
+} from './evidence-frame-helpers';
+
+export {
+  assertEvidenceFrameReady,
+  EVIDENCE_FRAME_PADDING_PX,
+  evaluateFrameReadiness,
+  evidenceScreenshotTarget,
+  scrollLocatorIntoEvidenceFrame,
+} from './evidence-frame-helpers';
+export type { FrameReadinessResult, ViewportRect, ViewportSize } from './evidence-frame-helpers';
 
 export function prEvidenceFlowSlug(): string {
   return (process.env.PR_EVIDENCE_FLOW || 'change').replace(/[^a-z0-9-]/gi, '-');
@@ -17,10 +31,29 @@ export async function ensureEvidenceDirs(): Promise<{ screenshotsDir: string; ar
   return { screenshotsDir, artifactsDir };
 }
 
+export interface EvidenceScreenshotOptions {
+  /** When set, scrolls the control into frame and asserts it is fully visible before capture. */
+  target?: Locator;
+}
+
 /**
  * Save a labeled PNG under tmp/pr-evidence/{flow}/screenshots/ for upload scripts.
+ * Always asserts no horizontal viewport overflow; pass `target` to gate on control framing.
  */
-export async function evidenceScreenshot(page: Page, label: string): Promise<string> {
+export async function evidenceScreenshot(
+  page: Page,
+  label: string,
+  options?: EvidenceScreenshotOptions,
+): Promise<string> {
+  if (options?.target) {
+    return evidenceScreenshotTarget(page, options.target, label, captureEvidenceScreenshot);
+  }
+
+  await assertEvidenceFrameReady(page);
+  return captureEvidenceScreenshot(page, label);
+}
+
+async function captureEvidenceScreenshot(page: Page, label: string): Promise<string> {
   const { screenshotsDir } = await ensureEvidenceDirs();
   const safeLabel = label.replace(/[^a-z0-9-]/gi, '-').replace(/-+/g, '-');
   const filePath = path.join(screenshotsDir, `${safeLabel}.png`);
