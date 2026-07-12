@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.8] - 2026-07-12
+
+### Changed
+
+- **nanoid (#1104)** — Bump `nanoid` from 5.1.11 to 5.1.16 (Dependabot).
+
 ## [3.25.7] - 2026-07-11
 
 ### Fixed
