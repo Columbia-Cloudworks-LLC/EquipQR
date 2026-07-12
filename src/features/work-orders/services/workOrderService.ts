@@ -19,12 +19,12 @@ import {
 import { applyWorkOrderSupabaseFilters } from '@/features/work-orders/utils/workOrderSupabaseFilters';
 import {
   WORK_ORDER_SELECT,
-  WORK_ORDER_LIST_SELECT,
   mapWorkOrderRow,
 } from '@/features/work-orders/services/workOrderRowMapper';
 import {
-  resolveEquipmentIdsForTeamFilter,
-  resolveEquipmentIdsForUserTeams,
+  buildWorkOrderListSelect,
+  requiresEquipmentInnerJoin,
+  resolveWorkOrderTeamScope,
 } from '@/features/work-orders/services/workOrderListQueryHelpers';
 import {
   createWorkOrderNoteWithImages,
@@ -62,46 +62,30 @@ export class WorkOrderService extends BaseService {
     pagination: PaginationParams = {}
   ): Promise<ApiResponse<WorkOrder[]>> {
     try {
+      const teamScope = resolveWorkOrderTeamScope(filters);
+
+      if (teamScope.userTeams !== undefined && teamScope.userTeams.length === 0) {
+        return this.handleSuccess([]);
+      }
+
+      const needsEquipmentInnerJoin = requiresEquipmentInnerJoin(teamScope);
+
       let query = supabase
         .from('work_orders')
-        .select(WORK_ORDER_LIST_SELECT)
+        .select(buildWorkOrderListSelect(needsEquipmentInnerJoin))
         .eq('organization_id', this.organizationId);
 
-      // Apply team-based access control filtering
-      if (filters.userTeamIds !== undefined && !filters.isOrgAdmin) {
-        if (filters.userTeamIds.length > 0) {
-          const equipmentResolution = await resolveEquipmentIdsForUserTeams(
-            this.organizationId,
-            filters.userTeamIds,
-          );
+      if (teamScope.userTeams && teamScope.userTeams.length > 0) {
+        query = query.in('equipment.team_id', teamScope.userTeams);
+      }
 
-          if (equipmentResolution === 'empty') {
-            return this.handleSuccess([]);
-          }
-
-          query = query.in('equipment_id', equipmentResolution);
-        } else {
-          return this.handleSuccess([]);
-        }
+      if (teamScope.teamFilter) {
+        query = query.eq('equipment.team_id', teamScope.teamFilter);
       }
 
       query = applyWorkOrderSupabaseFilters(query, filters, {
         overdueExcludeTerminalStatuses: true,
       });
-
-      // Apply team filter - requires getting equipment IDs first
-      if (filters.teamId && filters.teamId !== 'all') {
-        const equipmentResolution = await resolveEquipmentIdsForTeamFilter(
-          this.organizationId,
-          filters.teamId,
-        );
-
-        if (equipmentResolution === 'empty') {
-          return this.handleSuccess([]);
-        }
-
-        query = query.in('equipment_id', equipmentResolution);
-      }
 
       // Apply equipment filter (uses idx_work_orders_equipment_id index)
       if (filters.equipmentId) {

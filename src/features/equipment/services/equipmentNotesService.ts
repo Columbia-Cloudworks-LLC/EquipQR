@@ -159,6 +159,7 @@ export const createEquipmentNoteWithImages = async (
     .from('equipment_notes')
     .insert({
       equipment_id: equipmentId,
+      organization_id: organizationId,
       author_id: userId,
       content,
       hours_worked: Number(hoursWorked) || 0,

@@ -8,6 +8,7 @@ import { logger } from '@/utils/logger';
 export class BackgroundSyncService {
   private static instance: BackgroundSyncService;
   private subscriptions: Map<string, RealtimeChannel | ReturnType<typeof setInterval>> = new Map();
+  private subscriptionRefCounts: Map<string, number> = new Map();
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private isOnline = navigator.onLine;
@@ -38,8 +39,19 @@ export class BackgroundSyncService {
 
   // Subscribe to real-time updates for an organization
   subscribeToOrganization(organizationId: string) {
+    const currentRefCount = this.subscriptionRefCounts.get(organizationId) ?? 0;
+    if (currentRefCount > 0) {
+      this.subscriptionRefCounts.set(organizationId, currentRefCount + 1);
+      return;
+    }
+
+    this.attachOrganizationChannel(organizationId);
+    this.subscriptionRefCounts.set(organizationId, 1);
+  }
+
+  private attachOrganizationChannel(organizationId: string) {
     if (this.subscriptions.has(organizationId)) {
-      return; // Already subscribed
+      return;
     }
 
     const timer = performanceMonitor.startTimer('realtime-subscription');
@@ -82,6 +94,7 @@ export class BackgroundSyncService {
           event: '*',
           schema: 'public',
           table: 'equipment_notes',
+          filter: `organization_id=eq.${organizationId}`
         },
         (payload) => this.handleNoteChange(organizationId, payload)
       )
@@ -108,7 +121,7 @@ export class BackgroundSyncService {
       .subscribe((status) => {
         timer();
         logger.debug(`Real-time subscription status for org ${organizationId}: ${status}`);
-        
+
         if (status === 'SUBSCRIBED') {
           this.reconnectAttempts = 0;
         } else if (status === 'CHANNEL_ERROR') {
@@ -119,13 +132,40 @@ export class BackgroundSyncService {
     this.subscriptions.set(organizationId, channel);
   }
 
-  // Unsubscribe from organization updates
-  unsubscribeFromOrganization(organizationId: string) {
+  private detachOrganizationChannel(organizationId: string) {
     const channel = this.subscriptions.get(organizationId);
-    if (channel && !organizationId.startsWith('periodic-')) {
+    if (channel) {
       supabase.removeChannel(channel as RealtimeChannel);
       this.subscriptions.delete(organizationId);
     }
+  }
+
+  private forceReconnectOrganization(organizationId: string) {
+    if ((this.subscriptionRefCounts.get(organizationId) ?? 0) === 0) {
+      return;
+    }
+
+    this.detachOrganizationChannel(organizationId);
+    this.attachOrganizationChannel(organizationId);
+  }
+
+  // Unsubscribe from organization updates
+  unsubscribeFromOrganization(organizationId: string) {
+    if (organizationId.startsWith('periodic-')) {
+      return;
+    }
+
+    const currentRefCount = this.subscriptionRefCounts.get(organizationId) ?? 0;
+    if (currentRefCount > 1) {
+      this.subscriptionRefCounts.set(organizationId, currentRefCount - 1);
+      return;
+    }
+
+    const channel = this.subscriptions.get(organizationId);
+    if (channel) {
+      this.detachOrganizationChannel(organizationId);
+    }
+    this.subscriptionRefCounts.delete(organizationId);
   }
 
   private handleEquipmentChange(organizationId: string, payload: Record<string, unknown>) {
@@ -221,8 +261,7 @@ export class BackgroundSyncService {
 
     setTimeout(() => {
       logger.info(`Attempting to reconnect to org ${organizationId} (attempt ${this.reconnectAttempts})`);
-      this.unsubscribeFromOrganization(organizationId);
-      this.subscribeToOrganization(organizationId);
+      this.forceReconnectOrganization(organizationId);
     }, delay);
   }
 
@@ -274,10 +313,9 @@ export class BackgroundSyncService {
 
   private reconnectSubscriptions() {
     logger.info('Reconnecting all subscriptions after coming online');
-    
-    for (const [organizationId] of this.subscriptions) {
-      this.unsubscribeFromOrganization(organizationId);
-      this.subscribeToOrganization(organizationId);
+
+    for (const organizationId of this.subscriptionRefCounts.keys()) {
+      this.forceReconnectOrganization(organizationId);
     }
   }
 
@@ -325,6 +363,7 @@ export class BackgroundSyncService {
       }
     }
     this.subscriptions.clear();
+    this.subscriptionRefCounts.clear();
   }
 
   // Get sync status
