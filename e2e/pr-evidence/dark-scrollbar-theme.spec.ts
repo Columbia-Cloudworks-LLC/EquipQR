@@ -62,7 +62,9 @@ test.describe('Dark scrollbar theme @pr-evidence', () => {
       timeout: 60_000,
     });
 
-    const auditList = page.locator('[data-slot="scroll-area-viewport"], .overflow-y-auto').first();
+    const auditList = page
+      .getByTestId('audit-log-list-virtual')
+      .or(page.getByTestId('audit-log-list-static'));
     await expect(auditList).toBeVisible({ timeout: 30_000 });
 
     const scrollHeight = await auditList.evaluate((el) => el.scrollHeight);
@@ -71,6 +73,9 @@ test.describe('Dark scrollbar theme @pr-evidence', () => {
       await auditList.evaluate((el) => {
         el.scrollTop = 120;
       });
+    } else {
+      await auditList.focus();
+      await page.keyboard.press('PageDown');
     }
 
     await evidencePause(page, 600);
