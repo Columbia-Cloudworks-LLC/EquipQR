@@ -5,8 +5,6 @@ import { WorkOrderService } from '@/features/work-orders/services/workOrderServi
 import { workOrderKeys } from '@/features/work-orders/hooks/useWorkOrders';
 import { workOrders as workOrderQueryKeys, notifications as notificationQueryKeys } from '@/lib/queryKeys';
 import { getAuthClaims } from '@/lib/authClaims';
-import { resolveWorkOrderOrganizationId } from '@/features/work-orders/services/workOrderOrganizationService';
-
 export type NotificationData = {
   work_order_id?: string;
   // Ownership transfer fields
@@ -36,126 +34,6 @@ export interface Notification {
   created_at: string;
   updated_at: string;
 }
-
-// Work Order Notes hooks - using WorkOrderService
-const useWorkOrderNotes = (workOrderId: string, organizationId?: string) => {
-  return useQuery({
-    queryKey: workOrderQueryKeys.notes(workOrderId),
-    queryFn: async () => {
-      const orgId = await resolveWorkOrderOrganizationId(workOrderId, organizationId);
-
-      const service = new WorkOrderService(orgId);
-      const response = await service.getNotes(workOrderId);
-      
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch notes');
-      }
-      
-      return response.data || [];
-    },
-    enabled: !!workOrderId
-  });
-};
-
-const useCreateWorkOrderNote = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      workOrderId,
-      content,
-      hoursWorked = 0,
-      isPrivate = false,
-      organizationId
-    }: {
-      workOrderId: string;
-      content: string;
-      hoursWorked?: number;
-      isPrivate?: boolean;
-      organizationId?: string;
-    }) => {
-      const orgId = await resolveWorkOrderOrganizationId(workOrderId, organizationId);
-
-      const service = new WorkOrderService(orgId);
-      const response = await service.createNote(workOrderId, {
-        content,
-        hours_worked: hoursWorked,
-        is_private: isPrivate
-      });
-
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to create note');
-      }
-
-      return response.data;
-    },
-    onSuccess: (_, { workOrderId }) => {
-      queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.notes(workOrderId) });
-      toast.success('Note added successfully');
-    },
-    onError: (error) => {
-      console.error('Error creating work order note:', error);
-      toast.error('Failed to add note');
-    }
-  });
-};
-
-// Work Order Images hooks - using WorkOrderService
-const useWorkOrderImages = (workOrderId: string, organizationId?: string) => {
-  return useQuery({
-    queryKey: workOrderQueryKeys.images(workOrderId),
-    queryFn: async () => {
-      const orgId = await resolveWorkOrderOrganizationId(workOrderId, organizationId);
-
-      const service = new WorkOrderService(orgId);
-      const response = await service.getImages(workOrderId);
-
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch images');
-      }
-
-      return response.data || [];
-    },
-    enabled: !!workOrderId
-  });
-};
-
-const useUploadWorkOrderImage = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      workOrderId,
-      file,
-      description,
-      organizationId
-    }: {
-      workOrderId: string;
-      file: File;
-      description?: string;
-      organizationId?: string;
-    }) => {
-      const orgId = await resolveWorkOrderOrganizationId(workOrderId, organizationId);
-
-      const service = new WorkOrderService(orgId);
-      const response = await service.uploadImage(workOrderId, file, description);
-
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to upload image');
-      }
-
-      return response.data;
-    },
-    onSuccess: (_, { workOrderId }) => {
-      queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.images(workOrderId) });
-      toast.success('Image uploaded successfully');
-    },
-    onError: (error) => {
-      console.error('Error uploading image:', error);
-      toast.error('Failed to upload image');
-    }
-  });
-};
 
 // Notifications hooks
 // Includes both org-specific notifications AND global notifications (like ownership transfers)

@@ -9,7 +9,6 @@
 
 import { useState, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { buildWorkOrderExportCountQuery } from '@/features/reports/utils/exportCountQueries';
 import { logger } from '@/utils/logger';
 import { useAppToast } from '@/hooks/useAppToast';
