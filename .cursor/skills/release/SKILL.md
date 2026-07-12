@@ -29,7 +29,7 @@ Features ship via individual PRs to `main` during normal development. `/release`
 
 ## Workflow
 
-```
+```text
 - [ ] Step 1: Preflight — fetch, align with origin/main, resolve dirty tree
 - [ ] Step 2: Run changelog-version-curator subagent
 - [ ] Step 3: Commit release metadata on chore/release-vX.Y.Z (or main if allowed)
