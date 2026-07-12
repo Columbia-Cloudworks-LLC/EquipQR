@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.13] - 2026-07-12
+
+### Changed
+
+- **actions/checkout (#1100)** — Bump `actions/checkout` from 6.0.3 to 7.0.0 across GitHub Actions workflows (Dependabot).
+
 ## [3.25.12] - 2026-07-12
 
 ### Changed
