@@ -34,7 +34,15 @@ export function resolveWorkOrderTeamScope(
   const teamFilter =
     filters.teamId && filters.teamId !== 'all' ? filters.teamId : undefined;
 
-  return { userTeams, teamFilter };
+  const scope: WorkOrderTeamScope = {};
+  if (userTeams !== undefined) {
+    scope.userTeams = userTeams;
+  }
+  if (teamFilter) {
+    scope.teamFilter = teamFilter;
+  }
+
+  return scope;
 }
 
 export function requiresEquipmentInnerJoin(teamScope: WorkOrderTeamScope): boolean {
