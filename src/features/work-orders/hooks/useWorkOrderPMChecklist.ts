@@ -33,6 +33,7 @@ export const useWorkOrderPMChecklist = ({
   const { data: allTemplates = [], isLoading: isLoadingTemplates } = usePMTemplates();
   const { restrictions } = useSimplifiedOrganizationRestrictions();
   const lastEquipmentIdRef = useRef<string | null>(null);
+  const lastAutoAppliedTemplateIdRef = useRef<string | null>(null);
 
   const { data: matchingTemplates = [], isLoading: isLoadingMatching } = useMatchingPMTemplates(
     selectedEquipment?.id,
@@ -87,6 +88,7 @@ export const useWorkOrderPMChecklist = ({
   }, [values.pmTemplateId, templates, allTemplates]);
 
   const handleTemplateChange = (templateId: string) => {
+    lastAutoAppliedTemplateIdRef.current = null;
     if (templateId === PM_TEMPLATE_NONE_VALUE) {
       setValue('pmTemplateId', null);
       setValue('hasPM', false);
@@ -97,6 +99,7 @@ export const useWorkOrderPMChecklist = ({
   };
 
   const handleClearTemplate = () => {
+    lastAutoAppliedTemplateIdRef.current = null;
     setValue('pmTemplateId', null);
     setValue('hasPM', false);
   };
@@ -113,12 +116,22 @@ export const useWorkOrderPMChecklist = ({
     lastEquipmentIdRef.current = equipmentId;
 
     const defaultTemplateId = selectedEquipment?.default_pm_template_id ?? null;
+    const currentTemplateId = values.pmTemplateId ?? null;
+    if (
+      currentTemplateId !== null
+      && currentTemplateId !== lastAutoAppliedTemplateIdRef.current
+    ) {
+      return;
+    }
+
+    lastAutoAppliedTemplateIdRef.current = defaultTemplateId;
     setValue('pmTemplateId', defaultTemplateId);
     setValue('hasPM', Boolean(defaultTemplateId));
   }, [
     autoDefaultFromEquipment,
     selectedEquipment?.id,
     selectedEquipment?.default_pm_template_id,
+    values.pmTemplateId,
     setValue,
   ]);
 
