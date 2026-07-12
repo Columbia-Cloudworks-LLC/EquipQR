@@ -178,63 +178,28 @@ export const getInventoryListMetadata = async (
   organizationId: string
 ): Promise<InventoryListMetadata> => {
   try {
-    const { data, error } = await supabase
-      .from('inventory_items')
-      .select('location, quantity_on_hand, low_stock_threshold, default_unit_cost, sku')
-      .eq('organization_id', organizationId);
+    const { data, error } = await supabase.rpc('get_inventory_list_metadata', {
+      p_organization_id: organizationId,
+    });
 
     if (error) throw error;
 
-    const rows = data || [];
-    const uniqueLocations = [...new Set(
-      rows
-        .map((item) => item.location)
-        .filter((location): location is string => !!location && location.trim() !== '')
-    )].sort();
-
-    let negativeStockCount = 0;
-    let outOfStockCount = 0;
-    let lowStockCount = 0;
-    let healthyCount = 0;
-    let missingLocationCount = 0;
-    let missingUnitCostCount = 0;
-    let missingSkuCount = 0;
-    let estimatedInventoryValue = 0;
-
-    for (const item of rows) {
-      const q = item.quantity_on_hand;
-      const threshold = item.low_stock_threshold;
-      const isLow = q <= threshold;
-
-      if (q < 0) negativeStockCount += 1;
-      else if (q === 0) outOfStockCount += 1;
-      else if (isLow) lowStockCount += 1;
-      else healthyCount += 1;
-
-      if (!item.location?.trim()) missingLocationCount += 1;
-      if (item.default_unit_cost == null || item.default_unit_cost === '') {
-        missingUnitCostCount += 1;
-      }
-      if (!item.sku?.trim()) missingSkuCount += 1;
-
-      const unitCost =
-        item.default_unit_cost != null ? Number(item.default_unit_cost) : 0;
-      if (Number.isFinite(unitCost)) {
-        estimatedInventoryValue += unitCost * q;
-      }
-    }
+    const metadata = (data ?? {}) as Partial<InventoryListMetadata>;
+    const uniqueLocations = Array.isArray(metadata.uniqueLocations)
+      ? metadata.uniqueLocations.filter((location): location is string => typeof location === 'string')
+      : [];
 
     return {
       uniqueLocations,
-      totalCount: rows.length,
-      negativeStockCount,
-      outOfStockCount,
-      lowStockCount,
-      healthyCount,
-      missingLocationCount,
-      missingUnitCostCount,
-      missingSkuCount,
-      estimatedInventoryValue,
+      totalCount: metadata.totalCount ?? 0,
+      negativeStockCount: metadata.negativeStockCount ?? 0,
+      outOfStockCount: metadata.outOfStockCount ?? 0,
+      lowStockCount: metadata.lowStockCount ?? 0,
+      healthyCount: metadata.healthyCount ?? 0,
+      missingLocationCount: metadata.missingLocationCount ?? 0,
+      missingUnitCostCount: metadata.missingUnitCostCount ?? 0,
+      missingSkuCount: metadata.missingSkuCount ?? 0,
+      estimatedInventoryValue: Number(metadata.estimatedInventoryValue ?? 0),
     };
   } catch (error) {
     logger.error('Error fetching inventory list metadata:', error);

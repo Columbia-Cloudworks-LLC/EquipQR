@@ -6,15 +6,13 @@ import { EquipmentCardWorkOrderMenu } from '@/features/equipment/components/Equi
 
 interface MobileEquipmentActionBarProps {
   equipmentId: string;
-  onCreatePMWorkOrder: () => void;
-  onCreateGenericWorkOrder: () => void;
+  onCreateWorkOrder: () => void;
   onAddNote: () => void;
 }
 
 const MobileEquipmentActionBar: React.FC<MobileEquipmentActionBarProps> = ({
   equipmentId,
-  onCreatePMWorkOrder,
-  onCreateGenericWorkOrder,
+  onCreateWorkOrder,
   onAddNote,
 }) => {
   const { data: pmStatus } = useEquipmentPMStatus(equipmentId);
@@ -26,8 +24,7 @@ const MobileEquipmentActionBar: React.FC<MobileEquipmentActionBarProps> = ({
           equipmentId={equipmentId}
           pmStatus={pmStatus}
           variant="mobile-bar"
-          onCreatePMWorkOrder={onCreatePMWorkOrder}
-          onCreateGenericWorkOrder={onCreateGenericWorkOrder}
+          onCreateWorkOrder={onCreateWorkOrder}
         />
         <Button
           variant="outline"

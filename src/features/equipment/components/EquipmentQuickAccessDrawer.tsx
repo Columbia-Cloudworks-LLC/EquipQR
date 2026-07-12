@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ClipboardSignature, MessageSquarePlus, Plus, QrCode, Wrench } from 'lucide-react';
+import { ClipboardSignature, MessageSquarePlus, Plus, QrCode } from 'lucide-react';
 import {
   QuickAccessDrawer,
   type QuickAccessSection,
@@ -12,8 +12,7 @@ interface EquipmentQuickAccessDrawerProps {
   equipmentName: string;
   organizationId: string;
   onShowQrCode: (variant?: EquipmentQRVariant) => void;
-  onCreatePMWorkOrder: () => void;
-  onCreateGenericWorkOrder: () => void;
+  onCreateWorkOrder: () => void;
   onAddNote: () => void;
 }
 
@@ -27,8 +26,7 @@ export function EquipmentQuickAccessDrawer({
   equipmentName,
   organizationId,
   onShowQrCode,
-  onCreatePMWorkOrder,
-  onCreateGenericWorkOrder,
+  onCreateWorkOrder,
   onAddNote,
 }: EquipmentQuickAccessDrawerProps) {
   const { data: checkinAssignments = [] } = useEquipmentOperatorCheckinAssignments(
@@ -65,16 +63,10 @@ export function EquipmentQuickAccessDrawer({
         title: 'Work orders',
         actions: [
           {
-            id: 'pm-work-order',
-            label: 'New PM work order',
-            icon: Wrench,
-            onSelect: onCreatePMWorkOrder,
-          },
-          {
-            id: 'generic-work-order',
+            id: 'new-work-order',
             label: 'New work order',
             icon: Plus,
-            onSelect: onCreateGenericWorkOrder,
+            onSelect: onCreateWorkOrder,
           },
         ],
       },
@@ -91,7 +83,7 @@ export function EquipmentQuickAccessDrawer({
         ],
       },
     ];
-  }, [checkinAssignments, onShowQrCode, onCreatePMWorkOrder, onCreateGenericWorkOrder, onAddNote]);
+  }, [checkinAssignments, onShowQrCode, onCreateWorkOrder, onAddNote]);
 
   return (
     <QuickAccessDrawer

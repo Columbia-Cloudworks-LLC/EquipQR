@@ -699,6 +699,7 @@ export type Database = {
           last_modified_at: string | null
           last_modified_by: string | null
           machine_hours: number | null
+          organization_id: string
           updated_at: string
         }
         Insert: {
@@ -713,6 +714,7 @@ export type Database = {
           last_modified_at?: string | null
           last_modified_by?: string | null
           machine_hours?: number | null
+          organization_id: string
           updated_at?: string
         }
         Update: {
@@ -727,6 +729,7 @@ export type Database = {
           last_modified_at?: string | null
           last_modified_by?: string | null
           machine_hours?: number | null
+          organization_id?: string
           updated_at?: string
         }
         Relationships: [
@@ -764,6 +767,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "user_entitlements"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "equipment_notes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -5568,6 +5578,10 @@ export type Database = {
           is_connected: boolean
           scopes: string
         }[]
+      }
+      get_inventory_list_metadata: {
+        Args: { p_organization_id: string }
+        Returns: Json
       }
       get_invitation_by_token_secure: {
         Args: { p_token: string }

@@ -344,12 +344,37 @@ export async function selectWorkOrderEquipment(
   throw new Error(`Could not select work order equipment: ${String(equipmentName)}`);
 }
 
+export async function setPmTemplate(
+  page: Page,
+  dialog: Locator,
+  templateName: string | RegExp | 'none',
+): Promise<void> {
+  const templateTrigger = dialog.getByRole('combobox', { name: /pm template/i });
+  await expect(templateTrigger).toBeVisible({ timeout: 15_000 });
+  if (templateName === 'none') {
+    await selectRadixOption(page, templateTrigger, /^None$/i);
+    return;
+  }
+  await selectRadixOption(page, templateTrigger, templateName);
+}
+
+/** @deprecated Use setPmTemplate instead */
 export async function setWorkOrderType(
   dialog: Locator,
   type: 'standard' | 'pm',
 ): Promise<void> {
-  const label = type === 'pm' ? /With PM Checklist/i : /Standard Work Order/i;
-  await clickWithDemoCue(dialog.getByRole('radio', { name: label }), `Choose ${labelText(label)}`);
+  const page = dialog.page();
+  const templateTrigger = dialog.getByRole('combobox', { name: /pm template/i });
+  await expect(templateTrigger).toBeVisible({ timeout: 15_000 });
+  if (type === 'standard') {
+    await setPmTemplate(page, dialog, 'none');
+    return;
+  }
+  const currentValue = await templateTrigger.textContent();
+  if (currentValue && !/none/i.test(currentValue)) {
+    return;
+  }
+  await selectRadixOption(page, templateTrigger, /forklift pm|excavator pm|compressor pm/i);
 }
 
 export async function selectPmTemplateIfAvailable(
@@ -357,13 +382,7 @@ export async function selectPmTemplateIfAvailable(
   dialog: Locator,
   templateName: string | RegExp,
 ): Promise<void> {
-  const assignedBanner = dialog.getByText(/assigned PM template|uses the assigned PM template/i);
-  if (await assignedBanner.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    return;
-  }
-
-  const templateSection = dialog.locator('div').filter({ has: dialog.getByText(/^Checklist Template$/) });
-  const templateTrigger = templateSection.getByRole('combobox');
+  const templateTrigger = dialog.getByRole('combobox', { name: /pm template/i });
   if (!(await templateTrigger.isVisible({ timeout: 5_000 }).catch(() => false))) {
     return;
   }

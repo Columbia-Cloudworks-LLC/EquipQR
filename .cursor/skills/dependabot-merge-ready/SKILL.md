@@ -223,7 +223,7 @@ Address every unstriked Qodo item and unresolved thread; fix forward → Phase 3
 
 ## Merge-ready exit checklist
 
-```
+```text
 - [ ] Dependabot author verified
 - [ ] npm ci + lint + type-check + test:ci + build green locally
 - [ ] Minimal remediation only (if needed)

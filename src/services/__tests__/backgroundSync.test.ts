@@ -140,6 +140,32 @@ describe('BackgroundSyncService', () => {
       expect(mockSupabase.channel).toHaveBeenCalledTimes(1);
     });
 
+    it('should keep the channel alive until the last subscriber unsubscribes', () => {
+      service.subscribeToOrganization(organizationId);
+      service.subscribeToOrganization(organizationId);
+
+      service.unsubscribeFromOrganization(organizationId);
+      expect(mockSupabase.removeChannel).not.toHaveBeenCalled();
+
+      service.unsubscribeFromOrganization(organizationId);
+      expect(mockSupabase.removeChannel).toHaveBeenCalledWith(mockChannel);
+    });
+
+    it('should scope equipment_notes subscriptions to the organization', () => {
+      service.subscribeToOrganization(organizationId);
+
+      expect(mockChannel.on).toHaveBeenCalledWith(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'equipment_notes',
+          filter: `organization_id=eq.${organizationId}`
+        },
+        expect.any(Function)
+      );
+    });
+
     it('should set up equipment table subscription', () => {
       service.subscribeToOrganization(organizationId);
 

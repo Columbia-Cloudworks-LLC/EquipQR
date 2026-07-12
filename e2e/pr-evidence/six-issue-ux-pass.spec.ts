@@ -246,7 +246,7 @@ test.describe('Six-issue UX pass — mobile quick access (#1151) @pr-evidence', 
     await expect(page.getByRole('button', { name: /equipment qr code/i })).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByRole('button', { name: /new pm work order/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /new work order/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /add note/i })).toBeVisible();
 
     await evidencePause(page, 600);

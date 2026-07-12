@@ -100,7 +100,6 @@ export const getDefaultWorkOrderFormValues = (
   options: {
     equipmentId?: string;
     isHistorical?: boolean;
-    initialHasPM?: boolean;
   } = {}
 ): Partial<WorkOrderFormData> => ({
   title: '',
@@ -109,7 +108,7 @@ export const getDefaultWorkOrderFormValues = (
   priority: 'medium',
   dueDate: undefined,
   estimatedHours: undefined,
-  hasPM: options.initialHasPM ?? false,
+  hasPM: false,
   pmTemplateId: null,
   // Simplified assignment: null = unassigned
   assigneeId: null,

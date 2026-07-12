@@ -23,7 +23,6 @@ interface EquipmentWorkOrdersTabProps {
   /** Full equipment record; enables PM controls at the top of the tab (#1212). */
   equipment?: Tables<'equipment'>;
   assignedTeamName?: string | null;
-  onCreatePMWorkOrder?: () => void;
 }
 
 const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
@@ -35,7 +34,6 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
   equipmentSerialNumber,
   equipment,
   assignedTeamName,
-  onCreatePMWorkOrder,
 }) => {
   const navigate = useNavigate();
   const [showWorkOrderForm, setShowWorkOrderForm] = useState(false);
@@ -85,7 +83,7 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
           equipment={equipment}
           canEdit={canEdit}
           getCurrentTeamDisplay={getCurrentTeamDisplay}
-          onCreatePMWorkOrder={onCreatePMWorkOrder}
+          onCreateWorkOrder={onCreateWorkOrder ?? handleCreateWorkOrder}
         />
       ) : null}
 

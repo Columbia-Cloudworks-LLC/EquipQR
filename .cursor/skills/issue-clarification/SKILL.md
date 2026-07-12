@@ -57,7 +57,7 @@ Do not overwrite structured issues without explicit user direction.
 
 Copy this checklist and track progress:
 
-```
+```text
 Clarification Progress:
 - [ ] Issue validated (open, this repo)
 - [ ] Existing-structure gate passed

@@ -20,14 +20,20 @@ export function useEquipmentOrgBackgroundSync(
   enableSync: boolean,
   recordMetric = true,
 ) {
-  const { subscribeToOrganization } = useBackgroundSync();
+  const { subscribeToOrganization, unsubscribeFromOrganization } = useBackgroundSync();
 
   useEffect(() => {
-    if (organizationId && enableSync) {
-      subscribeToOrganization(organizationId);
-      if (recordMetric) {
-        performanceMonitor.recordMetric('equipment-query-init', 1);
-      }
+    if (!organizationId || !enableSync) {
+      return;
     }
-  }, [organizationId, enableSync, subscribeToOrganization, recordMetric]);
+
+    subscribeToOrganization(organizationId);
+    if (recordMetric) {
+      performanceMonitor.recordMetric('equipment-query-init', 1);
+    }
+
+    return () => {
+      unsubscribeFromOrganization(organizationId);
+    };
+  }, [organizationId, enableSync, subscribeToOrganization, unsubscribeFromOrganization, recordMetric]);
 }

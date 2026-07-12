@@ -52,7 +52,7 @@ If none apply, **do not** stop for a plan — proceed directly to implementation
 
 ## Workflow
 
-```
+```text
 - [ ] Step 1: Identify the PR and preflight the working tree
 - [ ] Step 1b: CI gate — inspect checks; if pending, watch until complete; if failed, fix CI before comments
 - [ ] Step 2: Fetch all feedback (threads, review bodies, Qodo parent comment, resolved-thread audit)
@@ -173,7 +173,7 @@ Paginate `reviewThreads` and `comments` until complete.
 
 Build sets:
 
-```
+```text
 workingSet      = threads where isResolved == false AND isOutdated == false
 outdatedOpenSet = threads where isResolved == false AND isOutdated == true
 resolvedSet     = threads where isResolved == true

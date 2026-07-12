@@ -30,9 +30,8 @@ On the work order details page, choose:
 
 ## 3. Add a PM checklist
 
-1. Choose **With PM Checklist**.
-2. Pick the correct template from the list. If the equipment has a default template but this job needs a different one, you can override it here.
-3. Select **Save PM Changes**.
+1. Pick the correct template from the **PM template** dropdown. If the equipment has a default template but this job needs a different one, you can override it here.
+2. Select **Save PM Changes**.
 
 EquipQR creates the PM checklist and sets the work order to PM-enabled.
 
@@ -53,7 +52,7 @@ Download the PM checklist PDF from the work order if you need a record of comple
 ## 5. Remove the PM checklist
 
 1. Open **Manage PM Template**.
-2. Choose **Standard Work Order** (disables PM).
+2. Set **PM template** to **None** (or use the clear control next to the dropdown).
 3. Select **Save PM Changes**.
 
 The PM section disappears from the work order. Notes, photos, and costs stay on the work order.

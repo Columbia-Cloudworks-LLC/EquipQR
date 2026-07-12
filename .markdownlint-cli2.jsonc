@@ -1,15 +1,22 @@
 {
   "$schema": "https://raw.githubusercontent.com/DavidAnson/markdownlint-cli2/v0.20.0/schema/markdownlint-cli2-config-schema.json",
+  // High-signal defaults; spacing/table rules disabled — see AGENTS.md markdown policy.
   "config": {
     "default": true,
+    // Pre-existing disables (line length, duplicate H1, inline HTML, etc.)
     "MD013": false,
     "MD024": false,
     "MD025": false,
     "MD033": false,
     "MD036": false,
-    "MD041": false
+    "MD041": false,
+    // Repo conventions: compact tables, tight .mdc front-matter spacing (#1232)
+    "MD060": false,
+    "MD022": false,
+    "MD032": false,
+    "MD031": false
   },
   "frontMatter": "^---\\s*\\n[\\s\\S]*?\\n---\\s*\\n",
-  "globs": ["**/*.md", "**/*.mdc"],
+  "globs": [".cursor/**/*.md", ".cursor/**/*.mdc", "AGENTS.md"],
   "gitignore": true
 }

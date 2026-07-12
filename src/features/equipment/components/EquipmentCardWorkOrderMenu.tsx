@@ -6,7 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, Wrench, ChevronDown } from 'lucide-react';
+import { Plus, ChevronDown } from 'lucide-react';
 import { getPMComplianceLevel } from '@/features/equipment/hooks/useEquipmentPMStatus';
 import type { EquipmentPMStatus } from '@/features/equipment/hooks/useEquipmentPMStatus';
 
@@ -14,8 +14,7 @@ interface EquipmentCardWorkOrderMenuProps {
   equipmentId: string;
   pmStatus?: EquipmentPMStatus;
   onQuickAction?: (e: React.MouseEvent, path: string) => void;
-  onCreatePMWorkOrder?: () => void;
-  onCreateGenericWorkOrder?: () => void;
+  onCreateWorkOrder?: () => void;
   variant?: 'default' | 'icon' | 'mobile-bar';
 }
 
@@ -23,28 +22,18 @@ export function EquipmentCardWorkOrderMenu({
   equipmentId,
   pmStatus,
   onQuickAction,
-  onCreatePMWorkOrder,
-  onCreateGenericWorkOrder,
+  onCreateWorkOrder,
   variant = 'default',
 }: EquipmentCardWorkOrderMenuProps) {
   const isPmOverdue = getPMComplianceLevel(pmStatus) === 'overdue';
-  const pmWorkOrderPath = `/dashboard/equipment/${equipmentId}?createWorkOrder=pm`;
-  const genericWorkOrderPath = `/dashboard/equipment/${equipmentId}?createWorkOrder=generic`;
+  const workOrderPath = `/dashboard/equipment/${equipmentId}?createWorkOrder=1`;
 
-  const handlePMWorkOrder = (e: React.MouseEvent) => {
-    if (onCreatePMWorkOrder) {
-      onCreatePMWorkOrder();
+  const handleCreateWorkOrder = (e: React.MouseEvent) => {
+    if (onCreateWorkOrder) {
+      onCreateWorkOrder();
       return;
     }
-    onQuickAction?.(e, pmWorkOrderPath);
-  };
-
-  const handleGenericWorkOrder = (e: React.MouseEvent) => {
-    if (onCreateGenericWorkOrder) {
-      onCreateGenericWorkOrder();
-      return;
-    }
-    onQuickAction?.(e, genericWorkOrderPath);
+    onQuickAction?.(e, workOrderPath);
   };
 
   const menuAlign = variant === 'icon' ? 'end' : 'start';
@@ -91,13 +80,9 @@ export function EquipmentCardWorkOrderMenu({
           )}
         </DropdownMenuTrigger>
         <DropdownMenuContent align={menuAlign} className="w-56">
-          <DropdownMenuItem onClick={handlePMWorkOrder}>
-            <Wrench className="mr-2 h-4 w-4" />
-            New PM Work Order
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleGenericWorkOrder}>
+          <DropdownMenuItem onClick={handleCreateWorkOrder}>
             <Plus className="mr-2 h-4 w-4" />
-            Create Generic Work Order
+            New Work Order
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
