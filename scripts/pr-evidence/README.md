@@ -7,12 +7,23 @@ Agents **must** capture screenshots and an MP4 demo video from the local dev sta
 ```powershell
 # 1. Add or update e2e/pr-evidence/<feature>.spec.ts (see e2e/pr-evidence/README.md)
 
-# 2. Capture + upload + write markdown
+# 2. Capture only (generates visual-review-checklist.md)
+.\scripts\pr-evidence\Invoke-PrEvidence.ps1 `
+  -Flow "my-feature" `
+  -Spec "e2e/pr-evidence/my-feature.spec.ts" `
+  -CaptureOnly
+
+# 3. Open each PNG; complete visual-review-checklist.md; record approval
+.\scripts\pr-evidence\Complete-PrEvidenceVisualReview.ps1 `
+  -Flow "my-feature" `
+  -Notes "Verified framing and mobile layout"
+
+# 4. Upload + write evidence-markdown.md (blocked until step 3)
 .\scripts\pr-evidence\Invoke-PrEvidence.ps1 `
   -Flow "my-feature" `
   -Spec "e2e/pr-evidence/my-feature.spec.ts"
 
-# 3. Include tmp/pr-evidence/my-feature/evidence-markdown.md in the PR body, then post comment after create:
+# 5. Include tmp/pr-evidence/my-feature/evidence-markdown.md in the PR body, then post comment after create:
 .\scripts\pr-evidence\Invoke-PrEvidence.ps1 `
   -Flow "my-feature" `
   -Spec "e2e/pr-evidence/my-feature.spec.ts" `
@@ -27,9 +38,10 @@ Agents **must** capture screenshots and an MP4 demo video from the local dev sta
 
 | Script | Role |
 |--------|------|
-| `Invoke-PrEvidenceCapture.ps1` | Stack probe/start, Playwright run, PNG + H.264 MP4 generation |
+| `Invoke-PrEvidenceCapture.ps1` | Stack probe/start, Playwright run, PNG + H.264 MP4 generation, visual-review checklist |
+| `Complete-PrEvidenceVisualReview.ps1` | Record agent PNG review approval (`visual-review.json`) |
 | `Publish-PrEvidence.ps1` | Upload screenshots to Supabase + demo MP4 to GitHub, emit markdown |
-| `Invoke-PrEvidence.ps1` | End-to-end orchestrator (+ optional `gh pr comment`) |
+| `Invoke-PrEvidence.ps1` | End-to-end orchestrator (+ optional `gh pr comment`); gates publish on visual review |
 | `Publish-DocsMedia.ps1` | Upload capture artifacts to public `docs-media` for equipqr.info articles |
 
 ## Documentation media bucket

@@ -114,9 +114,16 @@ function Test-PrEvidenceCapturedManifest {
     return Test-Path -LiteralPath $videoFull
 }
 
-$shouldCapture = $true
-if ($Publish -and -not $Recapture -and (Test-PrEvidenceCapturedManifest -Path $manifestPath)) {
-    $shouldCapture = $false
+$manifestArtifactsReady = Test-PrEvidenceCapturedManifest -Path $manifestPath
+$manifestMatchesInvocation = Test-PrEvidenceManifestMatchesInvocation -ManifestPath $manifestPath -Spec $Spec -BaseUrl $BaseUrl -MobileViewport:$MobileViewport
+$shouldCapture = -not ($manifestArtifactsReady -and $manifestMatchesInvocation)
+if ($Recapture) {
+    $shouldCapture = $true
+}
+if ($manifestArtifactsReady -and -not $manifestMatchesInvocation) {
+    Write-Host '[PR evidence] Existing capture does not match current -Spec/-BaseUrl/-MobileViewport; recapturing.'
+}
+if (-not $shouldCapture) {
     Write-Host ('[PR evidence] Reusing existing capture at {0}' -f $artifactDir)
 }
 
@@ -137,13 +144,22 @@ if ($shouldCapture) {
         $captureParams['MobileViewport'] = $true
     }
 
+    $staleReviewPath = Get-PrEvidenceVisualReviewPath -ArtifactDir $artifactDir
+    if (Test-Path -LiteralPath $staleReviewPath) {
+        Remove-Item -LiteralPath $staleReviewPath -Force
+        Write-Host '[PR evidence] Cleared stale visual-review.json for fresh capture.'
+    }
+
     & (Join-Path $here 'Invoke-PrEvidenceCapture.ps1') @captureParams
 }
 
 if ($CaptureOnly) {
     Write-Host ('[PR evidence] Capture-only complete: {0}' -f $artifactDir)
+    Write-Host ('[PR evidence] Next: open {0}\visual-review-checklist.md, inspect each PNG, then Complete-PrEvidenceVisualReview.ps1' -f $artifactDir)
     exit 0
 }
+
+Assert-PrEvidenceVisualReviewComplete -ArtifactDir $artifactDir -FlowSlug $flowSlug
 
 $publishJsonFile = Join-Path $artifactDir 'publish-result.json'
 $publishOutput = & (Join-Path $here 'Publish-PrEvidence.ps1') -ManifestPath $manifestPath -MarkdownOut $markdownPath -Json

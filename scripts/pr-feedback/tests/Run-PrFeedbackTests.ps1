@@ -76,5 +76,28 @@ Assert-Equal -Expected 'actionRequired' -Actual $nestedParsed.openFindings[0].bu
 Assert-Equal -Expected 'actionRequired' -Actual $nestedParsed.openFindings[1].bucket -Message 'nested second bucket'
 Assert-Equal -Expected 'reviewRecommended' -Actual $nestedParsed.openFindings[2].bucket -Message 'nested third bucket'
 
+$fixerSample = @'
+### Qodo Fixer
+
+🍒 Ready to be cherry-picked — ✅ Merged (0) · ☑ Fixed (2)
+
+🔗 Fix PR: [#1230](https://github.com/Columbia-Cloudworks-LLC/EquipQR/pull/1230)
+
+<details><summary>Process — 2 fixed</summary>
+
+- ☑ Fixed: Audit list locator unstable
+- ☑ Fixed: Scroll helper robustness
+
+</details>
+'@
+Assert-Equal -Expected 'fixer' -Actual (Get-QodoCommentKind -Body $fixerSample) -Message 'fixer comment kind'
+$fixerParsed = Parse-QodoFixerCommentBody -Body $fixerSample
+Assert-Equal -Expected 0 -Actual $fixerParsed.mergedCount -Message 'fixer mergedCount'
+Assert-Equal -Expected 2 -Actual $fixerParsed.fixedCount -Message 'fixer fixedCount'
+Assert-Equal -Expected 2 -Actual $fixerParsed.pendingCount -Message 'fixer pendingCount'
+Assert-Equal -Expected 1230 -Actual $fixerParsed.fixPrNumber -Message 'fixer fixPrNumber'
+Assert-Equal -Expected $true -Actual $fixerParsed.needsAction -Message 'fixer needsAction'
+Assert-Equal -Expected 2 -Actual $fixerParsed.fixedItems.Count -Message 'fixer fixedItems count'
+
 Write-Host "PrFeedbackLogic: OK"
 exit 0

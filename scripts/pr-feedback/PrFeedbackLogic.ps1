@@ -164,8 +164,60 @@ function Get-QodoCommentKind {
     )
     if ($Body -match 'Code Review by Qodo') { return 'review' }
     if ($Body -match 'PR Summary by Qodo') { return 'summary' }
+    if ($Body -match 'Qodo Fixer' -and $Body -match 'Ready to be cherry-picked') { return 'fixer' }
     if ($Body -match 'was updated up to the latest commit') { return 'statusComplete' }
     if ($Body -match 'check back|reviewing|in progress|analyzing|please wait') { return 'statusInProgress' }
     if ($Body -match '\[Code review\]\(') { return 'status' }
     return 'other'
+}
+
+function Parse-QodoFixerCommentBody {
+    <#
+    .SYNOPSIS
+      Parse the Qodo Fixer cherry-pick comment (closed auto-fix PR link + fixed items).
+    #>
+    param(
+        [Parameter(Mandatory)]
+        [string]$Body
+    )
+    if ((Get-QodoCommentKind -Body $Body) -ne 'fixer') {
+        return $null
+    }
+
+    $mergedCount = 0
+    $fixedCount = 0
+    if ($Body -match 'Merged \((\d+)\)') {
+        $mergedCount = [int]$Matches[1]
+    }
+    if ($Body -match 'Fixed \((\d+)\)') {
+        $fixedCount = [int]$Matches[1]
+    }
+
+    $fixPrNumber = $null
+    $fixPrUrl = $null
+    if ($Body -match 'Fix PR:\s*\[#(\d+)\]\(([^)]+)\)') {
+        $fixPrNumber = [int]$Matches[1]
+        $fixPrUrl = $Matches[2]
+    }
+    elseif ($Body -match 'Fix PR:\s*\[#(\d+)\]') {
+        $fixPrNumber = [int]$Matches[1]
+    }
+
+    $fixedItems = [System.Collections.Generic.List[string]]::new()
+    foreach ($m in [regex]::Matches($Body, '-\s+\S+\s+Fixed:\s*(.+?)(?:\r?\n|$)')) {
+        $fixedItems.Add(($m.Groups[1].Value.Trim()))
+    }
+
+    $pendingCount = [Math]::Max(0, $fixedCount - $mergedCount)
+
+    return [ordered]@{
+        mergedCount   = $mergedCount
+        fixedCount    = $fixedCount
+        pendingCount  = $pendingCount
+        fixPrNumber   = $fixPrNumber
+        fixPrUrl      = $fixPrUrl
+        fixedItems    = @($fixedItems)
+        hasFixPr      = ($null -ne $fixPrNumber)
+        needsAction   = ($null -ne $fixPrNumber -and $pendingCount -gt 0)
+    }
 }

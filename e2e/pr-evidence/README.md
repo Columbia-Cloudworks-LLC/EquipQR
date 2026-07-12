@@ -15,7 +15,7 @@ If no feature spec exists yet, `smoke-dashboard.spec.ts` is the fallback — **d
 ## Authoring a feature spec
 
 1. Copy the pattern from `smoke-dashboard.spec.ts`.
-2. Use `evidenceScreenshot(page, '01-step-label')` at each meaningful state (before, during, after).
+2. Use `evidenceScreenshot(page, '01-step-label')` at each meaningful state (before, during, after). Pass `{ target: locator }` when a specific control must be fully framed in the PNG.
 3. Add short `evidencePause` calls so demo video playback is readable.
 4. Prefer Alex Apex (`gotoDashboard` fixture) unless RBAC requires another persona.
 5. Keep specs deterministic — use seeded data from `supabase/seeds/`.
@@ -30,19 +30,52 @@ import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
 test.describe('my feature @pr-evidence', () => {
   test('demonstrates the change', async ({ gotoDashboard, page }) => {
     await gotoDashboard('/dashboard/my-route');
-    await evidenceScreenshot(page, '01-before');
+    const saveButton = page.getByRole('button', { name: /save/i });
+    await evidenceScreenshot(page, '01-before', { target: saveButton });
     // ... interact ...
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '02-after');
+    await evidenceScreenshot(page, '02-after', { target: saveButton });
     await expect(page.getByText(/expected outcome/i)).toBeVisible();
   });
 });
 ```
 
+## Frame quality (capture-time)
+
+`evidenceScreenshot()` always asserts **no horizontal viewport overflow**. Pass `{ target: locator }` to scroll the control into frame and assert it is **fully visible** (not clipped by header, FAB, or sheet chrome) before the PNG is written. Helpers live in `shared/evidence-frame-helpers.ts`.
+
+## Visual review (post-capture, mandatory before publish)
+
+After `-CaptureOnly`, capture writes `tmp/pr-evidence/{flow}/visual-review-checklist.md`. The agent must **open each PNG** (Read tool or local viewer) and confirm:
+
+- Target control/state is fully in frame with comfortable padding
+- No horizontal scroll traps; mobile stacking is intentional
+- Primary actions are reachable (not hidden behind fixed chrome)
+
+Then record approval:
+
+```powershell
+.\scripts\pr-evidence\Complete-PrEvidenceVisualReview.ps1 -Flow "<flow>" -Notes "<what you verified>"
+```
+
+Upload/publish (`Invoke-PrEvidence.ps1` without `-CaptureOnly`) is blocked until `visual-review.json` has `approved: true`. Re-capture clears stale approval.
+
 ## Capture and publish
 
 ```powershell
 # Capture (stack must be up — dev-start.bat or run-user-regression preflight)
+.\scripts\pr-evidence\Invoke-PrEvidence.ps1 `
+  -Flow "my-feature-slug" `
+  -Spec "e2e/pr-evidence/my-feature.spec.ts" `
+  -CaptureOnly
+
+# Mandatory visual review — open each PNG in tmp/pr-evidence/{flow}/screenshots/
+# and walk visual-review-checklist.md before upload/publish.
+.\scripts\pr-evidence\Complete-PrEvidenceVisualReview.ps1 `
+  -Flow "my-feature-slug" `
+  -Notes "Verified framing, no horizontal scroll, mobile stacking OK"
+
+# Upload markdown (blocked until visual review is recorded)
 .\scripts\pr-evidence\Invoke-PrEvidence.ps1 `
   -Flow "my-feature-slug" `
   -Spec "e2e/pr-evidence/my-feature.spec.ts"
@@ -62,9 +95,12 @@ Artifacts land under `tmp/pr-evidence/{flow}/` (gitignored). Screenshot URLs use
 Issue #1161 standardizes equipqr.info walkthrough videos on desktop **and** mobile:
 
 1. **`settleForDemo`** — after navigation or a major state change, wait for spinners to clear, then hold the fully loaded view ~1s before the next step.
-2. **`focusAndClick` / `focusAndFill` / `focusControl`** — scroll the target control fully into view (smooth scroll on long pages), play a dim/blur spotlight that converges on the control, hold ~0.5s, un-dim, then act.
+2. **`focusAndClick` / `focusAndFill` / `focusControl`** — scroll the target control fully into view, assert frame quality via `evidence-frame-helpers.ts` (no horizontal overflow, control not clipped), play a dim/blur spotlight that converges on the control, hold ~0.5s, un-dim, then act.
+3. **`evidenceScreenshot(page, label, { target })`** — after a demo step, capture with the same frame-quality gate; pass `target` when a specific control must be fully visible in the PNG.
 
 Specs under `e2e/pr-evidence/docs-*.spec.ts` import these helpers. Every control that is clicked must be **fully visible** before the focus animation starts — scroll first when the page is long.
+
+**Post-capture:** walk `visual-review-checklist.md` and run `Complete-PrEvidenceVisualReview.ps1` before publishing docs-media or PR evidence (see **Visual review** above).
 
 ```typescript
 import { focusAndClick, settleForDemo } from './shared/docs-demo-helpers';

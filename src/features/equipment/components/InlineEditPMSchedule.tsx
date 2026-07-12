@@ -108,7 +108,7 @@ export function InlineEditPMSchedule({
       <div
         className={cn(
           isMobile ? mobileInlineEditRowClassName : desktopInlineEditRowClassName,
-          'min-w-0 flex-1 items-start',
+          'min-w-0 w-full flex-1 items-center',
         )}
       >
         <div className={cn(isMobile && mobileInlineEditValueClassName, !isMobile && 'min-w-0 flex-1')}>

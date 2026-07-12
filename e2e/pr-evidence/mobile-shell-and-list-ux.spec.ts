@@ -28,7 +28,9 @@ test.describe('Mobile shell and list UX @pr-evidence', () => {
     ).toBeVisible({ timeout: 30_000 });
 
     await evidencePause(page, 800);
-    await evidenceScreenshot(page, '01-mobile-inventory-list');
+    await evidenceScreenshot(page, '01-mobile-inventory-list', {
+      target: page.getByRole('button', { name: /open personalization|custom sort active/i }).first(),
+    });
 
     await gotoDashboard('/organization/members');
     await assertHealthyShell();
@@ -41,7 +43,9 @@ test.describe('Mobile shell and list UX @pr-evidence', () => {
     });
 
     await evidencePause(page, 800);
-    await evidenceScreenshot(page, '02-mobile-org-members');
+    await evidenceScreenshot(page, '02-mobile-org-members', {
+      target: page.getByRole('button', { name: /invite member/i }),
+    });
 
     await gotoDashboard('/organization/integrations');
     await assertHealthyShell();

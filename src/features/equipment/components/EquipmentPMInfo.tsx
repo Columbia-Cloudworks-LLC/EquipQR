@@ -84,7 +84,7 @@ const EquipmentPMInfo: React.FC<EquipmentPMInfoProps> = ({
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Preventative Maintenance</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
           {pmConfigFields}
           <Separator />
           <div className="h-16 bg-muted animate-pulse rounded" />
@@ -102,7 +102,7 @@ const EquipmentPMInfo: React.FC<EquipmentPMInfoProps> = ({
             Preventative Maintenance
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
           {pmConfigFields}
           <Separator />
           <p className="text-sm text-muted-foreground">
@@ -138,7 +138,7 @@ const EquipmentPMInfo: React.FC<EquipmentPMInfoProps> = ({
           Preventative Maintenance
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3">
         {pmConfigFields}
         <Separator />
         <div className="space-y-3">

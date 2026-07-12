@@ -50,6 +50,8 @@ export interface ExportRequest {
   filters: ExportFilters;
   columns: string[];
   format: 'csv';
+  /** When true, enqueue async job for equipment/work-orders (#1193). */
+  async?: boolean;
 }
 
 // ============================================

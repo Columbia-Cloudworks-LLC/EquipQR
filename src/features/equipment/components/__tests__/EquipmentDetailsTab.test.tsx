@@ -23,8 +23,69 @@ vi.mock('@/hooks/useUnifiedPermissions', () => ({
         canEdit: true,
         canDelete: true
       }))
-    }
+    },
+    getEquipmentNotesPermissions: vi.fn(() => ({
+      canSetDisplayImage: true,
+      canUploadImages: true,
+      canDeleteImages: true,
+    })),
   }))
+}));
+
+vi.mock('@/features/equipment/hooks/useEquipmentNotesPermissions', () => ({
+  useEquipmentNotesPermissions: vi.fn(() => ({
+    canSetDisplayImage: true,
+    canUploadImages: true,
+    canDeleteImages: true,
+  })),
+}));
+
+vi.mock('@/features/equipment/hooks/useEquipmentMediaLibrary', () => ({
+  useEquipmentMediaLibrary: vi.fn(() => ({
+    images: [],
+    filteredImages: [],
+    displayOrderedImages: [],
+    recentThumbnails: [],
+    filters: {
+      search: '',
+      source: 'all',
+      uploader: '',
+      dateFrom: '',
+      dateTo: '',
+      sortField: 'created_at',
+      sortOrder: 'desc',
+    },
+    activeFilterCount: 0,
+    hasActiveFilters: false,
+    isLoading: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+    setSearch: vi.fn(),
+    setSource: vi.fn(),
+    setUploader: vi.fn(),
+    setDateFrom: vi.fn(),
+    setDateTo: vi.fn(),
+    setSort: vi.fn(),
+    clearFilters: vi.fn(),
+    setFilters: vi.fn(),
+  })),
+}));
+
+vi.mock('@/features/equipment/components/media/EquipmentMediaSummaryStrip', () => ({
+  EquipmentMediaSummaryStrip: () => <div data-testid="equipment-media-summary" />,
+}));
+
+vi.mock('@/features/equipment/components/media/EquipmentMediaExplorer', () => ({
+  EquipmentMediaExplorer: () => null,
+}));
+
+vi.mock('@/features/equipment/components/media/EquipmentPrimaryMediaPanel', () => ({
+  EquipmentPrimaryMediaPanel: () => <div data-testid="equipment-primary-media" />,
+}));
+
+vi.mock('@/features/equipment/services/equipmentImagesService', () => ({
+  updateEquipmentDisplayImage: vi.fn(),
 }));
 
 vi.mock('@/features/teams/hooks/useTeamManagement', () => ({

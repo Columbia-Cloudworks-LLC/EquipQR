@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, type MutableRefObject } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -15,12 +15,20 @@ import { createValidationContext } from '@/utils/validationHelpers';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { toast } from 'sonner';
+import { useAppToast } from '@/hooks/useAppToast';
 import { logEquipmentLocationChange } from '@/features/equipment/services/equipmentLocationHistoryService';
 import {
   buildEquipmentFormDefaultValues,
   toEquipmentCreateData,
   toEquipmentUpdateData,
 } from '@/features/equipment/utils/equipmentFormMappers';
+import {
+  createEquipmentNoteWithImages,
+  updateEquipmentDisplayImage,
+} from '@/features/equipment/services/equipmentNotesService';
+import type { EquipmentFormPendingMedia } from '@/features/equipment/components/form/EquipmentFormMediaSection';
+import { equipment } from '@/lib/queryKeys';
+import { extractEquipmentDisplayImagePath } from '@/services/imageUploadService';
 
 /**
  * Map a raw equipment mutation error to an operator-friendly message. Permission
@@ -36,13 +44,20 @@ const getEquipmentMutationErrorMessage = (error: unknown, fallback: string): str
   return fallback;
 };
 
-export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () => void) => {
+export const useEquipmentForm = (
+  initialData?: EquipmentRecord,
+  onSuccess?: () => void,
+  pendingMediaRef?: MutableRefObject<EquipmentFormPendingMedia>,
+) => {
   const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
   const { sessionData } = useSession();
   const offlineCtx = useOfflineQueueOptional();
+  const { warning: showWarningToast } = useAppToast();
+  const localPendingRef = useRef<EquipmentFormPendingMedia>({ files: [], displayIndex: 0 });
+  const mediaRef = pendingMediaRef ?? localPendingRef;
 
   const validationSchema = useMemo(() => {
     if (initialData || !currentOrganization) {
@@ -79,11 +94,10 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
       const result = await service.createEquipmentFull(createData);
 
       if (result.queuedOffline) {
-        return { id: 'offline', queuedOffline: true };
+        return { id: 'offline', queuedOffline: true as const };
       }
       if (!result.data) throw new Error('Failed to create equipment');
 
-      // Log location change if assigned location fields are present (only when online)
       if (
         data.assigned_location_street ||
         data.assigned_location_city ||
@@ -106,7 +120,54 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
         });
       }
 
-      return result.data;
+      let mediaUploadFailed = false;
+      const pending = mediaRef.current;
+      if (pending.files.length > 0) {
+        try {
+          const userName = user.email?.split('@')[0] || 'User';
+          const noteContent =
+            pending.files.length === 1
+              ? `${userName} uploaded a display image`
+              : `${userName} uploaded ${pending.files.length} images at creation`;
+          const note = await createEquipmentNoteWithImages(
+            result.data.id,
+            noteContent,
+            0,
+            false,
+            pending.files,
+            currentOrganization.id,
+          );
+          if (!note.images || note.images.length === 0) {
+            mediaUploadFailed = true;
+          } else {
+            if (note.images.length < pending.files.length) {
+              mediaUploadFailed = true;
+            }
+            const displayImage =
+              note.images[pending.displayIndex] ?? note.images[0] ?? null;
+            if (displayImage?.file_url) {
+              try {
+                const path =
+                  extractEquipmentDisplayImagePath(displayImage.file_url) ?? displayImage.file_url;
+                await updateEquipmentDisplayImage(currentOrganization.id, result.data.id, path);
+              } catch (displayError) {
+                console.error('Post-create equipment display image update failed:', displayError);
+                mediaUploadFailed = true;
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Post-create equipment media upload failed:', error);
+          mediaUploadFailed = true;
+        }
+        if (mediaUploadFailed) {
+          await queryClient.invalidateQueries({ queryKey: equipment.images(result.data.id) });
+        }
+      }
+
+      return mediaUploadFailed
+        ? { ...result.data, mediaUploadFailed: true as const }
+        : result.data;
     },
     onSuccess: (data) => {
       const queuedOffline = data && 'queuedOffline' in data && data.queuedOffline;
@@ -114,11 +175,22 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
         toast.success('Saved offline — equipment will be created when you reconnect.');
         offlineCtx?.refresh();
       } else {
-        queryClient.invalidateQueries({ queryKey: ['equipment', currentOrganization?.id] });
+        queryClient.invalidateQueries({ queryKey: equipment.list(currentOrganization?.id ?? '') });
         queryClient.invalidateQueries({ queryKey: ['dashboard-stats', currentOrganization?.id] });
         queryClient.invalidateQueries({ queryKey: ['equipment-status-counts', currentOrganization?.id] });
-        toast.success('Equipment created successfully');
+        if (data && 'id' in data && typeof data.id === 'string') {
+          queryClient.invalidateQueries({ queryKey: equipment.images(data.id) });
+        }
+        if (data && 'mediaUploadFailed' in data && data.mediaUploadFailed) {
+          showWarningToast({
+            description:
+              'Equipment created, but media upload failed. Add photos from the equipment details page.',
+          });
+        } else {
+          toast.success('Equipment created successfully');
+        }
       }
+      mediaRef.current = { files: [], displayIndex: 0 };
       form.reset();
       setIsOpen(false);
       onSuccess?.();
@@ -147,11 +219,10 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
       );
 
       if (result.queuedOffline) {
-        return { id: initialData.id, queuedOffline: true };
+        return { id: initialData.id, queuedOffline: true as const };
       }
       if (!result.data) throw new Error('Failed to update equipment');
 
-      // Log location change only if assigned location fields actually changed (only when online)
       const hasAssignedLocationChanged =
         (initialData.assigned_location_street ?? '') !== (data.assigned_location_street ?? '') ||
         (initialData.assigned_location_city ?? '') !== (data.assigned_location_city ?? '') ||
@@ -183,8 +254,10 @@ export const useEquipmentForm = (initialData?: EquipmentRecord, onSuccess?: () =
         toast.success('Saved offline — equipment will be updated when you reconnect.');
         offlineCtx?.refresh();
       } else {
-        queryClient.invalidateQueries({ queryKey: ['equipment', currentOrganization?.id] });
-        queryClient.invalidateQueries({ queryKey: ['equipment', currentOrganization?.id, initialData?.id] });
+        queryClient.invalidateQueries({ queryKey: equipment.list(currentOrganization?.id ?? '') });
+        queryClient.invalidateQueries({
+          queryKey: equipment.byId(currentOrganization?.id ?? '', initialData?.id ?? ''),
+        });
         toast.success('Equipment updated successfully');
       }
       setIsOpen(false);

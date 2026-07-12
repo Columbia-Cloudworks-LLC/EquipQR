@@ -15,8 +15,9 @@ The templates above ship with EquipQR as **EquipQR Templates** — best-in-class
 
 ## Apply a template to equipment in bulk
 
-On **Operations → PM Templates**, every template card has an **Apply to Equipment** dropdown — the same multi-select picker used by daily check-ins:
+On **Operations → PM Templates**, every template card has an assignment dropdown — the same multi-select picker used by daily check-ins:
 
-1. The list shows equipment in your current organization, scoped by the team selected in the top bar.
-2. Search, then use **Select all**, **Select none**, or **Inverse** to build your selection. Equipment already using the template as its default is marked **Current default**.
-3. Click **Apply template** to set the template as the default PM on every selected record.
+1. The trigger reads **Apply to Equipment** when no equipment in the current team scope uses the template yet. Once assigned, it shows **Assigned Equipment (count)** so you can scan coverage at a glance.
+2. The list shows equipment in your current organization, scoped by the team selected in the top bar.
+3. Search, then use **Select all**, **Select none**, or **Inverse** to build your selection. Equipment already using the template as its default is marked **Current default**.
+4. Click **Apply template** to set the template as the default PM on every selected record.

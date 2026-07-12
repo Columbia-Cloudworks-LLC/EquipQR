@@ -87,26 +87,33 @@ export async function assignTemplateToEquipment(
 
 function getOperatorCheckinAssignmentRow(page: Page, templateName: string) {
   return page
-    .locator('.rounded-lg.border.p-4')
+    .locator('ul.divide-y > li')
     .filter({ hasText: templateName })
     .filter({ has: page.getByRole('button', { name: /view qr code/i }) })
     .first();
 }
 
-/** Assigns a template from the equipment details Daily Operator Check-In card (mobile-friendly). */
+/** Assigns a template from the equipment Check-Ins tab multi-select menu. */
 export async function assignTemplateOnEquipmentDetails(
   page: Page,
   templateName: string,
 ): Promise<void> {
-  await page.getByRole('button', { name: /add check-in checklist/i }).click();
-  const templateSelect = page.locator('[id^="add-checkin-template-"]');
-  await templateSelect.click();
-  await page.getByRole('option', { name: templateName, exact: true }).click();
-  await expect(templateSelect).toContainText(templateName, { timeout: 15_000 });
+  await page.getByRole('tab', { name: /check-ins/i }).click();
+  await page.getByRole('button', { name: /assign checklists/i }).click();
 
-  await page.getByRole('button', { name: /save assignment/i }).scrollIntoViewIfNeeded();
-  await expect(page.getByRole('button', { name: /save assignment/i })).toBeEnabled({ timeout: 15_000 });
-  await page.getByRole('button', { name: /save assignment/i }).click();
+  const assignPanel = page
+    .locator('[data-radix-popper-content-wrapper]')
+    .filter({ hasText: /Assign checklists to/i });
+  await expect(assignPanel).toBeVisible({ timeout: 15_000 });
+
+  const templateCheckbox = assignPanel.getByRole('checkbox', {
+    name: new RegExp(`^${templateName}`, 'i'),
+  });
+  await expect(templateCheckbox).toBeVisible({ timeout: 15_000 });
+  await templateCheckbox.check();
+  await expect(templateCheckbox).toBeChecked({ timeout: 15_000 });
+
+  await assignPanel.getByRole('button', { name: /assign checklist/i }).click();
   await expect(getOperatorCheckinAssignmentRow(page, templateName)).toBeVisible({
     timeout: 30_000,
   });

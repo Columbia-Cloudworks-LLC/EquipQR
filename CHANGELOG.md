@@ -9,6 +9,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.8] - 2026-07-12
+
+### Changed
+
+- **nanoid (#1104)** — Bump `nanoid` from 5.1.11 to 5.1.16 (Dependabot).
+
+## [3.25.7] - 2026-07-11
+
+### Fixed
+
+- **Dark scrollbar theme (#1208)** — Global scrollbar styling uses subtle dark thumbs on transparent tracks so native light OS scrollbars no longer clash with the Mission Control palette in popovers, dialogs, sheets, and other overflow regions.
+
+## [3.25.6] - 2026-07-11
+
+### Changed
+
+- **PM Templates assignment UX (#1209)** — Template card assignment triggers use outline styling so titles scan more easily, and the label shows **Assigned Equipment (count)** when equipment in the current team scope already uses the template as its default PM.
+
+## [3.25.5] - 2026-07-11
+
+### Changed
+
+- **Help Center evidence quality gate (#1161)** — PR/docs capture now asserts frame quality at screenshot time (no horizontal overflow, controls fully in viewport via `evidence-frame-helpers.ts`) and requires a mandatory post-capture visual review (`visual-review-checklist.md` + `Complete-PrEvidenceVisualReview.ps1`) before upload/publish. `docs-demo-helpers.ts` shares the same frame assertions before spotlight choreography.
+
+
+### Fixed
+
+- **SEO crawl budget (#1220)** — Block authenticated app routes and sensitive paths in `robots.txt` so search engines concentrate crawl budget on public marketing pages instead of sign-in walls and soft 404s.
+
+## [3.25.3] - 2026-07-11
+
+### Fixed
+
+- **Mobile inline image viewports (#1216)** — Disable touch panning on phones/tablets so page scroll is not blocked on note and equipment photos; always show download/copy controls on mobile; tap opens a pinch-zoom lightbox with export actions. Work order image carousels and galleries reuse the shared lightbox.
+
+## [3.25.2] - 2026-07-11
+
+### Changed
+
+- **Testing infrastructure (#1214)** — Remove the `scripts/test-runner.mjs` log-watching wrapper; run Vitest natively with a forks pool. Add Vitest 4 `unit` (Node) and `component` (jsdom) projects for environment isolation. On Windows, `npm test` / `npm run test:component` shard the component suite into four sequential chunks with visible phase banners. Clear React Query caches in global teardown; document the testing-trophy strategy in `docs/technical/testing-guidelines.md`.
+
+## [3.25.1] - 2026-07-11
+
+### Changed
+
+- **Equipment details desktop layout (#1212)** — Basic Information and Lifecycle & Warranty share a two-column row on desktop; Preventative Maintenance controls live on the Work Orders tab; Daily Operator Check-In assignment lives on the Check-Ins tab.
+
+## [3.25.0] - 2026-07-09
+
+### Added
+
+- **Equipment media & artifacts library (#1129)** - Searchable/filterable media library with dedicated explorer, details-tab summary strip, create-time display image capture, and display-first chronological carousels (reusing DynamicImageViewport / NoteImageCarousel from #1185/#1200) on equipment and work order details.
+
+## [3.24.0] - 2026-07-09
+
+### Added
+
+- **Async export jobs (#1193)** — Heavy equipment and work-order CSV exports enqueue via pgmq `exports`, process in `process-export-job`, store results in a private `export-results` bucket, and notify when ready. DB RPCs shape minimal columns to cut egress. Loading toasts cover Google Drive/Docs/Sheets and report exports until completion. Smaller report types remain synchronous.
+
+### Fixed
+
+- **Async export scope hardening (#1205)** — `enqueue_export_job` derives work-order `accessibleTeamIds` from DB memberships (non-admins cannot omit/forge org-wide scope); the worker re-checks admin vs scoped payload and rejects mismatched queue messages; client polling fails fast on `not_found` instead of timing out.
+
 ## [3.23.1] - 2026-07-09
 
 ### Changed

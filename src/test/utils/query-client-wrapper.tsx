@@ -1,19 +1,27 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
+import { registerTestQueryClient } from '@/test/query-client-registry';
 
 export type TestQueryClientOptions = {
   gcTime?: number;
+  staleTime?: number;
 };
 
 /** QueryClient tuned for unit tests (no retries). */
 export function createTestQueryClient(options?: TestQueryClientOptions): QueryClient {
-  return new QueryClient({
+  const client = new QueryClient({
     defaultOptions: {
-      queries: { retry: false, gcTime: options?.gcTime ?? 0 },
+      queries: {
+        retry: false,
+        gcTime: options?.gcTime ?? 0,
+        staleTime: options?.staleTime,
+      },
       mutations: { retry: false },
     },
   });
+  registerTestQueryClient(client);
+  return client;
 }
 
 /** Minimal wrapper for renderHook tests that only need React Query. */
