@@ -70,7 +70,7 @@ jobs:
         cache: 'npm'
 
     - name: Cache dependencies
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
       with:
         path: |
           ~/.npm
@@ -176,7 +176,7 @@ jobs:
         cache: 'npm'
 
     - name: Cache dependencies
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
       with:
         path: |
           ~/.npm
@@ -186,7 +186,7 @@ jobs:
           ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ env.CACHE_VERSION }}-
 
     - name: Cache Vite/SWC transform output
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
       with:
         path: |
           node_modules/.vite
@@ -245,7 +245,7 @@ jobs:
         cache: 'npm'
 
     - name: Cache dependencies
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
       with:
         path: |
           ~/.npm
@@ -337,7 +337,7 @@ jobs:
         cache: 'npm'
 
     - name: Cache dependencies
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
       with:
         path: |
           ~/.npm
@@ -390,7 +390,7 @@ jobs:
         cache: 'npm'
 
     - name: Cache dependencies
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
       with:
         path: |
           ~/.npm
@@ -400,7 +400,7 @@ jobs:
           ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ env.CACHE_VERSION }}-
 
     - name: Cache Vite build output
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
       with:
         path: |
           node_modules/.vite
@@ -464,7 +464,7 @@ jobs:
         install_with_retry || (rm -f package-lock.json && npm install --package-lock-only --no-audit && install_with_retry)
 
     - name: Cache build output
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
       with:
         path: dist
         key: ${{ runner.os }}-build-${{ github.sha }}
@@ -563,7 +563,7 @@ jobs:
         cache: 'npm'
 
     - name: Cache dependencies
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
       with:
         path: |
           ~/.npm
@@ -611,7 +611,7 @@ jobs:
         npm ci --prefer-offline --no-audit || (rm -f package-lock.json && npm install --package-lock-only --no-audit && npm ci --prefer-offline --no-audit)
 
     - name: Restore build cache
-      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
       with:
         path: dist
         key: ${{ runner.os }}-build-${{ github.sha }}
