@@ -1,5 +1,9 @@
 /**
  * Work orders export data fetching.
+ *
+ * Intentionally separate from `_shared/reports/` (#1192): packet exports (Excel,
+ * DOCX, Google Sheets/Docs) require enriched multi-table shapes — notes, costs,
+ * PM checklists, status history — that Fleet Export Console CSV summaries do not.
  */
 
 import { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
