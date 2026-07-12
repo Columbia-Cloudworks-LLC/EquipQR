@@ -132,6 +132,36 @@ Deno.test("formatTemplateName reads template_snapshot.name", () => {
   assertEquals(__formatCsvTestables.formatTemplateName({ template_snapshot: null }), "");
 });
 
+Deno.test("OPERATOR_CHECKINS_TABLE_SELECT uses inner equipment join for org scoping", () => {
+  assertEquals(__fetchRowsTestables.OPERATOR_CHECKINS_TABLE_SELECT.includes("equipment!inner"), true);
+});
+
+Deno.test("buildReportCsv returns no-data when all requested columns are disallowed", () => {
+  const result = buildReportCsv("inventory", [{
+    name: "Filter",
+    sku: "FLT-1",
+  }], ["not_a_real_column"]);
+  assertEquals(result.csvContent, "No data found");
+  assertEquals(result.rowCount, 0);
+});
+
+Deno.test("applyRowPagination uses range when offset is provided", () => {
+  const calls: string[] = [];
+  const query = {
+    range(from: number, to: number) {
+      calls.push(`range:${from}-${to}`);
+      return this;
+    },
+    limit(count: number) {
+      calls.push(`limit:${count}`);
+      return this;
+    },
+  } as unknown as import("./types.ts").ReportQueryBuilder;
+
+  __fetchRowsTestables.applyRowPagination(query, 100, 50);
+  assertEquals(calls, ["range:50-149"]);
+});
+
 Deno.test("resolveLimit defaults to 50000", () => {
   assertEquals(__fetchRowsTestables.resolveLimit(), 50_000);
   assertEquals(__fetchRowsTestables.resolveLimit(100), 100);

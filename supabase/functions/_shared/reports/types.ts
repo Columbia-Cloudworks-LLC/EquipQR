@@ -28,7 +28,10 @@ export interface FetchReportRowsParams {
   columns: string[];
   /** When set, work-order exports are limited to these team IDs. Empty array yields no rows. */
   accessibleTeamIds?: string[];
+  /** Max rows to return (default 50_000). */
   limit?: number;
+  /** Zero-based row offset for bounded pagination within the export cap. */
+  offset?: number;
 }
 
 /** Minimal PostgREST chain surface for report row queries (stub-friendly). */
@@ -42,6 +45,7 @@ export interface ReportQueryBuilder {
   ilike(column: string, pattern: string): ReportQueryBuilder;
   gte(column: string, value: unknown): ReportQueryBuilder;
   lte(column: string, value: unknown): ReportQueryBuilder;
+  range(from: number, to: number): ReportQueryBuilder;
   then: PromiseLike<{
     data: ReportRow[] | null;
     error: { message: string } | null;

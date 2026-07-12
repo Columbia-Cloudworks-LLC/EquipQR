@@ -196,6 +196,13 @@ export function buildReportCsv(
   columns: string[],
 ): ReportCsvResult {
   const allowedColumns = filterAllowedColumns(reportType, columns);
+  if (allowedColumns.length === 0) {
+    return { csvContent: "No data found", rowCount: 0 };
+  }
+
+  if (rows.length === 0) {
+    return { csvContent: "No data found", rowCount: 0 };
+  }
 
   switch (reportType) {
     case "equipment":

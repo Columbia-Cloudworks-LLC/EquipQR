@@ -99,7 +99,12 @@ const OPERATOR_CHECKINS_TABLE_SELECT = `
   client_field_values,
   equipment_field_values,
   template_snapshot,
-  equipment:equipment_id (id, name, serial_number)
+  equipment!inner (
+    id,
+    name,
+    serial_number,
+    organization_id
+  )
 `;
 
 const ALTERNATE_GROUP_COLUMNS =
@@ -149,12 +154,24 @@ function resolveLimit(limit?: number): number {
   return limit ?? DEFAULT_MAX_REPORT_ROWS;
 }
 
+function applyRowPagination(
+  query: ReportQueryBuilder,
+  limit: number,
+  offset?: number,
+): ReportQueryBuilder {
+  if (offset !== undefined && offset > 0) {
+    return query.range(offset, offset + limit - 1);
+  }
+  return query.limit(limit);
+}
+
 async function fetchEquipmentRows(
   client: ReportDataClient,
   organizationId: string,
   filters: ReportExportFilters,
   columns: string[],
   limit: number,
+  offset?: number,
 ): Promise<ExportRow[]> {
   if (client.rpc) {
     const { data, error } = await client.rpc("export_equipment_csv_rows", {
@@ -178,8 +195,9 @@ async function fetchEquipmentRows(
   let query = reportQuery(client, "equipment")
     .select(EQUIPMENT_TABLE_SELECT)
     .eq("organization_id", organizationId)
-    .order("name")
-    .limit(limit);
+    .order("name");
+
+  query = applyRowPagination(query, limit, offset);
 
   if (filters.status) query = query.eq("status", filters.status);
   if (filters.teamId) query = query.eq("team_id", filters.teamId);
@@ -203,6 +221,7 @@ async function fetchWorkOrderRows(
   columns: string[],
   accessibleTeamIds: string[] | undefined,
   limit: number,
+  offset?: number,
 ): Promise<ExportRow[]> {
   if (accessibleTeamIds !== undefined && accessibleTeamIds.length === 0) {
     return [];
@@ -234,8 +253,9 @@ async function fetchWorkOrderRows(
     .select(WORK_ORDERS_TABLE_SELECT)
     .eq("organization_id", organizationId)
     .not("equipment_id", "is", null)
-    .order("created_date", { ascending: false })
-    .limit(limit);
+    .order("created_date", { ascending: false });
+
+  query = applyRowPagination(query, limit, offset);
 
   if (accessibleTeamIds !== undefined) {
     query = query.in("team_id", accessibleTeamIds);
@@ -263,12 +283,14 @@ async function fetchInventoryRows(
   organizationId: string,
   filters: ReportExportFilters,
   limit: number,
+  offset?: number,
 ): Promise<ReportRow[]> {
   let query = reportQuery(client, "inventory_items")
     .select(INVENTORY_TABLE_SELECT)
     .eq("organization_id", organizationId)
-    .order("name")
-    .limit(limit);
+    .order("name");
+
+  query = applyRowPagination(query, limit, offset);
 
   if (filters.location) {
     query = query.ilike("location", `%${filters.location}%`);
@@ -287,12 +309,14 @@ async function fetchScanRows(
   organizationId: string,
   filters: ReportExportFilters,
   limit: number,
+  offset?: number,
 ): Promise<ReportRow[]> {
   let query = reportQuery(client, "scans")
     .select(SCANS_TABLE_SELECT)
     .eq("equipment.organization_id", organizationId)
-    .order("scanned_at", { ascending: false })
-    .limit(limit);
+    .order("scanned_at", { ascending: false });
+
+  query = applyRowPagination(query, limit, offset);
 
   if (filters.dateRange?.from) {
     query = query.gte("scanned_at", filters.dateRange.from);
@@ -314,12 +338,15 @@ async function fetchOperatorCheckinRows(
   organizationId: string,
   filters: ReportExportFilters,
   limit: number,
+  offset?: number,
 ): Promise<ReportRow[]> {
   let query = reportQuery(client, "operator_checkin_submissions")
     .select(OPERATOR_CHECKINS_TABLE_SELECT)
     .eq("organization_id", organizationId)
-    .order("submitted_at", { ascending: false })
-    .limit(limit);
+    .eq("equipment.organization_id", organizationId)
+    .order("submitted_at", { ascending: false });
+
+  query = applyRowPagination(query, limit, offset);
 
   if (filters.dateRange?.from) {
     query = query.gte("submitted_at", filters.dateRange.from);
@@ -340,12 +367,16 @@ async function fetchAlternateGroupRows(
   client: ReportDataClient,
   organizationId: string,
   limit: number,
+  offset?: number,
 ): Promise<FlattenedAlternateGroupMember[]> {
-  const { data: groups, error: groupsError } = await reportQuery(client, "part_alternate_groups")
+  let groupsQuery = reportQuery(client, "part_alternate_groups")
     .select(ALTERNATE_GROUP_COLUMNS)
     .eq("organization_id", organizationId)
-    .order("name")
-    .limit(limit);
+    .order("name");
+
+  groupsQuery = applyRowPagination(groupsQuery, limit, offset);
+
+  const { data: groups, error: groupsError } = await groupsQuery;
 
   if (groupsError) {
     throw new Error(`Failed to fetch alternate groups: ${groupsError.message}`);
@@ -401,6 +432,7 @@ async function fetchAlternateGroupRows(
 /**
  * Fetch shaped rows for a Fleet Export Console report type.
  * Applies server-side column whitelisting before RPC calls.
+ * Table-select fallbacks honor optional `offset` + `limit` pagination; RPC paths use `limit` only.
  */
 export async function fetchReportRows(
   client: ReportDataClient,
@@ -413,13 +445,14 @@ export async function fetchReportRows(
     columns,
     accessibleTeamIds,
     limit,
+    offset,
   } = params;
   const rowLimit = resolveLimit(limit);
   const allowedColumns = filterAllowedColumns(reportType, columns);
 
   switch (reportType) {
     case "equipment":
-      return fetchEquipmentRows(client, organizationId, filters, allowedColumns, rowLimit);
+      return fetchEquipmentRows(client, organizationId, filters, allowedColumns, rowLimit, offset);
     case "work-orders":
       return fetchWorkOrderRows(
         client,
@@ -428,15 +461,16 @@ export async function fetchReportRows(
         allowedColumns,
         accessibleTeamIds,
         rowLimit,
+        offset,
       );
     case "inventory":
-      return fetchInventoryRows(client, organizationId, filters, rowLimit);
+      return fetchInventoryRows(client, organizationId, filters, rowLimit, offset);
     case "scans":
-      return fetchScanRows(client, organizationId, filters, rowLimit);
+      return fetchScanRows(client, organizationId, filters, rowLimit, offset);
     case "operator-check-ins":
-      return fetchOperatorCheckinRows(client, organizationId, filters, rowLimit);
+      return fetchOperatorCheckinRows(client, organizationId, filters, rowLimit, offset);
     case "alternate-groups":
-      return fetchAlternateGroupRows(client, organizationId, rowLimit);
+      return fetchAlternateGroupRows(client, organizationId, rowLimit, offset);
     default: {
       const _exhaustive: never = reportType;
       throw new Error(`Unsupported report type: ${_exhaustive}`);
@@ -448,6 +482,8 @@ export const __fetchRowsTestables = {
   EQUIPMENT_TABLE_SELECT,
   WORK_ORDERS_TABLE_SELECT,
   SCANS_TABLE_SELECT,
+  OPERATOR_CHECKINS_TABLE_SELECT,
   ALTERNATE_GROUP_COLUMNS,
   resolveLimit,
+  applyRowPagination,
 };
