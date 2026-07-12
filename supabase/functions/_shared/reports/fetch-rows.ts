@@ -367,13 +367,12 @@ async function fetchAlternateGroupRows(
   client: ReportDataClient,
   organizationId: string,
   limit: number,
-  offset?: number,
 ): Promise<FlattenedAlternateGroupMember[]> {
   const { data: groups, error: groupsError } = await reportQuery(client, "part_alternate_groups")
     .select(ALTERNATE_GROUP_COLUMNS)
     .eq("organization_id", organizationId)
     .order("name")
-    .limit(DEFAULT_MAX_REPORT_ROWS);
+    .limit(limit);
 
   if (groupsError) {
     throw new Error(`Failed to fetch alternate groups: ${groupsError.message}`);
@@ -388,8 +387,10 @@ async function fetchAlternateGroupRows(
   const { data: members, error: membersError } = await reportQuery(client, "part_alternate_group_members")
     .select(ALTERNATE_GROUP_MEMBERS_SELECT)
     .in("group_id", groupIds)
+    .order("group_id", { ascending: true })
     .order("is_primary", { ascending: false })
-    .limit(DEFAULT_MAX_REPORT_ROWS);
+    .order("id", { ascending: true })
+    .limit(limit);
 
   if (membersError) {
     throw new Error(`Failed to fetch group members: ${membersError.message}`);
@@ -401,7 +402,7 @@ async function fetchAlternateGroupRows(
 
   const groupMap = new Map(groups.map((group) => [group.id as string, group]));
 
-  const flattened = members.map((member) => {
+  return members.map((member) => {
     const group = groupMap.get(member.group_id as string);
     const invItem = member.inventory_items as Record<string, unknown> | null;
     const partIdent = member.part_identifiers as Record<string, unknown> | null;
@@ -424,9 +425,6 @@ async function fetchAlternateGroupRows(
       identifier_manufacturer: (partIdent?.manufacturer as string) ?? null,
     };
   });
-
-  const start = offset ?? 0;
-  return flattened.slice(start, start + limit);
 }
 
 /**
@@ -470,7 +468,8 @@ export async function fetchReportRows(
     case "operator-check-ins":
       return fetchOperatorCheckinRows(client, organizationId, filters, rowLimit, offset);
     case "alternate-groups":
-      return fetchAlternateGroupRows(client, organizationId, rowLimit, offset);
+      // Two-query flatten shape: offset pagination is not supported (use limit-only bounded fetch).
+      return fetchAlternateGroupRows(client, organizationId, rowLimit);
     default: {
       const _exhaustive: never = reportType;
       throw new Error(`Unsupported report type: ${_exhaustive}`);

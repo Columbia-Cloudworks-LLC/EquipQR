@@ -162,11 +162,10 @@ Deno.test("applyRowPagination uses range when offset is provided", () => {
   assertEquals(calls, ["range:50-149"]);
 });
 
-Deno.test("fetchAlternateGroupRows paginates flattened member rows", async () => {
+Deno.test("fetchAlternateGroupRows returns bounded flattened members", async () => {
   const rows = [
-    { group_id: "g1", inventory_item_id: "i1", is_primary: true, inventory_items: { name: "A", sku: "1", quantity_on_hand: 1, low_stock_threshold: 1, default_unit_cost: 100, location: null }, part_identifiers: null },
-    { group_id: "g1", inventory_item_id: null, is_primary: false, inventory_items: null, part_identifiers: { identifier_type: "oem", raw_value: "X", manufacturer: null } },
-    { group_id: "g2", inventory_item_id: "i2", is_primary: true, inventory_items: { name: "B", sku: "2", quantity_on_hand: 2, low_stock_threshold: 2, default_unit_cost: 200, location: null }, part_identifiers: null },
+    { id: "m1", group_id: "g1", inventory_item_id: "i1", is_primary: true, inventory_items: { name: "A", sku: "1", quantity_on_hand: 1, low_stock_threshold: 1, default_unit_cost: 100, location: null }, part_identifiers: null },
+    { id: "m2", group_id: "g1", inventory_item_id: null, is_primary: false, inventory_items: null, part_identifiers: { identifier_type: "oem", raw_value: "X", manufacturer: null } },
   ];
 
   const client = {
@@ -179,7 +178,6 @@ Deno.test("fetchAlternateGroupRows paginates flattened member rows", async () =>
                 limit: () => Promise.resolve({
                   data: [
                     { id: "g1", name: "Group 1", status: "verified", description: null, notes: null },
-                    { id: "g2", name: "Group 2", status: "verified", description: null, notes: null },
                   ],
                   error: null,
                 }),
@@ -193,7 +191,11 @@ Deno.test("fetchAlternateGroupRows paginates flattened member rows", async () =>
           select: () => ({
             in: () => ({
               order: () => ({
-                limit: () => Promise.resolve({ data: rows, error: null }),
+                order: () => ({
+                  order: () => ({
+                    limit: () => Promise.resolve({ data: rows, error: null }),
+                  }),
+                }),
               }),
             }),
           }),
@@ -209,12 +211,11 @@ Deno.test("fetchAlternateGroupRows paginates flattened member rows", async () =>
     organizationId: "org-1",
     filters: {},
     columns: ["group_name", "item_name"],
-    limit: 1,
-    offset: 1,
+    limit: 10,
   });
 
-  assertEquals(page.length, 1);
-  assertEquals((page[0] as Record<string, unknown>).item_name, null);
+  assertEquals(page.length, 2);
+  assertEquals((page[0] as Record<string, unknown>).item_name, "A");
 });
 
 Deno.test("resolveLimit defaults to 50000", () => {
