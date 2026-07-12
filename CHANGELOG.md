@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.18] - 2026-07-12
+
+### Changed
+
+- **typescript-eslint (#1114)** — Bump `typescript-eslint` from 8.59.3 to 8.63.0 (Dependabot).
+
 ## [3.25.17] - 2026-07-12
 
 ### Changed
