@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.10] - 2026-07-12
+
+### Changed
+
+- **markdownlint (#1232)** — Disable low-signal spacing/table rules (`MD060`, `MD022`, `MD032`, `MD031`); scope `lint:md` to `.cursor/**` and `AGENTS.md`; document enforced vs suppressed rules for agents.
+
 ## [3.25.9] - 2026-07-12
 
 ### Changed

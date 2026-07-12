@@ -1,7 +1,7 @@
 {
   "name": "equipqr",
   "private": true,
-  "version": "3.25.9",
+  "version": "3.25.10",
   "type": "module",
   "engines": {
     "node": "24.x"
@@ -18,7 +18,7 @@
     "build": "tsx scripts/generate-sitemap.ts && vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "lint:md": "markdownlint-cli2 \"**/*.{md,mdc}\"",
+    "lint:md": "markdownlint-cli2 \".cursor/**/*.{md,mdc}\" \"AGENTS.md\"",
     "preview": "vite preview",
     "verify:preview-access": "node scripts/verify-preview-access.mjs",
     "verify:spa-routing": "node scripts/verify-spa-shell.mjs",
