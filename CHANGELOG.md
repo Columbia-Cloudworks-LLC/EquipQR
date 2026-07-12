@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.11] - 2026-07-12
+
+### Changed
+
+- **Supabase hot-path performance (#1203)** — Inventory list metadata now uses a single SQL aggregation RPC instead of scanning every SKU client-side; work-order team filters join equipment in one query; org background-sync channels use refcounted subscribe/unsubscribe cleanup and organization-scoped `equipment_notes` realtime filters.
+
 ## [3.25.10] - 2026-07-12
 
 ### Changed

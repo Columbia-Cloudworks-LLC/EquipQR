@@ -6885,6 +6885,81 @@ COMMENT ON FUNCTION "public"."get_google_workspace_connection_status"("p_organiz
 
 
 
+CREATE OR REPLACE FUNCTION "public"."get_inventory_list_metadata"("p_organization_id" "uuid") RETURNS json
+    LANGUAGE "plpgsql"
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  v_result JSON;
+BEGIN
+  PERFORM public.assert_inventory_read_access(p_organization_id);
+
+  SELECT json_build_object(
+    'uniqueLocations', COALESCE((
+      SELECT json_agg(location ORDER BY location)
+      FROM (
+        SELECT DISTINCT trim(location) AS location
+        FROM public.inventory_items
+        WHERE organization_id = p_organization_id
+          AND location IS NOT NULL
+          AND trim(location) <> ''
+      ) locations
+    ), '[]'::json),
+    'totalCount', COALESCE(COUNT(*)::int, 0),
+    'negativeStockCount', COALESCE(COUNT(*) FILTER (WHERE quantity_on_hand < 0)::int, 0),
+    'outOfStockCount', COALESCE(COUNT(*) FILTER (WHERE quantity_on_hand = 0)::int, 0),
+    'lowStockCount', COALESCE(
+      COUNT(*) FILTER (
+        WHERE quantity_on_hand > 0
+          AND quantity_on_hand <= low_stock_threshold
+      )::int,
+      0
+    ),
+    'healthyCount', COALESCE(COUNT(*) FILTER (WHERE quantity_on_hand > low_stock_threshold)::int, 0),
+    'missingLocationCount', COALESCE(
+      COUNT(*) FILTER (WHERE location IS NULL OR trim(location) = '')::int,
+      0
+    ),
+    'missingUnitCostCount', COALESCE(COUNT(*) FILTER (WHERE default_unit_cost IS NULL)::int, 0),
+    'missingSkuCount', COALESCE(COUNT(*) FILTER (WHERE sku IS NULL OR trim(sku) = '')::int, 0),
+    'estimatedInventoryValue', COALESCE(SUM(
+      CASE
+        WHEN default_unit_cost IS NOT NULL AND quantity_on_hand IS NOT NULL
+          THEN default_unit_cost * quantity_on_hand
+        ELSE 0
+      END
+    ), 0)
+  )
+  INTO v_result
+  FROM public.inventory_items
+  WHERE organization_id = p_organization_id;
+
+  RETURN COALESCE(
+    v_result,
+    json_build_object(
+      'uniqueLocations', '[]'::json,
+      'totalCount', 0,
+      'negativeStockCount', 0,
+      'outOfStockCount', 0,
+      'lowStockCount', 0,
+      'healthyCount', 0,
+      'missingLocationCount', 0,
+      'missingUnitCostCount', 0,
+      'missingSkuCount', 0,
+      'estimatedInventoryValue', 0
+    )
+  );
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_inventory_list_metadata"("p_organization_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."get_inventory_list_metadata"("p_organization_id" "uuid") IS 'Returns inventory list health/metadata aggregates for an organization in a single bounded query.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."get_invitation_by_token_secure"("p_token" "uuid") RETURNS TABLE("id" "uuid", "organization_id" "uuid", "organization_name" "text", "email" "text", "role" "text", "status" "text", "expires_at" timestamp with time zone, "message" "text", "invited_by_name" "text")
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -13687,6 +13762,29 @@ $$;
 ALTER FUNCTION "public"."set_bypass_triggers"("bypass" boolean) OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."set_equipment_note_organization_id"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  SELECT e.organization_id
+  INTO NEW.organization_id
+  FROM public.equipment e
+  WHERE e.id = NEW.equipment_id;
+
+  IF NEW.organization_id IS NULL THEN
+    RAISE EXCEPTION 'equipment_notes requires equipment with organization_id'
+      USING ERRCODE = '23503';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."set_equipment_note_organization_id"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."set_geocoded_locations_updated_at"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'public'
@@ -15743,7 +15841,8 @@ CREATE TABLE IF NOT EXISTS "public"."equipment_notes" (
     "last_modified_by" "uuid",
     "last_modified_at" timestamp with time zone DEFAULT "now"(),
     "author_name" "text",
-    "machine_hours" numeric(10,2)
+    "machine_hours" numeric(10,2),
+    "organization_id" "uuid" NOT NULL
 );
 
 
@@ -18376,6 +18475,10 @@ CREATE INDEX "idx_equipment_notes_last_modified_by" ON "public"."equipment_notes
 
 
 
+CREATE INDEX "idx_equipment_notes_organization_id" ON "public"."equipment_notes" USING "btree" ("organization_id");
+
+
+
 CREATE INDEX "idx_equipment_operator_checkin_org" ON "public"."equipment_operator_checkin_settings" USING "btree" ("organization_id");
 
 
@@ -19268,6 +19371,10 @@ CREATE OR REPLACE TRIGGER "trg_ensure_operator_template_active_for_enabled_assig
 
 
 
+CREATE OR REPLACE TRIGGER "trg_equipment_notes_set_organization_id" BEFORE INSERT OR UPDATE OF "equipment_id" ON "public"."equipment_notes" FOR EACH ROW EXECUTE FUNCTION "public"."set_equipment_note_organization_id"();
+
+
+
 CREATE OR REPLACE TRIGGER "trg_equipment_status_history" AFTER UPDATE ON "public"."equipment" FOR EACH ROW EXECUTE FUNCTION "public"."record_equipment_status_change"();
 
 
@@ -19544,6 +19651,11 @@ ALTER TABLE ONLY "public"."equipment_notes"
 
 ALTER TABLE ONLY "public"."equipment_notes"
     ADD CONSTRAINT "equipment_notes_last_modified_by_fkey" FOREIGN KEY ("last_modified_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."equipment_notes"
+    ADD CONSTRAINT "equipment_notes_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
 
 
 
@@ -23041,6 +23153,12 @@ GRANT ALL ON FUNCTION "public"."get_google_workspace_connection_status"("p_organ
 
 
 
+REVOKE ALL ON FUNCTION "public"."get_inventory_list_metadata"("p_organization_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."get_inventory_list_metadata"("p_organization_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_inventory_list_metadata"("p_organization_id" "uuid") TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."get_invitation_by_token_secure"("p_token" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."get_invitation_by_token_secure"("p_token" "uuid") TO "service_role";
 GRANT ALL ON FUNCTION "public"."get_invitation_by_token_secure"("p_token" "uuid") TO "authenticated";
@@ -23618,6 +23736,12 @@ GRANT ALL ON FUNCTION "public"."select_google_workspace_members"("p_organization
 
 REVOKE ALL ON FUNCTION "public"."set_bypass_triggers"("bypass" boolean) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."set_bypass_triggers"("bypass" boolean) TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."set_equipment_note_organization_id"() TO "anon";
+GRANT ALL ON FUNCTION "public"."set_equipment_note_organization_id"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."set_equipment_note_organization_id"() TO "service_role";
 
 
 

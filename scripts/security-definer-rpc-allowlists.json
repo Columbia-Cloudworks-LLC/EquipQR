@@ -57,6 +57,7 @@
     "get_effective_pm_interval_policy_for_equipment",
     "get_equipment_pm_status",
     "get_google_workspace_connection_status",
+    "get_inventory_list_metadata",
     "get_invitation_by_token_secure",
     "get_invitations_atomic",
     "get_latest_completed_pm",
