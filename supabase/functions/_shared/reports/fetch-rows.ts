@@ -99,7 +99,7 @@ const OPERATOR_CHECKINS_TABLE_SELECT = `
   client_field_values,
   equipment_field_values,
   template_snapshot,
-  equipment:equipment_id (id, name, serial_number)
+  equipment:equipment_id!inner (id, name, serial_number, organization_id)
 `;
 
 const ALTERNATE_GROUP_COLUMNS =
@@ -318,6 +318,7 @@ async function fetchOperatorCheckinRows(
   let query = reportQuery(client, "operator_checkin_submissions")
     .select(OPERATOR_CHECKINS_TABLE_SELECT)
     .eq("organization_id", organizationId)
+    .eq("equipment.organization_id", organizationId)
     .order("submitted_at", { ascending: false })
     .limit(limit);
 
