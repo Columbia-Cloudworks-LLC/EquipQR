@@ -252,6 +252,48 @@ describe('useWorkOrderPMChecklist', () => {
       expect(setValue).toHaveBeenCalledWith('hasPM', false);
     });
 
+    it('does not overwrite a user-selected template when equipment changes', () => {
+      const setValue = vi.fn();
+      const selectedEquipmentA = {
+        id: 'equipment-a',
+        name: 'Equipment A',
+        default_pm_template_id: 'template-1',
+      };
+      const selectedEquipmentB = {
+        id: 'equipment-b',
+        name: 'Equipment B',
+        default_pm_template_id: 'template-2',
+      };
+
+      const { result, rerender } = renderHook(
+        ({ selectedEquipment, values }) =>
+          useWorkOrderPMChecklist({
+            values,
+            setValue,
+            selectedEquipment,
+            autoDefaultFromEquipment: true,
+          }),
+        {
+          wrapper,
+          initialProps: {
+            selectedEquipment: selectedEquipmentA,
+            values: { hasPM: false, pmTemplateId: null },
+          },
+        },
+      );
+
+      setValue.mockClear();
+      result.current.handleTemplateChange('template-3');
+
+      rerender({
+        selectedEquipment: selectedEquipmentB,
+        values: { hasPM: true, pmTemplateId: 'template-3' },
+      });
+
+      expect(setValue).not.toHaveBeenCalledWith('pmTemplateId', 'template-2');
+      expect(setValue).not.toHaveBeenCalledWith('pmTemplateId', null);
+    });
+
     it('does not auto-apply defaults when autoDefaultFromEquipment is false', () => {
       const setValue = vi.fn();
       renderHook(

@@ -26,6 +26,7 @@ interface WorkOrderPMManagementDialogProps {
     default_pm_template_id?: string | null;
   } | null;
   equipmentId: string;
+  pmLoading?: boolean;
   isUpdating?: boolean;
   onSave: (data: WorkOrderFormData, originalHasPM: boolean, equipmentId: string) => Promise<void>;
 }
@@ -37,6 +38,7 @@ export function WorkOrderPMManagementDialog({
   pmData,
   equipment,
   equipmentId,
+  pmLoading = false,
   isUpdating = false,
   onSave,
 }: WorkOrderPMManagementDialogProps) {
@@ -46,10 +48,12 @@ export function WorkOrderPMManagementDialog({
 
   useEffect(() => {
     if (!open) return;
+    if (workOrder.has_pm && pmLoading) return;
     setPmTemplateId(pmData?.template_id ?? null);
-  }, [open, pmData?.template_id]);
+  }, [open, pmData?.template_id, workOrder.has_pm, pmLoading]);
 
-  const hasPM = Boolean(pmTemplateId);
+  const hasPM = workOrder.has_pm && pmLoading ? true : Boolean(pmTemplateId);
+  const pmReady = !workOrder.has_pm || !pmLoading;
 
   const values = useMemo(
     () => ({ hasPM, pmTemplateId }),
@@ -139,7 +143,7 @@ export function WorkOrderPMManagementDialog({
           <Button type="button" variant="outline" onClick={onClose} disabled={isUpdating}>
             Cancel
           </Button>
-          <Button type="button" onClick={() => { void handleSave(); }} disabled={isUpdating}>
+          <Button type="button" onClick={() => { void handleSave(); }} disabled={isUpdating || !pmReady}>
             {isUpdating ? 'Saving…' : 'Save PM Changes'}
           </Button>
         </DialogFooter>

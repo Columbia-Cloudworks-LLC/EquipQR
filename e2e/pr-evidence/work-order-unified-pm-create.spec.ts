@@ -3,7 +3,6 @@ import { pinContextToOrg } from '../user/shared/auth-helpers';
 import { apexOrgId, authStatePath, seedEquipment } from '../user/shared/seed-data';
 import {
   fillWorkOrderBasics,
-  openWorkOrderCreateDialog,
   selectPmTemplateIfAvailable,
   setPmTemplate,
   submitWorkOrderForm,
