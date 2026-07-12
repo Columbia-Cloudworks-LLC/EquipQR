@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.14] - 2026-07-12
+
+### Changed
+
+- **vitest-coverage-report-action (#1101)** — Bump `davelosert/vitest-coverage-report-action` from 2.12.0 to 2.12.1 (Dependabot).
+
 ## [3.25.13] - 2026-07-12
 
 ### Changed
