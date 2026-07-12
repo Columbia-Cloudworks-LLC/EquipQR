@@ -22,7 +22,7 @@ test.describe('PR evidence: historical timeline improvements @pr-evidence', () =
     await evidenceScreenshot(page, '01-work-orders-list');
 
     await gotoDashboard(
-      `/equipment/${seedEquipment.cat320.id}?createWorkOrder=generic`,
+      `/equipment/${seedEquipment.cat320.id}?createWorkOrder=1`,
     );
     const dialog = page.getByRole('dialog', { name: /create work order/i });
     await expect(dialog).toBeVisible({ timeout: 30_000 });

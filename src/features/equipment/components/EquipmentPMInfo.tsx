@@ -20,7 +20,7 @@ interface EquipmentPMInfoProps {
   equipment: Equipment;
   canEdit: boolean;
   getCurrentTeamDisplay: () => string;
-  onCreatePMWorkOrder?: () => void;
+  onCreateWorkOrder?: () => void;
   onViewPM?: (pmId: string) => void;
 }
 
@@ -55,7 +55,7 @@ const EquipmentPMInfo: React.FC<EquipmentPMInfoProps> = ({
   equipment,
   canEdit,
   getCurrentTeamDisplay,
-  onCreatePMWorkOrder,
+  onCreateWorkOrder,
   onViewPM,
 }) => {
   const { formatDate } = useFormatTimestamp();
@@ -107,17 +107,17 @@ const EquipmentPMInfo: React.FC<EquipmentPMInfoProps> = ({
           <Separator />
           <p className="text-sm text-muted-foreground">
             No PM records found.{' '}
-            {onCreatePMWorkOrder ? (
+            {onCreateWorkOrder ? (
               <Button
                 type="button"
                 variant="link"
                 className="h-auto p-0 text-sm font-normal text-primary"
-                onClick={onCreatePMWorkOrder}
+                onClick={onCreateWorkOrder}
               >
-                Create a work order with PM
+                Create a work order
               </Button>
             ) : (
-              'Create a work order with PM'
+              'Create a work order'
             )}{' '}
             to start tracking.
           </p>

@@ -21,11 +21,11 @@ This guide follows a preventative-maintenance job end to end: create the PM work
 
 ## 1. Create the work order (with PM checklist)
 
-From the equipment page, open the **Work Orders** tab and click **Create Work Order**. Give it a clear title and description, assign a technician, and set the **Work Order Type** to **With PM Checklist** so the equipment's PM template is attached.
+From the equipment page, open the **Work Orders** tab and click **Create Work Order**. Give it a clear title and description, assign a technician, and choose the equipment's **PM template** from the dropdown directly below the title (defaults to the assigned template when one exists).
 
 ![Create Work Order dialog, general information](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/admin-integrations/desktop/qb-04-create-work-order-general.png)
 
-![Create Work Order dialog with the PM checklist type selected](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/admin-integrations/desktop/qb-05-create-work-order-pm-type.png)
+![Create Work Order dialog with PM template selected below the title](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/admin-integrations/desktop/qb-05-create-work-order-pm-type.png)
 
 If you have not updated the equipment's working hours, EquipQR asks before creating:
 

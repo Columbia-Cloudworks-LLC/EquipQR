@@ -20,7 +20,7 @@ On mobile, EquipQR consolidates each page's contextual actions behind one **quic
 Tap the round **QR button** in the bottom-right corner of an equipment record to open the quick actions drawer:
 
 - **QR codes** — show the equipment scan QR, plus one entry per enabled daily check-in checklist so you can hand an operator the right code.
-- **Work orders** — start a new PM work order or a generic work order pre-linked to this machine.
+- **Work orders** — start a new work order pre-linked to this machine; pick a PM template from the dropdown below the title, or leave it as **None**.
 - **Notes** — jump straight to note capture.
 
 ## Work order details

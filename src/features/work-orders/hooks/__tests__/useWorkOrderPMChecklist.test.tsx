@@ -2,33 +2,34 @@ import { renderHook, act } from '@testing-library/react';
 import { vi, beforeEach, describe, it, expect } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { useWorkOrderPMChecklist } from '../useWorkOrderPMChecklist';
+import {
+  PM_TEMPLATE_NONE_VALUE,
+  useWorkOrderPMChecklist,
+} from '../useWorkOrderPMChecklist';
 import * as usePMTemplatesModule from '@/features/pm-templates/hooks/usePMTemplates';
 
-// Mock Supabase client first (before any imports that might use it)
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     auth: {
       getSession: vi.fn(),
       getUser: vi.fn(),
       onAuthStateChange: vi.fn(() => ({
-        data: { subscription: { unsubscribe: vi.fn() } }
-      }))
+        data: { subscription: { unsubscribe: vi.fn() } },
+      })),
     },
     from: vi.fn(() => ({
       select: vi.fn(() => ({ data: [], error: null })),
       insert: vi.fn(() => ({ data: null, error: null })),
       update: vi.fn(() => ({ data: null, error: null })),
-      delete: vi.fn(() => ({ data: null, error: null }))
-    }))
-  }
+      delete: vi.fn(() => ({ data: null, error: null })),
+    })),
+  },
 }));
 
-// Mock dependencies
 vi.mock('@/features/pm-templates/hooks/usePMTemplates');
 vi.mock('@/features/organization/hooks/useSimplifiedOrganizationRestrictions');
 vi.mock('@/features/pm-templates/hooks/usePMTemplateCompatibility', () => ({
-  useMatchingPMTemplates: vi.fn()
+  useMatchingPMTemplates: vi.fn(),
 }));
 
 const mockTemplates = [
@@ -39,7 +40,7 @@ const mockTemplates = [
     organization_id: null,
     is_protected: true,
     sections: [{ name: 'Engine', count: 2 }],
-    itemCount: 2
+    itemCount: 2,
   },
   {
     id: 'template-2',
@@ -48,7 +49,7 @@ const mockTemplates = [
     organization_id: 'org-1',
     is_protected: false,
     sections: [{ name: 'Safety', count: 1 }],
-    itemCount: 1
+    itemCount: 1,
   },
   {
     id: 'template-3',
@@ -57,8 +58,8 @@ const mockTemplates = [
     organization_id: null,
     is_protected: true,
     sections: [{ name: 'Hydraulics', count: 3 }],
-    itemCount: 3
-  }
+    itemCount: 3,
+  },
 ];
 
 const wrapper = ({ children }: { children: React.ReactNode }) => {
@@ -87,19 +88,23 @@ function mockPMTemplatesResult(
 }
 
 type PMChecklistHookOptions = {
-  values?: { hasPM: boolean; pmTemplateId?: string };
+  values?: { hasPM: boolean; pmTemplateId?: string | null };
   selectedEquipment?: Parameters<typeof useWorkOrderPMChecklist>[0]['selectedEquipment'];
+  autoDefaultFromEquipment?: boolean;
+  allowTemplateOverride?: boolean;
 };
 
 function renderPMChecklistHook(options: PMChecklistHookOptions = {}) {
   const setValue = vi.fn();
-  const values = options.values ?? { hasPM: false, pmTemplateId: undefined };
+  const values = options.values ?? { hasPM: false, pmTemplateId: null };
   const hook = renderHook(
     () =>
       useWorkOrderPMChecklist({
         values,
         setValue,
         selectedEquipment: options.selectedEquipment,
+        autoDefaultFromEquipment: options.autoDefaultFromEquipment,
+        allowTemplateOverride: options.allowTemplateOverride,
       }),
     { wrapper },
   );
@@ -109,22 +114,13 @@ function renderPMChecklistHook(options: PMChecklistHookOptions = {}) {
 describe('useWorkOrderPMChecklist', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
-    
+
     const { usePMTemplates } = await import('@/features/pm-templates/hooks/usePMTemplates');
     const { useSimplifiedOrganizationRestrictions } = await import('@/features/organization/hooks/useSimplifiedOrganizationRestrictions');
     const { useMatchingPMTemplates } = await import('@/features/pm-templates/hooks/usePMTemplateCompatibility');
-    
-    vi.mocked(usePMTemplates).mockReturnValue({
-      data: mockTemplates,
-      isLoading: false,
-      isSuccess: true,
-      isError: false,
-      error: null,
-      status: 'success',
-      fetchStatus: 'idle'
-    } as ReturnType<typeof usePMTemplates>);
-    
-    // Mock useMatchingPMTemplates to return all templates as matching by default
+
+    vi.mocked(usePMTemplates).mockReturnValue(mockPMTemplatesResult());
+
     vi.mocked(useMatchingPMTemplates).mockReturnValue({
       data: mockTemplates.map(t => ({ template_id: t.id, match_type: 'manufacturer' as const })),
       isLoading: false,
@@ -149,313 +145,176 @@ describe('useWorkOrderPMChecklist', () => {
       isLoadingError: false,
       isPlaceholderData: false,
       isRefetchError: false,
-      promise: Promise.resolve([])
+      promise: Promise.resolve([]),
     } as unknown as ReturnType<typeof useMatchingPMTemplates>);
-    
+
     vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
       restrictions: {
         canCreateCustomPMTemplates: true,
         canAddMembers: true,
         canAccessAdvancedAnalytics: true,
         canAccessFleetMap: true,
-        upgradeMessage: ''
+        upgradeMessage: '',
       },
       checkRestriction: vi.fn(),
       getRestrictionMessage: vi.fn(),
       isSingleUser: false,
       canUpgrade: true,
-      isLoading: false
+      isLoading: false,
     });
   });
 
   describe('template filtering', () => {
-    it('returns all templates when user has custom PM template permissions', async () => {
-      const setValue = vi.fn();
-      const { result } = renderHook(
-        () => useWorkOrderPMChecklist({
-          values: { hasPM: false, pmTemplateId: undefined },
-          setValue,
-          selectedEquipment: undefined
-        }),
-        { wrapper }
-      );
+    it('returns all templates when user has custom PM template permissions', () => {
+      const { result } = renderPMChecklistHook();
 
       expect(result.current.templates).toHaveLength(3);
-      expect(result.current.templates.map(t => t.id)).toContain('template-1');
-      expect(result.current.templates.map(t => t.id)).toContain('template-2');
-      expect(result.current.templates.map(t => t.id)).toContain('template-3');
     });
 
     it('returns only global templates when user lacks custom PM template permissions', async () => {
       const { useSimplifiedOrganizationRestrictions } = await import('@/features/organization/hooks/useSimplifiedOrganizationRestrictions');
-      
+
       vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
         restrictions: {
           canCreateCustomPMTemplates: false,
           canAddMembers: true,
           canAccessAdvancedAnalytics: false,
           canAccessFleetMap: false,
-          upgradeMessage: 'Upgrade for more features'
+          upgradeMessage: 'Upgrade for more features',
         },
         checkRestriction: vi.fn(),
         getRestrictionMessage: vi.fn(),
         isSingleUser: true,
         canUpgrade: true,
-        isLoading: false
+        isLoading: false,
       });
-
-      const setValue = vi.fn();
-      const { result } = renderHook(
-        () => useWorkOrderPMChecklist({
-          values: { hasPM: false, pmTemplateId: undefined },
-          setValue,
-          selectedEquipment: undefined
-        }),
-        { wrapper }
-      );
-
-      // Should only have global templates (organization_id is null)
-      expect(result.current.templates).toHaveLength(2);
-      expect(result.current.templates.every(t => t.organization_id === null)).toBe(true);
-      expect(result.current.templates.map(t => t.id)).toContain('template-1');
-      expect(result.current.templates.map(t => t.id)).toContain('template-3');
-      expect(result.current.templates.map(t => t.id)).not.toContain('template-2');
-    });
-
-    it('returns empty templates array when equipment has assigned template', () => {
-      const setValue = vi.fn();
-      const { result } = renderHook(
-        () => useWorkOrderPMChecklist({
-          values: { hasPM: true, pmTemplateId: undefined },
-          setValue,
-          selectedEquipment: {
-            id: 'equipment-1',
-            name: 'Test Equipment',
-            default_pm_template_id: 'template-1'
-          }
-        }),
-        { wrapper }
-      );
-
-      expect(result.current.templates).toHaveLength(0);
-      expect(result.current.hasAssignedTemplate).toBe(true);
-    });
-  });
-
-  describe('assigned template selection', () => {
-    it('properly selects assigned template when equipment has default template', () => {
-      const setValue = vi.fn();
-      const { result } = renderHook(
-        () => useWorkOrderPMChecklist({
-          values: { hasPM: true, pmTemplateId: undefined },
-          setValue,
-          selectedEquipment: {
-            id: 'equipment-1',
-            name: 'Test Equipment',
-            default_pm_template_id: 'template-1'
-          }
-        }),
-        { wrapper }
-      );
-
-      expect(result.current.hasAssignedTemplate).toBe(true);
-      expect(result.current.assignedTemplate?.id).toBe('template-1');
-      expect(result.current.selectedTemplate?.id).toBe('template-1');
-    });
-
-    it('auto-sets template ID when hasPM is true and equipment has assigned template', () => {
-      const setValue = vi.fn();
-      renderHook(
-        () => useWorkOrderPMChecklist({
-          values: { hasPM: true, pmTemplateId: undefined },
-          setValue,
-          selectedEquipment: {
-            id: 'equipment-1',
-            name: 'Test Equipment',
-            default_pm_template_id: 'template-1'
-          }
-        }),
-        { wrapper }
-      );
-
-      // useEffect should auto-set the template ID
-      expect(setValue).toHaveBeenCalledWith('pmTemplateId', 'template-1');
-    });
-
-    it('does not auto-set template ID when hasPM is false', () => {
-      const setValue = vi.fn();
-      renderHook(
-        () => useWorkOrderPMChecklist({
-          values: { hasPM: false, pmTemplateId: undefined },
-          setValue,
-          selectedEquipment: {
-            id: 'equipment-1',
-            name: 'Test Equipment',
-            default_pm_template_id: 'template-1'
-          }
-        }),
-        { wrapper }
-      );
-
-      // Should not auto-set when hasPM is false
-      expect(setValue).not.toHaveBeenCalled();
-    });
-
-    it('allows template override on active work orders even when equipment has a default template', () => {
-      const setValue = vi.fn();
-      const { result } = renderHook(
-        () => useWorkOrderPMChecklist({
-          values: { hasPM: true, pmTemplateId: 'template-2' },
-          setValue,
-          selectedEquipment: {
-            id: 'equipment-1',
-            name: 'Test Equipment',
-            default_pm_template_id: 'template-1',
-          },
-          allowTemplateOverride: true,
-        }),
-        { wrapper },
-      );
-
-      expect(result.current.hasAssignedTemplate).toBe(false);
-      expect(result.current.templates.length).toBeGreaterThan(0);
-      expect(result.current.templates.map((t) => t.id)).toContain('template-2');
-      expect(result.current.selectedTemplate?.id).toBe('template-2');
-    });
-  });
-
-  describe('edit mode template preservation', () => {
-    it('correctly preserves current template selection in edit mode', async () => {
-      const { useSimplifiedOrganizationRestrictions } = await import('@/features/organization/hooks/useSimplifiedOrganizationRestrictions');
-      
-      // Simulate free user without custom PM template permissions
-      vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
-        restrictions: {
-          canCreateCustomPMTemplates: false,
-          canAddMembers: true,
-          canAccessAdvancedAnalytics: false,
-          canAccessFleetMap: false,
-          upgradeMessage: 'Upgrade for more features'
-        },
-        checkRestriction: vi.fn(),
-        getRestrictionMessage: vi.fn(),
-        isSingleUser: true,
-        canUpgrade: true,
-        isLoading: false
-      });
-
-      const setValue = vi.fn();
-      const { result } = renderHook(
-        () => useWorkOrderPMChecklist({
-          values: { hasPM: true, pmTemplateId: 'template-2' }, // Organization template in edit mode
-          setValue,
-          selectedEquipment: undefined
-        }),
-        { wrapper }
-      );
-
-      // Template-2 is an org template, but should still be available in edit mode
-      // because the work order already has it selected
-      expect(result.current.templates.map(t => t.id)).toContain('template-2');
-      expect(result.current.selectedTemplate?.id).toBe('template-2');
-    });
-
-    it('includes template from values even when filtered out by restrictions', async () => {
-      const { useSimplifiedOrganizationRestrictions } = await import('@/features/organization/hooks/useSimplifiedOrganizationRestrictions');
-      
-      vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
-        restrictions: {
-          canCreateCustomPMTemplates: false,
-          canAddMembers: true,
-          canAccessAdvancedAnalytics: false,
-          canAccessFleetMap: false,
-          upgradeMessage: ''
-        },
-        checkRestriction: vi.fn(),
-        getRestrictionMessage: vi.fn(),
-        isSingleUser: true,
-        canUpgrade: true,
-        isLoading: false
-      });
-
-      const setValue = vi.fn();
-      const { result } = renderHook(
-        () => useWorkOrderPMChecklist({
-          values: { hasPM: true, pmTemplateId: 'template-2' },
-          setValue,
-          selectedEquipment: undefined
-        }),
-        { wrapper }
-      );
-
-      // Should have 3 templates: 2 global + 1 from values
-      expect(result.current.templates.length).toBe(3);
-      expect(result.current.templates.find(t => t.id === 'template-2')).toBeDefined();
-    });
-  });
-
-  describe('edge cases', () => {
-    it('handles missing templates gracefully', async () => {
-      const { usePMTemplates } = await import('@/features/pm-templates/hooks/usePMTemplates');
-
-      vi.mocked(usePMTemplates).mockReturnValue(
-        mockPMTemplatesResult({ data: [] }),
-      );
 
       const { result } = renderPMChecklistHook();
 
-      expect(result.current.templates).toHaveLength(0);
-      expect(result.current.selectedTemplate).toBeNull();
+      expect(result.current.templates).toHaveLength(2);
+      expect(result.current.templates.every(t => t.organization_id === null)).toBe(true);
     });
 
-    it('handles invalid template ID in values gracefully', async () => {
-      const { result } = renderPMChecklistHook({
-        values: { hasPM: true, pmTemplateId: 'non-existent-template' },
-      });
-
-      // Should fall back to default template
-      expect(result.current.selectedTemplate?.id).toBe('template-1');
-    });
-
-    it('handles null selectedEquipment', () => {
-      const { result } = renderPMChecklistHook({ selectedEquipment: null });
-
-      expect(result.current.hasAssignedTemplate).toBe(false);
-      expect(result.current.assignedTemplate).toBeNull();
-    });
-
-    it('handles equipment with null default_pm_template_id', () => {
+    it('includes assigned equipment template even when compatibility filtering applies', () => {
       const { result } = renderPMChecklistHook({
         selectedEquipment: {
           id: 'equipment-1',
           name: 'Test Equipment',
-          default_pm_template_id: null,
+          default_pm_template_id: 'template-1',
         },
       });
 
-      expect(result.current.hasAssignedTemplate).toBe(false);
-      expect(result.current.assignedTemplate).toBeNull();
-      expect(result.current.templates.length).toBeGreaterThan(0);
+      expect(result.current.hasAssignedTemplate).toBe(true);
+      expect(result.current.templates.map(t => t.id)).toContain('template-1');
+    });
+  });
+
+  describe('equipment defaults', () => {
+    it('auto-applies equipment default template on create when enabled', () => {
+      const setValue = vi.fn();
+      renderHook(
+        () =>
+          useWorkOrderPMChecklist({
+            values: { hasPM: false, pmTemplateId: null },
+            setValue,
+            selectedEquipment: {
+              id: 'equipment-1',
+              name: 'Test Equipment',
+              default_pm_template_id: 'template-1',
+            },
+            autoDefaultFromEquipment: true,
+          }),
+        { wrapper },
+      );
+
+      expect(setValue).toHaveBeenCalledWith('pmTemplateId', 'template-1');
+      expect(setValue).toHaveBeenCalledWith('hasPM', true);
+    });
+
+    it('auto-applies None when equipment has no default template', () => {
+      const setValue = vi.fn();
+      renderHook(
+        () =>
+          useWorkOrderPMChecklist({
+            values: { hasPM: true, pmTemplateId: 'template-2' },
+            setValue,
+            selectedEquipment: {
+              id: 'equipment-1',
+              name: 'Test Equipment',
+              default_pm_template_id: null,
+            },
+            autoDefaultFromEquipment: true,
+          }),
+        { wrapper },
+      );
+
+      expect(setValue).toHaveBeenCalledWith('pmTemplateId', null);
+      expect(setValue).toHaveBeenCalledWith('hasPM', false);
+    });
+
+    it('does not auto-apply defaults when autoDefaultFromEquipment is false', () => {
+      const setValue = vi.fn();
+      renderHook(
+        () =>
+          useWorkOrderPMChecklist({
+            values: { hasPM: false, pmTemplateId: null },
+            setValue,
+            selectedEquipment: {
+              id: 'equipment-1',
+              name: 'Test Equipment',
+              default_pm_template_id: 'template-1',
+            },
+          }),
+        { wrapper },
+      );
+
+      expect(setValue).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('template selection', () => {
+    it('selects the current template from values', () => {
+      const { result } = renderPMChecklistHook({
+        values: { hasPM: true, pmTemplateId: 'template-2' },
+      });
+
+      expect(result.current.selectedTemplate?.id).toBe('template-2');
+      expect(result.current.selectValue).toBe('template-2');
+    });
+
+    it('uses none sentinel when no template is selected', () => {
+      const { result } = renderPMChecklistHook({
+        values: { hasPM: false, pmTemplateId: null },
+      });
+
+      expect(result.current.selectedTemplate).toBeNull();
+      expect(result.current.selectValue).toBe(PM_TEMPLATE_NONE_VALUE);
     });
   });
 
   describe('handleTemplateChange', () => {
-    it('calls setValue with new template ID', () => {
-      const setValue = vi.fn();
-      const { result } = renderHook(
-        () => useWorkOrderPMChecklist({
-          values: { hasPM: true, pmTemplateId: 'template-1' },
-          setValue,
-          selectedEquipment: undefined
-        }),
-        { wrapper }
-      );
+    it('sets template and hasPM when selecting a template', () => {
+      const { result, setValue } = renderPMChecklistHook();
 
       act(() => {
         result.current.handleTemplateChange('template-2');
       });
 
       expect(setValue).toHaveBeenCalledWith('pmTemplateId', 'template-2');
+      expect(setValue).toHaveBeenCalledWith('hasPM', true);
+    });
+
+    it('clears template and hasPM when selecting none', () => {
+      const { result, setValue } = renderPMChecklistHook({
+        values: { hasPM: true, pmTemplateId: 'template-1' },
+      });
+
+      act(() => {
+        result.current.handleTemplateChange(PM_TEMPLATE_NONE_VALUE);
+      });
+
+      expect(setValue).toHaveBeenCalledWith('pmTemplateId', null);
+      expect(setValue).toHaveBeenCalledWith('hasPM', false);
     });
   });
 
@@ -476,28 +335,6 @@ describe('useWorkOrderPMChecklist', () => {
       const { result } = renderPMChecklistHook();
 
       expect(result.current.isLoading).toBe(true);
-    });
-  });
-
-  describe('default template selection', () => {
-    it('selects Forklift PM template when no template is specified', () => {
-      const { result } = renderPMChecklistHook();
-
-      expect(result.current.selectedTemplate?.name).toBe('Forklift PM');
-    });
-
-    it('falls back to first template if Forklift PM is not available', async () => {
-      const { usePMTemplates } = await import('@/features/pm-templates/hooks/usePMTemplates');
-
-      const templatesWithoutDefault = mockTemplates.filter(t => t.name !== 'Forklift PM');
-      vi.mocked(usePMTemplates).mockReturnValue(
-        mockPMTemplatesResult({ data: templatesWithoutDefault }),
-      );
-
-      const { result } = renderPMChecklistHook();
-
-      // Should select first available template
-      expect(result.current.selectedTemplate?.id).toBe('template-2');
     });
   });
 });

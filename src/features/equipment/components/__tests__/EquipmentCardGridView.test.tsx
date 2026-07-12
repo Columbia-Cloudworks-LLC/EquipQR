@@ -94,17 +94,10 @@ describe('EquipmentCardGridView', () => {
 
     await user.click(screen.getByRole('button', { name: /work order/i }));
 
-    await user.click(screen.getByRole('menuitem', { name: /new pm work order/i }));
+    await user.click(screen.getByRole('menuitem', { name: /new work order/i }));
     expect(onQuickAction).toHaveBeenCalledWith(
       expect.anything(),
-      '/dashboard/equipment/eq-1?createWorkOrder=pm',
-    );
-
-    await user.click(screen.getByRole('button', { name: /work order/i }));
-    await user.click(screen.getByRole('menuitem', { name: /create generic work order/i }));
-    expect(onQuickAction).toHaveBeenCalledWith(
-      expect.anything(),
-      '/dashboard/equipment/eq-1?createWorkOrder=generic',
+      '/dashboard/equipment/eq-1?createWorkOrder=1',
     );
   });
 });
