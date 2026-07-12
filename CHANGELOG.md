@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.15] - 2026-07-12
+
+### Changed
+
+- **actions/cache (#1103)** — Bump `actions/cache` from 5.0.5 to 6.1.0 across GitHub Actions workflows (Dependabot).
+
 ## [3.25.14] - 2026-07-12
 
 ### Changed
