@@ -18,7 +18,7 @@ Agents working on EquipQR **must not fight a sick local stack**. Prefer a clean 
 2. **Agent autonomy.** When local verification, E2E, Playwright, or dependency work requires it, **stop and restart the whole stack without asking the maintainer**. Authorization to implement includes authorization to cycle the stack.
 
 3. **Prefer full cycles when symptoms appear.** Run `dev-stop.bat` then `dev-start.bat` or `dev-start.bat -Force` when any of these occur:
-   - `npm ci` or `npm install` fails with **EPERM** / **EBUSY** on native binaries (`lightningcss`, `tailwindcss-oxide`, etc.) — Vite or the stack is holding file locks.
+   - `npm ci` or `npm install` fails with **EPERM** / **EBUSY** on native binaries (`lightningcss`, `tailwindcss-oxide`, etc.) — Vite, Vitest, ESLint, or the dev stack is holding file locks. Run **`.\npm-ci-safe.bat`** (stops E2E + dev stack, releases locks, deletes stuck `node_modules` when needed). Do not run bare `npm ci` while the stack is up on Windows.
    - `'vite' is not recognized` or incomplete `node_modules` (missing `node_modules\.bin\vite.cmd`).
    - Vite crashes watching Playwright output under `tmp/` (mitigated in `vite.config.ts`; still cycle if it recurs).
    - Kong **502** on edge functions after restart (see `local-dev-troubleshoot.mdc`).
@@ -27,7 +27,7 @@ Agents working on EquipQR **must not fight a sick local stack**. Prefer a clean 
    - HTTP probe failures **after** an earlier successful probe in the same session — verify with an independent check first; if the stack is actually unhealthy, cycle rather than debugging in place for multiple turns.
 
 4. **Never corrupt the session mid-work.**
-   - Do **not** run `npm ci` while Vite, docs, or edge serve is running on Windows — stop the stack first.
+   - Do **not** run `npm ci` while Vite, docs, edge serve, Vitest watch, or Playwright is running on Windows — stop the stack first (`dev-stop.bat` or `dev-stop-all.bat`), then use **`npm-ci-safe.bat`** / **`npm run ci:install`**.
    - Do **not** assume a failed probe means the stack is down if logic is wrong (e.g. `fetch().ok` on **304 Not Modified**); see `AGENTS.md` learned preference.
    - `dev-start.ps1` validates `node_modules` health before skipping install; trust repair paths there instead of hand-patching half-installed deps.
 

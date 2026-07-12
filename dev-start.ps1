@@ -141,20 +141,20 @@ function Install-RootNodeModules {
     param([string]$Reason)
 
     Write-Host "        $Reason"
-    Write-Host '        Running npm ci --prefer-offline --no-audit...'
-    & npm ci --prefer-offline --no-audit
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "        npm ci failed (exit $LASTEXITCODE) - retrying with npm install..."
-        & npm install --prefer-offline --no-audit
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host '        FAIL: Could not install root dependencies.'
-            Write-Host '        Close other Node/Vite processes and retry dev-start.bat -Force.'
-            exit 1
-        }
+    . (Join-Path $repoRoot 'scripts\Release-EquipQrNodeModuleLocks.ps1')
+    Stop-EquipQrDevToolingProcesses -RepoRoot $repoRoot
+    Start-Sleep -Seconds 1
+    Remove-RepoNodeModulesScrap -ParentDirectory $repoRoot
+    try {
+        Invoke-EquipQrSafeNpmCi -WorkingDirectory $repoRoot -PreferOffline -NoAudit -SkipToolingStop
+    } catch {
+        Write-Host "        FAIL: Could not install root dependencies: $_"
+        Write-Host '        Try: .\npm-ci-safe.bat  (or dev-stop-all.bat then npm-ci-safe.bat)'
+        exit 1
     }
     if (-not (Test-RootNodeModulesHealthy)) {
         Write-Host '        FAIL: node_modules is still incomplete after install (missing vite .bin shim).'
-        Write-Host '        Try: dev-stop.bat, delete node_modules, then dev-start.bat -Force'
+        Write-Host '        Try: .\npm-ci-safe.bat'
         exit 1
     }
     Write-Host '        Root dependencies installed successfully.'
@@ -164,15 +164,14 @@ function Install-DocsNodeModules {
     param([string]$Reason)
 
     Write-Host "        $Reason"
-    Write-Host '        Running npm --prefix docs ci --prefer-offline --no-audit...'
-    & npm --prefix docs ci --prefer-offline --no-audit
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "        docs npm ci failed (exit $LASTEXITCODE) - retrying with npm install..."
-        & npm --prefix docs install --prefer-offline --no-audit
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host '        FAIL: Could not install docs dependencies.'
-            exit 1
-        }
+    if (-not (Get-Command Invoke-EquipQrSafeNpmCi -ErrorAction SilentlyContinue)) {
+        . (Join-Path $repoRoot 'scripts\Release-EquipQrNodeModuleLocks.ps1')
+    }
+    try {
+        Invoke-EquipQrSafeNpmCi -WorkingDirectory $repoRoot -NpmPrefix 'docs' -PreferOffline -NoAudit -SkipToolingStop
+    } catch {
+        Write-Host "        FAIL: Could not install docs dependencies: $_"
+        exit 1
     }
     if (-not (Test-DocsNodeModulesHealthy)) {
         Write-Host '        FAIL: docs/node_modules is still incomplete after install (missing vitepress .bin shim).'

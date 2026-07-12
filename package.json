@@ -1,7 +1,7 @@
 {
   "name": "equipqr",
   "private": true,
-  "version": "3.25.11",
+  "version": "3.25.12",
   "type": "module",
   "engines": {
     "node": "24.x"
@@ -60,6 +60,7 @@
     "analyze": "npm run build && npx vite-bundle-analyzer",
     "size-check": "npx size-limit",
     "type-check": "tsc --noEmit",
+    "ci:install": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/Invoke-SafeNpmCi.ps1",
     "deploy:vercel": "npx --yes vercel@51.6.1 --prod",
     "docs:dev": "npm --prefix docs run docs:dev",
     "docs:build": "npm --prefix docs run docs:build",

@@ -17,6 +17,16 @@ cd equipqr
 npm ci
 ```
 
+On **Windows**, if `npm ci` fails with **EPERM** / **EBUSY** on `tailwindcss-oxide` or `lightningcss` native binaries, the dev stack or Vitest/ESLint is still holding `node_modules` open. Stop everything and use the safe installer:
+
+```powershell
+.\npm-ci-safe.bat
+# equivalent:
+npm run ci:install
+```
+
+This runs `stop-dev-and-e2e`, kills repo-scoped Vite/Vitest tooling, retries `npm ci`, and deletes a stuck `node_modules` tree when needed (legacy `node_modules.bak-*` scrap in the repo is removed automatically).
+
 > **Note**: We use `npm ci` for consistent, reproducible installs. Never use other package managers.
 
 ### 3. Environment Setup (1Password Preferred)
