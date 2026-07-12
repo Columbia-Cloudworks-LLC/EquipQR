@@ -603,6 +603,7 @@ const WorkOrderDetails = () => {
         }
         equipmentId={selectedEquipmentId || workOrder.equipment_id}
         isUpdating={isUpdatingWorkOrder}
+        pmLoading={pmLoading}
         onSave={handleSavePMManagement}
       />
     </div>

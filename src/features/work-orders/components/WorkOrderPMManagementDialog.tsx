@@ -27,6 +27,7 @@ interface WorkOrderPMManagementDialogProps {
   } | null;
   equipmentId: string;
   isUpdating?: boolean;
+  pmLoading?: boolean;
   onSave: (data: WorkOrderFormData, originalHasPM: boolean, equipmentId: string) => Promise<void>;
 }
 
@@ -38,6 +39,7 @@ export function WorkOrderPMManagementDialog({
   equipment,
   equipmentId,
   isUpdating = false,
+  pmLoading = false,
   onSave,
 }: WorkOrderPMManagementDialogProps) {
   const [pmTemplateId, setPmTemplateId] = useState<string | null>(
@@ -50,6 +52,7 @@ export function WorkOrderPMManagementDialog({
   }, [open, pmData?.template_id]);
 
   const hasPM = Boolean(pmTemplateId);
+  const isPmDataPending = workOrder.has_pm && pmLoading;
 
   const values = useMemo(
     () => ({ hasPM, pmTemplateId }),
@@ -85,6 +88,10 @@ export function WorkOrderPMManagementDialog({
   }, [equipment, equipmentId]);
 
   const handleSave = async () => {
+    if (isPmDataPending) {
+      return;
+    }
+
     const formData: WorkOrderFormData = {
       title: workOrder.title,
       description: workOrder.description ?? '',
@@ -139,7 +146,7 @@ export function WorkOrderPMManagementDialog({
           <Button type="button" variant="outline" onClick={onClose} disabled={isUpdating}>
             Cancel
           </Button>
-          <Button type="button" onClick={() => { void handleSave(); }} disabled={isUpdating}>
+          <Button type="button" onClick={() => { void handleSave(); }} disabled={isUpdating || isPmDataPending}>
             {isUpdating ? 'Saving…' : 'Save PM Changes'}
           </Button>
         </DialogFooter>
