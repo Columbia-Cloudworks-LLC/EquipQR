@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.9] - 2026-07-12
+
+### Changed
+
+- **vitest (#1116)** — Bump `vitest` from 4.1.8 to 4.1.10 and align `@vitest/coverage-v8` (Dependabot).
+
 ## [3.25.8] - 2026-07-12
 
 ### Changed
