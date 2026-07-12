@@ -26,11 +26,12 @@ import {
   parseExportJobMessage,
   type ExportJobMessage,
 } from "../_shared/export-job.ts";
+import { fetchReportRows } from "../_shared/reports/fetch-rows.ts";
+import { buildReportCsv } from "../_shared/reports/format-csv.ts";
 import {
-  buildEquipmentCsvFromRows,
-  buildWorkOrdersCsvFromRows,
-  type ExportRow,
-} from "../_shared/export-csv-from-rows.ts";
+  asReportDataClient,
+  type FleetReportType,
+} from "../_shared/reports/types.ts";
 
 const FUNCTION_NAME = "process-export-job";
 const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
@@ -68,6 +69,10 @@ export type ExportJobQueryBuilder = {
 /** Minimal admin client surface used by the worker (keeps tests stub-friendly). */
 export type ExportJobAdminClient = {
   from: (table: string) => ExportJobQueryBuilder;
+  rpc?: (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
   storage: {
     from: (bucket: string) => {
       upload: (
@@ -141,70 +146,6 @@ function asStringArray(value: unknown, fallback: string[]): string[] {
   if (!Array.isArray(value)) return fallback;
   const cols = value.filter((v): v is string => typeof v === "string" && v.length > 0);
   return cols.length > 0 ? cols : fallback;
-}
-
-async function fetchEquipmentRows(
-  adminClient: ExportJobAdminClient,
-  organizationId: string,
-  filters: Record<string, unknown>,
-): Promise<ExportRow[]> {
-  let query = adminClient
-    .from("equipment")
-    .select(
-      "id, name, manufacturer, model, serial_number, status, location, installation_date, last_maintenance, working_hours, warranty_expiration, notes, custom_attributes, created_at, teams:team_id(name)",
-    )
-    .eq("organization_id", organizationId)
-    .order("name")
-    .limit(50000);
-
-  if (typeof filters.status === "string") query = query.eq("status", filters.status);
-  if (typeof filters.teamId === "string") query = query.eq("team_id", filters.teamId);
-  if (typeof filters.location === "string") {
-    query = query.ilike("location", `%${filters.location}%`);
-  }
-
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-  return (data ?? []).map((item: Record<string, unknown>) => ({
-    ...item,
-    team_name: (item.teams as { name?: string } | null)?.name ?? "",
-  }));
-}
-
-async function fetchWorkOrderRows(
-  adminClient: ExportJobAdminClient,
-  organizationId: string,
-  filters: Record<string, unknown>,
-  accessibleTeamIds: string[] | null,
-  dateRange: { from?: string; to?: string },
-): Promise<ExportRow[]> {
-  let query = adminClient
-    .from("work_orders")
-    .select(
-      "id, title, description, status, priority, created_date, due_date, completed_date, estimated_hours, assignee_name, has_pm, teams:team_id(name), equipment:equipment_id(name)",
-    )
-    .eq("organization_id", organizationId)
-    .not("equipment_id", "is", null)
-    .order("created_date", { ascending: false })
-    .limit(50000);
-
-  if (accessibleTeamIds) {
-    if (accessibleTeamIds.length === 0) return [];
-    query = query.in("team_id", accessibleTeamIds);
-  }
-  if (typeof filters.status === "string") query = query.eq("status", filters.status);
-  if (typeof filters.teamId === "string") query = query.eq("team_id", filters.teamId);
-  if (typeof filters.priority === "string") query = query.eq("priority", filters.priority);
-  if (dateRange.from) query = query.gte("created_date", dateRange.from);
-  if (dateRange.to) query = query.lte("created_date", dateRange.to);
-
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-  return (data ?? []).map((item: Record<string, unknown>) => ({
-    ...item,
-    team_name: (item.teams as { name?: string } | null)?.name ?? "",
-    equipment_name: (item.equipment as { name?: string } | null)?.name ?? "",
-  }));
 }
 
 export async function processExportJobPayload(
@@ -284,30 +225,13 @@ async function runExportAndStore(
   filters: Record<string, unknown>,
   dateRange: { from?: string; to?: string },
 ): Promise<{ ok: boolean; error?: string; rowCount?: number }> {
-  let rows: ExportRow[];
-  let columns: string[];
+  const defaultColumns = message.report_type === "equipment"
+    ? ["name", "manufacturer", "model", "serial_number", "status", "location", "team_name"]
+    : ["title", "status", "priority", "assignee_name", "team_name", "equipment_name", "created_date"];
+  const columns = asStringArray(requestPayload.columns, defaultColumns);
 
-  if (message.report_type === "equipment") {
-    columns = asStringArray(requestPayload.columns, [
-      "name",
-      "manufacturer",
-      "model",
-      "serial_number",
-      "status",
-      "location",
-      "team_name",
-    ]);
-    rows = await fetchEquipmentRows(adminClient, message.organization_id, filters);
-  } else {
-    columns = asStringArray(requestPayload.columns, [
-      "title",
-      "status",
-      "priority",
-      "assignee_name",
-      "team_name",
-      "equipment_name",
-      "created_date",
-    ]);
+  let accessibleTeamIds: string[] | undefined;
+  if (message.report_type === "work-orders") {
     const scope = await resolveWorkOrderExportTeamScope(
       adminClient,
       message.user_id,
@@ -317,18 +241,24 @@ async function runExportAndStore(
     if (!scope.ok) {
       throw new Error(scope.error);
     }
-    rows = await fetchWorkOrderRows(
-      adminClient,
-      message.organization_id,
-      filters,
-      scope.teamIds,
-      dateRange,
-    );
+    accessibleTeamIds = scope.teamIds ?? undefined;
   }
 
-  const built = message.report_type === "equipment"
-    ? buildEquipmentCsvFromRows(rows, columns)
-    : buildWorkOrdersCsvFromRows(rows, columns);
+  const rows = await fetchReportRows(asReportDataClient(adminClient), {
+    reportType: message.report_type as FleetReportType,
+    organizationId: message.organization_id,
+    filters: {
+      status: typeof filters.status === "string" ? filters.status : undefined,
+      teamId: typeof filters.teamId === "string" ? filters.teamId : undefined,
+      location: typeof filters.location === "string" ? filters.location : undefined,
+      priority: typeof filters.priority === "string" ? filters.priority : undefined,
+      dateRange,
+    },
+    columns,
+    accessibleTeamIds,
+  });
+
+  const built = buildReportCsv(message.report_type as FleetReportType, rows, columns);
 
   const storagePath = buildExportStoragePath(
     message.organization_id,

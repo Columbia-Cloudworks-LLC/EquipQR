@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.19] - 2026-07-12
+
+### Changed
+
+- **Export report query layer (#1192)** — Consolidate Fleet Export Console data access into `_shared/reports/` with explicit column whitelists, early org scoping for scans, and unified equipment/work-order fetch for sync and async export paths.
+
 ## [3.25.18] - 2026-07-12
 
 ### Changed
