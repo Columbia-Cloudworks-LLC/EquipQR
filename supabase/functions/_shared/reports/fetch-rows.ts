@@ -369,14 +369,11 @@ async function fetchAlternateGroupRows(
   limit: number,
   offset?: number,
 ): Promise<FlattenedAlternateGroupMember[]> {
-  let groupsQuery = reportQuery(client, "part_alternate_groups")
+  const { data: groups, error: groupsError } = await reportQuery(client, "part_alternate_groups")
     .select(ALTERNATE_GROUP_COLUMNS)
     .eq("organization_id", organizationId)
-    .order("name");
-
-  groupsQuery = applyRowPagination(groupsQuery, limit, offset);
-
-  const { data: groups, error: groupsError } = await groupsQuery;
+    .order("name")
+    .limit(DEFAULT_MAX_REPORT_ROWS);
 
   if (groupsError) {
     throw new Error(`Failed to fetch alternate groups: ${groupsError.message}`);
@@ -392,7 +389,7 @@ async function fetchAlternateGroupRows(
     .select(ALTERNATE_GROUP_MEMBERS_SELECT)
     .in("group_id", groupIds)
     .order("is_primary", { ascending: false })
-    .limit(limit);
+    .limit(DEFAULT_MAX_REPORT_ROWS);
 
   if (membersError) {
     throw new Error(`Failed to fetch group members: ${membersError.message}`);
@@ -404,7 +401,7 @@ async function fetchAlternateGroupRows(
 
   const groupMap = new Map(groups.map((group) => [group.id as string, group]));
 
-  return members.map((member) => {
+  const flattened = members.map((member) => {
     const group = groupMap.get(member.group_id as string);
     const invItem = member.inventory_items as Record<string, unknown> | null;
     const partIdent = member.part_identifiers as Record<string, unknown> | null;
@@ -427,6 +424,9 @@ async function fetchAlternateGroupRows(
       identifier_manufacturer: (partIdent?.manufacturer as string) ?? null,
     };
   });
+
+  const start = offset ?? 0;
+  return flattened.slice(start, start + limit);
 }
 
 /**

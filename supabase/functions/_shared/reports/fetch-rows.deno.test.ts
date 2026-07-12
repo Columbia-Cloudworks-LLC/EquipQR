@@ -162,6 +162,61 @@ Deno.test("applyRowPagination uses range when offset is provided", () => {
   assertEquals(calls, ["range:50-149"]);
 });
 
+Deno.test("fetchAlternateGroupRows paginates flattened member rows", async () => {
+  const rows = [
+    { group_id: "g1", inventory_item_id: "i1", is_primary: true, inventory_items: { name: "A", sku: "1", quantity_on_hand: 1, low_stock_threshold: 1, default_unit_cost: 100, location: null }, part_identifiers: null },
+    { group_id: "g1", inventory_item_id: null, is_primary: false, inventory_items: null, part_identifiers: { identifier_type: "oem", raw_value: "X", manufacturer: null } },
+    { group_id: "g2", inventory_item_id: "i2", is_primary: true, inventory_items: { name: "B", sku: "2", quantity_on_hand: 2, low_stock_threshold: 2, default_unit_cost: 200, location: null }, part_identifiers: null },
+  ];
+
+  const client = {
+    from(table: string) {
+      if (table === "part_alternate_groups") {
+        return {
+          select: () => ({
+            eq: () => ({
+              order: () => ({
+                limit: () => Promise.resolve({
+                  data: [
+                    { id: "g1", name: "Group 1", status: "verified", description: null, notes: null },
+                    { id: "g2", name: "Group 2", status: "verified", description: null, notes: null },
+                  ],
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === "part_alternate_group_members") {
+        return {
+          select: () => ({
+            in: () => ({
+              order: () => ({
+                limit: () => Promise.resolve({ data: rows, error: null }),
+              }),
+            }),
+          }),
+        };
+      }
+      throw new Error(`unexpected table ${table}`);
+    },
+  };
+
+  const { fetchReportRows } = await import("./fetch-rows.ts");
+  const page = await fetchReportRows(client as never, {
+    reportType: "alternate-groups",
+    organizationId: "org-1",
+    filters: {},
+    columns: ["group_name", "item_name"],
+    limit: 1,
+    offset: 1,
+  });
+
+  assertEquals(page.length, 1);
+  assertEquals((page[0] as Record<string, unknown>).item_name, null);
+});
+
 Deno.test("resolveLimit defaults to 50000", () => {
   assertEquals(__fetchRowsTestables.resolveLimit(), 50_000);
   assertEquals(__fetchRowsTestables.resolveLimit(100), 100);
