@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.17] - 2026-07-12
+
+### Changed
+
+- **@axe-core/playwright (#1102)** — Bump `@axe-core/playwright` from 4.11.3 to 4.12.1 (Dependabot).
+
 ## [3.25.16] - 2026-07-12
 
 ### Changed
