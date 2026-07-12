@@ -602,6 +602,7 @@ const WorkOrderDetails = () => {
             : null
         }
         equipmentId={selectedEquipmentId || workOrder.equipment_id}
+        pmLoading={pmLoading}
         isUpdating={isUpdatingWorkOrder}
         onSave={handleSavePMManagement}
       />

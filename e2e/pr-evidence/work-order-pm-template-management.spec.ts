@@ -33,7 +33,7 @@ async function ensureWorkOrderHasNoPm(page: Page): Promise<void> {
   }
 
   await manageButton.click();
-  await page.getByRole('radio', { name: /standard work order/i }).click();
+  await selectRadixOption(page, page.getByRole('combobox', { name: /pm template/i }), /^None$/i);
   await savePmDialog(page);
   await page.reload();
 }
@@ -62,9 +62,7 @@ test.describe('Work order PM template management @pr-evidence', () => {
     await assertHealthyShell();
 
     await openPmManagement(page);
-    await page.getByRole('radio', { name: /with pm checklist/i }).click();
-    const templateTrigger = page.getByRole('combobox').first();
-    await selectRadixOption(page, templateTrigger, /excavator pm|forklift pm/i);
+    await selectRadixOption(page, page.getByRole('combobox', { name: /pm template/i }), /excavator pm|forklift pm/i);
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '01-add-pm-dialog');
     await savePmDialog(page);
@@ -76,14 +74,14 @@ test.describe('Work order PM template management @pr-evidence', () => {
     await evidenceScreenshot(page, '02-pm-checklist-after-add');
 
     await openPmManagement(page);
-    const changeTemplateTrigger = page.getByRole('combobox').first();
+    const changeTemplateTrigger = page.getByRole('combobox', { name: /pm template/i });
     await selectRadixOption(page, changeTemplateTrigger, /forklift pm|excavator pm/i);
     await savePmDialog(page);
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '03-pm-template-changed');
 
     await openPmManagement(page);
-    await page.getByRole('radio', { name: /standard work order/i }).click();
+    await selectRadixOption(page, page.getByRole('combobox', { name: /pm template/i }), /^None$/i);
     await savePmDialog(page);
     await page.reload();
     await assertHealthyShell();

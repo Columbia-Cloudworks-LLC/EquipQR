@@ -22,6 +22,7 @@ import { test, expect } from '../user/fixtures/equipqr-test';
 import { seedEquipment, seedInventory } from '../user/shared/seed-data';
 import { evidenceScreenshot } from './shared/evidence-helpers';
 import { focusAndClick, focusAndFill, focusControl, settleForDemo } from './shared/docs-demo-helpers';
+import { selectPmTemplateIfAvailable } from '../user/shared/ui-form-helpers';
 
 test.describe('Docs media: Technician field work desktop @pr-evidence', () => {
   test('scan QR, create WO from equipment, status, notes, PM checklist, consume parts', async ({
@@ -57,10 +58,7 @@ test.describe('Docs media: Technician field work desktop @pr-evidence', () => {
     }
 
     // PM work order so the detail page carries a live checklist for the demo.
-    const pmRadio = dialog.getByRole('radio', { name: /with pm checklist/i });
-    if (await pmRadio.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await focusAndClick(page, pmRadio);
-    }
+    await selectPmTemplateIfAvailable(page, dialog, /excavator pm|forklift pm|pm/i);
 
     await settleForDemo(page, 600);
     await evidenceScreenshot(page, '02-create-work-order-dialog');

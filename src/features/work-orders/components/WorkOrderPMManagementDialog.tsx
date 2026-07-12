@@ -26,6 +26,7 @@ interface WorkOrderPMManagementDialogProps {
     default_pm_template_id?: string | null;
   } | null;
   equipmentId: string;
+  pmLoading?: boolean;
   isUpdating?: boolean;
   onSave: (data: WorkOrderFormData, originalHasPM: boolean, equipmentId: string) => Promise<void>;
 }
@@ -37,32 +38,37 @@ export function WorkOrderPMManagementDialog({
   pmData,
   equipment,
   equipmentId,
+  pmLoading = false,
   isUpdating = false,
   onSave,
 }: WorkOrderPMManagementDialogProps) {
-  const [hasPM, setHasPM] = useState(workOrder.has_pm);
-  const [pmTemplateId, setPmTemplateId] = useState<string | undefined>(
-    pmData?.template_id ?? undefined,
+  const [pmTemplateId, setPmTemplateId] = useState<string | null>(
+    pmData?.template_id ?? null,
   );
 
   useEffect(() => {
     if (!open) return;
-    setHasPM(workOrder.has_pm);
-    setPmTemplateId(pmData?.template_id ?? undefined);
-  }, [open, workOrder.has_pm, pmData?.template_id]);
+    if (workOrder.has_pm && pmLoading) return;
+    setPmTemplateId(pmData?.template_id ?? null);
+  }, [open, pmData?.template_id, workOrder.has_pm, pmLoading]);
+
+  const hasPM = workOrder.has_pm && pmLoading ? true : Boolean(pmTemplateId);
+  const pmReady = !workOrder.has_pm || !pmLoading;
 
   const values = useMemo(
-    () => ({ hasPM, pmTemplateId: pmTemplateId ?? null }),
+    () => ({ hasPM, pmTemplateId }),
     [hasPM, pmTemplateId],
   );
 
   const setValue = useCallback(
     <K extends 'hasPM' | 'pmTemplateId'>(field: K, value: WorkOrderFormData[K]) => {
       if (field === 'hasPM') {
-        setHasPM(Boolean(value));
+        if (!value) {
+          setPmTemplateId(null);
+        }
         return;
       }
-      setPmTemplateId(typeof value === 'string' ? value : undefined);
+      setPmTemplateId(typeof value === 'string' ? value : null);
     },
     [],
   );
@@ -92,15 +98,13 @@ export function WorkOrderPMManagementDialog({
       estimatedHours: workOrder.estimated_hours ?? null,
       equipmentWorkingHours: null,
       hasPM,
-      pmTemplateId: hasPM ? (pmTemplateId ?? null) : null,
+      pmTemplateId: hasPM ? pmTemplateId : null,
       assigneeId: workOrder.assignee_id ?? null,
       isHistorical: workOrder.is_historical ?? false,
     };
 
     await onSave(formData, workOrder.has_pm, equipmentId);
   };
-
-  const canSave = !hasPM || Boolean(pmTemplateId);
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
@@ -139,7 +143,7 @@ export function WorkOrderPMManagementDialog({
           <Button type="button" variant="outline" onClick={onClose} disabled={isUpdating}>
             Cancel
           </Button>
-          <Button type="button" onClick={() => { void handleSave(); }} disabled={isUpdating || !canSave}>
+          <Button type="button" onClick={() => { void handleSave(); }} disabled={isUpdating || !pmReady}>
             {isUpdating ? 'Saving…' : 'Save PM Changes'}
           </Button>
         </DialogFooter>

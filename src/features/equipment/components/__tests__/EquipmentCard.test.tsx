@@ -287,7 +287,7 @@ describe('EquipmentCard', () => {
   });
 
   describe('Mobile work order quick actions', () => {
-    it('opens PM and generic work order options without navigating to equipment details', async () => {
+    it('opens the unified work order option without navigating to equipment details', async () => {
       const user = (await import('@testing-library/user-event')).default.setup();
 
       render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
@@ -299,21 +299,12 @@ describe('EquipmentCard', () => {
       expect(mobileButton).toBeDefined();
 
       await user.click(mobileButton!);
-      await user.click(screen.getByRole('menuitem', { name: /new pm work order/i }));
+      await user.click(screen.getByRole('menuitem', { name: /new work order/i }));
 
       expect(mockNavigate).toHaveBeenCalledWith(
-        '/dashboard/equipment/eq-1?createWorkOrder=pm',
+        '/dashboard/equipment/eq-1?createWorkOrder=1',
       );
       expect(mockNavigate).not.toHaveBeenCalledWith('/dashboard/equipment/eq-1');
-
-      mockNavigate.mockClear();
-
-      await user.click(mobileButton!);
-      await user.click(screen.getByRole('menuitem', { name: /create generic work order/i }));
-
-      expect(mockNavigate).toHaveBeenCalledWith(
-        '/dashboard/equipment/eq-1?createWorkOrder=generic',
-      );
     });
   });
 

@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, Camera, Clock, Loader2, Plus, Wrench } from 'lucide-react';
+import { AlertCircle, Camera, Clock, Loader2, Plus } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import type {
@@ -30,7 +30,7 @@ interface EquipmentQRQuickActionsProps {
 }
 
 type DialogState =
-  | { type: 'work-order'; attachPM: boolean }
+  | { type: 'work-order' }
   | { type: 'hours' }
   | { type: 'note' }
   | null;
@@ -40,7 +40,7 @@ type SuccessMessage =
   | null;
 
 const ACTION_DENIED_COPY: Record<QRActionType, string> = {
-  'pm-work-order': 'You need work order access for this equipment team to create a PM work order from the scan page.',
+  'pm-work-order': 'You need work order access for this equipment team to create a work order from the scan page.',
   'generic-work-order': 'You need work order access for this equipment team to create a work order from the scan page.',
   'update-hours': 'Only organization admins, owners, or managers of this equipment team can update hours from the scan page.',
   'note-image': 'You need equipment note access for this equipment team to add a note or image from the scan page.',
@@ -143,21 +143,11 @@ export default function EquipmentQRQuickActions({
         <Button
           type="button"
           className="min-h-[44px] justify-start gap-2"
-          onClick={() => openAction('pm-work-order', { type: 'work-order', attachPM: true })}
-          disabled={checkingAction !== null}
-        >
-          {renderSpinner('pm-work-order') ?? <Wrench className="h-4 w-4" />}
-          New PM Work Order
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          className="min-h-[44px] justify-start gap-2"
-          onClick={() => openAction('generic-work-order', { type: 'work-order', attachPM: false })}
+          onClick={() => openAction('generic-work-order', { type: 'work-order' })}
           disabled={checkingAction !== null}
         >
           {renderSpinner('generic-work-order') ?? <Plus className="h-4 w-4" />}
-          Create Generic Work Order
+          New Work Order
         </Button>
         <Button
           type="button"
@@ -185,12 +175,10 @@ export default function EquipmentQRQuickActions({
         <Suspense fallback={null}>
           {dialog.type === 'work-order' && (
             <QRWorkOrderDialog
-              key={dialog.attachPM ? 'pm' : 'generic'}
               open
               equipment={equipment}
               permissionContext={activePermissionContext}
               scanId={scanId}
-              mode={dialog.attachPM ? 'pm' : 'generic'}
               onOpenChange={(open) => {
                 if (!open) {
                   setDialog(null);

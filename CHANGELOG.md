@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.12] - 2026-07-12
+
+### Changed
+
+- **Unified work order PM template on create (#1162)** — Replaced the generic vs PM work order type split with a PM template dropdown directly below the title (None + clear control, equipment default). Collapsed equipment QR, card menu, details, and mobile quick-access entry points into one New Work Order flow.
+- **Windows npm ci lock recovery** — Added `npm-ci-safe.bat` / `npm run ci:install` to stop dev tooling, delete stuck `node_modules` trees, and recover from EPERM/EBUSY on native binaries (`tailwindcss-oxide`, `lightningcss`) instead of leaving backup folders in the repo.
+
 ## [3.25.11] - 2026-07-12
 
 ### Changed
