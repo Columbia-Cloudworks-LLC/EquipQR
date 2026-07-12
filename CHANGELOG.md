@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.7] - 2026-07-11
+
+### Fixed
+
+- **Dark scrollbar theme (#1208)** — Global scrollbar styling uses subtle dark thumbs on transparent tracks so native light OS scrollbars no longer clash with the Mission Control palette in popovers, dialogs, sheets, and other overflow regions.
+
 ## [3.25.6] - 2026-07-11
 
 ### Changed
