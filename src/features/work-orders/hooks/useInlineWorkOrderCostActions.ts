@@ -39,7 +39,6 @@ export function useInlineWorkOrderCostActions({
   isEditing,
   setIsEditing,
   setIsSaving,
-  costValidationPhase,
   setCostValidationPhase,
   getNewCosts,
   getUpdatedCosts,

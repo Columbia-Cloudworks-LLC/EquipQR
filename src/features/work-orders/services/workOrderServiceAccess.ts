@@ -1,15 +1,4 @@
 import { supabase } from '@/integrations/supabase/client';
-import { getAuthClaims } from '@/lib/authClaims';
-
-export async function requireAuthenticatedClaims(): Promise<
-  { sub: string } | { error: Error }
-> {
-  const claims = await getAuthClaims();
-  if (!claims) {
-    return { error: new Error('User not authenticated') };
-  }
-  return claims;
-}
 
 export async function fetchWorkOrderInOrganization(
   organizationId: string,

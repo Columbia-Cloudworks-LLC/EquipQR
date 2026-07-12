@@ -11,9 +11,6 @@ import {
   WorkOrderRow,
   WorkOrderCreateData,
   WorkOrderUpdateData,
-  WorkOrderNote,
-  WorkOrderNoteCreateData,
-  WorkOrderImage,
   WorkOrderServiceFilters,
 } from '@/features/work-orders/types/workOrder';
 import { applyWorkOrderSupabaseFilters } from '@/features/work-orders/utils/workOrderSupabaseFilters';
@@ -26,24 +23,12 @@ import {
   requiresEquipmentInnerJoin,
   resolveWorkOrderTeamScope,
 } from '@/features/work-orders/services/workOrderListQueryHelpers';
-import {
-  createWorkOrderNoteWithImages,
-  getWorkOrderNotesWithImages,
-} from '@/features/work-orders/services/workOrderNotesService';
-import {
-  fetchWorkOrderImagesForService,
-  uploadWorkOrderImageForService,
-} from '@/features/work-orders/services/workOrderServiceImages';
-import { fetchWorkOrderInOrganization } from '@/features/work-orders/services/workOrderServiceAccess';
 
 // Re-export types for backward compatibility
 export type {
   WorkOrder,
   WorkOrderCreateData,
   WorkOrderUpdateData,
-  WorkOrderNote,
-  WorkOrderNoteCreateData,
-  WorkOrderImage,
 };
 
 /**
@@ -422,86 +407,5 @@ export class WorkOrderService extends BaseService {
    */
   async getWorkOrdersDueToday(): Promise<ApiResponse<WorkOrder[]>> {
     return this.getAll({ dueDateFilter: 'today' });
-  }
-
-  // ============================================
-  // Work Order Notes Methods
-  // ============================================
-
-  /**
-   * Get notes for a work order with author names and associated images
-   */
-  async getNotes(workOrderId: string): Promise<ApiResponse<WorkOrderNote[]>> {
-    try {
-      const workOrder = await fetchWorkOrderInOrganization(this.organizationId, workOrderId);
-      if (!workOrder) {
-        return this.handleError(new Error('Work order not found'));
-      }
-
-      const notes = await getWorkOrderNotesWithImages(workOrderId, this.organizationId);
-      return this.handleSuccess(notes as unknown as WorkOrderNote[]);
-    } catch (error) {
-      return this.handleError(error);
-    }
-  }
-
-  /**
-   * Create a note for a work order
-   */
-  async createNote(
-    workOrderId: string,
-    noteData: WorkOrderNoteCreateData
-  ): Promise<ApiResponse<WorkOrderNote>> {
-    try {
-      const note = await createWorkOrderNoteWithImages(
-        workOrderId,
-        noteData.content,
-        noteData.hours_worked || 0,
-        noteData.is_private || false,
-        [],
-        this.organizationId,
-      );
-
-      return this.handleSuccess(note as unknown as WorkOrderNote);
-    } catch (error) {
-      return this.handleError(error);
-    }
-  }
-
-  // ============================================
-  // Work Order Images Methods
-  // ============================================
-
-  /**
-   * Get all images for a work order
-   */
-  async getImages(workOrderId: string): Promise<ApiResponse<WorkOrderImage[]>> {
-    try {
-      const images = await fetchWorkOrderImagesForService(this.organizationId, workOrderId);
-      return this.handleSuccess(images);
-    } catch (error) {
-      return this.handleError(error);
-    }
-  }
-
-  /**
-   * Upload an image for a work order
-   */
-  async uploadImage(
-    workOrderId: string,
-    file: File,
-    description?: string
-  ): Promise<ApiResponse<WorkOrderImage>> {
-    try {
-      const image = await uploadWorkOrderImageForService(
-        this.organizationId,
-        workOrderId,
-        file,
-        description,
-      );
-      return this.handleSuccess(image);
-    } catch (error) {
-      return this.handleError(error);
-    }
   }
 }
