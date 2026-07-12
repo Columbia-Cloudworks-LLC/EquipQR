@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.16] - 2026-07-12
+
+### Changed
+
+- **Work orders ESLint cleanup (#1237)** — Removed dead hooks and service wrappers in `work-orders/services` and `work-orders/hooks` (−801 LOC); zero warnings in scoped paths.
+
 ## [3.25.15] - 2026-07-12
 
 ### Changed
