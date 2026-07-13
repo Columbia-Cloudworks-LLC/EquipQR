@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.22] - 2026-07-13
+
+### Changed
+
+- **tailwindcss (#1110)** — Bump `tailwindcss` from 4.3.0 to 4.3.2 (Dependabot).
+
 ## [3.25.21] - 2026-07-13
 
 ### Changed
