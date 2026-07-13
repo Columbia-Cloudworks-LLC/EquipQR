@@ -697,3 +697,185 @@ function Find-PrEvidenceWebm {
     }
     return $files[0].FullName
 }
+
+function Get-PrEvidenceVisualReviewPath {
+    param([Parameter(Mandatory)][string]$ArtifactDir)
+
+    return Join-Path $ArtifactDir 'visual-review.json'
+}
+
+function Test-PrEvidenceVisualReviewComplete {
+    param([Parameter(Mandatory)][string]$ArtifactDir)
+
+    $reviewPath = Get-PrEvidenceVisualReviewPath -ArtifactDir $ArtifactDir
+    if (-not (Test-Path -LiteralPath $reviewPath)) {
+        return $false
+    }
+
+    try {
+        $review = Get-Content -LiteralPath $reviewPath -Raw -Encoding utf8 | ConvertFrom-Json
+    }
+    catch {
+        return $false
+    }
+
+    return [bool]$review.approved
+}
+
+function Write-PrEvidenceVisualReviewChecklist {
+    param(
+        [Parameter(Mandatory)][string]$ArtifactDir,
+        [Parameter(Mandatory)][string]$FlowSlug,
+        [Parameter(Mandatory)][string]$ManifestPath
+    )
+
+    if (-not (Test-Path -LiteralPath $ManifestPath)) {
+        throw "Manifest not found: $ManifestPath"
+    }
+
+    $manifest = Get-Content -LiteralPath $ManifestPath -Raw -Encoding utf8 | ConvertFrom-Json
+    $screenshots = @($manifest.screenshots)
+    $viewport = $manifest.viewport
+    $viewportLabel = if ($viewport) {
+        ('{0}x{1}' -f $viewport.width, $viewport.height)
+    } else {
+        'unknown'
+    }
+
+    $rows = New-Object System.Collections.Generic.List[string]
+    $index = 1
+    foreach ($shot in $screenshots) {
+        $label = [string]$shot.label
+        $localPath = [string]$shot.localPath
+        $rows.Add(('| {0} | {1} | `{2}` |' -f $index, $label, ($localPath -replace '\\', '/')))
+        $index++
+    }
+
+    $checklistPath = Join-Path $ArtifactDir 'visual-review-checklist.md'
+    $completeCmd = ('.\scripts\pr-evidence\Complete-PrEvidenceVisualReview.ps1 -Flow "{0}" -Notes "<what you verified>"' -f $FlowSlug)
+
+    $content = @(
+        '# PR visual review checklist',
+        '',
+        'Playwright capture already failed on horizontal overflow and clipped `target` controls. **Before upload/publish**, open each PNG below and confirm the layout is production-ready — especially on mobile.',
+        '',
+        ('Flow: `{0}` | Viewport: {1} | Captured: {2}' -f $FlowSlug, $viewportLabel, [string]$manifest.capturedAt),
+        '',
+        '## Per-screenshot gate',
+        '',
+        'For **every** PNG, all items must be **yes**. Any **no** means fix the layout or re-capture; do not publish evidence.',
+        '',
+        '- Target control/state is **fully in frame** with comfortable padding (not clipped by header, FAB, sheet, or safe-area).',
+        '- **No horizontal scroll** is required; wide tables/cards wrap or scroll vertically inside the page.',
+        '- **Stacking** reads clearly (labels, values, actions); no overlapping or crushed side-by-side columns on mobile.',
+        '- **Primary actions** are visible or clearly reachable with vertical scroll (not trapped behind fixed chrome).',
+        '- Layout looks **intentionally designed** for EquipQR — not merely functional enough for now.',
+        '',
+        '## Screenshots',
+        '',
+        '| # | Label | Local path |',
+        '|---|-------|------------|',
+        ($rows -join [Environment]::NewLine),
+        '',
+        '## Record approval',
+        '',
+        'After inspecting each PNG (use the Read tool or open the file locally):',
+        '',
+        '```powershell',
+        $completeCmd,
+        '```',
+        '',
+        'Upload/publish (`Invoke-PrEvidence.ps1` without `-CaptureOnly`) is blocked until `visual-review.json` exists with `approved: true`.',
+        ''
+    ) -join [Environment]::NewLine
+
+    Set-Content -LiteralPath $checklistPath -Value $content -Encoding utf8
+    return $checklistPath
+}
+
+function Normalize-PrEvidenceSpecPath {
+    param([string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return ''
+    }
+
+    return ($Path.Trim() -replace '\\', '/')
+}
+
+function Normalize-PrEvidenceBaseUrl {
+    param([string]$Url)
+
+    if ([string]::IsNullOrWhiteSpace($Url)) {
+        return ''
+    }
+
+    return $Url.Trim().TrimEnd('/')
+}
+
+function Test-PrEvidenceManifestMatchesInvocation {
+    param(
+        [Parameter(Mandatory)][string]$ManifestPath,
+        [Parameter(Mandatory)][string]$Spec,
+        [string]$BaseUrl = 'http://localhost:8080',
+        [switch]$MobileViewport
+    )
+
+    if (-not (Test-Path -LiteralPath $ManifestPath)) {
+        return $false
+    }
+
+    try {
+        $manifest = Get-Content -LiteralPath $ManifestPath -Raw -Encoding utf8 | ConvertFrom-Json
+    }
+    catch {
+        return $false
+    }
+
+    if (Normalize-PrEvidenceSpecPath -Path ([string]$manifest.spec) -ne (Normalize-PrEvidenceSpecPath -Path $Spec)) {
+        return $false
+    }
+
+    if (Normalize-PrEvidenceBaseUrl -Url ([string]$manifest.baseUrl) -ne (Normalize-PrEvidenceBaseUrl -Url $BaseUrl)) {
+        return $false
+    }
+
+    if (-not $manifest.viewport) {
+        return $false
+    }
+
+    $expectedViewport = Get-PrEvidenceRecordingViewport -MobileViewport:$MobileViewport
+    if ([int]$manifest.viewport.width -ne [int]$expectedViewport.width) {
+        return $false
+    }
+    if ([int]$manifest.viewport.height -ne [int]$expectedViewport.height) {
+        return $false
+    }
+
+    return $true
+}
+
+function Assert-PrEvidenceVisualReviewComplete {
+    param(
+        [Parameter(Mandatory)][string]$ArtifactDir,
+        [Parameter(Mandatory)][string]$FlowSlug
+    )
+
+    if (Test-PrEvidenceVisualReviewComplete -ArtifactDir $ArtifactDir) {
+        return
+    }
+
+    $checklistPath = Join-Path $ArtifactDir 'visual-review-checklist.md'
+    $checklistHint = if (Test-Path -LiteralPath $checklistPath) {
+        $checklistPath
+    } else {
+        'visual-review-checklist.md (re-run capture to regenerate)'
+    }
+
+    throw @(
+        "PR visual review incomplete for flow '$FlowSlug'.",
+        "Open each screenshot in $checklistHint and confirm the frame-quality gate.",
+        "Then run: .\scripts\pr-evidence\Complete-PrEvidenceVisualReview.ps1 -Flow `"$FlowSlug`" -Notes `"verified`""
+    ) -join ' '
+}
+

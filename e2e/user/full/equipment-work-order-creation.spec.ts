@@ -9,7 +9,7 @@ import {
   openWorkOrderCreateDialog,
   selectPmTemplateIfAvailable,
   selectWorkOrderEquipment,
-  setWorkOrderType,
+  setPmTemplate,
   submitWorkOrderForm,
 } from '../shared/ui-form-helpers';
 
@@ -57,22 +57,22 @@ test.describe.serial('creation flows: equipment and work orders @full', () => {
     });
   });
 
-  test('creates a generic work order for a deterministic equipment record', async ({
+  test('creates a work order without a PM template for a deterministic equipment record', async ({
     page,
     gotoDashboard,
     assertHealthyShell,
   }) => {
     const dialog = await openWorkOrderCreateDialog(page, gotoDashboard);
 
-    await test.step('Fill generic work order fields', async () => {
+    await test.step('Fill work order fields without PM', async () => {
       await fillWorkOrderBasics(dialog, data.genericWorkOrder);
-      await setWorkOrderType(dialog, 'standard');
       await selectWorkOrderEquipment(
         page,
         dialog,
         equipmentWithDefaultPmName,
         seedEquipment.cat320.name,
       );
+      await setPmTemplate(page, dialog, 'none');
     });
 
     await test.step('Submit and verify work order detail', async () => {
@@ -97,11 +97,8 @@ test.describe.serial('creation flows: equipment and work orders @full', () => {
       // (Excavator PM) for the default-template PM create path; test 1 still assigns Forklift PM
       // on the detail page for the UI-created Toyota unit.
       await selectWorkOrderEquipment(page, dialog, seedEquipment.cat320.name);
-      await setWorkOrderType(dialog, 'pm');
       await expect(
-        dialog
-          .getByText(/uses the assigned PM template|Excavator PM|PM Checklist Preview/i)
-          .first(),
+        dialog.getByText(/PM Checklist Preview|Excavator PM|Equipment default/i).first(),
       ).toBeVisible({ timeout: 30_000 });
     });
 
@@ -135,20 +132,10 @@ test.describe.serial('creation flows: equipment and work orders @full', () => {
     await test.step('Create PM work order with manual template selection', async () => {
       await fillWorkOrderBasics(dialog, data.pmWorkOrderWithoutDefault);
       await selectWorkOrderEquipment(page, dialog, equipmentWithoutDefaultPmName);
-      await setWorkOrderType(dialog, 'pm');
-      await expect(dialog.getByText(/^Checklist Template$/)).toBeVisible({ timeout: 15_000 });
-
-      const manualSelector = dialog
-        .locator('div')
-        .filter({ has: dialog.getByText(/^Checklist Template$/) })
-        .getByRole('combobox');
-      if (await manualSelector.isVisible({ timeout: 3_000 }).catch(() => false)) {
-        await selectPmTemplateIfAvailable(page, dialog, /Forklift PM/i);
-      } else {
-        await expect(
-          dialog.getByText(/Compressor PM|Forklift PM|PM Checklist Preview/i).first(),
-        ).toBeVisible({ timeout: 15_000 });
-      }
+      await expect(dialog.getByRole('combobox', { name: /pm template/i })).toBeVisible({
+        timeout: 15_000,
+      });
+      await selectPmTemplateIfAvailable(page, dialog, /Forklift PM/i);
     });
 
     await test.step('Submit and verify PM checklist on detail page', async () => {

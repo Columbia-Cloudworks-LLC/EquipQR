@@ -76,7 +76,6 @@ const EquipmentDetails = () => {
 
   const [activeTab, setActiveTab] = useState(() => normalizeTabParam(searchParams.get('tab')));
   const [isWorkOrderFormOpen, setIsWorkOrderFormOpen] = useState(false);
-  const [workOrderCreateMode, setWorkOrderCreateMode] = useState<'pm' | 'generic' | null>(null);
   const [isQRCodeOpen, setIsQRCodeOpen] = useState(false);
   const [qrInitialVariant, setQrInitialVariant] = useState<EquipmentQRVariant>('equipment');
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -118,9 +117,8 @@ const EquipmentDetails = () => {
     if (!equipment) return;
 
     const createParam = searchParams.get('createWorkOrder');
-    if (createParam !== 'pm' && createParam !== 'generic') return;
+    if (!createParam) return;
 
-    setWorkOrderCreateMode(createParam);
     setIsWorkOrderFormOpen(true);
 
     const nextSearchParams = new URLSearchParams(searchParams);
@@ -307,14 +305,7 @@ const EquipmentDetails = () => {
           <>
             <MobileEquipmentActionBar
               equipmentId={equipment.id}
-              onCreatePMWorkOrder={() => {
-                setWorkOrderCreateMode('pm');
-                setIsWorkOrderFormOpen(true);
-              }}
-              onCreateGenericWorkOrder={() => {
-                setWorkOrderCreateMode('generic');
-                setIsWorkOrderFormOpen(true);
-              }}
+              onCreateWorkOrder={() => setIsWorkOrderFormOpen(true)}
               onAddNote={() => setActiveTab('notes')}
             />
             <EquipmentQuickAccessDrawer
@@ -322,14 +313,7 @@ const EquipmentDetails = () => {
               equipmentName={equipment.name}
               organizationId={currentOrganization.id}
               onShowQrCode={(variant) => handleOpenQrCode(variant)}
-              onCreatePMWorkOrder={() => {
-                setWorkOrderCreateMode('pm');
-                setIsWorkOrderFormOpen(true);
-              }}
-              onCreateGenericWorkOrder={() => {
-                setWorkOrderCreateMode('generic');
-                setIsWorkOrderFormOpen(true);
-              }}
+              onCreateWorkOrder={() => setIsWorkOrderFormOpen(true)}
               onAddNote={() => setActiveTab('notes')}
             />
           </>
@@ -344,15 +328,6 @@ const EquipmentDetails = () => {
             <EquipmentDetailsTab
               equipment={equipment}
               assignedTeam={assignedTeam}
-              isAdmin={isAdmin}
-              organizationId={currentOrganization.id}
-              onOpenQrCodeForAssignment={(assignmentId) =>
-                handleOpenQrCode(`assignment:${assignmentId}`)
-              }
-              onCreatePMWorkOrder={() => {
-                setWorkOrderCreateMode('pm');
-                setIsWorkOrderFormOpen(true);
-              }}
             />
           </TabsContent>
 
@@ -380,6 +355,7 @@ const EquipmentDetails = () => {
                   equipmentModel={equipment.model}
                   equipmentSerialNumber={equipment.serial_number}
                   equipment={equipment}
+                  assignedTeamName={assignedTeam?.name ?? null}
                 />
               </Suspense>
             )}
@@ -406,6 +382,7 @@ const EquipmentDetails = () => {
                   organizationId={currentOrganization.id}
                   equipmentTeamId={equipment.team_id || undefined}
                   currentDisplayImage={equipment.image_url || undefined}
+                  equipmentName={equipment.name}
                 />
               </Suspense>
             )}
@@ -418,6 +395,10 @@ const EquipmentDetails = () => {
                   organizationId={currentOrganization.id}
                   equipmentId={equipment.id}
                   equipmentName={equipment.name}
+                  isAdmin={isAdmin}
+                  onOpenQrCodeForAssignment={(assignmentId) =>
+                    handleOpenQrCode(`assignment:${assignmentId}`)
+                  }
                 />
               </Suspense>
             )}
@@ -468,15 +449,12 @@ const EquipmentDetails = () => {
           organizationId={currentOrganization.id}
           isAdmin={isAdmin}
           isWorkOrderFormOpen={isWorkOrderFormOpen}
-          workOrderCreateMode={workOrderCreateMode}
-          defaultPmTemplateId={equipment.default_pm_template_id}
           isQRCodeOpen={isQRCodeOpen}
           qrInitialVariant={qrInitialVariant}
           isDeleteDialogOpen={isDeleteDialogOpen}
           isWorkingHoursModalOpen={isWorkingHoursModalOpen}
           onCloseWorkOrderForm={() => {
             setIsWorkOrderFormOpen(false);
-            setWorkOrderCreateMode(null);
           }}
           onCloseQRCode={handleCloseQrCode}
           onDeleteDialogOpenChange={setIsDeleteDialogOpen}

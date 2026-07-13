@@ -3,8 +3,8 @@ import { EquipmentLocationMapPanel } from '@/components/location/EquipmentLocati
 import type { PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
 import type { EquipmentTeamSummary } from '@/features/equipment/services/EquipmentService';
 import type { EquipmentRecord } from '@/features/equipment/types/equipment';
-import { displayableImageSrc } from '@/services/imageUploadService';
-import { Forklift, Users } from 'lucide-react';
+import { EquipmentPrimaryMediaPanel } from '@/features/equipment/components/media/EquipmentPrimaryMediaPanel';
+import { Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 type EquipmentDetailsDesktopSummaryProps = {
@@ -34,25 +34,17 @@ export function EquipmentDetailsDesktopSummary({
   onCancelLocationEdit,
   onSaveLocation,
 }: EquipmentDetailsDesktopSummaryProps) {
-  const equipmentImageSrc = displayableImageSrc(equipment.image_url);
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <Card>
-        <CardContent className="p-0">
-          {equipmentImageSrc ? (
-            <img
-              src={equipmentImageSrc}
-              alt={equipment.name}
-              className="w-full h-64 object-cover rounded-lg"
-              loading="lazy"
-              decoding="async"
-            />
-          ) : (
-            <div className="w-full h-64 bg-muted rounded-lg flex items-center justify-center">
-              <Forklift className="h-16 w-16 text-muted-foreground" />
-            </div>
-          )}
+        <CardContent className="p-2 sm:p-3">
+          <EquipmentPrimaryMediaPanel
+            equipmentId={equipment.id}
+            organizationId={organizationId}
+            equipmentName={equipment.name}
+            currentDisplayImage={equipment.image_url}
+            emptyClassName="h-64"
+          />
         </CardContent>
       </Card>
 

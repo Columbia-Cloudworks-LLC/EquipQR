@@ -17,28 +17,6 @@ export interface WorkOrderEquipmentWithDetails extends WorkOrderEquipment {
   } | null;
 }
 
-export interface CreateWorkOrderEquipmentData {
-  work_order_id: string;
-  equipment_id: string;
-  is_primary: boolean;
-}
-
-export interface AddEquipmentToWorkOrderParams {
-  workOrderId: string;
-  equipmentIds: string[];
-  primaryEquipmentId?: string;
-}
-
-export interface RemoveEquipmentFromWorkOrderParams {
-  workOrderId: string;
-  equipmentId: string;
-}
-
-export interface SetPrimaryEquipmentParams {
-  workOrderId: string;
-  equipmentId: string;
-}
-
 /**
  * EquipmentSelectorItem - Common type for equipment items in selector components.
  * 

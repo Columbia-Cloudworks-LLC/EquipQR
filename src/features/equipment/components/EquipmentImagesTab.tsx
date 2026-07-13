@@ -1,17 +1,24 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentNotesPermissions } from '@/features/equipment/hooks/useEquipmentNotesPermissions';
+import { useEquipmentMediaLibrary } from '@/features/equipment/hooks/useEquipmentMediaLibrary';
 import ImageGallery from '@/components/common/ImageGallery';
 import ImageUploadWithNote from '@/components/common/ImageUploadWithNote';
-import { 
-  getAllEquipmentImages, 
-  deleteEquipmentImage, 
+import { EquipmentMediaFiltersBar } from '@/features/equipment/components/media/EquipmentMediaFiltersBar';
+import { EquipmentMediaExplorer } from '@/features/equipment/components/media/EquipmentMediaExplorer';
+import {
+  deleteEquipmentImage,
   updateEquipmentDisplayImage,
-  EquipmentImageData 
+  type EquipmentImageData,
 } from '@/features/equipment/services/equipmentImagesService';
 import { createEquipmentNoteWithImages } from '@/features/equipment/services/equipmentNotesService';
+import { equipment } from '@/lib/queryKeys';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Images, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface EquipmentImagesTabProps {
@@ -19,34 +26,39 @@ interface EquipmentImagesTabProps {
   organizationId: string;
   equipmentTeamId?: string;
   currentDisplayImage?: string;
+  equipmentName?: string;
 }
 
 const EquipmentImagesTab: React.FC<EquipmentImagesTabProps> = ({
   equipmentId,
   organizationId,
   equipmentTeamId,
-  currentDisplayImage
+  currentDisplayImage,
+  equipmentName = 'Equipment',
 }) => {
   const queryClient = useQueryClient();
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
   const permissions = useEquipmentNotesPermissions(equipmentTeamId);
   const [showUploadForm, setShowUploadForm] = useState(false);
+  const [optionalNote, setOptionalNote] = useState('');
+  const [explorerOpen, setExplorerOpen] = useState(false);
 
-  // Get user's role and team information
-  const userRole = currentOrganization?.userRole || 'member';
-  
-  const userTeamIds: string[] = []; // This would need to be fetched from team membership data
-
-  // Fetch all equipment images
-  const { data: images = [], isLoading } = useQuery({
-    queryKey: ['equipment-images', equipmentId, organizationId],
-    queryFn: () => getAllEquipmentImages(equipmentId, organizationId, userRole, userTeamIds),
-    enabled: !!equipmentId && !!organizationId,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+  const media = useEquipmentMediaLibrary({
+    equipmentId,
+    organizationId,
+    currentDisplayImage,
   });
 
-  // Delete image mutation
+  const invalidateMedia = () => {
+    queryClient.invalidateQueries({ queryKey: equipment.images(equipmentId) });
+    queryClient.invalidateQueries({ queryKey: equipment.notesWithImages(equipmentId) });
+    queryClient.invalidateQueries({ queryKey: equipment.list(organizationId) });
+    queryClient.invalidateQueries({
+      queryKey: equipment.byId(organizationId, equipmentId),
+    });
+  };
+
   const deleteImageMutation = useMutation({
     mutationFn: ({
       imageId,
@@ -65,99 +77,70 @@ const EquipmentImagesTab: React.FC<EquipmentImagesTabProps> = ({
         workOrderId,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['equipment-images', equipmentId]
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['equipment-notes', equipmentId]
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['equipment']
-      });
+      invalidateMedia();
       toast.success('Image deleted successfully');
     },
     onError: (error) => {
       console.error('Error deleting image:', error);
       toast.error('Failed to delete image');
-    }
+    },
   });
 
-  // Set display image mutation
   const setDisplayImageMutation = useMutation({
     mutationFn: (imageUrl: string) => {
       if (!permissions.canSetDisplayImage) {
         throw new Error('You do not have permission to set the equipment display image');
       }
-      if (!organizationId) {
-        throw new Error('No organization context for this equipment');
-      }
       return updateEquipmentDisplayImage(organizationId, equipmentId, imageUrl);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['equipment', organizationId] });
+      invalidateMedia();
       toast.success('Display image updated successfully');
     },
     onError: (error) => {
       console.error('Error setting display image:', error);
       toast.error('Failed to update display image');
-    }
+    },
   });
 
-  // Upload images mutation (creates a note with auto-generated content)
   const uploadImagesMutation = useMutation({
     mutationFn: async (files: File[]) => {
       const userName = user?.email?.split('@')[0] || 'User';
+      const trimmedNote = optionalNote.trim();
       const noteContent =
-        files.length === 1
+        trimmedNote ||
+        (files.length === 1
           ? `${userName} uploaded an image`
-          : `${userName} uploaded ${files.length} images`;
+          : `${userName} uploaded ${files.length} images`);
 
       return createEquipmentNoteWithImages(
         equipmentId,
         noteContent,
-        0, // hoursWorked
-        false, // isPrivate
+        0,
+        false,
         files,
-        organizationId
+        organizationId,
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['equipment-images', equipmentId]
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['equipment-notes-with-images', equipmentId]
-      });
+      invalidateMedia();
       setShowUploadForm(false);
-      // Removed duplicate success toast; ImageUploadWithNote already shows it
+      setOptionalNote('');
     },
     onError: (error) => {
       console.error('Error uploading images:', error);
       toast.error('Failed to upload images');
-    }
+    },
   });
 
-  // Handle image upload
-  const handleUploadImages = async (files: File[]) => {
-    await uploadImagesMutation.mutateAsync(files);
-  };
-
-  // Check if user can delete a specific image
   const canDeleteImage = (image: EquipmentImageData): boolean => {
-    // Users can delete their own images
-    if (image.uploaded_by === user?.id) {
-      return true;
-    }
-    
-    // Admins and managers can delete any image
+    if (image.uploaded_by === user?.id) return true;
     return permissions.canDeleteImages;
   };
 
-  // Handle image deletion
   const handleDeleteImage = async (imageId: string) => {
-    const image = images.find(img => img.id === imageId);
+    const image = media.images.find((img) => img.id === imageId);
     if (!image) return;
-    
     await deleteImageMutation.mutateAsync({
       imageId,
       sourceType: image.source_type,
@@ -165,18 +148,13 @@ const EquipmentImagesTab: React.FC<EquipmentImagesTabProps> = ({
     });
   };
 
-  // Handle setting display image
-  const handleSetDisplayImage = async (imageUrl: string) => {
-    await setDisplayImageMutation.mutateAsync(imageUrl);
-  };
-
-  if (isLoading) {
+  if (media.isLoading) {
     return (
       <div className="space-y-4">
-        <div className="h-8 bg-muted animate-pulse rounded" />
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        <div className="h-8 animate-pulse rounded bg-muted" />
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="aspect-square bg-muted animate-pulse rounded-lg" />
+            <div key={i} className="aspect-square animate-pulse rounded-lg bg-muted" />
           ))}
         </div>
       </div>
@@ -184,37 +162,115 @@ const EquipmentImagesTab: React.FC<EquipmentImagesTabProps> = ({
   }
 
   return (
-    <div className="space-y-6">
-      {/* Upload Section */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Equipment Images</h2>
-        <button
-          onClick={() => setShowUploadForm(!showUploadForm)}
-          className="text-sm text-primary hover:underline"
-        >
-          {showUploadForm ? 'Cancel Upload' : 'Upload Images'}
-        </button>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="text-lg font-semibold">Media library</h2>
+          <p className="text-xs text-muted-foreground">
+            {media.images.length} item{media.images.length === 1 ? '' : 's'} from notes and work
+            orders
+            {currentOrganization?.name ? ` · ${currentOrganization.name}` : ''}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-8"
+            onClick={() => setExplorerOpen(true)}
+          >
+            <Images className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+            Open explorer
+          </Button>
+          {permissions.canUploadImages && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8"
+              onClick={() => setShowUploadForm((open) => !open)}
+            >
+              <Upload className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+              {showUploadForm ? 'Cancel' : 'Upload'}
+            </Button>
+          )}
+        </div>
       </div>
 
+      <EquipmentMediaFiltersBar
+        filters={media.filters}
+        activeFilterCount={media.activeFilterCount}
+        onSearchChange={media.setSearch}
+        onSourceChange={media.setSource}
+        onUploaderChange={media.setUploader}
+        onDateFromChange={media.setDateFrom}
+        onDateToChange={media.setDateTo}
+        onSortChange={media.setSort}
+        onClear={media.clearFilters}
+      />
+
       {showUploadForm && (
-        <div className="border rounded-lg p-4">
+        <div className="space-y-3 rounded-lg border p-3">
+          <div className="space-y-1">
+            <Label htmlFor="media-upload-note" className="text-xs">
+              Optional note (leave blank for auto caption)
+            </Label>
+            <Input
+              id="media-upload-note"
+              value={optionalNote}
+              onChange={(e) => setOptionalNote(e.target.value)}
+              placeholder="Context for these photos…"
+              className="h-8"
+            />
+          </div>
           <ImageUploadWithNote
-            onUpload={handleUploadImages}
+            onUpload={async (files) => {
+              await uploadImagesMutation.mutateAsync(files);
+            }}
             disabled={uploadImagesMutation.isPending}
           />
         </div>
       )}
 
-      {/* Image Gallery */}
       <ImageGallery
-        images={images}
+        images={media.filteredImages}
         onDelete={handleDeleteImage}
-        onSetDisplayImage={handleSetDisplayImage}
+        onSetDisplayImage={async (imageUrl) => {
+          await setDisplayImageMutation.mutateAsync(imageUrl);
+        }}
         canDelete={canDeleteImage}
         canSetDisplayImage={permissions.canSetDisplayImage}
         currentDisplayImage={currentDisplayImage}
         title=""
-        emptyMessage="No images found for this equipment. Upload images using the button above, or add them through equipment notes and work orders."
+        emptyMessage={
+          media.hasActiveFilters
+            ? 'No media match the current filters.'
+            : 'No images found for this equipment. Upload images above, or add them through equipment notes and work orders.'
+        }
+      />
+
+      <EquipmentMediaExplorer
+        open={explorerOpen}
+        onOpenChange={setExplorerOpen}
+        equipmentName={equipmentName}
+        images={media.images}
+        filteredImages={media.filteredImages}
+        filters={media.filters}
+        activeFilterCount={media.activeFilterCount}
+        isLoading={media.isLoading}
+        currentDisplayImage={currentDisplayImage}
+        canSetDisplayImage={permissions.canSetDisplayImage}
+        onSearchChange={media.setSearch}
+        onSourceChange={media.setSource}
+        onUploaderChange={media.setUploader}
+        onDateFromChange={media.setDateFrom}
+        onDateToChange={media.setDateTo}
+        onSortChange={media.setSort}
+        onClearFilters={media.clearFilters}
+        onSetDisplayImage={async (imageUrl) => {
+          await setDisplayImageMutation.mutateAsync(imageUrl);
+        }}
       />
     </div>
   );

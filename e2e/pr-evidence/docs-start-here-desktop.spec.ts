@@ -28,7 +28,9 @@ test.describe('Docs media: Start Here desktop @pr-evidence', () => {
     await assertHealthyShell();
     await expect(page.getByRole('navigation').first()).toBeVisible({ timeout: 60_000 });
     await settleForDemo(page);
-    await evidenceScreenshot(page, '01-dashboard-welcome');
+    await evidenceScreenshot(page, '01-dashboard-welcome', {
+      target: page.getByRole('navigation').first(),
+    });
 
     // --- navigation-tour: sidebar destinations ---
     const sidebar = page.getByRole('navigation').first();
@@ -62,7 +64,9 @@ test.describe('Docs media: Start Here desktop @pr-evidence', () => {
       `docs.demo.invite.${Date.now()}@example.com`,
     );
     await settleForDemo(page, 600);
-    await evidenceScreenshot(page, '05-invite-member-dialog');
+    await evidenceScreenshot(page, '05-invite-member-dialog', {
+      target: dialog.getByRole('heading', { name: /invite new member/i }),
+    });
 
     await focusAndClick(page, dialog.getByRole('button', { name: /send invitation|invite/i }).last());
     await expect(dialog).toBeHidden({ timeout: 30_000 });

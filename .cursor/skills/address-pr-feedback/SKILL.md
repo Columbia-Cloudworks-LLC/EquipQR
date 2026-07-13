@@ -52,7 +52,7 @@ If none apply, **do not** stop for a plan — proceed directly to implementation
 
 ## Workflow
 
-```
+```text
 - [ ] Step 1: Identify the PR and preflight the working tree
 - [ ] Step 1b: CI gate — inspect checks; if pending, watch until complete; if failed, fix CI before comments
 - [ ] Step 2: Fetch all feedback (threads, review bodies, Qodo parent comment, resolved-thread audit)
@@ -78,6 +78,7 @@ From the repo root, prefer the shared PowerShell drivers:
 | 2 (inline threads) | [`scripts/pr-feedback/Get-PrFeedbackThreads.ps1`](../../../scripts/pr-feedback/Get-PrFeedbackThreads.ps1) |
 | 2b (review bodies) | [`scripts/pr-feedback/Get-PrReviewBodies.ps1`](../../../scripts/pr-feedback/Get-PrReviewBodies.ps1) |
 | 2c (Qodo findings) | [`scripts/pr-feedback/Get-PrQodoFindings.ps1`](../../../scripts/pr-feedback/Get-PrQodoFindings.ps1) — parses the **persistent parent** comment; open items lack `<s>` / `✓ Resolved` strikethrough |
+| 2c-fix (Qodo auto-fix PR) | [`scripts/pr-feedback/Get-PrQodoFixPr.ps1`](../../../scripts/pr-feedback/Get-PrQodoFixPr.ps1) — mines **Qodo Fixer** cherry-pick comment for closed fix PR link |
 | 5 | [`scripts/pr-feedback/Invoke-PrVerification.ps1`](../../../scripts/pr-feedback/Invoke-PrVerification.ps1) (supplement with Fallow — see Step 5) |
 | 6 | [`scripts/pr-evidence/Invoke-PrEvidence.ps1`](../../../scripts/pr-evidence/Invoke-PrEvidence.ps1) |
 | 8 | [`scripts/pr-feedback/Publish-PrFeedbackResponses.ps1`](../../../scripts/pr-feedback/Publish-PrFeedbackResponses.ps1) |
@@ -172,7 +173,7 @@ Paginate `reviewThreads` and `comments` until complete.
 
 Build sets:
 
-```
+```text
 workingSet      = threads where isResolved == false AND isOutdated == false
 outdatedOpenSet = threads where isResolved == false AND isOutdated == true
 resolvedSet     = threads where isResolved == true
@@ -218,6 +219,37 @@ Qodo posts **two** comment types on every re-push:
 Cross-check each open Qodo item against inline threads and review bodies so nothing is missed when Qodo grouped findings in its summary comment rather than inline.
 
 For automated reviewer comments (Qodo, Copilot, CodeRabbit, etc.), verify against the actual codebase before accepting — but **default to addressing** when the suggestion is technically valid.
+
+#### 2c-fix — Qodo Fixer auto-fix PR (cherry-pick before hand-implementing)
+
+Qodo often opens a **closed** remediation PR (`Fix: [for cherry-picking] ...`, author `app/qodo-code-review`) and posts a separate **Qodo Fixer** issue comment on the feature PR. The fix is **not** applied automatically — cherry-pick selective hunks into the feature branch so Qodo can track `Merged (N)` vs `Fixed (M)`.
+
+**Script:**
+
+```powershell
+.\scripts\pr-feedback\Get-PrQodoFixPr.ps1 -PullRequestNumber <number> -Json
+```
+
+**Stable comment pattern:**
+
+| Signal | Pattern |
+|--------|---------|
+| Kind | `### Qodo Fixer` + `🍒 Ready to be cherry-picked` |
+| Counts | `✅ Merged (N) · ☑ Fixed (M)` — `pendingCount = M - N` |
+| Link | `🔗 Fix PR: [#<num>](url)` |
+| Items | `- ☑ Fixed: <title>` under `Process — M fixed` |
+| Fix PR title | `Fix: [for cherry-picking] ...` |
+| Fix branch | `fix/remediation-<hash>` |
+
+**When `needsAction: true`:**
+
+1. `gh pr diff <fixPrNumber>` — review each change; reject incorrect hunks.
+2. `git fetch origin <fixPr.headRefName>`
+3. Apply selectively (`git cherry-pick <sha>`, or `git checkout origin/<fix-head> -- <paths>` + edit).
+4. Re-run local verify (Step 5); push.
+5. Re-poll `Get-PrQodoFixPr` — `mergedCount` should rise as fixes land.
+
+**Only hand-implement** when no fix PR exists, cherry-pick is incomplete, or open findings remain in `Get-PrQodoFindings` after apply.
 
 #### 2d — Resolved-thread regression audit (avoid fix-and-regress cycles)
 

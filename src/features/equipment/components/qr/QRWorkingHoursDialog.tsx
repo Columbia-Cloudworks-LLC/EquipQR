@@ -6,12 +6,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { QRDialogFormError } from '@/features/equipment/components/qr/QRDialogFormError';
 import { useVoiceTextAppender } from '@/hooks/useVoiceTextAppender';
 import VoiceInputButton from '@/components/common/VoiceInputButton';
 import VoiceInterimTranscript from '@/components/common/VoiceInterimTranscript';
@@ -109,12 +109,7 @@ const QRWorkingHoursDialog: React.FC<QRWorkingHoursDialogProps> = ({
         </DialogHeader>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+          <QRDialogFormError error={error} />
 
           <div className="rounded-md border bg-muted/40 p-3 text-sm">
             Current hours:{' '}

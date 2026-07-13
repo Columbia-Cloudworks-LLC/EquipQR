@@ -7,9 +7,9 @@
  * 1. `settleForDemo` — after navigation or a major state change, wait for the
  *    page to fully load and hold ~1s so the loaded state is clearly visible.
  * 2. `focusAndClick` / `focusAndFill` — before acting on a control, scroll it
- *    fully into view (visible smooth scroll when the page is long), then play
- *    a focus animation that dims and blurs the rest of the screen while a
- *    spotlight converges on the control, hold ~0.5s, un-dim, then act.
+ *    fully into view, assert frame quality (no horizontal overflow, control not
+ *    clipped), then play a focus animation that dims and blurs the rest of the
+ *    screen while a spotlight converges on the control, hold ~0.5s, un-dim, then act.
  *
  * The spotlight is a fixed veil (dim + backdrop blur) whose rectangular
  * cutout animates from the full viewport down to the control bounds, plus a
@@ -17,6 +17,7 @@
  */
 
 import { expect, type Locator, type Page } from '@playwright/test';
+import { assertEvidenceFrameReady, scrollLocatorIntoEvidenceFrame } from './evidence-frame-helpers';
 
 /** How long the fully-loaded state stays visible before the next step. */
 const SETTLE_HOLD_MS = 1000;
@@ -49,24 +50,7 @@ export async function settleForDemo(page: Page, holdMs: number = SETTLE_HOLD_MS)
 
 /** Smoothly scroll the control fully into view so viewers can follow along. */
 async function scrollControlIntoView(locator: Locator): Promise<void> {
-  await locator.evaluate(async (element) => {
-    element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-    await new Promise<void>((resolve) => {
-      let lastY = Number.NaN;
-      const startedAt = performance.now();
-      const maxWaitMs = 10_000;
-      const check = () => {
-        const { top } = element.getBoundingClientRect();
-        if (top === lastY || performance.now() - startedAt >= maxWaitMs) {
-          resolve();
-          return;
-        }
-        lastY = top;
-        window.setTimeout(check, 120);
-      };
-      window.setTimeout(check, 120);
-    });
-  });
+  await scrollLocatorIntoEvidenceFrame(locator);
 }
 
 /**
@@ -181,6 +165,7 @@ async function focusThen(
 ): Promise<void> {
   await expect(locator).toBeVisible({ timeout: 30_000 });
   await scrollControlIntoView(locator);
+  await assertEvidenceFrameReady(page, locator);
   await playFocusAnimation(locator);
   await action();
   await page.waitForTimeout(options.postActionHoldMs ?? POST_ACTION_HOLD_MS);

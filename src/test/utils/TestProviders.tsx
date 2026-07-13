@@ -2,8 +2,9 @@
 // Test utility file - Fast Refresh is not applicable here
 
 import React from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
+import { createTestQueryClient } from '@/test/utils/query-client-wrapper';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { 
   MockAuthProvider, 
@@ -53,13 +54,7 @@ export const TestProviders = ({
   initialEntries,
   persona 
 }: TestProvidersProps) => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-      },
-    },
-  });
+  const queryClient = createTestQueryClient();
 
   // Create persona-aware mock values if persona is provided
   const sessionValue = persona ? createMockSessionForPersona(persona) : undefined;

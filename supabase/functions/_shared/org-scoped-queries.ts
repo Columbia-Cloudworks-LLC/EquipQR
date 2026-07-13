@@ -67,6 +67,8 @@ export const exportReportRequestSchema = z.object({
   filters: exportFiltersSchema,
   columns: z.array(z.string().min(1)).min(1),
   format: z.literal("csv"),
+  /** When true, enqueue async job for equipment/work-orders (#1193). */
+  async: z.boolean().optional().default(false),
   limit: z.number().int().min(1).max(500).optional(),
   offset: z.number().int().min(0).optional(),
 });

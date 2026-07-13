@@ -32,7 +32,6 @@ interface UseWorkOrderFormProps {
   equipmentId?: string;
   isOpen: boolean;
   initialIsHistorical?: boolean;
-  initialHasPM?: boolean;
   pmData?: { template_id?: string | null } | null;
 }
 
@@ -41,14 +40,12 @@ export const useWorkOrderForm = ({
   equipmentId,
   isOpen,
   initialIsHistorical = false,
-  initialHasPM = false,
   pmData,
 }: UseWorkOrderFormProps) => {
   const isEditMode = !!workOrder;
   const initializationRef = useRef<{
     lastWorkOrderId?: string;
     lastEquipmentId?: string;
-    lastInitialHasPM?: boolean;
     hasInitialized: boolean;
   }>({ hasInitialized: false });
 
@@ -57,7 +54,6 @@ export const useWorkOrderForm = ({
     const defaults = getDefaultWorkOrderFormValues({
       equipmentId,
       isHistorical: initialIsHistorical,
-      initialHasPM,
     });
     
     // Override with work order values if editing
@@ -69,13 +65,13 @@ export const useWorkOrderForm = ({
       priority: workOrder?.priority || defaults.priority,
       dueDate: workOrder?.due_date ? new Date(workOrder.due_date).toISOString().split('T')[0] : defaults.dueDate,
       estimatedHours: workOrder?.estimated_hours ?? defaults.estimatedHours,
-      hasPM: workOrder?.has_pm ?? defaults.hasPM,
+      hasPM: workOrder?.has_pm ?? (pmData?.template_id ? true : defaults.hasPM),
       // Set PM template ID from PM data if editing
-      pmTemplateId: pmData?.template_id || defaults.pmTemplateId,
+      pmTemplateId: pmData?.template_id ?? defaults.pmTemplateId,
       // Preserve assignee when editing (snake_case from DB -> camelCase for form)
       assigneeId: workOrder?.assignee_id ?? defaults.assigneeId,
     };
-  }, [workOrder, equipmentId, initialIsHistorical, initialHasPM, pmData]);
+  }, [workOrder, equipmentId, initialIsHistorical, pmData]);
 
   // Use react-hook-form with zodResolver
   const rhf = useForm<WorkOrderFormData>({
@@ -198,8 +194,7 @@ export const useWorkOrderForm = ({
       // Only reset if this is a new dialog session or if workOrder/equipment changed
       const shouldReset = !initializationRef.current.hasInitialized ||
                          initializationRef.current.lastWorkOrderId !== currentWorkOrderId ||
-                         initializationRef.current.lastEquipmentId !== currentEquipmentId ||
-                         initializationRef.current.lastInitialHasPM !== initialHasPM;
+                         initializationRef.current.lastEquipmentId !== currentEquipmentId;
 
       if (shouldReset) {
         const resetValues: Partial<WorkOrderFormData> = {
@@ -229,7 +224,6 @@ export const useWorkOrderForm = ({
         initializationRef.current = {
           lastWorkOrderId: currentWorkOrderId,
           lastEquipmentId: currentEquipmentId,
-          lastInitialHasPM: initialHasPM,
           hasInitialized: true,
         };
       }
@@ -237,7 +231,7 @@ export const useWorkOrderForm = ({
       // Reset initialization when dialog closes
       initializationRef.current.hasInitialized = false;
     }
-  }, [isOpen, workOrder?.id, equipmentId, initialHasPM, rhfReset, initialValues]);
+  }, [isOpen, workOrder?.id, equipmentId, rhfReset, initialValues]);
 
   /**
    * Checks if the form has unsaved changes compared to initial values.

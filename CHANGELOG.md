@@ -9,6 +9,142 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.19] - 2026-07-12
+
+### Changed
+
+- **Export report query layer (#1192)** — Consolidate Fleet Export Console data access into `_shared/reports/` with explicit column whitelists, early org scoping for scans, and unified equipment/work-order fetch for sync and async export paths.
+
+## [3.25.18] - 2026-07-12
+
+### Changed
+
+- **typescript-eslint (#1114)** — Bump `typescript-eslint` from 8.59.3 to 8.63.0 (Dependabot).
+
+## [3.25.17] - 2026-07-12
+
+### Changed
+
+- **@axe-core/playwright (#1102)** — Bump `@axe-core/playwright` from 4.11.3 to 4.12.1 (Dependabot).
+
+## [3.25.16] - 2026-07-12
+
+### Changed
+
+- **Work orders ESLint cleanup (#1237)** — Removed dead hooks and service wrappers in `work-orders/services` and `work-orders/hooks` (−801 LOC); zero warnings in scoped paths.
+
+## [3.25.15] - 2026-07-12
+
+### Changed
+
+- **actions/cache (#1103)** — Bump `actions/cache` from 5.0.5 to 6.1.0 across GitHub Actions workflows (Dependabot).
+
+## [3.25.14] - 2026-07-12
+
+### Changed
+
+- **vitest-coverage-report-action (#1101)** — Bump `davelosert/vitest-coverage-report-action` from 2.12.0 to 2.12.1 (Dependabot).
+
+## [3.25.13] - 2026-07-12
+
+### Changed
+
+- **actions/checkout (#1100)** — Bump `actions/checkout` from 6.0.3 to 7.0.0 across GitHub Actions workflows (Dependabot).
+
+## [3.25.12] - 2026-07-12
+
+### Changed
+
+- **Unified work order PM template on create (#1162)** — Replaced the generic vs PM work order type split with a PM template dropdown directly below the title (None + clear control, equipment default). Collapsed equipment QR, card menu, details, and mobile quick-access entry points into one New Work Order flow.
+- **Windows npm ci lock recovery** — Added `npm-ci-safe.bat` / `npm run ci:install` to stop dev tooling, delete stuck `node_modules` trees, and recover from EPERM/EBUSY on native binaries (`tailwindcss-oxide`, `lightningcss`) instead of leaving backup folders in the repo.
+
+## [3.25.11] - 2026-07-12
+
+### Changed
+
+- **Supabase hot-path performance (#1203)** — Inventory list metadata now uses a single SQL aggregation RPC instead of scanning every SKU client-side; work-order team filters join equipment in one query; org background-sync channels use refcounted subscribe/unsubscribe cleanup and organization-scoped `equipment_notes` realtime filters.
+
+## [3.25.10] - 2026-07-12
+
+### Changed
+
+- **markdownlint (#1232)** — Disable low-signal spacing/table rules (`MD060`, `MD022`, `MD032`, `MD031`); scope `lint:md` to `.cursor/**` and `AGENTS.md`; document enforced vs suppressed rules for agents.
+
+## [3.25.9] - 2026-07-12
+
+### Changed
+
+- **vitest (#1116)** — Bump `vitest` from 4.1.8 to 4.1.10 and align `@vitest/coverage-v8` (Dependabot).
+
+## [3.25.8] - 2026-07-12
+
+### Changed
+
+- **nanoid (#1104)** — Bump `nanoid` from 5.1.11 to 5.1.16 (Dependabot).
+
+## [3.25.7] - 2026-07-11
+
+### Fixed
+
+- **Dark scrollbar theme (#1208)** — Global scrollbar styling uses subtle dark thumbs on transparent tracks so native light OS scrollbars no longer clash with the Mission Control palette in popovers, dialogs, sheets, and other overflow regions.
+
+## [3.25.6] - 2026-07-11
+
+### Changed
+
+- **PM Templates assignment UX (#1209)** — Template card assignment triggers use outline styling so titles scan more easily, and the label shows **Assigned Equipment (count)** when equipment in the current team scope already uses the template as its default PM.
+
+## [3.25.5] - 2026-07-11
+
+### Changed
+
+- **Help Center evidence quality gate (#1161)** — PR/docs capture now asserts frame quality at screenshot time (no horizontal overflow, controls fully in viewport via `evidence-frame-helpers.ts`) and requires a mandatory post-capture visual review (`visual-review-checklist.md` + `Complete-PrEvidenceVisualReview.ps1`) before upload/publish. `docs-demo-helpers.ts` shares the same frame assertions before spotlight choreography.
+
+
+### Fixed
+
+- **SEO crawl budget (#1220)** — Block authenticated app routes and sensitive paths in `robots.txt` so search engines concentrate crawl budget on public marketing pages instead of sign-in walls and soft 404s.
+
+## [3.25.3] - 2026-07-11
+
+### Fixed
+
+- **Mobile inline image viewports (#1216)** — Disable touch panning on phones/tablets so page scroll is not blocked on note and equipment photos; always show download/copy controls on mobile; tap opens a pinch-zoom lightbox with export actions. Work order image carousels and galleries reuse the shared lightbox.
+
+## [3.25.2] - 2026-07-11
+
+### Changed
+
+- **Testing infrastructure (#1214)** — Remove the `scripts/test-runner.mjs` log-watching wrapper; run Vitest natively with a forks pool. Add Vitest 4 `unit` (Node) and `component` (jsdom) projects for environment isolation. On Windows, `npm test` / `npm run test:component` shard the component suite into four sequential chunks with visible phase banners. Clear React Query caches in global teardown; document the testing-trophy strategy in `docs/technical/testing-guidelines.md`.
+
+## [3.25.1] - 2026-07-11
+
+### Changed
+
+- **Equipment details desktop layout (#1212)** — Basic Information and Lifecycle & Warranty share a two-column row on desktop; Preventative Maintenance controls live on the Work Orders tab; Daily Operator Check-In assignment lives on the Check-Ins tab.
+
+## [3.25.0] - 2026-07-09
+
+### Added
+
+- **Equipment media & artifacts library (#1129)** - Searchable/filterable media library with dedicated explorer, details-tab summary strip, create-time display image capture, and display-first chronological carousels (reusing DynamicImageViewport / NoteImageCarousel from #1185/#1200) on equipment and work order details.
+
+## [3.24.0] - 2026-07-09
+
+### Added
+
+- **Async export jobs (#1193)** — Heavy equipment and work-order CSV exports enqueue via pgmq `exports`, process in `process-export-job`, store results in a private `export-results` bucket, and notify when ready. DB RPCs shape minimal columns to cut egress. Loading toasts cover Google Drive/Docs/Sheets and report exports until completion. Smaller report types remain synchronous.
+
+### Fixed
+
+- **Async export scope hardening (#1205)** — `enqueue_export_job` derives work-order `accessibleTeamIds` from DB memberships (non-admins cannot omit/forge org-wide scope); the worker re-checks admin vs scoped payload and rejects mismatched queue messages; client polling fails fast on `not_found` instead of timing out.
+
+## [3.23.1] - 2026-07-09
+
+### Changed
+
+- **CI unit-test velocity (#1199)** — Slimmed the slowest equipment/inventory component tests to wiring smokes (filter/sort covered by existing/new hook and util unit tests; ~60% faster on profiled hotspots), enabled modest in-shard file parallelism (`maxWorkers: 2`) on Linux CI, and completed a happy-dom experiment (kept jsdom — full-suite regressions outweighed ~8–12% hotspot gains). Coverage ratchet remains on the merged PR report.
+
 ## [3.23.0] - 2026-07-08
 
 ### Added

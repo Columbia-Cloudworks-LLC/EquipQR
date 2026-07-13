@@ -62,24 +62,24 @@ describe('EquipmentPMInfo', () => {
 
       await waitFor(() => {
         expect(screen.getByText(/No PM records found\./)).toBeInTheDocument();
-        expect(screen.getByText(/Create a work order with PM/)).toBeInTheDocument();
+        expect(screen.getByText(/Create a work order/)).toBeInTheDocument();
       });
     });
 
-    it('opens PM work order creation when the empty-state link is clicked', async () => {
+    it('opens work order creation when the empty-state link is clicked', async () => {
       mockGetLatestCompletedPM.mockResolvedValue(null);
-      const onCreatePMWorkOrder = vi.fn();
+      const onCreateWorkOrder = vi.fn();
       const user = userEvent.setup();
 
-      render(<EquipmentPMInfo {...defaultProps} onCreatePMWorkOrder={onCreatePMWorkOrder} />);
+      render(<EquipmentPMInfo {...defaultProps} onCreateWorkOrder={onCreateWorkOrder} />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: 'Create a work order with PM' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Create a work order' })).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole('button', { name: 'Create a work order with PM' }));
+      await user.click(screen.getByRole('button', { name: 'Create a work order' }));
 
-      expect(onCreatePMWorkOrder).toHaveBeenCalledTimes(1);
+      expect(onCreateWorkOrder).toHaveBeenCalledTimes(1);
     });
 
     it('renders PM information when PM data exists', async () => {

@@ -36,8 +36,6 @@ interface WorkOrderFormProps {
   isUpdating?: boolean;
   /** PM data for edit mode to default template selection */
   pmData?: { template_id?: string | null } | null;
-  /** Pre-select PM checklist mode when creating from equipment quick actions */
-  initialHasPM?: boolean;
 }
 
 const WorkOrderForm: React.FC<WorkOrderFormProps> = ({ 
@@ -49,7 +47,6 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
   initialIsHistorical = false,
   isUpdating = false,
   pmData,
-  initialHasPM = false,
 }) => {
   const { currentOrganization } = useOrganization();
   const { getUserTeamIds } = useSession();
@@ -70,7 +67,6 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
     equipmentId,
     isOpen: open,
     initialIsHistorical,
-    initialHasPM,
     pmData,
   });
 
@@ -197,6 +193,21 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
             }}
             setValue={form.setValue}
             preSelectedEquipment={preSelectedEquipment}
+            pmTemplateControl={
+              !form.values.isHistorical ? (
+                <WorkOrderPMChecklist
+                  key={`pm-${open}-${form.values.equipmentId || 'none'}`}
+                  values={{
+                    hasPM: form.values.hasPM || false,
+                    pmTemplateId: form.values.pmTemplateId,
+                  }}
+                  setValue={form.setValue}
+                  selectedEquipment={selectedEquipmentForPM}
+                  allowTemplateOverride={isEditMode}
+                  autoDefaultFromEquipment={!isEditMode}
+                />
+              ) : null
+            }
           />
 
           {!isEditMode && !form.values.isHistorical ? (
@@ -256,15 +267,6 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
             setValue={form.setValue}
             organizationId={currentOrganization?.id || ''}
             equipmentId={form.values.equipmentId || undefined}
-          />
-
-          <WorkOrderPMChecklist
-            values={{
-              hasPM: form.values.hasPM || false,
-              pmTemplateId: form.values.pmTemplateId
-            }}
-            setValue={form.setValue}
-            selectedEquipment={selectedEquipmentForPM}
           />
 
           {form.errors.general && (

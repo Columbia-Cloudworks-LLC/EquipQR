@@ -1,53 +1,52 @@
-import { supabase } from '@/integrations/supabase/client';
-import { logger } from '@/utils/logger';
+import { WORK_ORDER_LIST_SELECT } from '@/features/work-orders/services/workOrderRowMapper';
 
-export type EquipmentIdResolution = string[] | 'empty';
+export type WorkOrderTeamScope = {
+  userTeams?: string[];
+  teamFilter?: string;
+};
 
 /**
- * Resolves equipment IDs for the user's teams. Returns 'empty' when the user has
- * no team memberships or no equipment is assigned to their teams.
+ * Builds the work-order list select string, optionally requiring an inner join
+ * on equipment so team filters can be applied in the same query.
  */
-export async function resolveEquipmentIdsForUserTeams(
-  organizationId: string,
-  userTeamIds: string[],
-): Promise<EquipmentIdResolution> {
-  if (userTeamIds.length === 0) {
-    return 'empty';
+export function buildWorkOrderListSelect(requireEquipmentInnerJoin: boolean): string {
+  if (!requireEquipmentInnerJoin) {
+    return WORK_ORDER_LIST_SELECT;
   }
 
-  const { data: equipmentIds, error: equipmentError } = await supabase
-    .from('equipment')
-    .select('id')
-    .eq('organization_id', organizationId)
-    .in('team_id', userTeamIds);
-
-  if (equipmentError) {
-    logger.error('Error fetching equipment for team access control:', equipmentError);
-    throw equipmentError;
-  }
-
-  const ids = equipmentIds?.map((e) => e.id) || [];
-  return ids.length > 0 ? ids : 'empty';
+  return WORK_ORDER_LIST_SELECT.replace(
+    'equipment:equipment!work_orders_equipment_id_fkey (',
+    'equipment:equipment!work_orders_equipment_id_fkey!inner (',
+  );
 }
 
-/**
- * Resolves equipment IDs for a specific team filter.
- */
-export async function resolveEquipmentIdsForTeamFilter(
-  organizationId: string,
-  teamId: string,
-): Promise<EquipmentIdResolution> {
-  const { data: equipmentIds, error: teamEquipmentError } = await supabase
-    .from('equipment')
-    .select('id')
-    .eq('organization_id', organizationId)
-    .eq('team_id', teamId);
+export function resolveWorkOrderTeamScope(
+  filters: {
+    userTeamIds?: string[];
+    isOrgAdmin?: boolean;
+    teamId?: string;
+  },
+): WorkOrderTeamScope {
+  const userTeams =
+    filters.userTeamIds !== undefined && !filters.isOrgAdmin
+      ? filters.userTeamIds
+      : undefined;
+  const teamFilter =
+    filters.teamId && filters.teamId !== 'all' ? filters.teamId : undefined;
 
-  if (teamEquipmentError) {
-    logger.error('Error fetching equipment for team filter:', teamEquipmentError);
-    throw teamEquipmentError;
+  const scope: WorkOrderTeamScope = {};
+  if (userTeams !== undefined) {
+    scope.userTeams = userTeams;
+  }
+  if (teamFilter) {
+    scope.teamFilter = teamFilter;
   }
 
-  const ids = equipmentIds?.map((e) => e.id) || [];
-  return ids.length > 0 ? ids : 'empty';
+  return scope;
+}
+
+export function requiresEquipmentInnerJoin(teamScope: WorkOrderTeamScope): boolean {
+  return Boolean(
+    (teamScope.userTeams && teamScope.userTeams.length > 0) || teamScope.teamFilter,
+  );
 }

@@ -79,6 +79,12 @@ public = true
 file_size_limit = "50MB"
 allowed_mime_types = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/avif", "video/mp4", "video/webm"]
 
+# Async export job results (#1193) — private; signed URLs only.
+[storage.buckets.export-results]
+public = false
+file_size_limit = "50MB"
+allowed_mime_types = ["text/csv", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"]
+
 [api]
 enabled = true
 port = 54321
@@ -204,13 +210,18 @@ verify_jwt = false
 
 [functions.queue-worker]
 verify_jwt = true
-# Cron-triggered drainer for the public.notifications pgmq queue.
+# Cron-triggered drainer for the notifications + exports pgmq queues (#722, #1193).
 # Invoked every minute by cron.schedule('drain-notifications-queue', ...) via
 # net.http_post from the SECURITY DEFINER function public.invoke_queue_worker.
 # Authenticates via Bearer = SUPABASE_SERVICE_ROLE_KEY. The platform JWT check
 # (verify_jwt = true) validates that the token is a valid Supabase JWT; the
 # function additionally enforces a literal-match against the service role key
 # (defense-in-depth, same posture as quickbooks-refresh-tokens).
+
+[functions.process-export-job]
+verify_jwt = true
+# Invoked by queue-worker for each `exports` pgmq message (#1193).
+# Service-role Bearer only; builds CSV, uploads to export-results, updates log.
 
 [functions.submit-privacy-request]
 verify_jwt = false

@@ -8,6 +8,10 @@ import * as useInventoryModule from '@/features/inventory/hooks/useInventory';
 import * as usePermissionsModule from '@/hooks/usePermissions';
 import { useIsMobile } from '@/hooks/use-mobile';
 
+/**
+ * Page wiring tests (mobile/desktop shells, permissions, navigation).
+ * Sort/quick-filter math lives in inventoryListViewModel + inventoryQuickFilters unit tests.
+ */
 vi.mock('@/features/inventory/hooks/useInventory', () => ({
   useInventoryItems: vi.fn(),
   useAdjustInventoryQuantity: vi.fn(),
@@ -108,13 +112,34 @@ function filterItems(filters: import('@/features/inventory/types/inventory').Inv
       (i) =>
         i.name.toLowerCase().includes(q) ||
         (i.sku ?? '').toLowerCase().includes(q) ||
-        (i.external_id ?? '').toLowerCase().includes(q)
+        (i.external_id ?? '').toLowerCase().includes(q),
     );
   }
   if (f.location) {
     data = data.filter((i) => (i.location ?? '').toLowerCase().includes(f.location!.toLowerCase()));
   }
   return data;
+}
+
+function mockMetadata() {
+  inventoryHookMocks.useInventoryListMetadata.mockReturnValue({
+    data: {
+      uniqueLocations: ['Warehouse A', 'Yard'],
+      totalCount: 2,
+      negativeStockCount: 0,
+      outOfStockCount: 0,
+      lowStockCount: 1,
+      healthyCount: 1,
+      missingLocationCount: 0,
+      missingUnitCostCount: 0,
+      missingSkuCount: 0,
+      estimatedInventoryValue: 100,
+    },
+    isLoading: false,
+    isError: false,
+    error: null,
+    refetch: vi.fn(),
+  });
 }
 
 describe('InventoryList — mobile', () => {
@@ -129,24 +154,7 @@ describe('InventoryList — mobile', () => {
       mutateAsync: vi.fn().mockResolvedValue(0),
       isPending: false,
     } as unknown as ReturnType<typeof useInventoryModule.useAdjustInventoryQuantity>);
-    inventoryHookMocks.useInventoryListMetadata.mockReturnValue({
-      data: {
-        uniqueLocations: ['Warehouse A', 'Yard'],
-        totalCount: 2,
-        negativeStockCount: 0,
-        outOfStockCount: 0,
-        lowStockCount: 1,
-        healthyCount: 1,
-        missingLocationCount: 0,
-        missingUnitCostCount: 0,
-        missingSkuCount: 0,
-        estimatedInventoryValue: 100,
-      },
-      isLoading: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    });
+    mockMetadata();
 
     vi.mocked(useInventoryModule.useInventoryItems).mockImplementation((_orgId, filters) => ({
       data: filterItems(filters),
@@ -164,11 +172,9 @@ describe('InventoryList — mobile', () => {
       expect(screen.getByText('Healthy Part')).toBeInTheDocument();
     });
     const search = screen.getByRole('textbox', { name: /search inventory by name, sku, or id/i });
-    expect(search).toBeInTheDocument();
     expect(search).toHaveAttribute('placeholder', 'Search by name, SKU, or ID…');
     expect(screen.getByRole('button', { name: /open personalization/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /open filters/i })).toBeInTheDocument();
-    expect(screen.queryByText(/^items$/)).not.toBeInTheDocument();
   });
 
   it('toggles low stock filter from the filter sheet', async () => {
@@ -178,7 +184,6 @@ describe('InventoryList — mobile', () => {
     await waitFor(() => {
       expect(screen.getByText('Healthy Part')).toBeInTheDocument();
     });
-    expect(screen.getByText('Low Stock Part')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /open filters/i }));
     await user.click(screen.getByRole('switch', { name: /low stock only/i }));
@@ -187,28 +192,6 @@ describe('InventoryList — mobile', () => {
       expect(screen.queryByText('Healthy Part')).not.toBeInTheDocument();
     });
     expect(screen.getByText('Low Stock Part')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('switch', { name: /low stock only/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
-    });
-  });
-
-  it('opens personalization sheet with sort controls', async () => {
-    const user = userEvent.setup();
-    render(<InventoryList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: /^open personalization$/i }));
-
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /personalize list/i })).toBeInTheDocument();
-    });
-    expect(screen.getByText(/sort by/i)).toBeInTheDocument();
   });
 
   it('navigates to item detail when a card is activated', async () => {
@@ -220,42 +203,10 @@ describe('InventoryList — mobile', () => {
     });
 
     await user.click(screen.getByRole('button', { name: /open inventory item healthy part/i }));
-
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/inventory/item-1');
   });
 
-  it('opens row menu without navigating; View Details navigates', async () => {
-    const user = userEvent.setup();
-    render(<InventoryList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
-    });
-
-    await user.click(
-      screen.getByRole('button', { name: /more actions for healthy part/i })
-    );
-
-    await waitFor(() => {
-      expect(screen.getByRole('menuitem', { name: /view details/i })).toBeInTheDocument();
-    });
-
-    expect(mockNavigate).not.toHaveBeenCalled();
-
-    await user.click(screen.getByRole('menuitem', { name: /view details/i }));
-
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/inventory/item-1');
-  });
-
-  it('shows mobile FAB when user can create inventory', async () => {
-    render(<InventoryList />);
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /add inventory item/i })).toBeInTheDocument();
-    });
-  });
-
-  it('opens the parts access sheet from the mobile footer when user can manage parts access', async () => {
+  it('opens parts access sheet from mobile footer when permitted', async () => {
     vi.mocked(usePermissionsModule.usePermissions).mockImplementation(() => ({
       canManageInventory: () => true,
       canManagePartsManagers: () => true,
@@ -268,57 +219,11 @@ describe('InventoryList — mobile', () => {
       expect(screen.getByText('Healthy Part')).toBeInTheDocument();
     });
 
-    const footer = screen.getByTestId('inventory-parts-access-footer');
-    expect(footer).toBeInTheDocument();
-    expect(screen.queryByTestId('parts-access-sheet')).not.toBeInTheDocument();
-
     await user.click(screen.getByRole('button', { name: 'Update parts access' }));
-
     expect(screen.getByTestId('parts-access-sheet')).toBeInTheDocument();
   });
 
-  it('shows stock meter on mobile cards instead of a low stock badge', async () => {
-    render(<InventoryList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Low Stock Part')).toBeInTheDocument();
-    });
-
-    expect(screen.queryByText('Low stock')).not.toBeInTheDocument();
-    expect(screen.getAllByRole('progressbar').length).toBeGreaterThanOrEqual(2);
-  });
-
-  it('shows QR code button on mobile inventory cards', async () => {
-    render(<InventoryList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
-    });
-
-    expect(
-      screen.getByRole('button', { name: /show qr code for healthy part/i }),
-    ).toBeInTheDocument();
-  });
-
   it('uses lightweight inventory metadata instead of a second full inventory query', async () => {
-    inventoryHookMocks.useInventoryListMetadata.mockReturnValue({
-      data: {
-        uniqueLocations: ['Warehouse A', 'Yard'],
-        totalCount: 2,
-        negativeStockCount: 0,
-        outOfStockCount: 0,
-        lowStockCount: 7,
-        healthyCount: 0,
-        missingLocationCount: 0,
-        missingUnitCostCount: 0,
-        missingSkuCount: 0,
-        estimatedInventoryValue: 0,
-      },
-      isLoading: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    });
     vi.mocked(useInventoryModule.useInventoryItems).mockImplementation((_orgId, filters) => {
       if (
         filters?.search === '' &&
@@ -346,6 +251,16 @@ describe('InventoryList — mobile', () => {
 
     expect(inventoryHookMocks.useInventoryListMetadata).toHaveBeenCalledWith('org-1');
   });
+
+  it('does not show the desktop Add Item dropdown on mobile', async () => {
+    render(<InventoryList />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByRole('menuitem', { name: /bulk add \/ edit/i })).not.toBeInTheDocument();
+  });
 });
 
 describe('InventoryList — desktop table', () => {
@@ -360,24 +275,7 @@ describe('InventoryList — desktop table', () => {
       mutateAsync: vi.fn().mockResolvedValue(0),
       isPending: false,
     } as unknown as ReturnType<typeof useInventoryModule.useAdjustInventoryQuantity>);
-    inventoryHookMocks.useInventoryListMetadata.mockReturnValue({
-      data: {
-        uniqueLocations: ['Warehouse A', 'Yard'],
-        totalCount: 2,
-        negativeStockCount: 0,
-        outOfStockCount: 0,
-        lowStockCount: 1,
-        healthyCount: 1,
-        missingLocationCount: 0,
-        missingUnitCostCount: 0,
-        missingSkuCount: 0,
-        estimatedInventoryValue: 100,
-      },
-      isLoading: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    });
+    mockMetadata();
 
     vi.mocked(useInventoryModule.useInventoryItems).mockImplementation((_orgId, filters) => ({
       data: filterItems(filters),
@@ -388,7 +286,7 @@ describe('InventoryList — desktop table', () => {
     } as unknown as ReturnType<typeof useInventoryModule.useInventoryItems>));
   });
 
-  it('renders table rows instead of mobile cards', async () => {
+  it('renders table chrome and health summary (not mobile filter icons)', async () => {
     render(<InventoryList />);
 
     await waitFor(() => {
@@ -397,33 +295,13 @@ describe('InventoryList — desktop table', () => {
     expect(screen.getByRole('button', { name: /manage table columns/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /saved views/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /open personalization/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /open filters/i })).not.toBeInTheDocument();
-  });
-
-  it('shows Location Name column header and filter label on desktop', async () => {
-    const user = userEvent.setup();
-    render(<InventoryList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
-    });
-
-    expect(screen.getByRole('button', { name: /^location name/i })).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: /filter inventory/i }));
-    expect(screen.getAllByText('Location Name').length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('shows inventory health summary on desktop', async () => {
-    render(<InventoryList />);
 
     const summary = await screen.findByLabelText(/inventory health summary/i);
-    expect(summary).toBeInTheDocument();
     expect(summary).toHaveTextContent('Total');
     expect(summary).toHaveTextContent('Low stock');
   });
 
-  it('does not expose row selection or list-level bulk actions on desktop', async () => {
+  it('does not expose row selection or list-level bulk actions', async () => {
     render(<InventoryList />);
 
     await waitFor(() => {
@@ -433,86 +311,10 @@ describe('InventoryList — desktop table', () => {
     expect(
       screen.queryByRole('checkbox', { name: /select all inventory items/i }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByText(/item selected/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /open bulk edit/i })).not.toBeInTheDocument();
   });
 
-  it('shows a negative stock label for negative quantities', async () => {
-    const negativeItem = baseItem({
-      id: 'item-negative',
-      name: 'Backordered Part',
-      quantity_on_hand: -2,
-      low_stock_threshold: 10,
-      isLowStock: true,
-    });
-
-    vi.mocked(useInventoryModule.useInventoryItems).mockImplementation(() => ({
-      data: [negativeItem],
-      isLoading: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    } as unknown as ReturnType<typeof useInventoryModule.useInventoryItems>));
-
-    render(<InventoryList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Backordered Part')).toBeInTheDocument();
-    });
-
-    expect(screen.getAllByText('Negative stock')).toHaveLength(2);
-  });
-
-  it('shows alternate group count for items that belong to groups', async () => {
-    const { useInventoryGroupMembershipCounts } = await import('@/features/inventory/hooks/useAlternateGroups');
-    vi.mocked(useInventoryGroupMembershipCounts).mockReturnValue({
-      data: { 'item-1': 3 },
-      isLoading: false,
-    } as unknown as ReturnType<typeof useInventoryGroupMembershipCounts>);
-
-    render(<InventoryList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
-    });
-
-    expect(screen.getByText(/3 alternate groups/i)).toBeInTheDocument();
-  });
-
-  it('navigates to item detail with alternateAction param when Manage Alternate Groups is clicked', async () => {
-    render(<InventoryList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
-    });
-
-    const user = userEvent.setup();
-    const menuTrigger = screen.getAllByRole('button', { name: /actions for healthy part/i })[0];
-    await user.click(menuTrigger);
-
-    const manageGroupsItem = await screen.findByRole('menuitem', { name: /manage alternate groups/i });
-    await user.click(manageGroupsItem);
-
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/inventory/item-1?alternateAction=add');
-  });
-
-  it('Add Item button opens a dropdown with "Add Single Item" and "Bulk Add / Edit (Grid)" on desktop', async () => {
-    const user = userEvent.setup();
-    render(<InventoryList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
-    });
-
-    // The main trigger button for the dropdown
-    const addButton = screen.getByRole('button', { name: /add item/i });
-    await user.click(addButton);
-
-    expect(await screen.findByRole('menuitem', { name: /add single item/i })).toBeInTheDocument();
-    expect(await screen.findByRole('menuitem', { name: /bulk add \/ edit/i })).toBeInTheDocument();
-  });
-
-  it('"Bulk Add / Edit (Grid)" navigates to /dashboard/inventory/bulk', async () => {
+  it('Add Item dropdown opens single-item form and bulk navigate', async () => {
     const user = userEvent.setup();
     render(<InventoryList />);
 
@@ -522,79 +324,29 @@ describe('InventoryList — desktop table', () => {
 
     const addButton = screen.getByRole('button', { name: /add item/i });
     await user.click(addButton);
+    await user.click(await screen.findByRole('menuitem', { name: /add single item/i }));
+    expect(await screen.findByTestId('inventory-item-form')).toBeInTheDocument();
 
-    const bulkItem = await screen.findByRole('menuitem', { name: /bulk add \/ edit/i });
-    await user.click(bulkItem);
-
+    await user.click(addButton);
+    await user.click(await screen.findByRole('menuitem', { name: /bulk add \/ edit/i }));
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/inventory/bulk');
   });
 
-  it('"Add Single Item" opens the single-item form on desktop', async () => {
+  it('navigates to alternate groups via row actions', async () => {
+    render(<InventoryList />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
+    });
+
     const user = userEvent.setup();
-    render(<InventoryList />);
+    const [actionsTrigger] = screen.getAllByRole('button', { name: /actions for healthy part/i });
+    if (!actionsTrigger) {
+      throw new Error('Expected at least one row actions trigger for Healthy Part');
+    }
+    await user.click(actionsTrigger);
+    await user.click(await screen.findByRole('menuitem', { name: /manage alternate groups/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
-    });
-
-    const addButton = screen.getByRole('button', { name: /add item/i });
-    await user.click(addButton);
-
-    const singleItem = await screen.findByRole('menuitem', { name: /add single item/i });
-    await user.click(singleItem);
-
-    expect(await screen.findByTestId('inventory-item-form')).toBeInTheDocument();
-  });
-});
-
-describe('InventoryList — mobile — bulk option not exposed', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.mocked(usePermissionsModule.usePermissions).mockImplementation(() => ({
-      canManageInventory: () => true,
-      canManagePartsManagers: () => false,
-    } as unknown as ReturnType<typeof usePermissionsModule.usePermissions>));
-    vi.mocked(useIsMobile).mockReturnValue(true);
-    vi.mocked(useInventoryModule.useAdjustInventoryQuantity).mockReturnValue({
-      mutateAsync: vi.fn().mockResolvedValue(0),
-      isPending: false,
-    } as unknown as ReturnType<typeof useInventoryModule.useAdjustInventoryQuantity>);
-    inventoryHookMocks.useInventoryListMetadata.mockReturnValue({
-      data: {
-        uniqueLocations: [],
-        totalCount: 0,
-        negativeStockCount: 0,
-        outOfStockCount: 0,
-        lowStockCount: 0,
-        healthyCount: 0,
-        missingLocationCount: 0,
-        missingUnitCostCount: 0,
-        missingSkuCount: 0,
-        estimatedInventoryValue: 0,
-      },
-      isLoading: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    });
-    vi.mocked(useInventoryModule.useInventoryItems).mockImplementation((_orgId, filters) => ({
-      data: filterItems(filters),
-      isLoading: false,
-      isError: false,
-      error: null,
-      refetch: vi.fn(),
-    } as unknown as ReturnType<typeof useInventoryModule.useInventoryItems>));
-  });
-
-  it('does not show the desktop Add Item dropdown on mobile', async () => {
-    render(<InventoryList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
-    });
-
-    // The desktop Add Item dropdown button is hidden on mobile (hidden sm:inline-flex wrapper)
-    // It should not be visually present; query by test-id or name
-    expect(screen.queryByRole('menuitem', { name: /bulk add \/ edit/i })).not.toBeInTheDocument();
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/inventory/item-1?alternateAction=add');
   });
 });

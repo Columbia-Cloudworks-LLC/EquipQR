@@ -157,8 +157,3 @@ export const useWorkOrderAssignmentOptions = (organizationId?: string, equipment
     teamName: queryResult.teamName
   };
 };
-
-/**
- * @deprecated Use useWorkOrderAssignmentOptions instead
- */
-const useWorkOrderAssignment = useWorkOrderAssignmentOptions;

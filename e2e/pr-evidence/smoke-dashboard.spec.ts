@@ -10,8 +10,9 @@ test.describe('PR evidence smoke @pr-evidence', () => {
   test('dashboard shell renders on local stack', async ({ gotoDashboard, assertHealthyShell, page }) => {
     await gotoDashboard('/');
     await assertHealthyShell();
+    const mainNav = page.getByRole('navigation', { name: 'Main navigation' });
+    await expect(mainNav).toBeVisible();
     await evidencePause(page, 800);
-    await evidenceScreenshot(page, '01-dashboard-overview');
-    await expect(page.getByRole('navigation', { name: 'Main navigation' })).toBeVisible();
+    await evidenceScreenshot(page, '01-dashboard-overview', { target: mainNav });
   });
 });

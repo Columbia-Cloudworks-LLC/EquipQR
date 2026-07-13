@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Link } from 'react-router-dom';
-import { Wrench, FileText, ChevronDown, Forklift } from 'lucide-react';
+import { Wrench, FileText, ChevronDown } from 'lucide-react';
 import type { EquipmentWithTeam } from '@/features/equipment/services/EquipmentService';
 import type { WorkOrder as EnhancedWorkOrder, WorkOrderEmbeddedEquipment } from '@/features/work-orders/types/workOrder';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -14,6 +14,7 @@ import { humanizeAttributeKey, humanizeAttributeValue } from '@/features/work-or
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import InlineEditField from '@/features/equipment/components/InlineEditField';
 import { EquipmentLocationMapPanel } from '@/components/location/EquipmentLocationMapPanel';
+import { EquipmentPrimaryMediaPanel } from '@/features/equipment/components/media/EquipmentPrimaryMediaPanel';
 import {
   toWorkOrderEquipmentMapInput,
   toWorkOrderEquipmentTeamSummary,
@@ -97,21 +98,14 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
                 {/* Desktop: Equipment Image + Location Map */}
                 {!isMobile && (
                   <div className="grid grid-cols-2 gap-4">
-                    {/* Equipment Image */}
-                    <div className="rounded-lg overflow-hidden border">
-                      {equipment.image_url ? (
-                        <img
-                          src={equipment.image_url}
-                          alt={equipment.name}
-                          className="w-full h-48 object-cover"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      ) : (
-                        <div className="w-full h-48 bg-muted flex items-center justify-center">
-                          <Forklift className="h-12 w-12 text-muted-foreground" />
-                        </div>
-                      )}
+                    <div className="overflow-hidden rounded-lg border p-2">
+                      <EquipmentPrimaryMediaPanel
+                        equipmentId={equipment.id}
+                        organizationId={organizationId}
+                        equipmentName={equipment.name}
+                        currentDisplayImage={equipment.image_url}
+                        emptyClassName="h-48"
+                      />
                     </div>
 
                     {equipmentMapInput ? (

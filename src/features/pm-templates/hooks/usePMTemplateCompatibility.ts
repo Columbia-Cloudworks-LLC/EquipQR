@@ -128,24 +128,6 @@ export const usePMTemplateCompatibilityRules = (
   });
 };
 
-/**
- * Hook to fetch PM templates that match a given equipment.
- * Returns templates with match type info (model vs manufacturer match).
- * Uses org-scoped [`pm-template-matching`, orgId, equipmentId] keys — for QR PM picker and similar.
- */
-export const useMatchingPMTemplatesForEquipment = (
-  organizationId: string | undefined,
-  equipmentId: string | undefined,
-  options?: QueryTimingOptions
-) => {
-  return useMatchingTemplatesQuery(
-    organizationId,
-    equipmentId,
-    queryKeys.pmTemplateMatching.forEquipment(organizationId ?? '', equipmentId ?? ''),
-    options
-  );
-};
-
 /** Dashboard context: matching templates for current organization (distinct query cache from QR org-scoped key). */
 export const useMatchingPMTemplates = (
   equipmentId: string | undefined,

@@ -9,7 +9,6 @@
 
 import { useState, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { buildWorkOrderExportCountQuery } from '@/features/reports/utils/exportCountQueries';
 import { logger } from '@/utils/logger';
 import { useAppToast } from '@/hooks/useAppToast';
@@ -27,6 +26,7 @@ import {
 } from '@/features/work-orders/services/workOrderExportPost';
 import { handleGoogleWorkspaceExportError } from '@/features/work-orders/utils/googleWorkspaceExportToasts';
 import { showGoogleDriveExportSuccessToast } from '@/features/work-orders/utils/googleWorkspaceExportSuccessToast';
+import { showExportLoadingToast } from '@/features/reports/utils/exportJobClient';
 
 /** Response from the export-work-orders-to-google-sheets function */
 interface GoogleSheetsExportResponse {
@@ -200,9 +200,17 @@ export function useWorkOrderExcelExport(
       if (!organizationId) {
         throw new Error('Organization ID is required');
       }
-      return exportWorkOrdersToGoogleSheets(organizationId, filters);
+      const loading = showExportLoadingToast('Exporting to Google Sheets');
+      try {
+        const result = await exportWorkOrdersToGoogleSheets(organizationId, filters);
+        loading.dismiss();
+        return { result, filters };
+      } catch (error) {
+        loading.updateError(error instanceof Error ? error.message : 'Google Sheets export failed');
+        throw error;
+      }
     },
-    onSuccess: (result, filters) => {
+    onSuccess: ({ result, filters }) => {
       if (organizationId && filters.workOrderId) {
         void queryClient.invalidateQueries({
           queryKey: exportArtifacts.byRecord(organizationId, 'work_order', filters.workOrderId),
@@ -224,9 +232,17 @@ export function useWorkOrderExcelExport(
       if (!organizationId) {
         throw new Error('Organization ID is required');
       }
-      return exportWorkOrdersToGoogleDocs(organizationId, filters);
+      const loading = showExportLoadingToast('Exporting to Google Docs');
+      try {
+        const result = await exportWorkOrdersToGoogleDocs(organizationId, filters);
+        loading.dismiss();
+        return { result, filters };
+      } catch (error) {
+        loading.updateError(error instanceof Error ? error.message : 'Google Docs export failed');
+        throw error;
+      }
     },
-    onSuccess: (result, filters) => {
+    onSuccess: ({ result, filters }) => {
       if (organizationId && filters.workOrderId) {
         void queryClient.invalidateQueries({
           queryKey: exportArtifacts.byRecord(organizationId, 'work_order', filters.workOrderId),
@@ -324,11 +340,13 @@ export function useWorkOrderExcelExport(
       }
 
       setIsExportingSingleToDocs(true);
+      const loading = showExportLoadingToast('Exporting to Google Docs');
       try {
         const result = await exportWorkOrdersToGoogleDocs(organizationId, {
           workOrderId,
           dateField: 'created_date',
         });
+        loading.dismiss();
         void queryClient.invalidateQueries({
           queryKey: exportArtifacts.byRecord(organizationId, 'work_order', workOrderId),
         });
@@ -344,6 +362,7 @@ export function useWorkOrderExcelExport(
           });
         }
       } catch (error) {
+        loading.updateError(error instanceof Error ? error.message : 'Google Docs export failed');
         handleGoogleWorkspaceExportError(toast, error as Error & { code?: string }, 'Docs');
       } finally {
         setIsExportingSingleToDocs(false);
@@ -364,11 +383,13 @@ export function useWorkOrderExcelExport(
       }
 
       setIsExportingSingleToSheets(true);
+      const loading = showExportLoadingToast('Exporting to Google Sheets');
       try {
         const result = await exportWorkOrdersToGoogleSheets(organizationId, {
           workOrderId,
           dateField: 'created_date',
         });
+        loading.dismiss();
         void queryClient.invalidateQueries({
           queryKey: exportArtifacts.byRecord(organizationId, 'work_order', workOrderId),
         });
@@ -377,6 +398,7 @@ export function useWorkOrderExcelExport(
           : `Created Google Sheet in your organization Drive folder for ${INTERNAL_WORK_ORDER_PACKET_POLICY.exportName}.`;
         showGoogleDriveExportSuccessToast(desc, result.spreadsheetUrl);
       } catch (error) {
+        loading.updateError(error instanceof Error ? error.message : 'Google Sheets export failed');
         handleGoogleWorkspaceExportError(toast, error as Error & { code?: string }, 'Sheets');
       } finally {
         setIsExportingSingleToSheets(false);

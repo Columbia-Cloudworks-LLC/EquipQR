@@ -17,13 +17,15 @@ interface WorkOrderGeneralInfoProps {
     id?: string;
     name?: string;
   } | null;
+  pmTemplateControl?: React.ReactNode;
 }
 
 export const WorkOrderGeneralInfo: React.FC<WorkOrderGeneralInfoProps> = ({
   values,
   errors,
   setValue,
-  preSelectedEquipment
+  preSelectedEquipment,
+  pmTemplateControl,
 }) => {
   const titleFieldId = "work-order-title";
   const priorityFieldId = "work-order-priority";
@@ -62,6 +64,8 @@ export const WorkOrderGeneralInfo: React.FC<WorkOrderGeneralInfoProps> = ({
             <p className="text-sm text-destructive">{errors.title}</p>
           )}
         </div>
+
+        {pmTemplateControl}
 
         <div className="space-y-2">
           <Label htmlFor={priorityFieldId}>Priority *</Label>

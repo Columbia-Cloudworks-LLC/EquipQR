@@ -1,6 +1,7 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { createTestQueryClient } from '@/test/utils/query-client-wrapper';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import type { UserPersona } from '@/test/fixtures/personas';
 import {
@@ -50,20 +51,8 @@ export const JourneyProviders: React.FC<JourneyProvidersProps> = ({
   // Create a fresh QueryClient for each test instance to ensure isolation.
   // Using useState ensures the client is stable across re-renders of the same
   // test instance, preventing unexpected cache resets during the test lifecycle.
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            retry: false,
-            staleTime: 0,
-            gcTime: 0, // Clean up cache immediately when inactive to prevent leakage between tests
-          },
-          mutations: {
-            retry: false,
-          },
-        },
-      })
+  const [queryClient] = useState(() =>
+    createTestQueryClient({ gcTime: 0, staleTime: 0 }),
   );
 
   // Create persona-aware mock context values
