@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.24] - 2026-07-13
+
+### Changed
+
+- **@tanstack/react-query (#1106)** — Bump `@tanstack/react-query` from 5.101.0 to 5.101.2 (Dependabot).
+
 ## [3.25.23] - 2026-07-13
 
 ### Changed
@@ -2579,5 +2585,4 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 [1.7.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.2...v1.7.3
 [1.7.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/releases/tag/v1.7.1
-
 
