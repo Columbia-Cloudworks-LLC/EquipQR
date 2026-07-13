@@ -1,7 +1,7 @@
 {
   "name": "equipqr",
   "private": true,
-  "version": "3.25.21",
+  "version": "3.25.23",
   "type": "module",
   "engines": {
     "node": "24.x"
@@ -108,7 +108,7 @@
     "@radix-ui/react-dropdown-menu": "2.1.19",
     "@radix-ui/react-label": "^2.1.9",
     "@radix-ui/react-popover": "1.1.18",
-    "@radix-ui/react-progress": "^1.1.9",
+    "@radix-ui/react-progress": "^1.1.12",
     "@radix-ui/react-radio-group": "^1.2.4",
     "@radix-ui/react-scroll-area": "1.2.13",
     "@radix-ui/react-select": "2.3.2",
@@ -196,7 +196,7 @@
     "postcss": "^8.5.14",
     "size-limit": "^12.1.0",
     "supabase": "2.103.0",
-    "tailwindcss": "4.3.0",
+    "tailwindcss": "4.3.2",
     "topojson-client": "3.1.0",
     "tsx": "4.22.4",
     "typescript": "^6.0.3",

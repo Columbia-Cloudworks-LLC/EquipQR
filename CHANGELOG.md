@@ -9,11 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [3.25.21] - 2026-07-13
+## [3.25.23] - 2026-07-13
 
 ### Changed
 
 - **@supabase/supabase-js (#1105)** — Bump `@supabase/supabase-js` from 2.106.2 to 2.110.2 (Dependabot).
+
+## [3.25.22] - 2026-07-13
+
+### Changed
+
+- **tailwindcss (#1110)** — Bump `tailwindcss` from 4.3.0 to 4.3.2 (Dependabot).
+
+## [3.25.21] - 2026-07-13
+
+### Changed
+
+- **@radix-ui/react-progress (#1115)** — Bump `@radix-ui/react-progress` from 1.1.10 to 1.1.12 (Dependabot).
 
 ## [3.25.20] - 2026-07-13
 
