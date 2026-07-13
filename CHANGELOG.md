@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.25] - 2026-07-13
+
+### Changed
+
+- **@radix-ui/react-label (#1108)** — Bump `@radix-ui/react-label` from 2.1.10 to 2.1.11 (Dependabot).
+
 ## [3.25.24] - 2026-07-13
 
 ### Changed
