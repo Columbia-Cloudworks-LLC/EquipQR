@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.20] - 2026-07-13
+
+### Changed
+
+- **@radix-ui/react-separator (#1109)** — Bump `@radix-ui/react-separator` from 1.1.10 to 1.1.11 (Dependabot).
+
 ## [3.25.19] - 2026-07-12
 
 ### Changed
