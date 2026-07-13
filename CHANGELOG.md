@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.25] - 2026-07-13
+
+### Changed
+
+- **@radix-ui/react-label (#1108)** — Bump `@radix-ui/react-label` from 2.1.10 to 2.1.11 (Dependabot).
+
 ## [3.25.24] - 2026-07-13
 
 ### Changed
@@ -37,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **@radix-ui/react-label** — patch bump from 2.1.10 to 2.1.11 (Dependabot #1108); transitive `@radix-ui/react-primitive` 2.1.7.
 - **@radix-ui/react-switch (#1117)** — Bump `@radix-ui/react-switch` from 1.2.6 to 1.3.3 (Dependabot).
 
 ## [3.25.19] - 2026-07-12
@@ -2585,4 +2592,3 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 [1.7.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.2...v1.7.3
 [1.7.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/releases/tag/v1.7.1
-
