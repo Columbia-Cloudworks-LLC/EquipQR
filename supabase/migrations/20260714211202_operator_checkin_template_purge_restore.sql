@@ -1,9 +1,38 @@
 -- Issue #1263: purge unused operator check-in templates on delete, archive when
 -- ledger submissions exist, and add restore path for archived templates.
 
-CREATE INDEX IF NOT EXISTS idx_operator_checkin_submissions_template_org
+CREATE INDEX IF NOT EXISTS idx_operator_checkin_submissions_template_id_organization_id
   ON public.operator_checkin_submissions (template_id, organization_id)
   WHERE template_id IS NOT NULL;
+
+CREATE OR REPLACE FUNCTION public.validate_operator_checkin_submission_org_refs()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.template_id IS NOT NULL
+    AND NOT EXISTS (
+      SELECT 1
+      FROM public.operator_checklist_templates tpl
+      WHERE tpl.id = NEW.template_id
+        AND tpl.organization_id = NEW.organization_id
+    ) THEN
+    RAISE EXCEPTION 'template submission organization mismatch';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_validate_operator_checkin_submission_org_refs
+  ON public.operator_checkin_submissions;
+
+CREATE TRIGGER trg_validate_operator_checkin_submission_org_refs
+  BEFORE INSERT OR UPDATE OF template_id, organization_id
+  ON public.operator_checkin_submissions
+  FOR EACH ROW
+  EXECUTE FUNCTION public.validate_operator_checkin_submission_org_refs();
 
 -- rpc-authenticated-grant-allowed: delete_operator_checklist_template
 CREATE OR REPLACE FUNCTION public.delete_operator_checklist_template(p_template_id uuid)
@@ -42,6 +71,14 @@ BEGIN
   ) INTO v_has_submissions;
 
   IF NOT v_has_submissions THEN
+    IF EXISTS (
+      SELECT 1
+      FROM public.operator_checkin_submissions
+      WHERE template_id = p_template_id
+    ) THEN
+      RAISE EXCEPTION 'Cannot purge template: cross-organization submission references detected';
+    END IF;
+
     DELETE FROM public.equipment_operator_checkin_settings
     WHERE template_id = p_template_id
       AND organization_id = v_org_id;

@@ -4541,6 +4541,14 @@ BEGIN
   ) INTO v_has_submissions;
 
   IF NOT v_has_submissions THEN
+    IF EXISTS (
+      SELECT 1
+      FROM public.operator_checkin_submissions
+      WHERE template_id = p_template_id
+    ) THEN
+      RAISE EXCEPTION 'Cannot purge template: cross-organization submission references detected';
+    END IF;
+
     DELETE FROM public.equipment_operator_checkin_settings
     WHERE template_id = p_template_id
       AND organization_id = v_org_id;
@@ -15484,6 +15492,29 @@ $$;
 ALTER FUNCTION "public"."validate_operator_checkin_settings_org_refs"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."validate_operator_checkin_submission_org_refs"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'public'
+    AS $$
+BEGIN
+  IF NEW.template_id IS NOT NULL
+    AND NOT EXISTS (
+      SELECT 1
+      FROM public.operator_checklist_templates tpl
+      WHERE tpl.id = NEW.template_id
+        AND tpl.organization_id = NEW.organization_id
+    ) THEN
+    RAISE EXCEPTION 'template submission organization mismatch';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."validate_operator_checkin_submission_org_refs"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."validate_quickbooks_oauth_session"("p_session_token" "text") RETURNS TABLE("organization_id" "uuid", "user_id" "uuid", "nonce" "text", "redirect_url" "text", "origin_url" "text", "is_valid" boolean)
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -18705,7 +18736,7 @@ CREATE INDEX "idx_operator_checkin_submissions_org_submitted" ON "public"."opera
 
 
 
-CREATE INDEX "idx_operator_checkin_submissions_template_org" ON "public"."operator_checkin_submissions" USING "btree" ("template_id", "organization_id") WHERE ("template_id" IS NOT NULL);
+CREATE INDEX "idx_operator_checkin_submissions_template_id_organization_id" ON "public"."operator_checkin_submissions" USING "btree" ("template_id", "organization_id") WHERE ("template_id" IS NOT NULL);
 
 
 
@@ -19514,6 +19545,10 @@ CREATE OR REPLACE TRIGGER "trg_sync_equipment_last_known_location_from_scan" AFT
 
 
 CREATE OR REPLACE TRIGGER "trg_validate_operator_checkin_settings_org_refs" BEFORE INSERT OR UPDATE OF "equipment_id", "template_id", "organization_id" ON "public"."equipment_operator_checkin_settings" FOR EACH ROW EXECUTE FUNCTION "public"."validate_operator_checkin_settings_org_refs"();
+
+
+
+CREATE OR REPLACE TRIGGER "trg_validate_operator_checkin_submission_org_refs" BEFORE INSERT OR UPDATE OF "template_id", "organization_id" ON "public"."operator_checkin_submissions" FOR EACH ROW EXECUTE FUNCTION "public"."validate_operator_checkin_submission_org_refs"();
 
 
 
@@ -24058,6 +24093,12 @@ GRANT ALL ON FUNCTION "public"."validate_member_limit"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."validate_operator_checkin_settings_org_refs"() TO "anon";
 GRANT ALL ON FUNCTION "public"."validate_operator_checkin_settings_org_refs"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."validate_operator_checkin_settings_org_refs"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."validate_operator_checkin_submission_org_refs"() TO "anon";
+GRANT ALL ON FUNCTION "public"."validate_operator_checkin_submission_org_refs"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."validate_operator_checkin_submission_org_refs"() TO "service_role";
 
 
 
