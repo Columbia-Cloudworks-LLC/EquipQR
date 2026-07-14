@@ -40,7 +40,9 @@ test.describe.serial('Operator check-in purge and restore @pr-evidence', () => {
     await expect(editDialog).toBeHidden({ timeout: 30_000 });
 
     await evidencePause(page, 800);
-    await evidenceScreenshot(page, '01-unused-template-before-delete');
+    await evidenceScreenshot(page, '01-unused-template-before-delete', {
+      target: page.getByText(PURGE_TEMPLATE_NAME, { exact: true }),
+    });
 
     await deleteTemplateFromConsole(page, PURGE_TEMPLATE_NAME);
 
@@ -52,6 +54,8 @@ test.describe.serial('Operator check-in purge and restore @pr-evidence', () => {
     ).toBeVisible({ timeout: 15_000 });
 
     await evidencePause(page, 800);
-    await evidenceScreenshot(page, '02-unused-template-purged-from-ledger-picker');
+    await evidenceScreenshot(page, '02-unused-template-purged-from-ledger-picker', {
+      target: page.locator('#report-template-select'),
+    });
   });
 });
