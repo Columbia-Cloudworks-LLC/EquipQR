@@ -71,8 +71,7 @@ export function OperatorCheckinLedgerPanel({
   const [internalShowDeletedCheckins, setInternalShowDeletedCheckins] = useState(false);
   const showDeletedCheckins = showDeletedCheckinsProp ?? internalShowDeletedCheckins;
   const setShowDeletedCheckins = onShowDeletedCheckinsChange ?? setInternalShowDeletedCheckins;
-  const isShowDeletedControlled =
-    showDeletedCheckinsProp !== undefined && onShowDeletedCheckinsChange !== undefined;
+  const isShowDeletedControlled = showDeletedCheckinsProp !== undefined;
 
   const dateRange = useMemo(
     () => normalizeLedgerDateRange(startDate, endDate),
