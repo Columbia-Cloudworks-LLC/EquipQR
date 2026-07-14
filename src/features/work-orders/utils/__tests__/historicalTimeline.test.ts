@@ -287,5 +287,21 @@ describe('historicalTimeline helpers', () => {
         ],
       ),
     ).toBe(true);
+    expect(
+      areTimelineEventsEqual(
+        [
+          {
+            newStatus: 'accepted' as const,
+            changedAt: '2024-01-02T08:00:00.000Z',
+          },
+        ],
+        [
+          {
+            newStatus: 'accepted' as const,
+            changedAt: '2024-01-02T08:00:00Z',
+          },
+        ],
+      ),
+    ).toBe(true);
   });
 });

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -66,7 +66,7 @@ export function HistoricalTimelineEditorDialog({
   const [editorSeedEvents, setEditorSeedEvents] = useState<HistoricalTimelineEvent[]>([]);
   const [hasIncompleteRows, setHasIncompleteRows] = useState(false);
   const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
-  const hasInitializedRef = useRef(false);
+  const [editorSeeded, setEditorSeeded] = useState(false);
 
   const seedEvents = useMemo(() => {
     if (initialEvents && initialEvents.length > 0) {
@@ -80,7 +80,7 @@ export function HistoricalTimelineEditorDialog({
 
   useEffect(() => {
     if (!open) {
-      hasInitializedRef.current = false;
+      setEditorSeeded(false);
       setConfirmDiscardOpen(false);
       return;
     }
@@ -89,16 +89,17 @@ export function HistoricalTimelineEditorDialog({
       return;
     }
 
-    if (!hasInitializedRef.current) {
+    if (!editorSeeded) {
       setEditorSeedEvents(seedEvents);
       setDraftEvents(seedEvents);
       setHasIncompleteRows(false);
-      hasInitializedRef.current = true;
+      setEditorSeeded(true);
     }
-  }, [open, seedEvents, mode, historyReady]);
+  }, [open, seedEvents, mode, historyReady, editorSeeded]);
 
   const validationErrors = validateTimelineEvents(draftEvents);
-  const isInvalid = hasIncompleteRows || validationErrors.length > 0;
+  const isInitializing = open && mode === 'edit' && !editorSeeded;
+  const isInvalid = editorSeeded && (hasIncompleteRows || validationErrors.length > 0);
   const isDirty = useMemo(
     () => !areTimelineEventsEqual(draftEvents, editorSeedEvents),
     [draftEvents, editorSeedEvents],
@@ -112,6 +113,11 @@ export function HistoricalTimelineEditorDialog({
   };
 
   const handleRequestClose = () => {
+    if (isInitializing) {
+      performClose();
+      return;
+    }
+
     if (isInvalid) {
       return;
     }
@@ -197,13 +203,17 @@ export function HistoricalTimelineEditorDialog({
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto px-6 py-4">
-            <HistoricalTimelineEditor
-              initialEvents={editorSeedEvents}
-              organizationId={organizationId}
-              equipmentId={equipmentId}
-              onChange={setDraftEvents}
-              onIncompleteRowsChange={setHasIncompleteRows}
-            />
+            {isInitializing ? (
+              <p className="text-sm text-muted-foreground">Loading historical timeline…</p>
+            ) : (
+              <HistoricalTimelineEditor
+                initialEvents={editorSeedEvents}
+                organizationId={organizationId}
+                equipmentId={equipmentId}
+                onChange={setDraftEvents}
+                onIncompleteRowsChange={setHasIncompleteRows}
+              />
+            )}
           </div>
 
           <DialogFooter className="border-t px-6 py-4">

@@ -402,4 +402,26 @@ describe('HistoricalTimelineEditorDialog', () => {
 
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
+
+  it('allows cancel while edit-mode history is still loading', async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+
+    render(
+      <HistoricalTimelineEditorDialog
+        open
+        onOpenChange={onOpenChange}
+        workOrderId="wo-1"
+        organizationId="org-1"
+        equipmentId="equipment-1"
+        mode="edit"
+        historyRows={[]}
+        historyReady={false}
+      />,
+    );
+
+    expect(screen.getByText(/loading historical timeline/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^cancel$/i }));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
 });

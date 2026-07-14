@@ -299,9 +299,14 @@ export function synthesizeDefaultTimeline(params: {
 }
 
 function normalizeTimelineEvent(event: HistoricalTimelineEvent): HistoricalTimelineEvent {
+  const parsedChangedAt = new Date(event.changedAt);
+  const changedAt = Number.isNaN(parsedChangedAt.getTime())
+    ? event.changedAt
+    : parsedChangedAt.toISOString();
+
   return {
     newStatus: event.newStatus,
-    changedAt: event.changedAt,
+    changedAt,
     assigneeId: event.newStatus === 'assigned' ? (event.assigneeId ?? null) : null,
   };
 }
