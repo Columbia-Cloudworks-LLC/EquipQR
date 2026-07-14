@@ -191,13 +191,19 @@ export async function createEquipmentFromEquipmentPage(
   });
   await clickWithDemoCue(dialog.getByRole('button', { name: /create equipment/i }), 'Create equipment');
 
-  // Admin creates without a team show a confirmation gate after duplicate-serial validation.
+  // Admin creates without a team show a confirmation gate after async duplicate-serial validation.
+  const equipmentDetailsUrl = /\/dashboard\/equipment\/[^/]+$/;
   const continueWithoutTeam = page.getByRole('button', { name: /continue without a team/i });
-  if (await continueWithoutTeam.isVisible({ timeout: 30_000 }).catch(() => false)) {
+  const gateOrNavigate = await Promise.race([
+    continueWithoutTeam.waitFor({ state: 'visible', timeout: 30_000 }).then(() => 'gate' as const),
+    page.waitForURL(equipmentDetailsUrl, { timeout: 30_000 }).then(() => 'navigated' as const),
+  ]).catch(() => 'timeout' as const);
+
+  if (gateOrNavigate === 'gate') {
     await clickWithDemoCue(continueWithoutTeam, 'Continue without a team');
   }
 
-  await expect(page).toHaveURL(/\/dashboard\/equipment\/[^/]+$/, { timeout: 60_000 });
+  await expect(page).toHaveURL(equipmentDetailsUrl, { timeout: 60_000 });
   await expect(page.getByRole('heading', { name: data.name, exact: true })).toBeVisible({
     timeout: 30_000,
   });
