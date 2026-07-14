@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  areTimelineEventsEqual,
   canAddTimelineRow,
   clearDownstreamRows,
   createEmptyTimelineRow,
@@ -230,5 +231,77 @@ describe('historicalTimeline helpers', () => {
       changedAt: new Date(),
     };
     expect(canAddTimelineRow(terminalRows)).toBe(false);
+  });
+
+  it('compares timeline events for draft dirty detection', () => {
+    const base = [
+      {
+        newStatus: 'submitted' as const,
+        changedAt: '2024-01-01T08:00:00.000Z',
+      },
+      {
+        newStatus: 'accepted' as const,
+        changedAt: '2024-01-02T08:00:00.000Z',
+      },
+    ];
+
+    expect(areTimelineEventsEqual(base, [...base])).toBe(true);
+    expect(
+      areTimelineEventsEqual(base, [
+        base[0]!,
+        { ...base[1]!, changedAt: '2024-01-03T08:00:00.000Z' },
+      ]),
+    ).toBe(false);
+    expect(
+      areTimelineEventsEqual(
+        [
+          {
+            newStatus: 'assigned' as const,
+            changedAt: '2024-01-03T08:00:00.000Z',
+            assigneeId: 'user-1',
+          },
+        ],
+        [
+          {
+            newStatus: 'assigned' as const,
+            changedAt: '2024-01-03T08:00:00.000Z',
+            assigneeId: null,
+          },
+        ],
+      ),
+    ).toBe(false);
+    expect(
+      areTimelineEventsEqual(
+        [
+          {
+            newStatus: 'accepted' as const,
+            changedAt: '2024-01-02T08:00:00.000Z',
+            assigneeId: 'user-1',
+          },
+        ],
+        [
+          {
+            newStatus: 'accepted' as const,
+            changedAt: '2024-01-02T08:00:00.000Z',
+          },
+        ],
+      ),
+    ).toBe(true);
+    expect(
+      areTimelineEventsEqual(
+        [
+          {
+            newStatus: 'accepted' as const,
+            changedAt: '2024-01-02T08:00:00.000Z',
+          },
+        ],
+        [
+          {
+            newStatus: 'accepted' as const,
+            changedAt: '2024-01-02T08:00:00Z',
+          },
+        ],
+      ),
+    ).toBe(true);
   });
 });
