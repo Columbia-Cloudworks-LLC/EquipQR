@@ -191,15 +191,16 @@ export async function createEquipmentFromEquipmentPage(
   });
   await clickWithDemoCue(dialog.getByRole('button', { name: /create equipment/i }), 'Create equipment');
 
-  // Admin creates without a team trigger a confirmation gate (#1167 era UX);
-  // acknowledge it so UI-created fixtures stay team-less and deterministic.
-  const unassignedConfirm = page.getByRole('button', { name: /continue without a team/i });
-  if (await unassignedConfirm.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    await clickWithDemoCue(unassignedConfirm, 'Continue without a team');
+  // Admin creates without a team show a confirmation gate after duplicate-serial validation.
+  const continueWithoutTeam = page.getByRole('button', { name: /continue without a team/i });
+  if (await continueWithoutTeam.isVisible({ timeout: 30_000 }).catch(() => false)) {
+    await clickWithDemoCue(continueWithoutTeam, 'Continue without a team');
   }
 
-  await expect(dialog).toBeHidden({ timeout: 60_000 });
-  await expectToastOrRecordVisible(page, data.name);
+  await expect(page).toHaveURL(/\/dashboard\/equipment\/[^/]+$/, { timeout: 60_000 });
+  await expect(page.getByRole('heading', { name: data.name, exact: true })).toBeVisible({
+    timeout: 30_000,
+  });
   return data.name;
 }
 
