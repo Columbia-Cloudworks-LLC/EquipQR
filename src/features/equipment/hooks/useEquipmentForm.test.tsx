@@ -132,8 +132,9 @@ describe('useEquipmentForm', () => {
   it('creates equipment successfully', async () => {
     const client = new QueryClient();
     const onSuccess = vi.fn();
+    const onCreated = vi.fn();
     const { result } = renderHook(() =>
-      useEquipmentForm(undefined, onSuccess)
+      useEquipmentForm(undefined, onSuccess, undefined, onCreated)
     , { wrapper: createWrapper(client) });
 
       await act(async () => {
@@ -141,6 +142,32 @@ describe('useEquipmentForm', () => {
       });
 
     expect(result.current.isEdit).toBe(false);
+    expect(onSuccess).toHaveBeenCalled();
+    expect(onCreated).toHaveBeenCalledWith('eq-new');
+  });
+
+  it('does not call onCreated when create is queued offline', async () => {
+    const { OfflineAwareWorkOrderService } = await import('@/services/offlineAwareService');
+    vi.mocked(OfflineAwareWorkOrderService).mockImplementationOnce(function OfflineAwareWorkOrderServiceMock() {
+      return {
+        createEquipmentFull: vi.fn().mockResolvedValue({ data: null, queuedOffline: true }),
+        updateEquipment: vi.fn(),
+      } as unknown as InstanceType<typeof OfflineAwareWorkOrderService>;
+    });
+
+    const client = new QueryClient();
+    const onSuccess = vi.fn();
+    const onCreated = vi.fn();
+    const { result } = renderHook(() =>
+      useEquipmentForm(undefined, onSuccess, undefined, onCreated)
+    , { wrapper: createWrapper(client) });
+
+    await act(async () => {
+      await result.current.onSubmit(baseValues);
+    });
+
+    expect(onSuccess).toHaveBeenCalled();
+    expect(onCreated).not.toHaveBeenCalled();
   });
 
   it('updates equipment successfully', async () => {

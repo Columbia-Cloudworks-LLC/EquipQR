@@ -48,6 +48,7 @@ export const useEquipmentForm = (
   initialData?: EquipmentRecord,
   onSuccess?: () => void,
   pendingMediaRef?: MutableRefObject<EquipmentFormPendingMedia>,
+  onCreated?: (equipmentId: string) => void,
 ) => {
   const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -194,6 +195,15 @@ export const useEquipmentForm = (
       form.reset();
       setIsOpen(false);
       onSuccess?.();
+      if (
+        !queuedOffline &&
+        data &&
+        'id' in data &&
+        typeof data.id === 'string' &&
+        data.id !== 'offline'
+      ) {
+        onCreated?.(data.id);
+      }
     },
     onError: (error) => {
       console.error('Equipment creation error:', error);

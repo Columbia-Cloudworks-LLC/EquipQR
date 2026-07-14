@@ -191,15 +191,34 @@ export async function createEquipmentFromEquipmentPage(
   });
   await clickWithDemoCue(dialog.getByRole('button', { name: /create equipment/i }), 'Create equipment');
 
-  // Admin creates without a team trigger a confirmation gate (#1167 era UX);
-  // acknowledge it so UI-created fixtures stay team-less and deterministic.
-  const unassignedConfirm = page.getByRole('button', { name: /continue without a team/i });
-  if (await unassignedConfirm.isVisible({ timeout: 5_000 }).catch(() => false)) {
-    await clickWithDemoCue(unassignedConfirm, 'Continue without a team');
+  // Admin creates without a team show a confirmation gate after async duplicate-serial validation.
+  const equipmentDetailsUrl = /\/dashboard\/equipment\/[^/]+$/;
+  const continueWithoutTeam = page.getByRole('button', { name: /continue without a team/i });
+  const postCreateDeadlineMs = Date.now() + 60_000;
+  const postCreateTimeLeft = () => Math.max(500, postCreateDeadlineMs - Date.now());
+
+  let gateOrNavigate: 'gate' | 'navigated';
+  try {
+    gateOrNavigate = await Promise.race([
+      continueWithoutTeam
+        .waitFor({ state: 'visible', timeout: postCreateTimeLeft() })
+        .then(() => 'gate' as const),
+      page.waitForURL(equipmentDetailsUrl, { timeout: postCreateTimeLeft() }).then(() => 'navigated' as const),
+    ]);
+  } catch {
+    throw new Error(
+      'Equipment create did not show the unassigned-team gate or navigate to details within 60s',
+    );
   }
 
-  await expect(dialog).toBeHidden({ timeout: 60_000 });
-  await expectToastOrRecordVisible(page, data.name);
+  if (gateOrNavigate === 'gate') {
+    await clickWithDemoCue(continueWithoutTeam, 'Continue without a team');
+  }
+
+  await expect(page).toHaveURL(equipmentDetailsUrl, { timeout: postCreateTimeLeft() });
+  await expect(page.getByRole('heading', { name: data.name, exact: true })).toBeVisible({
+    timeout: 30_000,
+  });
   return data.name;
 }
 

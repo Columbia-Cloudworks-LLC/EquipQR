@@ -41,12 +41,19 @@ interface EquipmentFormProps {
   open: boolean;
   onClose: () => void;
   equipment?: EquipmentRecord;
+  /** Called after a successful online create with the persisted equipment id. */
+  onCreated?: (equipmentId: string) => void;
 }
 
-const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment }) => {
+const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment, onCreated }) => {
   const { attributes } = useCustomAttributes();
   const pendingMediaRef = useRef<EquipmentFormPendingMedia>({ files: [], displayIndex: 0 });
-  const { form, onSubmit, isEdit, isPending } = useEquipmentForm(equipment, onClose, pendingMediaRef);
+  const { form, onSubmit, isEdit, isPending } = useEquipmentForm(
+    equipment,
+    onClose,
+    pendingMediaRef,
+    onCreated,
+  );
   const { hasRole } = usePermissions();
   const isAdmin = hasRole(['owner', 'admin']);
 

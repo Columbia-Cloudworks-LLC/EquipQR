@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.29] - 2026-07-14
+
+### Fixed
+
+- **Equipment create navigation (#1255)** — After creating equipment from the list modal, reset team scope to All teams and open the new equipment details page so the record is immediately discoverable.
+
 ## [3.25.28] - 2026-07-14
 
 ### Fixed

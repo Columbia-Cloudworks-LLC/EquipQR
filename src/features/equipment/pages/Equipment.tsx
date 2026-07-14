@@ -204,6 +204,11 @@ const Equipment = () => {
     setEditingEquipment(null);
   };
 
+  const handleEquipmentCreated = (equipmentId: string) => {
+    setSelectedTeamId(null);
+    navigate(`/dashboard/equipment/${equipmentId}`);
+  };
+
   return (
     <Page maxWidth="7xl" padding="responsive">
       <div className={cn('space-y-4 md:space-y-6', isMobile && canCreate && 'pb-28')}>
@@ -384,6 +389,7 @@ const Equipment = () => {
         open={showForm} 
         onClose={handleCloseForm}
         equipment={editingEquipment}
+        onCreated={editingEquipment ? undefined : handleEquipmentCreated}
       />
 
       {/* QR Code Modal */}
