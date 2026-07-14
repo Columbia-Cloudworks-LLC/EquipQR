@@ -9,11 +9,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [3.25.20] - 2026-07-13
+## [3.25.27] - 2026-07-14
 
 ### Changed
 
 - **@vitejs/plugin-react (#1112)** — Bump `@vitejs/plugin-react` from 6.0.2 to 6.0.3 (Dependabot).
+
+## [3.25.26] - 2026-07-14
+
+### Changed
+
+- **@radix-ui/react-separator (#1109)** — Bump `@radix-ui/react-separator` from 1.1.10 to 1.1.11 (Dependabot).
+
+## [3.25.25] - 2026-07-13
+
+### Changed
+
+- **@radix-ui/react-label (#1108)** — Bump `@radix-ui/react-label` from 2.1.10 to 2.1.11 (Dependabot).
+
+## [3.25.24] - 2026-07-13
+
+### Changed
+
+- **@tanstack/react-query (#1106)** — Bump `@tanstack/react-query` from 5.101.0 to 5.101.2 (Dependabot).
+
+## [3.25.23] - 2026-07-13
+
+### Changed
+
+- **@supabase/supabase-js (#1105)** — Bump `@supabase/supabase-js` from 2.106.2 to 2.110.2 (Dependabot).
+
+## [3.25.22] - 2026-07-13
+
+### Changed
+
+- **tailwindcss (#1110)** — Bump `tailwindcss` from 4.3.0 to 4.3.2 (Dependabot).
+
+## [3.25.21] - 2026-07-13
+
+### Changed
+
+- **@radix-ui/react-progress (#1115)** — Bump `@radix-ui/react-progress` from 1.1.10 to 1.1.12 (Dependabot).
+
+## [3.25.20] - 2026-07-13
+
+### Changed
+
+- **@radix-ui/react-label** — patch bump from 2.1.10 to 2.1.11 (Dependabot #1108); transitive `@radix-ui/react-primitive` 2.1.7.
+- **@radix-ui/react-switch (#1117)** — Bump `@radix-ui/react-switch` from 1.2.6 to 1.3.3 (Dependabot).
 
 ## [3.25.19] - 2026-07-12
 
@@ -2561,6 +2604,3 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 [1.7.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.2...v1.7.3
 [1.7.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/releases/tag/v1.7.1
-
-
-
