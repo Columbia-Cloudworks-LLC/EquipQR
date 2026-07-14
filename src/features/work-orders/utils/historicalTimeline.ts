@@ -298,6 +298,33 @@ export function synthesizeDefaultTimeline(params: {
   }));
 }
 
+function normalizeTimelineEvent(event: HistoricalTimelineEvent): HistoricalTimelineEvent {
+  return {
+    newStatus: event.newStatus,
+    changedAt: event.changedAt,
+    assigneeId: event.newStatus === 'assigned' ? (event.assigneeId ?? null) : null,
+  };
+}
+
+export function areTimelineEventsEqual(
+  left: HistoricalTimelineEvent[],
+  right: HistoricalTimelineEvent[],
+): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  return left.every((event, index) => {
+    const normalizedLeft = normalizeTimelineEvent(event);
+    const normalizedRight = normalizeTimelineEvent(right[index]!);
+    return (
+      normalizedLeft.newStatus === normalizedRight.newStatus &&
+      normalizedLeft.changedAt === normalizedRight.changedAt &&
+      normalizedLeft.assigneeId === normalizedRight.assigneeId
+    );
+  });
+}
+
 export function historyRowsToEvents(
   historyRows: Array<{
     new_status: string;

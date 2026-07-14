@@ -314,4 +314,92 @@ describe('HistoricalTimelineEditorDialog', () => {
 
     expect(screen.getByText('Event 2')).toBeInTheDocument();
   });
+
+  it('does not close when cancel is clicked with incomplete rows', async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+
+    render(
+      <HistoricalTimelineEditorDialog
+        open
+        onOpenChange={onOpenChange}
+        workOrderId="create-mode"
+        organizationId="org-1"
+        equipmentId="equipment-1"
+        mode="create"
+        initialEvents={submittedAcceptedEvents}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /add historical event/i }));
+    await user.click(screen.getByRole('button', { name: /^cancel$/i }));
+
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('shows an in-app discard confirmation when closing with unsaved valid edits', async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+
+    render(
+      <HistoricalTimelineEditorDialog
+        open
+        onOpenChange={onOpenChange}
+        workOrderId="wo-1"
+        organizationId="org-1"
+        equipmentId="equipment-1"
+        initialEvents={submittedAcceptedEvents}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /remove timeline event 2/i }));
+    await user.click(screen.getByRole('button', { name: /^cancel$/i }));
+
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+    expect(screen.getByText(/discard timeline changes/i)).toBeInTheDocument();
+  });
+
+  it('closes after confirming discard of unsaved valid edits', async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+
+    render(
+      <HistoricalTimelineEditorDialog
+        open
+        onOpenChange={onOpenChange}
+        workOrderId="wo-1"
+        organizationId="org-1"
+        equipmentId="equipment-1"
+        initialEvents={submittedAcceptedEvents}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /remove timeline event 2/i }));
+    await user.click(screen.getByRole('button', { name: /^cancel$/i }));
+    await user.click(screen.getByRole('button', { name: /discard changes/i }));
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it('closes immediately when cancel is clicked with no unsaved changes', async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+
+    render(
+      <HistoricalTimelineEditorDialog
+        open
+        onOpenChange={onOpenChange}
+        workOrderId="wo-1"
+        organizationId="org-1"
+        equipmentId="equipment-1"
+        initialEvents={submittedAcceptedEvents}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /^cancel$/i }));
+
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
 });

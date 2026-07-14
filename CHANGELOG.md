@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.28] - 2026-07-14
+
+### Fixed
+
+- **Historical timeline editor (#1250)** — Block accidental dialog dismiss during date/time entry: outside-click and portaled picker interactions no longer close the editor; invalid timelines cannot be dismissed; unsaved valid edits prompt an in-app discard confirmation.
+
 ## [3.25.27] - 2026-07-14
 
 ### Changed

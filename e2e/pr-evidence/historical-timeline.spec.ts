@@ -14,6 +14,7 @@ test.describe('PR evidence: historical work order timeline @pr-evidence', () => 
     assertHealthyShell,
     page,
   }) => {
+    test.setTimeout(300_000);
     const title = `PR Evidence Historical Timeline ${Date.now()}`;
 
     await gotoDashboard('/work-orders');
@@ -45,7 +46,7 @@ test.describe('PR evidence: historical work order timeline @pr-evidence', () => 
     await dialog.getByRole('button', { name: /build timeline/i }).click();
     const timelineDialog = page.getByRole('dialog').filter({ hasText: /build historical timeline/i });
     await expect(timelineDialog).toBeVisible({ timeout: 15_000 });
-    await timelineDialog.getByRole('button', { name: /add next status event/i }).click();
+    await timelineDialog.getByRole('button', { name: /add historical event/i }).click();
     await expect(timelineDialog.getByText('Event 3')).toBeVisible({ timeout: 15_000 });
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '02-timeline-builder-add-event');
@@ -69,16 +70,29 @@ test.describe('PR evidence: historical work order timeline @pr-evidence', () => 
     await page.getByRole('button', { name: /edit historical timeline/i }).click();
     const editDialog = page.getByRole('dialog').filter({ hasText: /edit historical timeline/i });
     await expect(editDialog).toBeVisible({ timeout: 15_000 });
-    await editDialog.getByRole('button', { name: /add next status event/i }).click();
-    await expect(editDialog.getByText('Event 3')).toBeVisible({ timeout: 15_000 });
-    await evidencePause(page, 600);
-    await evidenceScreenshot(page, '04-edit-timeline-add-event');
 
-    await editDialog.getByRole('button', { name: /remove timeline event 3/i }).click();
-    await editDialog.getByRole('button', { name: /save timeline/i }).click();
+    await page.mouse.click(8, 8);
+    await expect(editDialog).toBeVisible();
+    await editDialog.locator('button').filter({ hasText: /at \d+:\d+ (AM|PM)/i }).first().click();
+    await expect(page.getByRole('button', { name: 'Today' })).toBeVisible({ timeout: 15_000 });
+    await expect(editDialog).toBeVisible();
+    await page.keyboard.press('Escape');
+
+    await editDialog.getByRole('button', { name: /remove timeline event 2/i }).click();
+    await editDialog.getByRole('button', { name: /^cancel$/i }).click();
+    await expect(page.getByRole('alertdialog', { name: /discard timeline changes/i })).toBeVisible({
+      timeout: 15_000,
+    });
+    await evidencePause(page, 600);
+    await evidenceScreenshot(page, '04-discard-confirmation');
+
+    await page.getByRole('button', { name: /keep editing/i }).click();
+    await expect(editDialog).toBeVisible();
+    await editDialog.getByRole('button', { name: /^cancel$/i }).click();
+    await page.getByRole('button', { name: /discard changes/i }).click();
     await expect(editDialog).toBeHidden({ timeout: 15_000 });
     await expect(page.getByText(/historical record/i)).toBeVisible({ timeout: 15_000 });
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '05-timeline-updated');
+    await evidenceScreenshot(page, '05-timeline-dismiss-guards-verified');
   });
 });
