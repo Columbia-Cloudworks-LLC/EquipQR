@@ -298,10 +298,10 @@ export function synthesizeDefaultTimeline(params: {
   }));
 }
 
-function normalizeTimelineEvent(event: HistoricalTimelineEvent): HistoricalTimelineEvent {
+function normalizeTimelineEvent(event: HistoricalTimelineEvent) {
   return {
     newStatus: event.newStatus,
-    changedAt: event.changedAt,
+    changedAtMs: new Date(event.changedAt).getTime(),
     assigneeId: event.newStatus === 'assigned' ? (event.assigneeId ?? null) : null,
   };
 }
@@ -319,7 +319,7 @@ export function areTimelineEventsEqual(
     const normalizedRight = normalizeTimelineEvent(right[index]!);
     return (
       normalizedLeft.newStatus === normalizedRight.newStatus &&
-      normalizedLeft.changedAt === normalizedRight.changedAt &&
+      normalizedLeft.changedAtMs === normalizedRight.changedAtMs &&
       normalizedLeft.assigneeId === normalizedRight.assigneeId
     );
   });
