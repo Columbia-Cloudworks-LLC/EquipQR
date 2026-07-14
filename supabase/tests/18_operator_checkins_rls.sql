@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(23);
+SELECT plan(31);
 
 -- ============================================
 -- Test: operator check-in domain RLS (#1091)
@@ -245,12 +245,58 @@ SELECT ok(
   'archived template public token is unavailable'
 );
 
+SELECT ok(
+  public.delete_operator_checklist_template('31000000-cccc-0000-0000-000000000003'::uuid) = -1,
+  'unused template delete purges template row'
+);
+
+SELECT ok(
+  (SELECT count(*)::int FROM public.operator_checklist_templates
+    WHERE id = '31000000-cccc-0000-0000-000000000003'::uuid) = 0,
+  'purged template is removed from operator_checklist_templates'
+);
+
+SELECT ok(
+  (SELECT count(*)::int FROM public.equipment_operator_checkin_settings
+    WHERE template_id = '31000000-cccc-0000-0000-000000000003'::uuid) = 0,
+  'purged template removes related equipment assignments'
+);
+
+SELECT ok(
+  public.restore_operator_checklist_template('31000000-cccc-0000-0000-000000000001'::uuid) = 1,
+  'org owner can restore archived template and re-enable assignments'
+);
+
+SELECT ok(
+  (SELECT is_active FROM public.operator_checklist_templates WHERE id = '31000000-cccc-0000-0000-000000000001'::uuid) = true,
+  'restored template is marked active again'
+);
+
+SELECT ok(
+  (SELECT count(*)::int FROM public.equipment_operator_checkin_settings
+    WHERE template_id = '31000000-cccc-0000-0000-000000000001'::uuid AND enabled = true) = 1,
+  'restored template re-enables related assignments'
+);
+
+SELECT ok(
+  public.resolve_operator_checkin_by_token(
+    encode(digest('test-token-a', 'sha256'), 'hex')
+  ) IS NOT NULL,
+  'restored template public token is available again'
+);
+
 SET LOCAL request.jwt.claim.sub TO '31000000-0000-0000-0000-000000000002';
 
 SELECT throws_ok(
   $$ SELECT public.delete_operator_checklist_template('31000000-cccc-0000-0000-000000000001'::uuid) $$,
   'Forbidden',
   'cross-org template archive is rejected'
+);
+
+SELECT throws_ok(
+  $$ SELECT public.restore_operator_checklist_template('31000000-cccc-0000-0000-000000000001'::uuid) $$,
+  'Forbidden',
+  'cross-org template restore is rejected'
 );
 
 RESET role;

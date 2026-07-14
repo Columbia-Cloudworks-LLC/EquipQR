@@ -4514,6 +4514,7 @@ CREATE OR REPLACE FUNCTION "public"."delete_operator_checklist_template"("p_temp
 DECLARE
   v_org_id uuid;
   v_disabled_count integer;
+  v_submission_count integer;
 BEGIN
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'Authentication required';
@@ -4529,6 +4530,22 @@ BEGIN
 
   IF NOT public.is_org_admin(auth.uid(), v_org_id) THEN
     RAISE EXCEPTION 'Forbidden';
+  END IF;
+
+  SELECT count(*)::integer INTO v_submission_count
+  FROM public.operator_checkin_submissions
+  WHERE template_id = p_template_id;
+
+  IF v_submission_count = 0 THEN
+    DELETE FROM public.equipment_operator_checkin_settings
+    WHERE template_id = p_template_id
+      AND organization_id = v_org_id;
+
+    DELETE FROM public.operator_checklist_templates
+    WHERE id = p_template_id
+      AND organization_id = v_org_id;
+
+    RETURN -1;
   END IF;
 
   UPDATE public.equipment_operator_checkin_settings
@@ -13403,6 +13420,67 @@ ALTER FUNCTION "public"."respond_to_workspace_personal_org_merge"("p_request_id"
 
 COMMENT ON FUNCTION "public"."respond_to_workspace_personal_org_merge"("p_request_id" "uuid", "p_accept" boolean, "p_response_reason" "text") IS 'Accept or reject a personal org merge request. Only the target user can respond.';
 
+
+
+CREATE OR REPLACE FUNCTION "public"."restore_operator_checklist_template"("p_template_id" "uuid") RETURNS integer
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+DECLARE
+  v_org_id uuid;
+  v_submission_count integer;
+  v_reenabled_count integer;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required';
+  END IF;
+
+  SELECT organization_id INTO v_org_id
+  FROM public.operator_checklist_templates
+  WHERE id = p_template_id;
+
+  IF v_org_id IS NULL THEN
+    RAISE EXCEPTION 'Template not found';
+  END IF;
+
+  IF NOT public.is_org_admin(auth.uid(), v_org_id) THEN
+    RAISE EXCEPTION 'Forbidden';
+  END IF;
+
+  IF (SELECT is_active FROM public.operator_checklist_templates WHERE id = p_template_id) THEN
+    RAISE EXCEPTION 'Template is already active';
+  END IF;
+
+  SELECT count(*)::integer INTO v_submission_count
+  FROM public.operator_checkin_submissions
+  WHERE template_id = p_template_id;
+
+  IF v_submission_count = 0 THEN
+    RAISE EXCEPTION 'Cannot restore template without ledger submissions';
+  END IF;
+
+  UPDATE public.operator_checklist_templates
+  SET is_active = true,
+      updated_by = auth.uid(),
+      updated_at = now()
+  WHERE id = p_template_id
+    AND organization_id = v_org_id;
+
+  UPDATE public.equipment_operator_checkin_settings
+  SET enabled = true,
+      updated_at = now()
+  WHERE template_id = p_template_id
+    AND organization_id = v_org_id
+    AND enabled = false;
+
+  GET DIAGNOSTICS v_reenabled_count = ROW_COUNT;
+
+  RETURN v_reenabled_count;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."restore_operator_checklist_template"("p_template_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."revert_pm_completion"("p_pm_id" "uuid", "p_reason" "text" DEFAULT 'Reverted by admin'::"text") RETURNS "jsonb"
@@ -23700,6 +23778,13 @@ GRANT ALL ON FUNCTION "public"."respond_to_ownership_transfer"("p_transfer_id" "
 REVOKE ALL ON FUNCTION "public"."respond_to_workspace_personal_org_merge"("p_request_id" "uuid", "p_accept" boolean, "p_response_reason" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."respond_to_workspace_personal_org_merge"("p_request_id" "uuid", "p_accept" boolean, "p_response_reason" "text") TO "service_role";
 GRANT ALL ON FUNCTION "public"."respond_to_workspace_personal_org_merge"("p_request_id" "uuid", "p_accept" boolean, "p_response_reason" "text") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."restore_operator_checklist_template"("p_template_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."restore_operator_checklist_template"("p_template_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."restore_operator_checklist_template"("p_template_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."restore_operator_checklist_template"("p_template_id" "uuid") TO "service_role";
 
 
 
