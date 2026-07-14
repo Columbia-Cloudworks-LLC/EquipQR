@@ -99,6 +99,7 @@ export function HistoricalTimelineEditorDialog({
 
   const validationErrors = validateTimelineEvents(draftEvents);
   const isInvalid = hasIncompleteRows || validationErrors.length > 0;
+  const shouldBlockClose = hasInitializedRef.current && isInvalid;
   const isDirty = useMemo(
     () => !areTimelineEventsEqual(draftEvents, editorSeedEvents),
     [draftEvents, editorSeedEvents],
@@ -112,7 +113,7 @@ export function HistoricalTimelineEditorDialog({
   };
 
   const handleRequestClose = () => {
-    if (isInvalid) {
+    if (shouldBlockClose) {
       return;
     }
 
@@ -211,7 +212,7 @@ export function HistoricalTimelineEditorDialog({
               type="button"
               variant="outline"
               onClick={handleRequestClose}
-              disabled={isInvalid}
+              disabled={shouldBlockClose}
             >
               Cancel
             </Button>
