@@ -4514,7 +4514,7 @@ CREATE OR REPLACE FUNCTION "public"."delete_operator_checklist_template"("p_temp
 DECLARE
   v_org_id uuid;
   v_disabled_count integer;
-  v_submission_count integer;
+  v_has_submissions boolean;
 BEGIN
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'Authentication required';
@@ -4533,12 +4533,14 @@ BEGIN
     RAISE EXCEPTION 'Forbidden';
   END IF;
 
-  SELECT count(*)::integer INTO v_submission_count
-  FROM public.operator_checkin_submissions
-  WHERE template_id = p_template_id
-    AND organization_id = v_org_id;
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.operator_checkin_submissions
+    WHERE template_id = p_template_id
+      AND organization_id = v_org_id
+  ) INTO v_has_submissions;
 
-  IF v_submission_count = 0 THEN
+  IF NOT v_has_submissions THEN
     DELETE FROM public.equipment_operator_checkin_settings
     WHERE template_id = p_template_id
       AND organization_id = v_org_id;
@@ -13430,7 +13432,7 @@ CREATE OR REPLACE FUNCTION "public"."restore_operator_checklist_template"("p_tem
     AS $$
 DECLARE
   v_org_id uuid;
-  v_submission_count integer;
+  v_has_submissions boolean;
   v_reenabled_count integer;
 BEGIN
   IF auth.uid() IS NULL THEN
@@ -13454,12 +13456,14 @@ BEGIN
     RAISE EXCEPTION 'Template is already active';
   END IF;
 
-  SELECT count(*)::integer INTO v_submission_count
-  FROM public.operator_checkin_submissions
-  WHERE template_id = p_template_id
-    AND organization_id = v_org_id;
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.operator_checkin_submissions
+    WHERE template_id = p_template_id
+      AND organization_id = v_org_id
+  ) INTO v_has_submissions;
 
-  IF v_submission_count = 0 THEN
+  IF NOT v_has_submissions THEN
     RAISE EXCEPTION 'Cannot restore template without ledger submissions';
   END IF;
 
@@ -18698,6 +18702,10 @@ CREATE INDEX "idx_operator_checkin_submissions_equipment_submitted" ON "public".
 
 
 CREATE INDEX "idx_operator_checkin_submissions_org_submitted" ON "public"."operator_checkin_submissions" USING "btree" ("organization_id", "submitted_at" DESC);
+
+
+
+CREATE INDEX "idx_operator_checkin_submissions_template_org" ON "public"."operator_checkin_submissions" USING "btree" ("template_id", "organization_id") WHERE ("template_id" IS NOT NULL);
 
 
 
