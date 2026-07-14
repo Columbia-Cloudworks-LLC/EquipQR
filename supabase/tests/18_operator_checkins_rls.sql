@@ -234,6 +234,8 @@ SELECT throws_ok(
 SET LOCAL role TO authenticated;
 SET LOCAL request.jwt.claim.sub TO '31000000-0000-0000-0000-000000000001';
 
+RESET role;
+
 ALTER TABLE public.operator_checkin_submissions
   DISABLE TRIGGER trg_validate_operator_checkin_submission_org_refs;
 
@@ -252,6 +254,9 @@ INSERT INTO public.operator_checkin_submissions (
 
 ALTER TABLE public.operator_checkin_submissions
   ENABLE TRIGGER trg_validate_operator_checkin_submission_org_refs;
+
+SET LOCAL role TO authenticated;
+SET LOCAL request.jwt.claim.sub TO '31000000-0000-0000-0000-000000000001';
 
 SELECT throws_ok(
   $$ SELECT public.delete_operator_checklist_template('31000000-cccc-0000-0000-000000000004'::uuid) $$,

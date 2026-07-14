@@ -34,6 +34,9 @@ CREATE TRIGGER trg_validate_operator_checkin_submission_org_refs
   FOR EACH ROW
   EXECUTE FUNCTION public.validate_operator_checkin_submission_org_refs();
 
+REVOKE ALL ON FUNCTION public.validate_operator_checkin_submission_org_refs() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.validate_operator_checkin_submission_org_refs() FROM anon;
+
 -- rpc-authenticated-grant-allowed: delete_operator_checklist_template
 CREATE OR REPLACE FUNCTION public.delete_operator_checklist_template(p_template_id uuid)
 RETURNS integer
@@ -155,6 +158,14 @@ BEGIN
   ) INTO v_has_submissions;
 
   IF NOT v_has_submissions THEN
+    IF EXISTS (
+      SELECT 1
+      FROM public.operator_checkin_submissions
+      WHERE template_id = p_template_id
+    ) THEN
+      RAISE EXCEPTION 'Cannot restore template: cross-organization submission references detected';
+    END IF;
+
     RAISE EXCEPTION 'Cannot restore template without ledger submissions';
   END IF;
 

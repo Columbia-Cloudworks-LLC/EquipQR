@@ -13472,6 +13472,14 @@ BEGIN
   ) INTO v_has_submissions;
 
   IF NOT v_has_submissions THEN
+    IF EXISTS (
+      SELECT 1
+      FROM public.operator_checkin_submissions
+      WHERE template_id = p_template_id
+    ) THEN
+      RAISE EXCEPTION 'Cannot restore template: cross-organization submission references detected';
+    END IF;
+
     RAISE EXCEPTION 'Cannot restore template without ledger submissions';
   END IF;
 
@@ -24096,7 +24104,7 @@ GRANT ALL ON FUNCTION "public"."validate_operator_checkin_settings_org_refs"() T
 
 
 
-GRANT ALL ON FUNCTION "public"."validate_operator_checkin_submission_org_refs"() TO "anon";
+REVOKE ALL ON FUNCTION "public"."validate_operator_checkin_submission_org_refs"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."validate_operator_checkin_submission_org_refs"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."validate_operator_checkin_submission_org_refs"() TO "service_role";
 
