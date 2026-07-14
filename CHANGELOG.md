@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.27] - 2026-07-14
+
+### Changed
+
+- **@vitejs/plugin-react (#1112)** — Bump `@vitejs/plugin-react` from 6.0.2 to 6.0.3 (Dependabot).
+
 ## [3.25.26] - 2026-07-14
 
 ### Changed
