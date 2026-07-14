@@ -173,7 +173,9 @@ test.describe.serial('Daily operator check-ins end-to-end @pr-evidence', () => {
     await page.keyboard.press('Escape');
 
     await evidencePause(page, 800);
-    await evidenceScreenshot(page, '12-restored-template-active-in-ledger-picker');
+    await evidenceScreenshot(page, '12-restored-template-active-in-ledger-picker', {
+      target: page.locator('#report-template-select'),
+    });
   });
 });
 
@@ -188,7 +190,11 @@ test.describe('Daily operator check-ins access @pr-evidence', () => {
     ).toBeVisible({ timeout: 30_000 });
 
     await evidencePause(page, 800);
-    await evidenceScreenshot(page, '13-non-admin-management-denied');
+    await evidenceScreenshot(page, '13-non-admin-management-denied', {
+      target: page.getByText(
+        /only organization owners and administrators can manage operator daily check-ins/i,
+      ),
+    });
     await context.close();
   });
 });

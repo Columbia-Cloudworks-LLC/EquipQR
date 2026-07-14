@@ -1,13 +1,13 @@
 import { test, expect } from '../user/fixtures/equipqr-test';
-import { pinContextToApex, gotoDashboardRoute } from '../user/shared/auth-helpers';
+import { pinContextToApex } from '../user/shared/auth-helpers';
 import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
 import { resetApexOperatorCheckinEvidence } from './shared/operator-checkin-evidence-reset';
 import {
   cloneStarterTemplate,
   deleteTemplateFromConsole,
   expandStarterCatalogIfNeeded,
+  getYourTemplateCard,
   openDailyLedgerTab,
-  restoreTemplateFromConsole,
   setShowDeletedCheckins,
 } from './shared/operator-checkin-evidence-helpers';
 
@@ -40,18 +40,23 @@ test.describe.serial('Operator check-in purge and restore @pr-evidence', () => {
     await expect(editDialog).toBeHidden({ timeout: 30_000 });
 
     await evidencePause(page, 800);
-    await evidenceScreenshot(page, '01-unused-template-before-delete');
+    await evidenceScreenshot(page, '01-unused-template-before-delete', {
+      target: getYourTemplateCard(page, PURGE_TEMPLATE_NAME),
+    });
 
     await deleteTemplateFromConsole(page, PURGE_TEMPLATE_NAME);
 
     await openDailyLedgerTab(page);
     await setShowDeletedCheckins(page, true);
-    await expect(page.locator('#report-template-select')).toBeDisabled();
+    const reportTemplateSelect = page.locator('#report-template-select');
+    await expect(reportTemplateSelect).toBeDisabled();
     await expect(
       page.getByText(/select a report template to review daily check-ins/i),
     ).toBeVisible({ timeout: 15_000 });
 
     await evidencePause(page, 800);
-    await evidenceScreenshot(page, '02-unused-template-purged-from-ledger-picker');
+    await evidenceScreenshot(page, '02-unused-template-purged-from-ledger-picker', {
+      target: reportTemplateSelect,
+    });
   });
 });

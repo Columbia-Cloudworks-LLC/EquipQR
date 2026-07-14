@@ -19,7 +19,8 @@ BEGIN
 
   SELECT organization_id INTO v_org_id
   FROM public.operator_checklist_templates
-  WHERE id = p_template_id;
+  WHERE id = p_template_id
+  FOR UPDATE;
 
   IF v_org_id IS NULL THEN
     RAISE EXCEPTION 'Template not found';
@@ -31,7 +32,8 @@ BEGIN
 
   SELECT count(*)::integer INTO v_submission_count
   FROM public.operator_checkin_submissions
-  WHERE template_id = p_template_id;
+  WHERE template_id = p_template_id
+    AND organization_id = v_org_id;
 
   IF v_submission_count = 0 THEN
     DELETE FROM public.equipment_operator_checkin_settings
@@ -66,6 +68,7 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION public.delete_operator_checklist_template(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.delete_operator_checklist_template(uuid) FROM anon;
 GRANT EXECUTE ON FUNCTION public.delete_operator_checklist_template(uuid) TO authenticated;
 
 -- rpc-authenticated-grant-allowed: restore_operator_checklist_template
@@ -86,7 +89,8 @@ BEGIN
 
   SELECT organization_id INTO v_org_id
   FROM public.operator_checklist_templates
-  WHERE id = p_template_id;
+  WHERE id = p_template_id
+  FOR UPDATE;
 
   IF v_org_id IS NULL THEN
     RAISE EXCEPTION 'Template not found';
@@ -102,7 +106,8 @@ BEGIN
 
   SELECT count(*)::integer INTO v_submission_count
   FROM public.operator_checkin_submissions
-  WHERE template_id = p_template_id;
+  WHERE template_id = p_template_id
+    AND organization_id = v_org_id;
 
   IF v_submission_count = 0 THEN
     RAISE EXCEPTION 'Cannot restore template without ledger submissions';
@@ -129,4 +134,5 @@ END;
 $$;
 
 REVOKE ALL ON FUNCTION public.restore_operator_checklist_template(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.restore_operator_checklist_template(uuid) FROM anon;
 GRANT EXECUTE ON FUNCTION public.restore_operator_checklist_template(uuid) TO authenticated;
