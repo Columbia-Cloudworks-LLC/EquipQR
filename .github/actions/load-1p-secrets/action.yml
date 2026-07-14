@@ -27,6 +27,12 @@ description: |
       hard-fails the step with a 1Password CLI error. That is the correct
       behavior — a misconfigured op:// reference is a bug, not a missing
       credential.
+    - When required: false and the upstream load-secrets-action itself
+      encounters a transient infrastructure failure (e.g. the 1Password API
+      returns malformed JSON while resolving the op-cli version), the step
+      uses continue-on-error so the composite action does not fail the
+      calling job. The op:// env values pass through unresolved and the
+      calling script must handle the missing/literal token with a warning.
 
 inputs:
   export-env:
@@ -62,6 +68,7 @@ runs:
 
     - name: Load secrets from 1Password
       if: steps.probe.outputs.loaded == 'true'
+      continue-on-error: ${{ inputs.required == 'false' }}
       uses: 1password/load-secrets-action@2bfca7363ef8f96bb66d38dd50981bf948040c7e
       with:
         export-env: ${{ inputs.export-env }}
