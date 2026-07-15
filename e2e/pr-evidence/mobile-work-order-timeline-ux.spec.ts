@@ -53,10 +53,10 @@ test.describe('PR evidence: mobile work order timeline UX @pr-evidence', () => {
       target: page.getByText('Timeline (Status Events)'),
     });
 
-    const importButton = page.getByRole('button', { name: /import paper records/i });
-    await expect(importButton).toBeVisible();
+    const editTimelineButton = page.getByRole('button', { name: /edit timeline/i });
+    await expect(editTimelineButton).toBeVisible();
     await expect(page.getByText('Admin').first()).toBeVisible();
-    await importButton.click();
+    await editTimelineButton.click();
 
     const importDialog = page.getByRole('dialog').filter({ hasText: /import paper records/i });
     await expect(importDialog).toBeVisible({ timeout: 15_000 });

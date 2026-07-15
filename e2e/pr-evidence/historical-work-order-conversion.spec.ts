@@ -21,7 +21,7 @@ test.describe('PR evidence: convert existing work order to historical @pr-eviden
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '01-completed-work-order-details');
 
-    await page.getByRole('button', { name: /import paper records/i }).click();
+    await page.getByRole('button', { name: /edit timeline/i }).click();
     const convertDialog = page.getByRole('dialog').filter({ hasText: /import paper records/i });
     await expect(convertDialog).toBeVisible({ timeout: 15_000 });
     await evidencePause(page, 600);
@@ -39,7 +39,7 @@ test.describe('PR evidence: convert existing work order to historical @pr-eviden
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '03-converted-historical-badge');
 
-    await page.getByRole('button', { name: /edit historical timeline/i }).click();
+    await page.getByRole('button', { name: /edit timeline/i }).click();
     const editDialog = page.getByRole('dialog').filter({ hasText: /edit historical timeline/i });
     await expect(editDialog).toBeVisible({ timeout: 15_000 });
     await evidencePause(page, 600);

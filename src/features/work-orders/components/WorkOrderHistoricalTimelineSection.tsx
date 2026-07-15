@@ -68,8 +68,6 @@ export function WorkOrderHistoricalTimelineSection({
     setEditorOpen(true);
   };
 
-  const adminActionLabel = isHistorical ? 'Edit historical timeline' : 'Import paper records';
-
   return (
     <>
       <WorkOrderTimeline
@@ -85,11 +83,11 @@ export function WorkOrderHistoricalTimelineSection({
                 type="button"
                 variant="outline"
                 className="min-h-11 gap-2"
-                aria-label={adminActionLabel}
+                aria-label="Edit Timeline"
                 onClick={() => openEditor(isHistorical ? 'edit' : 'convert')}
               >
                 <CalendarClock className="h-4 w-4 shrink-0" aria-hidden />
-                <span className="text-sm">{isHistorical ? 'Edit timeline' : 'Import records'}</span>
+                <span className="text-sm">Edit Timeline</span>
               </Button>
             </div>
           ) : null

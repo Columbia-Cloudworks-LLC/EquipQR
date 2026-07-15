@@ -92,7 +92,7 @@ test.describe('PR evidence: historical timeline improvements @pr-evidence', () =
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '04-note-timestamp-updated');
 
-    await page.getByRole('button', { name: /edit historical timeline/i }).click();
+    await page.getByRole('button', { name: /edit timeline/i }).click();
     const editDialog = page.getByRole('dialog').filter({ hasText: /edit historical timeline/i });
     await expect(editDialog).toBeVisible({ timeout: 15_000 });
     await expect(editDialog.getByText(/^Reason$/i)).toHaveCount(0);
