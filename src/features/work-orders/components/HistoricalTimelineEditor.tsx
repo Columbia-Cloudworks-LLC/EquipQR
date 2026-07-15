@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DateTimePicker } from '@/components/ui/datetime-picker';
@@ -115,10 +114,6 @@ export function HistoricalTimelineEditor({
 
   return (
     <div className="space-y-3">
-      <p className="text-xs leading-snug text-muted-foreground">
-        Build the operational timeline with backdated status events. Changing an earlier status clears later events so the chain stays valid. Use work order notes for additional context.
-      </p>
-
       <ol
         aria-label="Operational timeline events"
         className="relative m-0 list-none space-y-2 p-0"
@@ -133,51 +128,82 @@ export function HistoricalTimelineEditor({
 
           return (
             <li key={row.id} className="relative flex gap-3" aria-labelledby={eventHeadingId}>
-              <div className="flex w-7 shrink-0 flex-col items-center pt-1">
-                <span
-                  aria-label={`Timeline step ${rowIndex + 1}`}
-                  className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-muted text-xs font-semibold text-foreground"
-                >
-                  {rowIndex + 1}
-                </span>
+              <div className="flex w-7 shrink-0 flex-col items-center self-stretch pt-1">
+                {isFirstRow ? (
+                  <span
+                    aria-label={`Timeline step ${rowIndex + 1}`}
+                    className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-muted text-xs font-semibold text-foreground"
+                  >
+                    {rowIndex + 1}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveRow(rowIndex)}
+                    aria-label={`Remove timeline event ${rowIndex + 1}`}
+                    className="group/step flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-xs font-semibold text-foreground transition-colors hover:border-destructive/50 hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  >
+                    <span
+                      className="group-hover/step:hidden group-focus-visible/step:hidden"
+                      aria-hidden="true"
+                    >
+                      {rowIndex + 1}
+                    </span>
+                    <Trash2
+                      className="hidden h-3.5 w-3.5 text-destructive group-hover/step:block group-focus-visible/step:block"
+                      aria-hidden="true"
+                    />
+                  </button>
+                )}
                 {!isLastRow ? (
                   <span
                     aria-hidden="true"
                     className="mt-1 w-px flex-1 min-h-4 bg-border"
                   />
+                ) : canAddRow ? (
+                  <>
+                    <span
+                      aria-hidden="true"
+                      className="mt-1 w-px flex-1 min-h-4 bg-border"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddRow}
+                      aria-label="Add event"
+                      data-testid="timeline-add-event"
+                      className="mt-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-success/40 bg-success/15 text-success shadow-sm transition-colors hover:border-success/60 hover:bg-success/25 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    >
+                      <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                    </button>
+                  </>
                 ) : null}
               </div>
 
               <div className="min-w-0 flex-1 space-y-2 rounded-md border border-border/80 bg-card/40 p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <p id={eventHeadingId} className="text-sm font-medium">
-                    Event {rowIndex + 1}
-                  </p>
-                  {!isFirstRow ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 shrink-0"
-                      onClick={() => handleRemoveRow(rowIndex)}
-                      aria-label={`Remove timeline event ${rowIndex + 1}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  ) : null}
-                </div>
+                <span id={eventHeadingId} className="sr-only">
+                  Timeline event {rowIndex + 1}
+                </span>
 
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor={statusFieldId} className="text-xs">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:grid-rows-[auto_minmax(2.75rem,auto)] sm:gap-x-2 sm:gap-y-1.5">
+                  <div className="col-span-full flex items-center gap-2 sm:contents">
+                    <Label
+                      htmlFor={statusFieldId}
+                      className="min-w-0 flex-1 text-xs sm:col-start-1 sm:row-start-1 sm:flex-none"
+                    >
                       Status
                     </Label>
+                    <Label className="hidden min-w-0 flex-1 text-xs sm:col-start-2 sm:row-start-1 sm:block sm:flex-none">
+                      Event date and time
+                    </Label>
+                  </div>
+
+                  <div className="min-w-0 w-full sm:col-start-1 sm:row-start-2">
                     <Select
                       value={row.newStatus || undefined}
                       onValueChange={(value) => handleStatusChange(rowIndex, value as WorkOrderStatus)}
                       disabled={isFirstRow}
                     >
-                      <SelectTrigger id={statusFieldId} className="h-9">
+                      <SelectTrigger id={statusFieldId} className="w-full">
                         <SelectValue placeholder="Select status" />
                       </SelectTrigger>
                       <SelectContent>
@@ -190,19 +216,23 @@ export function HistoricalTimelineEditor({
                     </Select>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Event date and time</Label>
-                    <DateTimePicker
-                      date={row.changedAt}
-                      onDateChange={(date) => {
-                        const nextRows = rows.map((currentRow, index) =>
-                          index === rowIndex ? { ...currentRow, changedAt: date } : currentRow,
-                        );
-                        updateRows(nextRows);
-                      }}
-                      placeholder="Pick event date and time"
-                      showShortcuts
-                    />
+                  <div className="space-y-1.5 sm:contents">
+                    <Label className="text-xs sm:col-start-2 sm:row-start-1 sm:hidden">
+                      Event date and time
+                    </Label>
+                    <div className="min-w-0 w-full sm:col-start-2 sm:row-start-2">
+                      <DateTimePicker
+                        date={row.changedAt}
+                        onDateChange={(date) => {
+                          const nextRows = rows.map((currentRow, index) =>
+                            index === rowIndex ? { ...currentRow, changedAt: date } : currentRow,
+                          );
+                          updateRows(nextRows);
+                        }}
+                        placeholder="Pick event date and time"
+                        showShortcuts
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -241,22 +271,20 @@ export function HistoricalTimelineEditor({
         })}
       </ol>
 
-      {canAddRow ? (
-        <Button type="button" variant="outline" size="sm" onClick={handleAddRow}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add historical event
-        </Button>
-      ) : endsAtTerminalStatus ? (
-        <div
-          role="status"
-          aria-label="Timeline ended at terminal status"
-          className="rounded-md border border-dashed border-border/80 bg-muted/30 px-3 py-2 text-xs text-muted-foreground"
-        >
-          Timeline ends at{' '}
-          <span className="font-medium text-foreground">
-            {formatStatus(lastFilledStatus as WorkOrderStatus)}
-          </span>
-          . Remove or change the final event to add another historical status.
+      {endsAtTerminalStatus && !canAddRow ? (
+        <div className="flex gap-3">
+          <div className="w-7 shrink-0" aria-hidden="true" />
+          <div
+            role="status"
+            aria-label="Timeline ended at terminal status"
+            className="min-w-0 flex-1 rounded-md border border-dashed border-border/80 bg-muted/30 px-3 py-2 text-xs text-muted-foreground"
+          >
+            Timeline ends at{' '}
+            <span className="font-medium text-foreground">
+              {formatStatus(lastFilledStatus as WorkOrderStatus)}
+            </span>
+            . Remove or change the final event to add another historical status.
+          </div>
         </div>
       ) : null}
 

@@ -36,7 +36,7 @@ const baseWorkOrder = {
 } as WorkOrder;
 
 describe('WorkOrderHistoricalTimelineSection', () => {
-  it('shows convert action for non-historical work orders when admin can edit timeline', async () => {
+  it('opens convert dialog when admin clicks Edit Timeline on a live work order', async () => {
     const user = userEvent.setup();
 
     render(
@@ -46,12 +46,14 @@ describe('WorkOrderHistoricalTimelineSection', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /convert to historical timeline/i }));
+    await user.click(screen.getByRole('button', { name: /edit timeline/i }));
 
-    expect(screen.getByTestId('timeline-editor')).toHaveTextContent(/convert to historical timeline/i);
+    expect(screen.getByTestId('timeline-editor')).toHaveTextContent(/timeline editor/i);
   });
 
-  it('shows edit action for historical work orders', () => {
+  it('opens edit dialog when admin clicks Edit Timeline on a historical work order', async () => {
+    const user = userEvent.setup();
+
     render(
       <WorkOrderHistoricalTimelineSection
         workOrder={{ ...baseWorkOrder, isHistorical: true, is_historical: true }}
@@ -59,11 +61,12 @@ describe('WorkOrderHistoricalTimelineSection', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: /edit historical timeline/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /convert to historical timeline/i })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /edit timeline/i }));
+
+    expect(screen.getByTestId('timeline-editor')).toHaveTextContent(/timeline editor/i);
   });
 
-  it('hides conversion action when timeline editing is not allowed', () => {
+  it('hides Edit Timeline when timeline editing is not allowed', () => {
     render(
       <WorkOrderHistoricalTimelineSection
         workOrder={baseWorkOrder}
@@ -71,6 +74,6 @@ describe('WorkOrderHistoricalTimelineSection', () => {
       />,
     );
 
-    expect(screen.queryByRole('button', { name: /convert to historical timeline/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /edit timeline/i })).not.toBeInTheDocument();
   });
 });

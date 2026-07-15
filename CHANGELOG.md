@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.31] - 2026-07-14
+
+### Fixed
+
+- **Mobile work order timeline (#1258)** — Consolidate duplicate creation events on freshly assigned work orders, relabel the admin historical import control with clearer copy and touch targets, rename the mobile section to “Timeline & office details”, and badge historical import rows in the status timeline.
+
 ## [3.25.30] - 2026-07-14
 
 ### Changed

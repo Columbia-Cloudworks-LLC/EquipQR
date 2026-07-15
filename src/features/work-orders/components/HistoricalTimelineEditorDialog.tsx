@@ -52,7 +52,7 @@ export function HistoricalTimelineEditorDialog({
   workOrderId,
   organizationId,
   equipmentId,
-  title = 'Edit historical timeline',
+  title = 'Timeline Editor',
   historyRows,
   initialEvents,
   mode = 'edit',
@@ -106,7 +106,7 @@ export function HistoricalTimelineEditorDialog({
   );
   const canSave = validationErrors.length === 0 && draftEvents.length > 0 && !hasIncompleteRows;
   const isSaving = replaceTimelineMutation.isPending || convertTimelineMutation.isPending;
-  const saveLabel = mode === 'convert' ? 'Convert to historical' : 'Save timeline';
+  const saveLabel = 'Save Timeline';
 
   const performClose = () => {
     onOpenChange(false);
@@ -198,7 +198,18 @@ export function HistoricalTimelineEditorDialog({
           <DialogHeader className="space-y-1 border-b px-6 py-4">
             <DialogTitle>{title}</DialogTitle>
             <DialogDescription className="text-xs leading-snug">
-              Operational timeline dates reflect when work happened. The organization Audit Log continues to record when edits were made in EquipQR.
+              {mode === 'convert' ? (
+                <>
+                  Backdate status events from paper records. The work order will be marked as a
+                  historical record and timeline dates can reflect when work actually happened in
+                  the field.
+                </>
+              ) : (
+                <>
+                  Operational timeline dates reflect when work happened. The organization Audit Log
+                  continues to record when edits were made in EquipQR.
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
 

@@ -74,17 +74,16 @@ export function WorkOrderHistoricalTimelineSection({
         showDetailedHistory={showDetailedHistory}
         headerAction={
           canEditTimeline ? (
-            isHistorical ? (
-              <Button type="button" variant="outline" size="sm" onClick={() => openEditor('edit')}>
-                <CalendarClock className="mr-2 h-4 w-4" />
-                Edit historical timeline
-              </Button>
-            ) : (
-              <Button type="button" variant="outline" size="sm" onClick={() => openEditor('convert')}>
-                <CalendarClock className="mr-2 h-4 w-4" />
-                Convert to historical timeline
-              </Button>
-            )
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11 shrink-0 gap-2"
+              aria-label="Edit Timeline"
+              onClick={() => openEditor(isHistorical ? 'edit' : 'convert')}
+            >
+              <CalendarClock className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="text-sm">Edit Timeline</span>
+            </Button>
           ) : null
         }
       />
@@ -99,11 +98,7 @@ export function WorkOrderHistoricalTimelineSection({
           historyRows={historyRows}
           historyReady={historyReady}
           mode={editorMode}
-          title={
-            editorMode === 'convert'
-              ? 'Convert to historical timeline'
-              : 'Edit historical timeline'
-          }
+          title="Timeline Editor"
           initialEvents={editorMode === 'convert' ? conversionSeedEvents : undefined}
         />
       ) : null}

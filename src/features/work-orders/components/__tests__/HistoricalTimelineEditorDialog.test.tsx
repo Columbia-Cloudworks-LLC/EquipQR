@@ -87,8 +87,8 @@ describe('HistoricalTimelineEditor', () => {
       />,
     );
 
-    expect(screen.getByText('Event 1')).toBeInTheDocument();
-    expect(screen.queryByText('Event 2')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Timeline step 1')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /remove timeline event 2/i })).not.toBeInTheDocument();
 
     rerender(
       <HistoricalTimelineEditor
@@ -107,7 +107,7 @@ describe('HistoricalTimelineEditor', () => {
       />,
     );
 
-    expect(screen.getByText('Event 2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /remove timeline event 2/i })).toBeInTheDocument();
   });
 
   it('limits selectable statuses to the previous row in the chain', async () => {
@@ -123,10 +123,10 @@ describe('HistoricalTimelineEditor', () => {
       />,
     );
 
-    expect(screen.getByText('Event 1')).toBeInTheDocument();
+    expect(screen.getByLabelText('Timeline step 1')).toBeInTheDocument();
     expect(screen.getByRole('list', { name: /operational timeline events/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /add historical event/i })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /add historical event/i }));
+    expect(screen.getByRole('button', { name: /add event/i })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /add event/i }));
     expect(onChange).toHaveBeenCalled();
   });
 
@@ -140,7 +140,8 @@ describe('HistoricalTimelineEditor', () => {
     );
 
     expect(screen.getByLabelText('Timeline step 1')).toBeInTheDocument();
-    expect(screen.getByLabelText('Timeline step 2')).toBeInTheDocument();
+    const removeStep2 = screen.getByRole('button', { name: /remove timeline event 2/i });
+    expect(removeStep2).toHaveTextContent('2');
   });
 
   it('shows contextual terminal-status guidance instead of an add control when the chain ends', () => {
@@ -152,7 +153,7 @@ describe('HistoricalTimelineEditor', () => {
       />,
     );
 
-    expect(screen.queryByRole('button', { name: /add historical event/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /add event/i })).not.toBeInTheDocument();
     expect(
       screen.getByRole('status', { name: /timeline ended at terminal status/i }),
     ).toBeInTheDocument();
@@ -216,7 +217,7 @@ describe('HistoricalTimelineEditor', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /add historical event/i }));
+    await user.click(screen.getByRole('button', { name: /add event/i }));
 
     const latestEvents = onChange.mock.calls.at(-1)?.[0];
     expect(latestEvents).toHaveLength(2);
@@ -262,13 +263,13 @@ describe('HistoricalTimelineEditorDialog', () => {
       />,
     );
 
-    expect(screen.getByText('Event 1')).toBeInTheDocument();
-    expect(screen.getByText('Event 2')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Event 3')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Timeline step 1')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /remove timeline event 2/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /remove timeline event 3/i })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /add historical event/i }));
+    await user.click(screen.getByRole('button', { name: /add event/i }));
 
-    expect(screen.getByText('Event 3')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /remove timeline event 3/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /save timeline/i })).toBeDisabled();
   });
 
@@ -312,7 +313,7 @@ describe('HistoricalTimelineEditorDialog', () => {
       />,
     );
 
-    expect(screen.getByText('Event 2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /remove timeline event 2/i })).toBeInTheDocument();
   });
 
   it('does not close when cancel is clicked with incomplete rows', async () => {
@@ -331,7 +332,7 @@ describe('HistoricalTimelineEditorDialog', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /add historical event/i }));
+    await user.click(screen.getByRole('button', { name: /add event/i }));
     await user.click(screen.getByRole('button', { name: /^cancel$/i }));
 
     expect(onOpenChange).not.toHaveBeenCalledWith(false);

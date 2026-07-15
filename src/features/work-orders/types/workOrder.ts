@@ -113,8 +113,9 @@ export interface WorkOrder extends WorkOrderRow {
   equipmentTeamId?: string;
   equipmentTeamName?: string;
   createdByName?: string;
+  createdByAvatarUrl?: string | null;
   // Assignment object for component compatibility
-  assignedTo?: { id: string; name: string } | null;
+  assignedTo?: { id: string; name: string; avatarUrl?: string | null } | null;
   // Resolved location from hierarchy (scan > manual assignment > legacy > team fallback)
   effectiveLocation?: EffectiveLocation | null;
   // Team details from equipment join

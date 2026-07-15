@@ -453,7 +453,7 @@ export function WorkOrderDetailsMobileContent({
                   type="button"
                   className="flex min-h-[44px] w-full items-center justify-between gap-3 text-left"
                 >
-                  <CardTitle className="text-lg">Review & office details</CardTitle>
+                  <CardTitle className="text-lg">Events & Times</CardTitle>
                   <ChevronDown
                     className={cn(
                       'h-5 w-5 text-muted-foreground transition-transform',
