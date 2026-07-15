@@ -108,6 +108,7 @@ BEGIN
       SELECT 1
       FROM public.operator_checkin_submissions
       WHERE template_id = p_template_id
+        AND organization_id IS DISTINCT FROM v_org_id
     ) THEN
       RAISE EXCEPTION 'Cannot purge template: cross-organization submission references detected';
     END IF;
@@ -118,7 +119,17 @@ BEGIN
 
     DELETE FROM public.operator_checklist_templates
     WHERE id = p_template_id
-      AND organization_id = v_org_id;
+      AND organization_id = v_org_id
+      AND NOT EXISTS (
+        SELECT 1
+        FROM public.operator_checkin_submissions
+        WHERE template_id = p_template_id
+          AND organization_id = v_org_id
+      );
+
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Template purge blocked: submissions exist';
+    END IF;
 
     RETURN -1;
   END IF;
@@ -192,6 +203,7 @@ BEGIN
       SELECT 1
       FROM public.operator_checkin_submissions
       WHERE template_id = p_template_id
+        AND organization_id IS DISTINCT FROM v_org_id
     ) THEN
       RAISE EXCEPTION 'Cannot restore template: cross-organization submission references detected';
     END IF;

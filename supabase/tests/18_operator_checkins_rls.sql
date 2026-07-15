@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(34);
+SELECT plan(35);
 
 -- ============================================
 -- Test: operator check-in domain RLS (#1091)
@@ -262,6 +262,13 @@ SELECT throws_ok(
   $$ SELECT public.delete_operator_checklist_template('31000000-cccc-0000-0000-000000000004'::uuid) $$,
   'Cannot purge template: cross-organization submission references detected',
   'purge rejects cross-org submission references without nulling template_id'
+);
+
+SELECT ok(
+  (SELECT template_id FROM public.operator_checkin_submissions
+    WHERE id = '31000000-eeee-0000-0000-000000000098'::uuid)
+    = '31000000-cccc-0000-0000-000000000004'::uuid,
+  'cross-org submission template_id is preserved when purge is rejected'
 );
 
 SELECT ok(
