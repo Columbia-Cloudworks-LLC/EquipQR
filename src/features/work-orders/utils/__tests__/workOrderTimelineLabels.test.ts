@@ -6,8 +6,9 @@ import {
 } from '@/features/work-orders/utils/workOrderTimelineLabels';
 
 describe('workOrderTimelineLabels', () => {
-  it('uses a combined title when a work order is created already assigned', () => {
+  it('uses a combined title only when an assignee is present at creation', () => {
     expect(getCreationTitle('assigned', true)).toBe('Work Order Created & Assigned');
+    expect(getCreationTitle('assigned', false)).toBe('Work Order Created');
     expect(getStatusChangeTitle('submitted', 'assigned')).toBe('Work Assigned');
   });
 
