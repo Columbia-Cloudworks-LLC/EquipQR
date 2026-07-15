@@ -1,9 +1,10 @@
 import React from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, LayoutGrid, Rows3 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 import AlternateGroupsFilterPopover from './AlternateGroupsFilterPopover';
 import AlternateGroupsSortPopover from './AlternateGroupsSortPopover';
 import AlternateGroupsDownloadMenu from './AlternateGroupsDownloadMenu';
@@ -11,6 +12,7 @@ import type { PartAlternateGroup } from '@/features/inventory/types/inventory';
 
 type GroupStatusFilter = 'all' | 'verified' | 'unverified' | 'deprecated';
 type GroupSortOption = 'name-asc' | 'name-desc' | 'updated-desc' | 'updated-asc';
+export type AlternateGroupsViewMode = 'cards' | 'table';
 
 interface AlternateGroupsToolbarProps {
   search: string;
@@ -22,6 +24,9 @@ interface AlternateGroupsToolbarProps {
   filteredGroups: PartAlternateGroup[];
   totalCount: number;
   canEdit: boolean;
+  viewMode?: AlternateGroupsViewMode;
+  onViewModeChange?: (mode: AlternateGroupsViewMode) => void;
+  tableRowCount?: number;
 }
 
 const AlternateGroupsToolbar: React.FC<AlternateGroupsToolbarProps> = ({
@@ -34,6 +39,9 @@ const AlternateGroupsToolbar: React.FC<AlternateGroupsToolbarProps> = ({
   filteredGroups,
   totalCount,
   canEdit,
+  viewMode = 'cards',
+  onViewModeChange,
+  tableRowCount = 0,
 }) => {
   const activeFilterCount = statusFilter !== 'all' ? 1 : 0;
   const hasActiveFilters = activeFilterCount > 0;
@@ -46,11 +54,19 @@ const AlternateGroupsToolbar: React.FC<AlternateGroupsToolbarProps> = ({
         <div className="relative flex-1 max-w-[280px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
           <Input
-            placeholder="Search by name or description..."
+            placeholder={
+              viewMode === 'table'
+                ? 'Search groups or parts...'
+                : 'Search by name or description...'
+            }
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             className="h-8 pl-8 text-sm bg-transparent"
-            aria-label="Search alternate groups"
+            aria-label={
+              viewMode === 'table'
+                ? 'Search alternate groups or parts'
+                : 'Search alternate groups'
+            }
           />
           {search && (
             <button
@@ -72,14 +88,50 @@ const AlternateGroupsToolbar: React.FC<AlternateGroupsToolbarProps> = ({
           activeFilterCount={activeFilterCount}
         />
 
-        {/* Sort popover */}
-        <AlternateGroupsSortPopover sortBy={sortBy} onSortChange={onSortChange} />
+        {/* Sort popover — card view only; table view sorts via column headers */}
+        {viewMode !== 'table' && (
+          <AlternateGroupsSortPopover sortBy={sortBy} onSortChange={onSortChange} />
+        )}
 
         {canEdit && (
           <>
             <Separator orientation="vertical" className="h-5" />
             {/* Download menu */}
             <AlternateGroupsDownloadMenu groups={filteredGroups} />
+          </>
+        )}
+
+        {onViewModeChange && (
+          <>
+            <Separator orientation="vertical" className="hidden md:block h-5" />
+            <div
+              className="hidden md:flex items-center rounded-md border"
+              role="radiogroup"
+              aria-label="View mode"
+            >
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn('h-8 w-8 rounded-r-none', viewMode === 'cards' && 'bg-muted')}
+                onClick={() => onViewModeChange('cards')}
+                aria-label="Card view"
+                aria-checked={viewMode === 'cards'}
+                role="radio"
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn('h-8 w-8 rounded-l-none', viewMode === 'table' && 'bg-muted')}
+                onClick={() => onViewModeChange('table')}
+                aria-label="Table view"
+                aria-checked={viewMode === 'table'}
+                role="radio"
+              >
+                <Rows3 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </>
         )}
 
@@ -92,14 +144,32 @@ const AlternateGroupsToolbar: React.FC<AlternateGroupsToolbarProps> = ({
           aria-live="polite"
           aria-atomic="true"
         >
-          <span className="font-medium text-foreground">{filteredGroups.length}</span>
-          {filteredGroups.length !== totalCount && (
+          {viewMode === 'table' ? (
             <>
-              {' / '}
-              <span className="font-medium text-foreground">{totalCount}</span>
+              <span className="font-medium text-foreground">{tableRowCount}</span>
+              {' part'}{tableRowCount !== 1 ? 's' : ''}
+              {' in '}
+              <span className="font-medium text-foreground">{filteredGroups.length}</span>
+              {filteredGroups.length !== totalCount && (
+                <>
+                  {' / '}
+                  <span className="font-medium text-foreground">{totalCount}</span>
+                </>
+              )}
+              {' group'}{filteredGroups.length !== 1 ? 's' : ''}
+            </>
+          ) : (
+            <>
+              <span className="font-medium text-foreground">{filteredGroups.length}</span>
+              {filteredGroups.length !== totalCount && (
+                <>
+                  {' / '}
+                  <span className="font-medium text-foreground">{totalCount}</span>
+                </>
+              )}
+              {' group'}{filteredGroups.length !== 1 ? 's' : ''}
             </>
           )}
-          {' group'}{filteredGroups.length !== 1 ? 's' : ''}
         </span>
       </div>
 

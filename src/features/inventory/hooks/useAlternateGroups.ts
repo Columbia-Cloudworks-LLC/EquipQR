@@ -234,6 +234,9 @@ export const useAddInventoryItemToGroup = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
+        queryKey: ['alternate-groups', variables.organizationId],
+      });
+      queryClient.invalidateQueries({
         queryKey: ['alternate-group', variables.organizationId, variables.groupId],
       });
       queryClient.invalidateQueries({
@@ -302,6 +305,9 @@ export const useAddPartIdentifierToGroup = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
+        queryKey: ['alternate-groups', variables.organizationId],
+      });
+      queryClient.invalidateQueries({
         queryKey: ['alternate-group', variables.organizationId, variables.groupId],
       });
       queryClient.invalidateQueries({
@@ -340,6 +346,9 @@ export const useRemoveGroupMember = () => {
       return await removeGroupMember(memberId);
     },
     onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['alternate-groups', variables.organizationId],
+      });
       queryClient.invalidateQueries({
         queryKey: ['alternate-group', variables.organizationId, variables.groupId],
       });

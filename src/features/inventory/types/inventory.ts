@@ -132,6 +132,61 @@ export interface PartAlternateGroup {
   created_at: string;
   updated_at: string;
   member_count?: number;
+  /** Lightweight member rows for list/card surfaces */
+  member_summaries?: AlternateGroupMemberSummary[];
+  /** Full member rows for the desktop table view */
+  member_details?: AlternateGroupMemberDetail[];
+}
+
+/**
+ * AlternateGroupMemberSummary - Part name and SKU for group list cards.
+ */
+export interface AlternateGroupMemberSummary {
+  id: string;
+  name: string;
+  sku: string | null;
+}
+
+/**
+ * AlternateGroupMemberDetail - Member fields used by the desktop table view.
+ */
+export interface AlternateGroupMemberDetail {
+  id: string;
+  is_primary: boolean;
+  member_type: 'inventory' | 'identifier';
+  inventory_item_id: string | null;
+  item_name: string | null;
+  item_sku: string | null;
+  quantity_on_hand: number | null;
+  low_stock_threshold: number | null;
+  default_unit_cost: number | null;
+  location: string | null;
+  identifier_type: PartIdentifierType | null;
+  identifier_value: string | null;
+  identifier_manufacturer: string | null;
+}
+
+/**
+ * AlternateGroupTableRow - Flattened group membership row for the desktop table.
+ */
+export interface AlternateGroupTableRow {
+  row_id: string;
+  group_id: string;
+  group_name: string;
+  group_status: VerificationStatus;
+  member_id: string;
+  is_primary: boolean;
+  member_type: 'inventory' | 'identifier';
+  inventory_item_id: string | null;
+  item_name: string | null;
+  item_sku: string | null;
+  quantity_on_hand: number | null;
+  low_stock_threshold: number | null;
+  default_unit_cost: number | null;
+  location: string | null;
+  identifier_type: PartIdentifierType | null;
+  identifier_value: string | null;
+  identifier_manufacturer: string | null;
 }
 
 /**

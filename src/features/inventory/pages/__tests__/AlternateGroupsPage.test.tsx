@@ -39,6 +39,10 @@ vi.mock('@/features/inventory/hooks/useInventoryPartsManagerAccess', () => ({
   useInventoryPartsManagerAccess: vi.fn(),
 }));
 
+vi.mock('@/hooks/use-mobile', () => ({
+  useIsMobile: vi.fn(() => false),
+}));
+
 vi.mock('@/features/inventory/components/AlternateGroupForm', () => ({
   AlternateGroupForm: ({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) => (
     <div data-testid="alternate-group-form">
@@ -193,13 +197,92 @@ describe('AlternateGroupsPage', () => {
       });
     });
 
-    it('shows verified badge for verified groups', () => {
+    it('shows part names instead of description when a group has members', () => {
+      setupMocks({
+        groups: [
+          {
+            ...partAlternateGroups.oilFilterGroup,
+            member_count: 2,
+            member_summaries: [
+              { id: 'member-1', name: 'Oil Filter OEM', sku: 'OIL-100' },
+              { id: 'member-2', name: 'Oil Filter Aftermarket', sku: 'OIL-200' },
+            ],
+          },
+        ],
+      });
+
+      render(<AlternateGroupsPage />);
+
+      expect(screen.getByText('Oil Filter OEM')).toBeInTheDocument();
+      expect(screen.getByText('OIL-100')).toBeInTheDocument();
+      expect(
+        screen.queryByText(partAlternateGroups.oilFilterGroup.description!),
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows verified status dot for verified groups', () => {
       setupMocks();
 
       render(<AlternateGroupsPage />);
 
-      // Oil Filter group is verified
-      expect(screen.getAllByText('Verified').length).toBeGreaterThan(0);
+      expect(screen.getAllByRole('img', { name: 'Verified' }).length).toBeGreaterThan(0);
+    });
+
+    it('renders table view with flattened part rows on desktop', () => {
+      setupMocks({
+        groups: [
+          {
+            ...partAlternateGroups.oilFilterGroup,
+            member_details: [
+              {
+                id: 'member-1',
+                is_primary: true,
+                member_type: 'inventory',
+                inventory_item_id: 'inv-oil-filter',
+                item_name: 'Oil Filter OEM',
+                item_sku: 'OIL-100',
+                quantity_on_hand: 8,
+                low_stock_threshold: 2,
+                default_unit_cost: 15,
+                location: 'Bay 1',
+                identifier_type: null,
+                identifier_value: null,
+                identifier_manufacturer: null,
+              },
+            ],
+          },
+        ],
+      });
+
+      render(<AlternateGroupsPage />);
+
+      fireEvent.click(screen.getByRole('radio', { name: 'Table view' }));
+
+      expect(screen.getByRole('button', { name: 'Sort by Alternate Group' })).toBeInTheDocument();
+      expect(screen.getByText('Oil Filter OEM')).toBeInTheDocument();
+      expect(screen.getByText('OIL-100')).toBeInTheDocument();
+    });
+
+    it('hides card sort control in table view and shows it again in card view', () => {
+      setupMocks();
+
+      render(<AlternateGroupsPage />);
+
+      expect(
+        screen.getByRole('button', { name: 'Sort alternate groups' }),
+      ).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('radio', { name: 'Table view' }));
+
+      expect(
+        screen.queryByRole('button', { name: 'Sort alternate groups' }),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('radio', { name: 'Card view' }));
+
+      expect(
+        screen.getByRole('button', { name: 'Sort alternate groups' }),
+      ).toBeInTheDocument();
     });
 
     it('shows New Alternate Part Group button when user can edit', () => {
@@ -553,8 +636,8 @@ describe('AlternateGroupsPage User Journeys', () => {
       expect(screen.getByText(partAlternateGroups.oilFilterGroup.name)).toBeInTheDocument();
       expect(screen.getByText(partAlternateGroups.airFilterGroup.name)).toBeInTheDocument();
 
-      // Verified group should have badge
-      expect(screen.getAllByText('Verified').length).toBeGreaterThan(0);
+      // Verified group should have a status dot
+      expect(screen.getAllByRole('img', { name: 'Verified' }).length).toBeGreaterThan(0);
     });
   });
 
