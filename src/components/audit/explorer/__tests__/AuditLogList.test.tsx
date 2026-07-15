@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@/test/utils/test-utils';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   ACTION_SEVERITY_COLOR,
   AuditAction,
@@ -140,8 +140,27 @@ function renderList(
 }
 
 describe('AuditLogList', () => {
+  let getBoundingClientRectSpy: ReturnType<typeof vi.spyOn> | undefined;
+
   beforeEach(() => {
     mockScrollToRow.mockClear();
+    getBoundingClientRectSpy = vi
+      .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+      .mockReturnValue({
+        width: 1024,
+        height: 400,
+        top: 0,
+        left: 0,
+        right: 1024,
+        bottom: 400,
+        x: 0,
+        y: 0,
+        toJSON: () => ({}),
+      } as DOMRect);
+  });
+
+  afterEach(() => {
+    getBoundingClientRectSpy?.mockRestore();
   });
 
   it('formats created_at in the user timezone (Australia/Sydney fixture)', () => {
@@ -230,6 +249,8 @@ describe('AuditLogList', () => {
 
     expect(screen.getByTestId('audit-log-list-virtual')).toBeInTheDocument();
     expect(screen.queryByTestId('audit-log-list-static')).not.toBeInTheDocument();
+    const virtualList = screen.getByTestId('virtual-list-stub');
+    expect(virtualList).toHaveStyle({ width: '1024px' });
   });
 
   it('virtual rows use listbox option semantics (no react-window listitem role bleed)', () => {

@@ -9,7 +9,7 @@
  * `auditSelection.ts`; this component only reports interactions upward.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { List, useListRef, type RowComponentProps } from 'react-window';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -243,11 +243,29 @@ export function AuditLogList({
     }
   }, [firstSelectedId, entries, scrollVirtualToIndex]);
 
+  const measureContainerWidth = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const width = el.getBoundingClientRect().width;
+    if (width > 0) {
+      setContainerWidth(width);
+    }
+  }, []);
+
+  // Measure before first paint so react-window never renders at a stale fallback width.
+  useLayoutEffect(() => {
+    measureContainerWidth();
+  }, [measureContainerWidth]);
+
   useEffect(() => {
     if (!containerRef.current) return;
     const observer = new ResizeObserver((entries) => {
-      const e = entries[0];
-      if (e) setContainerWidth(e.contentRect.width);
+      const entry = entries[0];
+      if (!entry) return;
+      const width = entry.contentRect.width;
+      if (width > 0) {
+        setContainerWidth(width);
+      }
     });
     observer.observe(containerRef.current);
     return () => observer.disconnect();
@@ -339,16 +357,20 @@ export function AuditLogList({
       tabIndex={0}
       onKeyDown={handleKeyDown}
       data-testid="audit-log-list-virtual"
-      className="focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+      className="w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
     >
-      <List
-        listRef={listRef}
-        rowComponent={AuditVirtualRow}
-        rowCount={entries.length}
-        rowHeight={ROW_HEIGHT}
-        rowProps={auditRowProps}
-        style={{ height, width: containerWidth || 800 }}
-      />
+      {containerWidth > 0 ? (
+        <List
+          listRef={listRef}
+          rowComponent={AuditVirtualRow}
+          rowCount={entries.length}
+          rowHeight={ROW_HEIGHT}
+          rowProps={auditRowProps}
+          style={{ height, width: containerWidth }}
+        />
+      ) : (
+        <div style={{ height }} className="w-full" aria-hidden="true" />
+      )}
     </div>
   );
 }
