@@ -236,8 +236,8 @@ SET LOCAL request.jwt.claim.sub TO '31000000-0000-0000-0000-000000000001';
 
 RESET role;
 
-ALTER TABLE public.operator_checkin_submissions
-  DISABLE TRIGGER trg_validate_operator_checkin_submission_org_refs;
+-- Legacy cross-org fixture: composite FK normally rejects mismatched (template_id, organization_id).
+SET LOCAL session_replication_role = 'replica';
 
 INSERT INTO public.operator_checkin_submissions (
   id, organization_id, equipment_id, template_id, settings_id,
@@ -252,8 +252,7 @@ INSERT INTO public.operator_checkin_submissions (
   NOW(), '{}'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, true, 0, 0
 );
 
-ALTER TABLE public.operator_checkin_submissions
-  ENABLE TRIGGER trg_validate_operator_checkin_submission_org_refs;
+SET LOCAL session_replication_role = 'origin';
 
 SET LOCAL role TO authenticated;
 SET LOCAL request.jwt.claim.sub TO '31000000-0000-0000-0000-000000000001';
