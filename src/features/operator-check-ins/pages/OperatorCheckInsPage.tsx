@@ -122,7 +122,7 @@ export default function OperatorCheckInsPage() {
     [deletedTemplates],
   );
   const { data: templateIdsWithSubmissions = new Set<string>(), isLoading: isRestorableLookupLoading, isError: isRestorableLookupError, refetch: refetchRestorableLookup } =
-    useOperatorCheckinTemplateIdsWithSubmissions(orgId, deletedTemplateIds);
+    useOperatorCheckinTemplateIdsWithSubmissions(orgId, deletedTemplateIds, showDeletedCheckins);
 
   const visibleDeletedTemplates = useMemo(
     () => filterVisibleOperatorCheckinTemplates(deletedTemplates, showDeletedCheckins),

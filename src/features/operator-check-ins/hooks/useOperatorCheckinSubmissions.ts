@@ -25,6 +25,7 @@ export function useOperatorCheckinSubmissions(
 export function useOperatorCheckinTemplateIdsWithSubmissions(
   organizationId: string | undefined,
   templateIds?: string[],
+  queryEnabled = true,
 ) {
   const scopedTemplateIds = templateIds ?? [];
   return useQuery({
@@ -38,6 +39,6 @@ export function useOperatorCheckinTemplateIdsWithSubmissions(
       }
       return listOperatorCheckinTemplateIdsWithSubmissions(organizationId, scopedTemplateIds);
     },
-    enabled: Boolean(organizationId) && scopedTemplateIds.length > 0,
+    enabled: Boolean(organizationId) && queryEnabled && scopedTemplateIds.length > 0,
   });
 }

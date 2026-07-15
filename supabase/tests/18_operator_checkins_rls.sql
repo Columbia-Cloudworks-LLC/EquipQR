@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(33);
+SELECT plan(34);
 
 -- ============================================
 -- Test: operator check-in domain RLS (#1091)
@@ -373,6 +373,19 @@ SELECT ok(
       AND c.conname = 'equipment_operator_checkin_settings_template_org_fkey'
   ),
   'equipment_operator_checkin_settings has composite template/org foreign key'
+);
+
+SELECT ok(
+  EXISTS (
+    SELECT 1
+    FROM pg_constraint AS c
+    INNER JOIN pg_class AS t ON t.oid = c.conrelid
+    INNER JOIN pg_namespace AS n ON n.oid = t.relnamespace
+    WHERE n.nspname = 'public'
+      AND t.relname = 'operator_checkin_submissions'
+      AND c.conname = 'operator_checkin_submissions_template_organization_fkey'
+  ),
+  'operator_checkin_submissions has composite template/org foreign key'
 );
 
 SELECT * FROM finish();
