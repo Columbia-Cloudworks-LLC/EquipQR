@@ -2,7 +2,13 @@
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, CheckCircle, Play, Pause, XCircle, FileText, User } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Clock, CheckCircle, Play, Pause, XCircle, FileText, User, Pencil } from 'lucide-react';
 import type { WorkOrder as EnhancedWorkOrder } from '@/features/work-orders/types/workOrder';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { useWorkOrderTimeline } from '@/features/work-orders/hooks/useHistoricalWorkOrders';
@@ -12,11 +18,17 @@ import {
   getStatusChangeDescription,
   getStatusChangeTitle,
 } from '@/features/work-orders/utils/workOrderTimelineLabels';
+import { UserIdentityCard } from '@/components/common/UserIdentityCard';
 
 interface WorkOrderTimelineProps {
   workOrder: EnhancedWorkOrder;
   showDetailedHistory?: boolean;
   headerAction?: React.ReactNode;
+}
+
+interface TimelineActor {
+  name: string;
+  avatarUrl?: string | null;
 }
 
 interface TimelineEvent {
@@ -26,9 +38,8 @@ interface TimelineEvent {
   timestamp: string;
   type: string;
   icon: React.ElementType;
-  user: string;
+  actor: TimelineActor;
   isPublic: boolean;
-  isHistoricalImport: boolean;
 }
 
 const getStatusIcon = (status: string) => {
@@ -68,9 +79,11 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
         timestamp: history.changed_at,
         type: history.new_status,
         icon: getStatusIcon(history.new_status),
-        user: history.profiles?.name || 'System',
+        actor: {
+          name: history.profiles?.name || 'System',
+          avatarUrl: history.profiles?.avatar_url ?? null,
+        },
         isPublic: true,
-        isHistoricalImport: Boolean(history.is_historical_creation),
       };
     });
 
@@ -95,9 +108,11 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
         timestamp: workOrder.created_date,
         type: workOrder.status,
         icon: getStatusIcon(workOrder.status),
-        user: workOrder.createdByName || 'System',
+        actor: {
+          name: workOrder.createdByName || 'System',
+          avatarUrl: workOrder.createdByAvatarUrl ?? null,
+        },
         isPublic: true,
-        isHistoricalImport: false,
       });
     }
 
@@ -118,9 +133,14 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
         timestamp: workOrder.updated_at || workOrder.created_date,
         type: workOrder.status,
         icon: getStatusIcon(workOrder.status),
-        user: workOrder.assigneeName || historyEvents[0]?.user || 'System',
+        actor: {
+          name: workOrder.assigneeName || historyEvents[0]?.actor.name || 'System',
+          avatarUrl:
+            workOrder.assignedTo?.avatarUrl ??
+            historyEvents[0]?.actor.avatarUrl ??
+            null,
+        },
         isPublic: true,
-        isHistoricalImport: false,
       });
     }
 
@@ -136,13 +156,15 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
     isHistorical,
     showDetailedHistory,
     workOrder.assigneeName,
+    workOrder.assignedTo?.avatarUrl,
+    workOrder.createdByAvatarUrl,
     workOrder.createdByName,
     workOrder.created_date,
     workOrder.status,
     workOrder.updated_at,
   ]);
 
-  const historicalImportCount = timelineEvents.filter((event) => event.isHistoricalImport).length;
+  const timelineHasBeenEdited = historyRows.some((row) => row.is_historical_creation);
 
   const getEventColor = (type: string) => {
     switch (type) {
@@ -169,14 +191,33 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
   return (
     <Card className="shadow-elevation-2">
       <CardHeader>
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <CardTitle className="flex flex-wrap items-center gap-2">
             <Clock className="h-5 w-5" />
-            Timeline (Status Events)
-            {isHistorical ? (
-              <Badge variant="outline" className="text-xs">
-                Historical record
-              </Badge>
+            Timeline
+            {timelineHasBeenEdited ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex items-center rounded-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2"
+                      aria-label="Edited timeline"
+                      data-testid="timeline-edited-indicator"
+                    >
+                      <Pencil className="h-4 w-4" aria-hidden />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="font-medium">Edited timeline</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      An admin backdated or corrected status events and dates to reflect paper
+                      records or actual field history. These timestamps may differ from when changes
+                      were recorded in EquipQR.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             ) : null}
             {!showDetailedHistory && (
               <Badge variant="outline" className="text-xs">
@@ -186,11 +227,6 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
           </CardTitle>
           {headerAction}
         </div>
-        {isHistorical ? (
-          <p className="text-sm text-muted-foreground">
-            Operational dates may reflect when work happened in the field. Edit history remains in the organization Audit Log.
-          </p>
-        ) : null}
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -207,16 +243,6 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
           </div>
         ) : (
           <div className="space-y-4">
-            {historicalImportCount > 0 ? (
-              <p
-                className="rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
-                data-testid="historical-import-banner"
-              >
-                This timeline contains {historicalImportCount} historical{' '}
-                {historicalImportCount === 1 ? 'entry' : 'entries'} imported from paper records.
-              </p>
-            ) : null}
-
             {timelineEvents.map((event, index) => {
               const Icon = event.icon;
               const isLast = index === timelineEvents.length - 1;
@@ -232,22 +258,18 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
 
                   <div className="min-w-0 flex-1 space-y-1 pb-1">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 flex-wrap items-center gap-2">
-                        <h4 className="font-medium">{event.title}</h4>
-                        {event.isHistoricalImport ? (
-                          <Badge variant="outline" className="text-xs">
-                            Historical import
-                          </Badge>
-                        ) : null}
-                      </div>
+                      <h4 className="min-w-0 font-medium">{event.title}</h4>
                       <time className="whitespace-nowrap text-sm text-muted-foreground">
                         {formatDateTime(event.timestamp)}
                       </time>
                     </div>
                     <p className="text-sm text-muted-foreground">{event.description}</p>
-                    {showDetailedHistory && (
-                      <p className="text-xs text-muted-foreground">by {event.user}</p>
-                    )}
+                    {showDetailedHistory ? (
+                      <UserIdentityCard
+                        name={event.actor.name}
+                        avatarUrl={event.actor.avatarUrl}
+                      />
+                    ) : null}
                   </div>
                 </div>
               );

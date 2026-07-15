@@ -16,7 +16,8 @@ export const WORK_ORDER_SELECT = `
   *,
   assignee:profiles!work_orders_assignee_id_fkey (
     id,
-    name
+    name,
+    avatar_url
   ),
   equipment:equipment!work_orders_equipment_id_fkey (
     id,
@@ -56,13 +57,14 @@ export const WORK_ORDER_SELECT = `
   ),
   creator:profiles!work_orders_created_by_fkey (
     id,
-    name
+    name,
+    avatar_url
   )
 `;
 
 export const WORK_ORDER_LIST_SELECT = WORK_ORDER_SELECT.replace(/^ *custom_attributes,\r?\n/m, '');
 
-export type WorkOrderJoinedProfile = { id?: string; name?: string } | null;
+export type WorkOrderJoinedProfile = { id?: string; name?: string; avatar_url?: string | null } | null;
 export type WorkOrderJoinedTeam = {
   id?: string;
   name?: string;
@@ -212,7 +214,11 @@ function mapAssignedTo(assignee: WorkOrderJoinedProfile): WorkOrder['assignedTo'
     return null;
   }
 
-  return { id: assignee.id, name: assignee.name };
+  return {
+    id: assignee.id,
+    name: assignee.name,
+    avatarUrl: assignee.avatar_url ?? null,
+  };
 }
 
 function mapWorkOrderTeam(team: WorkOrderJoinedTeam): WorkOrder['team'] {
@@ -307,6 +313,7 @@ export function mapJoinedWorkOrderFields(
     equipmentTeamId: equipment?.team_id || undefined,
     equipmentTeamName: team?.name || undefined,
     createdByName: creator?.name || undefined,
+    createdByAvatarUrl: creator?.avatar_url ?? undefined,
     assignedTo: mapAssignedTo(assignee),
     effectiveLocation: resolveWorkOrderLocation(equipment),
     team: mapWorkOrderTeam(team),

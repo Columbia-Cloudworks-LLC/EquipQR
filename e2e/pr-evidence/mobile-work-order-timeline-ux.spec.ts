@@ -41,16 +41,16 @@ test.describe('PR evidence: mobile work order timeline UX @pr-evidence', () => {
     });
     await assertHealthyShell();
 
-    const timelineSection = page.getByRole('button', { name: /timeline & office details/i });
+    const timelineSection = page.getByRole('button', { name: /events & times/i });
     await expect(timelineSection).toBeVisible({ timeout: 30_000 });
     await timelineSection.click();
 
-    await expect(page.getByRole('heading', { level: 4, name: 'Work Order Created' })).toHaveCount(1);
+    await expect(page.getByRole('heading', { level: 4, name: 'Created' })).toHaveCount(1);
     await expect(page.getByRole('heading', { level: 4 })).toHaveCount(1);
     await expect(page.getByText(/Submitted by/i)).toBeVisible();
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '01-mobile-consolidated-timeline', {
-      target: page.getByText('Timeline (Status Events)'),
+      target: page.getByText('Timeline', { exact: true }),
     });
 
     const editTimelineButton = page.getByRole('button', { name: /edit timeline/i });
@@ -58,7 +58,7 @@ test.describe('PR evidence: mobile work order timeline UX @pr-evidence', () => {
     await expect(page.getByText('Admin').first()).toBeVisible();
     await editTimelineButton.click();
 
-    const importDialog = page.getByRole('dialog').filter({ hasText: /import paper records/i });
+    const importDialog = page.getByRole('dialog').filter({ hasText: /timeline editor/i });
     await expect(importDialog).toBeVisible({ timeout: 15_000 });
     await expect(importDialog.getByText(/backdate status events from paper records/i)).toBeVisible();
     await evidencePause(page, 600);

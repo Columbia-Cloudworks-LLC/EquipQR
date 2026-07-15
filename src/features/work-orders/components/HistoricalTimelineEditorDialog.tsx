@@ -52,7 +52,7 @@ export function HistoricalTimelineEditorDialog({
   workOrderId,
   organizationId,
   equipmentId,
-  title = 'Edit historical timeline',
+  title = 'Timeline Editor',
   historyRows,
   initialEvents,
   mode = 'edit',
@@ -106,7 +106,7 @@ export function HistoricalTimelineEditorDialog({
   );
   const canSave = validationErrors.length === 0 && draftEvents.length > 0 && !hasIncompleteRows;
   const isSaving = replaceTimelineMutation.isPending || convertTimelineMutation.isPending;
-  const saveLabel = mode === 'convert' ? 'Convert to historical' : 'Save timeline';
+  const saveLabel = 'Save Timeline';
 
   const performClose = () => {
     onOpenChange(false);

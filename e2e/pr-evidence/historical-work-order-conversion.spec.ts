@@ -22,7 +22,7 @@ test.describe('PR evidence: convert existing work order to historical @pr-eviden
     await evidenceScreenshot(page, '01-completed-work-order-details');
 
     await page.getByRole('button', { name: /edit timeline/i }).click();
-    const convertDialog = page.getByRole('dialog').filter({ hasText: /import paper records/i });
+    const convertDialog = page.getByRole('dialog').filter({ hasText: /timeline editor/i });
     await expect(convertDialog).toBeVisible({ timeout: 15_000 });
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '02-convert-dialog-open');
@@ -33,14 +33,14 @@ test.describe('PR evidence: convert existing work order to historical @pr-eviden
       convertDialog.getByRole('status', { name: /timeline ended at terminal status/i }),
     ).toBeVisible();
 
-    await convertDialog.getByRole('button', { name: /convert to historical/i }).click();
+    await convertDialog.getByRole('button', { name: /save timeline/i }).click();
     await expect(convertDialog).toBeHidden({ timeout: 60_000 });
     await expect(page.getByText(/historical record/i)).toBeVisible({ timeout: 30_000 });
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '03-converted-historical-badge');
 
     await page.getByRole('button', { name: /edit timeline/i }).click();
-    const editDialog = page.getByRole('dialog').filter({ hasText: /edit historical timeline/i });
+    const editDialog = page.getByRole('dialog').filter({ hasText: /timeline editor/i });
     await expect(editDialog).toBeVisible({ timeout: 15_000 });
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '04-edit-timeline-after-conversion');

@@ -10,6 +10,10 @@ vi.mock('@/hooks/useFormatTimestamp', () => ({
   }),
 }));
 
+vi.mock('@/hooks/useResolvedAvatarUrl', () => ({
+  useResolvedAvatarUrl: () => ({ data: null }),
+}));
+
 vi.mock('@/features/work-orders/hooks/useHistoricalWorkOrders', () => ({
   useWorkOrderTimeline: (...args: unknown[]) => mockUseWorkOrderTimeline(...args),
 }));
@@ -65,13 +69,11 @@ describe('WorkOrderTimeline', () => {
       />,
     );
 
-    expect(screen.getByText('Historical record')).toBeInTheDocument();
+    expect(screen.getByTestId('timeline-edited-indicator')).toBeInTheDocument();
+    expect(screen.getByLabelText('Edited timeline')).toBeInTheDocument();
     expect(screen.getByText('2024-01-05T16:00:00Z')).toBeInTheDocument();
     expect(screen.queryByText('2026-06-29T12:00:00Z')).not.toBeInTheDocument();
-    expect(screen.getByTestId('historical-import-banner')).toHaveTextContent(
-      /2 historical entries imported from paper records/i,
-    );
-    expect(screen.getAllByText('Historical import')).toHaveLength(2);
+    expect(screen.getAllByText('Admin User')).toHaveLength(2);
   });
 
   it('shows one consolidated creation event for a fresh assigned work order', () => {
@@ -101,12 +103,13 @@ describe('WorkOrderTimeline', () => {
       />,
     );
 
-    expect(screen.getByText('Work Order Created & Assigned')).toBeInTheDocument();
+    expect(screen.getByText('Created & Assigned')).toBeInTheDocument();
+    expect(screen.getByText('Nicholas King')).toBeInTheDocument();
     expect(
       screen.getByText('Submitted by Nicholas King • Assigned to Nicholas King'),
     ).toBeInTheDocument();
-    expect(screen.queryByText('Work Order Created', { exact: true })).not.toBeInTheDocument();
-    expect(screen.getAllByText('Work Order Created & Assigned')).toHaveLength(1);
+    expect(screen.queryByText('Created', { exact: true })).not.toBeInTheDocument();
+    expect(screen.getAllByText('Created & Assigned')).toHaveLength(1);
   });
 
   it('adds a distinct current status event when history ends before the live status', () => {
@@ -162,6 +165,7 @@ describe('WorkOrderTimeline', () => {
 
     expect(screen.getByText('Work Started')).toBeInTheDocument();
     expect(screen.getByText('Work Assigned')).toBeInTheDocument();
-    expect(screen.queryByText('Work Order Created & Assigned')).not.toBeInTheDocument();
+    expect(screen.queryByText('Created & Assigned')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('timeline-edited-indicator')).not.toBeInTheDocument();
   });
 });

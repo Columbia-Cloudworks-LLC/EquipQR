@@ -3,14 +3,14 @@ export const formatStatusLabel = (status: string) =>
 
 export const getStatusChangeTitle = (oldStatus: string | null, newStatus: string) => {
   if (!oldStatus) {
-    return 'Work Order Created';
+    return 'Created';
   }
-  if (oldStatus === 'completed' && newStatus === 'accepted') return 'Work Order Reverted';
-  if (oldStatus === 'cancelled' && newStatus === 'accepted') return 'Work Order Reverted';
+  if (oldStatus === 'completed' && newStatus === 'accepted') return 'Reverted';
+  if (oldStatus === 'cancelled' && newStatus === 'accepted') return 'Reverted';
 
   switch (newStatus) {
     case 'accepted':
-      return 'Work Order Accepted';
+      return 'Accepted';
     case 'assigned':
       return 'Work Assigned';
     case 'in_progress':
@@ -20,7 +20,7 @@ export const getStatusChangeTitle = (oldStatus: string | null, newStatus: string
     case 'on_hold':
       return 'Work On Hold';
     case 'cancelled':
-      return 'Work Order Cancelled';
+      return 'Cancelled';
     default:
       return 'Status Updated';
   }
@@ -70,7 +70,7 @@ export const buildCreationDescription = ({
 
 export const getCreationTitle = (status: string, hasAssignee: boolean) => {
   if (status === 'assigned' && hasAssignee) {
-    return 'Work Order Created & Assigned';
+    return 'Created & Assigned';
   }
   return getStatusChangeTitle(null, status);
 };

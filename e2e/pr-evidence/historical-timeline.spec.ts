@@ -46,8 +46,8 @@ test.describe('PR evidence: historical work order timeline @pr-evidence', () => 
     await dialog.getByRole('button', { name: /build timeline/i }).click();
     const timelineDialog = page.getByRole('dialog').filter({ hasText: /build historical timeline/i });
     await expect(timelineDialog).toBeVisible({ timeout: 15_000 });
-    await timelineDialog.getByRole('button', { name: /add historical event/i }).click();
-    await expect(timelineDialog.getByText('Event 3')).toBeVisible({ timeout: 15_000 });
+    await timelineDialog.getByRole('button', { name: /add event/i }).click();
+    await expect(timelineDialog.getByLabel('Timeline step 3')).toBeVisible({ timeout: 15_000 });
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '02-timeline-builder-add-event');
 
@@ -68,7 +68,7 @@ test.describe('PR evidence: historical work order timeline @pr-evidence', () => 
     await evidenceScreenshot(page, '03-historical-work-order-details');
 
     await page.getByRole('button', { name: /edit timeline/i }).click();
-    const editDialog = page.getByRole('dialog').filter({ hasText: /edit historical timeline/i });
+    const editDialog = page.getByRole('dialog').filter({ hasText: /timeline editor/i });
     await expect(editDialog).toBeVisible({ timeout: 15_000 });
 
     await page.mouse.click(8, 8);

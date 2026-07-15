@@ -14,6 +14,7 @@ export type WorkOrderStatusHistoryRow = {
   profiles?: {
     name?: string;
     email?: string;
+    avatar_url?: string | null;
   } | null;
 };
 
@@ -36,7 +37,8 @@ export async function fetchWorkOrderStatusHistory(
         is_historical_creation,
         profiles!changed_by (
           name,
-          email
+          email,
+          avatar_url
         ),
         work_orders!inner (
           organization_id

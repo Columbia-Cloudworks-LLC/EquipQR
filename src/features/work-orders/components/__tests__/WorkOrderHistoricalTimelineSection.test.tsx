@@ -46,10 +46,9 @@ describe('WorkOrderHistoricalTimelineSection', () => {
       />,
     );
 
-    expect(screen.getByText('Admin')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /edit timeline/i }));
 
-    expect(screen.getByTestId('timeline-editor')).toHaveTextContent(/import paper records/i);
+    expect(screen.getByTestId('timeline-editor')).toHaveTextContent(/timeline editor/i);
   });
 
   it('opens edit dialog when admin clicks Edit Timeline on a historical work order', async () => {
@@ -64,7 +63,7 @@ describe('WorkOrderHistoricalTimelineSection', () => {
 
     await user.click(screen.getByRole('button', { name: /edit timeline/i }));
 
-    expect(screen.getByTestId('timeline-editor')).toHaveTextContent(/edit historical timeline/i);
+    expect(screen.getByTestId('timeline-editor')).toHaveTextContent(/timeline editor/i);
   });
 
   it('hides Edit Timeline when timeline editing is not allowed', () => {
@@ -76,6 +75,5 @@ describe('WorkOrderHistoricalTimelineSection', () => {
     );
 
     expect(screen.queryByRole('button', { name: /edit timeline/i })).not.toBeInTheDocument();
-    expect(screen.queryByText('Admin')).not.toBeInTheDocument();
   });
 });

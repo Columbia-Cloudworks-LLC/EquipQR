@@ -7,8 +7,8 @@ import {
 
 describe('workOrderTimelineLabels', () => {
   it('uses a combined title only when an assignee is present at creation', () => {
-    expect(getCreationTitle('assigned', true)).toBe('Work Order Created & Assigned');
-    expect(getCreationTitle('assigned', false)).toBe('Work Order Created');
+    expect(getCreationTitle('assigned', true)).toBe('Created & Assigned');
+    expect(getCreationTitle('assigned', false)).toBe('Created');
     expect(getStatusChangeTitle('submitted', 'assigned')).toBe('Work Assigned');
   });
 
@@ -23,7 +23,7 @@ describe('workOrderTimelineLabels', () => {
   });
 
   it('uses distinct titles for non-creation status changes', () => {
-    expect(getStatusChangeTitle(null, 'submitted')).toBe('Work Order Created');
+    expect(getStatusChangeTitle(null, 'submitted')).toBe('Created');
     expect(getStatusChangeTitle('assigned', 'in_progress')).toBe('Work Started');
     expect(getStatusChangeTitle('in_progress', 'completed')).toBe('Work Completed');
   });
