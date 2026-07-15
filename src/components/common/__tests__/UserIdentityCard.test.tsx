@@ -16,7 +16,7 @@ describe('UserIdentityCard', () => {
   });
 
   it('renders a system identity without a person avatar', () => {
-    render(<UserIdentityCard name="System" />);
+    render(<UserIdentityCard name="  System  " />);
 
     expect(screen.getByText('System')).toBeInTheDocument();
     expect(screen.queryByText('?')).not.toBeInTheDocument();

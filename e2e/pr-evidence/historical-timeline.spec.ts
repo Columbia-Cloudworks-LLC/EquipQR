@@ -47,7 +47,7 @@ test.describe('PR evidence: historical work order timeline @pr-evidence', () => 
     const timelineDialog = page.getByRole('dialog').filter({ hasText: /build historical timeline/i });
     await expect(timelineDialog).toBeVisible({ timeout: 15_000 });
     await timelineDialog.getByRole('button', { name: /add event/i }).click();
-    await expect(timelineDialog.getByLabel('Timeline step 3')).toBeVisible({ timeout: 15_000 });
+    await expect(timelineDialog.getByRole('button', { name: /remove timeline event 3/i })).toBeVisible({ timeout: 15_000 });
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '02-timeline-builder-add-event');
 

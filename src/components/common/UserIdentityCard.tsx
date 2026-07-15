@@ -54,10 +54,10 @@ export function UserIdentityCard({
   size = 'sm',
   className,
 }: UserIdentityCardProps) {
-  const isSystem = name === 'System';
+  const displayName = name.trim() || 'Unknown';
+  const isSystem = displayName === 'System';
   const styles = sizeClasses[size];
   const { data: resolvedAvatarUrl } = useResolvedAvatarUrl(isSystem ? null : avatarUrl);
-  const displayName = name.trim() || 'Unknown';
 
   return (
     <div

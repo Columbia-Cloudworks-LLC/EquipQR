@@ -42,7 +42,7 @@ test.describe('PR evidence: historical timeline improvements @pr-evidence', () =
     const timelineDialog = page.getByRole('dialog').filter({ hasText: /build historical timeline/i });
     await expect(timelineDialog).toBeVisible({ timeout: 15_000 });
     await timelineDialog.getByRole('button', { name: /add event/i }).click();
-    await expect(timelineDialog.getByLabel('Timeline step 3')).toBeVisible({ timeout: 15_000 });
+    await expect(timelineDialog.getByRole('button', { name: /remove timeline event 3/i })).toBeVisible({ timeout: 15_000 });
 
     const firstDatePicker = timelineDialog.getByRole('button', { name: /January|February|March|April|May|June|July|August|September|October|November|December/i }).first();
     await firstDatePicker.click();
@@ -97,7 +97,7 @@ test.describe('PR evidence: historical timeline improvements @pr-evidence', () =
     await expect(editDialog).toBeVisible({ timeout: 15_000 });
     await expect(editDialog.getByText(/^Reason$/i)).toHaveCount(0);
     await editDialog.getByRole('button', { name: /add event/i }).click();
-    await expect(editDialog.getByLabel('Timeline step 3')).toBeVisible({ timeout: 15_000 });
+    await expect(editDialog.getByRole('button', { name: /remove timeline event 3/i })).toBeVisible({ timeout: 15_000 });
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '05-edit-timeline-no-reason-field');
   });
