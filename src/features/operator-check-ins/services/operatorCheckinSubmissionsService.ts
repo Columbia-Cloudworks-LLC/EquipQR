@@ -3,14 +3,23 @@ import type { CapturedFieldValue, OperatorChecklistAnswer } from '@/features/ope
 
 export async function listOperatorCheckinTemplateIdsWithSubmissions(
   organizationId: string,
+  templateIds?: string[],
 ): Promise<Set<string>> {
-  const { data, error } = await supabase
+  if (templateIds && templateIds.length === 0) {
+    return new Set();
+  }
+
+  let query = supabase
     .from('operator_checkin_submissions')
     .select('template_id')
     .eq('organization_id', organizationId)
     .not('template_id', 'is', null);
 
-  if (error) throw error;
+  if (templateIds && templateIds.length > 0) {
+    query = query.in('template_id', templateIds);
+  }
+
+  const { data, error } = await query;
 
   return new Set(
     (data ?? [])

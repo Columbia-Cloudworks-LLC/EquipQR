@@ -99,8 +99,6 @@ export default function OperatorCheckInsPage() {
     userTeamIds: isAdmin ? undefined : getUserTeamIds(),
     isOrgAdmin: isAdmin,
   });
-  const { data: templateIdsWithSubmissions = new Set<string>() } =
-    useOperatorCheckinTemplateIdsWithSubmissions(orgId);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [cloningStarterId, setCloningStarterId] = useState<string | null>(null);
@@ -118,6 +116,13 @@ export default function OperatorCheckInsPage() {
     () => templates.filter((template) => !template.is_active),
     [templates],
   );
+
+  const deletedTemplateIds = useMemo(
+    () => deletedTemplates.map((template) => template.id),
+    [deletedTemplates],
+  );
+  const { data: templateIdsWithSubmissions = new Set<string>(), isLoading: isRestorableLookupLoading } =
+    useOperatorCheckinTemplateIdsWithSubmissions(orgId, deletedTemplateIds);
 
   const visibleDeletedTemplates = useMemo(
     () => filterVisibleOperatorCheckinTemplates(deletedTemplates, showDeletedCheckins),
@@ -426,7 +431,9 @@ export default function OperatorCheckInsPage() {
                               ? 'Historical ledger data is preserved. Restore to resume QR use.'
                               : 'No collected check-ins. Delete to remove this archived template completely.'}
                           </span>
-                          {canRestore ? (
+                          {isRestorableLookupLoading ? (
+                            <span className="text-sm text-muted-foreground">Checking ledger data…</span>
+                          ) : canRestore ? (
                             <Button
                               variant="outline"
                               size="sm"

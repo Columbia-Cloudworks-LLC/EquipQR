@@ -57,6 +57,7 @@ vi.mock('@/features/operator-check-ins/hooks/useOperatorCheckinSettings', () => 
 vi.mock('@/features/operator-check-ins/hooks/useOperatorCheckinSubmissions', () => ({
   useOperatorCheckinTemplateIdsWithSubmissions: () => ({
     data: new Set(['template-deleted']),
+    isLoading: false,
   }),
 }));
 

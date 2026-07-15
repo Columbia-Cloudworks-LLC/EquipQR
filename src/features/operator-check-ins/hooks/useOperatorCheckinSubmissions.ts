@@ -22,10 +22,18 @@ export function useOperatorCheckinSubmissions(
   });
 }
 
-export function useOperatorCheckinTemplateIdsWithSubmissions(organizationId: string | undefined) {
+export function useOperatorCheckinTemplateIdsWithSubmissions(
+  organizationId: string | undefined,
+  templateIds?: string[],
+) {
+  const scopedTemplateIds = templateIds ?? [];
   return useQuery({
-    queryKey: operatorCheckinKeys.templateIdsWithSubmissions(organizationId ?? ''),
-    queryFn: () => listOperatorCheckinTemplateIdsWithSubmissions(organizationId!),
-    enabled: Boolean(organizationId),
+    queryKey: [
+      ...operatorCheckinKeys.templateIdsWithSubmissions(organizationId ?? ''),
+      scopedTemplateIds.slice().sort().join(','),
+    ],
+    queryFn: () =>
+      listOperatorCheckinTemplateIdsWithSubmissions(organizationId!, scopedTemplateIds),
+    enabled: Boolean(organizationId) && scopedTemplateIds.length > 0,
   });
 }
