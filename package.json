@@ -1,7 +1,7 @@
 {
   "name": "equipqr",
   "private": true,
-  "version": "3.25.30",
+  "version": "3.25.31",
   "type": "module",
   "engines": {
     "node": "24.x"

@@ -6,6 +6,12 @@ import { Clock, CheckCircle, Play, Pause, XCircle, FileText, User } from 'lucide
 import type { WorkOrder as EnhancedWorkOrder } from '@/features/work-orders/types/workOrder';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { useWorkOrderTimeline } from '@/features/work-orders/hooks/useHistoricalWorkOrders';
+import {
+  buildCreationDescription,
+  getCreationTitle,
+  getStatusChangeDescription,
+  getStatusChangeTitle,
+} from '@/features/work-orders/utils/workOrderTimelineLabels';
 
 interface WorkOrderTimelineProps {
   workOrder: EnhancedWorkOrder;
@@ -22,36 +28,8 @@ interface TimelineEvent {
   icon: React.ElementType;
   user: string;
   isPublic: boolean;
+  isHistoricalImport: boolean;
 }
-
-const formatStatusLabel = (status: string) =>
-  status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-
-const getStatusChangeTitle = (oldStatus: string | null, newStatus: string) => {
-  if (!oldStatus) return 'Work Order Created';
-  if (oldStatus === 'completed' && newStatus === 'accepted') return 'Work Order Reverted';
-  if (oldStatus === 'cancelled' && newStatus === 'accepted') return 'Work Order Reverted';
-
-  switch (newStatus) {
-    case 'accepted': return 'Work Order Accepted';
-    case 'assigned': return 'Work Assigned';
-    case 'in_progress': return 'Work Started';
-    case 'completed': return 'Work Completed';
-    case 'on_hold': return 'Work On Hold';
-    case 'cancelled': return 'Work Order Cancelled';
-    default: return 'Status Updated';
-  }
-};
-
-const getStatusChangeDescription = (oldStatus: string | null, newStatus: string, reason?: string) => {
-  if (!oldStatus) return 'Work order was submitted';
-
-  let baseDescription = `Status changed from ${formatStatusLabel(oldStatus)} to ${formatStatusLabel(newStatus)}`;
-  if (reason && reason !== 'Status updated') {
-    baseDescription += ` — ${reason}`;
-  }
-  return baseDescription;
-};
 
 const getStatusIcon = (status: string) => {
   switch (status) {
@@ -92,6 +70,7 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
         icon: getStatusIcon(history.new_status),
         user: history.profiles?.name || 'System',
         isPublic: true,
+        isHistoricalImport: Boolean(history.is_historical_creation),
       };
     });
 
@@ -102,33 +81,46 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
     }
 
     const events: TimelineEvent[] = [];
-    const historyHasCreation = historyEvents.some((event) => event.title === 'Work Order Created');
+    const historyHasCreation = historyRows.some((row) => row.old_status === null);
+
     if (!historyHasCreation) {
       events.push({
         id: 'created',
-        title: 'Work Order Created',
-        description: `Work order was submitted${workOrder.assigneeName ? ` and assigned to ${workOrder.assigneeName}` : ''}`,
+        title: getCreationTitle(workOrder.status, Boolean(workOrder.assigneeName)),
+        description: buildCreationDescription({
+          status: workOrder.status,
+          createdByName: workOrder.createdByName,
+          assigneeName: workOrder.assigneeName,
+        }),
         timestamp: workOrder.created_date,
-        type: 'created',
-        icon: FileText,
-        user: 'System',
+        type: workOrder.status,
+        icon: getStatusIcon(workOrder.status),
+        user: workOrder.createdByName || 'System',
         isPublic: true,
+        isHistoricalImport: false,
       });
     }
 
     events.push(...historyEvents);
 
-    const lastHistoryEvent = historyEvents[0];
-    if (!lastHistoryEvent || lastHistoryEvent.type !== workOrder.status) {
+    const mostRecentHistoryStatus = historyEvents[0]?.type;
+    const currentStatusAlreadyRepresented =
+      historyEvents.length === 0
+        ? !historyHasCreation
+        : mostRecentHistoryStatus === workOrder.status;
+
+    if (!currentStatusAlreadyRepresented) {
+      const previousStatus = mostRecentHistoryStatus ?? null;
       events.push({
         id: 'current',
-        title: getStatusChangeTitle(lastHistoryEvent?.type || null, workOrder.status),
-        description: getStatusChangeDescription(lastHistoryEvent?.type || null, workOrder.status),
+        title: getStatusChangeTitle(previousStatus, workOrder.status),
+        description: getStatusChangeDescription(previousStatus, workOrder.status),
         timestamp: workOrder.updated_at || workOrder.created_date,
         type: workOrder.status,
         icon: getStatusIcon(workOrder.status),
-        user: workOrder.assigneeName || 'System',
+        user: workOrder.assigneeName || historyEvents[0]?.user || 'System',
         isPublic: true,
+        isHistoricalImport: false,
       });
     }
 
@@ -144,10 +136,13 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
     isHistorical,
     showDetailedHistory,
     workOrder.assigneeName,
+    workOrder.createdByName,
     workOrder.created_date,
     workOrder.status,
     workOrder.updated_at,
   ]);
+
+  const historicalImportCount = timelineEvents.filter((event) => event.isHistoricalImport).length;
 
   const getEventColor = (type: string) => {
     switch (type) {
@@ -174,7 +169,7 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
   return (
     <Card className="shadow-elevation-2">
       <CardHeader>
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <CardTitle className="flex flex-wrap items-center gap-2">
             <Clock className="h-5 w-5" />
             Timeline (Status Events)
@@ -212,23 +207,40 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
           </div>
         ) : (
           <div className="space-y-4">
+            {historicalImportCount > 0 ? (
+              <p
+                className="rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+                data-testid="historical-import-banner"
+              >
+                This timeline contains {historicalImportCount} historical{' '}
+                {historicalImportCount === 1 ? 'entry' : 'entries'} imported from paper records.
+              </p>
+            ) : null}
+
             {timelineEvents.map((event, index) => {
               const Icon = event.icon;
               const isLast = index === timelineEvents.length - 1;
 
               return (
-                <div key={event.id} className="flex gap-4">
+                <div key={event.id} className="flex gap-4 rounded-lg border border-border/60 bg-card/50 p-3">
                   <div className="flex flex-col items-center">
-                    <div className={`p-2 rounded-full ${getEventColor(event.type)}`}>
+                    <div className={`rounded-full border p-2 ${getEventColor(event.type)}`}>
                       <Icon className="h-4 w-4" />
                     </div>
-                    {!isLast && <div className="w-px h-8 bg-border mt-2" />}
+                    {!isLast && <div className="mt-2 h-8 w-px bg-border" />}
                   </div>
 
-                  <div className="min-w-0 flex-1 space-y-1 pb-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <h4 className="font-medium">{event.title}</h4>
-                      <time className="text-sm text-muted-foreground whitespace-nowrap">
+                  <div className="min-w-0 flex-1 space-y-1 pb-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <h4 className="font-medium">{event.title}</h4>
+                        {event.isHistoricalImport ? (
+                          <Badge variant="outline" className="text-xs">
+                            Historical import
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <time className="whitespace-nowrap text-sm text-muted-foreground">
                         {formatDateTime(event.timestamp)}
                       </time>
                     </div>

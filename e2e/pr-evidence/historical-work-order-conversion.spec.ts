@@ -21,8 +21,8 @@ test.describe('PR evidence: convert existing work order to historical @pr-eviden
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '01-completed-work-order-details');
 
-    await page.getByRole('button', { name: /convert to historical timeline/i }).click();
-    const convertDialog = page.getByRole('dialog').filter({ hasText: /convert to historical timeline/i });
+    await page.getByRole('button', { name: /import paper records/i }).click();
+    const convertDialog = page.getByRole('dialog').filter({ hasText: /import paper records/i });
     await expect(convertDialog).toBeVisible({ timeout: 15_000 });
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '02-convert-dialog-open');

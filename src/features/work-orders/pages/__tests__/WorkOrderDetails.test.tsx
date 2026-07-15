@@ -407,7 +407,7 @@ describe('WorkOrderDetails', () => {
     expect(pageText.indexOf('Job card')).toBeLessThan(pageText.indexOf('PM checklist'));
     expect(pageText.indexOf('Images section')).toBeLessThan(pageText.indexOf('Notes section'));
     expect(pageText.indexOf('Notes section')).toBeLessThan(pageText.indexOf('Costs section'));
-    expect(pageText.indexOf('Costs section')).toBeLessThan(pageText.indexOf('Review & office details'));
+    expect(pageText.indexOf('Costs section')).toBeLessThan(pageText.indexOf('Timeline & office details'));
 
     // Itemized costs stay outside Review/office so techs can reach them without expanding.
     expect(screen.getByText('Costs section')).toBeInTheDocument();

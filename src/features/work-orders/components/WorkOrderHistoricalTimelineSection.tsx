@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CalendarClock } from 'lucide-react';
 import WorkOrderTimeline from '@/features/work-orders/components/WorkOrderTimeline';
@@ -67,6 +68,8 @@ export function WorkOrderHistoricalTimelineSection({
     setEditorOpen(true);
   };
 
+  const adminActionLabel = isHistorical ? 'Edit historical timeline' : 'Import paper records';
+
   return (
     <>
       <WorkOrderTimeline
@@ -74,17 +77,21 @@ export function WorkOrderHistoricalTimelineSection({
         showDetailedHistory={showDetailedHistory}
         headerAction={
           canEditTimeline ? (
-            isHistorical ? (
-              <Button type="button" variant="outline" size="sm" onClick={() => openEditor('edit')}>
-                <CalendarClock className="mr-2 h-4 w-4" />
-                Edit historical timeline
+            <div className="flex shrink-0 items-center gap-2">
+              <Badge variant="secondary" className="text-xs font-normal">
+                Admin
+              </Badge>
+              <Button
+                type="button"
+                variant="outline"
+                className="min-h-11 gap-2"
+                aria-label={adminActionLabel}
+                onClick={() => openEditor(isHistorical ? 'edit' : 'convert')}
+              >
+                <CalendarClock className="h-4 w-4 shrink-0" aria-hidden />
+                <span className="text-sm">{isHistorical ? 'Edit timeline' : 'Import records'}</span>
               </Button>
-            ) : (
-              <Button type="button" variant="outline" size="sm" onClick={() => openEditor('convert')}>
-                <CalendarClock className="mr-2 h-4 w-4" />
-                Convert to historical timeline
-              </Button>
-            )
+            </div>
           ) : null
         }
       />
@@ -99,11 +106,7 @@ export function WorkOrderHistoricalTimelineSection({
           historyRows={historyRows}
           historyReady={historyReady}
           mode={editorMode}
-          title={
-            editorMode === 'convert'
-              ? 'Convert to historical timeline'
-              : 'Edit historical timeline'
-          }
+          title={editorMode === 'convert' ? 'Import paper records' : 'Edit historical timeline'}
           initialEvents={editorMode === 'convert' ? conversionSeedEvents : undefined}
         />
       ) : null}

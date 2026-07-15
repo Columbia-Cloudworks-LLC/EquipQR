@@ -36,7 +36,7 @@ const baseWorkOrder = {
 } as WorkOrder;
 
 describe('WorkOrderHistoricalTimelineSection', () => {
-  it('shows convert action for non-historical work orders when admin can edit timeline', async () => {
+  it('shows import action for non-historical work orders when admin can edit timeline', async () => {
     const user = userEvent.setup();
 
     render(
@@ -46,9 +46,10 @@ describe('WorkOrderHistoricalTimelineSection', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /convert to historical timeline/i }));
+    expect(screen.getByText('Admin')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /import paper records/i }));
 
-    expect(screen.getByTestId('timeline-editor')).toHaveTextContent(/convert to historical timeline/i);
+    expect(screen.getByTestId('timeline-editor')).toHaveTextContent(/import paper records/i);
   });
 
   it('shows edit action for historical work orders', () => {
@@ -60,7 +61,7 @@ describe('WorkOrderHistoricalTimelineSection', () => {
     );
 
     expect(screen.getByRole('button', { name: /edit historical timeline/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /convert to historical timeline/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /import paper records/i })).not.toBeInTheDocument();
   });
 
   it('hides conversion action when timeline editing is not allowed', () => {
@@ -71,6 +72,7 @@ describe('WorkOrderHistoricalTimelineSection', () => {
       />,
     );
 
-    expect(screen.queryByRole('button', { name: /convert to historical timeline/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /import paper records/i })).not.toBeInTheDocument();
+    expect(screen.queryByText('Admin')).not.toBeInTheDocument();
   });
 });
