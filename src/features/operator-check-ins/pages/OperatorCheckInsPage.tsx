@@ -121,7 +121,7 @@ export default function OperatorCheckInsPage() {
     () => deletedTemplates.map((template) => template.id),
     [deletedTemplates],
   );
-  const { data: templateIdsWithSubmissions = new Set<string>(), isLoading: isRestorableLookupLoading, isError: isRestorableLookupError } =
+  const { data: templateIdsWithSubmissions = new Set<string>(), isLoading: isRestorableLookupLoading, isError: isRestorableLookupError, refetch: refetchRestorableLookup } =
     useOperatorCheckinTemplateIdsWithSubmissions(orgId, deletedTemplateIds);
 
   const visibleDeletedTemplates = useMemo(
@@ -432,7 +432,12 @@ export default function OperatorCheckInsPage() {
                               : 'No collected check-ins. Delete to remove this archived template completely.'}
                           </span>
                           {isRestorableLookupError ? (
-                            <span className="text-sm text-destructive">Unable to verify ledger data.</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-destructive">Unable to verify ledger data.</span>
+                              <Button variant="outline" size="sm" onClick={() => void refetchRestorableLookup()}>
+                                Retry
+                              </Button>
+                            </div>
                           ) : isRestorableLookupLoading ? (
                             <span className="text-sm text-muted-foreground">Checking ledger data…</span>
                           ) : canRestore ? (

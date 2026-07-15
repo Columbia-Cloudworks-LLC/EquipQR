@@ -229,23 +229,35 @@ CREATE OR REPLACE FUNCTION public.list_operator_checkin_restorable_template_ids(
   p_template_ids uuid[] DEFAULT NULL
 )
 RETURNS uuid[]
-LANGUAGE sql
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT COALESCE(
-    array_agg(DISTINCT submission.template_id),
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required';
+  END IF;
+
+  IF NOT public.is_org_admin(auth.uid(), p_organization_id) THEN
+    RAISE EXCEPTION 'Forbidden';
+  END IF;
+
+  RETURN COALESCE(
+    ARRAY(
+      SELECT DISTINCT submission.template_id
+      FROM public.operator_checkin_submissions AS submission
+      WHERE submission.organization_id = p_organization_id
+        AND submission.template_id IS NOT NULL
+        AND (
+          p_template_ids IS NULL
+          OR cardinality(p_template_ids) = 0
+          OR submission.template_id = ANY(p_template_ids)
+        )
+    ),
     '{}'::uuid[]
-  )
-  FROM public.operator_checkin_submissions AS submission
-  WHERE submission.organization_id = p_organization_id
-    AND submission.template_id IS NOT NULL
-    AND (
-      p_template_ids IS NULL
-      OR cardinality(p_template_ids) = 0
-      OR submission.template_id = ANY(p_template_ids)
-    );
+  );
+END;
 $$;
 
 REVOKE ALL ON FUNCTION public.list_operator_checkin_restorable_template_ids(uuid, uuid[]) FROM PUBLIC;
