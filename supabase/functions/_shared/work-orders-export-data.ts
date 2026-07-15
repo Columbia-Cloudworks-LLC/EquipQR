@@ -31,6 +31,14 @@ export {
 // Types
 // ============================================
 
+export type WorksheetKey =
+  | "SUMMARY"
+  | "LABOR"
+  | "COSTS"
+  | "PM_CHECKLISTS"
+  | "TIMELINE"
+  | "EQUIPMENT";
+
 export interface WorkOrderExcelFilters {
   workOrderId?: string;
   status?: string;
@@ -42,6 +50,7 @@ export interface WorkOrderExcelFilters {
     from?: string;
     to?: string;
   };
+  worksheets?: WorksheetKey[];
 }
 
 export interface ExportRequest {

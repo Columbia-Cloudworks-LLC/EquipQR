@@ -10,6 +10,24 @@
 // ============================================
 
 /**
+ * Worksheet names for the Excel export
+ */
+export const WORKSHEET_NAMES = {
+  SUMMARY: 'Summary',
+  LABOR: 'Labor Detail',
+  COSTS: 'Materials & Costs',
+  PM_CHECKLISTS: 'PM Checklists',
+  TIMELINE: 'Timeline',
+  EQUIPMENT: 'Equipment',
+} as const;
+
+export type WorksheetKey = keyof typeof WORKSHEET_NAMES;
+
+export const ALL_WORKSHEET_KEYS: WorksheetKey[] = Object.keys(WORKSHEET_NAMES) as WorksheetKey[];
+
+export const DEFAULT_WORKSHEETS: WorksheetKey[] = [...ALL_WORKSHEET_KEYS];
+
+/**
  * Filters for bulk work order Excel export
  */
 export interface WorkOrderExcelFilters {
@@ -25,16 +43,6 @@ export interface WorkOrderExcelFilters {
     from?: string;
     to?: string;
   };
+  /** Worksheets to include; defaults to all when omitted */
+  worksheets?: WorksheetKey[];
 }
-
-/**
- * Worksheet names for the Excel export
- */
-export const WORKSHEET_NAMES = {
-  SUMMARY: 'Summary',
-  LABOR: 'Labor Detail',
-  COSTS: 'Materials & Costs',
-  PM_CHECKLISTS: 'PM Checklists',
-  TIMELINE: 'Timeline',
-  EQUIPMENT: 'Equipment',
-} as const;

@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { getInvokeErrorPayload } from '@/services/google-workspace/invokeError';
 import type { ReportType, ExportFilters, ExportRequest } from '@/features/reports/types/reports';
 import {
   buildEquipmentExportCountQuery,
@@ -49,8 +50,12 @@ export async function exportReport(
 
   const { data, error: invokeError } = invokeResult;
   if (invokeError) {
-    logger.error('Report export failed', { error: invokeError.message });
-    throw new Error(invokeError.message || 'Failed to export report', { cause: invokeError });
+    const errorPayload = await getInvokeErrorPayload(
+      invokeError as Error & { context?: unknown },
+    );
+    const message = errorPayload?.error || invokeError.message || 'Failed to export report';
+    logger.error('Report export failed', { error: message });
+    throw new Error(message, { cause: invokeError });
   }
 
   if (data && typeof data === 'object' && 'error' in data) {

@@ -30,6 +30,7 @@ import {
   equipmentRowToArray,
   type ExportRequest,
   type AllExportRows,
+  type WorksheetKey,
 } from "../_shared/work-orders-export-data.ts";
 
 // ============================================
@@ -63,40 +64,52 @@ function createWorksheet<T>(
   return worksheet;
 }
 
-function generateWorkbook(allRows: AllExportRows): Uint8Array {
+function generateWorkbook(
+  allRows: AllExportRows,
+  selectedWorksheets?: WorksheetKey[],
+): Uint8Array {
+  const includeWorksheet = (key: WorksheetKey) =>
+    !selectedWorksheets || selectedWorksheets.length === 0 || selectedWorksheets.includes(key);
+
   const workbook = XLSX.utils.book_new();
 
-  const summarySheet = createWorksheet(
-    [...WORKSHEET_HEADERS.SUMMARY],
-    allRows.summaryRows,
-    summaryRowToArray
-  );
-  XLSX.utils.book_append_sheet(workbook, summarySheet, WORKSHEET_NAMES.SUMMARY);
-
-  const laborSheet = createWorksheet(
-    [...WORKSHEET_HEADERS.LABOR],
-    allRows.laborRows,
-    laborRowToArray
-  );
-  XLSX.utils.book_append_sheet(workbook, laborSheet, WORKSHEET_NAMES.LABOR);
-
-  const costsSheet = createWorksheet(
-    [...WORKSHEET_HEADERS.COSTS],
-    allRows.costRows,
-    costRowToArray
-  );
-  if (allRows.costRows.length > 0) {
-    const totalQty = allRows.costRows.reduce((sum, r) => sum + r.quantity, 0);
-    const totalCost = allRows.costRows.reduce((sum, r) => sum + r.totalPrice, 0);
-    XLSX.utils.sheet_add_aoa(
-      costsSheet,
-      [['', '', '', 'TOTAL', totalQty, '', totalCost, '', '', '']],
-      { origin: -1 }
+  if (includeWorksheet("SUMMARY")) {
+    const summarySheet = createWorksheet(
+      [...WORKSHEET_HEADERS.SUMMARY],
+      allRows.summaryRows,
+      summaryRowToArray
     );
+    XLSX.utils.book_append_sheet(workbook, summarySheet, WORKSHEET_NAMES.SUMMARY);
   }
-  XLSX.utils.book_append_sheet(workbook, costsSheet, WORKSHEET_NAMES.COSTS);
 
-  if (allRows.pmRows.length > 0) {
+  if (includeWorksheet("LABOR")) {
+    const laborSheet = createWorksheet(
+      [...WORKSHEET_HEADERS.LABOR],
+      allRows.laborRows,
+      laborRowToArray
+    );
+    XLSX.utils.book_append_sheet(workbook, laborSheet, WORKSHEET_NAMES.LABOR);
+  }
+
+  if (includeWorksheet("COSTS")) {
+    const costsSheet = createWorksheet(
+      [...WORKSHEET_HEADERS.COSTS],
+      allRows.costRows,
+      costRowToArray
+    );
+    if (allRows.costRows.length > 0) {
+      const totalQty = allRows.costRows.reduce((sum, r) => sum + r.quantity, 0);
+      const totalCost = allRows.costRows.reduce((sum, r) => sum + r.totalPrice, 0);
+      XLSX.utils.sheet_add_aoa(
+        costsSheet,
+        [['', '', '', 'TOTAL', totalQty, '', totalCost, '', '', '']],
+        { origin: -1 }
+      );
+    }
+    XLSX.utils.book_append_sheet(workbook, costsSheet, WORKSHEET_NAMES.COSTS);
+  }
+
+  if (includeWorksheet("PM_CHECKLISTS") && allRows.pmRows.length > 0) {
     const pmSheet = createWorksheet(
       [...WORKSHEET_HEADERS.PM_CHECKLISTS],
       allRows.pmRows,
@@ -105,19 +118,23 @@ function generateWorkbook(allRows: AllExportRows): Uint8Array {
     XLSX.utils.book_append_sheet(workbook, pmSheet, WORKSHEET_NAMES.PM_CHECKLISTS);
   }
 
-  const timelineSheet = createWorksheet(
-    [...WORKSHEET_HEADERS.TIMELINE],
-    allRows.timelineRows,
-    timelineRowToArray
-  );
-  XLSX.utils.book_append_sheet(workbook, timelineSheet, WORKSHEET_NAMES.TIMELINE);
+  if (includeWorksheet("TIMELINE")) {
+    const timelineSheet = createWorksheet(
+      [...WORKSHEET_HEADERS.TIMELINE],
+      allRows.timelineRows,
+      timelineRowToArray
+    );
+    XLSX.utils.book_append_sheet(workbook, timelineSheet, WORKSHEET_NAMES.TIMELINE);
+  }
 
-  const equipmentSheet = createWorksheet(
-    [...WORKSHEET_HEADERS.EQUIPMENT],
-    allRows.equipmentRows,
-    equipmentRowToArray
-  );
-  XLSX.utils.book_append_sheet(workbook, equipmentSheet, WORKSHEET_NAMES.EQUIPMENT);
+  if (includeWorksheet("EQUIPMENT")) {
+    const equipmentSheet = createWorksheet(
+      [...WORKSHEET_HEADERS.EQUIPMENT],
+      allRows.equipmentRows,
+      equipmentRowToArray
+    );
+    XLSX.utils.book_append_sheet(workbook, equipmentSheet, WORKSHEET_NAMES.EQUIPMENT);
+  }
 
   return XLSX.write(workbook, { type: 'array', bookType: 'xlsx' }) as Uint8Array;
 }
@@ -192,7 +209,7 @@ Deno.serve(async (req) => {
       }
 
       const allRows = buildAllRows(data);
-      const xlsxBuffer = generateWorkbook(allRows);
+      const xlsxBuffer = generateWorkbook(allRows, filters.worksheets);
 
       if (exportLogId) {
         await supabase

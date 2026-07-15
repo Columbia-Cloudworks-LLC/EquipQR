@@ -5,6 +5,7 @@ import type {
   ReportCategory,
 } from '@/features/reports/types/reports';
 import { REPORT_CATEGORY_LABELS } from '@/features/reports/types/reports';
+import { getSavedColumnPreferences } from '@/features/reports/utils/column-preferences';
 
 /**
  * Column definitions for Equipment reports
@@ -145,6 +146,28 @@ export function getColumnsForReportType(reportType: ReportType): ExportColumn[] 
 export function getDefaultColumns(reportType: ReportType): string[] {
   const columns = getColumnsForReportType(reportType);
   return columns.filter(col => col.default).map(col => col.key);
+}
+
+/** Initial column selection for inline export cards (saved prefs, else defaults). */
+export function resolveInitialExportColumns(reportType: ReportType): string[] {
+  const availableColumns = getColumnsForReportType(reportType);
+  const saved = getSavedColumnPreferences(reportType);
+  if (saved) {
+    const validColumns = saved.filter((col) =>
+      availableColumns.some((column) => column.key === col),
+    );
+    if (validColumns.length > 0) {
+      return validColumns;
+    }
+  }
+  return getDefaultColumns(reportType);
+}
+
+export function columnLabelsForKeys(reportType: ReportType, keys: string[]): string[] {
+  const availableColumns = getColumnsForReportType(reportType);
+  return keys
+    .map((key) => availableColumns.find((column) => column.key === key)?.label)
+    .filter((label): label is string => Boolean(label));
 }
 
 /**
