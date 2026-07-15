@@ -63,7 +63,10 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
 
       return {
         id: history.id,
-        title: getStatusChangeTitle(history.old_status, history.new_status),
+        title:
+          history.old_status === null
+            ? getCreationTitle(history.new_status, Boolean(metadata?.assignee_id))
+            : getStatusChangeTitle(history.old_status, history.new_status),
         description: `${getStatusChangeDescription(history.old_status, history.new_status, history.reason ?? undefined)}${assigneeSuffix}`,
         timestamp: history.changed_at,
         type: history.new_status,

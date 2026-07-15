@@ -3,9 +3,6 @@ export const formatStatusLabel = (status: string) =>
 
 export const getStatusChangeTitle = (oldStatus: string | null, newStatus: string) => {
   if (!oldStatus) {
-    if (newStatus === 'assigned') {
-      return 'Work Order Created & Assigned';
-    }
     return 'Work Order Created';
   }
   if (oldStatus === 'completed' && newStatus === 'accepted') return 'Work Order Reverted';
