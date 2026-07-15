@@ -9514,6 +9514,28 @@ COMMENT ON FUNCTION "public"."list_active_stripe_subscriptions"() IS 'Returns ac
 
 
 
+CREATE OR REPLACE FUNCTION "public"."list_operator_checkin_restorable_template_ids"("p_organization_id" "uuid", "p_template_ids" "uuid"[] DEFAULT NULL::"uuid"[]) RETURNS "uuid"[]
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  SELECT COALESCE(
+    array_agg(DISTINCT submission.template_id),
+    '{}'::uuid[]
+  )
+  FROM public.operator_checkin_submissions AS submission
+  WHERE submission.organization_id = p_organization_id
+    AND submission.template_id IS NOT NULL
+    AND (
+      p_template_ids IS NULL
+      OR cardinality(p_template_ids) = 0
+      OR submission.template_id = ANY(p_template_ids)
+    );
+$$;
+
+
+ALTER FUNCTION "public"."list_operator_checkin_restorable_template_ids"("p_organization_id" "uuid", "p_template_ids" "uuid"[]) OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."list_pm_templates"() RETURNS TABLE("template_name" "text", "item_count" bigint, "is_global" boolean)
     LANGUAGE "plpgsql" STABLE
     SET "search_path" TO ''
@@ -18116,6 +18138,11 @@ ALTER TABLE ONLY "public"."operator_checkin_token_secrets"
 
 
 ALTER TABLE ONLY "public"."operator_checklist_templates"
+    ADD CONSTRAINT "operator_checklist_templates_id_organization_id_key" UNIQUE ("id", "organization_id");
+
+
+
+ALTER TABLE ONLY "public"."operator_checklist_templates"
     ADD CONSTRAINT "operator_checklist_templates_pkey" PRIMARY KEY ("id");
 
 
@@ -19993,7 +20020,7 @@ ALTER TABLE ONLY "public"."operator_checkin_submissions"
 
 
 ALTER TABLE ONLY "public"."operator_checkin_submissions"
-    ADD CONSTRAINT "operator_checkin_submissions_template_id_fkey" FOREIGN KEY ("template_id") REFERENCES "public"."operator_checklist_templates"("id") ON DELETE SET NULL;
+    ADD CONSTRAINT "operator_checkin_submissions_template_organization_fkey" FOREIGN KEY ("template_id", "organization_id") REFERENCES "public"."operator_checklist_templates"("id", "organization_id") ON DELETE RESTRICT;
 
 
 
@@ -23592,6 +23619,12 @@ GRANT ALL ON FUNCTION "public"."leave_organization_safely"("org_id" "uuid") TO "
 
 REVOKE ALL ON FUNCTION "public"."list_active_stripe_subscriptions"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."list_active_stripe_subscriptions"() TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."list_operator_checkin_restorable_template_ids"("p_organization_id" "uuid", "p_template_ids" "uuid"[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."list_operator_checkin_restorable_template_ids"("p_organization_id" "uuid", "p_template_ids" "uuid"[]) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."list_operator_checkin_restorable_template_ids"("p_organization_id" "uuid", "p_template_ids" "uuid"[]) TO "service_role";
 
 
 

@@ -9,21 +9,15 @@ export async function listOperatorCheckinTemplateIdsWithSubmissions(
     return new Set();
   }
 
-  let query = supabase
-    .from('operator_checkin_submissions')
-    .select('template_id')
-    .eq('organization_id', organizationId)
-    .not('template_id', 'is', null);
+  const { data, error } = await supabase.rpc('list_operator_checkin_restorable_template_ids', {
+    p_organization_id: organizationId,
+    p_template_ids: templateIds && templateIds.length > 0 ? templateIds : null,
+  });
 
-  if (templateIds && templateIds.length > 0) {
-    query = query.in('template_id', templateIds);
-  }
-
-  const { data, error } = await query;
+  if (error) throw error;
 
   return new Set(
-    (data ?? [])
-      .map((row) => row.template_id)
+    (Array.isArray(data) ? data : [])
       .filter((templateId): templateId is string => typeof templateId === 'string' && templateId.length > 0),
   );
 }

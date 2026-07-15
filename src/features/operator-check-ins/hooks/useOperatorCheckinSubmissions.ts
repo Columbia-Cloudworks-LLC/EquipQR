@@ -32,8 +32,12 @@ export function useOperatorCheckinTemplateIdsWithSubmissions(
       ...operatorCheckinKeys.templateIdsWithSubmissions(organizationId ?? ''),
       scopedTemplateIds.slice().sort().join(','),
     ],
-    queryFn: () =>
-      listOperatorCheckinTemplateIdsWithSubmissions(organizationId!, scopedTemplateIds),
+    queryFn: () => {
+      if (!organizationId) {
+        throw new Error('organizationId is required to list operator check-in template submission ids');
+      }
+      return listOperatorCheckinTemplateIdsWithSubmissions(organizationId, scopedTemplateIds);
+    },
     enabled: Boolean(organizationId) && scopedTemplateIds.length > 0,
   });
 }

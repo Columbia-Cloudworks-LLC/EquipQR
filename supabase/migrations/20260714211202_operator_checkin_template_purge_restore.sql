@@ -5,6 +5,35 @@ CREATE INDEX IF NOT EXISTS idx_operator_checkin_submissions_template_id_organiza
   ON public.operator_checkin_submissions (template_id, organization_id)
   WHERE template_id IS NOT NULL;
 
+UPDATE public.operator_checkin_submissions AS submission
+SET template_id = NULL
+WHERE submission.template_id IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1
+    FROM public.operator_checklist_templates AS template
+    WHERE template.id = submission.template_id
+      AND template.organization_id = submission.organization_id
+  );
+
+ALTER TABLE public.operator_checklist_templates
+  DROP CONSTRAINT IF EXISTS operator_checklist_templates_id_organization_id_key;
+
+ALTER TABLE public.operator_checklist_templates
+  ADD CONSTRAINT operator_checklist_templates_id_organization_id_key
+  UNIQUE (id, organization_id);
+
+ALTER TABLE public.operator_checkin_submissions
+  DROP CONSTRAINT IF EXISTS operator_checkin_submissions_template_id_fkey;
+
+ALTER TABLE public.operator_checkin_submissions
+  DROP CONSTRAINT IF EXISTS operator_checkin_submissions_template_organization_fkey;
+
+ALTER TABLE public.operator_checkin_submissions
+  ADD CONSTRAINT operator_checkin_submissions_template_organization_fkey
+  FOREIGN KEY (template_id, organization_id)
+  REFERENCES public.operator_checklist_templates (id, organization_id)
+  ON DELETE RESTRICT;
+
 CREATE OR REPLACE FUNCTION public.validate_operator_checkin_submission_org_refs()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -193,3 +222,32 @@ $$;
 REVOKE ALL ON FUNCTION public.restore_operator_checklist_template(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.restore_operator_checklist_template(uuid) FROM anon;
 GRANT EXECUTE ON FUNCTION public.restore_operator_checklist_template(uuid) TO authenticated;
+
+-- rpc-authenticated-grant-allowed: list_operator_checkin_restorable_template_ids
+CREATE OR REPLACE FUNCTION public.list_operator_checkin_restorable_template_ids(
+  p_organization_id uuid,
+  p_template_ids uuid[] DEFAULT NULL
+)
+RETURNS uuid[]
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT COALESCE(
+    array_agg(DISTINCT submission.template_id),
+    '{}'::uuid[]
+  )
+  FROM public.operator_checkin_submissions AS submission
+  WHERE submission.organization_id = p_organization_id
+    AND submission.template_id IS NOT NULL
+    AND (
+      p_template_ids IS NULL
+      OR cardinality(p_template_ids) = 0
+      OR submission.template_id = ANY(p_template_ids)
+    );
+$$;
+
+REVOKE ALL ON FUNCTION public.list_operator_checkin_restorable_template_ids(uuid, uuid[]) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.list_operator_checkin_restorable_template_ids(uuid, uuid[]) FROM anon;
+GRANT EXECUTE ON FUNCTION public.list_operator_checkin_restorable_template_ids(uuid, uuid[]) TO authenticated;

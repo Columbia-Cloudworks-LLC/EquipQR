@@ -121,7 +121,7 @@ export default function OperatorCheckInsPage() {
     () => deletedTemplates.map((template) => template.id),
     [deletedTemplates],
   );
-  const { data: templateIdsWithSubmissions = new Set<string>(), isLoading: isRestorableLookupLoading } =
+  const { data: templateIdsWithSubmissions = new Set<string>(), isLoading: isRestorableLookupLoading, isError: isRestorableLookupError } =
     useOperatorCheckinTemplateIdsWithSubmissions(orgId, deletedTemplateIds);
 
   const visibleDeletedTemplates = useMemo(
@@ -431,7 +431,9 @@ export default function OperatorCheckInsPage() {
                               ? 'Historical ledger data is preserved. Restore to resume QR use.'
                               : 'No collected check-ins. Delete to remove this archived template completely.'}
                           </span>
-                          {isRestorableLookupLoading ? (
+                          {isRestorableLookupError ? (
+                            <span className="text-sm text-destructive">Unable to verify ledger data.</span>
+                          ) : isRestorableLookupLoading ? (
                             <span className="text-sm text-muted-foreground">Checking ledger data…</span>
                           ) : canRestore ? (
                             <Button
