@@ -9,7 +9,6 @@ import { ReportExportDialog } from '@/features/reports/components/ReportExportDi
 import { WorkOrderExcelExportDialog } from '@/features/work-orders/components/WorkOrderExcelExportDialog';
 import { ReportExportModule } from '@/features/reports/components/ReportExportModule';
 import { ReportsStatusStrip } from '@/features/reports/components/ReportsStatusStrip';
-import { ExportProtocolPanel } from '@/features/reports/components/ExportProtocolPanel';
 import { ReportsConsoleState } from '@/features/reports/components/ReportsConsoleState';
 import { useReportRecordCount, useReportExportDialog } from '@/features/reports/hooks/useReportExport';
 import { useScopedExportTeamIds } from '@/features/reports/hooks/useScopedExportTeamIds';
@@ -41,8 +40,6 @@ const Reports: React.FC = () => {
   const [exportError, setExportError] = useState<string | null>(null);
   const [filters] = useState<ExportFilters>({});
   const [excelFilters, setExcelFilters] = useState<WorkOrderExcelFilters>({ dateField: 'created_date' });
-  const [isProtocolOpen, setIsProtocolOpen] = useState(false);
-
   const isOrgAdmin = hasRole(['owner', 'admin']);
   const { teamIds: scopedTeamIds, isLoading: scopedTeamsLoading } = useScopedExportTeamIds(isOrgAdmin);
   const scopeReady = isOrgAdmin || !scopedTeamsLoading;
@@ -54,6 +51,8 @@ const Reports: React.FC = () => {
   const equipmentCount = useReportRecordCount('equipment', currentOrganization?.id, filters);
   const inventoryCount = useReportRecordCount('inventory', currentOrganization?.id, filters);
   const scansCount = useReportRecordCount('scans', currentOrganization?.id, filters);
+  const operatorCheckinsCount = useReportRecordCount('operator-check-ins', currentOrganization?.id, filters);
+  const quickFormsCount = useReportRecordCount('quick-forms', currentOrganization?.id, filters);
   const alternateGroupsCount = useReportRecordCount('alternate-groups', currentOrganization?.id, filters);
   const workOrdersCount = useReportRecordCount(
     'work-orders',
@@ -99,6 +98,10 @@ const Reports: React.FC = () => {
           return { count: inventoryCount.data ?? 0, isLoading: inventoryCount.isLoading };
         case 'scans':
           return { count: scansCount.data ?? 0, isLoading: scansCount.isLoading };
+        case 'operator-check-ins':
+          return { count: operatorCheckinsCount.data ?? 0, isLoading: operatorCheckinsCount.isLoading };
+        case 'quick-forms':
+          return { count: quickFormsCount.data ?? 0, isLoading: quickFormsCount.isLoading };
         case 'alternate-groups':
           return { count: alternateGroupsCount.data ?? 0, isLoading: alternateGroupsCount.isLoading };
         default:
@@ -116,6 +119,10 @@ const Reports: React.FC = () => {
       inventoryCount.isLoading,
       scansCount.data,
       scansCount.isLoading,
+      operatorCheckinsCount.data,
+      operatorCheckinsCount.isLoading,
+      quickFormsCount.data,
+      quickFormsCount.isLoading,
       alternateGroupsCount.data,
       alternateGroupsCount.isLoading,
     ],
@@ -294,14 +301,6 @@ const Reports: React.FC = () => {
             </div>
           </section>
         ))}
-
-        {!isScopedConsole && (
-          <ExportProtocolPanel
-            isGoogleWorkspaceConnected={isGoogleWorkspaceConnected}
-            open={isProtocolOpen}
-            onOpenChange={setIsProtocolOpen}
-          />
-        )}
       </div>
 
       <ReportExportDialog

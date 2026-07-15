@@ -9,6 +9,7 @@ import {
   Package,
   ScanLine,
   ClipboardSignature,
+  FileSignature,
   Download,
   FileSpreadsheet,
   Layers,
@@ -30,6 +31,7 @@ const REPORT_ICONS: Record<string, React.ReactNode> = {
   Package: <Package className="h-8 w-8" />,
   ScanLine: <ScanLine className="h-8 w-8" />,
   ClipboardSignature: <ClipboardSignature className="h-8 w-8" />,
+  FileSignature: <FileSignature className="h-8 w-8" />,
   FileSpreadsheet: <FileSpreadsheet className="h-8 w-8" />,
   Layers: <Layers className="h-8 w-8" />,
 };
@@ -80,31 +82,21 @@ const ModuleHeader: React.FC<ModuleHeaderProps> = ({
   icon,
   featured,
 }) => (
-  <div className="flex items-start justify-between gap-3">
-    <div className="flex min-w-0 flex-1 items-start gap-3">
-      <div
-        className={cn(
-          'shrink-0 border border-primary/20 bg-primary/10 p-2 text-primary transition-transform duration-200 group-hover:scale-105',
-          featured && 'p-3',
-        )}
-      >
-        {icon}
-      </div>
-      <div className="min-w-0 flex-1 space-y-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-tabular text-[10px] font-medium uppercase tracking-wider text-primary">
-            {config.operationCode}
-          </span>
-          <Badge variant={statusVariant} className="font-mono text-[10px] uppercase">
-            {statusLabel}
-          </Badge>
-        </div>
-        <CardTitle className={cn('text-lg', featured && 'text-xl')}>{config.title}</CardTitle>
-      </div>
+  <div className="flex min-w-0 items-start gap-3">
+    <div
+      className={cn(
+        'shrink-0 border border-primary/20 bg-primary/10 p-2 text-primary transition-transform duration-200 group-hover:scale-105',
+        featured && 'p-3',
+      )}
+    >
+      {icon}
     </div>
-    <Badge variant={config.format === 'excel' ? 'default' : 'secondary'} className="shrink-0 font-mono text-[10px] uppercase">
-      {config.formatLabel}
-    </Badge>
+    <div className="min-w-0 flex-1 space-y-1">
+      <Badge variant={statusVariant} className="font-mono text-[10px] uppercase">
+        {statusLabel}
+      </Badge>
+      <CardTitle className={cn('text-lg', featured && 'text-xl')}>{config.title}</CardTitle>
+    </div>
   </div>
 );
 
@@ -113,23 +105,9 @@ interface ModuleMetadataProps {
   featured: boolean;
 }
 
-/** Audience and preview chips with a clear visual hierarchy. */
+/** Preview chips with a clear visual hierarchy. */
 const ModuleMetadata: React.FC<ModuleMetadataProps> = ({ config, featured }) => (
   <div className="mt-3 flex min-h-21 flex-col justify-end gap-2.5">
-    {config.audiences.length > 0 && (
-      <div className="flex flex-wrap gap-1.5">
-        {config.audiences.map((audience) => (
-          <Badge
-            key={audience}
-            variant="outline"
-            className="border-border/80 text-[10px] font-normal text-muted-foreground"
-          >
-            {audience}
-          </Badge>
-        ))}
-      </div>
-    )}
-
     {featured && config.format === 'excel' && (
       <div className="border border-border/60 bg-muted/20 p-3">
         <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -322,14 +300,8 @@ export const ReportExportModule: React.FC<ReportExportModuleProps> = ({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-tabular text-[10px] uppercase tracking-wider text-primary">
-                {config.operationCode}
-              </span>
               <Badge variant={statusVariant} className="text-[10px]">
                 {statusLabel}
-              </Badge>
-              <Badge variant={isExcel ? 'default' : 'secondary'} className="text-[10px]">
-                {config.formatLabel}
               </Badge>
             </div>
             <h3 className="mt-1 truncate font-semibold text-sm">{config.title}</h3>

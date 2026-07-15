@@ -84,6 +84,16 @@ export const OPERATOR_CHECKIN_COLUMNS: ExportColumn[] = [
   { key: 'checklist_answers_json', label: 'Checklist Answers (JSON)', default: false },
 ];
 
+export const QUICK_FORM_COLUMNS: ExportColumn[] = [
+  { key: 'form_name', label: 'Form', default: true },
+  { key: 'submitted_at', label: 'Submitted At', default: true },
+  { key: 'captured_fields_summary', label: 'Captured Fields', default: true },
+  { key: 'timezone', label: 'Timezone', default: false },
+  { key: 'gps', label: 'GPS', default: false },
+  { key: 'field_values_json', label: 'Field Values (JSON)', default: false },
+  { key: 'submission_id', label: 'Submission ID', default: false },
+];
+
 /**
  * Column definitions for Alternate Part Groups reports
  */
@@ -120,6 +130,8 @@ export function getColumnsForReportType(reportType: ReportType): ExportColumn[] 
       return SCAN_COLUMNS;
     case 'operator-check-ins':
       return OPERATOR_CHECKIN_COLUMNS;
+    case 'quick-forms':
+      return QUICK_FORM_COLUMNS;
     case 'alternate-groups':
       return ALTERNATE_GROUPS_COLUMNS;
     default:
@@ -145,11 +157,8 @@ export const REPORT_CARDS: ReportCardConfig[] = [
     description: 'Export fleet equipment records with customizable columns for audits and asset tracking',
     icon: 'Forklift',
     format: 'csv',
-    formatLabel: 'CSV',
     columnCount: EQUIPMENT_COLUMNS.length,
     category: 'fleet-assets',
-    operationCode: 'EXP-01',
-    audiences: ['Fleet Manager', 'Office Admin'],
     previewFields: ['Status', 'Location', 'Warranty', 'Working Hours'],
   },
   {
@@ -158,11 +167,8 @@ export const REPORT_CARDS: ReportCardConfig[] = [
     description: 'Operational multi-sheet workbook with labor, costs, PM checklists, and timeline',
     icon: 'ClipboardList',
     format: 'excel',
-    formatLabel: 'Excel Workbook',
     columnCount: WORK_ORDER_COLUMNS.length,
     category: 'maintenance-operations',
-    operationCode: 'EXP-02',
-    audiences: ['Office Admin', 'Shop Supervisor'],
     previewFields: ['Labor', 'Costs', 'PM Checklist', 'Timeline'],
     featured: true,
   },
@@ -172,11 +178,8 @@ export const REPORT_CARDS: ReportCardConfig[] = [
     description: 'Download CSV summaries for work orders on equipment you can view',
     icon: 'ClipboardList',
     format: 'csv',
-    formatLabel: 'CSV',
     columnCount: WORK_ORDER_COLUMNS.length,
     category: 'maintenance-operations',
-    operationCode: 'EXP-06',
-    audiences: ['Requestor', 'Viewer'],
     previewFields: ['Status', 'Priority', 'Equipment', 'Completed Date'],
     scopedAudienceOnly: true,
   },
@@ -186,11 +189,8 @@ export const REPORT_CARDS: ReportCardConfig[] = [
     description: 'Export parts inventory with stock levels, locations, and low-stock indicators',
     icon: 'Package',
     format: 'csv',
-    formatLabel: 'CSV',
     columnCount: INVENTORY_COLUMNS.length,
     category: 'inventory-parts',
-    operationCode: 'EXP-03',
-    audiences: ['Parts Lead', 'Office Admin'],
     previewFields: ['SKU', 'Quantity', 'Low Stock', 'Unit Cost'],
   },
   {
@@ -199,11 +199,8 @@ export const REPORT_CARDS: ReportCardConfig[] = [
     description: 'Export QR code scan history for field activity and compliance review',
     icon: 'ScanLine',
     format: 'csv',
-    formatLabel: 'CSV',
     columnCount: SCAN_COLUMNS.length,
     category: 'scan-evidence',
-    operationCode: 'EXP-05',
-    audiences: ['Compliance', 'Fleet Manager'],
     previewFields: ['Equipment', 'Scanned By', 'Timestamp', 'Location'],
   },
   {
@@ -212,12 +209,19 @@ export const REPORT_CARDS: ReportCardConfig[] = [
     description: 'Export unauthenticated operator safety check-ins with configured captured fields and checklist answers',
     icon: 'ClipboardSignature',
     format: 'csv',
-    formatLabel: 'CSV',
     columnCount: OPERATOR_CHECKIN_COLUMNS.length,
     category: 'scan-evidence',
-    operationCode: 'EXP-07',
-    audiences: ['Compliance', 'Fleet Manager', 'Office Admin'],
     previewFields: ['Captured Fields', 'Unit #', 'Submitted At', 'Complete'],
+  },
+  {
+    type: 'quick-forms',
+    title: 'Quick Form Submission Ledger',
+    description: 'Export unauthenticated quick form responses with configured captured fields and optional location context',
+    icon: 'FileSignature',
+    format: 'csv',
+    columnCount: QUICK_FORM_COLUMNS.length,
+    category: 'scan-evidence',
+    previewFields: ['Form', 'Captured Fields', 'Submitted At', 'GPS'],
   },
   {
     type: 'alternate-groups',
@@ -225,11 +229,8 @@ export const REPORT_CARDS: ReportCardConfig[] = [
     description: 'Export interchangeable parts groups with cross-references and verification status',
     icon: 'Layers',
     format: 'csv',
-    formatLabel: 'CSV',
     columnCount: ALTERNATE_GROUPS_COLUMNS.length,
     category: 'inventory-parts',
-    operationCode: 'EXP-04',
-    audiences: ['Parts Lead'],
     previewFields: ['Group Name', 'Primary Part', 'Cross-Ref', 'Verification'],
   },
 ];

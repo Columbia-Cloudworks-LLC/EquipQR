@@ -33,13 +33,14 @@ Deno.test("filterAllowedColumns drops unknown keys per report type", () => {
   );
 });
 
-Deno.test("REPORT_COLUMN_WHITELISTS cover all six Fleet Export Console types", () => {
+Deno.test("REPORT_COLUMN_WHITELISTS cover all seven Fleet Export Console types", () => {
   const types = [
     "equipment",
     "work-orders",
     "inventory",
     "scans",
     "operator-check-ins",
+    "quick-forms",
     "alternate-groups",
   ] as const;
   for (const type of types) {
@@ -130,6 +131,42 @@ Deno.test("formatTemplateName reads template_snapshot.name", () => {
     "Daily",
   );
   assertEquals(__formatCsvTestables.formatTemplateName({ template_snapshot: null }), "");
+});
+
+Deno.test("formatQuickFormCapturedFieldsSummary joins labeled values", () => {
+  const summary = __formatCsvTestables.formatQuickFormCapturedFieldsSummary({
+    field_values: [
+      { label: "Name", value: "Sam" },
+      { label: "Hours", value: 4 },
+    ],
+  });
+  assertEquals(summary, "Name: Sam | Hours: 4");
+});
+
+Deno.test("formatQuickFormName reads form_snapshot.name", () => {
+  assertEquals(
+    __formatCsvTestables.formatQuickFormName({ form_snapshot: { name: "Visitor Log" } }),
+    "Visitor Log",
+  );
+  assertEquals(__formatCsvTestables.formatQuickFormName({ form_snapshot: null }), "Quick form");
+});
+
+Deno.test("buildReportCsv formats quick form rows with explicit columns", () => {
+  const result = buildReportCsv("quick-forms", [{
+    id: "sub-1",
+    submitted_at: "2026-03-15T14:30:00Z",
+    form_snapshot: { name: "Visitor Log" },
+    field_values: [{ label: "Name", value: "Sam" }],
+    client_context: {
+      browser_timezone: "America/Chicago",
+      gps: { latitude: 38.6, longitude: -90.2 },
+    },
+  }], ["form_name", "submitted_at", "captured_fields_summary", "gps"]);
+
+  assertEquals(result.rowCount, 1);
+  assertEquals(result.csvContent.includes("Visitor Log"), true);
+  assertEquals(result.csvContent.includes("Name: Sam"), true);
+  assertEquals(result.csvContent.includes("38.6, -90.2"), true);
 });
 
 Deno.test("OPERATOR_CHECKINS_TABLE_SELECT uses inner equipment join for org scoping", () => {

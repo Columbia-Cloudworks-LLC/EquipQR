@@ -70,6 +70,15 @@ export const REPORT_COLUMN_WHITELISTS: Record<FleetReportType, readonly string[]
     "captured_fields_json",
     "checklist_answers_json",
   ],
+  "quick-forms": [
+    "form_name",
+    "submitted_at",
+    "captured_fields_summary",
+    "timezone",
+    "gps",
+    "field_values_json",
+    "submission_id",
+  ],
   "alternate-groups": [
     "group_name",
     "group_status",
@@ -122,6 +131,16 @@ const OPERATOR_CHECKIN_LABELS: Record<string, string> = {
   checklist_answers_json: "Checklist Answers (JSON)",
 };
 
+const QUICK_FORM_LABELS: Record<string, string> = {
+  form_name: "Form",
+  submitted_at: "Submitted At",
+  captured_fields_summary: "Captured Fields",
+  timezone: "Timezone",
+  gps: "GPS",
+  field_values_json: "Field Values (JSON)",
+  submission_id: "Submission ID",
+};
+
 const ALTERNATE_GROUP_LABELS: Record<string, string> = {
   group_name: "Group Name",
   group_status: "Verification Status",
@@ -146,6 +165,7 @@ export const REPORT_COLUMN_LABELS: Record<FleetReportType, Record<string, string
   inventory: INVENTORY_LABELS,
   scans: SCAN_LABELS,
   "operator-check-ins": OPERATOR_CHECKIN_LABELS,
+  "quick-forms": QUICK_FORM_LABELS,
   "alternate-groups": ALTERNATE_GROUP_LABELS,
 };
 

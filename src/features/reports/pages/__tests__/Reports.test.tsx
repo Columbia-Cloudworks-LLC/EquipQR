@@ -160,11 +160,10 @@ describe('Reports page (Fleet Export Console)', () => {
     expect(screen.getByRole('heading', { name: 'Scan Evidence' })).toBeInTheDocument();
   });
 
-  it('features the Internal Work Order Packet with operation code and worksheets', () => {
+  it('features the Internal Work Order Packet with worksheets', () => {
     render(<Reports />);
 
     expect(screen.getAllByText('Internal Work Order Packet').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('EXP-02').length).toBeGreaterThan(0);
     expect(screen.getByText('Worksheets included')).toBeInTheDocument();
     expect(screen.getByText('Labor Detail')).toBeInTheDocument();
     expect(screen.getAllByText('6 WORKSHEETS').length).toBeGreaterThan(0);
@@ -182,8 +181,9 @@ describe('Reports page (Fleet Export Console)', () => {
     expect(screen.getAllByText('Fleet Asset Register').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Parts Inventory Snapshot').length).toBeGreaterThan(0);
     expect(screen.getAllByText('QR Scan Evidence Log').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Operator Daily Check-In Ledger').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Quick Form Submission Ledger').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Alternate Parts Cross-Reference').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('EXP-01').length).toBeGreaterThan(0);
   });
 
   it('shows direct quick and customize actions for CSV reports on desktop layout', () => {
@@ -224,7 +224,6 @@ describe('Reports page (Fleet Export Console)', () => {
     render(<Reports />);
 
     expect(screen.getByText('Access Restricted')).toBeInTheDocument();
-    expect(screen.getByText('AUTH-01')).toBeInTheDocument();
     expect(screen.queryByText('Fleet Asset Register')).not.toBeInTheDocument();
   });
 
@@ -244,11 +243,5 @@ describe('Reports page (Fleet Export Console)', () => {
 
     const statusStrip = screen.getByLabelText(/export console status/i);
     expect(within(statusStrip).getByText('Connected')).toBeInTheDocument();
-  });
-
-  it('renders the export protocol panel trigger', () => {
-    render(<Reports />);
-
-    expect(screen.getByText('Export Protocol')).toBeInTheDocument();
   });
 });

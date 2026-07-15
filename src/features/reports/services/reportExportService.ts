@@ -197,6 +197,23 @@ export async function getReportRecordCount(
         return count ?? 0;
       }
 
+      case 'quick-forms': {
+        let query = supabase
+          .from('quick_form_submissions')
+          .select('id', { count: 'exact', head: true })
+          .eq('organization_id', organizationId);
+
+        if (filters.dateRange?.from) {
+          query = query.gte('submitted_at', filters.dateRange.from);
+        }
+        if (filters.dateRange?.to) {
+          query = query.lte('submitted_at', filters.dateRange.to);
+        }
+
+        const { count } = await query;
+        return count ?? 0;
+      }
+
       case 'alternate-groups': {
         // Count members across all alternate groups for this organization
         // Each member (inventory item or part identifier) is one row in the export
