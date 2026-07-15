@@ -436,7 +436,7 @@ describe('WorkOrderDetails', () => {
     expect(imageSectionProps?.showPrivateNotes).toBe(true);
     expect(imageSectionProps?.primaryImageId).toBe('primary-img-1');
 
-    await userEvent.click(screen.getByRole('button', { name: /review & office details/i }));
+    await userEvent.click(screen.getByRole('button', { name: /timeline & office details/i }));
 
     expect(screen.getByText('Costs section')).toBeInTheDocument();
     expect(screen.getByText('PM info')).toBeInTheDocument();
