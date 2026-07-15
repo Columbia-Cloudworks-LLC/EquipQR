@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { ClipboardCheck, FileText, Plus, RotateCcw } from 'lucide-react';
-import { toast } from 'sonner';
 import Page from '@/components/layout/Page';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,6 +54,8 @@ import { operatorCheckinKeys } from '@/features/operator-check-ins/hooks/operato
 import type { OperatorChecklistTemplate } from '@/features/operator-check-ins/services/operatorChecklistTemplatesService';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
+import { useAppToast } from '@/hooks/useAppToast';
+import { useOperatorCheckinTemplateIdsWithSubmissions } from '@/features/operator-check-ins/hooks/useOperatorCheckinSubmissions';
 
 function OperatorChecklistTemplateSummaryHeader({
   name,
@@ -80,6 +81,7 @@ function OperatorChecklistTemplateSummaryHeader({
 
 export default function OperatorCheckInsPage() {
   const queryClient = useQueryClient();
+  const { success: showSuccessToast, error: showErrorToast } = useAppToast();
   const { currentOrganization } = useOrganization();
   const { hasRole } = usePermissions();
   const { selectedTeamId } = useSelectedTeam();
@@ -97,6 +99,8 @@ export default function OperatorCheckInsPage() {
     userTeamIds: isAdmin ? undefined : getUserTeamIds(),
     isOrgAdmin: isAdmin,
   });
+  const { data: templateIdsWithSubmissions = new Set<string>() } =
+    useOperatorCheckinTemplateIdsWithSubmissions(orgId);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [cloningStarterId, setCloningStarterId] = useState<string | null>(null);
@@ -137,11 +141,11 @@ export default function OperatorCheckInsPage() {
         description: materialized.description,
         templateData: materialized.templateData,
       });
-      toast.success(
-        `"${starter.name}" cloned into your templates. You can edit it before assigning to equipment.`,
-      );
+      showSuccessToast({
+        description: `"${starter.name}" cloned into your templates. You can edit it before assigning to equipment.`,
+      });
     } catch {
-      toast.error('Unable to clone starter template.');
+      showErrorToast({ description: 'Unable to clone starter template.' });
     } finally {
       setCloningStarterId(null);
     }
@@ -191,18 +195,18 @@ export default function OperatorCheckInsPage() {
       }
 
       if (assignedCount > 0) {
-        toast.success(
-          `Checklist assigned to ${assignedCount} equipment record${assignedCount === 1 ? '' : 's'}. QR link${qrLinksReady === 1 ? '' : 's'} ready — open each equipment QR Code dialog to print.`,
-        );
+        showSuccessToast({
+          description: `Checklist assigned to ${assignedCount} equipment record${assignedCount === 1 ? '' : 's'}. QR link${qrLinksReady === 1 ? '' : 's'} ready — open each equipment QR Code dialog to print.`,
+        });
       } else if (qrLinksReady > 0) {
-        toast.success(
-          `QR link${qrLinksReady === 1 ? '' : 's'} ready for ${qrLinksReady} equipment record${qrLinksReady === 1 ? '' : 's'}. Open QR Code on each equipment record to print.`,
-        );
+        showSuccessToast({
+          description: `QR link${qrLinksReady === 1 ? '' : 's'} ready for ${qrLinksReady} equipment record${qrLinksReady === 1 ? '' : 's'}. Open QR Code on each equipment record to print.`,
+        });
       } else {
-        toast.success('Selected equipment already has this checklist assigned.');
+        showSuccessToast({ description: 'Selected equipment already has this checklist assigned.' });
       }
     } catch {
-      toast.error('Unable to assign checklist to equipment.');
+      showErrorToast({ description: 'Unable to assign checklist to equipment.' });
     } finally {
       setAssigningTemplateId(null);
     }
@@ -213,19 +217,21 @@ export default function OperatorCheckInsPage() {
     try {
       const result = await deleteTemplateMutation.mutateAsync(templatePendingDelete.id);
       if (result.purged) {
-        toast.success(`"${templatePendingDelete.name}" deleted. It had no collected check-ins and was removed completely.`);
+        showSuccessToast({
+          description: `"${templatePendingDelete.name}" deleted. It had no collected check-ins and was removed completely.`,
+        });
       } else {
         const assignmentNote =
           result.disabledAssignmentCount > 0
             ? ` ${result.disabledAssignmentCount} equipment QR link${result.disabledAssignmentCount === 1 ? '' : 's'} disabled.`
             : '';
-        toast.success(
-          `"${templatePendingDelete.name}" archived.${assignmentNote} Collected check-ins remain in the Daily Ledger.`,
-        );
+        showSuccessToast({
+          description: `"${templatePendingDelete.name}" archived.${assignmentNote} Collected check-ins remain in the Daily Ledger.`,
+        });
       }
       setTemplatePendingDelete(null);
     } catch {
-      toast.error('Unable to delete template.');
+      showErrorToast({ description: 'Unable to delete template.' });
     }
   }
 
@@ -237,9 +243,11 @@ export default function OperatorCheckInsPage() {
         result.reenabledAssignmentCount > 0
           ? ` ${result.reenabledAssignmentCount} equipment QR link${result.reenabledAssignmentCount === 1 ? '' : 's'} re-enabled.`
           : '';
-      toast.success(`"${template.name}" restored.${assignmentNote}`);
+      showSuccessToast({
+        description: `"${template.name}" restored.${assignmentNote}`,
+      });
     } catch {
-      toast.error('Unable to restore template.');
+      showErrorToast({ description: 'Unable to restore template.' });
     } finally {
       setRestoringTemplateId(null);
     }
@@ -402,7 +410,10 @@ export default function OperatorCheckInsPage() {
                     <Badge variant="outline">{deletedTemplates.length} archived</Badge>
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
-                    {visibleDeletedTemplates.map((template) => (
+                    {visibleDeletedTemplates.map((template) => {
+                      const canRestore = templateIdsWithSubmissions.has(template.id);
+
+                      return (
                       <Card key={template.id}>
                         <OperatorChecklistTemplateSummaryHeader
                           name={template.name}
@@ -411,20 +422,33 @@ export default function OperatorCheckInsPage() {
                         />
                         <CardContent className="flex flex-wrap items-center justify-between gap-2">
                           <span className="text-sm text-muted-foreground">
-                            Historical ledger data is preserved. Restore to resume QR use.
+                            {canRestore
+                              ? 'Historical ledger data is preserved. Restore to resume QR use.'
+                              : 'No collected check-ins. Delete to remove this archived template completely.'}
                           </span>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={restoringTemplateId === template.id}
-                            onClick={() => void handleRestoreTemplate(template)}
-                          >
-                            <RotateCcw className="h-4 w-4 mr-2" />
-                            Restore
-                          </Button>
+                          {canRestore ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={restoringTemplateId === template.id}
+                              onClick={() => void handleRestoreTemplate(template)}
+                            >
+                              <RotateCcw className="h-4 w-4 mr-2" />
+                              Restore
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setTemplatePendingDelete(template)}
+                            >
+                              Delete
+                            </Button>
+                          )}
                         </CardContent>
                       </Card>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -438,6 +462,7 @@ export default function OperatorCheckInsPage() {
               organizationId={orgId}
               showDeletedCheckins={showDeletedCheckins}
               onShowDeletedCheckinsChange={setShowDeletedCheckins}
+              allowDeletedVisibilityToggle
             />
           )}
         </TabsContent>

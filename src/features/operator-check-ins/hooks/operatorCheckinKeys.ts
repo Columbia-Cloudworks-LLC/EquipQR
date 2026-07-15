@@ -10,4 +10,6 @@ export const operatorCheckinKeys = {
   token: (assignmentId: string) => [...operatorCheckinKeys.all, 'token', assignmentId] as const,
   submissions: (orgId: string, filtersKey: string) =>
     [...operatorCheckinKeys.all, 'submissions', orgId, filtersKey] as const,
+  templateIdsWithSubmissions: (orgId: string) =>
+    [...operatorCheckinKeys.all, 'template-ids-with-submissions', orgId] as const,
 };

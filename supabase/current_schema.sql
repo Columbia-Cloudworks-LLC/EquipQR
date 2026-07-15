@@ -24105,7 +24105,6 @@ GRANT ALL ON FUNCTION "public"."validate_operator_checkin_settings_org_refs"() T
 
 
 REVOKE ALL ON FUNCTION "public"."validate_operator_checkin_submission_org_refs"() FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."validate_operator_checkin_submission_org_refs"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."validate_operator_checkin_submission_org_refs"() TO "service_role";
 
 

@@ -41,6 +41,7 @@ interface OperatorCheckinLedgerPanelProps {
   equipmentName?: string;
   showDeletedCheckins?: boolean;
   onShowDeletedCheckinsChange?: (value: boolean) => void;
+  allowDeletedVisibilityToggle?: boolean;
 }
 
 const TEMPLATE_SELECT_ID = 'report-template-select';
@@ -58,6 +59,7 @@ export function OperatorCheckinLedgerPanel({
   equipmentName,
   showDeletedCheckins: showDeletedCheckinsProp,
   onShowDeletedCheckinsChange,
+  allowDeletedVisibilityToggle = false,
 }: OperatorCheckinLedgerPanelProps) {
   const isEquipmentScoped = Boolean(equipmentId);
   const { formatDateTime } = useFormatTimestamp();
@@ -292,7 +294,7 @@ export function OperatorCheckinLedgerPanel({
 
   const scopeControls = (
     <div className="space-y-3">
-      {!isShowDeletedControlled && (
+      {!isShowDeletedControlled && allowDeletedVisibilityToggle && (
         <div className="flex items-center justify-between gap-3 rounded-md border border-dashed px-3 py-2">
           <Label htmlFor="show-deleted-checkins-ledger" className="text-sm font-normal">
             Show deleted check-ins

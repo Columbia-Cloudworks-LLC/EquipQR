@@ -54,6 +54,19 @@ vi.mock('@/features/operator-check-ins/hooks/useOperatorCheckinSettings', () => 
   }),
 }));
 
+vi.mock('@/features/operator-check-ins/hooks/useOperatorCheckinSubmissions', () => ({
+  useOperatorCheckinTemplateIdsWithSubmissions: () => ({
+    data: new Set(['template-deleted']),
+  }),
+}));
+
+vi.mock('@/hooks/useAppToast', () => ({
+  useAppToast: () => ({
+    success: vi.fn(),
+    error: vi.fn(),
+  }),
+}));
+
 vi.mock('@/features/operator-check-ins/components/OperatorChecklistTemplateDialog', () => ({
   OperatorChecklistTemplateDialog: () => null,
 }));
@@ -150,6 +163,29 @@ describe('OperatorCheckInsPage', () => {
 
     expect(screen.getByText('Retired Checklist')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Restore/i })).toBeInTheDocument();
+  });
+
+  it('offers delete instead of restore for archived templates without ledger submissions', () => {
+    mockUseOperatorChecklistTemplates.mockReturnValue({
+      data: [
+        {
+          id: 'template-deleted-unused',
+          name: 'Unused Archived',
+          description: null,
+          is_active: false,
+          template_data: { dataFields: [], checklistItems: [] },
+        },
+      ],
+      isLoading: false,
+    });
+
+    render(<OperatorCheckInsPage />);
+
+    fireEvent.click(screen.getByRole('switch', { name: /Show deleted check-ins/i }));
+
+    expect(screen.getByText('Unused Archived')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Delete$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Restore/i })).not.toBeInTheDocument();
   });
 
   it('links to the Daily Operator Check-Ins help guide', () => {

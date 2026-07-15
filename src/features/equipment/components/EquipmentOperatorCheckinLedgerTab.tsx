@@ -31,6 +31,7 @@ function EquipmentOperatorCheckinLedgerTab({
         organizationId={organizationId}
         equipmentId={equipmentId}
         equipmentName={equipmentName}
+        allowDeletedVisibilityToggle={isAdmin}
       />
     </div>
   );

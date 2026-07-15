@@ -36,6 +36,7 @@ CREATE TRIGGER trg_validate_operator_checkin_submission_org_refs
 
 REVOKE ALL ON FUNCTION public.validate_operator_checkin_submission_org_refs() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.validate_operator_checkin_submission_org_refs() FROM anon;
+REVOKE ALL ON FUNCTION public.validate_operator_checkin_submission_org_refs() FROM authenticated;
 
 -- rpc-authenticated-grant-allowed: delete_operator_checklist_template
 CREATE OR REPLACE FUNCTION public.delete_operator_checklist_template(p_template_id uuid)
