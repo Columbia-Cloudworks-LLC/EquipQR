@@ -92,6 +92,8 @@
     "respond_to_workspace_personal_org_merge",
     "revert_pm_completion",
     "delete_operator_checklist_template",
+    "list_operator_checkin_restorable_template_ids",
+    "restore_operator_checklist_template",
     "rotate_operator_checkin_token",
     "rotate_quick_form_token",
     "revert_work_order_status",

@@ -24,6 +24,8 @@ import {
   renameTemplate,
   resetPublicCheckinForm,
   selectLedgerReportTemplate,
+  setShowDeletedCheckins,
+  restoreTemplateFromConsole,
   STARTER_TEMPLATE_NAME,
   submitPublicCheckin,
   swipePublicChecklistItem,
@@ -144,6 +146,7 @@ test.describe.serial('Daily operator check-ins end-to-end @pr-evidence', () => {
     await deleteTemplateFromConsole(page, EVIDENCE_TEMPLATE_NAME);
 
     await openDailyLedgerTab(page);
+    await setShowDeletedCheckins(page, true);
     await selectLedgerReportTemplate(page, `${EVIDENCE_TEMPLATE_NAME} (deleted)`);
     await expectLedgerSubmissionVisible(page, 'Evidence Operator', seedEquipment.cat320.name);
 
@@ -158,6 +161,21 @@ test.describe.serial('Daily operator check-ins end-to-end @pr-evidence', () => {
     await evidencePause(disabledPage, 800);
     await evidenceScreenshot(disabledPage, '11-invalid-or-disabled-public-token-unavailable');
     await disabledContext.close();
+
+    await restoreTemplateFromConsole(page, EVIDENCE_TEMPLATE_NAME);
+
+    await openDailyLedgerTab(page);
+    await setShowDeletedCheckins(page, false);
+    await page.locator('#report-template-select').click();
+    await expect(page.getByRole('option', { name: EVIDENCE_TEMPLATE_NAME })).toBeVisible({
+      timeout: 15_000,
+    });
+    await page.keyboard.press('Escape');
+
+    await evidencePause(page, 800);
+    await evidenceScreenshot(page, '12-restored-template-active-in-ledger-picker', {
+      target: page.locator('#report-template-select'),
+    });
   });
 });
 
@@ -172,7 +190,11 @@ test.describe('Daily operator check-ins access @pr-evidence', () => {
     ).toBeVisible({ timeout: 30_000 });
 
     await evidencePause(page, 800);
-    await evidenceScreenshot(page, '12-non-admin-management-denied');
+    await evidenceScreenshot(page, '13-non-admin-management-denied', {
+      target: page.getByText(
+        /only organization owners and administrators can manage operator daily check-ins/i,
+      ),
+    });
     await context.close();
   });
 });

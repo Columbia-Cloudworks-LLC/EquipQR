@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -22,6 +23,7 @@ import {
   buildEquipmentScopeLabel,
   buildLedgerSubmissionFilters,
   createDefaultLedgerDateRange,
+  filterVisibleOperatorCheckinTemplates,
   formatLedgerDateRangeLabel,
   getAssignedEquipmentForTemplate,
   getReportTemplatesForEquipment,
@@ -37,6 +39,9 @@ interface OperatorCheckinLedgerPanelProps {
   organizationId: string;
   equipmentId?: string;
   equipmentName?: string;
+  showDeletedCheckins?: boolean;
+  onShowDeletedCheckinsChange?: (value: boolean) => void;
+  allowDeletedVisibilityToggle?: boolean;
 }
 
 const TEMPLATE_SELECT_ID = 'report-template-select';
@@ -52,6 +57,9 @@ export function OperatorCheckinLedgerPanel({
   organizationId,
   equipmentId,
   equipmentName,
+  showDeletedCheckins: showDeletedCheckinsProp,
+  onShowDeletedCheckinsChange,
+  allowDeletedVisibilityToggle = false,
 }: OperatorCheckinLedgerPanelProps) {
   const isEquipmentScoped = Boolean(equipmentId);
   const { formatDateTime } = useFormatTimestamp();
@@ -62,6 +70,15 @@ export function OperatorCheckinLedgerPanel({
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [selectedEquipmentIds, setSelectedEquipmentIds] = useState<string[]>([]);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [internalShowDeletedCheckins, setInternalShowDeletedCheckins] = useState(false);
+  const isShowDeletedControlled =
+    showDeletedCheckinsProp !== undefined && onShowDeletedCheckinsChange !== undefined;
+  const showDeletedCheckins = isShowDeletedControlled
+    ? showDeletedCheckinsProp
+    : internalShowDeletedCheckins;
+  const setShowDeletedCheckins = isShowDeletedControlled
+    ? onShowDeletedCheckinsChange
+    : setInternalShowDeletedCheckins;
 
   const dateRange = useMemo(
     () => normalizeLedgerDateRange(startDate, endDate),
@@ -79,9 +96,17 @@ export function OperatorCheckinLedgerPanel({
   );
 
   const reportTemplates = useMemo(() => {
-    if (!isEquipmentScoped) return templates;
-    return getReportTemplatesForEquipment(templates, assignments, equipmentId);
-  }, [assignments, equipmentId, isEquipmentScoped, templates]);
+    const scopedTemplates = isEquipmentScoped
+      ? getReportTemplatesForEquipment(templates, assignments, equipmentId)
+      : templates;
+    return filterVisibleOperatorCheckinTemplates(scopedTemplates, showDeletedCheckins);
+  }, [assignments, equipmentId, isEquipmentScoped, showDeletedCheckins, templates]);
+
+  useEffect(() => {
+    if (!selectedTemplateId) return;
+    if (reportTemplates.some((template) => template.id === selectedTemplateId)) return;
+    setSelectedTemplateId('');
+  }, [reportTemplates, selectedTemplateId]);
 
   const selectedTemplate = useMemo(
     () => reportTemplates.find((template) => template.id === selectedTemplateId) ?? null,
@@ -268,12 +293,27 @@ export function OperatorCheckinLedgerPanel({
   }
 
   const scopeControls = (
-    <div
-      className={cn(
-        'grid gap-3',
-        isEquipmentScoped ? 'sm:grid-cols-2' : 'sm:grid-cols-2 xl:grid-cols-4',
+    <div className="space-y-3">
+      {!isShowDeletedControlled && allowDeletedVisibilityToggle && (
+        <div className="flex items-center justify-between gap-3 rounded-md border border-dashed px-3 py-2">
+          <Label htmlFor="show-deleted-checkins-ledger" className="text-sm font-normal">
+            Show deleted check-ins
+          </Label>
+          <Switch
+            id="show-deleted-checkins-ledger"
+            checked={showDeletedCheckins}
+            onCheckedChange={setShowDeletedCheckins}
+            aria-label="Show deleted check-ins"
+          />
+        </div>
       )}
-    >
+
+      <div
+        className={cn(
+          'grid gap-3',
+          isEquipmentScoped ? 'sm:grid-cols-2' : 'sm:grid-cols-2 xl:grid-cols-4',
+        )}
+      >
       <div className="space-y-1.5">
         <Label id={TEMPLATE_LABEL_ID} htmlFor={TEMPLATE_SELECT_ID} className="text-xs">
           Report template
@@ -315,6 +355,7 @@ export function OperatorCheckinLedgerPanel({
           />
         </div>
       )}
+    </div>
     </div>
   );
 

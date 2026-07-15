@@ -4,6 +4,7 @@ import {
   deleteOperatorChecklistTemplate,
   getOperatorChecklistTemplate,
   listOperatorChecklistTemplates,
+  restoreOperatorChecklistTemplate,
   updateOperatorChecklistTemplate,
 } from '@/features/operator-check-ins/services/operatorChecklistTemplatesService';
 import { operatorCheckinKeys } from '@/features/operator-check-ins/hooks/operatorCheckinKeys';
@@ -67,6 +68,22 @@ export function useDeleteOperatorChecklistTemplate(organizationId: string | unde
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteOperatorChecklistTemplate,
+    onSuccess: (_data, templateId) => {
+      if (organizationId) {
+        void queryClient.invalidateQueries({ queryKey: operatorCheckinKeys.templates(organizationId) });
+        void queryClient.invalidateQueries({
+          queryKey: operatorCheckinKeys.organizationAssignments(organizationId),
+        });
+      }
+      void queryClient.invalidateQueries({ queryKey: operatorCheckinKeys.template(templateId) });
+    },
+  });
+}
+
+export function useRestoreOperatorChecklistTemplate(organizationId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: restoreOperatorChecklistTemplate,
     onSuccess: (_data, templateId) => {
       if (organizationId) {
         void queryClient.invalidateQueries({ queryKey: operatorCheckinKeys.templates(organizationId) });

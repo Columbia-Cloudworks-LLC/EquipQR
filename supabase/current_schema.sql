@@ -4514,6 +4514,7 @@ CREATE OR REPLACE FUNCTION "public"."delete_operator_checklist_template"("p_temp
 DECLARE
   v_org_id uuid;
   v_disabled_count integer;
+  v_has_submissions boolean;
 BEGIN
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'Authentication required';
@@ -4521,7 +4522,8 @@ BEGIN
 
   SELECT organization_id INTO v_org_id
   FROM public.operator_checklist_templates
-  WHERE id = p_template_id;
+  WHERE id = p_template_id
+  FOR UPDATE;
 
   IF v_org_id IS NULL THEN
     RAISE EXCEPTION 'Template not found';
@@ -4529,6 +4531,44 @@ BEGIN
 
   IF NOT public.is_org_admin(auth.uid(), v_org_id) THEN
     RAISE EXCEPTION 'Forbidden';
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.operator_checkin_submissions
+    WHERE template_id = p_template_id
+      AND organization_id = v_org_id
+  ) INTO v_has_submissions;
+
+  IF NOT v_has_submissions THEN
+    IF EXISTS (
+      SELECT 1
+      FROM public.operator_checkin_submissions
+      WHERE template_id = p_template_id
+        AND organization_id IS DISTINCT FROM v_org_id
+    ) THEN
+      RAISE EXCEPTION 'Cannot purge template: cross-organization submission references detected';
+    END IF;
+
+    DELETE FROM public.equipment_operator_checkin_settings
+    WHERE template_id = p_template_id
+      AND organization_id = v_org_id;
+
+    DELETE FROM public.operator_checklist_templates
+    WHERE id = p_template_id
+      AND organization_id = v_org_id
+      AND NOT EXISTS (
+        SELECT 1
+        FROM public.operator_checkin_submissions
+        WHERE template_id = p_template_id
+          AND organization_id = v_org_id
+      );
+
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Template purge blocked: submissions exist';
+    END IF;
+
+    RETURN -1;
   END IF;
 
   UPDATE public.equipment_operator_checkin_settings
@@ -9485,6 +9525,40 @@ COMMENT ON FUNCTION "public"."list_active_stripe_subscriptions"() IS 'Returns ac
 
 
 
+CREATE OR REPLACE FUNCTION "public"."list_operator_checkin_restorable_template_ids"("p_organization_id" "uuid", "p_template_ids" "uuid"[] DEFAULT NULL::"uuid"[]) RETURNS "uuid"[]
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required';
+  END IF;
+
+  IF NOT public.is_org_admin(auth.uid(), p_organization_id) THEN
+    RAISE EXCEPTION 'Forbidden';
+  END IF;
+
+  RETURN COALESCE(
+    ARRAY(
+      SELECT DISTINCT submission.template_id
+      FROM public.operator_checkin_submissions AS submission
+      WHERE submission.organization_id = p_organization_id
+        AND submission.template_id IS NOT NULL
+        AND (
+          p_template_ids IS NULL
+          OR cardinality(p_template_ids) = 0
+          OR submission.template_id = ANY(p_template_ids)
+        )
+    ),
+    '{}'::uuid[]
+  );
+END;
+$$;
+
+
+ALTER FUNCTION "public"."list_operator_checkin_restorable_template_ids"("p_organization_id" "uuid", "p_template_ids" "uuid"[]) OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."list_pm_templates"() RETURNS TABLE("template_name" "text", "item_count" bigint, "is_global" boolean)
     LANGUAGE "plpgsql" STABLE
     SET "search_path" TO ''
@@ -13405,6 +13479,80 @@ COMMENT ON FUNCTION "public"."respond_to_workspace_personal_org_merge"("p_reques
 
 
 
+CREATE OR REPLACE FUNCTION "public"."restore_operator_checklist_template"("p_template_id" "uuid") RETURNS integer
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+DECLARE
+  v_org_id uuid;
+  v_has_submissions boolean;
+  v_reenabled_count integer;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Authentication required';
+  END IF;
+
+  SELECT organization_id INTO v_org_id
+  FROM public.operator_checklist_templates
+  WHERE id = p_template_id
+  FOR UPDATE;
+
+  IF v_org_id IS NULL THEN
+    RAISE EXCEPTION 'Template not found';
+  END IF;
+
+  IF NOT public.is_org_admin(auth.uid(), v_org_id) THEN
+    RAISE EXCEPTION 'Forbidden';
+  END IF;
+
+  IF (SELECT is_active FROM public.operator_checklist_templates WHERE id = p_template_id) THEN
+    RAISE EXCEPTION 'Template is already active';
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.operator_checkin_submissions
+    WHERE template_id = p_template_id
+      AND organization_id = v_org_id
+  ) INTO v_has_submissions;
+
+  IF NOT v_has_submissions THEN
+    IF EXISTS (
+      SELECT 1
+      FROM public.operator_checkin_submissions
+      WHERE template_id = p_template_id
+        AND organization_id IS DISTINCT FROM v_org_id
+    ) THEN
+      RAISE EXCEPTION 'Cannot restore template: cross-organization submission references detected';
+    END IF;
+
+    RAISE EXCEPTION 'Cannot restore template without ledger submissions';
+  END IF;
+
+  UPDATE public.operator_checklist_templates
+  SET is_active = true,
+      updated_by = auth.uid(),
+      updated_at = now()
+  WHERE id = p_template_id
+    AND organization_id = v_org_id;
+
+  UPDATE public.equipment_operator_checkin_settings
+  SET enabled = true,
+      updated_at = now()
+  WHERE template_id = p_template_id
+    AND organization_id = v_org_id
+    AND enabled = false;
+
+  GET DIAGNOSTICS v_reenabled_count = ROW_COUNT;
+
+  RETURN v_reenabled_count;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."restore_operator_checklist_template"("p_template_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."revert_pm_completion"("p_pm_id" "uuid", "p_reason" "text" DEFAULT 'Reverted by admin'::"text") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -15396,6 +15544,29 @@ $$;
 
 
 ALTER FUNCTION "public"."validate_operator_checkin_settings_org_refs"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."validate_operator_checkin_submission_org_refs"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'public'
+    AS $$
+BEGIN
+  IF NEW.template_id IS NOT NULL
+    AND NOT EXISTS (
+      SELECT 1
+      FROM public.operator_checklist_templates tpl
+      WHERE tpl.id = NEW.template_id
+        AND tpl.organization_id = NEW.organization_id
+    ) THEN
+    RAISE EXCEPTION 'template submission organization mismatch';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."validate_operator_checkin_submission_org_refs"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."validate_quickbooks_oauth_session"("p_session_token" "text") RETURNS TABLE("organization_id" "uuid", "user_id" "uuid", "nonce" "text", "redirect_url" "text", "origin_url" "text", "is_valid" boolean)
@@ -17991,6 +18162,11 @@ ALTER TABLE ONLY "public"."operator_checkin_token_secrets"
 
 
 ALTER TABLE ONLY "public"."operator_checklist_templates"
+    ADD CONSTRAINT "operator_checklist_templates_id_organization_id_key" UNIQUE ("id", "organization_id");
+
+
+
+ALTER TABLE ONLY "public"."operator_checklist_templates"
     ADD CONSTRAINT "operator_checklist_templates_pkey" PRIMARY KEY ("id");
 
 
@@ -18616,6 +18792,10 @@ CREATE INDEX "idx_operator_checkin_submissions_equipment_submitted" ON "public".
 
 
 CREATE INDEX "idx_operator_checkin_submissions_org_submitted" ON "public"."operator_checkin_submissions" USING "btree" ("organization_id", "submitted_at" DESC);
+
+
+
+CREATE INDEX "idx_operator_checkin_submissions_template_id_organization_id" ON "public"."operator_checkin_submissions" USING "btree" ("template_id", "organization_id") WHERE ("template_id" IS NOT NULL);
 
 
 
@@ -19427,6 +19607,10 @@ CREATE OR REPLACE TRIGGER "trg_validate_operator_checkin_settings_org_refs" BEFO
 
 
 
+CREATE OR REPLACE TRIGGER "trg_validate_operator_checkin_submission_org_refs" BEFORE INSERT OR UPDATE OF "template_id", "organization_id" ON "public"."operator_checkin_submissions" FOR EACH ROW EXECUTE FUNCTION "public"."validate_operator_checkin_submission_org_refs"();
+
+
+
 CREATE OR REPLACE TRIGGER "trg_validate_work_order_assignee" BEFORE INSERT OR UPDATE ON "public"."work_orders" FOR EACH ROW EXECUTE FUNCTION "public"."validate_work_order_assignee"();
 
 
@@ -19860,7 +20044,7 @@ ALTER TABLE ONLY "public"."operator_checkin_submissions"
 
 
 ALTER TABLE ONLY "public"."operator_checkin_submissions"
-    ADD CONSTRAINT "operator_checkin_submissions_template_id_fkey" FOREIGN KEY ("template_id") REFERENCES "public"."operator_checklist_templates"("id") ON DELETE SET NULL;
+    ADD CONSTRAINT "operator_checkin_submissions_template_organization_fkey" FOREIGN KEY ("template_id", "organization_id") REFERENCES "public"."operator_checklist_templates"("id", "organization_id") ON DELETE RESTRICT;
 
 
 
@@ -22957,7 +23141,6 @@ GRANT ALL ON FUNCTION "public"."delete_manual_external_customer_contact"("p_orga
 
 
 REVOKE ALL ON FUNCTION "public"."delete_operator_checklist_template"("p_template_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."delete_operator_checklist_template"("p_template_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."delete_operator_checklist_template"("p_template_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."delete_operator_checklist_template"("p_template_id" "uuid") TO "service_role";
 
@@ -23463,6 +23646,12 @@ GRANT ALL ON FUNCTION "public"."list_active_stripe_subscriptions"() TO "service_
 
 
 
+REVOKE ALL ON FUNCTION "public"."list_operator_checkin_restorable_template_ids"("p_organization_id" "uuid", "p_template_ids" "uuid"[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."list_operator_checkin_restorable_template_ids"("p_organization_id" "uuid", "p_template_ids" "uuid"[]) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."list_operator_checkin_restorable_template_ids"("p_organization_id" "uuid", "p_template_ids" "uuid"[]) TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."list_pm_templates"() TO "anon";
 GRANT ALL ON FUNCTION "public"."list_pm_templates"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."list_pm_templates"() TO "service_role";
@@ -23700,6 +23889,12 @@ GRANT ALL ON FUNCTION "public"."respond_to_ownership_transfer"("p_transfer_id" "
 REVOKE ALL ON FUNCTION "public"."respond_to_workspace_personal_org_merge"("p_request_id" "uuid", "p_accept" boolean, "p_response_reason" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."respond_to_workspace_personal_org_merge"("p_request_id" "uuid", "p_accept" boolean, "p_response_reason" "text") TO "service_role";
 GRANT ALL ON FUNCTION "public"."respond_to_workspace_personal_org_merge"("p_request_id" "uuid", "p_accept" boolean, "p_response_reason" "text") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."restore_operator_checklist_template"("p_template_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."restore_operator_checklist_template"("p_template_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."restore_operator_checklist_template"("p_template_id" "uuid") TO "service_role";
 
 
 
@@ -23963,6 +24158,11 @@ GRANT ALL ON FUNCTION "public"."validate_member_limit"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."validate_operator_checkin_settings_org_refs"() TO "anon";
 GRANT ALL ON FUNCTION "public"."validate_operator_checkin_settings_org_refs"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."validate_operator_checkin_settings_org_refs"() TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."validate_operator_checkin_submission_org_refs"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."validate_operator_checkin_submission_org_refs"() TO "service_role";
 
 
 

@@ -125,6 +125,15 @@ export interface OperatorChecklistTemplateSummary {
   is_active: boolean;
 }
 
+/** Active templates plus archived templates only when the admin opts in. */
+export function filterVisibleOperatorCheckinTemplates<T extends OperatorChecklistTemplateSummary>(
+  templates: T[],
+  showDeleted: boolean,
+): T[] {
+  if (showDeleted) return templates;
+  return templates.filter((template) => template.is_active);
+}
+
 /** Report templates that have at least one assignment row for the equipment (including disabled). */
 export function getReportTemplatesForEquipment<T extends OperatorChecklistTemplateSummary>(
   templates: T[],

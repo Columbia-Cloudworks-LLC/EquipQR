@@ -322,6 +322,20 @@ export async function openDailyLedgerTab(page: Page): Promise<void> {
   await expect(page.getByLabel(/^report template$/i)).toBeVisible({ timeout: 30_000 });
 }
 
+export async function setShowDeletedCheckins(page: Page, enabled: boolean): Promise<void> {
+  const toggle = page.getByRole('switch', { name: /show deleted check-ins/i }).first();
+  await expect(toggle).toBeVisible({ timeout: 15_000 });
+  const isChecked = await toggle.isChecked();
+  if (isChecked !== enabled) {
+    await toggle.click();
+  }
+  if (enabled) {
+    await expect(toggle).toBeChecked({ timeout: 15_000 });
+  } else {
+    await expect(toggle).not.toBeChecked({ timeout: 15_000 });
+  }
+}
+
 export async function selectLedgerReportTemplate(page: Page, templateName: string): Promise<void> {
   await page.locator('#report-template-select').click();
   const listbox = page.getByRole('listbox');
@@ -334,8 +348,9 @@ export async function expectLedgerSubmissionVisible(
   operatorName: string,
   equipmentName: string,
 ): Promise<void> {
-  await expect(page.getByText(operatorName).first()).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByText(equipmentName).first()).toBeVisible({ timeout: 30_000 });
+  const desktopTable = page.getByTestId('ledger-desktop-table');
+  await expect(desktopTable.getByText(operatorName).first()).toBeVisible({ timeout: 30_000 });
+  await expect(desktopTable.getByText(equipmentName).first()).toBeVisible({ timeout: 30_000 });
 }
 
 export async function deleteTemplateFromConsole(page: Page, templateName: string): Promise<void> {
@@ -350,4 +365,20 @@ export async function deleteTemplateFromConsole(page: Page, templateName: string
   await dialog.getByRole('button', { name: /delete template/i }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
   await expect(getYourTemplateCard(page, templateName)).toHaveCount(0, { timeout: 30_000 });
+}
+
+export async function restoreTemplateFromConsole(page: Page, templateName: string): Promise<void> {
+  await setShowDeletedCheckins(page, true);
+  await page.getByRole('tab', { name: /^templates$/i }).click();
+  const deletedCard = page
+    .getByRole('heading', { name: /^deleted check-ins$/i })
+    .locator('..')
+    .locator('..')
+    .locator('div.grid')
+    .locator('> div')
+    .filter({ hasText: templateName })
+    .first();
+  await expect(deletedCard).toBeVisible({ timeout: 30_000 });
+  await deletedCard.getByRole('button', { name: /^restore$/i }).click();
+  await expect(getYourTemplateCard(page, templateName)).toBeVisible({ timeout: 30_000 });
 }

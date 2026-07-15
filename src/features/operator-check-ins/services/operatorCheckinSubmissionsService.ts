@@ -1,6 +1,27 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { CapturedFieldValue, OperatorChecklistAnswer } from '@/features/operator-check-ins/types/operatorChecklist';
 
+export async function listOperatorCheckinTemplateIdsWithSubmissions(
+  organizationId: string,
+  templateIds?: string[],
+): Promise<Set<string>> {
+  if (templateIds && templateIds.length === 0) {
+    return new Set();
+  }
+
+  const { data, error } = await supabase.rpc('list_operator_checkin_restorable_template_ids', {
+    p_organization_id: organizationId,
+    p_template_ids: templateIds && templateIds.length > 0 ? templateIds : null,
+  });
+
+  if (error) throw error;
+
+  return new Set(
+    (Array.isArray(data) ? data : [])
+      .filter((templateId): templateId is string => typeof templateId === 'string' && templateId.length > 0),
+  );
+}
+
 export interface OperatorCheckinSubmission {
   id: string;
   organization_id: string;

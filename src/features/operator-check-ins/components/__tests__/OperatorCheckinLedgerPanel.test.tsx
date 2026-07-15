@@ -257,7 +257,66 @@ describe('OperatorCheckinLedgerPanel', () => {
     );
   });
 
-  it('includes deleted templates and disabled assignments for historical ledger review', async () => {
+  it('hides deleted templates by default in the ledger picker', async () => {
+    mockUseOperatorChecklistTemplates.mockReturnValue({
+      data: [
+        {
+          id: 'template-active',
+          name: 'Active Checklist',
+          is_active: true,
+          template_data: { checklistItems: [], dataFields: [] },
+        },
+        {
+          id: 'template-deleted',
+          name: 'Retired Checklist',
+          is_active: false,
+          template_data: { checklistItems: [], dataFields: [] },
+        },
+      ],
+      isLoading: false,
+    });
+    mockUseOrganizationOperatorCheckinAssignments.mockReturnValue({
+      data: [
+        {
+          id: 'assignment-active',
+          organization_id: 'org-1',
+          equipment_id: 'eq-active',
+          template_id: 'template-active',
+          enabled: true,
+          equipment: { id: 'eq-active', name: 'Active Truck', serial_number: 'SN-A' },
+        },
+        {
+          id: 'assignment-retired',
+          organization_id: 'org-1',
+          equipment_id: 'eq-retired',
+          template_id: 'template-deleted',
+          enabled: false,
+          equipment: { id: 'eq-retired', name: 'Retired Truck', serial_number: 'SN-R' },
+        },
+      ],
+      isLoading: false,
+    });
+
+    render(<OperatorCheckinLedgerPanel organizationId="org-1" />);
+
+    fireEvent.click(screen.getByRole('combobox', { name: /Report template/i }));
+    expect(await screen.findByRole('option', { name: 'Active Checklist' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Retired Checklist (deleted)' })).not.toBeInTheDocument();
+  });
+
+  it('hides the show-deleted toggle for non-admin equipment ledger views', () => {
+    render(
+      <OperatorCheckinLedgerPanel
+        organizationId="org-1"
+        equipmentId="eq-1"
+        equipmentName="Truck 101"
+      />,
+    );
+
+    expect(screen.queryByRole('switch', { name: /Show deleted check-ins/i })).not.toBeInTheDocument();
+  });
+
+  it('shows deleted templates when the show-deleted toggle is enabled', async () => {
     mockUseOperatorChecklistTemplates.mockReturnValue({
       data: [
         {
@@ -283,8 +342,9 @@ describe('OperatorCheckinLedgerPanel', () => {
       isLoading: false,
     });
 
-    render(<OperatorCheckinLedgerPanel organizationId="org-1" />);
+    render(<OperatorCheckinLedgerPanel organizationId="org-1" allowDeletedVisibilityToggle />);
 
+    fireEvent.click(screen.getByRole('switch', { name: /Show deleted check-ins/i }));
     fireEvent.click(screen.getByRole('combobox', { name: /Report template/i }));
     fireEvent.click(await screen.findByRole('option', { name: 'Retired Checklist (deleted)' }));
 

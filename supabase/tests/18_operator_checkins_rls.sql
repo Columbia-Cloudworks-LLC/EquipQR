@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(23);
+SELECT plan(35);
 
 -- ============================================
 -- Test: operator check-in domain RLS (#1091)
@@ -59,6 +59,7 @@ INSERT INTO public.operator_checklist_templates (id, organization_id, name, temp
 VALUES
   ('31000000-cccc-0000-0000-000000000001'::uuid, '31000000-aaaa-0000-0000-000000000001'::uuid, 'Daily Truck Check', '{"checklistItems":[{"id":"i1","title":"Brakes","required":true,"section":"Safety"}],"dataFields":[{"id":"f1","label":"Your name","source":"operator_input","inputType":"text","required":true}]}'::jsonb, '31000000-0000-0000-0000-000000000001'::uuid),
   ('31000000-cccc-0000-0000-000000000003'::uuid, '31000000-aaaa-0000-0000-000000000001'::uuid, 'Odometer Log', '{"checklistItems":[],"dataFields":[{"id":"f2","label":"Odometer","source":"operator_input","inputType":"number","required":true}]}'::jsonb, '31000000-0000-0000-0000-000000000001'::uuid),
+  ('31000000-cccc-0000-0000-000000000004'::uuid, '31000000-aaaa-0000-0000-000000000001'::uuid, 'Purge Guard Template', '{"checklistItems":[],"dataFields":[]}'::jsonb, '31000000-0000-0000-0000-000000000001'::uuid),
   ('31000000-cccc-0000-0000-000000000002'::uuid, '31000000-aaaa-0000-0000-000000000002'::uuid, 'Org B Template', '{"checklistItems":[],"dataFields":[]}'::jsonb, '31000000-0000-0000-0000-000000000002'::uuid)
 ON CONFLICT (id) DO NOTHING;
 
@@ -213,8 +214,61 @@ SELECT throws_ok(
   'cross-org equipment assignment is rejected by org validation trigger'
 );
 
+SELECT throws_ok(
+  $$ INSERT INTO public.operator_checkin_submissions (
+       id, organization_id, equipment_id, template_id, settings_id,
+       submitted_at, template_snapshot, operator_field_values, client_field_values, equipment_field_values,
+       checklist_answers, is_complete, required_item_count, answered_required_count
+     ) VALUES (
+       '31000000-eeee-0000-0000-000000000099'::uuid,
+       '31000000-aaaa-0000-0000-000000000002'::uuid,
+       '31000000-bbbb-0000-0000-000000000002'::uuid,
+       '31000000-cccc-0000-0000-000000000001'::uuid,
+       '31000000-dddd-0000-0000-000000000002'::uuid,
+       NOW(), '{}'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, true, 0, 0
+     ) $$,
+  'template submission organization mismatch',
+  'cross-org submission insert is rejected by org validation trigger'
+);
+
 SET LOCAL role TO authenticated;
 SET LOCAL request.jwt.claim.sub TO '31000000-0000-0000-0000-000000000001';
+
+RESET role;
+
+-- Legacy cross-org fixture: composite FK normally rejects mismatched (template_id, organization_id).
+SET LOCAL session_replication_role = 'replica';
+
+INSERT INTO public.operator_checkin_submissions (
+  id, organization_id, equipment_id, template_id, settings_id,
+  submitted_at, template_snapshot, operator_field_values, client_field_values, equipment_field_values,
+  checklist_answers, is_complete, required_item_count, answered_required_count
+) VALUES (
+  '31000000-eeee-0000-0000-000000000098'::uuid,
+  '31000000-aaaa-0000-0000-000000000002'::uuid,
+  '31000000-bbbb-0000-0000-000000000002'::uuid,
+  '31000000-cccc-0000-0000-000000000004'::uuid,
+  '31000000-dddd-0000-0000-000000000002'::uuid,
+  NOW(), '{}'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, true, 0, 0
+);
+
+SET LOCAL session_replication_role = 'origin';
+
+SET LOCAL role TO authenticated;
+SET LOCAL request.jwt.claim.sub TO '31000000-0000-0000-0000-000000000001';
+
+SELECT throws_ok(
+  $$ SELECT public.delete_operator_checklist_template('31000000-cccc-0000-0000-000000000004'::uuid) $$,
+  'Cannot purge template: cross-organization submission references detected',
+  'purge rejects cross-org submission references without nulling template_id'
+);
+
+SELECT ok(
+  (SELECT template_id FROM public.operator_checkin_submissions
+    WHERE id = '31000000-eeee-0000-0000-000000000098'::uuid)
+    = '31000000-cccc-0000-0000-000000000004'::uuid,
+  'cross-org submission template_id is preserved when purge is rejected'
+);
 
 SELECT ok(
   public.delete_operator_checklist_template('31000000-cccc-0000-0000-000000000001'::uuid) = 1,
@@ -245,12 +299,58 @@ SELECT ok(
   'archived template public token is unavailable'
 );
 
+SELECT ok(
+  public.delete_operator_checklist_template('31000000-cccc-0000-0000-000000000003'::uuid) = -1,
+  'unused template delete purges template row'
+);
+
+SELECT ok(
+  (SELECT count(*)::int FROM public.operator_checklist_templates
+    WHERE id = '31000000-cccc-0000-0000-000000000003'::uuid) = 0,
+  'purged template is removed from operator_checklist_templates'
+);
+
+SELECT ok(
+  (SELECT count(*)::int FROM public.equipment_operator_checkin_settings
+    WHERE template_id = '31000000-cccc-0000-0000-000000000003'::uuid) = 0,
+  'purged template removes related equipment assignments'
+);
+
+SELECT ok(
+  public.restore_operator_checklist_template('31000000-cccc-0000-0000-000000000001'::uuid) = 1,
+  'org owner can restore archived template and re-enable assignments'
+);
+
+SELECT ok(
+  (SELECT is_active FROM public.operator_checklist_templates WHERE id = '31000000-cccc-0000-0000-000000000001'::uuid) = true,
+  'restored template is marked active again'
+);
+
+SELECT ok(
+  (SELECT count(*)::int FROM public.equipment_operator_checkin_settings
+    WHERE template_id = '31000000-cccc-0000-0000-000000000001'::uuid AND enabled = true) = 1,
+  'restored template re-enables related assignments'
+);
+
+SELECT ok(
+  public.resolve_operator_checkin_by_token(
+    encode(digest('test-token-a', 'sha256'), 'hex')
+  ) IS NOT NULL,
+  'restored template public token is available again'
+);
+
 SET LOCAL request.jwt.claim.sub TO '31000000-0000-0000-0000-000000000002';
 
 SELECT throws_ok(
   $$ SELECT public.delete_operator_checklist_template('31000000-cccc-0000-0000-000000000001'::uuid) $$,
   'Forbidden',
   'cross-org template archive is rejected'
+);
+
+SELECT throws_ok(
+  $$ SELECT public.restore_operator_checklist_template('31000000-cccc-0000-0000-000000000001'::uuid) $$,
+  'Forbidden',
+  'cross-org template restore is rejected'
 );
 
 RESET role;
@@ -279,6 +379,19 @@ SELECT ok(
       AND c.conname = 'equipment_operator_checkin_settings_template_org_fkey'
   ),
   'equipment_operator_checkin_settings has composite template/org foreign key'
+);
+
+SELECT ok(
+  EXISTS (
+    SELECT 1
+    FROM pg_constraint AS c
+    INNER JOIN pg_class AS t ON t.oid = c.conrelid
+    INNER JOIN pg_namespace AS n ON n.oid = t.relnamespace
+    WHERE n.nspname = 'public'
+      AND t.relname = 'operator_checkin_submissions'
+      AND c.conname = 'operator_checkin_submissions_template_organization_fkey'
+  ),
+  'operator_checkin_submissions has composite template/org foreign key'
 );
 
 SELECT * FROM finish();

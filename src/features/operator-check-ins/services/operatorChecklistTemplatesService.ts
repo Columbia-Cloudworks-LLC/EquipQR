@@ -109,15 +109,35 @@ export async function updateOperatorChecklistTemplate(
   return mapTemplateRow(data as Record<string, unknown>);
 }
 
+export interface DeleteOperatorChecklistTemplateResult {
+  purged: boolean;
+  disabledAssignmentCount: number;
+}
+
 export async function deleteOperatorChecklistTemplate(
   templateId: string,
-): Promise<{ disabledAssignmentCount: number }> {
+): Promise<DeleteOperatorChecklistTemplateResult> {
   const { data, error } = await supabase.rpc('delete_operator_checklist_template', {
     p_template_id: templateId,
   });
 
   if (error) throw error;
-  return { disabledAssignmentCount: typeof data === 'number' ? data : 0 };
+  const result = typeof data === 'number' ? data : 0;
+  return {
+    purged: result === -1,
+    disabledAssignmentCount: result === -1 ? 0 : result,
+  };
+}
+
+export async function restoreOperatorChecklistTemplate(
+  templateId: string,
+): Promise<{ reenabledAssignmentCount: number }> {
+  const { data, error } = await supabase.rpc('restore_operator_checklist_template', {
+    p_template_id: templateId,
+  });
+
+  if (error) throw error;
+  return { reenabledAssignmentCount: typeof data === 'number' ? data : 0 };
 }
 
 export function createDefaultTemplateData(): OperatorChecklistTemplateData {

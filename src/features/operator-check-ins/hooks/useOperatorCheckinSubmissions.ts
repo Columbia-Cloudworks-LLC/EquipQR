@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import {
   listOperatorCheckinSubmissions,
+  listOperatorCheckinTemplateIdsWithSubmissions,
   type OperatorCheckinSubmissionFilters,
 } from '@/features/operator-check-ins/services/operatorCheckinSubmissionsService';
 import { operatorCheckinKeys } from '@/features/operator-check-ins/hooks/operatorCheckinKeys';
@@ -18,5 +19,26 @@ export function useOperatorCheckinSubmissions(
     queryKey: operatorCheckinKeys.submissions(organizationId ?? '', filtersKey(filters)),
     queryFn: () => listOperatorCheckinSubmissions(organizationId!, filters),
     enabled: Boolean(organizationId) && queryEnabled,
+  });
+}
+
+export function useOperatorCheckinTemplateIdsWithSubmissions(
+  organizationId: string | undefined,
+  templateIds?: string[],
+  queryEnabled = true,
+) {
+  const scopedTemplateIds = templateIds ?? [];
+  return useQuery({
+    queryKey: [
+      ...operatorCheckinKeys.templateIdsWithSubmissions(organizationId ?? ''),
+      scopedTemplateIds.slice().sort().join(','),
+    ],
+    queryFn: () => {
+      if (!organizationId) {
+        throw new Error('organizationId is required to list operator check-in template submission ids');
+      }
+      return listOperatorCheckinTemplateIdsWithSubmissions(organizationId, scopedTemplateIds);
+    },
+    enabled: Boolean(organizationId) && queryEnabled && scopedTemplateIds.length > 0,
   });
 }

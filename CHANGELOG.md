@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.30] - 2026-07-14
+
+### Changed
+
+- **Daily Check-Ins (#1263)** — Unused templates are purged on delete; templates with ledger data are archived, hidden by default behind a "Show deleted check-ins" toggle, and restorable for ongoing QR use.
+
 ## [3.25.29] - 2026-07-14
 
 ### Fixed

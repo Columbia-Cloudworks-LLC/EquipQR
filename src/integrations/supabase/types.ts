@@ -6189,6 +6189,10 @@ export type Database = {
         }
         Returns: Json
       }
+      restore_operator_checklist_template: {
+        Args: { p_template_id: string }
+        Returns: number
+      }
       revert_pm_completion: {
         Args: { p_pm_id: string; p_reason?: string }
         Returns: Json

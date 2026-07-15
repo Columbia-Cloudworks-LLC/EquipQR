@@ -39,6 +39,10 @@ vi.mock('@/features/operator-check-ins/hooks/useOperatorChecklistTemplates', () 
     mutateAsync: mockDeleteTemplate,
     isPending: false,
   }),
+  useRestoreOperatorChecklistTemplate: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  }),
 }));
 
 vi.mock('@/features/operator-check-ins/hooks/useOperatorCheckinSettings', () => ({
@@ -47,6 +51,20 @@ vi.mock('@/features/operator-check-ins/hooks/useOperatorCheckinSettings', () => 
   useCreateEquipmentOperatorCheckinAssignment: () => ({
     mutateAsync: vi.fn(),
     isPending: false,
+  }),
+}));
+
+vi.mock('@/features/operator-check-ins/hooks/useOperatorCheckinSubmissions', () => ({
+  useOperatorCheckinTemplateIdsWithSubmissions: () => ({
+    data: new Set(['template-deleted']),
+    isLoading: false,
+  }),
+}));
+
+vi.mock('@/hooks/useAppToast', () => ({
+  useAppToast: () => ({
+    success: vi.fn(),
+    error: vi.fn(),
   }),
 }));
 
@@ -69,7 +87,7 @@ vi.mock('@/features/operator-check-ins/components/OperatorTemplateEquipmentAssig
 describe('OperatorCheckInsPage', () => {
   beforeEach(() => {
     mockDeleteTemplate.mockReset();
-    mockDeleteTemplate.mockResolvedValue({ disabledAssignmentCount: 1 });
+    mockDeleteTemplate.mockResolvedValue({ purged: false, disabledAssignmentCount: 1 });
     mockUseCreateOperatorChecklistTemplate.mockReturnValue({
       mutateAsync: vi.fn(),
       isPending: false,
@@ -105,7 +123,7 @@ describe('OperatorCheckInsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
 
     expect(
-      await screen.findByText(/Collected check-ins remain available in the Daily Ledger/i),
+      await screen.findByText(/Templates with collected check-ins are archived/i),
     ).toBeInTheDocument();
     expect(screen.getByText(/Existing QR links for this template will stop working/i)).toBeInTheDocument();
 
@@ -116,7 +134,7 @@ describe('OperatorCheckInsPage', () => {
     });
   });
 
-  it('does not show inactive templates in the active templates list', () => {
+  it('shows deleted templates only when the show-deleted toggle is enabled', () => {
     mockUseOperatorChecklistTemplates.mockReturnValue({
       data: [
         {
@@ -141,6 +159,34 @@ describe('OperatorCheckInsPage', () => {
 
     expect(screen.getByText('Active Checklist')).toBeInTheDocument();
     expect(screen.queryByText('Retired Checklist')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('switch', { name: /Show deleted check-ins/i }));
+
+    expect(screen.getByText('Retired Checklist')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Restore/i })).toBeInTheDocument();
+  });
+
+  it('offers delete instead of restore for archived templates without ledger submissions', () => {
+    mockUseOperatorChecklistTemplates.mockReturnValue({
+      data: [
+        {
+          id: 'template-deleted-unused',
+          name: 'Unused Archived',
+          description: null,
+          is_active: false,
+          template_data: { dataFields: [], checklistItems: [] },
+        },
+      ],
+      isLoading: false,
+    });
+
+    render(<OperatorCheckInsPage />);
+
+    fireEvent.click(screen.getByRole('switch', { name: /Show deleted check-ins/i }));
+
+    expect(screen.getByText('Unused Archived')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Delete$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Restore/i })).not.toBeInTheDocument();
   });
 
   it('links to the Daily Operator Check-Ins help guide', () => {
