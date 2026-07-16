@@ -109,7 +109,7 @@ function generateWorkbook(
     XLSX.utils.book_append_sheet(workbook, costsSheet, WORKSHEET_NAMES.COSTS);
   }
 
-  if (includeWorksheet("PM_CHECKLISTS") && allRows.pmRows.length > 0) {
+  if (includeWorksheet("PM_CHECKLISTS")) {
     const pmSheet = createWorksheet(
       [...WORKSHEET_HEADERS.PM_CHECKLISTS],
       allRows.pmRows,
