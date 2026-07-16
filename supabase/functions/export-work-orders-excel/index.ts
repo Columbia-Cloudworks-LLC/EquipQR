@@ -160,8 +160,24 @@ Deno.serve(async (req) => {
 
     const { supabase, user } = authContext;
 
-    const body: ExportRequest = await req.json();
+    let parsedBody: unknown;
+    try {
+      parsedBody = await req.json();
+    } catch {
+      return createErrorResponse('Invalid JSON body', 400);
+    }
+
+    if (parsedBody == null || typeof parsedBody !== 'object' || Array.isArray(parsedBody)) {
+      return createErrorResponse('Invalid request body', 400);
+    }
+
+    const body = parsedBody as ExportRequest;
     const { organizationId, filters: requestFilters } = body;
+
+    if (requestFilters != null && (typeof requestFilters !== 'object' || Array.isArray(requestFilters))) {
+      return createErrorResponse('Invalid filters', 400);
+    }
+
     const filters = requestFilters ?? { dateField: 'created_date' as const };
 
     if (!organizationId) {
