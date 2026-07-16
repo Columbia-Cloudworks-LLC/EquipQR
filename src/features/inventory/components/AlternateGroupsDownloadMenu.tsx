@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { ExportFormatMenuItems } from '@/components/common/ExportFormatMenuItems';
 import { Button } from '@/components/ui/button';
 import {
@@ -74,12 +74,11 @@ const AlternateGroupsDownloadMenu: React.FC<AlternateGroupsDownloadMenuProps> = 
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
-          size="sm"
-          className="h-8 gap-1.5 text-sm font-normal"
+          size="icon"
+          className="h-8 w-8"
           aria-label="Download alternate groups"
         >
-          Download
-          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+          <Download className="h-3.5 w-3.5" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">

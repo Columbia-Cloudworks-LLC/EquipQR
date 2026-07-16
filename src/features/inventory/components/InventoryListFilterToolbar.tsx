@@ -7,7 +7,6 @@ type InventoryListFilterToolbarProps = {
   isMobile: boolean;
   filters: InventoryFilters;
   uniqueLocations: string[];
-  resultCount: number;
   lowStockOrgWide: number;
   activeFilterCount: number;
   canExport: boolean;
@@ -25,7 +24,6 @@ export function InventoryListFilterToolbar({
   isMobile,
   filters,
   uniqueLocations,
-  resultCount,
   lowStockOrgWide,
   activeFilterCount,
   canExport,
@@ -53,7 +51,6 @@ export function InventoryListFilterToolbar({
     <InventoryToolbar
       filters={filters}
       uniqueLocations={uniqueLocations}
-      resultCount={resultCount}
       onFilterChange={onFilterChange}
       onClearFilters={onClearFilters}
       canExport={canExport}

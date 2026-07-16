@@ -22,11 +22,9 @@ interface AlternateGroupsToolbarProps {
   sortBy: GroupSortOption;
   onSortChange: (sort: GroupSortOption) => void;
   filteredGroups: PartAlternateGroup[];
-  totalCount: number;
   canEdit: boolean;
   viewMode?: AlternateGroupsViewMode;
   onViewModeChange?: (mode: AlternateGroupsViewMode) => void;
-  tableRowCount?: number;
 }
 
 const AlternateGroupsToolbar: React.FC<AlternateGroupsToolbarProps> = ({
@@ -37,11 +35,9 @@ const AlternateGroupsToolbar: React.FC<AlternateGroupsToolbarProps> = ({
   sortBy,
   onSortChange,
   filteredGroups,
-  totalCount,
   canEdit,
   viewMode = 'cards',
   onViewModeChange,
-  tableRowCount = 0,
 }) => {
   const activeFilterCount = statusFilter !== 'all' ? 1 : 0;
   const hasActiveFilters = activeFilterCount > 0;
@@ -50,127 +46,91 @@ const AlternateGroupsToolbar: React.FC<AlternateGroupsToolbarProps> = ({
     <div className="flex flex-col gap-2">
       {/* Single toolbar row */}
       <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
-        {/* Search */}
-        <div className="relative flex-1 max-w-[280px]">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-          <Input
-            placeholder={
-              viewMode === 'table'
-                ? 'Search groups or parts...'
-                : 'Search by name or description...'
-            }
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="h-8 pl-8 text-sm bg-transparent"
-            aria-label={
-              viewMode === 'table'
-                ? 'Search alternate groups or parts'
-                : 'Search alternate groups'
-            }
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          {/* Search */}
+          <div className="relative max-w-[280px] flex-1">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+            <Input
+              placeholder={
+                viewMode === 'table'
+                  ? 'Search groups or parts...'
+                  : 'Search by name or description...'
+              }
+              value={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="h-8 pl-8 text-sm bg-transparent"
+              aria-label={
+                viewMode === 'table'
+                  ? 'Search alternate groups or parts'
+                  : 'Search alternate groups'
+              }
+            />
+            {search && (
+              <button
+                onClick={() => onSearchChange('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          <Separator orientation="vertical" className="h-5" />
+
+          {/* Filter popover */}
+          <AlternateGroupsFilterPopover
+            statusFilter={statusFilter}
+            onStatusChange={onStatusChange}
+            activeFilterCount={activeFilterCount}
           />
-          {search && (
-            <button
-              onClick={() => onSearchChange('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              aria-label="Clear search"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
+
+          {/* Sort popover — card view only; table view sorts via column headers */}
+          {viewMode !== 'table' && (
+            <AlternateGroupsSortPopover sortBy={sortBy} onSortChange={onSortChange} />
           )}
         </div>
 
-        <Separator orientation="vertical" className="h-5" />
+        {(canEdit || onViewModeChange) && (
+          <div className="flex shrink-0 items-center gap-2">
+            {canEdit && <AlternateGroupsDownloadMenu groups={filteredGroups} />}
 
-        {/* Filter popover */}
-        <AlternateGroupsFilterPopover
-          statusFilter={statusFilter}
-          onStatusChange={onStatusChange}
-          activeFilterCount={activeFilterCount}
-        />
+            {canEdit && onViewModeChange && (
+              <Separator orientation="vertical" className="hidden md:block h-5" />
+            )}
 
-        {/* Sort popover — card view only; table view sorts via column headers */}
-        {viewMode !== 'table' && (
-          <AlternateGroupsSortPopover sortBy={sortBy} onSortChange={onSortChange} />
-        )}
-
-        {canEdit && (
-          <>
-            <Separator orientation="vertical" className="h-5" />
-            {/* Download menu */}
-            <AlternateGroupsDownloadMenu groups={filteredGroups} />
-          </>
-        )}
-
-        {onViewModeChange && (
-          <>
-            <Separator orientation="vertical" className="hidden md:block h-5" />
-            <div
-              className="hidden md:flex items-center rounded-md border"
-              role="radiogroup"
-              aria-label="View mode"
-            >
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn('h-8 w-8 rounded-r-none', viewMode === 'cards' && 'bg-muted')}
-                onClick={() => onViewModeChange('cards')}
-                aria-label="Card view"
-                aria-checked={viewMode === 'cards'}
-                role="radio"
+            {onViewModeChange && (
+              <div
+                className="hidden md:flex items-center rounded-md border"
+                role="radiogroup"
+                aria-label="View mode"
               >
-                <LayoutGrid className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn('h-8 w-8 rounded-l-none', viewMode === 'table' && 'bg-muted')}
-                onClick={() => onViewModeChange('table')}
-                aria-label="Table view"
-                aria-checked={viewMode === 'table'}
-                role="radio"
-              >
-                <Rows3 className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn('h-8 w-8 rounded-r-none', viewMode === 'cards' && 'bg-muted')}
+                  onClick={() => onViewModeChange('cards')}
+                  aria-label="Card view"
+                  aria-checked={viewMode === 'cards'}
+                  role="radio"
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn('h-8 w-8 rounded-l-none', viewMode === 'table' && 'bg-muted')}
+                  onClick={() => onViewModeChange('table')}
+                  aria-label="Table view"
+                  aria-checked={viewMode === 'table'}
+                  role="radio"
+                >
+                  <Rows3 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            )}
+          </div>
         )}
-
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Result count */}
-        <span
-          className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block"
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          {viewMode === 'table' ? (
-            <>
-              <span className="font-medium text-foreground">{tableRowCount}</span>
-              {' part'}{tableRowCount !== 1 ? 's' : ''}
-              {' in '}
-              <span className="font-medium text-foreground">{filteredGroups.length}</span>
-              {filteredGroups.length !== totalCount && (
-                <>
-                  {' / '}
-                  <span className="font-medium text-foreground">{totalCount}</span>
-                </>
-              )}
-              {' group'}{filteredGroups.length !== 1 ? 's' : ''}
-            </>
-          ) : (
-            <>
-              <span className="font-medium text-foreground">{filteredGroups.length}</span>
-              {filteredGroups.length !== totalCount && (
-                <>
-                  {' / '}
-                  <span className="font-medium text-foreground">{totalCount}</span>
-                </>
-              )}
-              {' group'}{filteredGroups.length !== 1 ? 's' : ''}
-            </>
-          )}
-        </span>
       </div>
 
       {/* Active filter badges row */}

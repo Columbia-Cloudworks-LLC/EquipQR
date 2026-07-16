@@ -191,10 +191,70 @@ describe('AlternateGroupsPage', () => {
 
       render(<AlternateGroupsPage />);
 
-      // Should show all groups
       mockGroups.forEach((group) => {
         expect(screen.getByText(group.name)).toBeInTheDocument();
       });
+    });
+
+    it('paginates card results instead of rendering every group at once', () => {
+      const manyGroups = Array.from({ length: 15 }, (_, index) => ({
+        ...partAlternateGroups.oilFilterGroup,
+        id: `group-${index + 1}`,
+        name: `Alternate Group ${String(index + 1).padStart(2, '0')}`,
+        member_summaries: [],
+        member_details: [],
+      }));
+
+      setupMocks({ groups: manyGroups });
+
+      render(<AlternateGroupsPage />);
+
+      const cards = screen.getAllByTestId(/^alternate-group-card-/);
+      expect(cards).toHaveLength(12);
+      expect(screen.getByText('Alternate Group 01')).toBeInTheDocument();
+      expect(screen.getByText('Alternate Group 12')).toBeInTheDocument();
+      expect(screen.queryByTestId('alternate-group-card-group-13')).not.toBeInTheDocument();
+      expect(screen.getByTestId('alternate-groups-pagination-footer')).toBeInTheDocument();
+      expect(screen.getByText(/Showing 1 to 12 of 15 groups/)).toBeInTheDocument();
+    });
+
+    it('uses separate pagination defaults when switching between card and table views', () => {
+      const groups = Array.from({ length: 2 }, (_, groupIndex) => ({
+        ...partAlternateGroups.oilFilterGroup,
+        id: `group-${groupIndex + 1}`,
+        name: `Alternate Group ${String(groupIndex + 1).padStart(2, '0')}`,
+        member_details: Array.from({ length: 20 }, (_, memberIndex) => ({
+          id: `member-${groupIndex + 1}-${memberIndex + 1}`,
+          is_primary: memberIndex === 0,
+          member_type: 'inventory' as const,
+          inventory_item_id: `inv-${groupIndex + 1}-${memberIndex + 1}`,
+          item_name: `Part ${groupIndex + 1}-${String(memberIndex + 1).padStart(2, '0')}`,
+          item_sku: `SKU-${groupIndex + 1}-${memberIndex + 1}`,
+          quantity_on_hand: 5,
+          low_stock_threshold: 2,
+          default_unit_cost: 10,
+          location: 'Bay 1',
+          identifier_type: null,
+          identifier_value: null,
+          identifier_manufacturer: null,
+        })),
+      }));
+
+      setupMocks({ groups });
+
+      render(<AlternateGroupsPage />);
+
+      expect(screen.getByText(/Showing 1 to 2 of 2 groups/)).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('radio', { name: 'Table view' }));
+
+      expect(screen.getByText(/Showing 1 to 25 of 40 parts/)).toBeInTheDocument();
+      expect(screen.getByText('Part 2-05')).toBeInTheDocument();
+      expect(screen.queryByText('Part 2-06')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('radio', { name: 'Card view' }));
+
+      expect(screen.getByText(/Showing 1 to 2 of 2 groups/)).toBeInTheDocument();
     });
 
     it('shows part names instead of description when a group has members', () => {

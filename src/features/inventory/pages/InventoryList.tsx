@@ -47,6 +47,17 @@ import {
 } from '@/features/inventory/utils/inventoryListViewModel';
 import { useAppToast } from '@/hooks/useAppToast';
 import { cn } from '@/lib/utils';
+import ListPaginationFooter from '@/components/common/ListPaginationFooter';
+import {
+  clampListPage,
+  paginateListItems,
+} from '@/utils/listPagination';
+import {
+  DEFAULT_INVENTORY_DESKTOP_PAGE_SIZE,
+  DEFAULT_INVENTORY_MOBILE_PAGE_SIZE,
+  INVENTORY_DESKTOP_PAGE_SIZE_OPTIONS,
+  INVENTORY_MOBILE_PAGE_SIZE_OPTIONS,
+} from '@/features/inventory/utils/inventoryListPagination';
 
 const EMPTY_METADATA: InventoryListMetadata = {
   uniqueLocations: [],
@@ -82,6 +93,10 @@ const InventoryList = () => {
     sortOrder: 'asc',
   });
   const [quickFilters, setQuickFilters] = useState<InventoryQuickFilterKey[]>([]);
+  const [desktopPage, setDesktopPage] = useState(1);
+  const [mobilePage, setMobilePage] = useState(1);
+  const [desktopPageSize, setDesktopPageSize] = useState(DEFAULT_INVENTORY_DESKTOP_PAGE_SIZE);
+  const [mobilePageSize, setMobilePageSize] = useState(DEFAULT_INVENTORY_MOBILE_PAGE_SIZE);
 
   const tablePrefs = useInventoryTablePreferences(currentOrganization?.id);
   const adjustMutation = useAdjustInventoryQuantity();
@@ -96,6 +111,11 @@ const InventoryList = () => {
       initializedFromUrl.current = true;
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    setDesktopPage(1);
+    setMobilePage(1);
+  }, [filters, quickFilters]);
 
   const { data: items = [], isPending: isInventoryPending } = useInventoryItems(
     currentOrganization?.id,
@@ -133,6 +153,19 @@ const InventoryList = () => {
     filters.sortBy,
     filters.sortOrder,
   ]);
+
+  const safeDesktopPage = clampListPage(desktopPage, viewModels.length, desktopPageSize);
+  const safeMobilePage = clampListPage(mobilePage, viewModels.length, mobilePageSize);
+
+  const paginatedDesktopRows = useMemo(
+    () => paginateListItems(viewModels, safeDesktopPage, desktopPageSize),
+    [viewModels, safeDesktopPage, desktopPageSize],
+  );
+
+  const paginatedMobileItems = useMemo(
+    () => paginateListItems(viewModels, safeMobilePage, mobilePageSize).map((row) => row.item),
+    [viewModels, safeMobilePage, mobilePageSize],
+  );
 
   const visibleColumnKeys = useMemo(
     () =>
@@ -368,7 +401,6 @@ const InventoryList = () => {
           isMobile={isMobile}
           filters={filters}
           uniqueLocations={uniqueLocations}
-          resultCount={viewModels.length}
           lowStockOrgWide={lowStockOrgWide}
           activeFilterCount={activeFilterCount}
           canExport={canCreate}
@@ -417,22 +449,35 @@ const InventoryList = () => {
             </CardContent>
           </Card>
         ) : isMobile ? (
-          <InventoryListMobileList
-            items={items}
-            groupMembershipCounts={groupMembershipCounts}
-            canCreate={canCreate}
-            adjustPending={adjustMutation.isPending}
-            onViewDetails={handleViewItem}
-            onKeyDown={handleItemKeyDown}
-            onQuickAdjust={handleQuickAdjust}
-            onShowQR={handleShowQRCode}
-            onEdit={handleEditItem}
-            onManageAlternateGroups={handleManageAlternateGroups}
-          />
+          <div className="space-y-4">
+            <InventoryListMobileList
+              items={paginatedMobileItems}
+              groupMembershipCounts={groupMembershipCounts}
+              canCreate={canCreate}
+              adjustPending={adjustMutation.isPending}
+              onViewDetails={handleViewItem}
+              onKeyDown={handleItemKeyDown}
+              onQuickAdjust={handleQuickAdjust}
+              onShowQR={handleShowQRCode}
+              onEdit={handleEditItem}
+              onManageAlternateGroups={handleManageAlternateGroups}
+            />
+            <ListPaginationFooter
+              testId="inventory-list-pagination-footer"
+              totalItems={viewModels.length}
+              page={safeMobilePage}
+              pageSize={mobilePageSize}
+              pageSizeOptions={INVENTORY_MOBILE_PAGE_SIZE_OPTIONS}
+              itemLabel="item"
+              onPageChange={setMobilePage}
+              onPageSizeChange={setMobilePageSize}
+            />
+          </div>
         ) : (
-          <InventoryListDesktopTable
-            rows={viewModels}
-            filters={filters}
+          <div className="space-y-4">
+            <InventoryListDesktopTable
+              rows={paginatedDesktopRows}
+              filters={filters}
             columnVisibility={tablePrefs.columnVisibility}
             columnOrder={tablePrefs.columnOrder}
             columnSizing={tablePrefs.columnSizing}
@@ -451,6 +496,17 @@ const InventoryList = () => {
             onEditItem={handleEditItem}
             onManageAlternateGroups={handleManageAlternateGroups}
           />
+            <ListPaginationFooter
+              testId="inventory-list-pagination-footer"
+              totalItems={viewModels.length}
+              page={safeDesktopPage}
+              pageSize={desktopPageSize}
+              pageSizeOptions={INVENTORY_DESKTOP_PAGE_SIZE_OPTIONS}
+              itemLabel="item"
+              onPageChange={setDesktopPage}
+              onPageSizeChange={setDesktopPageSize}
+            />
+          </div>
         )}
 
         {isMobile && canManage && (

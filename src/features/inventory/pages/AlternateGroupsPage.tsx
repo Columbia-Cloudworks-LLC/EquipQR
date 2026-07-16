@@ -54,6 +54,7 @@ import { AlternateGroupCreateWizard } from '@/features/inventory/components/Alte
 import { AlternateGroupListCardContent } from '@/features/inventory/components/AlternateGroupListCardContent';
 import { AlternateGroupStatusDot } from '@/features/inventory/components/AlternateGroupStatusDot';
 import { AlternateGroupsDesktopTable } from '@/features/inventory/components/AlternateGroupsDesktopTable';
+import AlternateGroupsPaginationFooter from '@/features/inventory/components/AlternateGroupsPaginationFooter';
 import AlternateGroupsToolbar, {
   type AlternateGroupsViewMode,
 } from '@/features/inventory/components/AlternateGroupsToolbar';
@@ -65,6 +66,14 @@ import {
   groupMatchesSearch,
   sortAlternateGroupTableRows,
 } from '@/features/inventory/utils/alternateGroupTableRows';
+import {
+  ALTERNATE_GROUP_CARD_PAGE_SIZE_OPTIONS,
+  ALTERNATE_GROUP_TABLE_PAGE_SIZE_OPTIONS,
+  clampAlternateGroupPage,
+  DEFAULT_ALTERNATE_GROUP_CARD_PAGE_SIZE,
+  DEFAULT_ALTERNATE_GROUP_TABLE_PAGE_SIZE,
+  paginateAlternateGroupItems,
+} from '@/features/inventory/utils/alternateGroupPagination';
 
 type GroupStatusFilter = 'all' | 'verified' | 'unverified' | 'deprecated';
 type GroupSortOption = 'name-asc' | 'name-desc' | 'updated-desc' | 'updated-asc';
@@ -84,9 +93,16 @@ const AlternateGroupsPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<AlternateGroupsViewMode>('cards');
   const [tableSortBy, setTableSortBy] = useState<AlternateGroupTableSortField>('group_name');
   const [tableSortOrder, setTableSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [cardPage, setCardPage] = useState(1);
+  const [tablePage, setTablePage] = useState(1);
+  const [cardPageSize, setCardPageSize] = useState(DEFAULT_ALTERNATE_GROUP_CARD_PAGE_SIZE);
+  const [tablePageSize, setTablePageSize] = useState(DEFAULT_ALTERNATE_GROUP_TABLE_PAGE_SIZE);
 
   const { data: groups = [], isLoading } = useAlternateGroups(currentOrganization?.id);
   const deleteMutation = useDeleteAlternateGroup();
+
+  const effectiveViewMode: AlternateGroupsViewMode =
+    isMobile ? 'cards' : viewMode;
 
   useEffect(() => {
     if (isMobile && viewMode === 'table') {
@@ -94,8 +110,10 @@ const AlternateGroupsPage: React.FC = () => {
     }
   }, [isMobile, viewMode]);
 
-  const effectiveViewMode: AlternateGroupsViewMode =
-    isMobile ? 'cards' : viewMode;
+  useEffect(() => {
+    setCardPage(1);
+    setTablePage(1);
+  }, [search, statusFilter, sortBy, tableSortBy, tableSortOrder]);
 
   // Filter and sort groups
   const filteredGroups = useMemo(() => {
@@ -131,6 +149,23 @@ const AlternateGroupsPage: React.FC = () => {
     const filtered = filterAlternateGroupTableRows(rows, search);
     return sortAlternateGroupTableRows(filtered, tableSortBy, tableSortOrder);
   }, [filteredGroups, search, tableSortBy, tableSortOrder]);
+
+  const safeCardPage = clampAlternateGroupPage(cardPage, filteredGroups.length, cardPageSize);
+  const safeTablePage = clampAlternateGroupPage(
+    tablePage,
+    filteredTableRows.length,
+    tablePageSize,
+  );
+
+  const paginatedGroups = useMemo(
+    () => paginateAlternateGroupItems(filteredGroups, safeCardPage, cardPageSize),
+    [filteredGroups, safeCardPage, cardPageSize],
+  );
+
+  const paginatedTableRows = useMemo(
+    () => paginateAlternateGroupItems(filteredTableRows, safeTablePage, tablePageSize),
+    [filteredTableRows, safeTablePage, tablePageSize],
+  );
 
   const handleTableSortChange = (nextSortBy: AlternateGroupTableSortField) => {
     if (nextSortBy === tableSortBy) {
@@ -196,11 +231,9 @@ const AlternateGroupsPage: React.FC = () => {
           sortBy={sortBy}
           onSortChange={setSortBy}
           filteredGroups={filteredGroups}
-          totalCount={groups.length}
           canEdit={canEdit}
           viewMode={effectiveViewMode}
           onViewModeChange={isMobile ? undefined : setViewMode}
-          tableRowCount={filteredTableRows.length}
         />
 
         {/* Groups List */}
@@ -258,17 +291,30 @@ const AlternateGroupsPage: React.FC = () => {
             </CardContent>
           </Card>
         ) : effectiveViewMode === 'table' ? (
-          <AlternateGroupsDesktopTable
-            rows={filteredTableRows}
-            sortBy={tableSortBy}
-            sortOrder={tableSortOrder}
-            onSortChange={handleTableSortChange}
-          />
+          <div className="space-y-4">
+            <AlternateGroupsDesktopTable
+              rows={paginatedTableRows}
+              sortBy={tableSortBy}
+              sortOrder={tableSortOrder}
+              onSortChange={handleTableSortChange}
+            />
+            <AlternateGroupsPaginationFooter
+              totalItems={filteredTableRows.length}
+              page={safeTablePage}
+              pageSize={tablePageSize}
+              pageSizeOptions={ALTERNATE_GROUP_TABLE_PAGE_SIZE_OPTIONS}
+              itemLabel="part"
+              onPageChange={setTablePage}
+              onPageSizeChange={setTablePageSize}
+            />
+          </div>
         ) : (
+          <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredGroups.map((group) => (
+              {paginatedGroups.map((group) => (
                 <Card
                   key={group.id}
+                  data-testid={`alternate-group-card-${group.id}`}
                   className="cursor-pointer hover:border-primary/50 transition-colors"
                   onClick={() => handleViewGroup(group.id)}
                 >
@@ -348,6 +394,16 @@ const AlternateGroupsPage: React.FC = () => {
                 </Card>
               ))}
             </div>
+            <AlternateGroupsPaginationFooter
+              totalItems={filteredGroups.length}
+              page={safeCardPage}
+              pageSize={cardPageSize}
+              pageSizeOptions={ALTERNATE_GROUP_CARD_PAGE_SIZE_OPTIONS}
+              itemLabel="group"
+              onPageChange={setCardPage}
+              onPageSizeChange={setCardPageSize}
+            />
+          </div>
         )}
       </div>
 
