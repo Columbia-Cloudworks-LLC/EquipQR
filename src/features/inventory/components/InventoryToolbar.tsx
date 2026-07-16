@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import InventoryFilterPopover from './InventoryFilterPopover';
 import InventoryDownloadMenu from './InventoryDownloadMenu';
-import type { InventoryTableColumnKey } from '@/features/inventory/components/inventoryTableColumns';
-import type { InventoryFilters, InventoryItem } from '@/features/inventory/types/inventory';
+import { InventoryDensityToggle } from '@/features/inventory/components/InventoryDensityToggle';
+import type { InventoryFilters, InventoryItem, InventoryTableDensity } from '@/features/inventory/types/inventory';
 
 interface InventoryToolbarProps {
   filters: InventoryFilters;
@@ -16,9 +16,10 @@ interface InventoryToolbarProps {
   onClearFilters: () => void;
   canExport?: boolean;
   items?: InventoryItem[];
-  visibleColumnKeys?: InventoryTableColumnKey[];
   selectedItems?: InventoryItem[];
   toolbarControls?: React.ReactNode;
+  density?: InventoryTableDensity;
+  onDensityChange?: (density: InventoryTableDensity) => void;
   healthSummary?: React.ReactNode;
   quickFilterChips?: React.ReactNode;
 }
@@ -30,9 +31,10 @@ const InventoryToolbar: React.FC<InventoryToolbarProps> = ({
   onClearFilters,
   canExport = false,
   items = [],
-  visibleColumnKeys = [],
   selectedItems = [],
   toolbarControls,
+  density,
+  onDensityChange,
   healthSummary,
   quickFilterChips,
 }) => {
@@ -87,12 +89,20 @@ const InventoryToolbar: React.FC<InventoryToolbarProps> = ({
           )}
         </div>
 
-        <InventoryDownloadMenu
-          canExport={canExport}
-          items={items}
-          visibleColumnKeys={visibleColumnKeys}
-          selectedItems={selectedItems}
-        />
+        <div className="flex shrink-0 items-center gap-2">
+          <InventoryDownloadMenu
+            canExport={canExport}
+            items={items}
+            selectedItems={selectedItems}
+          />
+
+          {density && onDensityChange && (
+            <>
+              <Separator orientation="vertical" className="h-5" />
+              <InventoryDensityToggle density={density} onChange={onDensityChange} />
+            </>
+          )}
+        </div>
       </div>
 
       {quickFilterChips}

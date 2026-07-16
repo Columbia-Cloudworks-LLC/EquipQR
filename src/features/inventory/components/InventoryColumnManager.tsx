@@ -23,18 +23,13 @@ import {
   INVENTORY_TABLE_COLUMN_META,
   type InventoryTableColumnKey,
 } from '@/features/inventory/components/inventoryTableColumns';
-import { InventoryDensityToggle } from '@/features/inventory/components/InventoryDensityToggle';
-import type { InventoryTableDensity } from '@/features/inventory/types/inventory';
-
 type InventoryColumnManagerProps = {
   columnVisibility: Record<string, boolean>;
   columnOrder: InventoryTableColumnKey[];
-  density: InventoryTableDensity;
   hasOverrides: boolean;
   onMoveColumn: (key: InventoryTableColumnKey, direction: 'up' | 'down') => void;
   onAddColumn: (key: InventoryTableColumnKey) => void;
   onRemoveColumn: (key: InventoryTableColumnKey) => void;
-  onDensityChange: (density: InventoryTableDensity) => void;
   onResetColumns: () => void;
   onResetWidths: () => void;
   onResetAll: () => void;
@@ -43,12 +38,10 @@ type InventoryColumnManagerProps = {
 export function InventoryColumnManager({
   columnVisibility,
   columnOrder,
-  density,
   hasOverrides,
   onMoveColumn,
   onAddColumn,
   onRemoveColumn,
-  onDensityChange,
   onResetColumns,
   onResetWidths,
   onResetAll,
@@ -85,11 +78,6 @@ export function InventoryColumnManager({
             Choose which fields appear in the desktop inventory table and set their order.
           </DialogDescription>
         </DialogHeader>
-
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-sm font-medium">Density</span>
-          <InventoryDensityToggle density={density} onChange={onDensityChange} />
-        </div>
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">

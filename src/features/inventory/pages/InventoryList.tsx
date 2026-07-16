@@ -167,14 +167,6 @@ const InventoryList = () => {
     [viewModels, safeMobilePage, mobilePageSize],
   );
 
-  const visibleColumnKeys = useMemo(
-    () =>
-      tablePrefs.columnOrder.filter(
-        (key) => tablePrefs.columnVisibility[key] !== false,
-      ),
-    [tablePrefs.columnOrder, tablePrefs.columnVisibility],
-  );
-
   const quickFilterCounts = useMemo(() => {
     const counts: Partial<Record<InventoryQuickFilterKey, number>> = {};
     const keys: InventoryQuickFilterKey[] = [
@@ -362,12 +354,10 @@ const InventoryList = () => {
       <InventoryColumnManager
         columnVisibility={tablePrefs.columnVisibility}
         columnOrder={tablePrefs.columnOrder}
-        density={tablePrefs.density}
         hasOverrides={tablePrefs.hasTableOverrides}
         onMoveColumn={handleMoveColumn}
         onAddColumn={handleAddColumn}
         onRemoveColumn={handleRemoveColumn}
-        onDensityChange={tablePrefs.setDensity}
         onResetColumns={tablePrefs.resetColumnVisibility}
         onResetWidths={tablePrefs.resetColumnWidths}
         onResetAll={tablePrefs.resetTablePreferences}
@@ -405,8 +395,9 @@ const InventoryList = () => {
           activeFilterCount={activeFilterCount}
           canExport={canCreate}
           items={items}
-          visibleColumnKeys={visibleColumnKeys}
           toolbarControls={!isMobile ? desktopToolbarControls : undefined}
+          density={!isMobile ? tablePrefs.density : undefined}
+          onDensityChange={!isMobile ? tablePrefs.setDensity : undefined}
           healthSummary={!isMobile ? <InventoryHealthSummary metadata={metadata} /> : undefined}
           quickFilterChips={
             !isMobile ? (
