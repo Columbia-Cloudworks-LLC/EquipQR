@@ -39,6 +39,45 @@ export type WorksheetKey =
   | "TIMELINE"
   | "EQUIPMENT";
 
+export const WORKSHEET_KEYS: readonly WorksheetKey[] = [
+  "SUMMARY",
+  "LABOR",
+  "COSTS",
+  "PM_CHECKLISTS",
+  "TIMELINE",
+  "EQUIPMENT",
+];
+
+const WORKSHEET_KEY_SET = new Set<string>(WORKSHEET_KEYS);
+
+export type WorksheetSelectionResult =
+  | { ok: true; worksheets: WorksheetKey[] | undefined }
+  | { ok: false };
+
+/** Validates request worksheet keys; empty array means export all default sheets. */
+export function parseWorksheetSelection(worksheets: unknown): WorksheetSelectionResult {
+  if (worksheets == null) {
+    return { ok: true, worksheets: undefined };
+  }
+  if (!Array.isArray(worksheets)) {
+    return { ok: false };
+  }
+  if (worksheets.length === 0) {
+    return { ok: true, worksheets: undefined };
+  }
+
+  const valid = worksheets.filter(
+    (value): value is WorksheetKey =>
+      typeof value === "string" && WORKSHEET_KEY_SET.has(value),
+  );
+
+  if (valid.length === 0) {
+    return { ok: false };
+  }
+
+  return { ok: true, worksheets: valid };
+}
+
 export interface WorkOrderExcelFilters {
   workOrderId?: string;
   status?: string;

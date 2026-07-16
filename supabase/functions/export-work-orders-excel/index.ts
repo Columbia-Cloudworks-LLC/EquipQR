@@ -31,6 +31,7 @@ import {
   type ExportRequest,
   type AllExportRows,
   type WorksheetKey,
+  parseWorksheetSelection,
 } from "../_shared/work-orders-export-data.ts";
 
 // ============================================
@@ -137,7 +138,7 @@ function generateWorkbook(
   }
 
   if (workbook.SheetNames.length === 0) {
-    throw new Error('NO_WORKSHEETS_SELECTED');
+    throw new Error('Workbook generation produced no worksheets');
   }
 
   return XLSX.write(workbook, { type: 'array', bookType: 'xlsx' }) as Uint8Array;
@@ -165,6 +166,16 @@ Deno.serve(async (req) => {
     if (!organizationId) {
       return createErrorResponse('Missing required field: organizationId', 400);
     }
+
+    const worksheetSelection = parseWorksheetSelection(filters.worksheets);
+    if (!worksheetSelection.ok) {
+      return createErrorResponse('Invalid worksheets selection', 400);
+    }
+
+    const normalizedFilters = {
+      ...filters,
+      worksheets: worksheetSelection.worksheets,
+    };
 
     const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
     if (!isAdmin) {
@@ -197,7 +208,7 @@ Deno.serve(async (req) => {
     const exportLogId = exportLog?.id;
 
     try {
-      const data = await fetchWorkOrdersWithData(supabase, organizationId, filters);
+      const data = await fetchWorkOrdersWithData(supabase, organizationId, normalizedFilters);
 
       if (data.workOrders.length === 0) {
         if (exportLogId) {
@@ -213,7 +224,7 @@ Deno.serve(async (req) => {
       }
 
       const allRows = buildAllRows(data);
-      const xlsxBuffer = generateWorkbook(allRows, filters.worksheets);
+      const xlsxBuffer = generateWorkbook(allRows, normalizedFilters.worksheets);
 
       if (exportLogId) {
         await supabase
@@ -240,12 +251,6 @@ Deno.serve(async (req) => {
           .from('export_request_log')
           .update({ status: 'failed', completed_at: new Date().toISOString() })
           .eq('id', exportLogId);
-      }
-      if (exportError instanceof Error && exportError.message === 'NO_WORKSHEETS_SELECTED') {
-        return createErrorResponse(
-          'No worksheets available for the selected export options',
-          400,
-        );
       }
       throw exportError;
     }
