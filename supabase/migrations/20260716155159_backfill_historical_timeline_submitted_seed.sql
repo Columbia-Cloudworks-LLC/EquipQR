@@ -6,7 +6,10 @@ WITH affected AS (
   SELECT
     wo.id AS work_order_id,
     wo.created_by,
-    COALESCE(wo.historical_start_date, wo.created_date, first_history.changed_at) AS submitted_at,
+    LEAST(
+      COALESCE(wo.historical_start_date, wo.created_date, first_history.changed_at),
+      first_history.changed_at
+    ) AS submitted_at,
     first_history.id AS first_history_id
   FROM public.work_orders wo
   JOIN LATERAL (
