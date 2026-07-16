@@ -46,12 +46,6 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -271,7 +265,6 @@ const AlternateGroupsPage: React.FC = () => {
             onSortChange={handleTableSortChange}
           />
         ) : (
-          <TooltipProvider>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {filteredGroups.map((group) => (
                 <Card
@@ -280,16 +273,11 @@ const AlternateGroupsPage: React.FC = () => {
                   onClick={() => handleViewGroup(group.id)}
                 >
                   <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0 pr-2">
-                        <CardTitle className="text-lg flex items-start gap-2 min-w-0">
-                          <AlternateGroupStatusDot status={group.status} />
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="truncate min-w-0">{group.name}</span>
-                            </TooltipTrigger>
-                            <TooltipContent>{group.name}</TooltipContent>
-                          </Tooltip>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex min-w-0 flex-1 items-start gap-2 pr-1">
+                        <AlternateGroupStatusDot status={group.status} />
+                        <CardTitle className="min-w-0 flex-1 text-lg leading-snug wrap-break-word">
+                          {group.name}
                         </CardTitle>
                       </div>
                       {canEdit && (
@@ -360,7 +348,6 @@ const AlternateGroupsPage: React.FC = () => {
                 </Card>
               ))}
             </div>
-          </TooltipProvider>
         )}
       </div>
 
