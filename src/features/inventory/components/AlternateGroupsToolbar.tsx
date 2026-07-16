@@ -5,7 +5,6 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { GridTableViewModeToggle } from '@/components/common/GridTableViewModeToggle';
 import { ToolbarSearchInput } from '@/components/common/ToolbarSearchInput';
-import { cn } from '@/lib/utils';
 import AlternateGroupsFilterPopover from './AlternateGroupsFilterPopover';
 import AlternateGroupsSortPopover from './AlternateGroupsSortPopover';
 import AlternateGroupsDownloadMenu from './AlternateGroupsDownloadMenu';

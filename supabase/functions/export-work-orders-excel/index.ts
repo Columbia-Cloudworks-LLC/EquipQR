@@ -109,7 +109,7 @@ function generateWorkbook(
     XLSX.utils.book_append_sheet(workbook, costsSheet, WORKSHEET_NAMES.COSTS);
   }
 
-  if (includeWorksheet("PM_CHECKLISTS") && allRows.pmRows.length > 0) {
+  if (includeWorksheet("PM_CHECKLISTS")) {
     const pmSheet = createWorksheet(
       [...WORKSHEET_HEADERS.PM_CHECKLISTS],
       allRows.pmRows,
@@ -134,6 +134,10 @@ function generateWorkbook(
       equipmentRowToArray
     );
     XLSX.utils.book_append_sheet(workbook, equipmentSheet, WORKSHEET_NAMES.EQUIPMENT);
+  }
+
+  if (workbook.SheetNames.length === 0) {
+    throw new Error('NO_WORKSHEETS_SELECTED');
   }
 
   return XLSX.write(workbook, { type: 'array', bookType: 'xlsx' }) as Uint8Array;
@@ -236,6 +240,12 @@ Deno.serve(async (req) => {
           .from('export_request_log')
           .update({ status: 'failed', completed_at: new Date().toISOString() })
           .eq('id', exportLogId);
+      }
+      if (exportError instanceof Error && exportError.message === 'NO_WORKSHEETS_SELECTED') {
+        return createErrorResponse(
+          'No worksheets available for the selected export options',
+          400,
+        );
       }
       throw exportError;
     }

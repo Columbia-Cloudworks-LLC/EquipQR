@@ -382,7 +382,8 @@ async function fetchQuickFormRows(
   let query = reportQuery(client, "quick_form_submissions")
     .select(QUICK_FORMS_TABLE_SELECT)
     .eq("organization_id", organizationId)
-    .order("submitted_at", { ascending: false });
+    .order("submitted_at", { ascending: false })
+    .order("id", { ascending: false });
 
   query = applyRowPagination(query, limit, offset);
 
