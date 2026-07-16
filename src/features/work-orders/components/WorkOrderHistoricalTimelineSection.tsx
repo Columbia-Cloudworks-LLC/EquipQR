@@ -5,7 +5,7 @@ import WorkOrderTimeline from '@/features/work-orders/components/WorkOrderTimeli
 import { HistoricalTimelineEditorDialog } from '@/features/work-orders/components/HistoricalTimelineEditorDialog';
 import { useWorkOrderTimeline } from '@/features/work-orders/hooks/useHistoricalWorkOrders';
 import {
-  historyRowsToEvents,
+  historyRowsToEditorEvents,
   synthesizeDefaultTimeline,
   validateTimelineEvents,
   type HistoricalTimelineEvent,
@@ -27,14 +27,14 @@ function buildConversionSeedEvents(
     metadata: Record<string, unknown> | null;
   }>,
 ): HistoricalTimelineEvent[] {
+  const startDate = workOrder.historical_start_date ?? workOrder.created_date;
+
   if (historyRows.length > 0) {
-    const historyEvents = historyRowsToEvents(historyRows);
+    const historyEvents = historyRowsToEditorEvents(historyRows, startDate);
     if (validateTimelineEvents(historyEvents).length === 0) {
       return historyEvents;
     }
   }
-
-  const startDate = workOrder.historical_start_date ?? workOrder.created_date;
   if (!startDate) {
     return [];
   }
@@ -99,6 +99,7 @@ export function WorkOrderHistoricalTimelineSection({
           historyReady={historyReady}
           mode={editorMode}
           title="Timeline Editor"
+          historicalStartDate={workOrder.historical_start_date ?? workOrder.created_date ?? null}
           initialEvents={editorMode === 'convert' ? conversionSeedEvents : undefined}
         />
       ) : null}

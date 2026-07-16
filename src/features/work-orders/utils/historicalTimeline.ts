@@ -352,6 +352,47 @@ export function historyRowsToEvents(
     }));
 }
 
+/**
+ * Legacy historical creates stored only `accepted` (or another status) as the first
+ * status-history row. The editor requires a leading `submitted` event.
+ */
+export function normalizeLoadedTimelineEvents(
+  events: HistoricalTimelineEvent[],
+  startDate?: Date | string | null,
+): HistoricalTimelineEvent[] {
+  if (events.length === 0 || events[0]?.newStatus === 'submitted') {
+    return events;
+  }
+
+  const firstChangedAt = new Date(events[0]!.changedAt);
+  const parsedStart = startDate ? new Date(startDate) : firstChangedAt;
+  const submittedAt =
+    Number.isNaN(parsedStart.getTime()) || parsedStart.getTime() > firstChangedAt.getTime()
+      ? firstChangedAt
+      : parsedStart;
+
+  return [
+    {
+      newStatus: 'submitted',
+      changedAt: submittedAt.toISOString(),
+      assigneeId: null,
+    },
+    ...events,
+  ];
+}
+
+export function historyRowsToEditorEvents(
+  historyRows: Array<{
+    new_status: string;
+    changed_at: string;
+    reason: string | null;
+    metadata: Record<string, unknown> | null;
+  }>,
+  startDate?: Date | string | null,
+): HistoricalTimelineEvent[] {
+  return normalizeLoadedTimelineEvents(historyRowsToEvents(historyRows), startDate);
+}
+
 export function eventsToRpcPayload(events: HistoricalTimelineEvent[]): Array<{
   old_status: WorkOrderStatus | null;
   new_status: WorkOrderStatus;

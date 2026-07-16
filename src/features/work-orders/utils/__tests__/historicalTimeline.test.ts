@@ -11,7 +11,9 @@ import {
   getSelectableStatusesForRow,
   getTimelineRowSeedDate,
   hasIncompleteTimelineRows,
+  historyRowsToEditorEvents,
   isTerminalStatus,
+  normalizeLoadedTimelineEvents,
   rowsToTimelineEvents,
   synthesizeDefaultTimeline,
   timelineEventsToRows,
@@ -231,6 +233,68 @@ describe('historicalTimeline helpers', () => {
       changedAt: new Date(),
     };
     expect(canAddTimelineRow(terminalRows)).toBe(false);
+  });
+
+  it('prepends submitted when legacy history begins with accepted', () => {
+    const legacy = [
+      {
+        newStatus: 'accepted' as const,
+        changedAt: '2026-03-24T13:00:00.000Z',
+      },
+    ];
+
+    const normalized = normalizeLoadedTimelineEvents(legacy, '2026-03-24T13:00:00.000Z');
+    expect(normalized.map((event) => event.newStatus)).toEqual(['submitted', 'accepted']);
+    expect(validateTimelineEvents(normalized)).toEqual([]);
+    expect(getSelectableStatusesForRow(
+      timelineEventsToRows(normalized),
+      1,
+    )).toEqual(['accepted', 'cancelled']);
+  });
+
+  it('historyRowsToEditorEvents repairs legacy rows for the timeline editor', () => {
+    const events = historyRowsToEditorEvents(
+      [
+        {
+          new_status: 'accepted',
+          changed_at: '2026-03-24T13:00:00.000Z',
+          reason: 'Historical work order created',
+          metadata: null,
+        },
+      ],
+      '2026-03-24T13:00:00.000Z',
+    );
+
+    expect(events[0]?.newStatus).toBe('submitted');
+    expect(events[1]?.newStatus).toBe('accepted');
+    expect(validateTimelineEvents(events)).toEqual([]);
+  });
+
+  it('leaves valid submitted-first timelines unchanged', () => {
+    const valid = [
+      {
+        newStatus: 'submitted' as const,
+        changedAt: '2026-03-03T04:50:00.000Z',
+      },
+      {
+        newStatus: 'accepted' as const,
+        changedAt: '2026-03-11T12:44:00.000Z',
+      },
+    ];
+
+    expect(normalizeLoadedTimelineEvents(valid)).toEqual(valid);
+  });
+
+  it('clamps prepended submitted date when start date is after first event', () => {
+    const legacy = [
+      {
+        newStatus: 'accepted' as const,
+        changedAt: '2026-03-24T13:00:00.000Z',
+      },
+    ];
+
+    const normalized = normalizeLoadedTimelineEvents(legacy, '2026-04-01T08:00:00.000Z');
+    expect(normalized[0]?.changedAt).toBe('2026-03-24T13:00:00.000Z');
   });
 
   it('compares timeline events for draft dirty detection', () => {

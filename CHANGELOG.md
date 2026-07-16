@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.26.1] - 2026-07-16
+
+### Fixed
+
+- **Historical work order timeline editor** — Prepend missing `submitted` events when legacy records begin with `accepted`, restoring Accepted on event 2 and allowing saves (#1276). Production data backfill migration included.
+
 ## [3.26.0] - 2026-07-15
 
 ### Added
