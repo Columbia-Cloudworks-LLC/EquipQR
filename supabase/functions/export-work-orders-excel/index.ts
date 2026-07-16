@@ -161,7 +161,8 @@ Deno.serve(async (req) => {
     const { supabase, user } = authContext;
 
     const body: ExportRequest = await req.json();
-    const { organizationId, filters } = body;
+    const { organizationId, filters: requestFilters } = body;
+    const filters = requestFilters ?? { dateField: 'created_date' as const };
 
     if (!organizationId) {
       return createErrorResponse('Missing required field: organizationId', 400);

@@ -71,7 +71,7 @@ export function parseWorksheetSelection(worksheets: unknown): WorksheetSelection
       typeof value === "string" && WORKSHEET_KEY_SET.has(value),
   );
 
-  if (valid.length === 0) {
+  if (valid.length !== worksheets.length) {
     return { ok: false };
   }
 
