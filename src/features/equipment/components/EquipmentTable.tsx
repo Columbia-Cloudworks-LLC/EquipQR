@@ -1,52 +1,107 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { QrCode } from 'lucide-react';
+import {
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  type ColumnDef,
+  type ColumnSizingState,
+} from '@tanstack/react-table';
+import { ArrowDown, ArrowUp, ArrowUpDown, QrCode } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { DataTable, type Column } from '@/components/ui/data-table';
+import { Card, CardContent } from '@/components/ui/card';
 import { DotStatus } from '@/components/ui/dot-status';
-import { safeFormatDate } from '@/features/equipment/utils/equipmentHelpers';
-import { useUserSettings } from '@/hooks/useUserSettings';
-import type { EquipmentPMStatus } from '@/features/equipment/hooks/useEquipmentPMStatus';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import {
+  EQUIPMENT_TABLE_ACTIONS_COLUMN_KEY,
+  EQUIPMENT_TABLE_COLUMN_ORDER,
+  getDefaultEquipmentColumnSizing,
+  getEquipmentTableColumnMeta,
+  type EquipmentTableColumnKey,
+  type EquipmentTableSortField,
+} from '@/features/equipment/components/equipmentTableColumns';
 import type { SortConfig } from '@/features/equipment/hooks/useEquipmentFiltering';
+import type { EquipmentPMStatus } from '@/features/equipment/hooks/useEquipmentPMStatus';
+import { safeFormatDate } from '@/features/equipment/utils/equipmentHelpers';
+import {
+  getEquipmentTableCellDisplayValue,
+  type EquipmentTableRow,
+} from '@/features/equipment/utils/equipmentTableRows';
+import { measureColumnAutoFitWidth } from '@/features/inventory/utils/tableColumnAutoFit';
+import { useUserSettings } from '@/hooks/useUserSettings';
+import { cn } from '@/lib/utils';
 
-interface EquipmentRow {
-  id: string;
-  name: string;
-  manufacturer: string;
-  model: string;
-  serial_number: string;
-  status: string;
-  location: string;
-  last_maintenance?: string;
-  image_url?: string;
-  team_name?: string;
-  team_id?: string | null;
-  working_hours?: number | null;
-  [key: string]: unknown;
-}
+const STATUS_COLUMN_KEY: EquipmentTableColumnKey = 'status';
+const COLUMN_SIZING_STORAGE_KEY = 'equipqr:equipment-table-column-sizing:v2';
 
 export interface EquipmentTableProps {
-  equipment: EquipmentRow[];
+  equipment: EquipmentTableRow[];
   onShowQRCode: (id: string) => void;
   pmStatuses?: Map<string, EquipmentPMStatus>;
   sortConfig?: SortConfig;
   onSortChange?: (field: string, direction?: 'asc' | 'desc') => void;
   /**
    * Per-column visibility map keyed by `EquipmentTableColumnMeta.key`.
-   * Omitted keys (and an undefined map) default to visible — preserves
-   * backward compatibility for callers that don't yet pass the prop.
+   * Omitted keys (and an undefined map) default to visible.
    */
   visibleColumns?: Record<string, boolean>;
 }
 
+function loadStoredColumnSizing(): ColumnSizingState {
+  if (typeof window === 'undefined') {
+    return getDefaultEquipmentColumnSizing();
+  }
+
+  try {
+    const raw = window.localStorage.getItem(COLUMN_SIZING_STORAGE_KEY);
+    if (!raw) {
+      return getDefaultEquipmentColumnSizing();
+    }
+
+    const parsed = JSON.parse(raw) as Record<string, number>;
+    return {
+      ...getDefaultEquipmentColumnSizing(),
+      ...parsed,
+    };
+  } catch {
+    return getDefaultEquipmentColumnSizing();
+  }
+}
+
+function getAlignClass(align?: 'left' | 'right' | 'center'): string {
+  if (align === 'right') return 'text-right';
+  if (align === 'center') return 'text-center';
+  return '';
+}
+
+function getSortIcon(
+  sortBy: string | undefined,
+  sortOrder: 'asc' | 'desc' | undefined,
+  field: EquipmentTableSortField,
+) {
+  if (sortBy !== field) {
+    return <ArrowUpDown className="h-3 w-3 shrink-0 opacity-50" aria-hidden />;
+  }
+
+  return sortOrder === 'asc' ? (
+    <ArrowUp className="h-3 w-3 shrink-0" aria-hidden />
+  ) : (
+    <ArrowDown className="h-3 w-3 shrink-0" aria-hidden />
+  );
+}
+
 /**
- * High-density table view for the equipment list (Issue #633).
- *
- * Consumes the upgraded shared `DataTable` with compact density, sticky header,
- * frozen first column, and monospace ID/serial/date columns. Status renders as
- * a compact `DotStatus` (sighted tooltip via `title`; label in `.sr-only`).
- * Name navigation, Team link, and QR actions keep a 44px minimum tap target.
+ * Resizable, sortable desktop table for the equipment list — mirrors the
+ * Alternate Part Groups TanStack table pattern (Issue #633).
  */
 const EquipmentTable: React.FC<EquipmentTableProps> = ({
   equipment,
@@ -57,152 +112,334 @@ const EquipmentTable: React.FC<EquipmentTableProps> = ({
 }) => {
   const navigate = useNavigate();
   const { settings } = useUserSettings();
+  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(loadStoredColumnSizing);
 
-  const columns = useMemo<Column<EquipmentRow>[]>(() => {
-    const isVisible = (key: string): boolean => visibleColumns?.[key] ?? true;
-    const cols: Column<EquipmentRow>[] = [];
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(COLUMN_SIZING_STORAGE_KEY, JSON.stringify(columnSizing));
+  }, [columnSizing]);
 
-    if (isVisible('name')) {
-      cols.push({
-        key: 'name',
-        title: 'Name',
-        sortable: true,
-        width: '240px',
-        render: (_value, item) => (
-          <button
-            type="button"
-            className="flex min-h-11 w-full items-center justify-start text-left underline-offset-4 hover:underline focus-visible:outline-none focus-visible:underline focus-visible:ring-1 focus-visible:ring-ring rounded-sm font-medium"
-            onClick={() => navigate(`/dashboard/equipment/${item.id}`)}
-          >
-            {item.name}
-          </button>
-        ),
+  const isColumnVisible = useCallback(
+    (key: EquipmentTableColumnKey): boolean => {
+      const meta = getEquipmentTableColumnMeta(key);
+      if (meta && !meta.canHide) return true;
+      return visibleColumns?.[key] ?? true;
+    },
+    [visibleColumns],
+  );
+
+  const visibleColumnKeys = useMemo(
+    () => EQUIPMENT_TABLE_COLUMN_ORDER.filter((key) => isColumnVisible(key)),
+    [isColumnVisible],
+  );
+
+  const handleSortClick = useCallback(
+    (field: EquipmentTableSortField) => {
+      if (!onSortChange) return;
+      const nextDirection =
+        sortConfig?.field === field
+          ? sortConfig.direction === 'asc'
+            ? 'desc'
+            : 'asc'
+          : 'asc';
+      onSortChange(field, nextDirection);
+    },
+    [onSortChange, sortConfig],
+  );
+
+  const handleAutoFitColumn = useCallback(
+    (columnKey: EquipmentTableColumnKey) => {
+      const meta = getEquipmentTableColumnMeta(columnKey);
+      if (!meta?.resizable) return;
+
+      const samples = equipment.map((row) =>
+        getEquipmentTableCellDisplayValue(row, columnKey, settings),
+      );
+      samples.unshift(meta.title);
+
+      const nextWidth = measureColumnAutoFitWidth(samples, {
+        minWidth: meta.minWidth,
+        maxWidth: meta.maxWidth,
+        mono: meta.mono,
       });
-    }
 
-    if (isVisible('status')) {
-      cols.push({
-        key: 'status',
-        title: 'Status',
-        sortable: true,
-        width: '140px',
-        render: (_value, item) => <DotStatus status={item.status} />,
-      });
-    }
+      setColumnSizing((current) => ({
+        ...current,
+        [columnKey]: nextWidth,
+      }));
+    },
+    [equipment, settings],
+  );
 
-    if (isVisible('manufacturer')) {
-      cols.push({ key: 'manufacturer', title: 'Manufacturer', sortable: true, width: '160px' });
-    }
+  const columns = useMemo<ColumnDef<EquipmentTableRow>[]>(() => {
+    const dataColumns: ColumnDef<EquipmentTableRow>[] = visibleColumnKeys.map((columnKey) => {
+      const meta = getEquipmentTableColumnMeta(columnKey);
+      if (!meta) {
+        throw new Error(`Missing equipment table column meta for ${columnKey}`);
+      }
 
-    if (isVisible('model')) {
-      cols.push({ key: 'model', title: 'Model', sortable: true, width: '160px' });
-    }
+      const column: ColumnDef<EquipmentTableRow> = {
+        id: columnKey,
+        size: columnSizing[columnKey] ?? meta.defaultWidth,
+        minSize: meta.minWidth,
+        maxSize: meta.maxWidth,
+        enableResizing: meta.resizable,
+        header: () =>
+          meta.sortable ? (
+            <button
+              type="button"
+              className={cn(
+                'flex w-full items-center gap-1 rounded-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+                meta.align === 'right' && 'justify-end',
+                meta.align === 'center' && 'justify-center',
+                !meta.align || meta.align === 'left' ? 'justify-start' : undefined,
+              )}
+              onClick={() => handleSortClick(meta.sortField)}
+              aria-label={`Sort by ${meta.title}`}
+            >
+              {columnKey === STATUS_COLUMN_KEY ? (
+                <span className="sr-only">{meta.title}</span>
+              ) : (
+                <span>{meta.title}</span>
+              )}
+              {getSortIcon(sortConfig?.field, sortConfig?.direction, meta.sortField)}
+            </button>
+          ) : (
+            <span className="block w-full text-xs font-medium text-muted-foreground">
+              {meta.title}
+            </span>
+          ),
+        cell: ({ row }) => {
+          const item = row.original;
 
-    if (isVisible('serial_number')) {
-      cols.push({ key: 'serial_number', title: 'Serial #', sortable: true, mono: true, width: '160px' });
-    }
-
-    if (isVisible('working_hours')) {
-      cols.push({
-        key: 'working_hours',
-        title: 'Hours',
-        sortable: true,
-        mono: true,
-        align: 'right',
-        width: '120px',
-        render: (_value, item) =>
-          item.working_hours != null ? item.working_hours.toLocaleString() : '—',
-      });
-    }
-
-    if (isVisible('location')) {
-      cols.push({ key: 'location', title: 'Location', sortable: true, width: '180px' });
-    }
-
-    if (isVisible('team_name')) {
-      cols.push({
-        key: 'team_name',
-        title: 'Team',
-        sortable: true,
-        width: '160px',
-        render: (_value, item) => {
-          if (item.team_id && item.team_name) {
-            return (
-              <Link
-                to={`/dashboard/teams/${item.team_id}`}
-                className="inline-flex min-h-11 items-center underline-offset-4 hover:underline focus-visible:outline-none focus-visible:underline focus-visible:ring-1 focus-visible:ring-ring rounded-sm"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {item.team_name}
-              </Link>
-            );
+          switch (columnKey) {
+            case 'name':
+              return (
+                <button
+                  type="button"
+                  className="block w-full truncate text-left font-medium hover:text-primary"
+                  onClick={() => navigate(`/dashboard/equipment/${item.id}`)}
+                >
+                  {item.name}
+                </button>
+              );
+            case 'status':
+              return (
+                <div className="flex items-center justify-center">
+                  <DotStatus status={item.status} className="mt-0" />
+                </div>
+              );
+            case 'manufacturer':
+              return <span className="block truncate">{item.manufacturer || '—'}</span>;
+            case 'model':
+              return <span className="block truncate">{item.model || '—'}</span>;
+            case 'serial_number':
+              return (
+                <span className="block truncate font-mono text-sm">
+                  {item.serial_number || '—'}
+                </span>
+              );
+            case 'working_hours':
+              return (
+                <span className="block truncate text-right tabular-nums">
+                  {item.working_hours != null ? item.working_hours.toLocaleString() : '—'}
+                </span>
+              );
+            case 'location':
+              return <span className="block truncate">{item.location || '—'}</span>;
+            case 'team_name':
+              return item.team_id && item.team_name ? (
+                <Link
+                  to={`/dashboard/teams/${item.team_id}`}
+                  className="block truncate hover:text-primary"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  {item.team_name}
+                </Link>
+              ) : (
+                <span className="block truncate text-muted-foreground">—</span>
+              );
+            case 'last_maintenance':
+              return (
+                <span className="block truncate text-right tabular-nums">
+                  {!item.last_maintenance
+                    ? '—'
+                    : (safeFormatDate(item.last_maintenance, settings) ?? '—')}
+                </span>
+              );
+            default: {
+              const exhaustive: never = columnKey;
+              return exhaustive;
+            }
           }
-          return <span className="text-muted-foreground">—</span>;
         },
-      });
-    }
+      };
 
-    if (isVisible('last_maintenance')) {
-      cols.push({
-        key: 'last_maintenance',
-        title: 'Last Maintenance',
-        sortable: true,
-        mono: true,
-        align: 'right',
-        width: '160px',
-        render: (_value, item) => {
-          if (!item.last_maintenance) return '—';
-          return safeFormatDate(item.last_maintenance, settings) ?? '—';
-        },
-      });
-    }
-
-    // Actions column is always rendered and is intentionally not part of the
-    // visibility map.
-    cols.push({
-      key: '__actions',
-      title: '',
-      width: '64px',
-      align: 'right',
-      render: (_value, item) => (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={() => onShowQRCode(item.id)}
-          aria-label={`Show QR code for ${item.name}`}
-          className="min-h-11 min-w-11"
-        >
-          <QrCode className="h-4 w-4" aria-hidden="true" />
-        </Button>
-      ),
+      return column;
     });
 
-    return cols;
-  }, [navigate, onShowQRCode, visibleColumns, settings]);
+    const actionsColumn: ColumnDef<EquipmentTableRow> = {
+      id: EQUIPMENT_TABLE_ACTIONS_COLUMN_KEY,
+      size: columnSizing[EQUIPMENT_TABLE_ACTIONS_COLUMN_KEY] ?? 56,
+      minSize: 56,
+      maxSize: 56,
+      enableResizing: false,
+      header: () => null,
+      cell: ({ row }) => (
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => onShowQRCode(row.original.id)}
+            aria-label={`Show QR code for ${row.original.name}`}
+          >
+            <QrCode className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        </div>
+      ),
+    };
 
-  const sorting =
-    sortConfig && onSortChange
-      ? {
-          sortBy: sortConfig.field,
-          sortOrder: sortConfig.direction,
-          onSortChange: (sortBy: string, sortOrder: 'asc' | 'desc') => {
-            onSortChange(sortBy, sortOrder);
-          },
-        }
-      : undefined;
+    return [...dataColumns, actionsColumn];
+  }, [
+    columnSizing,
+    handleSortClick,
+    navigate,
+    onShowQRCode,
+    settings,
+    sortConfig?.direction,
+    sortConfig?.field,
+    visibleColumnKeys,
+  ]);
+
+  const table = useReactTable({
+    data: equipment,
+    columns,
+    state: { columnSizing },
+    onColumnSizingChange: setColumnSizing,
+    columnResizeMode: 'onEnd',
+    enableColumnResizing: true,
+    getCoreRowModel: getCoreRowModel(),
+  });
+
+  const tableWidth = Math.max(table.getTotalSize(), 960);
+
+  if (equipment.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center text-muted-foreground">
+          No equipment matches your filters.
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <DataTable<EquipmentRow>
-      data={equipment}
-      columns={columns}
-      density="compact"
-      stickyHeader
-      freezeFirstColumn
-      maxBodyHeight="calc(100vh - 16rem)"
-      emptyMessage="No equipment matches your filters."
-      sorting={sorting}
-    />
+    <TooltipProvider>
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table
+              withWrapper={false}
+              className="table-fixed"
+              style={{ width: tableWidth, minWidth: '100%' }}
+            >
+              <colgroup>
+                {table.getHeaderGroups()[0]?.headers.map((header) => (
+                  <col key={header.id} style={{ width: header.getSize() }} />
+                ))}
+              </colgroup>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => {
+                      const columnId = header.column.id;
+                      const isStatusColumn = columnId === STATUS_COLUMN_KEY;
+                      const isActionsColumn = columnId === EQUIPMENT_TABLE_ACTIONS_COLUMN_KEY;
+                      const meta = isActionsColumn
+                        ? undefined
+                        : getEquipmentTableColumnMeta(columnId as EquipmentTableColumnKey);
+
+                      return (
+                        <TableHead
+                          key={header.id}
+                          className={cn(
+                            getAlignClass(meta?.align),
+                            meta?.mono && 'font-mono tabular-nums',
+                            isActionsColumn && 'w-14 px-2',
+                            'relative select-none',
+                            isStatusColumn && 'sticky left-0 z-20 bg-card px-2',
+                          )}
+                          aria-sort={
+                            meta?.sortable && sortConfig?.field === meta.sortField
+                              ? sortConfig.direction === 'asc'
+                                ? 'ascending'
+                                : 'descending'
+                              : 'none'
+                          }
+                        >
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(header.column.columnDef.header, header.getContext())}
+                          {header.column.getCanResize() && (
+                            <div
+                              role="separator"
+                              aria-orientation="vertical"
+                              aria-label={`Resize ${meta?.title ?? 'column'}`}
+                              onMouseDown={header.getResizeHandler()}
+                              onTouchStart={header.getResizeHandler()}
+                              onDoubleClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                handleAutoFitColumn(columnId as EquipmentTableColumnKey);
+                              }}
+                              className={cn(
+                                'absolute right-0 top-0 h-full w-1.5 cursor-col-resize touch-none bg-border/45 hover:bg-border/80',
+                                header.column.getIsResizing() && 'bg-primary',
+                              )}
+                            />
+                          )}
+                        </TableHead>
+                      );
+                    })}
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id}>
+                    {row.getVisibleCells().map((cell) => {
+                      const columnId = cell.column.id;
+                      const isStatusColumn = columnId === STATUS_COLUMN_KEY;
+                      const isActionsColumn = columnId === EQUIPMENT_TABLE_ACTIONS_COLUMN_KEY;
+                      const meta = isActionsColumn
+                        ? undefined
+                        : getEquipmentTableColumnMeta(columnId as EquipmentTableColumnKey);
+
+                      return (
+                        <TableCell
+                          key={cell.id}
+                          className={cn(
+                            getAlignClass(meta?.align),
+                            meta?.mono && 'font-mono tabular-nums',
+                            isStatusColumn && 'sticky left-0 z-10 bg-card px-2 align-middle',
+                            isActionsColumn && 'w-14 px-2',
+                            'overflow-hidden',
+                          )}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </TooltipProvider>
   );
 };
 

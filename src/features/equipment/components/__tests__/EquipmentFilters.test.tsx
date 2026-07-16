@@ -62,8 +62,6 @@ describe('EquipmentFilters', () => {
     onSortChange: vi.fn(),
     filterOptions: defaultFilterOptions,
     hasActiveFilters: false,
-    resultCount: 0,
-    totalCount: 0,
     viewMode: 'grid' as const,
     onViewModeChange: vi.fn(),
   };

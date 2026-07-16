@@ -1,11 +1,10 @@
 import React from 'react';
-import { Upload, ChevronDown } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { ExportFormatMenuItems } from '@/components/common/ExportFormatMenuItems';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -13,12 +12,23 @@ import {
 import { arrayToCsv, downloadCsv, downloadJson, filenameWithDate } from '@/utils/exportUtils';
 import type { EquipmentRecord } from '@/features/equipment/types/equipment';
 
-interface EquipmentActionsMenuProps {
-  canImport: boolean;
-  canExport: boolean;
-  onImportCsv: () => void;
+interface EquipmentDownloadMenuProps {
   equipment: EquipmentRecord[];
 }
+
+const CSV_HEADERS = [
+  'Name',
+  'Status',
+  'Serial Number',
+  'Manufacturer',
+  'Model',
+  'Location',
+  'Working Hours',
+  'Last Maintenance',
+  'Team',
+  'Warranty Expiration',
+  'Installation Date',
+];
 
 function equipmentToCsvRows(equipment: EquipmentRecord[]): string[][] {
   return equipment.map((eq) => [
@@ -36,28 +46,7 @@ function equipmentToCsvRows(equipment: EquipmentRecord[]): string[][] {
   ]);
 }
 
-const CSV_HEADERS = [
-  'Name',
-  'Status',
-  'Serial Number',
-  'Manufacturer',
-  'Model',
-  'Location',
-  'Working Hours',
-  'Last Maintenance',
-  'Team',
-  'Warranty Expiration',
-  'Installation Date',
-];
-
-const EquipmentActionsMenu: React.FC<EquipmentActionsMenuProps> = ({
-  canImport,
-  canExport,
-  onImportCsv,
-  equipment,
-}) => {
-  if (!canImport && !canExport) return null;
-
+const EquipmentDownloadMenu: React.FC<EquipmentDownloadMenuProps> = ({ equipment }) => {
   const handleExportCsv = () => {
     const rows = equipmentToCsvRows(equipment);
     const csv = arrayToCsv(CSV_HEADERS, rows);
@@ -89,51 +78,25 @@ const EquipmentActionsMenu: React.FC<EquipmentActionsMenuProps> = ({
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
-          size="sm"
-          className="h-8 gap-1.5 text-sm font-normal"
-          aria-label="Equipment actions"
+          size="icon"
+          className="h-8 w-8"
+          aria-label="Download equipment"
         >
-          Actions
-          <ChevronDown className="h-3 w-3 text-muted-foreground" />
+          <Download className="h-3.5 w-3.5" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
-        {canImport && (
-          <>
-            <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-              Import
-            </DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={onImportCsv}
-              className="gap-2 cursor-pointer"
-            >
-              <Upload className="h-4 w-4 text-muted-foreground" />
-              <div className="flex flex-col">
-                <span className="text-sm">Import CSV</span>
-                <span className="text-[10px] text-muted-foreground">Add equipment from file</span>
-              </div>
-            </DropdownMenuItem>
-          </>
-        )}
-
-        {canImport && canExport && <DropdownMenuSeparator />}
-
-        {canExport && (
-          <>
-            <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-              Export
-            </DropdownMenuLabel>
-            <ExportFormatMenuItems
-              onExportCsv={handleExportCsv}
-              onExportJson={handleExportJson}
-              csvLabel="Export as CSV"
-              jsonLabel="Export as JSON"
-            />
-          </>
-        )}
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+          Export format
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <ExportFormatMenuItems
+          onExportCsv={handleExportCsv}
+          onExportJson={handleExportJson}
+        />
       </DropdownMenuContent>
     </DropdownMenu>
   );
 };
 
-export default EquipmentActionsMenu;
+export default EquipmentDownloadMenu;

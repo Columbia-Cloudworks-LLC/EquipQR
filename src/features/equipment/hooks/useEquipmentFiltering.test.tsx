@@ -133,7 +133,7 @@ describe('useEquipmentFiltering (server-paginated)', () => {
   it('does not reset pagination when updateFilter is a no-op (e.g. team mirror sync)', () => {
     const { result } = renderHook(() => useEquipmentFiltering('org-1'), { wrapper });
 
-    act(() => result.current.setCurrentPage(2));
+    act(() => result.current.setCardPage(2));
     expect(result.current.currentPage).toBe(2);
 
     // No-op: setting team to its current value 'all' should not bump page back to 1
@@ -141,15 +141,28 @@ describe('useEquipmentFiltering (server-paginated)', () => {
     expect(result.current.currentPage).toBe(2);
   });
 
-  it('exposes server-driven totalFilteredCount and computes totalPages', () => {
+  it('exposes server-driven totalFilteredCount and computes totalPages for card view', () => {
     (useEquipmentList as Mock).mockReturnValue({
-      data: { data: Array.from({ length: 10 }, (_, i) => ({ id: `e${i}` })), count: 27 },
+      data: { data: Array.from({ length: 12 }, (_, i) => ({ id: `e${i}` })), count: 27 },
       isLoading: false,
     });
-    const { result } = renderHook(() => useEquipmentFiltering('org-1'), { wrapper });
+    const { result } = renderHook(() => useEquipmentFiltering('org-1', 'grid'), { wrapper });
     expect(result.current.totalFilteredCount).toBe(27);
-    // 27 / 10 -> 3 pages
+    expect(result.current.pageSize).toBe(12);
+    // 27 / 12 -> 3 pages
     expect(result.current.totalPages).toBe(3);
+  });
+
+  it('uses separate table pagination defaults when table view is active', () => {
+    const { result } = renderHook(() => useEquipmentFiltering('org-1', 'table'), { wrapper });
+    expect(result.current.pageSize).toBe(25);
+    expect(result.current.pageSizeOptions).toEqual([25, 50, 100, 200]);
+
+    act(() => result.current.setTablePage(2));
+    expect(result.current.currentPage).toBe(2);
+
+    act(() => result.current.setCardPage(3));
+    expect(result.current.currentPage).toBe(2);
   });
 
   it('derives manufacturers and locations from the lightweight summaries query', () => {

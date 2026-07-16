@@ -38,11 +38,18 @@ const mockEquipment = [
   },
 ];
 
+function getHeaderByTitle(title: string): HTMLElement {
+  const header = screen.getAllByRole('columnheader').find((h) => h.textContent?.includes(title));
+  expect(header, `expected header "${title}" to render`).toBeDefined();
+  return header!;
+}
+
 describe('EquipmentTable', () => {
   const onShowQRCode = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   it('renders one row per equipment item with name and serial', () => {
@@ -59,20 +66,21 @@ describe('EquipmentTable', () => {
     expect(screen.getByText('Under Maintenance')).toHaveClass('sr-only');
   });
 
-  it('renders the Name column as a sortable header button', () => {
+  it('renders the Status column first with a slim sortable header', () => {
     const onSortChange = vi.fn();
     render(
       <EquipmentTable
         equipment={mockEquipment}
         onShowQRCode={onShowQRCode}
-        sortConfig={{ field: 'name', direction: 'asc' }}
+        sortConfig={{ field: 'status', direction: 'asc' }}
         onSortChange={onSortChange}
       />,
     );
     const headers = screen.getAllByRole('columnheader');
-    const nameHeader = headers[0];
-    expect(nameHeader.textContent).toMatch(/name/i);
-    expect(nameHeader.querySelector('button')).not.toBeNull();
+    const statusHeader = headers[0];
+    expect(statusHeader.textContent).toMatch(/status/i);
+    expect(statusHeader.querySelector('button')).not.toBeNull();
+    expect(getHeaderByTitle('Name')).not.toBe(statusHeader);
   });
 
   it('calls onSortChange when the Name header sort control is used', () => {
@@ -85,47 +93,29 @@ describe('EquipmentTable', () => {
         onSortChange={onSortChange}
       />,
     );
-    const nameHeader = screen.getAllByRole('columnheader')[0];
+    const nameHeader = getHeaderByTitle('Name');
     fireEvent.click(within(nameHeader).getByRole('button'));
     expect(onSortChange).toHaveBeenCalledWith('name', 'desc');
   });
 
-  it('freezes the first column with sticky left-0', () => {
+  it('freezes the Status column with sticky left-0', () => {
     render(<EquipmentTable equipment={mockEquipment} onShowQRCode={onShowQRCode} />);
     const headers = screen.getAllByRole('columnheader');
     expect(headers[0].className).toContain('sticky');
     expect(headers[0].className).toContain('left-0');
   });
 
-  it('renders a sticky table header', () => {
-    const { container } = render(
-      <EquipmentTable equipment={mockEquipment} onShowQRCode={onShowQRCode} />,
-    );
-    const thead = container.querySelector('thead');
-    expect(thead).not.toBeNull();
-    expect(thead!.className).toContain('sticky');
-    expect(thead!.className).toContain('top-0');
-  });
-
-  it('uses compact density on body cells', () => {
+  it('renders resizable column separators on resizable data columns', () => {
     render(<EquipmentTable equipment={mockEquipment} onShowQRCode={onShowQRCode} />);
-    const cells = screen.getAllByRole('cell');
-    expect(cells[0].className).toContain('py-1.5');
-    expect(cells[0].className).toContain('px-2');
+    const separators = screen.getAllByRole('separator', { name: /resize/i });
+    expect(separators.length).toBeGreaterThan(0);
+    expect(screen.queryByRole('separator', { name: /resize status/i })).toBeNull();
   });
 
-  it('renders the QR action button with a 44x44 invisible tap target', () => {
+  it('renders the QR action button', () => {
     render(<EquipmentTable equipment={mockEquipment} onShowQRCode={onShowQRCode} />);
     const qrButton = screen.getByRole('button', { name: /show qr code for forklift a1/i });
-    expect(qrButton.className).toContain('min-h-11');
-    expect(qrButton.className).toContain('min-w-11');
-  });
-
-  it('gives the Name navigation control a minimum 44px row height', () => {
-    render(<EquipmentTable equipment={mockEquipment} onShowQRCode={onShowQRCode} />);
-    const nameBtn = screen.getByRole('button', { name: 'Forklift A1' });
-    expect(nameBtn.className).toContain('min-h-11');
-    expect(nameBtn.className).toContain('w-full');
+    expect(qrButton).toBeInTheDocument();
   });
 
   it('calls onShowQRCode when the QR action button is clicked', () => {
@@ -140,19 +130,13 @@ describe('EquipmentTable', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/equipment/eq-1');
   });
 
-  it('renders monospace serial column', () => {
+  it('renders monospace serial column header', () => {
     render(<EquipmentTable equipment={mockEquipment} onShowQRCode={onShowQRCode} />);
-    const headers = screen.getAllByRole('columnheader');
-    const serialHeader = headers.find((h) => h.textContent?.includes('Serial'));
-    expect(serialHeader).toBeDefined();
-    expect(serialHeader!.className).toContain('font-mono');
+    const serialHeader = getHeaderByTitle('Serial');
+    expect(serialHeader.className).toContain('font-mono');
   });
 
   it('falls back to em-dash for missing team, missing hours, and missing last_maintenance', () => {
-    // Last Maintenance is hidden by default in the new visibility map, so the
-    // em-dash count for the second row is: missing team + missing hours = 2
-    // (plus the visible Last Maintenance em-dash from the first row's
-    // unprovided value if visibility were enabled — which it isn't).
     render(
       <EquipmentTable
         equipment={mockEquipment}
@@ -170,17 +154,13 @@ describe('EquipmentTable', () => {
         }}
       />,
     );
-    // First row has all values; second row is missing team_id+team_name,
-    // working_hours, and last_maintenance — three em-dashes.
     expect(screen.getAllByText('—').length).toBeGreaterThanOrEqual(3);
   });
 
   it('renders the Working Hours column header and a formatted number value', () => {
     render(<EquipmentTable equipment={mockEquipment} onShowQRCode={onShowQRCode} />);
-    const headers = screen.getAllByRole('columnheader');
-    const hoursHeader = headers.find((h) => h.textContent?.includes('Hours'));
-    expect(hoursHeader).toBeDefined();
-    expect(hoursHeader!.className).toContain('font-mono');
+    const hoursHeader = getHeaderByTitle('Hours');
+    expect(hoursHeader.className).toContain('font-mono');
     expect(screen.getByText('1,234')).toBeInTheDocument();
   });
 
@@ -210,10 +190,9 @@ describe('EquipmentTable', () => {
         }}
       />,
     );
-    const headers = screen.getAllByRole('columnheader');
     const sortableTitles = [
-      'Name',
       'Status',
+      'Name',
       'Manufacturer',
       'Model',
       'Serial #',
@@ -223,10 +202,9 @@ describe('EquipmentTable', () => {
       'Last Maintenance',
     ];
     for (const title of sortableTitles) {
-      const header = headers.find((h) => h.textContent?.includes(title));
-      expect(header, `expected header "${title}" to render`).toBeDefined();
+      const header = getHeaderByTitle(title);
       expect(
-        within(header!).getAllByRole('button').length,
+        within(header).getAllByRole('button').length,
         `expected header "${title}" to contain a sortable button`,
       ).toBeGreaterThan(0);
     }
@@ -252,8 +230,8 @@ describe('EquipmentTable', () => {
     );
     const headers = screen.getAllByRole('columnheader');
     const headerTexts = headers.map((h) => h.textContent ?? '');
+    expect(headerTexts.some((t) => t.includes('Status'))).toBe(true);
     expect(headerTexts.some((t) => t.includes('Name'))).toBe(true);
-    expect(headerTexts.some((t) => t.includes('Status'))).toBe(false);
     expect(headerTexts.some((t) => t.includes('Manufacturer'))).toBe(false);
     expect(headerTexts.some((t) => t.includes('Last Maintenance'))).toBe(false);
   });

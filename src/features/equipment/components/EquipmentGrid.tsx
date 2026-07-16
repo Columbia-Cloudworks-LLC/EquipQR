@@ -1,5 +1,4 @@
 import React from 'react';
-import { cn } from "@/lib/utils";
 import EquipmentCard from './EquipmentCard';
 import EquipmentEmptyState from './EquipmentEmptyState';
 import EquipmentTable from './EquipmentTable';
@@ -79,18 +78,13 @@ const EquipmentGrid: React.FC<EquipmentGridProps> = ({
   }
 
   return (
-    <div className={cn(
-      'min-w-0 w-full',
-      viewMode === 'list'
-        ? 'flex flex-col gap-2 md:gap-0 md:divide-y md:rounded-lg md:border'
-        : 'flex flex-col gap-2 md:grid md:gap-6 md:grid-cols-2 lg:grid-cols-3'
-    )}>
+    <div className="flex min-w-0 w-full flex-col gap-2 md:grid md:grid-cols-2 md:gap-6 lg:grid-cols-3">
       {equipment.map((item, index) => (
-        <div key={item.id} className={cn('min-w-0', viewMode === 'grid' && 'md:cv-auto-lg md:h-full')}>
+        <div key={item.id} className="min-w-0 md:cv-auto-lg md:h-full">
           <EquipmentCard
             equipment={item}
             onShowQRCode={onShowQRCode}
-            viewMode={viewMode}
+            viewMode="grid"
             pmStatus={pmStatuses?.get(item.id)}
             listIndex={index}
           />

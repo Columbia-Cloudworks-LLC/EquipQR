@@ -85,8 +85,8 @@ export interface UseEquipmentTableColumnsResult {
  * the hook returns the defaults and refuses to write — this prevents leaking
  * pre-org-selection state into a key that would never be read again.
  *
- * The Name column is structural (`canHide: false` in
- * `EQUIPMENT_TABLE_COLUMN_META`) and is enforced visible regardless of the
+ * The Status and Name columns are structural (`canHide: false` in
+ * `EQUIPMENT_TABLE_COLUMN_META`) and are enforced visible regardless of the
  * persisted value or any external mutation.
  */
 export const useEquipmentTableColumns = (

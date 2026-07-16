@@ -292,14 +292,13 @@ describe('EquipmentCard', () => {
 
       render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
 
-      const workOrderButtons = screen.getAllByRole('button', { name: /work order/i });
+      const workOrderButtons = screen.getAllByRole('button', { name: /new work order/i });
       const mobileButton = workOrderButtons.find(
         (button) => button.classList.contains('h-8') && button.classList.contains('w-8'),
       );
       expect(mobileButton).toBeDefined();
 
       await user.click(mobileButton!);
-      await user.click(screen.getByRole('menuitem', { name: /new work order/i }));
 
       expect(mockNavigate).toHaveBeenCalledWith(
         '/dashboard/equipment/eq-1?createWorkOrder=1',
