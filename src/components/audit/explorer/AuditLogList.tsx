@@ -213,7 +213,6 @@ export function AuditLogList({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useListRef();
-  const [containerWidth, setContainerWidth] = useState(0);
 
   const scrollVirtualToIndex = useCallback(
     (index: number) => {
@@ -242,16 +241,6 @@ export function AuditLogList({
       scrollVirtualToIndex(idx);
     }
   }, [firstSelectedId, entries, scrollVirtualToIndex]);
-
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const observer = new ResizeObserver((entries) => {
-      const e = entries[0];
-      if (e) setContainerWidth(e.contentRect.width);
-    });
-    observer.observe(containerRef.current);
-    return () => observer.disconnect();
-  }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -339,7 +328,8 @@ export function AuditLogList({
       tabIndex={0}
       onKeyDown={handleKeyDown}
       data-testid="audit-log-list-virtual"
-      className="focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+      className="w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+      style={{ height }}
     >
       <List
         listRef={listRef}
@@ -347,7 +337,7 @@ export function AuditLogList({
         rowCount={entries.length}
         rowHeight={ROW_HEIGHT}
         rowProps={auditRowProps}
-        style={{ height, width: containerWidth || 800 }}
+        style={{ height, width: '100%' }}
       />
     </div>
   );

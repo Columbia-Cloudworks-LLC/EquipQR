@@ -1,10 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { handleKeyboardActivation } from '@/components/a11y/keyboard';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { QrCode, MapPin, Calendar, Forklift, Clock, ChevronRight } from 'lucide-react';
+import { QrCode, MapPin, Calendar, Forklift, Clock } from 'lucide-react';
 import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getEquipmentCardDisplayModel } from "@/features/equipment/utils/getEquipmentCardDisplayModel";
 import { getEquipmentCardPmReadout } from "@/features/equipment/utils/getEquipmentCardPmReadout";
 import { useUserSettings } from '@/hooks/useUserSettings';
@@ -35,7 +35,7 @@ interface Equipment {
   team_name?: string;
 }
 
-export type EquipmentViewMode = 'grid' | 'list' | 'table';
+export type EquipmentViewMode = 'grid' | 'table';
 
 /** Above-the-fold cutoff for eager image loading (matches WorkOrdersList). */
 export const EQUIPMENT_ABOVE_FOLD_IMAGE_COUNT = 6;
@@ -192,76 +192,6 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Desktop list view: compact single-row layout */}
-      {viewMode === 'list' && (
-        <div className="hidden md:block">
-          <div className="flex items-center gap-4 px-4 py-3">
-            <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded bg-muted">
-              {resolvedImageSrc ? (
-                <img
-                  src={resolvedImageSrc}
-                  alt={display.imageAlt}
-                  className="h-full w-full object-cover"
-                  loading={imageLoading}
-                  decoding="async"
-                  onError={(e) => { e.currentTarget.src = display.imageFallbackSrc; }}
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center">
-                  <Forklift className="h-5 w-5 text-muted-foreground/50" />
-                </div>
-              )}
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="truncate text-sm font-semibold">{equipment.name}</span>
-                <PMStatusIndicator status={pmStatus} size="sm" />
-                {(equipment as MergedEquipment)._isPendingSync && <PendingSyncBadge />}
-              </div>
-              <div className="mt-0.5 text-xs text-muted-foreground truncate">
-                {equipment.serial_number}
-              </div>
-            </div>
-
-            <div className="hidden lg:flex items-center gap-1.5 text-xs text-muted-foreground flex-shrink-0">
-              <MapPin className="h-3.5 w-3.5" />
-              <span className="max-w-[160px] truncate">{equipment.location}</span>
-            </div>
-
-            <div className="hidden xl:flex items-center gap-1.5 text-xs text-muted-foreground flex-shrink-0">
-              <Clock className="h-3.5 w-3.5" />
-              <span className="font-medium">{display.workingHoursShortText}</span>
-            </div>
-
-            {display.lastMaintenanceText && (
-              <div className="hidden xl:flex items-center gap-1.5 text-xs text-muted-foreground flex-shrink-0">
-                <Calendar className="h-3.5 w-3.5" />
-                <span>{display.lastMaintenanceText.replace('Last maintenance: ', '')}</span>
-              </div>
-            )}
-
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={handleQRClick}
-                    aria-label={`Show QR code for ${equipment.name}`}
-                  >
-                    <QrCode className="h-3.5 w-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Show QR Code</TooltipContent>
-              </Tooltip>
-              <ChevronRight className="h-4 w-4 text-muted-foreground/60" aria-hidden="true" />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Desktop grid view: NASA-punk telemetry card */}
       {viewMode === 'grid' && (

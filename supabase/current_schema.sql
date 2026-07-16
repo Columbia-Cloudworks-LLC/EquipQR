@@ -5264,8 +5264,6 @@ BEGIN
 
   IF p_report_type = 'work-orders' THEN
     IF v_is_admin THEN
-      -- Admins may omit accessibleTeamIds (org-wide) or pass an explicit list.
-      -- Do not invent a team list; strip only non-array junk.
       IF jsonb_typeof(v_sanitized_payload -> 'accessibleTeamIds') = 'array' THEN
         SELECT COALESCE(array_agg(value::uuid), ARRAY[]::uuid[])
         INTO v_client_team_ids
@@ -5282,7 +5280,6 @@ BEGIN
         v_sanitized_payload := v_sanitized_payload - 'accessibleTeamIds';
       END IF;
     ELSE
-      -- Non-admins: derive requestor/viewer team scope from memberships; never trust payload.
       SELECT COALESCE(array_agg(tm.team_id), ARRAY[]::uuid[])
       INTO v_team_ids
       FROM public.team_members tm
@@ -5354,7 +5351,7 @@ BEGIN
   )
   RETURNING id INTO v_log_id;
 
-  SELECT msg_id INTO v_msg_id
+  SELECT send INTO v_msg_id
   FROM pgmq_public.send(
     'exports',
     jsonb_build_object(
@@ -5364,7 +5361,7 @@ BEGIN
       'report_type', p_report_type
     ),
     0
-  )
+  ) AS send
   LIMIT 1;
 
   UPDATE public.export_request_log

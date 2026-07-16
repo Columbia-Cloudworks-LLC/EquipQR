@@ -1,7 +1,5 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { LayoutGrid, List, Rows3 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { GridTableViewModeToggle } from '@/components/common/GridTableViewModeToggle';
 import { SortConfig } from '@/features/equipment/hooks/useEquipmentFiltering';
 import type { EquipmentViewMode } from './EquipmentCard';
 import { EQUIPMENT_SORT_OPTIONS, equipmentSortLabel } from '@/features/equipment/components/equipmentSortOptions';
@@ -49,41 +47,12 @@ const EquipmentSortHeader: React.FC<EquipmentSortHeaderProps> = ({
         />
 
         {onViewModeChange && (
-          <div className="flex items-center rounded-md border" role="radiogroup" aria-label="View mode">
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn('h-8 w-8 rounded-r-none', viewMode === 'grid' && 'bg-muted')}
-              onClick={() => onViewModeChange('grid')}
-              aria-label="Grid view"
-              aria-checked={viewMode === 'grid'}
-              role="radio"
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn('h-8 w-8 rounded-none', viewMode === 'list' && 'bg-muted')}
-              onClick={() => onViewModeChange('list')}
-              aria-label="List view"
-              aria-checked={viewMode === 'list'}
-              role="radio"
-            >
-              <List className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn('h-8 w-8 rounded-l-none', viewMode === 'table' && 'bg-muted')}
-              onClick={() => onViewModeChange('table')}
-              aria-label="Table view"
-              aria-checked={viewMode === 'table'}
-              role="radio"
-            >
-              <Rows3 className="h-3.5 w-3.5" />
-            </Button>
-          </div>
+          <GridTableViewModeToggle
+            viewMode={viewMode}
+            onViewModeChange={onViewModeChange}
+            gridValue="grid"
+            tableValue="table"
+          />
         )}
       </div>
     </div>

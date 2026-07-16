@@ -32,7 +32,6 @@ describe('MobileEquipmentFilters', () => {
   const mockOnQuickFilter = vi.fn();
   const mockOnShowMobileFiltersChange = vi.fn();
   const mockOnSortChange = vi.fn();
-  const mockOnViewModeChange = vi.fn();
 
   const defaultProps = {
     filters: defaultFilters,
@@ -45,8 +44,6 @@ describe('MobileEquipmentFilters', () => {
     filterOptions: defaultFilterOptions,
     sortConfig: { field: 'name', direction: 'asc' as const },
     onSortChange: mockOnSortChange,
-    viewMode: 'grid' as const,
-    onViewModeChange: mockOnViewModeChange,
   };
 
   beforeEach(() => {
@@ -91,14 +88,14 @@ describe('MobileEquipmentFilters', () => {
     expect(mockOnClearFilters).toHaveBeenCalledTimes(1);
   });
 
-  it('opens personalization sheet and wires view mode', async () => {
+  it('opens personalization sheet for sort controls', async () => {
     render(<MobileEquipmentFilters {...defaultProps} />);
 
     fireEvent.click(screen.getByRole('button', { name: /open personalization/i }));
     expect(await screen.findByText('Personalize list')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('radio', { name: /list view/i }));
-    expect(mockOnViewModeChange).toHaveBeenCalledWith('list');
+    expect(screen.getByLabelText('Sort equipment by field')).toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /list view/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /card view/i })).not.toBeInTheDocument();
   });
 
   it('shows active filter badges and omits Team badge (TopBar owns team scope)', () => {

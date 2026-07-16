@@ -42,8 +42,8 @@ USING (
   realtime.topic() = 'notifications:user:' || auth.uid()::text
 );
 
-COMMENT ON POLICY "users_receive_own_notifications" ON "realtime"."messages" IS 
-  'Allows authenticated users to receive broadcasts only on their own notification channel (notifications:user:<user_id>).';
+-- Policy comment omitted: ephemeral Supabase Preview branches are not owners of
+-- realtime.messages, so COMMENT ON POLICY fails with SQLSTATE 42501 there.
 
 -- =============================================================================
 -- PART 2: Create Broadcast Trigger Function

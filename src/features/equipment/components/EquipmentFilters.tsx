@@ -16,8 +16,6 @@ export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
   filterOptions,
   hasActiveFilters,
   activeQuickFilter,
-  resultCount,
-  totalCount,
   viewMode,
   onViewModeChange,
   canImport,
@@ -59,8 +57,6 @@ export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
         activeQuickFilter={activeQuickFilter}
         sortConfig={sortConfig}
         onSortChange={onSortChange}
-        viewMode={viewMode}
-        onViewModeChange={onViewModeChange}
       />
     );
   }
@@ -76,8 +72,6 @@ export const EquipmentFilters: React.FC<EquipmentFiltersProps> = ({
       filterOptions={filterOptions}
       hasActiveFilters={hasFiltersEnabled}
       activeQuickFilter={activeQuickFilter}
-      resultCount={resultCount}
-      totalCount={totalCount}
       viewMode={viewMode}
       onViewModeChange={onViewModeChange}
       canImport={canImport}

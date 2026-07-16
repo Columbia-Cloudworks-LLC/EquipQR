@@ -78,7 +78,7 @@ describe('EquipmentCardGridView', () => {
     expect(hoursValue).toHaveClass('text-lg');
   });
 
-  it('opens work order options from a dropdown menu', async () => {
+  it('opens the new work order form from the card action', async () => {
     const user = userEvent.setup();
     const onQuickAction = vi.fn();
 
@@ -92,9 +92,8 @@ describe('EquipmentCardGridView', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /work order/i }));
+    await user.click(screen.getByRole('button', { name: /new work order/i }));
 
-    await user.click(screen.getByRole('menuitem', { name: /new work order/i }));
     expect(onQuickAction).toHaveBeenCalledWith(
       expect.anything(),
       '/dashboard/equipment/eq-1?createWorkOrder=1',

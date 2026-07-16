@@ -53,6 +53,8 @@ import {
 } from './auditSelection';
 
 const PAGE_SIZE = 200;
+/** Matches AuditLogList row height — minimum one visible row in the events widget. */
+const AUDIT_LIST_ROW_HEIGHT = 36;
 
 const AUDIT_EXPLORER_LAYOUT_ID = 'audit-explorer-split';
 const AUDIT_EXPLORER_PANEL_IDS = ['audit-explorer-list', 'audit-explorer-detail'] as const;
@@ -270,7 +272,7 @@ export function AuditExplorer({ organizationId, initialFilters }: AuditExplorerP
 
   const renderEventsWidget = (contentHeight: number) => {
     const paginationHeight = totalPages > 1 ? 40 : 0;
-    const listHeight = Math.max(160, contentHeight - paginationHeight);
+    const listHeight = Math.max(AUDIT_LIST_ROW_HEIGHT, contentHeight - paginationHeight);
 
     const list = (
       <AuditLogList

@@ -27,9 +27,8 @@ export interface EquipmentColumnPickerProps {
  * `EquipmentTable` view (Issue #633). Choices are persisted per-org by the
  * `useEquipmentTableColumns` hook; this component is purely presentational.
  *
- * Columns flagged `canHide: false` (currently just `name`, the row identifier
- * and the frozen first column) render as disabled checkbox items so the user
- * can see they exist but cannot turn them off.
+ * Columns flagged `canHide: false` (status rail and name row identifier) render
+ * as disabled checkbox items so the user can see they exist but cannot turn them off.
  */
 const EquipmentColumnPicker: React.FC<EquipmentColumnPickerProps> = ({
   allColumns,

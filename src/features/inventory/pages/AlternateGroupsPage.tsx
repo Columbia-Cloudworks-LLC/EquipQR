@@ -1,10 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Plus,
   Layers,
-  CheckCircle2,
-  AlertTriangle,
   MoreHorizontal,
   Pencil,
   Trash2,
@@ -16,8 +14,7 @@ import {
   useDeleteAlternateGroup,
 } from '@/features/inventory/hooks/useAlternateGroups';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
@@ -49,19 +46,34 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { AlternateGroupForm } from '@/features/inventory/components/AlternateGroupForm';
 import { AlternateGroupCreateWizard } from '@/features/inventory/components/AlternateGroupCreateWizard';
-import AlternateGroupsToolbar from '@/features/inventory/components/AlternateGroupsToolbar';
+import { AlternateGroupListCardContent } from '@/features/inventory/components/AlternateGroupListCardContent';
+import { AlternateGroupStatusDot } from '@/features/inventory/components/AlternateGroupStatusDot';
+import { AlternateGroupsDesktopTable } from '@/features/inventory/components/AlternateGroupsDesktopTable';
+import AlternateGroupsPaginationFooter from '@/features/inventory/components/AlternateGroupsPaginationFooter';
+import AlternateGroupsToolbar, {
+  type AlternateGroupsViewMode,
+} from '@/features/inventory/components/AlternateGroupsToolbar';
+import type { AlternateGroupTableSortField } from '@/features/inventory/components/alternateGroupTableColumns';
 import type { PartAlternateGroup } from '@/features/inventory/types/inventory';
+import {
+  filterAlternateGroupTableRows,
+  flattenAlternateGroupsToTableRows,
+  groupMatchesSearch,
+  sortAlternateGroupTableRows,
+} from '@/features/inventory/utils/alternateGroupTableRows';
+import {
+  ALTERNATE_GROUP_CARD_PAGE_SIZE_OPTIONS,
+  ALTERNATE_GROUP_TABLE_PAGE_SIZE_OPTIONS,
+  clampAlternateGroupPage,
+  DEFAULT_ALTERNATE_GROUP_CARD_PAGE_SIZE,
+  DEFAULT_ALTERNATE_GROUP_TABLE_PAGE_SIZE,
+  paginateAlternateGroupItems,
+} from '@/features/inventory/utils/alternateGroupPagination';
 
 type GroupStatusFilter = 'all' | 'verified' | 'unverified' | 'deprecated';
 type GroupSortOption = 'name-asc' | 'name-desc' | 'updated-desc' | 'updated-asc';
@@ -78,19 +90,37 @@ const AlternateGroupsPage: React.FC = () => {
   const [editingGroup, setEditingGroup] = useState<PartAlternateGroup | null>(null);
   const [deletingGroup, setDeletingGroup] = useState<PartAlternateGroup | null>(null);
   const [actionMenuGroup, setActionMenuGroup] = useState<PartAlternateGroup | null>(null);
+  const [viewMode, setViewMode] = useState<AlternateGroupsViewMode>('cards');
+  const [tableSortBy, setTableSortBy] = useState<AlternateGroupTableSortField>('group_name');
+  const [tableSortOrder, setTableSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [cardPage, setCardPage] = useState(1);
+  const [tablePage, setTablePage] = useState(1);
+  const [cardPageSize, setCardPageSize] = useState(DEFAULT_ALTERNATE_GROUP_CARD_PAGE_SIZE);
+  const [tablePageSize, setTablePageSize] = useState(DEFAULT_ALTERNATE_GROUP_TABLE_PAGE_SIZE);
 
   const { data: groups = [], isLoading } = useAlternateGroups(currentOrganization?.id);
   const deleteMutation = useDeleteAlternateGroup();
+
+  const effectiveViewMode: AlternateGroupsViewMode =
+    isMobile ? 'cards' : viewMode;
+
+  useEffect(() => {
+    if (isMobile && viewMode === 'table') {
+      setViewMode('cards');
+    }
+  }, [isMobile, viewMode]);
+
+  useEffect(() => {
+    setCardPage(1);
+    setTablePage(1);
+  }, [search, statusFilter, sortBy, tableSortBy, tableSortOrder]);
 
   // Filter and sort groups
   const filteredGroups = useMemo(() => {
     const needle = search.trim().toLowerCase();
 
     const filtered = groups.filter((group) => {
-      const matchesSearch =
-        !needle ||
-        group.name.toLowerCase().includes(needle) ||
-        group.description?.toLowerCase().includes(needle);
+      const matchesSearch = !needle || groupMatchesSearch(group, needle);
       const matchesStatus = statusFilter === 'all' || group.status === statusFilter;
 
       return matchesSearch && matchesStatus;
@@ -113,6 +143,39 @@ const AlternateGroupsPage: React.FC = () => {
 
     return sorted;
   }, [groups, search, statusFilter, sortBy]);
+
+  const filteredTableRows = useMemo(() => {
+    const rows = flattenAlternateGroupsToTableRows(filteredGroups);
+    const filtered = filterAlternateGroupTableRows(rows, search);
+    return sortAlternateGroupTableRows(filtered, tableSortBy, tableSortOrder);
+  }, [filteredGroups, search, tableSortBy, tableSortOrder]);
+
+  const safeCardPage = clampAlternateGroupPage(cardPage, filteredGroups.length, cardPageSize);
+  const safeTablePage = clampAlternateGroupPage(
+    tablePage,
+    filteredTableRows.length,
+    tablePageSize,
+  );
+
+  const paginatedGroups = useMemo(
+    () => paginateAlternateGroupItems(filteredGroups, safeCardPage, cardPageSize),
+    [filteredGroups, safeCardPage, cardPageSize],
+  );
+
+  const paginatedTableRows = useMemo(
+    () => paginateAlternateGroupItems(filteredTableRows, safeTablePage, tablePageSize),
+    [filteredTableRows, safeTablePage, tablePageSize],
+  );
+
+  const handleTableSortChange = (nextSortBy: AlternateGroupTableSortField) => {
+    if (nextSortBy === tableSortBy) {
+      setTableSortOrder((current) => (current === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+
+    setTableSortBy(nextSortBy);
+    setTableSortOrder('asc');
+  };
 
   const handleViewGroup = (groupId: string) => {
     navigate(`/dashboard/alternate-groups/${groupId}`);
@@ -168,12 +231,24 @@ const AlternateGroupsPage: React.FC = () => {
           sortBy={sortBy}
           onSortChange={setSortBy}
           filteredGroups={filteredGroups}
-          totalCount={groups.length}
           canEdit={canEdit}
+          viewMode={effectiveViewMode}
+          onViewModeChange={isMobile ? undefined : setViewMode}
         />
 
         {/* Groups List */}
         {isLoading ? (
+          effectiveViewMode === 'table' ? (
+            <Card>
+              <CardContent className="p-0">
+                <div className="space-y-2 p-4">
+                  {[...Array(8)].map((_, i) => (
+                    <Skeleton key={i} className="h-10 w-full" />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {[...Array(6)].map((_, i) => (
               <Card key={i}>
@@ -187,6 +262,7 @@ const AlternateGroupsPage: React.FC = () => {
               </Card>
             ))}
           </div>
+          )
         ) : filteredGroups.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
@@ -214,48 +290,41 @@ const AlternateGroupsPage: React.FC = () => {
               )}
             </CardContent>
           </Card>
+        ) : effectiveViewMode === 'table' ? (
+          <div className="space-y-4">
+            <AlternateGroupsDesktopTable
+              rows={paginatedTableRows}
+              sortBy={tableSortBy}
+              sortOrder={tableSortOrder}
+              onSortChange={handleTableSortChange}
+            />
+            <AlternateGroupsPaginationFooter
+              totalItems={filteredTableRows.length}
+              page={safeTablePage}
+              pageSize={tablePageSize}
+              pageSizeOptions={ALTERNATE_GROUP_TABLE_PAGE_SIZE_OPTIONS}
+              itemLabel="part"
+              onPageChange={setTablePage}
+              onPageSizeChange={setTablePageSize}
+            />
+          </div>
         ) : (
-          <TooltipProvider>
+          <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredGroups.map((group) => (
+              {paginatedGroups.map((group) => (
                 <Card
                   key={group.id}
+                  data-testid={`alternate-group-card-${group.id}`}
                   className="cursor-pointer hover:border-primary/50 transition-colors"
                   onClick={() => handleViewGroup(group.id)}
                 >
                   <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0 pr-2">
-                        <CardTitle className="text-lg flex items-center gap-2 flex-wrap">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="truncate">{group.name}</span>
-                            </TooltipTrigger>
-                            <TooltipContent>{group.name}</TooltipContent>
-                          </Tooltip>
-                          {group.status === 'verified' && (
-                            <Badge className="bg-success shrink-0">
-                              <CheckCircle2 className="h-3 w-3 mr-1" />
-                              Verified
-                            </Badge>
-                          )}
-                          {group.status === 'deprecated' && (
-                            <Badge variant="outline" className="shrink-0 border-warning text-warning bg-warning/10">
-                              <AlertTriangle className="h-3 w-3 mr-1" />
-                              Deprecated
-                            </Badge>
-                          )}
-                          {group.status === 'unverified' && (
-                            <Badge variant="outline" className="shrink-0 text-muted-foreground">
-                              Unverified
-                            </Badge>
-                          )}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex min-w-0 flex-1 items-start gap-2 pr-1">
+                        <AlternateGroupStatusDot status={group.status} />
+                        <CardTitle className="min-w-0 flex-1 text-lg leading-snug wrap-break-word">
+                          {group.name}
                         </CardTitle>
-                        {group.description && (
-                          <CardDescription className="mt-1 line-clamp-2">
-                            {group.description}
-                          </CardDescription>
-                        )}
                       </div>
                       {canEdit && (
                         <>
@@ -316,26 +385,25 @@ const AlternateGroupsPage: React.FC = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {group.notes && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {group.notes}
-                      </p>
-                    )}
-                    {!group.notes && !group.description && (
-                      <p className="text-sm text-muted-foreground italic">
-                        No description
-                      </p>
-                    )}
-                    {typeof group.member_count === 'number' && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {group.member_count} part{group.member_count === 1 ? '' : 's'}
-                      </p>
-                    )}
+                    <AlternateGroupListCardContent
+                      description={group.description}
+                      notes={group.notes}
+                      memberSummaries={group.member_summaries}
+                    />
                   </CardContent>
                 </Card>
               ))}
             </div>
-          </TooltipProvider>
+            <AlternateGroupsPaginationFooter
+              totalItems={filteredGroups.length}
+              page={safeCardPage}
+              pageSize={cardPageSize}
+              pageSizeOptions={ALTERNATE_GROUP_CARD_PAGE_SIZE_OPTIONS}
+              itemLabel="group"
+              onPageChange={setCardPage}
+              onPageSizeChange={setCardPageSize}
+            />
+          </div>
         )}
       </div>
 

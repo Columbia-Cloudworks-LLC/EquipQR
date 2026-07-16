@@ -19,8 +19,6 @@ export type EquipmentListToolbarProps = {
   filterOptions: EquipmentFilterOptions;
   hasActiveFilters: boolean;
   activeQuickFilter?: string | null;
-  resultCount: number;
-  totalCount: number;
   viewMode: EquipmentViewMode;
   onViewModeChange: (mode: EquipmentViewMode) => void;
   canImport?: boolean;

@@ -41,5 +41,5 @@ USING (
   realtime.topic() = 'tickets:user:' || auth.uid()::text
 );
 
-COMMENT ON POLICY "users_receive_own_ticket_updates" ON "realtime"."messages" IS
-  'Allows authenticated users to receive broadcasts only on their own ticket channel (tickets:user:<user_id>).';
+-- Policy comment omitted: ephemeral Supabase Preview branches are not owners of
+-- realtime.messages, so COMMENT ON POLICY fails with SQLSTATE 42501 there.

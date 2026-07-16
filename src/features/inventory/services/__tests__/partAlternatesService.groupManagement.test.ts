@@ -284,10 +284,39 @@ describe('Alternate Group Management', () => {
   });
 
   describe('getAlternateGroups', () => {
-    it('returns all groups for organization', async () => {
+    it('returns all groups for organization with member summaries', async () => {
       const mockGroups = [
-        { id: 'group-1', name: 'Group A', organization_id: 'org-1' },
-        { id: 'group-2', name: 'Group B', organization_id: 'org-1' },
+        {
+          id: 'group-1',
+          name: 'Group A',
+          organization_id: 'org-1',
+          part_alternate_group_members: [
+            {
+              id: 'member-1',
+              inventory_item_id: 'inv-1',
+              part_identifier_id: null,
+              is_primary: true,
+              created_at: '2024-01-01T00:00:00Z',
+              inventory_items: { name: 'Filter A', sku: 'FLT-A' },
+              part_identifiers: null,
+            },
+            {
+              id: 'member-2',
+              inventory_item_id: null,
+              part_identifier_id: 'ident-1',
+              is_primary: false,
+              created_at: '2024-01-02T00:00:00Z',
+              inventory_items: null,
+              part_identifiers: { raw_value: 'OEM-123', manufacturer: 'CAT' },
+            },
+          ],
+        },
+        {
+          id: 'group-2',
+          name: 'Group B',
+          organization_id: 'org-1',
+          part_alternate_group_members: [],
+        },
       ];
 
       vi.mocked(supabase.from).mockReturnValueOnce({
@@ -302,6 +331,26 @@ describe('Alternate Group Management', () => {
 
       expect(result).toHaveLength(2);
       expect(result[0].name).toBe('Group A');
+      expect(result[0].member_count).toBe(2);
+      expect(result[0].member_summaries).toEqual([
+        { id: 'member-1', name: 'Filter A', sku: 'FLT-A' },
+        { id: 'member-2', name: 'OEM-123', sku: null },
+      ]);
+      expect(result[0].member_details).toEqual([
+        expect.objectContaining({
+          id: 'member-1',
+          member_type: 'inventory',
+          item_name: 'Filter A',
+          item_sku: 'FLT-A',
+          quantity_on_hand: 0,
+        }),
+        expect.objectContaining({
+          id: 'member-2',
+          member_type: 'identifier',
+          identifier_value: 'OEM-123',
+        }),
+      ]);
+      expect(result[1].member_summaries).toEqual([]);
     });
 
     it('returns empty array when no groups exist', async () => {

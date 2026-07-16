@@ -1,28 +1,30 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
 import {
   Forklift,
   ClipboardList,
   Package,
   ScanLine,
   ClipboardSignature,
+  FileSignature,
   Download,
   FileSpreadsheet,
   Layers,
-  Zap,
-  Settings2,
-  Columns3,
-  Table2,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ReportCardConfig } from '@/features/reports/types/reports';
-import { WORKSHEET_NAMES } from '@/features/work-orders/types/workOrderExcel';
+import { resolveInitialExportColumns } from '@/features/reports/constants/reportColumns';
+import { ReportColumnSelector } from '@/features/reports/components/ReportColumnSelector';
+import {
+  DEFAULT_WORKSHEETS,
+  type WorksheetKey,
+} from '@/features/work-orders/types/workOrderExcel';
+import { WorksheetSelector } from '@/features/work-orders/components/WorksheetSelector';
 
 const EXPORT_ROW_LIMIT = 50_000;
-const WORKSHEET_COUNT = Object.values(WORKSHEET_NAMES).length;
 
 const REPORT_ICONS: Record<string, React.ReactNode> = {
   Forklift: <Forklift className="h-8 w-8" />,
@@ -30,6 +32,7 @@ const REPORT_ICONS: Record<string, React.ReactNode> = {
   Package: <Package className="h-8 w-8" />,
   ScanLine: <ScanLine className="h-8 w-8" />,
   ClipboardSignature: <ClipboardSignature className="h-8 w-8" />,
+  FileSignature: <FileSignature className="h-8 w-8" />,
   FileSpreadsheet: <FileSpreadsheet className="h-8 w-8" />,
   Layers: <Layers className="h-8 w-8" />,
 };
@@ -38,184 +41,130 @@ export interface ReportExportModuleProps {
   config: ReportCardConfig;
   recordCount: number;
   isLoadingCount: boolean;
-  onExport: () => void;
-  onQuickExport: () => void;
+  onCsvExport?: (columns: string[]) => void;
+  onExcelExport?: (worksheets: WorksheetKey[]) => void;
+  isExporting?: boolean;
   canExport: boolean;
   featured?: boolean;
 }
 
-type StatusVariant = 'default' | 'secondary' | 'outline' | 'destructive';
-
-function getStatusMeta(
-  recordCount: number,
-  isLoadingCount: boolean,
-): { label: string; variant: StatusVariant } {
-  if (isLoadingCount) {
-    return { label: 'COUNTING', variant: 'outline' };
-  }
-  if (recordCount === 0) {
-    return { label: 'NO DATA', variant: 'secondary' };
-  }
-  if (recordCount > EXPORT_ROW_LIMIT) {
-    return { label: 'LIMITED', variant: 'destructive' };
-  }
-  return {
-    label: `${recordCount.toLocaleString()} READY`,
-    variant: 'default',
-  };
-}
-
 interface ModuleHeaderProps {
   config: ReportCardConfig;
-  statusLabel: string;
-  statusVariant: StatusVariant;
   icon: React.ReactNode;
   featured: boolean;
 }
 
-const ModuleHeader: React.FC<ModuleHeaderProps> = ({
-  config,
-  statusLabel,
-  statusVariant,
-  icon,
-  featured,
-}) => (
-  <div className="flex items-start justify-between gap-3">
-    <div className="flex min-w-0 flex-1 items-start gap-3">
-      <div
-        className={cn(
-          'shrink-0 border border-primary/20 bg-primary/10 p-2 text-primary transition-transform duration-200 group-hover:scale-105',
-          featured && 'p-3',
-        )}
-      >
-        {icon}
-      </div>
-      <div className="min-w-0 flex-1 space-y-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-tabular text-[10px] font-medium uppercase tracking-wider text-primary">
-            {config.operationCode}
-          </span>
-          <Badge variant={statusVariant} className="font-mono text-[10px] uppercase">
-            {statusLabel}
-          </Badge>
-        </div>
-        <CardTitle className={cn('text-lg', featured && 'text-xl')}>{config.title}</CardTitle>
-      </div>
+const ModuleHeader: React.FC<ModuleHeaderProps> = ({ config, icon, featured }) => (
+  <div className="flex min-w-0 items-start gap-3">
+    <div
+      className={cn(
+        'shrink-0 border border-primary/20 bg-primary/10 p-2 text-primary transition-transform duration-200 group-hover:scale-105',
+        featured && 'p-3',
+      )}
+    >
+      {icon}
     </div>
-    <Badge variant={config.format === 'excel' ? 'default' : 'secondary'} className="shrink-0 font-mono text-[10px] uppercase">
-      {config.formatLabel}
-    </Badge>
-  </div>
-);
-
-interface ModuleMetadataProps {
-  config: ReportCardConfig;
-  featured: boolean;
-}
-
-/** Audience and preview chips with a clear visual hierarchy. */
-const ModuleMetadata: React.FC<ModuleMetadataProps> = ({ config, featured }) => (
-  <div className="mt-3 flex min-h-21 flex-col justify-end gap-2.5">
-    {config.audiences.length > 0 && (
-      <div className="flex flex-wrap gap-1.5">
-        {config.audiences.map((audience) => (
-          <Badge
-            key={audience}
-            variant="outline"
-            className="border-border/80 text-[10px] font-normal text-muted-foreground"
-          >
-            {audience}
-          </Badge>
-        ))}
-      </div>
-    )}
-
-    {featured && config.format === 'excel' && (
-      <div className="border border-border/60 bg-muted/20 p-3">
-        <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-          Worksheets included
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {Object.values(WORKSHEET_NAMES).map((name) => (
-            <Badge
-              key={name}
-              variant="secondary"
-              className="bg-muted/60 text-[10px] font-normal text-muted-foreground"
-            >
-              {name}
-            </Badge>
-          ))}
-        </div>
-      </div>
-    )}
-
-    {!featured && config.previewFields.length > 0 && (
-      <div>
-        <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/80">
-          Key fields
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          {config.previewFields.map((field) => (
-            <Badge
-              key={field}
-              variant="secondary"
-              className="bg-secondary/50 text-[10px] font-normal text-muted-foreground"
-            >
-              {field}
-            </Badge>
-          ))}
-        </div>
-      </div>
-    )}
+    <div className="min-w-0 flex-1">
+      <CardTitle className={cn('text-lg', featured && 'text-xl')}>{config.title}</CardTitle>
+    </div>
   </div>
 );
 
 interface ModuleStatsProps {
   recordCount: number;
   isLoadingCount: boolean;
-  config: ReportCardConfig;
-  featured: boolean;
   compact?: boolean;
 }
 
-const ModuleStats: React.FC<ModuleStatsProps> = ({
-  recordCount,
-  isLoadingCount,
-  config,
+const ModuleStats: React.FC<ModuleStatsProps> = ({ recordCount, isLoadingCount, compact }) => (
+  <div className={cn('space-y-1', compact && 'text-xs')}>
+    {isLoadingCount ? (
+      <Skeleton className="h-4 w-24" />
+    ) : recordCount === 0 ? (
+      <span className="font-tabular text-sm text-muted-foreground">NO RECORDS</span>
+    ) : (
+      <span className="font-tabular text-sm text-foreground">
+        {recordCount.toLocaleString()} RECORDS
+      </span>
+    )}
+    {recordCount > EXPORT_ROW_LIMIT && !isLoadingCount && (
+      <p className="text-[10px] text-warning">Export capped at 50,000 rows</p>
+    )}
+  </div>
+);
+
+interface ExportActionsProps {
+  isExcel: boolean;
+  isDisabled: boolean;
+  isExporting?: boolean;
+  featured: boolean;
+  compact?: boolean;
+  fullWidth?: boolean;
+  onCsvExport?: (columns: string[]) => void;
+  onExcelExport?: (worksheets: WorksheetKey[]) => void;
+  selectedColumns?: string[];
+  selectedWorksheets?: WorksheetKey[];
+}
+
+const ExportActions: React.FC<ExportActionsProps> = ({
+  isExcel,
+  isDisabled,
+  isExporting = false,
   featured,
   compact,
+  fullWidth,
+  onCsvExport,
+  onExcelExport,
+  selectedColumns,
+  selectedWorksheets,
 }) => {
-  const showWorksheets = featured && config.format === 'excel';
-
-  return (
-    <div className={cn('space-y-1', compact && 'text-xs')}>
-      {isLoadingCount ? (
-        <Skeleton className="h-4 w-24" />
-      ) : recordCount === 0 ? (
-        <span className="font-tabular text-sm text-muted-foreground">NO RECORDS</span>
-      ) : (
-        <span className="font-tabular text-sm text-foreground">
-          {recordCount.toLocaleString()} RECORDS
-        </span>
-      )}
-      <div className="flex items-center gap-1 text-xs text-muted-foreground/70">
-        {showWorksheets ? (
+  if (isExcel && onExcelExport && selectedWorksheets) {
+    return (
+      <Button
+        size={compact ? 'sm' : featured ? 'default' : 'sm'}
+        onClick={() => onExcelExport(selectedWorksheets)}
+        disabled={isDisabled || isExporting}
+        className={cn(fullWidth && 'w-full')}
+      >
+        {isExporting ? (
           <>
-            <Table2 className="h-3 w-3" aria-hidden />
-            <span className="font-tabular">{WORKSHEET_COUNT} WORKSHEETS</span>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+            Exporting…
           </>
         ) : (
           <>
-            <Columns3 className="h-3 w-3" aria-hidden />
-            <span className="font-tabular">{config.columnCount} FIELDS</span>
+            <Download className="mr-2 h-4 w-4" aria-hidden />
+            {compact ? 'Export' : 'Export Packet'}
           </>
         )}
-      </div>
-      {recordCount > EXPORT_ROW_LIMIT && !isLoadingCount && (
-        <p className="text-[10px] text-warning">Export capped at 50,000 rows</p>
-      )}
-    </div>
-  );
+      </Button>
+    );
+  }
+
+  if (!isExcel && onCsvExport && selectedColumns) {
+    return (
+      <Button
+        size={compact ? 'sm' : featured ? 'default' : 'sm'}
+        onClick={() => onCsvExport(selectedColumns)}
+        disabled={isDisabled || isExporting}
+        className={cn(fullWidth && 'w-full')}
+      >
+        {isExporting ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+            Exporting…
+          </>
+        ) : (
+          <>
+            <Download className="mr-2 h-4 w-4" aria-hidden />
+            Export
+          </>
+        )}
+      </Button>
+    );
+  }
+
+  return null;
 };
 
 /**
@@ -225,18 +174,62 @@ export const ReportExportModule: React.FC<ReportExportModuleProps> = ({
   config,
   recordCount,
   isLoadingCount,
-  onExport,
-  onQuickExport,
+  onCsvExport,
+  onExcelExport,
+  isExporting = false,
   canExport,
   featured = false,
 }) => {
+  const [selectedWorksheets, setSelectedWorksheets] = useState<WorksheetKey[]>(DEFAULT_WORKSHEETS);
+  const [selectedColumns, setSelectedColumns] = useState<string[]>(() =>
+    resolveInitialExportColumns(config.type),
+  );
+
   const isDisabled = !canExport || recordCount === 0;
   const isExcel = config.format === 'excel';
-  const { label: statusLabel, variant: statusVariant } = getStatusMeta(recordCount, isLoadingCount);
+  const hasWorksheetSelection = featured && isExcel;
+  const hasColumnSelection = !isExcel;
+  const isExportBlocked =
+    isDisabled ||
+    (hasWorksheetSelection && selectedWorksheets.length === 0) ||
+    (hasColumnSelection && selectedColumns.length === 0);
   const iconSize = featured ? 'h-10 w-10' : 'h-8 w-8';
 
   const iconNode = REPORT_ICONS[config.icon] ?? <FileSpreadsheet className={iconSize} />;
   const scaledIcon = React.cloneElement(iconNode as React.ReactElement, { className: iconSize });
+
+  const fieldSelector = hasColumnSelection ? (
+    <div className="mt-3">
+      <ReportColumnSelector
+        reportType={config.type}
+        selectedColumns={selectedColumns}
+        onChange={setSelectedColumns}
+      />
+    </div>
+  ) : null;
+
+  const worksheetSelector = hasWorksheetSelection ? (
+    <div className="mt-3">
+      <WorksheetSelector
+        selectedWorksheets={selectedWorksheets}
+        onChange={setSelectedWorksheets}
+      />
+    </div>
+  ) : null;
+
+  const exportActions = (
+    <ExportActions
+      isExcel={isExcel}
+      isDisabled={isExportBlocked}
+      isExporting={isExporting}
+      featured={featured}
+      onCsvExport={onCsvExport}
+      onExcelExport={onExcelExport}
+      selectedColumns={hasColumnSelection ? selectedColumns : undefined}
+      selectedWorksheets={hasWorksheetSelection ? selectedWorksheets : undefined}
+      fullWidth={featured}
+    />
+  );
 
   return (
     <Card
@@ -250,46 +243,20 @@ export const ReportExportModule: React.FC<ReportExportModuleProps> = ({
         {featured ? (
           <div className="grid flex-1 gap-6 lg:grid-cols-[1fr_minmax(12rem,16rem)] lg:items-stretch">
             <div className="flex min-w-0 flex-col">
-              <ModuleHeader
-                config={config}
-                statusLabel={statusLabel}
-                statusVariant={statusVariant}
-                icon={scaledIcon}
-                featured
-              />
+              <ModuleHeader config={config} icon={scaledIcon} featured />
               <CardDescription className="mt-2 text-sm">{config.description}</CardDescription>
-              <ModuleMetadata config={config} featured />
+              {worksheetSelector}
             </div>
             <div className="flex flex-col justify-between border-border/40 lg:border-l lg:pl-6">
-              <ModuleStats
-                recordCount={recordCount}
-                isLoadingCount={isLoadingCount}
-                config={config}
-                featured
-              />
-              <div className="mt-6">
-                <ExportActions
-                  isExcel={isExcel}
-                  isDisabled={isDisabled}
-                  featured
-                  onExport={onExport}
-                  onQuickExport={onQuickExport}
-                  fullWidth
-                />
-              </div>
+              <ModuleStats recordCount={recordCount} isLoadingCount={isLoadingCount} />
+              <div className="mt-6">{exportActions}</div>
             </div>
           </div>
         ) : (
           <>
-            <ModuleHeader
-              config={config}
-              statusLabel={statusLabel}
-              statusVariant={statusVariant}
-              icon={scaledIcon}
-              featured={false}
-            />
+            <ModuleHeader config={config} icon={scaledIcon} featured={false} />
             <CardDescription className="mt-2 text-sm">{config.description}</CardDescription>
-            <ModuleMetadata config={config} featured={false} />
+            {fieldSelector}
           </>
         )}
       </CardHeader>
@@ -297,19 +264,8 @@ export const ReportExportModule: React.FC<ReportExportModuleProps> = ({
       {!featured && (
         <CardContent className="mt-auto hidden pt-0 sm:block">
           <div className="flex items-end justify-between gap-3 border-t border-border/40 pt-4">
-            <ModuleStats
-              recordCount={recordCount}
-              isLoadingCount={isLoadingCount}
-              config={config}
-              featured={false}
-            />
-            <ExportActions
-              isExcel={isExcel}
-              isDisabled={isDisabled}
-              featured={false}
-              onExport={onExport}
-              onQuickExport={onQuickExport}
-            />
+            <ModuleStats recordCount={recordCount} isLoadingCount={isLoadingCount} />
+            {exportActions}
           </div>
         </CardContent>
       )}
@@ -321,25 +277,14 @@ export const ReportExportModule: React.FC<ReportExportModuleProps> = ({
             {React.cloneElement(iconNode as React.ReactElement, { className: 'h-6 w-6' })}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-tabular text-[10px] uppercase tracking-wider text-primary">
-                {config.operationCode}
-              </span>
-              <Badge variant={statusVariant} className="text-[10px]">
-                {statusLabel}
-              </Badge>
-              <Badge variant={isExcel ? 'default' : 'secondary'} className="text-[10px]">
-                {config.formatLabel}
-              </Badge>
-            </div>
-            <h3 className="mt-1 truncate font-semibold text-sm">{config.title}</h3>
+            <h3 className="truncate font-semibold text-sm">{config.title}</h3>
             <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{config.description}</p>
+            {fieldSelector}
+            {worksheetSelector}
             <div className="mt-2">
               <ModuleStats
                 recordCount={recordCount}
                 isLoadingCount={isLoadingCount}
-                config={config}
-                featured={featured}
                 compact
               />
             </div>
@@ -348,80 +293,17 @@ export const ReportExportModule: React.FC<ReportExportModuleProps> = ({
         <div className="mt-auto flex justify-end pt-3">
           <ExportActions
             isExcel={isExcel}
-            isDisabled={isDisabled}
+            isDisabled={isExportBlocked}
+            isExporting={isExporting}
             featured={featured}
             compact
-            onExport={onExport}
-            onQuickExport={onQuickExport}
+            onCsvExport={onCsvExport}
+            onExcelExport={onExcelExport}
+            selectedColumns={hasColumnSelection ? selectedColumns : undefined}
+            selectedWorksheets={hasWorksheetSelection ? selectedWorksheets : undefined}
           />
         </div>
       </div>
     </Card>
-  );
-};
-
-interface ExportActionsProps {
-  isExcel: boolean;
-  isDisabled: boolean;
-  featured: boolean;
-  compact?: boolean;
-  fullWidth?: boolean;
-  onExport: () => void;
-  onQuickExport: () => void;
-}
-
-const ExportActions: React.FC<ExportActionsProps> = ({
-  isExcel,
-  isDisabled,
-  featured,
-  compact,
-  fullWidth,
-  onExport,
-  onQuickExport,
-}) => {
-  if (isExcel) {
-    return (
-      <Button
-        size={compact ? 'sm' : featured ? 'default' : 'sm'}
-        onClick={onExport}
-        disabled={isDisabled}
-        className={cn(fullWidth && 'w-full')}
-      >
-        <Download className="h-4 w-4 mr-2" aria-hidden />
-        {compact ? 'Export' : 'Configure Export'}
-      </Button>
-    );
-  }
-
-  if (compact) {
-    return (
-      <div className="flex gap-2">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={onQuickExport}
-          disabled={isDisabled}
-          aria-label="Quick export"
-        >
-          <Zap className="h-4 w-4" />
-        </Button>
-        <Button size="sm" onClick={onExport} disabled={isDisabled} aria-label="Customize export">
-          <Settings2 className="h-4 w-4" />
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex shrink-0 items-center gap-2">
-      <Button size="sm" variant="outline" onClick={onQuickExport} disabled={isDisabled}>
-        <Zap className="h-4 w-4 mr-1.5" aria-hidden />
-        Quick
-      </Button>
-      <Button size="sm" onClick={onExport} disabled={isDisabled}>
-        <Settings2 className="h-4 w-4 mr-1.5" aria-hidden />
-        Customize
-      </Button>
-    </div>
   );
 };

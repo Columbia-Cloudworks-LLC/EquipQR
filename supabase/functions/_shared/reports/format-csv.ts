@@ -58,6 +58,46 @@ function formatTemplateName(row: ReportRow): string {
   return typeof name === "string" ? name : "";
 }
 
+function formatQuickFormName(row: ReportRow): string {
+  const snapshot = row.form_snapshot;
+  if (typeof snapshot !== "object" || snapshot === null) return "Quick form";
+  const name = (snapshot as Record<string, unknown>).name;
+  return typeof name === "string" ? name : "Quick form";
+}
+
+function formatQuickFormCapturedFieldsSummary(row: ReportRow): string {
+  const fieldValues = row.field_values;
+  if (!Array.isArray(fieldValues)) return "";
+  const parts: string[] = [];
+  for (const field of fieldValues) {
+    if (typeof field !== "object" || field === null) continue;
+    const label = (field as Record<string, unknown>).label;
+    const value = (field as Record<string, unknown>).value;
+    if (typeof label === "string") {
+      parts.push(`${label}: ${value ?? ""}`);
+    }
+  }
+  return parts.join(" | ");
+}
+
+function formatQuickFormTimezone(row: ReportRow): string {
+  const ctx = row.client_context;
+  if (typeof ctx !== "object" || ctx === null) return "";
+  const timezone = (ctx as Record<string, unknown>).browser_timezone;
+  return typeof timezone === "string" ? timezone : "";
+}
+
+function formatQuickFormGps(row: ReportRow): string {
+  const ctx = row.client_context;
+  if (typeof ctx !== "object" || ctx === null) return "";
+  const gps = (ctx as Record<string, unknown>).gps;
+  if (typeof gps !== "object" || gps === null) return "";
+  const latitude = (gps as Record<string, unknown>).latitude;
+  const longitude = (gps as Record<string, unknown>).longitude;
+  if (latitude == null || longitude == null) return "";
+  return `${latitude}, ${longitude}`;
+}
+
 function buildInventoryCsv(rows: ReportRow[], columns: string[]): ReportCsvResult {
   if (rows.length === 0) {
     return { csvContent: "No data found", rowCount: 0 };
@@ -147,6 +187,33 @@ function buildOperatorCheckinsCsv(rows: ReportRow[], columns: string[]): ReportC
   };
 }
 
+function buildQuickFormsCsv(rows: ReportRow[], columns: string[]): ReportCsvResult {
+  if (rows.length === 0) {
+    return { csvContent: "No data found", rowCount: 0 };
+  }
+
+  const columnMap: Record<string, (item: ReportRow) => string> = {
+    form_name: (item) => escapeCSVValue(formatQuickFormName(item)),
+    submitted_at: (item) => formatSubmittedAt(item.submitted_at as string),
+    captured_fields_summary: (item) =>
+      escapeCSVValue(formatQuickFormCapturedFieldsSummary(item)),
+    timezone: (item) => escapeCSVValue(formatQuickFormTimezone(item)),
+    gps: (item) => escapeCSVValue(formatQuickFormGps(item)),
+    field_values_json: (item) => escapeCSVValue(JSON.stringify(item.field_values ?? [])),
+    submission_id: (item) => escapeCSVValue(item.id as string),
+  };
+
+  return {
+    csvContent: buildCsvTable(
+      rows,
+      columns,
+      columnMap,
+      REPORT_COLUMN_LABELS["quick-forms"],
+    ),
+    rowCount: rows.length,
+  };
+}
+
 function buildAlternateGroupsCsv(
   rows: FlattenedAlternateGroupMember[],
   columns: string[],
@@ -215,6 +282,8 @@ export function buildReportCsv(
       return buildScansCsv(rows as ReportRow[], allowedColumns);
     case "operator-check-ins":
       return buildOperatorCheckinsCsv(rows as ReportRow[], allowedColumns);
+    case "quick-forms":
+      return buildQuickFormsCsv(rows as ReportRow[], allowedColumns);
     case "alternate-groups":
       return buildAlternateGroupsCsv(rows as FlattenedAlternateGroupMember[], allowedColumns);
     default: {
@@ -227,4 +296,8 @@ export function buildReportCsv(
 export const __formatCsvTestables = {
   formatCapturedFieldsSummary,
   formatTemplateName,
+  formatQuickFormName,
+  formatQuickFormCapturedFieldsSummary,
+  formatQuickFormTimezone,
+  formatQuickFormGps,
 };

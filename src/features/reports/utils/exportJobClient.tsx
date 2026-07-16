@@ -124,26 +124,22 @@ export async function downloadExportJobResult(
     throw new Error('Export completed but no download URL was returned');
   }
 
-  if (status.resultUrl) {
-    const response = await fetch(status.resultUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to download export (${response.status})`);
+  if (status.resultStoragePath) {
+    const { data, error } = await supabase.storage
+      .from('export-results')
+      .download(status.resultStoragePath);
+    if (error || !data) {
+      logger.error('Failed to download export from storage', {
+        error: error?.message,
+        path: status.resultStoragePath,
+      });
+      throw new Error(error?.message ?? 'Failed to download export');
     }
-    const blob = await response.blob();
-    downloadBlob(blob, filename);
+    downloadBlob(data, filename);
     return;
   }
 
-  // Fallback: create a fresh signed URL from storage path
-  const path = status.resultStoragePath!;
-  const { data, error } = await supabase.storage
-    .from('export-results')
-    .createSignedUrl(path, 60 * 10);
-  if (error || !data?.signedUrl) {
-    logger.error('Failed to create signed URL for export', { error: error?.message, path });
-    throw new Error(error?.message ?? 'Failed to create download link');
-  }
-  const response = await fetch(data.signedUrl);
+  const response = await fetch(status.resultUrl!);
   if (!response.ok) {
     throw new Error(`Failed to download export (${response.status})`);
   }

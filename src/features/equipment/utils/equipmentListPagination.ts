@@ -1,0 +1,5 @@
+export const DEFAULT_EQUIPMENT_CARD_PAGE_SIZE = 12;
+export const DEFAULT_EQUIPMENT_TABLE_PAGE_SIZE = 25;
+
+export const EQUIPMENT_CARD_PAGE_SIZE_OPTIONS = [12, 24, 36, 48] as const;
+export const EQUIPMENT_TABLE_PAGE_SIZE_OPTIONS = [25, 50, 100, 200] as const;

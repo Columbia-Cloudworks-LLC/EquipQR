@@ -1834,11 +1834,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "operator_checkin_submissions_template_id_fkey"
-            columns: ["template_id"]
+            foreignKeyName: "operator_checkin_submissions_template_organization_fkey"
+            columns: ["template_id", "organization_id"]
             isOneToOne: false
             referencedRelation: "operator_checklist_templates"
-            referencedColumns: ["id"]
+            referencedColumns: ["id", "organization_id"]
           },
         ]
       }
@@ -5968,6 +5968,10 @@ export type Database = {
           stripe_customer_metadata: string
           subscription_id: string
         }[]
+      }
+      list_operator_checkin_restorable_template_ids: {
+        Args: { p_organization_id: string; p_template_ids?: string[] }
+        Returns: string[]
       }
       list_pm_templates:
         | {

@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.26.0] - 2026-07-15
+
+### Added
+
+- **Equipment list** — Card/table view toggle, list pagination, and dedicated import and download menus on the toolbar.
+- **Inventory & alternate groups** — Desktop table view with resizable sortable columns, list pagination, status dots on group cards, and an available-fields section in the column picker.
+- **Fleet Export Console** — Inline collapsible column and worksheet pickers on export cards, plus Quick Form submission ledger export.
+
+### Changed
+
+- **Fleet Export Console** — Direct Export buttons replace quick/customize modals and the Export Protocol panel for standard exports.
+- **Organization audit log** — Audit Explorer uses full-width layout and an improved dashboard grid for scanning export activity.
+- **Inventory list** — Simplified toolbar; removed compact density toggle.
+
+### Fixed
+
+- **Async export jobs** — `enqueue_export_job` migration reads `pgmq_public.send` as `SETOF bigint` so equipment and work-order async exports enqueue reliably.
+
 ## [3.25.31] - 2026-07-14
 
 ### Fixed
@@ -2564,7 +2582,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.18.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.26.0...HEAD
+[3.26.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.25.31...v3.26.0
 [3.18.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.17.0...v3.18.0
 [3.11.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.11.2...v3.11.3
 [3.11.2]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.11.1...v3.11.2

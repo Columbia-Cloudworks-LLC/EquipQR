@@ -1,20 +1,19 @@
 import InventoryToolbar from '@/features/inventory/components/InventoryToolbar';
 import MobileInventoryToolbar from '@/features/inventory/components/MobileInventoryToolbar';
-import type { InventoryTableColumnKey } from '@/features/inventory/components/inventoryTableColumns';
-import type { InventoryFilters, InventoryItem } from '@/features/inventory/types/inventory';
+import type { InventoryFilters, InventoryItem, InventoryTableDensity } from '@/features/inventory/types/inventory';
 
 type InventoryListFilterToolbarProps = {
   isMobile: boolean;
   filters: InventoryFilters;
   uniqueLocations: string[];
-  resultCount: number;
   lowStockOrgWide: number;
   activeFilterCount: number;
   canExport: boolean;
   items: InventoryItem[];
-  visibleColumnKeys?: InventoryTableColumnKey[];
   selectedItems?: InventoryItem[];
   toolbarControls?: React.ReactNode;
+  density?: InventoryTableDensity;
+  onDensityChange?: (density: InventoryTableDensity) => void;
   healthSummary?: React.ReactNode;
   quickFilterChips?: React.ReactNode;
   onFilterChange: (patch: Partial<InventoryFilters>) => void;
@@ -25,14 +24,14 @@ export function InventoryListFilterToolbar({
   isMobile,
   filters,
   uniqueLocations,
-  resultCount,
   lowStockOrgWide,
   activeFilterCount,
   canExport,
   items,
-  visibleColumnKeys,
   selectedItems,
   toolbarControls,
+  density,
+  onDensityChange,
   healthSummary,
   quickFilterChips,
   onFilterChange,
@@ -53,14 +52,14 @@ export function InventoryListFilterToolbar({
     <InventoryToolbar
       filters={filters}
       uniqueLocations={uniqueLocations}
-      resultCount={resultCount}
       onFilterChange={onFilterChange}
       onClearFilters={onClearFilters}
       canExport={canExport}
       items={items}
-      visibleColumnKeys={visibleColumnKeys}
       selectedItems={selectedItems}
       toolbarControls={toolbarControls}
+      density={density}
+      onDensityChange={onDensityChange}
       healthSummary={healthSummary}
       quickFilterChips={quickFilterChips}
     />

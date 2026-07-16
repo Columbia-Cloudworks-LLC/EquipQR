@@ -44,7 +44,8 @@ vi.mock('@/features/equipment/hooks/useEquipmentFiltering', () => ({
     hasActiveFilters: false,
     equipment: [],
     currentPage: 1,
-    pageSize: 10,
+    pageSize: 12,
+    pageSizeOptions: [12, 24, 36, 48],
     totalPages: 0,
     totalFilteredCount: 0,
     updateFilter: vi.fn(),
@@ -133,7 +134,8 @@ describe('Equipment page', () => {
       hasActiveFilters: false,
       equipment: [],
       currentPage: 1,
-      pageSize: 10,
+      pageSize: 12,
+      pageSizeOptions: [12, 24, 36, 48],
       totalPages: 0,
       totalFilteredCount: 0,
       updateFilter: vi.fn(),
@@ -164,7 +166,8 @@ describe('Equipment page', () => {
       hasActiveFilters: false,
       equipment: [],
       currentPage: 1,
-      pageSize: 10,
+      pageSize: 12,
+      pageSizeOptions: [12, 24, 36, 48],
       totalPages: 0,
       totalFilteredCount: 0,
       updateFilter: vi.fn(),
@@ -194,7 +197,8 @@ describe('Equipment page', () => {
       hasActiveFilters: false,
       equipment: [{ id: '1', name: 'Excavator' }, { id: '2', name: 'Bulldozer' }, { id: '3', name: 'Forklift' }],
       currentPage: 1,
-      pageSize: 10,
+      pageSize: 12,
+      pageSizeOptions: [12, 24, 36, 48],
       totalPages: 1,
       totalFilteredCount: 2,
       updateFilter: vi.fn(),
@@ -244,7 +248,8 @@ describe('Equipment page', () => {
         hasActiveFilters: false,
         equipment: [],
         currentPage: 1,
-        pageSize: 10,
+        pageSize: 12,
+      pageSizeOptions: [12, 24, 36, 48],
         totalPages: 0,
         totalFilteredCount: 0,
         updateFilter: vi.fn(),
@@ -263,11 +268,11 @@ describe('Equipment page', () => {
       expect(screen.getByTestId('grid-view-mode')).toHaveTextContent('grid');
     });
 
-    it('hydrates "list" from localStorage', () => {
+    it('migrates legacy "list" persistence to card view', () => {
       window.localStorage.setItem('equipqr:equipment-view-mode', 'list');
       setupHookForView();
       render(<Equipment />);
-      expect(screen.getByTestId('grid-view-mode')).toHaveTextContent('list');
+      expect(screen.getByTestId('grid-view-mode')).toHaveTextContent('grid');
     });
 
     it('hydrates "table" from localStorage', () => {

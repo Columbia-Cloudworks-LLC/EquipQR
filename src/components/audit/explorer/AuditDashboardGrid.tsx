@@ -6,16 +6,18 @@
  * in localStorage, with a one-click reset back to the default arrangement.
  */
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import GridLayout, {
   useContainerWidth,
+  verticalCompactor,
+  calcGridItemPosition,
   type Layout,
   type LayoutItem,
 } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
-import { ChevronDown, ChevronUp, GripVertical, RotateCcw } from 'lucide-react';
+import './audit-dashboard-grid.css';
+import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, GripVertical, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import { logger } from '@/utils/logger';
 
 const STORAGE_KEY = 'audit-dashboard-grid-v1';
@@ -73,11 +75,13 @@ function sanitizeLayoutItem(
   stored: unknown,
   defaultItem: LayoutItem,
   collapsed: boolean,
+  configuredMinH: number,
 ): LayoutItem | null {
   if (!stored || typeof stored !== 'object') return null;
   const item = stored as Partial<LayoutItem>;
   if (item.i !== defaultItem.i) return null;
   const maxRows = 200;
+  const minH = collapsed ? COLLAPSED_H : configuredMinH;
   const valid =
     isBoundedInteger(item.x, 0, GRID_COLS - 1) &&
     isBoundedInteger(item.y, 0, maxRows) &&
@@ -90,8 +94,9 @@ function sanitizeLayoutItem(
     x: item.x as number,
     y: item.y as number,
     w: item.w as number,
-    h: item.h as number,
-    ...(collapsed ? { minH: COLLAPSED_H, isResizable: false } : {}),
+    h: Math.max(item.h as number, minH),
+    minH,
+    ...(collapsed ? { isResizable: false } : {}),
   };
 }
 
@@ -121,6 +126,8 @@ function readPersistedState(widgets: AuditDashboardWidgetDef[]): PersistedGridSt
 
     for (const defaultItem of defaultLayoutFor(widgets)) {
       const widgetId = defaultItem.i;
+      const widgetDef = widgets.find((w) => w.id === widgetId);
+      const configuredMinH = widgetDef?.minH ?? defaultItem.minH ?? 3;
       collapsed[widgetId] = rawCollapsed[widgetId] === true;
       const storedExpanded = rawExpandedH[widgetId];
       if (isBoundedInteger(storedExpanded, 1, 200)) {
@@ -129,7 +136,10 @@ function readPersistedState(widgets: AuditDashboardWidgetDef[]): PersistedGridSt
       const stored = parsed.layout.find(
         (item) => !!item && typeof item === 'object' && (item as LayoutItem).i === widgetId,
       );
-      layout.push(sanitizeLayoutItem(stored, defaultItem, collapsed[widgetId]) ?? defaultItem);
+      layout.push(
+        sanitizeLayoutItem(stored, defaultItem, collapsed[widgetId], configuredMinH) ??
+          defaultItem,
+      );
     }
 
     return { layout, collapsed, expandedH };
@@ -216,13 +226,302 @@ function moveWidgetInLayout(
   return reflowLayoutRowsPreservingColumns(reordered);
 }
 
+function layoutItemsEqual(a: LayoutItem, b: LayoutItem): boolean {
+  return a.i === b.i && a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h;
+}
+
+function layoutsEqual(a: Layout, b: Layout): boolean {
+  if (a.length !== b.length) return false;
+  const bById = new Map(b.map((item) => [item.i, item]));
+  return a.every((item) => {
+    const other = bById.get(item.i);
+    return other != null && layoutItemsEqual(item, other);
+  });
+}
+
+type GridPositionParams = {
+  cols: number;
+  rowHeight: number;
+  margin: readonly [number, number];
+  containerPadding: readonly [number, number];
+  containerWidth: number;
+  maxRows: number;
+};
+
+function gridItemPixelRect(
+  item: LayoutItem,
+  positionParams: GridPositionParams,
+): { left: number; top: number; width: number; height: number } {
+  const pos = calcGridItemPosition(
+    positionParams,
+    item.x,
+    item.y,
+    item.w,
+    item.h
+  );
+  return { left: pos.left, top: pos.top, width: pos.width, height: pos.height };
+}
+
+function sortLayoutByPosition(layout: Layout): Layout {
+  return [...layout].sort((a, b) => a.y - b.y || a.x - b.x);
+}
+
+function measureHeaderCenterY(gridEl: HTMLElement, widgetId: string): number | null {
+  const itemEl = gridEl.querySelector<HTMLElement>(
+    `.react-grid-item[data-testid="audit-widget-${widgetId}"]`
+  );
+  if (!itemEl) return null;
+  const rect = itemEl.getBoundingClientRect();
+  return rect.top + WIDGET_HEADER_PX / 2;
+}
+
+/**
+ * Compare the cursor against each other card's header center. Returns the index
+ * in the frozen stack where the dragged widget would be inserted (0 = first).
+ */
+function computeInsertBeforeIndex(
+  sorted: Layout,
+  draggedWidgetId: string,
+  clientY: number,
+  gridEl: HTMLElement,
+): number {
+  const originalIndex = sorted.findIndex((item) => item.i === draggedWidgetId);
+  if (originalIndex < 0) return 0;
+
+  let insertBeforeIndex = originalIndex;
+
+  for (let i = 0; i < sorted.length; i++) {
+    const widgetId = sorted[i].i;
+    if (widgetId === draggedWidgetId) continue;
+
+    const headerCenterY = measureHeaderCenterY(gridEl, widgetId);
+    if (headerCenterY == null) continue;
+
+    if (clientY < headerCenterY) {
+      insertBeforeIndex = i;
+      break;
+    }
+
+    insertBeforeIndex = i + 1;
+  }
+
+  return insertBeforeIndex;
+}
+
+/** Staying put spans inserting before self or before the next card. */
+function isSameDropPosition(originalIndex: number, insertBeforeIndex: number): boolean {
+  return insertBeforeIndex === originalIndex || insertBeforeIndex === originalIndex + 1;
+}
+
+function reorderLayoutByInsertIndex(
+  layout: Layout,
+  draggedWidgetId: string,
+  insertBeforeIndex: number,
+): Layout {
+  const sorted = sortLayoutByPosition(layout);
+  const originalIndex = sorted.findIndex((item) => item.i === draggedWidgetId);
+  if (originalIndex < 0 || isSameDropPosition(originalIndex, insertBeforeIndex)) {
+    return layout;
+  }
+
+  const dragged = sorted[originalIndex];
+  const reordered = sorted.filter((item) => item.i !== draggedWidgetId);
+  const adjustedIndex =
+    insertBeforeIndex > originalIndex ? insertBeforeIndex - 1 : insertBeforeIndex;
+  reordered.splice(adjustedIndex, 0, dragged);
+  return reflowLayoutRowsPreservingColumns(reordered);
+}
+
+interface InsertionDividerRect {
+  left: number;
+  top: number;
+  width: number;
+}
+
+interface MeasuredItemRect {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+/** Read rendered grid-item bounds so the divider sits in the real margin gap. */
+function measureWidgetRect(
+  slotsEl: HTMLElement,
+  widgetId: string,
+): MeasuredItemRect | null {
+  const gridEl = slotsEl.parentElement?.querySelector<HTMLElement>(
+    '.audit-dashboard-grid-layout'
+  );
+  const itemEl = gridEl?.querySelector<HTMLElement>(
+    `.react-grid-item[data-testid="audit-widget-${widgetId}"]`
+  );
+  if (!itemEl) return null;
+
+  const slotsRect = slotsEl.getBoundingClientRect();
+  const itemRect = itemEl.getBoundingClientRect();
+  return {
+    left: itemRect.left - slotsRect.left,
+    top: itemRect.top - slotsRect.top,
+    width: itemRect.width,
+    height: itemRect.height,
+  };
+}
+
+function dividerRectForGapFromDom(
+  sorted: Layout,
+  gapIndex: number,
+  slotsEl: HTMLElement,
+): InsertionDividerRect | null {
+  if (sorted.length === 0) return null;
+
+  const clampedGap = Math.max(0, Math.min(sorted.length, gapIndex));
+
+  if (clampedGap === 0) {
+    const firstRect = measureWidgetRect(slotsEl, sorted[0].i);
+    if (!firstRect) return null;
+    return {
+      left: firstRect.left,
+      top: firstRect.top - GRID_MARGIN[1] / 2,
+      width: firstRect.width,
+    };
+  }
+
+  if (clampedGap >= sorted.length) {
+    const lastRect = measureWidgetRect(slotsEl, sorted[sorted.length - 1].i);
+    if (!lastRect) return null;
+    return {
+      left: lastRect.left,
+      top: lastRect.top + lastRect.height + GRID_MARGIN[1] / 2,
+      width: lastRect.width,
+    };
+  }
+
+  const aboveRect = measureWidgetRect(slotsEl, sorted[clampedGap - 1].i);
+  const belowRect = measureWidgetRect(slotsEl, sorted[clampedGap].i);
+  if (!aboveRect || !belowRect) return null;
+
+  const gapTop = aboveRect.top + aboveRect.height;
+  const gapBottom = belowRect.top;
+  return {
+    left: aboveRect.left,
+    top: (gapTop + gapBottom) / 2,
+    width: aboveRect.width,
+  };
+}
+
+/** Place the divider in the margin gap for the target insert index. */
+function computeInsertionDividerRect(
+  frozenLayout: Layout,
+  draggedWidgetId: string,
+  insertBeforeIndex: number,
+  originalIndex: number,
+  slotsEl: HTMLElement,
+): InsertionDividerRect | null {
+  if (isSameDropPosition(originalIndex, insertBeforeIndex)) return null;
+
+  const sorted = sortLayoutByPosition(frozenLayout);
+  const gapIndex = Math.max(0, Math.min(sorted.length, insertBeforeIndex));
+  return dividerRectForGapFromDom(sorted, gapIndex, slotsEl);
+}
+
+interface AuditDropSlotOverlayProps {
+  layout: Layout;
+  positionParams: GridPositionParams;
+  draggedWidgetId: string;
+  insertBeforeIndex: number | null;
+  originalIndex: number;
+}
+
+function AuditDropSlotOverlay({
+  layout,
+  positionParams,
+  draggedWidgetId,
+  insertBeforeIndex,
+  originalIndex,
+}: AuditDropSlotOverlayProps) {
+  const slotsRef = useRef<HTMLDivElement>(null);
+  const [dividerRect, setDividerRect] = useState<InsertionDividerRect | null>(null);
+
+  useLayoutEffect(() => {
+    if (insertBeforeIndex == null || !slotsRef.current) {
+      setDividerRect(null);
+      return;
+    }
+    setDividerRect(
+      computeInsertionDividerRect(
+        layout,
+        draggedWidgetId,
+        insertBeforeIndex,
+        originalIndex,
+        slotsRef.current
+      )
+    );
+  }, [layout, draggedWidgetId, insertBeforeIndex, originalIndex]);
+
+  return (
+    <div
+      ref={slotsRef}
+      className="audit-drop-slots absolute inset-0 pointer-events-none z-2"
+      aria-hidden
+    >
+      {layout.map((item) => {
+        const rect = gridItemPixelRect(item, positionParams);
+        const isSource = item.i === draggedWidgetId;
+        return (
+          <div
+            key={item.i}
+            className={`audit-slot-guide${isSource ? ' audit-slot-guide--source' : ''}`}
+            style={{
+              left: rect.left,
+              top: rect.top,
+              width: rect.width,
+              height: rect.height,
+            }}
+          />
+        );
+      })}
+      {dividerRect && (
+        <div
+          className="audit-drop-divider"
+          style={{
+            left: dividerRect.left,
+            top: dividerRect.top,
+            width: dividerRect.width,
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
 export interface AuditDashboardGridProps {
   widgets: AuditDashboardWidgetDef[];
 }
 
+interface WidgetDragSession {
+  widgetId: string;
+  pointerId: number;
+  /** Pointer offset from the top-left of the widget card (pixels). */
+  grabOffsetX: number;
+  grabOffsetY: number;
+  cardWidth: number;
+  cardHeight: number;
+  originalIndex: number;
+}
+
 export function AuditDashboardGrid({ widgets }: AuditDashboardGridProps) {
-  const { width, containerRef } = useContainerWidth();
+  const { width, containerRef, mounted } = useContainerWidth({
+    initialWidth: 1024,
+  });
   const [state, setState] = useState<PersistedGridState>(() => readPersistedState(widgets));
+  const [isGridInteracting, setIsGridInteracting] = useState(false);
+  const [dragSession, setDragSession] = useState<WidgetDragSession | null>(null);
+  const [insertBeforeIndex, setInsertBeforeIndex] = useState<number | null>(null);
+  const [dragLayoutSnapshot, setDragLayoutSnapshot] = useState<Layout | null>(null);
+  const dragSessionRef = useRef<WidgetDragSession | null>(null);
+  const layoutAtDragStartRef = useRef<Layout | null>(null);
+  const floatingCloneRef = useRef<HTMLElement | null>(null);
 
   // Persist state changes debounced: drag/resize emit many layout updates and
   // localStorage writes are synchronous, so coalesce them. Flush on unmount.
@@ -242,8 +541,167 @@ export function AuditDashboardGrid({ widgets }: AuditDashboardGridProps) {
   );
 
   const handleLayoutChange = useCallback((layout: Layout) => {
-    setState((prev) => ({ ...prev, layout: [...layout] }));
+    setState((prev) => {
+      if (layoutsEqual(prev.layout, layout)) return prev;
+      return { ...prev, layout: [...layout] };
+    });
   }, []);
+
+  const positionParams = useMemo(
+    (): GridPositionParams => ({
+      cols: GRID_COLS,
+      rowHeight: ROW_HEIGHT,
+      margin: GRID_MARGIN,
+      containerPadding: [0, 0] as const,
+      containerWidth: width,
+      maxRows: Infinity,
+    }),
+    [width]
+  );
+
+  const removeFloatingClone = useCallback(() => {
+    floatingCloneRef.current?.remove();
+    floatingCloneRef.current = null;
+  }, []);
+
+  useEffect(() => () => removeFloatingClone(), [removeFloatingClone]);
+
+  const updateInsertTargetAt = useCallback(
+    (clientY: number, session: WidgetDragSession) => {
+      const gridEl = containerRef.current?.querySelector<HTMLElement>(
+        '.audit-dashboard-grid-layout'
+      );
+      const baseLayout = layoutAtDragStartRef.current;
+      if (!gridEl || !baseLayout) return;
+      const sorted = sortLayoutByPosition(baseLayout);
+      setInsertBeforeIndex(
+        computeInsertBeforeIndex(sorted, session.widgetId, clientY, gridEl)
+      );
+    },
+    []
+  );
+
+  const moveFloatingClone = useCallback(
+    (clientX: number, clientY: number, session: WidgetDragSession) => {
+      const clone = floatingCloneRef.current;
+      if (!clone) return;
+      clone.style.left = `${clientX - session.grabOffsetX}px`;
+      clone.style.top = `${clientY - session.grabOffsetY}px`;
+    },
+    []
+  );
+
+  const commitWidgetDrop = useCallback(
+    (session: WidgetDragSession, clientY: number) => {
+      const baseLayout = layoutAtDragStartRef.current;
+      if (!baseLayout) return;
+      const gridEl = containerRef.current?.querySelector<HTMLElement>(
+        '.audit-dashboard-grid-layout'
+      );
+      if (!gridEl) return;
+      const sorted = sortLayoutByPosition(baseLayout);
+      const targetIndex = computeInsertBeforeIndex(
+        sorted,
+        session.widgetId,
+        clientY,
+        gridEl
+      );
+      const nextLayout = reorderLayoutByInsertIndex(
+        baseLayout,
+        session.widgetId,
+        targetIndex
+      );
+      setState((prev) => {
+        if (layoutsEqual(prev.layout, nextLayout)) return prev;
+        return { ...prev, layout: nextLayout };
+      });
+    },
+    []
+  );
+
+  const endWidgetDrag = useCallback(
+    (session: WidgetDragSession, target: HTMLElement) => {
+      if (target.hasPointerCapture(session.pointerId)) {
+        target.releasePointerCapture(session.pointerId);
+      }
+      removeFloatingClone();
+      dragSessionRef.current = null;
+      layoutAtDragStartRef.current = null;
+      setDragSession(null);
+      setInsertBeforeIndex(null);
+      setDragLayoutSnapshot(null);
+      setIsGridInteracting(false);
+    },
+    [removeFloatingClone]
+  );
+
+  const handleGripPointerDown = useCallback(
+    (widgetId: string) => (event: React.PointerEvent<HTMLDivElement>) => {
+      if (event.button !== 0) return;
+      const card = event.currentTarget.closest<HTMLElement>(
+        `[data-testid="audit-widget-${widgetId}"]`
+      );
+      const cardSurface = card?.querySelector<HTMLElement>('.audit-widget-card');
+      if (!card || !cardSurface) return;
+      const cardRect = cardSurface.getBoundingClientRect();
+      event.currentTarget.setPointerCapture(event.pointerId);
+      event.preventDefault();
+
+      removeFloatingClone();
+      const clone = cardSurface.cloneNode(true) as HTMLElement;
+      clone.classList.add('audit-widget-floating-clone');
+      clone.style.width = `${cardRect.width}px`;
+      clone.style.height = `${cardRect.height}px`;
+      clone.style.left = `${cardRect.left}px`;
+      clone.style.top = `${cardRect.top}px`;
+      clone.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(clone);
+      floatingCloneRef.current = clone;
+
+      const frozenLayout = stateRef.current.layout.map((item) => ({ ...item }));
+      layoutAtDragStartRef.current = frozenLayout;
+      setDragLayoutSnapshot(frozenLayout);
+
+      const sorted = sortLayoutByPosition(frozenLayout);
+      const originalIndex = sorted.findIndex((item) => item.i === widgetId);
+
+      const session: WidgetDragSession = {
+        widgetId,
+        pointerId: event.pointerId,
+        grabOffsetX: event.clientX - cardRect.left,
+        grabOffsetY: event.clientY - cardRect.top,
+        cardWidth: cardRect.width,
+        cardHeight: cardRect.height,
+        originalIndex,
+      };
+      dragSessionRef.current = session;
+      setDragSession(session);
+      setInsertBeforeIndex(originalIndex + 1);
+      setIsGridInteracting(true);
+    },
+    [removeFloatingClone]
+  );
+
+  const handleGripPointerMove = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      const session = dragSessionRef.current;
+      if (!session || event.pointerId !== session.pointerId) return;
+      event.preventDefault();
+      moveFloatingClone(event.clientX, event.clientY, session);
+      updateInsertTargetAt(event.clientY, session);
+    },
+    [moveFloatingClone, updateInsertTargetAt]
+  );
+
+  const handleGripPointerEnd = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      const session = dragSessionRef.current;
+      if (!session || event.pointerId !== session.pointerId) return;
+      commitWidgetDrop(session, event.clientY);
+      endWidgetDrag(session, event.currentTarget);
+    },
+    [commitWidgetDrop, endWidgetDrag]
+  );
 
   const toggleCollapsed = useCallback(
     (widgetId: string) => {
@@ -295,6 +753,8 @@ export function AuditDashboardGrid({ widgets }: AuditDashboardGridProps) {
     [state.layout]
   );
 
+  const displayLayout = dragLayoutSnapshot ?? state.layout;
+
   return (
     <div className="flex flex-col gap-1" data-testid="audit-dashboard-grid">
       <div className="flex items-center justify-end">
@@ -309,18 +769,33 @@ export function AuditDashboardGrid({ widgets }: AuditDashboardGridProps) {
           Reset layout
         </Button>
       </div>
-      <div ref={containerRef} className="w-full">
-        <GridLayout
-          width={width || 1024}
-          layout={state.layout}
-          gridConfig={{ cols: GRID_COLS, rowHeight: ROW_HEIGHT, margin: GRID_MARGIN, containerPadding: [0, 0] }}
-          dragConfig={{ enabled: true, handle: '.audit-widget-drag-handle' }}
-          resizeConfig={{ enabled: true, handles: ['s', 'e', 'se'] }}
-          onLayoutChange={handleLayoutChange}
-        >
+      <div ref={containerRef} className="relative w-full">
+        {mounted && dragSession && dragLayoutSnapshot && (
+          <AuditDropSlotOverlay
+            layout={dragLayoutSnapshot}
+            positionParams={positionParams}
+            draggedWidgetId={dragSession.widgetId}
+            insertBeforeIndex={insertBeforeIndex}
+            originalIndex={dragSession.originalIndex}
+          />
+        )}
+        {mounted && (
+          <GridLayout
+            width={width}
+            layout={displayLayout}
+            className={`audit-dashboard-grid-layout${isGridInteracting ? ' is-interacting' : ''}`}
+            gridConfig={{ cols: GRID_COLS, rowHeight: ROW_HEIGHT, margin: GRID_MARGIN, containerPadding: [0, 0] }}
+            dragConfig={{ enabled: false }}
+            resizeConfig={{ enabled: true, handles: ['s', 'e', 'se'] }}
+            compactor={verticalCompactor}
+            onLayoutChange={handleLayoutChange}
+            onResizeStart={() => setIsGridInteracting(true)}
+            onResizeStop={() => setIsGridInteracting(false)}
+          >
           {widgets.map((widget) => {
             const item = layoutById.get(widget.id);
             const collapsed = !!state.collapsed[widget.id];
+            const isDragging = dragSession?.widgetId === widget.id;
             const contentHeight = Math.max(0, widgetPixelHeight(item) - WIDGET_HEADER_PX);
             const orderIndex = sortedLayout.findIndex((item) => item.i === widget.id);
             const canMoveUp =
@@ -330,21 +805,30 @@ export function AuditDashboardGrid({ widgets }: AuditDashboardGridProps) {
               orderIndex < sortedLayout.length - 1 &&
               findVerticalSwapTarget(sortedLayout, orderIndex, 'down') < sortedLayout.length;
             return (
-              <div key={widget.id} data-testid={`audit-widget-${widget.id}`}>
-                <div className="h-full flex flex-col rounded-md border bg-card overflow-hidden">
+              <div
+                key={widget.id}
+                data-testid={`audit-widget-${widget.id}`}
+                data-grid-dragging={isDragging ? 'true' : undefined}
+              >
+                <div className="audit-widget-card h-full flex flex-col rounded-md border bg-card overflow-hidden">
                   <div
                     className="flex items-center gap-1.5 px-2 shrink-0 border-b bg-muted/30"
                     style={{ height: WIDGET_HEADER_PX }}
                   >
-                    <button
-                      type="button"
+                    <div
+                      role="button"
+                      tabIndex={0}
                       className="audit-widget-drag-handle flex items-center justify-center h-6 w-6 rounded cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       title="Drag to rearrange"
                       aria-label={`Drag to move the ${widget.title} section`}
                       data-testid={`audit-widget-drag-${widget.id}`}
+                      onPointerDown={handleGripPointerDown(widget.id)}
+                      onPointerMove={handleGripPointerMove}
+                      onPointerUp={handleGripPointerEnd}
+                      onPointerCancel={handleGripPointerEnd}
                     >
-                      <GripVertical className="h-3.5 w-3.5" />
-                    </button>
+                      <GripVertical className="h-3.5 w-3.5 pointer-events-none" />
+                    </div>
                     <span className="text-xs font-semibold">{widget.title}</span>
                     <div className="ml-auto flex items-center gap-0.5">
                       <Button
@@ -356,7 +840,7 @@ export function AuditDashboardGrid({ widgets }: AuditDashboardGridProps) {
                         aria-label={`Move ${widget.title} section up`}
                         data-testid={`audit-widget-move-up-${widget.id}`}
                       >
-                        <ChevronUp className="h-3.5 w-3.5" />
+                        <ArrowUp className="h-3.5 w-3.5" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -367,7 +851,7 @@ export function AuditDashboardGrid({ widgets }: AuditDashboardGridProps) {
                         aria-label={`Move ${widget.title} section down`}
                         data-testid={`audit-widget-move-down-${widget.id}`}
                       >
-                        <ChevronDown className="h-3.5 w-3.5" />
+                        <ArrowDown className="h-3.5 w-3.5" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -382,9 +866,11 @@ export function AuditDashboardGrid({ widgets }: AuditDashboardGridProps) {
                         }
                         data-testid={`audit-widget-collapse-${widget.id}`}
                       >
-                        <ChevronDown
-                          className={cn('h-3.5 w-3.5 transition-transform', collapsed && '-rotate-90')}
-                        />
+                        {collapsed ? (
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        ) : (
+                          <ChevronUp className="h-3.5 w-3.5" />
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -397,7 +883,8 @@ export function AuditDashboardGrid({ widgets }: AuditDashboardGridProps) {
               </div>
             );
           })}
-        </GridLayout>
+          </GridLayout>
+        )}
       </div>
     </div>
   );

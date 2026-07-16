@@ -31,14 +31,3 @@ export function saveColumnPreferences(reportType: ReportType, columns: string[])
     // Ignore localStorage errors
   }
 }
-
-/**
- * Clear saved column preferences for a report type
- */
-export function clearColumnPreferences(reportType: ReportType): void {
-  try {
-    localStorage.removeItem(`${COLUMN_PREFS_KEY}${reportType}`);
-  } catch {
-    // Ignore localStorage errors
-  }
-}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ChevronDown, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronDown, Plus } from 'lucide-react';
 import type { EquipmentViewMode } from '@/features/equipment/components/EquipmentCard';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -15,7 +15,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import type { EquipmentRecord } from '@/features/equipment/types/equipment';
 import Page from '@/components/layout/Page';
@@ -31,6 +30,7 @@ import EquipmentLoadingState from '@/features/equipment/components/EquipmentLoad
 // list page slim on Slow 4G.
 const ImportCsvWizard = lazy(() => import('@/features/equipment/components/ImportCsvWizard'));
 import EquipmentColumnPicker from '@/features/equipment/components/EquipmentColumnPicker';
+import EquipmentPaginationFooter from '@/features/equipment/components/EquipmentPaginationFooter';
 import { EQUIPMENT_TABLE_COLUMN_META } from '@/features/equipment/components/equipmentTableColumns';
 import { useEquipmentTableColumns } from '@/features/equipment/hooks/useEquipmentTableColumns';
 import { useOfflineMergedEquipment } from '@/features/equipment/hooks/useOfflineMergedEquipment';
@@ -44,8 +44,30 @@ const Equipment = () => {
   const navigate = useNavigate();
   const initializedFromUrl = useRef(false);
   const { selectedTeamId, setSelectedTeamId } = useSelectedTeam();
-  
-  // Use the new enhanced filtering hook with explicit organization ID
+
+  const [showForm, setShowForm] = useState<boolean>(false);
+  const [editingEquipment, setEditingEquipment] = useState<EquipmentRecord | null>(null);
+  const [showQRCode, setShowQRCode] = useState<string | null>(null);
+  const [showImportCsv, setShowImportCsv] = useState<boolean>(false);
+  const [viewMode, setViewMode] = useState<EquipmentViewMode>(() => {
+    const stored = localStorage.getItem('equipqr:equipment-view-mode');
+    let initial: EquipmentViewMode;
+    switch (stored) {
+      case 'table':
+        initial = 'table';
+        break;
+      case 'list':
+        initial = 'grid';
+        break;
+      default:
+        initial = 'grid';
+    }
+    if (initial === 'table' && isMobile) {
+      return 'grid';
+    }
+    return initial;
+  });
+
   const {
     filters,
     sortConfig,
@@ -57,16 +79,16 @@ const Equipment = () => {
     equipment,
     currentPage,
     pageSize,
-    totalPages,
+    pageSizeOptions,
     totalFilteredCount,
     updateFilter,
     updateSort,
     clearFilters,
     applyQuickFilter,
     setCurrentPage,
-    setPageSize
-  } = useEquipmentFiltering(currentOrganization?.id);
-  
+    setPageSize,
+  } = useEquipmentFiltering(currentOrganization?.id, viewMode);
+
   // Merge server equipment with pending offline queue items
   const mergedEquipment = useOfflineMergedEquipment(paginatedEquipment);
 
@@ -87,29 +109,11 @@ const Equipment = () => {
     return map;
   }, [pmStatusList]);
 
-  const [showForm, setShowForm] = useState<boolean>(false);
-  const [editingEquipment, setEditingEquipment] = useState<EquipmentRecord | null>(null);
-  const [showQRCode, setShowQRCode] = useState<string | null>(null);
-  const [showImportCsv, setShowImportCsv] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<EquipmentViewMode>(() => {
-    const stored = localStorage.getItem('equipqr:equipment-view-mode');
-    let initial: EquipmentViewMode;
-    switch (stored) {
-      case 'list':
-        initial = 'list';
-        break;
-      case 'table':
-        initial = 'table';
-        break;
-      default:
-        initial = 'grid';
+  useEffect(() => {
+    if (isMobile && viewMode === 'table') {
+      setViewMode('grid');
     }
-    if (initial === 'table' && isMobile) {
-      return 'list';
-    }
-    return initial;
-  });
-  const pageSizeSelectId = 'equipment-page-size-select';
+  }, [isMobile, viewMode]);
 
   const handleViewModeChange = useCallback((mode: EquipmentViewMode) => {
     setViewMode(mode);
@@ -249,8 +253,6 @@ const Equipment = () => {
         filterOptions={filterOptions}
         hasActiveFilters={hasActiveFilters}
         activeQuickFilter={activeQuickFilter}
-        resultCount={totalFilteredCount}
-        totalCount={equipment.length}
         viewMode={viewMode}
         onViewModeChange={handleViewModeChange}
         canImport={canImport}
@@ -270,119 +272,33 @@ const Equipment = () => {
         }
       />
 
-      <EquipmentGrid
-        equipment={mergedEquipment}
-        searchQuery={filters.search}
-        statusFilter={filters.status}
-        organizationName={currentOrganization.name}
-        canCreate={canCreate}
-        onShowQRCode={setShowQRCode}
-        onAddEquipment={handleAddEquipment}
-        onClearFilters={clearFilters}
-        viewMode={viewMode}
-        pmStatuses={pmStatuses}
-        sortConfig={sortConfig}
-        onSortChange={updateSort}
-        visibleColumns={visibleColumns}
-      />
+      <div className="space-y-4">
+        <EquipmentGrid
+          equipment={mergedEquipment}
+          searchQuery={filters.search}
+          statusFilter={filters.status}
+          organizationName={currentOrganization.name}
+          canCreate={canCreate}
+          onShowQRCode={setShowQRCode}
+          onAddEquipment={handleAddEquipment}
+          onClearFilters={clearFilters}
+          viewMode={viewMode}
+          pmStatuses={pmStatuses}
+          sortConfig={sortConfig}
+          onSortChange={updateSort}
+          visibleColumns={visibleColumns}
+        />
 
-      {/* Pagination */}
-      {(totalPages > 1 || totalFilteredCount > 0) && (
-        <div className="flex flex-col gap-4 border-t pt-4">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
-              {totalFilteredCount > 0 ? (
-                <>
-                  Showing {(currentPage - 1) * pageSize + 1} to{' '}
-                  {Math.min(currentPage * pageSize, totalFilteredCount)} of{' '}
-                  {totalFilteredCount} results
-                </>
-              ) : (
-                'No results found'
-              )}
-            </p>
-            
-            {/* Items per page: desktop only */}
-            <div className="hidden md:flex items-center gap-2">
-              <label htmlFor={pageSizeSelectId} className="text-sm text-muted-foreground whitespace-nowrap">Items per page:</label>
-              <Select
-                value={pageSize.toString()}
-                onValueChange={(value) => {
-                  setPageSize(Number(value));
-                  setCurrentPage(1);
-                }}
-              >
-                <SelectTrigger id={pageSizeSelectId} className="w-[100px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5</SelectItem>
-                  <SelectItem value="10">10</SelectItem>
-                  <SelectItem value="15">15</SelectItem>
-                  <SelectItem value="20">20</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          {/* Mobile: simple page strip */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 md:hidden">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-9 w-9"
-                onClick={() => setCurrentPage(currentPage - 1)}
-                disabled={currentPage <= 1}
-                aria-label="Previous page"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm px-3 whitespace-nowrap">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-9 w-9"
-                onClick={() => setCurrentPage(currentPage + 1)}
-                disabled={currentPage >= totalPages}
-                aria-label="Next page"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-
-          {/* Desktop: full pagination */}
-          {totalPages > 1 && (
-            <div className="hidden md:flex items-center justify-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(currentPage - 1)}
-                disabled={currentPage <= 1}
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
-              </Button>
-              <span className="text-sm px-4 whitespace-nowrap">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(currentPage + 1)}
-                disabled={currentPage >= totalPages}
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
+        <EquipmentPaginationFooter
+          totalItems={totalFilteredCount}
+          page={currentPage}
+          pageSize={pageSize}
+          pageSizeOptions={pageSizeOptions}
+          itemLabel="result"
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+        />
+      </div>
 
       {/* Equipment Form Modal */}
       <EquipmentForm 

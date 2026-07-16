@@ -107,6 +107,15 @@ const OPERATOR_CHECKINS_TABLE_SELECT = `
   )
 `;
 
+const QUICK_FORMS_TABLE_SELECT = `
+  id,
+  submitted_at,
+  form_snapshot,
+  field_values,
+  client_context,
+  organization_id
+`;
+
 const ALTERNATE_GROUP_COLUMNS =
   "id, name, status, description, notes, organization_id";
 
@@ -363,6 +372,36 @@ async function fetchOperatorCheckinRows(
   return data ?? [];
 }
 
+async function fetchQuickFormRows(
+  client: ReportDataClient,
+  organizationId: string,
+  filters: ReportExportFilters,
+  limit: number,
+  offset?: number,
+): Promise<ReportRow[]> {
+  let query = reportQuery(client, "quick_form_submissions")
+    .select(QUICK_FORMS_TABLE_SELECT)
+    .eq("organization_id", organizationId)
+    .order("submitted_at", { ascending: false })
+    .order("id", { ascending: false });
+
+  query = applyRowPagination(query, limit, offset);
+
+  if (filters.dateRange?.from) {
+    query = query.gte("submitted_at", filters.dateRange.from);
+  }
+  if (filters.dateRange?.to) {
+    query = query.lte("submitted_at", filters.dateRange.to);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    throw new Error(`Failed to fetch quick form submissions: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
 async function fetchAlternateGroupRows(
   client: ReportDataClient,
   organizationId: string,
@@ -467,6 +506,8 @@ export async function fetchReportRows(
       return fetchScanRows(client, organizationId, filters, rowLimit, offset);
     case "operator-check-ins":
       return fetchOperatorCheckinRows(client, organizationId, filters, rowLimit, offset);
+    case "quick-forms":
+      return fetchQuickFormRows(client, organizationId, filters, rowLimit, offset);
     case "alternate-groups":
       // Two-query flatten shape: offset pagination is not supported (use limit-only bounded fetch).
       return fetchAlternateGroupRows(client, organizationId, rowLimit);
@@ -482,6 +523,7 @@ export const __fetchRowsTestables = {
   WORK_ORDERS_TABLE_SELECT,
   SCANS_TABLE_SELECT,
   OPERATOR_CHECKINS_TABLE_SELECT,
+  QUICK_FORMS_TABLE_SELECT,
   ALTERNATE_GROUP_COLUMNS,
   resolveLimit,
   applyRowPagination,

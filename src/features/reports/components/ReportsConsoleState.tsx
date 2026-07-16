@@ -40,10 +40,7 @@ export const ReportsConsoleState: React.FC<ReportsConsoleStateProps> = ({ varian
               ) : (
                 <ShieldX className="mx-auto mb-4 h-12 w-12 text-muted-foreground" aria-hidden />
               )}
-              <span className="font-tabular text-[10px] font-medium uppercase tracking-wider text-primary">
-                {isNoOrg ? 'SYS-00' : 'AUTH-01'}
-              </span>
-              <h2 className="mt-2 text-lg font-semibold">
+              <h2 className="text-lg font-semibold">
                 {isNoOrg ? 'No Organization Selected' : 'Access Restricted'}
               </h2>
               <p className="mt-2 text-sm text-muted-foreground">

@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import { getInvokeErrorPayload } from '@/services/google-workspace/invokeError';
 import type { ReportType, ExportFilters, ExportRequest } from '@/features/reports/types/reports';
 import {
   buildEquipmentExportCountQuery,
@@ -49,8 +50,12 @@ export async function exportReport(
 
   const { data, error: invokeError } = invokeResult;
   if (invokeError) {
-    logger.error('Report export failed', { error: invokeError.message });
-    throw new Error(invokeError.message || 'Failed to export report', { cause: invokeError });
+    const errorPayload = await getInvokeErrorPayload(
+      invokeError as Error & { context?: unknown },
+    );
+    const message = errorPayload?.error || invokeError.message || 'Failed to export report';
+    logger.error('Report export failed', { error: message });
+    throw new Error(message, { cause: invokeError });
   }
 
   if (data && typeof data === 'object' && 'error' in data) {
@@ -183,6 +188,23 @@ export async function getReportRecordCount(
       case 'operator-check-ins': {
         let query = supabase
           .from('operator_checkin_submissions')
+          .select('id', { count: 'exact', head: true })
+          .eq('organization_id', organizationId);
+
+        if (filters.dateRange?.from) {
+          query = query.gte('submitted_at', filters.dateRange.from);
+        }
+        if (filters.dateRange?.to) {
+          query = query.lte('submitted_at', filters.dateRange.to);
+        }
+
+        const { count } = await query;
+        return count ?? 0;
+      }
+
+      case 'quick-forms': {
+        let query = supabase
+          .from('quick_form_submissions')
           .select('id', { count: 'exact', head: true })
           .eq('organization_id', organizationId);
 

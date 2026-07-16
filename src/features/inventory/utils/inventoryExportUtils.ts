@@ -1,7 +1,4 @@
-import {
-  getColumnMeta,
-  type InventoryTableColumnKey,
-} from '@/features/inventory/components/inventoryTableColumns';
+import type { InventoryTableColumnKey } from '@/features/inventory/components/inventoryTableColumns';
 import type { InventoryItem } from '@/features/inventory/types/inventory';
 
 type FormatDateFn = (date: Date | string) => string;
@@ -66,22 +63,6 @@ export function itemsToAllExportRows(
 ): string[][] {
   return items.map((item) =>
     ALL_EXPORT_COLUMNS.map((col) => getExportCellValue(item, col.key, formatDate)),
-  );
-}
-
-export function getVisibleExportHeaders(
-  visibleColumnKeys: InventoryTableColumnKey[],
-): string[] {
-  return visibleColumnKeys.map((key) => getColumnMeta(key).title);
-}
-
-export function itemsToVisibleExportRows(
-  items: InventoryItem[],
-  visibleColumnKeys: InventoryTableColumnKey[],
-  formatDate: FormatDateFn,
-): string[][] {
-  return items.map((item) =>
-    visibleColumnKeys.map((key) => getExportCellValue(item, key, formatDate)),
   );
 }
 

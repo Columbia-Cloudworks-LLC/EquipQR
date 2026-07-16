@@ -12,10 +12,9 @@ import {
 import { MobileListPersonalizationSheet } from '@/components/common/MobileListPersonalizationSheet';
 import { MobileToolbarSheetContent } from '@/components/common/MobileToolbarSheetContent';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Filter, X, LayoutGrid, List, Check } from 'lucide-react';
+import { Search, Filter, X, Check } from 'lucide-react';
 import { ListSortFieldControls } from '@/components/common/ListSortFieldControls';
 import type { EquipmentFilters, SortConfig } from '@/features/equipment/hooks/useEquipmentFiltering';
-import type { EquipmentViewMode } from '@/features/equipment/components/EquipmentCard';
 import {
   EquipmentLocationSelect,
   EquipmentManufacturerSelect,
@@ -48,8 +47,6 @@ interface MobileEquipmentFiltersProps {
   activeQuickFilter?: string | null;
   sortConfig: SortConfig;
   onSortChange: (field: string, direction?: 'asc' | 'desc') => void;
-  viewMode: EquipmentViewMode;
-  onViewModeChange: (mode: EquipmentViewMode) => void;
 }
 
 const DEFAULT_SORT: SortConfig = { field: 'name', direction: 'asc' };
@@ -66,8 +63,6 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
   activeQuickFilter,
   sortConfig,
   onSortChange,
-  viewMode,
-  onViewModeChange,
 }) => {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = React.useState(showMobileFilters);
   const [isPersonalizationOpen, setIsPersonalizationOpen] = React.useState(false);
@@ -121,7 +116,7 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
           open={isPersonalizationOpen}
           onOpenChange={setIsPersonalizationOpen}
           hasNonDefaultSort={hasNonDefaultSort}
-          description="Change how equipment is sorted and displayed on this device."
+          description="Change how equipment is sorted on this device."
         >
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -137,42 +132,6 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
               selectTriggerId={mobileSortSelectId}
             />
           </div>
-
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              View mode
-            </p>
-            <div
-              className="grid grid-cols-2 gap-2"
-              role="radiogroup"
-              aria-label="Equipment view mode"
-            >
-              <Button
-                    type="button"
-                    variant={viewMode === 'grid' ? 'default' : 'outline'}
-                    className="h-11 gap-2"
-                    onClick={() => onViewModeChange('grid')}
-                    aria-label="Grid view"
-                    aria-checked={viewMode === 'grid'}
-                    role="radio"
-                  >
-                    <LayoutGrid className="h-4 w-4" aria-hidden />
-                    Grid
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={viewMode === 'list' ? 'default' : 'outline'}
-                    className="h-11 gap-2"
-                    onClick={() => onViewModeChange('list')}
-                    aria-label="List view"
-                    aria-checked={viewMode === 'list'}
-                    role="radio"
-                  >
-                    <List className="h-4 w-4" aria-hidden />
-                    List
-                  </Button>
-                </div>
-              </div>
         </MobileListPersonalizationSheet>
 
         <Sheet open={isFilterSheetOpen} onOpenChange={handleFilterSheetOpenChange}>

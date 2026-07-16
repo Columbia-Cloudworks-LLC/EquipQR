@@ -58,27 +58,6 @@ describe('InventoryDownloadMenu', () => {
     expect(csvArg).toContain(formatDate(UTC_CROSS_CALENDAR, SYDNEY_USER_SETTINGS));
   });
 
-  it('exports visible columns when visibleColumnKeys are provided', async () => {
-    const user = userEvent.setup();
-    render(
-      <InventoryDownloadMenu
-        canExport
-        items={[mockItem]}
-        visibleColumnKeys={['name', 'sku', 'quantity_on_hand']}
-      />,
-      { wrapper: SettingsWrapper },
-    );
-
-    await user.click(screen.getByRole('button', { name: /download inventory/i }));
-    await user.click(screen.getByText('CSV (visible)'));
-
-    expect(exportUtils.downloadCsv).toHaveBeenCalled();
-    const csvArg = vi.mocked(exportUtils.downloadCsv).mock.calls[0][0];
-    expect(csvArg).toContain('Name');
-    expect(csvArg).toContain('SKU');
-    expect(csvArg).not.toContain('Description');
-  });
-
   it('exports selected rows when selectedItems are provided', async () => {
     const user = userEvent.setup();
     render(

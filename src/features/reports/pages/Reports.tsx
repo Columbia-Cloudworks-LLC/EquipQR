@@ -1,30 +1,26 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Badge } from '@/components/ui/badge';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
-import { ReportExportDialog } from '@/features/reports/components/ReportExportDialog';
-import { WorkOrderExcelExportDialog } from '@/features/work-orders/components/WorkOrderExcelExportDialog';
 import { ReportExportModule } from '@/features/reports/components/ReportExportModule';
 import { ReportsStatusStrip } from '@/features/reports/components/ReportsStatusStrip';
-import { ExportProtocolPanel } from '@/features/reports/components/ExportProtocolPanel';
 import { ReportsConsoleState } from '@/features/reports/components/ReportsConsoleState';
 import { useReportRecordCount, useReportExportDialog } from '@/features/reports/hooks/useReportExport';
 import { useScopedExportTeamIds } from '@/features/reports/hooks/useScopedExportTeamIds';
 import { useWorkOrderExcelExport, useWorkOrderExcelCount } from '@/features/work-orders/hooks/useWorkOrderExcelExport';
 import { useGoogleWorkspaceConnectionStatus } from '@/features/organization/hooks/useGoogleWorkspaceConnectionStatus';
 import { canAccessScopedReportsExport } from '@/features/work-orders/utils/workOrderExportAccess';
+import { saveColumnPreferences } from '@/features/reports/utils/column-preferences';
 
 import {
   REPORT_CARDS,
   FEATURED_REPORT_CARD,
   getReportsByCategory,
-  getDefaultColumns,
 } from '@/features/reports/constants/reportColumns';
 import type { ReportType, ExportFilters } from '@/features/reports/types/reports';
-import type { WorkOrderExcelFilters } from '@/features/work-orders/types/workOrderExcel';
+import type { WorkOrderExcelFilters, WorksheetKey } from '@/features/work-orders/types/workOrderExcel';
 
 /**
  * Reports Page - Fleet Export Console (admin) or scoped work-order export (requestor/viewer)
@@ -34,15 +30,9 @@ const Reports: React.FC = () => {
   const { hasRole } = usePermissions();
   const { teamMemberships, isLoading: teamsLoading } = useTeamMembership();
 
-  const [exportDialogOpen, setExportDialogOpen] = useState(false);
-  const [excelExportDialogOpen, setExcelExportDialogOpen] = useState(false);
-  const [selectedReportType, setSelectedReportType] = useState<ReportType>('equipment');
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportingReportType, setExportingReportType] = useState<ReportType | null>(null);
   const [filters] = useState<ExportFilters>({});
-  const [excelFilters, setExcelFilters] = useState<WorkOrderExcelFilters>({ dateField: 'created_date' });
-  const [isProtocolOpen, setIsProtocolOpen] = useState(false);
-
+  const [excelFilters] = useState<WorkOrderExcelFilters>({ dateField: 'created_date' });
   const isOrgAdmin = hasRole(['owner', 'admin']);
   const { teamIds: scopedTeamIds, isLoading: scopedTeamsLoading } = useScopedExportTeamIds(isOrgAdmin);
   const scopeReady = isOrgAdmin || !scopedTeamsLoading;
@@ -54,6 +44,8 @@ const Reports: React.FC = () => {
   const equipmentCount = useReportRecordCount('equipment', currentOrganization?.id, filters);
   const inventoryCount = useReportRecordCount('inventory', currentOrganization?.id, filters);
   const scansCount = useReportRecordCount('scans', currentOrganization?.id, filters);
+  const operatorCheckinsCount = useReportRecordCount('operator-check-ins', currentOrganization?.id, filters);
+  const quickFormsCount = useReportRecordCount('quick-forms', currentOrganization?.id, filters);
   const alternateGroupsCount = useReportRecordCount('alternate-groups', currentOrganization?.id, filters);
   const workOrdersCount = useReportRecordCount(
     'work-orders',
@@ -64,13 +56,10 @@ const Reports: React.FC = () => {
   );
   const workOrdersDetailedCount = useWorkOrderExcelCount(currentOrganization?.id, excelFilters);
 
-  const {
-    bulkExport,
-    isBulkExporting,
-    bulkExportError,
-    exportToSheetsAsync,
-    isExportingToSheets,
-  } = useWorkOrderExcelExport(currentOrganization?.id, currentOrganization?.name ?? '');
+  const { bulkExport, isBulkExporting } = useWorkOrderExcelExport(
+    currentOrganization?.id,
+    currentOrganization?.name ?? '',
+  );
 
   const { isConnected: isGoogleWorkspaceConnected } = useGoogleWorkspaceConnectionStatus({
     organizationId: currentOrganization?.id,
@@ -99,6 +88,10 @@ const Reports: React.FC = () => {
           return { count: inventoryCount.data ?? 0, isLoading: inventoryCount.isLoading };
         case 'scans':
           return { count: scansCount.data ?? 0, isLoading: scansCount.isLoading };
+        case 'operator-check-ins':
+          return { count: operatorCheckinsCount.data ?? 0, isLoading: operatorCheckinsCount.isLoading };
+        case 'quick-forms':
+          return { count: quickFormsCount.data ?? 0, isLoading: quickFormsCount.isLoading };
         case 'alternate-groups':
           return { count: alternateGroupsCount.data ?? 0, isLoading: alternateGroupsCount.isLoading };
         default:
@@ -116,88 +109,40 @@ const Reports: React.FC = () => {
       inventoryCount.isLoading,
       scansCount.data,
       scansCount.isLoading,
+      operatorCheckinsCount.data,
+      operatorCheckinsCount.isLoading,
+      quickFormsCount.data,
+      quickFormsCount.isLoading,
       alternateGroupsCount.data,
       alternateGroupsCount.isLoading,
     ],
   );
 
-  const handleOpenExportDialog = useCallback((reportType: ReportType) => {
-    if (reportType === 'work-orders-detailed') {
-      setExcelFilters({ dateField: 'created_date' });
-      setExcelExportDialogOpen(true);
-    } else {
-      setSelectedReportType(reportType);
-      setExportError(null);
-      setExportDialogOpen(true);
-    }
-  }, []);
-
-  const handleQuickExport = useCallback(
-    async (reportType: ReportType) => {
-      if (!currentOrganization) return;
-
-      const defaultColumns = getDefaultColumns(reportType);
-
-      setSelectedReportType(reportType);
-      setIsExporting(true);
-      setExportError(null);
-
-      try {
-        await handleExport(reportType, filters, defaultColumns);
-      } catch (error) {
-        setExportError(error instanceof Error ? error.message : 'Export failed');
-      } finally {
-        setIsExporting(false);
-      }
-    },
-    [currentOrganization, handleExport, filters],
-  );
-
-  const handleExportWithColumns = useCallback(
-    async (columns: string[]) => {
-      if (!currentOrganization) return;
-
-      setIsExporting(true);
-      setExportError(null);
-
-      try {
-        await handleExport(selectedReportType, filters, columns);
-        setExportDialogOpen(false);
-      } catch (error) {
-        setExportError(error instanceof Error ? error.message : 'Export failed');
-      } finally {
-        setIsExporting(false);
-      }
-    },
-    [currentOrganization, handleExport, selectedReportType, filters],
-  );
-
-  const handleExcelExport = useCallback(
-    async (newFilters: WorkOrderExcelFilters) => {
-      setExcelFilters(newFilters);
-      bulkExport(newFilters);
-      setExcelExportDialogOpen(false);
+  const handleFeaturedExcelExport = useCallback(
+    (worksheets: WorksheetKey[]) => {
+      bulkExport({
+        dateField: 'created_date',
+        worksheets,
+      });
     },
     [bulkExport],
   );
 
-  const handleExportToSheets = useCallback(
-    async (newFilters: WorkOrderExcelFilters) => {
-      setExcelFilters(newFilters);
+  const handleCsvExport = useCallback(
+    async (reportType: ReportType, columns: string[]) => {
+      if (!currentOrganization) return;
+
+      setExportingReportType(reportType);
+      saveColumnPreferences(reportType, columns);
+
       try {
-        await exportToSheetsAsync(newFilters);
-        setExcelExportDialogOpen(false);
-      } catch {
-        // Keep dialog open on error so user can retry.
+        await handleExport(reportType, filters, columns);
+      } finally {
+        setExportingReportType(null);
       }
     },
-    [exportToSheetsAsync],
+    [currentOrganization, handleExport, filters],
   );
-
-  const getReportTitle = (type: ReportType) => {
-    const card = REPORT_CARDS.find((c) => c.type === type);
-    return card?.title ?? 'Report';
-  };
 
   if (!currentOrganization) {
     return <ReportsConsoleState variant="no-organization" />;
@@ -226,14 +171,18 @@ const Reports: React.FC = () => {
 
   const renderExportModule = (card: (typeof REPORT_CARDS)[number], featured = false) => {
     const { count, isLoading } = getCountForType(card.type);
+    const isFeaturedExcel = featured && card.type === 'work-orders-detailed';
+    const isCsv = card.format === 'csv';
+
     return (
       <ReportExportModule
         key={card.type}
         config={card}
         recordCount={count}
         isLoadingCount={isLoading}
-        onExport={() => handleOpenExportDialog(card.type)}
-        onQuickExport={() => handleQuickExport(card.type)}
+        onCsvExport={isCsv ? (columns) => handleCsvExport(card.type, columns) : undefined}
+        onExcelExport={isFeaturedExcel ? handleFeaturedExcelExport : undefined}
+        isExporting={isFeaturedExcel ? isBulkExporting : exportingReportType === card.type}
         canExport={canAccessReports}
         featured={featured}
       />
@@ -248,12 +197,7 @@ const Reports: React.FC = () => {
           description={
             isScopedConsole
               ? 'Download CSV summaries for work orders on equipment you can view. Private notes and costs are never included.'
-              : 'Export fleet, maintenance, inventory, and scan data. Select a module to configure columns and download.'
-          }
-          meta={
-            <Badge variant="outline" className="font-mono text-[10px] uppercase tracking-wide">
-              {isScopedConsole ? 'Scoped Export' : 'Export Console'}
-            </Badge>
+              : 'Export fleet, maintenance, inventory, and scan data. Expand each module to choose fields, then export.'
           }
         />
 
@@ -294,44 +238,7 @@ const Reports: React.FC = () => {
             </div>
           </section>
         ))}
-
-        {!isScopedConsole && (
-          <ExportProtocolPanel
-            isGoogleWorkspaceConnected={isGoogleWorkspaceConnected}
-            open={isProtocolOpen}
-            onOpenChange={setIsProtocolOpen}
-          />
-        )}
       </div>
-
-      <ReportExportDialog
-        open={exportDialogOpen}
-        onOpenChange={setExportDialogOpen}
-        reportType={selectedReportType}
-        reportTitle={getReportTitle(selectedReportType)}
-        filters={filters}
-        recordCount={getCountForType(selectedReportType).count}
-        isLoadingCount={getCountForType(selectedReportType).isLoading}
-        onExport={handleExportWithColumns}
-        isExporting={isExporting}
-        exportError={exportError}
-      />
-
-      {!isScopedConsole && (
-        <WorkOrderExcelExportDialog
-          open={excelExportDialogOpen}
-          onOpenChange={setExcelExportDialogOpen}
-          organizationId={currentOrganization.id}
-          recordCount={workOrdersDetailedCount.data ?? 0}
-          isLoadingCount={workOrdersDetailedCount.isLoading}
-          onExport={handleExcelExport}
-          isExporting={isBulkExporting}
-          exportError={bulkExportError}
-          isGoogleWorkspaceConnected={isGoogleWorkspaceConnected}
-          onExportToSheets={handleExportToSheets}
-          isExportingToSheets={isExportingToSheets}
-        />
-      )}
     </Page>
   );
 };

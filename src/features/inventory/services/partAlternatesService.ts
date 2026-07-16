@@ -2,6 +2,7 @@ import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
 import type { 
+  AlternateGroupMemberDetail,
   AlternatePartResult, 
   MakeModelCompatiblePart,
   PartAlternateGroup,
@@ -253,6 +254,9 @@ interface InventoryItemJoin {
   name?: string;
   sku?: string;
   quantity_on_hand?: number;
+  low_stock_threshold?: number;
+  default_unit_cost?: number | null;
+  location?: string | null;
 }
 
 interface PartGroupMemberRow {
@@ -265,6 +269,57 @@ interface PartGroupMemberRow {
   created_at: string;
   part_identifiers: PartIdentifierJoin | null;
   inventory_items: InventoryItemJoin | null;
+}
+
+interface PartGroupMemberListRow {
+  id: string;
+  inventory_item_id: string | null;
+  part_identifier_id: string | null;
+  is_primary: boolean;
+  created_at: string;
+  part_identifiers: PartIdentifierJoin | null;
+  inventory_items: InventoryItemJoin | null;
+}
+
+function mapMemberRowToSummary(member: PartGroupMemberListRow) {
+  const inventoryName = member.inventory_items?.name?.trim();
+  if (inventoryName) {
+    return {
+      id: member.id,
+      name: inventoryName,
+      sku: member.inventory_items?.sku?.trim() || null,
+    };
+  }
+
+  const identifierValue = member.part_identifiers?.raw_value?.trim();
+  return {
+    id: member.id,
+    name: identifierValue || 'Unknown part',
+    sku: null,
+  };
+}
+
+function mapMemberRowToDetail(member: PartGroupMemberListRow): AlternateGroupMemberDetail {
+  const invItem = member.inventory_items;
+  const partIdent = member.part_identifiers;
+  const inventoryName = invItem?.name?.trim();
+  const hasInventory = Boolean(inventoryName);
+
+  return {
+    id: member.id,
+    is_primary: member.is_primary,
+    member_type: hasInventory ? 'inventory' : 'identifier',
+    inventory_item_id: member.inventory_item_id,
+    item_name: inventoryName || null,
+    item_sku: invItem?.sku?.trim() || null,
+    quantity_on_hand: hasInventory ? (invItem?.quantity_on_hand ?? 0) : null,
+    low_stock_threshold: hasInventory ? (invItem?.low_stock_threshold ?? 0) : null,
+    default_unit_cost: hasInventory ? (invItem?.default_unit_cost ?? null) : null,
+    location: hasInventory ? (invItem?.location?.trim() || null) : null,
+    identifier_type: (partIdent?.identifier_type as PartIdentifierType | undefined) || null,
+    identifier_value: partIdent?.raw_value?.trim() || null,
+    identifier_manufacturer: partIdent?.manufacturer?.trim() || null,
+  };
 }
 
 /**
@@ -471,20 +526,54 @@ export const getAlternateGroups = async (
       .from('part_alternate_groups')
       .select(`
         *,
-        part_alternate_group_members(count)
+        part_alternate_group_members (
+          id,
+          inventory_item_id,
+          part_identifier_id,
+          is_primary,
+          created_at,
+          part_identifiers (
+            identifier_type,
+            raw_value,
+            manufacturer
+          ),
+          inventory_items (
+            name,
+            sku,
+            quantity_on_hand,
+            low_stock_threshold,
+            default_unit_cost,
+            location
+          )
+        )
       `)
       .eq('organization_id', organizationId)
       .order('name');
 
     if (error) throw error;
-    type GroupWithCount = PartAlternateGroup & {
-      part_alternate_group_members?: Array<{ count: number | null }>;
+    type GroupWithMembers = PartAlternateGroup & {
+      part_alternate_group_members?: PartGroupMemberListRow[];
     };
 
-    return ((groups || []) as GroupWithCount[]).map((group) => ({
-      ...group,
-      member_count: group.part_alternate_group_members?.[0]?.count ?? 0,
-    }));
+    return ((groups || []) as GroupWithMembers[]).map((group) => {
+      const rawMembers = group.part_alternate_group_members ?? [];
+      const sortedMembers = [...rawMembers].sort((a, b) => {
+        if (a.is_primary !== b.is_primary) {
+          return a.is_primary ? -1 : 1;
+        }
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      });
+      const memberSummaries = sortedMembers.map(mapMemberRowToSummary);
+      const memberDetails = sortedMembers.map(mapMemberRowToDetail);
+      const { part_alternate_group_members: _members, ...groupFields } = group;
+
+      return {
+        ...groupFields,
+        member_count: memberSummaries.length,
+        member_summaries: memberSummaries,
+        member_details: memberDetails,
+      };
+    });
   } catch (error) {
     logger.error('Error fetching alternate groups:', error);
     throw error;

@@ -1,9 +1,10 @@
 import React from 'react';
-import { Search, X } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { GridTableViewModeToggle } from '@/components/common/GridTableViewModeToggle';
+import { ToolbarSearchInput } from '@/components/common/ToolbarSearchInput';
 import AlternateGroupsFilterPopover from './AlternateGroupsFilterPopover';
 import AlternateGroupsSortPopover from './AlternateGroupsSortPopover';
 import AlternateGroupsDownloadMenu from './AlternateGroupsDownloadMenu';
@@ -11,6 +12,7 @@ import type { PartAlternateGroup } from '@/features/inventory/types/inventory';
 
 type GroupStatusFilter = 'all' | 'verified' | 'unverified' | 'deprecated';
 type GroupSortOption = 'name-asc' | 'name-desc' | 'updated-desc' | 'updated-asc';
+export type AlternateGroupsViewMode = 'cards' | 'table';
 
 interface AlternateGroupsToolbarProps {
   search: string;
@@ -20,8 +22,9 @@ interface AlternateGroupsToolbarProps {
   sortBy: GroupSortOption;
   onSortChange: (sort: GroupSortOption) => void;
   filteredGroups: PartAlternateGroup[];
-  totalCount: number;
   canEdit: boolean;
+  viewMode?: AlternateGroupsViewMode;
+  onViewModeChange?: (mode: AlternateGroupsViewMode) => void;
 }
 
 const AlternateGroupsToolbar: React.FC<AlternateGroupsToolbarProps> = ({
@@ -32,8 +35,9 @@ const AlternateGroupsToolbar: React.FC<AlternateGroupsToolbarProps> = ({
   sortBy,
   onSortChange,
   filteredGroups,
-  totalCount,
   canEdit,
+  viewMode = 'cards',
+  onViewModeChange,
 }) => {
   const activeFilterCount = statusFilter !== 'all' ? 1 : 0;
   const hasActiveFilters = activeFilterCount > 0;
@@ -42,65 +46,57 @@ const AlternateGroupsToolbar: React.FC<AlternateGroupsToolbarProps> = ({
     <div className="flex flex-col gap-2">
       {/* Single toolbar row */}
       <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
-        {/* Search */}
-        <div className="relative flex-1 max-w-[280px]">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-          <Input
-            placeholder="Search by name or description..."
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          {/* Search */}
+          <ToolbarSearchInput
             value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="h-8 pl-8 text-sm bg-transparent"
-            aria-label="Search alternate groups"
+            onChange={onSearchChange}
+            placeholder={
+              viewMode === 'table'
+                ? 'Search groups or parts...'
+                : 'Search by name or description...'
+            }
+            ariaLabel={
+              viewMode === 'table'
+                ? 'Search alternate groups or parts'
+                : 'Search alternate groups'
+            }
+            className="max-w-[280px]"
           />
-          {search && (
-            <button
-              onClick={() => onSearchChange('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              aria-label="Clear search"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
+
+          <Separator orientation="vertical" className="h-5" />
+
+          {/* Filter popover */}
+          <AlternateGroupsFilterPopover
+            statusFilter={statusFilter}
+            onStatusChange={onStatusChange}
+            activeFilterCount={activeFilterCount}
+          />
+
+          {/* Sort popover — card view only; table view sorts via column headers */}
+          {viewMode !== 'table' && (
+            <AlternateGroupsSortPopover sortBy={sortBy} onSortChange={onSortChange} />
           )}
         </div>
 
-        <Separator orientation="vertical" className="h-5" />
+        {(canEdit || onViewModeChange) && (
+          <div className="flex shrink-0 items-center gap-2">
+            {canEdit && <AlternateGroupsDownloadMenu groups={filteredGroups} />}
 
-        {/* Filter popover */}
-        <AlternateGroupsFilterPopover
-          statusFilter={statusFilter}
-          onStatusChange={onStatusChange}
-          activeFilterCount={activeFilterCount}
-        />
+            {canEdit && onViewModeChange && (
+              <Separator orientation="vertical" className="hidden md:block h-5" />
+            )}
 
-        {/* Sort popover */}
-        <AlternateGroupsSortPopover sortBy={sortBy} onSortChange={onSortChange} />
-
-        {canEdit && (
-          <>
-            <Separator orientation="vertical" className="h-5" />
-            {/* Download menu */}
-            <AlternateGroupsDownloadMenu groups={filteredGroups} />
-          </>
+            {onViewModeChange && (
+              <GridTableViewModeToggle
+                viewMode={viewMode}
+                onViewModeChange={onViewModeChange}
+                gridValue="cards"
+                tableValue="table"
+              />
+            )}
+          </div>
         )}
-
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Result count */}
-        <span
-          className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block"
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          <span className="font-medium text-foreground">{filteredGroups.length}</span>
-          {filteredGroups.length !== totalCount && (
-            <>
-              {' / '}
-              <span className="font-medium text-foreground">{totalCount}</span>
-            </>
-          )}
-          {' group'}{filteredGroups.length !== 1 ? 's' : ''}
-        </span>
       </div>
 
       {/* Active filter badges row */}

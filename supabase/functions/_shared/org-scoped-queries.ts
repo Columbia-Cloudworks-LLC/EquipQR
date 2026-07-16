@@ -45,6 +45,7 @@ export const reportTypeSchema = z.enum([
   "inventory",
   "scans",
   "operator-check-ins",
+  "quick-forms",
   "alternate-groups",
 ]);
 

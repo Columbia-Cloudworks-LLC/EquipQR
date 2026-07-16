@@ -349,4 +349,32 @@ describe('InventoryList — desktop table', () => {
 
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/inventory/item-1?alternateAction=add');
   });
+
+  it('paginates desktop table results instead of rendering every item at once', async () => {
+    const manyItems = Array.from({ length: 30 }, (_, index) =>
+      baseItem({
+        id: `item-${index + 1}`,
+        name: `Inventory Item ${String(index + 1).padStart(2, '0')}`,
+        sku: `SKU-${index + 1}`,
+      }),
+    );
+
+    vi.mocked(useInventoryModule.useInventoryItems).mockImplementation(() => ({
+      data: manyItems,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useInventoryModule.useInventoryItems>));
+
+    render(<InventoryList />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Inventory Item 01')).toBeInTheDocument();
+      expect(screen.getByText('Inventory Item 25')).toBeInTheDocument();
+      expect(screen.queryByText('Inventory Item 26')).not.toBeInTheDocument();
+      expect(screen.getByTestId('inventory-list-pagination-footer')).toBeInTheDocument();
+      expect(screen.getByText(/Showing 1 to 25 of 30 items/)).toBeInTheDocument();
+    });
+  });
 });

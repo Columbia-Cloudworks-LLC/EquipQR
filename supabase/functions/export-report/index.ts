@@ -31,6 +31,7 @@ import { exportWorkOrders } from "./work-orders-csv-export.ts";
 import { exportInventory } from "./inventory-csv-export.ts";
 import { exportScans } from "./scans-csv-export.ts";
 import { exportOperatorCheckins } from "./operator-checkins-csv-export.ts";
+import { exportQuickForms } from "./quick-forms-csv-export.ts";
 import { exportAlternateGroups } from "./alternate-groups-csv-export.ts";
 
 Deno.serve(withCorrelationId(async (req, _ctx) => {
@@ -180,6 +181,9 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
           break;
         case "operator-check-ins":
           ({ csvContent, rowCount } = await exportOperatorCheckins(supabase, organizationId, filters, columns));
+          break;
+        case "quick-forms":
+          ({ csvContent, rowCount } = await exportQuickForms(supabase, organizationId, filters, columns));
           break;
         case "alternate-groups":
           ({ csvContent, rowCount } = await exportAlternateGroups(supabase, organizationId, filters, columns));

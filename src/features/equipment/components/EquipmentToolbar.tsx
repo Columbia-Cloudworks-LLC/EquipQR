@@ -1,15 +1,16 @@
 import React from 'react';
-import { Search, LayoutGrid, List, Rows3, X } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { GridTableViewModeToggle } from '@/components/common/GridTableViewModeToggle';
+import { ToolbarSearchInput } from '@/components/common/ToolbarSearchInput';
 import EquipmentFilterPopover from './EquipmentFilterPopover';
 import EquipmentSortPopover from './EquipmentSortPopover';
-import EquipmentActionsMenu from './EquipmentActionsMenu';
+import EquipmentImportMenu from './EquipmentImportMenu';
+import EquipmentDownloadMenu from './EquipmentDownloadMenu';
 import type { EquipmentListToolbarProps } from '@/features/equipment/components/equipmentFilterTypes';
+import type { EquipmentFilters } from '@/features/equipment/hooks/useEquipmentFiltering';
 
 type EquipmentToolbarProps = EquipmentListToolbarProps;
 
@@ -23,8 +24,6 @@ const EquipmentToolbar: React.FC<EquipmentToolbarProps> = ({
   filterOptions,
   hasActiveFilters,
   activeQuickFilter,
-  resultCount,
-  totalCount,
   viewMode,
   onViewModeChange,
   canImport = false,
@@ -44,125 +43,68 @@ const EquipmentToolbar: React.FC<EquipmentToolbarProps> = ({
     filters.warrantyExpiring,
   ].filter(Boolean).length;
 
+  const showRightControls = canImport || canExport;
+
   return (
     <div className="flex flex-col gap-2">
       {/* Single toolbar row */}
       <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
-        {/* Search */}
-        <div className="relative flex-1 max-w-[260px]">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-          <Input
-            placeholder="Search equipment..."
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          {/* Search */}
+          <ToolbarSearchInput
             value={filters.search}
-            onChange={(e) => onFilterChange('search', e.target.value)}
-            className="h-8 pl-8 text-sm bg-transparent"
-            aria-label="Search equipment"
+            onChange={(value) => onFilterChange('search', value)}
+            placeholder="Search equipment..."
+            ariaLabel="Search equipment"
           />
-          {filters.search && (
-            <button
-              onClick={() => onFilterChange('search', '')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              aria-label="Clear search"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
+
+          <Separator orientation="vertical" className="h-5" />
+
+          {/* Filter popover */}
+          <EquipmentFilterPopover
+            filters={filters}
+            onFilterChange={onFilterChange}
+            onClearFilters={onClearFilters}
+            onQuickFilter={onQuickFilter}
+            filterOptions={filterOptions}
+            activeFilterCount={activeFilterCount}
+            activeQuickFilter={activeQuickFilter}
+          />
+
+          {/* Sort popover — card view only; table view sorts via column headers */}
+          {viewMode !== 'table' && (
+            <EquipmentSortPopover
+              sortConfig={sortConfig}
+              onSortChange={onSortChange}
+            />
           )}
+
+          {/* View-mode-specific control (e.g. column picker for the table view) */}
+          {columnPicker}
         </div>
 
-        <Separator orientation="vertical" className="h-5" />
+        <div className="flex shrink-0 items-center gap-2">
+          {showRightControls && (
+            <>
+              {canImport && (
+                <EquipmentImportMenu onImportCsv={onImportCsv ?? (() => {})} />
+              )}
+              {canExport && <EquipmentDownloadMenu equipment={equipment} />}
+            </>
+          )}
 
-        {/* Filter popover */}
-        <EquipmentFilterPopover
-          filters={filters}
-          onFilterChange={onFilterChange}
-          onClearFilters={onClearFilters}
-          onQuickFilter={onQuickFilter}
-          filterOptions={filterOptions}
-          activeFilterCount={activeFilterCount}
-          activeQuickFilter={activeQuickFilter}
-        />
+          {showRightControls && (
+            <Separator orientation="vertical" className="hidden md:block h-5" />
+          )}
 
-        {/* Sort popover */}
-        <EquipmentSortPopover
-          sortConfig={sortConfig}
-          onSortChange={onSortChange}
-        />
-
-        {/* View-mode-specific control (e.g. column picker for the table view) */}
-        {columnPicker}
-
-        {/* Actions menu (import/export) */}
-        {(canImport || canExport) && (
-          <>
-            <Separator orientation="vertical" className="h-5" />
-            <EquipmentActionsMenu
-              canImport={canImport}
-              canExport={canExport}
-              onImportCsv={onImportCsv ?? (() => {})}
-              equipment={equipment}
-            />
-          </>
-        )}
-
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Result count */}
-        <span className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block" aria-live="polite" aria-atomic="true">
-          <span className="font-medium text-foreground">{resultCount}</span>
-          {' / '}
-          <span className="font-medium text-foreground">{totalCount}</span>
-        </span>
-
-        <Separator orientation="vertical" className="h-5 hidden lg:block" />
-
-        {/* View mode toggle */}
-        <ToggleGroup
-          type="single"
-          value={viewMode}
-          onValueChange={(value) => {
-            if (value) onViewModeChange(value as EquipmentViewMode);
-          }}
-          className="gap-0 rounded-md border"
-          aria-label="View mode"
-        >
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <ToggleGroupItem
-                value="grid"
-                aria-label="Grid view"
-                className="h-8 w-8 rounded-r-none data-[state=on]:bg-muted"
-              >
-                <LayoutGrid className="h-3.5 w-3.5" />
-              </ToggleGroupItem>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Grid view</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <ToggleGroupItem
-                value="list"
-                aria-label="List view"
-                className="h-8 w-8 rounded-none data-[state=on]:bg-muted"
-              >
-                <List className="h-3.5 w-3.5" />
-              </ToggleGroupItem>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">List view</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <ToggleGroupItem
-                value="table"
-                aria-label="Table view"
-                className="h-8 w-8 rounded-l-none data-[state=on]:bg-muted"
-              >
-                <Rows3 className="h-3.5 w-3.5" />
-              </ToggleGroupItem>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">Table view</TooltipContent>
-          </Tooltip>
-        </ToggleGroup>
+          {/* View mode toggle */}
+          <GridTableViewModeToggle
+            viewMode={viewMode}
+            onViewModeChange={onViewModeChange}
+            gridValue="grid"
+            tableValue="table"
+          />
+        </div>
       </div>
 
       {/* Active filter badges row -- only when filters are active */}

@@ -6,7 +6,7 @@
 // Report Type Definitions
 // ============================================
 
-export type ReportType = 'equipment' | 'work-orders' | 'work-orders-detailed' | 'inventory' | 'scans' | 'operator-check-ins' | 'kpis' | 'alternate-groups';
+export type ReportType = 'equipment' | 'work-orders' | 'work-orders-detailed' | 'inventory' | 'scans' | 'operator-check-ins' | 'quick-forms' | 'kpis' | 'alternate-groups';
 
 // ============================================
 // Export Configuration Types
@@ -82,16 +82,10 @@ export interface ReportCardConfig {
   icon: string;
   /** Export format: 'csv' or 'excel' */
   format: 'csv' | 'excel';
-  /** Human-readable format label for badges */
-  formatLabel: string;
   /** Number of columns available for export */
   columnCount: number;
   /** Mission-area category for grouped layout */
   category: ReportCategory;
-  /** NASA-Punk operation code shown on export modules */
-  operationCode: string;
-  /** Intended audience roles for quick scanning */
-  audiences: string[];
   /** Sample field names shown as preview chips */
   previewFields: string[];
   /** When true, render as the featured hero export module */

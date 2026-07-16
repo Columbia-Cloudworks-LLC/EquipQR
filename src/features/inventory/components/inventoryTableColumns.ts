@@ -188,9 +188,3 @@ export const DEFAULT_COLUMN_ORDER: InventoryTableColumnKey[] =
 export const DEFAULT_COLUMN_SIZING: Record<string, number> = Object.fromEntries(
   INVENTORY_TABLE_COLUMN_META.map((c) => [c.key, c.defaultWidth]),
 );
-
-export function getColumnMeta(key: InventoryTableColumnKey): InventoryTableColumnMeta {
-  const meta = INVENTORY_TABLE_COLUMN_META.find((c) => c.key === key);
-  if (!meta) throw new Error(`Unknown inventory table column: ${key}`);
-  return meta;
-}

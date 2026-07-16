@@ -23,18 +23,13 @@ import {
   INVENTORY_TABLE_COLUMN_META,
   type InventoryTableColumnKey,
 } from '@/features/inventory/components/inventoryTableColumns';
-import { InventoryDensityToggle } from '@/features/inventory/components/InventoryDensityToggle';
-import type { InventoryTableDensity } from '@/features/inventory/types/inventory';
-
 type InventoryColumnManagerProps = {
   columnVisibility: Record<string, boolean>;
   columnOrder: InventoryTableColumnKey[];
-  density: InventoryTableDensity;
   hasOverrides: boolean;
   onMoveColumn: (key: InventoryTableColumnKey, direction: 'up' | 'down') => void;
   onAddColumn: (key: InventoryTableColumnKey) => void;
   onRemoveColumn: (key: InventoryTableColumnKey) => void;
-  onDensityChange: (density: InventoryTableDensity) => void;
   onResetColumns: () => void;
   onResetWidths: () => void;
   onResetAll: () => void;
@@ -43,12 +38,10 @@ type InventoryColumnManagerProps = {
 export function InventoryColumnManager({
   columnVisibility,
   columnOrder,
-  density,
   hasOverrides,
   onMoveColumn,
   onAddColumn,
   onRemoveColumn,
-  onDensityChange,
   onResetColumns,
   onResetWidths,
   onResetAll,
@@ -86,12 +79,39 @@ export function InventoryColumnManager({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-sm font-medium">Density</span>
-          <InventoryDensityToggle density={density} onChange={onDensityChange} />
-        </div>
-
         <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Available fields</p>
+            <ScrollArea className="h-56 rounded-md border p-2">
+              <div className="space-y-1">
+                {availableColumns.length === 0 ? (
+                  <p className="px-2 py-4 text-sm text-muted-foreground text-center">
+                    All optional fields are shown.
+                  </p>
+                ) : (
+                  availableColumns.map((meta) => (
+                    <div
+                      key={meta.key}
+                      className="flex items-center gap-2 rounded-md border bg-muted/30 px-2 py-1.5"
+                    >
+                      <span className="flex-1 text-sm">{meta.title}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => onAddColumn(meta.key)}
+                        aria-label={`Show ${meta.title}`}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+
           <div className="space-y-2">
             <p className="text-sm font-medium">Shown fields</p>
             <ScrollArea className="h-56 rounded-md border p-2">
@@ -142,38 +162,6 @@ export function InventoryColumnManager({
                     </div>
                   );
                 })}
-              </div>
-            </ScrollArea>
-          </div>
-
-          <div className="space-y-2">
-            <p className="text-sm font-medium">Available fields</p>
-            <ScrollArea className="h-56 rounded-md border p-2">
-              <div className="space-y-1">
-                {availableColumns.length === 0 ? (
-                  <p className="px-2 py-4 text-sm text-muted-foreground text-center">
-                    All optional fields are shown.
-                  </p>
-                ) : (
-                  availableColumns.map((meta) => (
-                    <div
-                      key={meta.key}
-                      className="flex items-center gap-2 rounded-md border bg-muted/30 px-2 py-1.5"
-                    >
-                      <span className="flex-1 text-sm">{meta.title}</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => onAddColumn(meta.key)}
-                        aria-label={`Show ${meta.title}`}
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  ))
-                )}
               </div>
             </ScrollArea>
           </div>

@@ -11,14 +11,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import type { InventoryTableColumnKey } from '@/features/inventory/components/inventoryTableColumns';
 import type { InventoryItem } from '@/features/inventory/types/inventory';
 import {
   getAllExportHeaders,
-  getVisibleExportHeaders,
   itemsToAllExportRows,
   itemsToJsonExport,
-  itemsToVisibleExportRows,
 } from '@/features/inventory/utils/inventoryExportUtils';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { arrayToCsv, downloadCsv, downloadJson, filenameWithDate } from '@/utils/exportUtils';
@@ -26,18 +23,15 @@ import { arrayToCsv, downloadCsv, downloadJson, filenameWithDate } from '@/utils
 interface InventoryDownloadMenuProps {
   canExport: boolean;
   items: InventoryItem[];
-  visibleColumnKeys?: InventoryTableColumnKey[];
   selectedItems?: InventoryItem[];
 }
 
 const InventoryDownloadMenu: React.FC<InventoryDownloadMenuProps> = ({
   canExport,
   items,
-  visibleColumnKeys = [],
   selectedItems = [],
 }) => {
   const { formatDate } = useFormatTimestamp();
-  const hasVisibleColumns = visibleColumnKeys.length > 0;
   const hasSelection = selectedItems.length > 0;
 
   if (!canExport) {
@@ -71,23 +65,6 @@ const InventoryDownloadMenu: React.FC<InventoryDownloadMenuProps> = ({
     downloadJson(itemsToJsonExport(items), filenameWithDate('inventory', 'json'));
   };
 
-  const handleExportVisibleCsv = () => {
-    const rows = itemsToVisibleExportRows(items, visibleColumnKeys, formatDate);
-    const csv = arrayToCsv(getVisibleExportHeaders(visibleColumnKeys), rows);
-    downloadCsv(csv, filenameWithDate('inventory-visible-columns', 'csv'));
-  };
-
-  const handleExportVisibleJson = () => {
-    const data = itemsToJsonExport(items).map((item) => {
-      const filtered: Record<string, unknown> = { id: item.id };
-      for (const key of visibleColumnKeys) {
-        filtered[key] = item[key as keyof typeof item];
-      }
-      return filtered;
-    });
-    downloadJson(data, filenameWithDate('inventory-visible-columns', 'json'));
-  };
-
   const handleExportSelectedCsv = () => {
     const rows = itemsToAllExportRows(selectedItems, formatDate);
     const csv = arrayToCsv(getAllExportHeaders(), rows);
@@ -119,17 +96,6 @@ const InventoryDownloadMenu: React.FC<InventoryDownloadMenuProps> = ({
           onExportCsv={handleExportAllCsv}
           onExportJson={handleExportAllJson}
         />
-
-        {hasVisibleColumns && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-              Export visible columns
-            </DropdownMenuLabel>
-            <DropdownMenuItem onSelect={handleExportVisibleCsv}>CSV (visible)</DropdownMenuItem>
-            <DropdownMenuItem onSelect={handleExportVisibleJson}>JSON (visible)</DropdownMenuItem>
-          </>
-        )}
 
         {hasSelection && (
           <>
