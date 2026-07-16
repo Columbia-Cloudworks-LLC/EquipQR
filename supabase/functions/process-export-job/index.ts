@@ -270,7 +270,7 @@ async function runExportAndStore(
   const { error: uploadError } = await adminClient.storage
     .from(EXPORT_RESULTS_BUCKET)
     .upload(storagePath, csvBytes, {
-      contentType: "text/csv",
+      contentType: "text/csv; charset=utf-8",
       upsert: true,
     });
 
