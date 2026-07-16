@@ -26,7 +26,7 @@ import {
 import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
 import {
   areTimelineEventsEqual,
-  historyRowsToEvents,
+  historyRowsToEditorEvents,
   validateTimelineEvents,
   type HistoricalTimelineEvent,
 } from '@/features/work-orders/utils/historicalTimeline';
@@ -44,6 +44,7 @@ type HistoricalTimelineEditorDialogProps = {
   mode?: 'edit' | 'create' | 'convert';
   onCreateSave?: (events: HistoricalTimelineEvent[]) => void;
   historyReady?: boolean;
+  historicalStartDate?: string | null;
 };
 
 export function HistoricalTimelineEditorDialog({
@@ -58,6 +59,7 @@ export function HistoricalTimelineEditorDialog({
   mode = 'edit',
   onCreateSave,
   historyReady = true,
+  historicalStartDate,
 }: HistoricalTimelineEditorDialogProps) {
   const replaceTimelineMutation = useReplaceHistoricalWorkOrderTimeline();
   const convertTimelineMutation = useConvertWorkOrderToHistorical();
@@ -73,10 +75,10 @@ export function HistoricalTimelineEditorDialog({
       return initialEvents;
     }
     if (historyRows && historyRows.length > 0) {
-      return historyRowsToEvents(historyRows);
+      return historyRowsToEditorEvents(historyRows, historicalStartDate);
     }
     return [];
-  }, [historyRows, initialEvents]);
+  }, [historyRows, historicalStartDate, initialEvents]);
 
   useEffect(() => {
     if (!open) {

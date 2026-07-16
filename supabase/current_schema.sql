@@ -22285,6 +22285,10 @@ ALTER TABLE "public"."workspace_personal_org_merge_requests" ENABLE ROW LEVEL SE
 ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
 
 
+
+
+
+
 ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."organization_members";
 
 
