@@ -250,7 +250,7 @@ describe('AuditLogList', () => {
     expect(screen.getByTestId('audit-log-list-virtual')).toBeInTheDocument();
     expect(screen.queryByTestId('audit-log-list-static')).not.toBeInTheDocument();
     const virtualList = screen.getByTestId('virtual-list-stub');
-    expect(virtualList).toHaveStyle({ width: '1024px' });
+    expect(virtualList).toHaveStyle({ width: '100%' });
   });
 
   it('virtual rows use listbox option semantics (no react-window listitem role bleed)', () => {

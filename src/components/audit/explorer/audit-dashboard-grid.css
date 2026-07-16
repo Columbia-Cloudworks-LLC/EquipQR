@@ -1,0 +1,74 @@
+/**
+ * Audit dashboard grid — drag/drop affordances for react-grid-layout.
+ * Scoped under .audit-dashboard-grid-layout so default RGL styles stay isolated.
+ */
+
+.audit-dashboard-grid-layout.react-grid-layout {
+  position: relative;
+  z-index: 1;
+}
+
+.audit-dashboard-grid-layout .react-grid-item {
+  touch-action: none;
+}
+
+/* Hide the source card while it is lifted — keep its grid slot empty. */
+.audit-dashboard-grid-layout.is-interacting .react-grid-item[data-grid-dragging='true'] {
+  visibility: hidden;
+}
+
+/* Slightly dim stationary cards during a drag. */
+.audit-dashboard-grid-layout.is-interacting .react-grid-item:not([data-grid-dragging='true']) {
+  opacity: 0.88;
+  transition: opacity 120ms ease;
+}
+
+.audit-dashboard-grid-layout .audit-widget-drag-handle {
+  touch-action: none;
+}
+
+/* Card-sized slot guides (not micro row cells). */
+.audit-drop-slots {
+  z-index: 2;
+}
+
+.audit-slot-guide {
+  position: absolute;
+  box-sizing: border-box;
+  border-radius: 0.375rem;
+  border: 1px dashed hsl(var(--border) / 0.9);
+  background: hsl(var(--muted) / 0.22);
+}
+
+.audit-slot-guide--source {
+  border-style: solid;
+  border-color: hsl(var(--border) / 0.55);
+  background: hsl(var(--muted) / 0.12);
+}
+
+/* Insertion divider — horizontal gap where the widget will land on release. */
+.audit-drop-divider {
+  position: absolute;
+  height: 3px;
+  transform: translateY(-50%);
+  border-radius: 9999px;
+  background: hsl(var(--primary));
+  box-shadow:
+    0 0 0 1px hsl(var(--primary) / 0.35),
+    0 0 12px 2px hsl(var(--primary) / 0.45);
+  z-index: 3;
+}
+
+/* Lifted clone follows the pointer above the page. */
+.audit-widget-floating-clone {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  border-radius: 0.375rem;
+  overflow: hidden;
+  cursor: grabbing;
+  box-shadow:
+    0 24px 48px -16px rgb(0 0 0 / 0.35),
+    0 0 0 2px hsl(var(--primary) / 0.55);
+  will-change: left, top;
+}
