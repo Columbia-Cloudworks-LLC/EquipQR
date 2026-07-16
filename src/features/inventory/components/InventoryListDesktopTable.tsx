@@ -11,6 +11,7 @@ import { ArrowDown, ArrowUp, ArrowUpDown, Layers, MoreVertical } from 'lucide-re
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { InventoryQuantityValue } from '@/features/inventory/components/InventoryQuantityValue';
 import { InventoryStockBar } from '@/features/inventory/components/InventoryStockBar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
@@ -25,7 +26,6 @@ import {
 import { InventoryItemActionsMenu } from '@/features/inventory/components/InventoryItemActionsMenu';
 import type { InventoryFilters, InventoryItem, InventorySortField, InventoryTableDensity } from '@/features/inventory/types/inventory';
 import { getStockHealthPresentation } from '@/features/inventory/utils/stockHealth';
-import { getQuantityClassName } from '@/features/inventory/utils/inventoryListPresentation';
 import type { InventoryTableRowViewModel } from '@/features/inventory/utils/inventoryListViewModel';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { cn } from '@/lib/utils';
@@ -166,21 +166,8 @@ export function InventoryListDesktopTable({
             case 'quantity_on_hand':
               return (
                 <div className="space-y-1">
-                  <div className="flex items-center justify-end gap-2">
-                    <span className={cn('tabular-nums', getQuantityClassName(item))}>
-                      {item.quantity_on_hand}
-                    </span>
-                    {stockHealth.label !== 'Healthy' && (
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          'rounded-full px-2 py-0.5 text-xs font-medium',
-                          stockHealth.className,
-                        )}
-                      >
-                        {stockHealth.label}
-                      </Badge>
-                    )}
+                  <div className="flex items-center justify-end">
+                    <InventoryQuantityValue item={item} />
                   </div>
                   <InventoryStockBar
                     quantityOnHand={item.quantity_on_hand}
