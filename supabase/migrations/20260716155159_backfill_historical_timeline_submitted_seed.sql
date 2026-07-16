@@ -6,10 +6,17 @@ WITH affected AS (
   SELECT
     wo.id AS work_order_id,
     wo.created_by,
-    LEAST(
-      COALESCE(wo.historical_start_date, wo.created_date, first_history.changed_at),
-      first_history.changed_at
-    ) AS submitted_at,
+    CASE
+      WHEN LEAST(
+        COALESCE(wo.historical_start_date, wo.created_date, first_history.changed_at),
+        first_history.changed_at
+      ) = first_history.changed_at
+      THEN first_history.changed_at - interval '1 millisecond'
+      ELSE LEAST(
+        COALESCE(wo.historical_start_date, wo.created_date, first_history.changed_at),
+        first_history.changed_at
+      )
+    END AS submitted_at,
     first_history.id AS first_history_id
   FROM public.work_orders wo
   JOIN LATERAL (
