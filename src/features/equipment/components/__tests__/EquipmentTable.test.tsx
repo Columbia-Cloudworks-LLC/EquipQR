@@ -105,11 +105,14 @@ describe('EquipmentTable', () => {
     expect(headers[0].className).toContain('left-0');
   });
 
-  it('renders resizable column separators on resizable data columns', () => {
-    render(<EquipmentTable equipment={mockEquipment} onShowQRCode={onShowQRCode} />);
-    const separators = screen.getAllByRole('separator', { name: /resize/i });
-    expect(separators.length).toBeGreaterThan(0);
-    expect(screen.queryByRole('separator', { name: /resize status/i })).toBeNull();
+  it('renders column resize handles on resizable data columns', () => {
+    const { container } = render(
+      <EquipmentTable equipment={mockEquipment} onShowQRCode={onShowQRCode} />,
+    );
+    const resizeHandles = container.querySelectorAll('[data-slot="column-resize-handle"]');
+    expect(resizeHandles.length).toBeGreaterThan(0);
+    const statusHeader = screen.getAllByRole('columnheader')[0];
+    expect(statusHeader.querySelector('[data-slot="column-resize-handle"]')).toBeNull();
   });
 
   it('renders the QR action button', () => {

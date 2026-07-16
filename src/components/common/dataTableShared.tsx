@@ -345,9 +345,7 @@ export function DataTableColumnResizeHandle<THeader>({
 
   return (
     <div
-      role="separator"
-      aria-orientation="vertical"
-      aria-label={`Resize ${header.column.id} column`}
+      data-slot="column-resize-handle"
       onMouseDown={header.getResizeHandler()}
       onTouchStart={header.getResizeHandler()}
       onDoubleClick={
@@ -365,6 +363,7 @@ export function DataTableColumnResizeHandle<THeader>({
         header.column.getIsResizing() && 'bg-primary',
         className,
       )}
+      aria-hidden
     />
   );
 }
