@@ -52,7 +52,6 @@ const timezoneFormattingLegacyAllowlist = [
   "src/features/work-orders/components/WorkOrderAssigneeDisplay.tsx",
   "src/features/work-orders/components/WorkOrderDetailsMobile.tsx",
   "src/features/work-orders/components/WorkOrderEquipmentSelector.tsx",
-  "src/features/work-orders/components/WorkOrderExcelExportDialog.tsx",
   "src/features/work-orders/components/WorkOrderStatusManager.tsx",
   "src/features/work-orders/hooks/useWorkOrderFilters.ts",
 

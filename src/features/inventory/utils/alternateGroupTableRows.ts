@@ -170,7 +170,7 @@ export function sortAlternateGroupTableRows(
   const sorted = [...rows];
 
   sorted.sort((left, right) => {
-    let comparison = 0;
+    let comparison: number;
 
     switch (sortBy) {
       case 'group_status':

@@ -34,14 +34,6 @@ vi.mock('@/features/organization/hooks/useGoogleWorkspaceConnectionStatus', () =
   useGoogleWorkspaceConnectionStatus: vi.fn(),
 }));
 
-vi.mock('@/features/reports/components/ReportExportDialog', () => ({
-  ReportExportDialog: () => null,
-}));
-
-vi.mock('@/features/work-orders/components/WorkOrderExcelExportDialog', () => ({
-  WorkOrderExcelExportDialog: () => null,
-}));
-
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';

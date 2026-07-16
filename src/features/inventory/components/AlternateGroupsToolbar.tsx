@@ -1,9 +1,10 @@
 import React from 'react';
-import { Search, X, LayoutGrid, Rows3 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { GridTableViewModeToggle } from '@/components/common/GridTableViewModeToggle';
+import { ToolbarSearchInput } from '@/components/common/ToolbarSearchInput';
 import { cn } from '@/lib/utils';
 import AlternateGroupsFilterPopover from './AlternateGroupsFilterPopover';
 import AlternateGroupsSortPopover from './AlternateGroupsSortPopover';
@@ -48,33 +49,21 @@ const AlternateGroupsToolbar: React.FC<AlternateGroupsToolbarProps> = ({
       <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           {/* Search */}
-          <div className="relative max-w-[280px] flex-1">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-            <Input
-              placeholder={
-                viewMode === 'table'
-                  ? 'Search groups or parts...'
-                  : 'Search by name or description...'
-              }
-              value={search}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="h-8 pl-8 text-sm bg-transparent"
-              aria-label={
-                viewMode === 'table'
-                  ? 'Search alternate groups or parts'
-                  : 'Search alternate groups'
-              }
-            />
-            {search && (
-              <button
-                onClick={() => onSearchChange('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                aria-label="Clear search"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
+          <ToolbarSearchInput
+            value={search}
+            onChange={onSearchChange}
+            placeholder={
+              viewMode === 'table'
+                ? 'Search groups or parts...'
+                : 'Search by name or description...'
+            }
+            ariaLabel={
+              viewMode === 'table'
+                ? 'Search alternate groups or parts'
+                : 'Search alternate groups'
+            }
+            className="max-w-[280px]"
+          />
 
           <Separator orientation="vertical" className="h-5" />
 
@@ -100,34 +89,12 @@ const AlternateGroupsToolbar: React.FC<AlternateGroupsToolbarProps> = ({
             )}
 
             {onViewModeChange && (
-              <div
-                className="hidden md:flex items-center rounded-md border"
-                role="radiogroup"
-                aria-label="View mode"
-              >
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn('h-8 w-8 rounded-r-none', viewMode === 'cards' && 'bg-muted')}
-                  onClick={() => onViewModeChange('cards')}
-                  aria-label="Card view"
-                  aria-checked={viewMode === 'cards'}
-                  role="radio"
-                >
-                  <LayoutGrid className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn('h-8 w-8 rounded-l-none', viewMode === 'table' && 'bg-muted')}
-                  onClick={() => onViewModeChange('table')}
-                  aria-label="Table view"
-                  aria-checked={viewMode === 'table'}
-                  role="radio"
-                >
-                  <Rows3 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
+              <GridTableViewModeToggle
+                viewMode={viewMode}
+                onViewModeChange={onViewModeChange}
+                gridValue="cards"
+                tableValue="table"
+              />
             )}
           </div>
         )}

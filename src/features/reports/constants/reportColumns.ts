@@ -163,13 +163,6 @@ export function resolveInitialExportColumns(reportType: ReportType): string[] {
   return getDefaultColumns(reportType);
 }
 
-export function columnLabelsForKeys(reportType: ReportType, keys: string[]): string[] {
-  const availableColumns = getColumnsForReportType(reportType);
-  return keys
-    .map((key) => availableColumns.find((column) => column.key === key)?.label)
-    .filter((label): label is string => Boolean(label));
-}
-
 /**
  * Report card configurations for the Reports page
  */

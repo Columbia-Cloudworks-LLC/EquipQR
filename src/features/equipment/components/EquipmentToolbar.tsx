@@ -1,10 +1,10 @@
 import React from 'react';
-import { Search, LayoutGrid, Rows3, X } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
+import { GridTableViewModeToggle } from '@/components/common/GridTableViewModeToggle';
+import { ToolbarSearchInput } from '@/components/common/ToolbarSearchInput';
 import EquipmentFilterPopover from './EquipmentFilterPopover';
 import EquipmentSortPopover from './EquipmentSortPopover';
 import EquipmentImportMenu from './EquipmentImportMenu';
@@ -51,25 +51,12 @@ const EquipmentToolbar: React.FC<EquipmentToolbarProps> = ({
       <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
         <div className="flex min-w-0 flex-1 items-center gap-2">
           {/* Search */}
-          <div className="relative max-w-[260px] flex-1">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-            <Input
-              placeholder="Search equipment..."
-              value={filters.search}
-              onChange={(e) => onFilterChange('search', e.target.value)}
-              className="h-8 pl-8 text-sm bg-transparent"
-              aria-label="Search equipment"
-            />
-            {filters.search && (
-              <button
-                onClick={() => onFilterChange('search', '')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                aria-label="Clear search"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
+          <ToolbarSearchInput
+            value={filters.search}
+            onChange={(value) => onFilterChange('search', value)}
+            placeholder="Search equipment..."
+            ariaLabel="Search equipment"
+          />
 
           <Separator orientation="vertical" className="h-5" />
 
@@ -111,34 +98,12 @@ const EquipmentToolbar: React.FC<EquipmentToolbarProps> = ({
           )}
 
           {/* View mode toggle */}
-          <div
-            className="hidden md:flex items-center rounded-md border"
-            role="radiogroup"
-            aria-label="View mode"
-          >
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn('h-8 w-8 rounded-r-none', viewMode === 'grid' && 'bg-muted')}
-              onClick={() => onViewModeChange('grid')}
-              aria-label="Card view"
-              aria-checked={viewMode === 'grid'}
-              role="radio"
-            >
-              <LayoutGrid className="h-3.5 w-3.5" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn('h-8 w-8 rounded-l-none', viewMode === 'table' && 'bg-muted')}
-              onClick={() => onViewModeChange('table')}
-              aria-label="Table view"
-              aria-checked={viewMode === 'table'}
-              role="radio"
-            >
-              <Rows3 className="h-3.5 w-3.5" />
-            </Button>
-          </div>
+          <GridTableViewModeToggle
+            viewMode={viewMode}
+            onViewModeChange={onViewModeChange}
+            gridValue="grid"
+            tableValue="table"
+          />
         </div>
       </div>
 

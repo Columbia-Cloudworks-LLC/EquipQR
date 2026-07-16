@@ -52,7 +52,7 @@ export function AlternateGroupStatusDot({
             config.dotClassName,
             className,
           )}
-          onClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
         />
       </TooltipTrigger>
       <TooltipContent side="top" className="max-w-xs">
