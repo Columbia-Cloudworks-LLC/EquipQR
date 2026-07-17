@@ -68,32 +68,13 @@ jobs:
       with:
         node-version: ${{ env.NODE_VERSION }}
 
-    # Post-release sync PRs (main or chore/release-v* → preview) carry the
-    # version bump; validate them with main-mode rules. Feature/fix PRs stay
-    # on preview mode (Unreleased bullets, no early version bump).
-    # Mode is chosen via Actions expressions (no head_ref interpolation into bash).
-    - name: Resolve metadata mode for preview base
-      id: preview_metadata_mode
-      shell: bash
-      env:
-        METADATA_MODE: ${{ (github.head_ref == 'main' || startsWith(github.head_ref, 'chore/release-v')) && 'main' || 'preview' }}
-        HEAD_REF: ${{ github.head_ref }}
-      run: |
-        set -euo pipefail
-        case "$METADATA_MODE" in
-          main|preview) ;;
-          *)
-            echo "::error::Unexpected METADATA_MODE='$METADATA_MODE'"
-            exit 1
-            ;;
-        esac
-        echo "mode=$METADATA_MODE" >> "$GITHUB_OUTPUT"
-        echo "Using RELEASE_METADATA_MODE=$METADATA_MODE for head '$HEAD_REF'"
-
+    # Post-release sync PRs (same-repo main or chore/release-v* → preview) carry
+    # the version bump → main-mode rules. Feature/fix PRs stay on preview mode.
+    # Mode is a pure Actions expression (no bash / no head_ref interpolation).
     - name: Verify release metadata against preview base
       run: node scripts/verify-release-metadata.mjs
       env:
-        RELEASE_METADATA_MODE: ${{ steps.preview_metadata_mode.outputs.mode }}
+        RELEASE_METADATA_MODE: ${{ (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'main' || startsWith(github.head_ref, 'chore/release-v'))) && 'main' || 'preview' }}
         RELEASE_METADATA_BASE_SHA: ${{ github.event.pull_request.base.sha }}
 
   lint-and-typecheck:
