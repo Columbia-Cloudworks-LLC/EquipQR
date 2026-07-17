@@ -51,7 +51,7 @@ Composer target: Composer 2.5 should be able to execute this without inferring m
 Formatting rule: boundary tags and headers at column 0; nested snippets/examples at exactly four leading spaces; no triple backticks anywhere in this plan; use {{placeholder text}} for generic fill-in values.
 
 External setup: {{steps, owner, credential/resource names, verification, or "None"}}
-Branch/PR path: {{push work branch after local verify; PR into main per branching.mdc and pr-merge-ready-workflow.mdc}}
+Branch/PR path: {{branch from origin/preview; push work branch after local verify; PR into preview per branching.mdc and pr-merge-ready-workflow.mdc; promote preview → main separately via /release}}
 </context-anchor>
 
 <execution-steps>

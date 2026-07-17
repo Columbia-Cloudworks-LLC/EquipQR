@@ -4,11 +4,13 @@ alwaysApply: true
 ---
 # PR Merge-Ready Workflow (authoritative)
 
-Every **product/runtime PR into `main`** follows this end-to-end standard. **Opening a PR is not handoff** — the agent owns the branch until merge-ready exit criteria pass.
+Every **product/runtime PR into `preview`** (day-to-day) follows this end-to-end standard. **Opening a PR is not handoff** — the agent owns the branch until merge-ready exit criteria pass.
+
+**Release PRs** (`preview` → `main`, or `chore/release-v*` from the curated preview tip) use the same babysit gates with `--base main`.
 
 Applies to: linked worktrees, explicit user PR requests, `itil-issue-resolver` integrate-via-PR path, plans that authorize a feature branch, and any skill that says "open a PR."
 
-Direct push to `main` is blocked by branch protection; merge via PR after `local-verify-before-preview-push.mdc`.
+Direct push to `main` and `preview` is blocked by branch protection; merge via PR after `local-verify-before-preview-push.mdc`.
 
 ## Merge-ready exit criteria (all required)
 
@@ -27,8 +29,8 @@ Do **not** report "PR opened" or walk away while any row is failing or pending.
 ## Phase 1 — Branch and implement
 
 ```powershell
-git fetch origin main
-git switch -c feat/<short-slug> origin/main
+git fetch origin preview
+git switch -c feat/<short-slug> origin/preview
 ```
 
 Implement with focused commits. Run Fallow before each commit per `fallow-before-commit.mdc`.
@@ -51,9 +53,17 @@ git push -u origin HEAD
 
 Write PR body to a UTF-8 file (never inline `gh pr create --body` on Windows — `git-powershell.mdc`). Include visual evidence markdown from `tmp/pr-evidence/<flow>/evidence-markdown.md`.
 
+Day-to-day feature/fix PR:
+
 ```powershell
-gh pr create --base main --head feat/<short-slug> --title "<conventional title>" --body-file "$env:TEMP\pr-<slug>-body.md"
+gh pr create --base preview --head feat/<short-slug> --title "<conventional title>" --body-file "$env:TEMP\pr-<slug>-body.md"
 .\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts" -PrNumber <num> -Publish
+```
+
+Release / promote PR (`preview` → `main` or `chore/release-v*`):
+
+```powershell
+gh pr create --base main --head preview --title "Release vX.Y.Z" --body-file "$env:TEMP\pr-release-body.md"
 ```
 
 ## Phase 4 — Babysit until merge-ready
@@ -110,11 +120,11 @@ Post a merge-ready handoff comment citing CI run URL, Qodo parent comment URL wi
 - **`pr-ci-gate-before-open.mdc`:** CI parity install + green checks — subset of this workflow.
 - **`pr-visual-evidence.mdc`:** capture and publish requirements.
 - **`address-pr-feedback/SKILL.md`:** triage loop for review rounds after open — same exit criteria; use when user asks to address feedback on an existing PR.
-- **`branching.mdc`:** when to PR vs direct-push.
+- **`branching.mdc`:** when to PR vs direct-push; feat → preview → main.
 
 ## Stop conditions (escalate, do not abandon PR)
 
 - Qodo never posts within 30 minutes after green CI — report PR number and head SHA.
 - Finding requires product decision outside scope — post question on PR, stop babysit loop.
-- CI failure unrelated to PR scope persists after merging latest `origin/main` — report with failing job link.
-- Merge conflict — merge/rebase `origin/main`, re-verify, push, restart Phase 4.
+- CI failure unrelated to PR scope persists after merging latest `origin/preview` (feature) or `origin/main` (release) — report with failing job link.
+- Merge conflict — merge/rebase the PR base (`origin/preview` or `origin/main`), re-verify, push, restart Phase 4.

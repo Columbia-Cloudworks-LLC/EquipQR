@@ -174,26 +174,26 @@ npm run type-check
 npm run build
 ```
 
-#### Git Workflow (main-centric)
+#### Git Workflow (feat → preview → main)
 
 See **[Git and Deploy](../ops/git-and-deploy.md)** and **[Development Lifecycle](./development-lifecycle.md)**.
 
-1. **Branch off `main`**
+1. **Branch off `preview`**
 
    ```powershell
-   git fetch origin main
-   git switch -c feat/<short-name> origin/main
+   git fetch origin preview
+   git switch -c feat/<short-name> origin/preview
    ```
 
 2. **Implement, verify locally, commit**
 
-3. **Push work branch** — Vercel Preview builds; test on the commit-specific **`*.vercel.app`** URL (optional: **`preview.equipqr.app`** when git **`preview`** is updated in Vercel)
+3. **Push work branch** — Vercel Preview builds; test on the commit-specific **`*.vercel.app`** URL. After merge to git **`preview`**, **`preview.equipqr.app`** updates.
 
    ```powershell
    git push -u origin HEAD
    ```
 
-4. **Open PR to `main`**, CI green, merge → **Production Release Readiness** auto-promotes **equipqr.app**
+4. **Open PR to `preview`**, CI green, merge → integration hostname updates. Ship production later via **`preview` → `main`** / `/release` → **Production Release Readiness** promotes **equipqr.app**.
 
 ## Project Structure Deep Dive
 

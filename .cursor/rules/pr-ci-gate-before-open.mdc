@@ -29,6 +29,33 @@ Local lint/tests/build are **necessary but not sufficient** for feature-branch P
 
 4. **Handoff must cite CI status:** include `gh pr checks` output or a link to the green workflow run. "Local tests passed" is not an acceptable substitute for red CI.
 
+## Release metadata (dual modes)
+
+CI runs different release-metadata jobs by PR base (`ci.yml`):
+
+| PR base | Job | Mode | Expectation |
+|---------|-----|------|-------------|
+| **`preview`** | `preview-release-metadata` | `RELEASE_METADATA_MODE=preview` | No `package.json` version bump vs base; release-relevant diffs require non-empty CHANGELOG `[Unreleased]`; lockfile aligned with package |
+| **`main`** | `release-metadata` | `RELEASE_METADATA_MODE=main` | When release-relevant: bump `package.json` above base, empty `[Unreleased]`, versioned CHANGELOG section, lockfile aligned |
+
+Local checks:
+
+```powershell
+# Feature PR into preview
+$env:RELEASE_METADATA_MODE = 'preview'
+$env:RELEASE_METADATA_BASE_SHA = (git merge-base HEAD origin/preview)
+npm run verify:release-metadata
+Remove-Item Env:RELEASE_METADATA_MODE, Env:RELEASE_METADATA_BASE_SHA -ErrorAction SilentlyContinue
+
+# Release PR into main
+$env:RELEASE_METADATA_MODE = 'main'
+$env:RELEASE_METADATA_BASE_SHA = (git merge-base HEAD origin/main)
+npm run verify:release-metadata
+Remove-Item Env:RELEASE_METADATA_MODE, Env:RELEASE_METADATA_BASE_SHA -ErrorAction SilentlyContinue
+```
+
+Workflow-only paths (`.cursor/**`, `docs/**`, `AGENTS.md`, etc.) remain exempt, same as `changelog-stop`.
+
 ## Minimum CI-parity gate (feature PRs)
 
 Run **in order** after dependency changes or before first PR open:
@@ -44,8 +71,8 @@ Run **in order** after dependency changes or before first PR open:
 
 - **`pr-merge-ready-workflow.mdc`:** full open-through-merge-ready standard; this rule covers install parity + CI green within that flow.
 - **`local-verify-before-preview-push.mdc`:** adds E2E and product verification before push/open.
-- **`branching.mdc`:** linked-worktree PR flow is not complete until merge-ready criteria pass — not merely "open PR and let CI run."
-- **Direct push to `main`:** blocked by branch protection; merge via PR after local verify. Feature branches use this rule in full.
+- **`branching.mdc`:** linked-worktree PR flow is not complete until merge-ready criteria pass — not merely "open PR and let CI run." Day-to-day base is **`preview`**; promote via **`preview` → `main`**.
+- **Direct push to `main` / `preview`:** blocked by branch protection; merge via PR after local verify. Feature branches use this rule in full.
 
 ## Stop conditions
 

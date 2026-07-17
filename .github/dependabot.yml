@@ -12,7 +12,7 @@ updates:
       time: "09:00"
       timezone: America/Chicago
     open-pull-requests-limit: 15
-    target-branch: main
+    target-branch: preview
     ignore:
       - dependency-name: "@types/node"
         update-types:
@@ -26,4 +26,4 @@ updates:
       time: "09:00"
       timezone: America/Chicago
     open-pull-requests-limit: 10
-    target-branch: main
+    target-branch: preview

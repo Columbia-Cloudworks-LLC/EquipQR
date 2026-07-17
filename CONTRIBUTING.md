@@ -27,34 +27,36 @@ EquipQR is a comprehensive fleet equipment management platform built with React,
 
 ## Branching Model
 
-EquipQR uses a **solo-developer, main-centric** flow (#1033). Authoritative policy: [`.cursor/rules/branching.mdc`](.cursor/rules/branching.mdc).
+EquipQR uses a **feat → preview → main** train (#1282). Authoritative policy: [`.cursor/rules/branching.mdc`](.cursor/rules/branching.mdc).
 
 ### Branch Environments
 
 | Branch | Purpose | Deployment | Public URL |
 |--------|---------|------------|------------|
-| `main` | Production source of truth | Vercel Production (manual promotion gate) | equipqr.app |
+| `main` | Production source of truth | Vercel Production (promote gate) | equipqr.app |
+| **`preview`** | Integration / pre-production train | Vercel **Preview** | preview.equipqr.app |
 | **`feat/*`** | One feature at a time | Vercel **Preview** per PR | Commit-specific `*.vercel.app` URL |
 
-> Git branch **`preview`** is kept as a **Vercel domain anchor** for `preview.equipqr.app` only — not an integration branch. The retired Vercel custom **`staging`** environment and persistent Supabase preview branch are gone. Ephemeral Supabase PR branches validate `supabase/**` changes.
+> No perpetual Supabase preview database — cloud hosts use production Supabase. Ephemeral Supabase PR branches validate `supabase/**` changes only.
 
 ### Branch Flow
 
-1. **Feature branches** (off `main`)
-   - `git fetch origin main` then `git switch -c feat/<short-name> origin/main`
-   - Open PR with `--base main`
+1. **Feature branches** (off `preview`)
+   - `git fetch origin preview` then `git switch -c feat/<short-name> origin/preview`
+   - Open PR with `--base preview`
    - CI + Supabase PR branch (when migrations change) must pass before merge
+   - Accumulate CHANGELOG `[Unreleased]`; **do not** bump `package.json`
 
 2. **Preview QA**
    - Vercel assigns a commit-specific URL per push/PR — use that for day-to-day validation
-   - **`preview.equipqr.app`** is optional: Vercel binds it to git branch **`preview`**; `preview-domain-alias.yml` re-aliases only when that branch deploys
+   - After merge to git **`preview`**, **`preview.equipqr.app`** updates via normal Vercel deploys
 
 3. **Production** (`main`)
-   - Merge feature PR → `main`
-   - Promote to production on Vercel when ready
+   - Promote via **`preview` → `main`** (or `/release`) with version bump + empty Unreleased
+   - **Production Release Readiness** runs `vercel promote`
 
 4. **Hotfixes**
-   - Branch off `origin/main`, PR into `main`, then promote
+   - Prefer `fix/*` → `preview` then promote; emergencies may PR into `main` then back-merge `preview`
 
 **Note**: Version tags are created automatically when `package.json` is updated on `main`. See [Versioning & Release Process](#versioning--release-process) below.
 
@@ -140,7 +142,7 @@ For technical details on CI/CD workflows including version tagging, see [`docs/o
 
 ### Making Changes
 
-1. Branch off `origin/main`: `git switch -c feat/<short-name> origin/main`
+1. Branch off `origin/preview`: `git switch -c feat/<short-name> origin/preview`
 2. Follow the coding guidelines below
 3. Write tests for new features
 4. Run linting and tests before pushing:
@@ -156,20 +158,21 @@ For technical details on CI/CD workflows including version tagging, see [`docs/o
 # Push your feature branch
 git push -u origin feat/<short-name>
 
-# Open a PR targeting main
-gh pr create --base main --head feat/<short-name> --title "Your feature description"
+# Open a PR targeting preview
+gh pr create --base preview --head feat/<short-name> --title "Your feature description"
 ```
 
 ## CI/CD Policy
 
-### Pull requests to `main`
+### Pull requests to `preview`
 
-**On Pull Requests** (e.g., `feat/*` → `main`):
+**On Pull Requests** (e.g., `feat/*` → `preview`):
 - ✅ Linting (ESLint)
 - ✅ Type checking (TypeScript)
 - ✅ Unit tests with coverage
 - ✅ Build validation
 - ✅ Security scan (npm audit)
+- ✅ Preview release-metadata (Unreleased notes; no package version bump)
 
 ### Main Branch (`main`)
 
@@ -449,13 +452,13 @@ In rare cases, emergency hotfixes may bypass normal PR approval:
 
 ### Review Process
 
-1. Create PR from a feature branch to `main`
+1. Create PR from a feature branch to `preview`
 2. CI checks run automatically
 3. Address any failing checks
 4. Request review from maintainers
 5. Make requested changes
-6. Maintainer approves and merges
-7. **Production Release Readiness** runs migrations, schema drift, and **`vercel promote`**
+6. Maintainer approves and merges to `preview` (`preview.equipqr.app` updates)
+7. Promote via `preview` → `main` / `/release` when shipping; **Production Release Readiness** runs migrations, schema drift, and **`vercel promote`**
 8. Version tags are created automatically when `package.json` changes on `main`
 
 ### Merge Strategy

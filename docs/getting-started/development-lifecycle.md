@@ -4,18 +4,18 @@ Authoritative day-to-day workflow. See also [`docs/ops/git-and-deploy.md`](../op
 
 ## Ground truth
 
-- **`main`** is the production branch; branch off **`main`** for work.
-- Git branch **`preview`** exists only so Vercel can bind **`preview.equipqr.app`** (dashboard requires a branch). It is **not** where feature work lands.
-- **Default QA URL:** the commit-specific Vercel Preview link (`*.vercel.app`) after you push a work branch — not `preview.equipqr.app`.
-- Ship via **PR into `main`**. Production promotes when **Production Release Readiness** is green.
+- **`preview`** is the integration train; branch off **`preview`** for work.
+- **`main`** is production; ship via controlled **`preview` → `main`** (or `/release`).
+- **Default QA URL:** commit-specific Vercel Preview (`*.vercel.app`) after you push a work branch; **`preview.equipqr.app`** after merge to git **`preview`**.
+- Feature PRs accumulate CHANGELOG `[Unreleased]` and **do not** bump `package.json`. Version bumps happen on promote to `main`.
 
 ## Lifecycle
 
 ```text
-Plan → branch off main → implement → verify locally
+Plan → branch off preview → implement → verify locally
 → push work branch → test on *.vercel.app Preview URL
-→ PR to main → CI green → merge
-→ Production Release Readiness → equipqr.app
+→ PR to preview → CI green → merge
+→ (later) /release or preview → main → Production Release Readiness → equipqr.app
 ```
 
 ## Steps
@@ -27,8 +27,8 @@ Use Cursor Plan/Agent mode for non-trivial changes. Store plans under `docs/plan
 ### 2) Branch and implement
 
 ```powershell
-git fetch origin main
-git switch -c feat/<short-name> origin/main
+git fetch origin preview
+git switch -c feat/<short-name> origin/preview
 ```
 
 Run local stack via `dev-start.bat`. Gate: lint, type-check, targeted tests, smallest credible E2E proof.
@@ -41,19 +41,19 @@ git push -u origin HEAD
 
 - Vercel creates a Preview deployment for the branch.
 - Open the deployment URL from the PR or Vercel dashboard (`equipqr-<hash>-columbia-cloudworks-llc.vercel.app`).
-- **`preview.equipqr.app`** is optional (bound to git **`preview`** in Vercel); use it only when you need that fixed hostname.
+- After merge to git **`preview`**, **`preview.equipqr.app`** updates via that branch’s Vercel deploy.
 
-### 4) PR to main
+### 4) PR to preview
 
 ```powershell
-gh pr create --base main --head feat/<short-name> --title "feat: ..." --body-file "$env:TEMP\pr-body.md"
+gh pr create --base preview --head feat/<short-name> --title "feat: ..." --body-file "$env:TEMP\pr-body.md"
 ```
 
-Requirements: CI green, visual evidence for UI changes, Qodo/threads clear per team policy.
+Requirements: CI green, visual evidence for UI changes, Qodo/threads clear per team policy. Release-metadata mode is **preview** (Unreleased notes; no version bump).
 
-### 5) Merge and production
+### 5) Promote to production
 
-Merge the PR. On push to `main`:
+When ready to ship, run **`/release`** (or open `preview` → `main` / `chore/release-v*` with version bump). On push to `main`:
 
 1. Vercel builds a staged Production deployment.
 2. **Production Release Readiness** applies migrations, strict schema drift, waits for the build, runs **`vercel promote`**.
@@ -62,11 +62,11 @@ No manual Vercel dashboard promote step.
 
 ## Release-ready checklist
 
-- Validated on the **Preview deployment URL**, local stack, or both (as appropriate).
-- CI green on PR to **`main`**.
+- Validated on the **Preview deployment URL**, local stack, and/or **`preview.equipqr.app`** (as appropriate).
+- CI green on PR to **`preview`** (and on the promote PR to **`main`** when shipping).
 - Migrations/auth-sensitive paths verified locally when applicable.
 - Review threads and automated review items addressed.
 
 ## Onboarding
 
-Branch off **`main`**, PR to **`main`**. Do not open feature PRs into git **`preview`**. The **`preview`** branch is a Vercel domain anchor, not a development queue.
+Branch off **`preview`**, PR to **`preview`**. Promote to **`main`** separately. See `.cursor/rules/branching.mdc`.

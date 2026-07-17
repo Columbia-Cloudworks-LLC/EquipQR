@@ -1,19 +1,33 @@
 # Preview Architecture Migration (#1033) — historical
 
-**Cutover complete (2026-06-14).** Authoritative workflow: **`docs/ops/git-and-deploy.md`**.
+**Authoritative workflow today:** **`docs/ops/git-and-deploy.md`** (feat → preview → main after #1282).
 
-This document records the migration from git branch `preview` + persistent Supabase branch `olsdirk` to **main-centric solo development** with Vercel Preview + `preview.equipqr.app` as a stable hostname (not a git branch).
+This document records the #1033 migration away from a persistent Supabase preview branch (`olsdirk`), then the #1282 restoration of git `preview` as the integration train.
 
-Related: [GitHub #1033](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/1033) (Linear COL-310).
+Related: [GitHub #1033](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/1033) (Linear COL-310); [GitHub #1282](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/1282).
 
 ---
 
-## Target state (current)
+## Reverse migration (#1282) — current target
+
+**Restored (2026-07):** day-to-day work is again **feat → preview → main**. Git `preview` is the integration branch; `preview.equipqr.app` tracks normal Vercel deploys of that branch. **`preview-domain-alias.yml` is removed** (no fast-forward of `preview` from `main`).
+
+| Layer | Pre-production | Production |
+|-------|----------------|------------|
+| Git | Work branches → PR **`preview`** | Controlled **`preview` → `main`** (or `/release`) |
+| Frontend | **`preview.equipqr.app`** (Vercel Preview on git `preview`) + per-PR `*.vercel.app` | **`equipqr.app`** (after `vercel promote`) |
+| Supabase | Production project for cloud QA; ephemeral PR branches for `supabase/**` only | `supabase.equipqr.app` |
+
+Still retired from #1033 (unchanged by #1282): persistent Supabase branch **`olsdirkvvfegvclbpgrg`**, Vercel custom **`staging`**, duplicate preview edge project as a long-lived DB.
+
+---
+
+## #1033 interim target (superseded by #1282)
 
 | Layer | Pre-production | Production |
 |-------|----------------|------------|
 | Git | Work branches → PR **`main`** | **`main`** |
-| Frontend | **`preview.equipqr.app`** (latest Vercel Preview build) | **`equipqr.app`** (after `vercel promote`) |
+| Frontend | **`preview.equipqr.app`** via domain-anchor / FF workflow | **`equipqr.app`** (after `vercel promote`) |
 | Supabase | Production project + ephemeral PR branches | `supabase.equipqr.app` |
 
 ---
@@ -209,7 +223,7 @@ If OAuth or integrations fail after cutover, restore Vercel preview `VITE_*` fro
 
 1. ~~Shared prod Postgres for preview~~ → **Single production Supabase project**; PR previews use prod API; integration OAuth tested **locally** before merge.
 2. ~~Retire edge-env-preview-secrets~~ → **Yes**, after olsdirk decommission.
-3. ~~Git preview branch~~ → **Retire**; feature branches merge to **main** directly.
+3. ~~Git preview branch~~ → **Interim #1033:** retire as integration queue (domain anchor only). **#1282:** restore as integration train; domain still bound to git `preview`, without FF-from-main.
 
 ---
 
