@@ -29,7 +29,7 @@ Cursor plugins (for example continual-learning / `agents-memory-updater`) may up
 |----------|---------------------|
 | Default implementation (`itil-issue-resolver`, feature/fix branches) | Bundle workflow artifacts per rules above |
 | `address-pr-feedback` | Bundle workflow artifacts; still scope product edits to the feedback pass |
-| `/release` | If workflow-only dirt blocks Step 1a switching/alignment, path-stash those files first, including untracked workflow artifacts; after `main` is aligned, commit workflow artifacts on the release branch or `main` (Step 1b) and continue. If product-only dirt is present, stop and report. If mixed workflow + product dirt is present, commit workflow artifacts first, then stop until product dirt is resolved. |
+| `/release` | If workflow-only dirt blocks Step 1a switching/alignment with `origin/preview`, path-stash those files first, including untracked workflow artifacts; after `preview` is aligned, commit workflow artifacts on the release branch (or `preview` tip) before opening the promote PR to `main` (Step 1b) and continue. If product-only dirt is present, stop and report. If mixed workflow + product dirt is present, commit workflow artifacts first, then stop until product dirt is resolved. |
 | Workflow/memory maintenance task | Commit workflow artifacts only; keep commits incremental |
 
 ## Lesson capture

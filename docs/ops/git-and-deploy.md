@@ -1,70 +1,73 @@
 # Git and Deploy (authoritative)
 
-Solo-developer workflow for EquipQR after #1033 cutover.
+Solo-developer workflow for EquipQR after #1282 restored the feat → preview → main train.
 
 ## Branches
 
 | Git | Role |
 |-----|------|
-| **`main`** | Production source of truth. Merge target for all work. |
-| **`feat/*`, `fix/*`, etc.** | Short-lived work branches. Branch off `main`. |
-| **`preview`** | **Vercel domain anchor only** — keeps `preview.equipqr.app` attached in the Vercel dashboard (Vercel requires a branch when assigning a custom Preview domain). **Not** an integration branch; do not PR feature work into it. |
+| **`main`** | Production source of truth. Receives controlled promotes from `preview`. |
+| **`preview`** | Integration / pre-production train. Default merge target for feature work. Deploys to **`preview.equipqr.app`**. |
+| **`feat/*`, `fix/*`, etc.** | Short-lived work branches. Branch off `preview`. |
 
 ```powershell
-git fetch origin main
-git switch -c feat/<short-name> origin/main
+git fetch origin preview
+git switch -c feat/<short-name> origin/preview
 ```
 
-Open PRs with `--base main` only.
+Open day-to-day PRs with `--base preview`. Production ships via **`preview` → `main`** (or `/release`).
 
 ## Hostnames
 
 | URL | Meaning |
 |-----|---------|
 | **https://equipqr.app** | Production (after Production Release Readiness + `vercel promote`) |
-| **`https://<project>-<hash>-columbia-cloudworks-llc.vercel.app`** | **Default for day-to-day QA** — every Preview deploy on a work branch or PR gets a commit-specific URL (also linked on the PR / Vercel deployment). |
-| **https://preview.equipqr.app** | Stable Preview hostname tracking latest `main` — Vercel binds this to git branch **`preview`** (dashboard setting). On every push to `main`, `preview-domain-alias.yml` fast-forwards that branch and fires the Vercel deploy hook; Vercel auto-aliases the domain to the new deployment. Not updated by arbitrary `feat/*` Preview builds. |
+| **`https://<project>-<hash>-columbia-cloudworks-llc.vercel.app`** | Commit-specific Vercel Preview URL for every work-branch / PR deploy |
+| **https://preview.equipqr.app** | Stable hostname for the **integration** git branch **`preview`** — Vercel Preview deploys on merges/pushes to that branch (branch-bound custom domain). Not fast-forwarded from `main`. |
 
-Do **not** confuse git branch **`preview`** (domain anchor) with Vercel environment **Preview** (all non-production deploys).
+Do **not** confuse git branch **`preview`** (integration train) with Vercel environment **Preview** (all non-production deploys).
 
 ## Day-to-day loop
 
-1. Branch off `origin/main`.
+1. Branch off `origin/preview`.
 2. Implement and verify locally (`dev-stop.bat` / `dev-start.bat`, lint, tests, E2E).
 3. Push your work branch → Vercel builds a **Preview** deployment.
-4. Test on the **commit-specific `*.vercel.app` URL** from the deployment (or local stack).
-5. Open PR **`feat/*` → `main`**. CI + Supabase ephemeral branch (when `supabase/**` changes) must pass.
-6. Merge to `main` → **Production Release Readiness** → **`vercel promote`** → **equipqr.app**.
-
-**`preview.equipqr.app`** tracks `main` automatically: `preview-domain-alias.yml` fast-forwards git branch `preview` and triggers the Vercel deploy hook on every push to `main` (no manual branch sync needed).
+4. Test on the **commit-specific `*.vercel.app` URL** and/or local stack.
+5. Open PR **`feat/*` → `preview`**. CI + Supabase ephemeral branch (when `supabase/**` changes) must pass. Accumulate CHANGELOG `[Unreleased]`; **do not** bump `package.json`.
+6. Merge to `preview` → Vercel updates **`preview.equipqr.app`**.
+7. When ready to ship: **`/release`** or open **`preview` → `main`** with version bump + empty Unreleased → **Production Release Readiness** → **`vercel promote`** → **equipqr.app**.
 
 ## Vercel configuration
 
 | Setting | Value |
 |---------|--------|
-| **Production** env | Branch tracking: **`main`**. Auto-assign production domains. |
-| **Preview** env | Branch tracking: enabled for work branches (Preview deploys). Custom domain **`preview.equipqr.app`**: assign to git branch **`preview`** (Vercel UI requirement — branch-bound domains auto-alias on each deployment of that branch). A **deploy hook** named `preview` on branch `preview` must exist (Settings → Git → Deploy Hooks); `preview-domain-alias.yml` fires it because same-SHA branch pushes do not trigger builds. |
-| **`vercel.json`** | `github.deploymentEnabled: true`; allow **`main`** and **`preview`** git deployments. Do not block other branches from Preview builds. |
+| **Production** env | Branch tracking: **`main`**. Auto-assign production domains after promote. |
+| **Preview** env | Branch tracking: enabled for work branches. Custom domain **`preview.equipqr.app`** assigned to git branch **`preview`** (normal deploys on push/merge to that branch). |
+| **`vercel.json`** | `github.deploymentEnabled: true`; allow **`main`** and **`preview`** git deployments. |
+
+Retired: `preview-domain-alias.yml` (fast-forward `preview` from `main` + deploy hook). Do not reintroduce it.
 
 ## Supabase
 
-- **Cloud app:** single production project (`https://supabase.equipqr.app`).
-- **PR branches:** ephemeral Supabase branches when `supabase/**` changes on a PR to `main` (schema/RLS validation only).
+- **Cloud app (`preview.equipqr.app` and `equipqr.app`):** single production project (`https://supabase.equipqr.app`). No perpetual Supabase preview database.
+- **PR branches:** ephemeral Supabase branches when `supabase/**` changes (schema/RLS validation only).
 - **OAuth:** vendor callbacks stay on production edge URLs; test integrations on the **local stack** before merge.
 
 ## Release / version tags
 
-- Bump `package.json` on `main` (via PR). **`/release`** opens **`chore/release-v* → main`**, not `preview → main`.
+- PRs into **`preview`**: `[Unreleased]` notes only; forbid app version bump.
+- PRs into **`main`**: semver bump, versioned CHANGELOG section, empty `[Unreleased]`.
+- **`/release`** opens **`preview` → `main`** (or `chore/release-v*` from curated preview tip).
 - `version-tag.yml` tags on push to `main` when `package.json` changes.
 
 ## Retired (do not use)
 
-- Git **`preview` as integration branch** (feat → preview → main train)
+- Main-centric day-to-day PRs (`feat` → `main` only) from the #1033 interim model
+- `preview-domain-alias.yml` fast-forward of `preview` from `main`
 - Vercel custom **`staging`** environment
 - Persistent Supabase branch **`olsdirkvvfegvclbpgrg`**
-- PRs targeting **`preview`**
 
-See `docs/ops/preview-architecture-migration.md` for cutover history.
+See `docs/ops/preview-architecture-migration.md` for #1033 history and the #1282 reverse-migration note.
 
 ## Related docs
 

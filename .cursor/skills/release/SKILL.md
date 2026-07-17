@@ -1,19 +1,19 @@
 ---
 name: release
 description: >-
-  Cut a production release on main: align with origin/main, run changelog-version-curator,
-  bump version metadata, run scoped Vitest, open a chore/release PR to main when needed,
-  babysit until merge-ready (CI green, Qodo openCount=0). Merge triggers Production
-  Release Readiness and vercel promote. Use when the user runs /release or asks to release,
-  bump version, or ship to production.
+  Cut a production release via preview → main: align with origin/preview, run
+  changelog-version-curator (bump only on promote), open a preview→main (or
+  chore/release) PR, babysit until merge-ready (CI green, Qodo openCount=0).
+  Merge triggers Production Release Readiness and vercel promote. Use when the
+  user runs /release or asks to release, bump version, or ship to production.
 disable-model-invocation: true
 ---
 
 # Release
 
-End-to-end workflow to cut a **version release on `main`**: align with `origin/main`, curate release metadata, verify changed tests locally, push release prep, open or update a **chore/release → `main`** PR when branch protection requires it, and **babysit until merge-ready**.
+End-to-end workflow to cut a **production release** on the feat → preview → main train: align with `origin/preview`, curate release metadata (**version bump only on promote**), verify changed tests locally, open a **`preview` → `main`** PR (or `chore/release-v*` from the curated preview tip), and **babysit until merge-ready**.
 
-Features ship via individual PRs to `main` during normal development. `/release` is the **version + changelog + tag** gate — not a `preview → main` integration PR.
+Feature work merges to **`preview`** during normal development and accumulates CHANGELOG `[Unreleased]` **without** bumping `package.json`. `/release` is the **preview → main** promote that empties Unreleased, adds a versioned CHANGELOG section, and bumps package metadata.
 
 **Opening the release PR is not handoff.** Merge to `main` triggers **Production Release Readiness** (migrations, schema drift, **`vercel promote`**).
 
@@ -21,21 +21,22 @@ Features ship via individual PRs to `main` during normal development. `/release`
 
 - **Windows / PowerShell only.** Use `--body-file` for multiline PR bodies.
 - **Never auto-discard local changes.** Resolve dirty trees per `.cursor/rules/workflow-artifacts.mdc`.
-- **Never force-push to `main`.** Release metadata merges via PR when `main` is protected.
+- **Never force-push to `main` or `preview`.** Release metadata merges via PR when bases are protected.
 - **Never run the full Vitest suite.** Run only updated or added test files from the release diff (since last tag).
 - **PR visual evidence** when the release diff includes user-visible UI changes since the last tag (per `.cursor/rules/pr-visual-evidence.mdc`).
 - **No handoff until merge-ready** per `.cursor/rules/pr-merge-ready-workflow.mdc`.
 - **PR summary is customer-facing.**
+- **Feature work does not bump versions** — curator bumps only in this promote path.
 
 ## Workflow
 
 ```text
-- [ ] Step 1: Preflight — fetch, align with origin/main, resolve dirty tree
-- [ ] Step 2: Run changelog-version-curator subagent
-- [ ] Step 3: Commit release metadata on chore/release-vX.Y.Z (or main if allowed)
+- [ ] Step 1: Preflight — fetch, align with origin/preview, resolve dirty tree
+- [ ] Step 2: Run changelog-version-curator subagent (release/main mode)
+- [ ] Step 3: Commit release metadata on chore/release-vX.Y.Z (from preview tip) or on preview
 - [ ] Step 4: Run scoped Vitest on changed test files only
 - [ ] Step 5: Capture visual evidence if UI changed since last tag
-- [ ] Step 6: Push and open/update chore/release → main PR
+- [ ] Step 6: Push and open/update preview → main (or chore/release → main) PR
 - [ ] Step 7: Publish visual evidence comment when captured
 - [ ] Step 8: Babysit until merge-ready
 - [ ] Step 9: Report merge-ready handoff
@@ -46,17 +47,17 @@ Features ship via individual PRs to `main` during normal development. `/release`
 ## Step 1: Preflight
 
 ```powershell
-git fetch origin main --tags
+git fetch origin preview main --tags
 git branch --show-current
 git rev-parse HEAD
-git rev-parse origin/main
+git rev-parse origin/preview
 git status --porcelain
 ```
 
-### Align with `origin/main`
+### Align with `origin/preview`
 
-- If not on `main` or `chore/release-v*`, switch after resolving dirty tree.
-- If **behind** `origin/main`: `git merge --ff-only origin/main` (clean tree required).
+- If not on `preview` or `chore/release-v*`, switch after resolving dirty tree.
+- If **behind** `origin/preview`: `git merge --ff-only origin/preview` (clean tree required).
 - If **ahead** with unpushed non-release commits, **stop** and reconcile with the user.
 - If **diverged**, **stop**.
 
@@ -74,7 +75,7 @@ git describe --tags --abbrev=0 origin/main
 
 Launch **changelog-version-curator** subagent with:
 
-> Curate the next EquipQR release from `origin/main`. Update `CHANGELOG.md`, `package.json`, `package-lock.json`, and the README version badge. Determine patch vs minor from commits on `origin/main` since the last tag. Do not commit or push — the parent `/release` handles git.
+> Curate the next EquipQR release from `origin/preview` for a **promote to main** (release/main mode). Update `CHANGELOG.md`, `package.json`, `package-lock.json`, and the README version badge. Determine patch vs minor from commits on `origin/preview` since the last tag on `origin/main`. Empty `[Unreleased]` into a versioned section. Do not commit or push — the parent `/release` handles git.
 
 Validate version consistency before continuing.
 
@@ -83,7 +84,7 @@ Validate version consistency before continuing.
 ## Step 3: Commit release metadata
 
 ```powershell
-git switch -c chore/release-vX.Y.Z origin/main   # if not already on release branch
+git switch -c chore/release-vX.Y.Z origin/preview   # if not already on release branch / preview tip
 # stage CHANGELOG.md package.json package-lock.json README badges only
 git commit -m "chore(release): vX.Y.Z" -m "Fallow: exitCode=0, total_issues=0, clone_groups=0"
 git push -u origin HEAD
@@ -115,7 +116,9 @@ If `git diff --name-status "$sinceTag..HEAD"` touches `src/**/*.tsx`, capture pe
 ## Step 6: Open or update release PR
 
 ```powershell
+# Prefer chore/release head when metadata lives on a release branch; otherwise --head preview
 gh pr create --base main --head chore/release-vX.Y.Z --title "Release vX.Y.Z" --body-file "$env:TEMP\equipqr-release-pr-body.md"
+# or: gh pr create --base main --head preview --title "Release vX.Y.Z" --body-file ...
 # or gh pr edit when updating an existing release PR
 ```
 
@@ -158,14 +161,14 @@ Report only when Step 8 passes:
 | Release PR | URL — merge-ready |
 | CI / Qodo / threads | green / openCount=0 / clear |
 
-Remind: merge to `main` triggers **Production Release Readiness** and automatic **`vercel promote`**.
+Remind: merge to `main` triggers **Production Release Readiness** and automatic **`vercel promote`**. After merge, ensure `preview` stays aligned with the promoted tip (back-merge/rebase if the release head was a `chore/release-v*` branch).
 
 ---
 
 ## Stop Conditions
 
 - Unresolved product dirty tree
-- Local branch diverged from `origin/main`
+- Local branch diverged from `origin/preview`
 - changelog-version-curator validation failure
 - Push failed
 - Scoped Vitest failure

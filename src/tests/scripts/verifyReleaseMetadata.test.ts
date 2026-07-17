@@ -157,4 +157,56 @@ describe('collectReleaseMetadataErrors', () => {
 
     expect(errors).toEqual([]);
   });
+
+  it('preview mode forbids version bumps and requires Unreleased for product changes', () => {
+    const withUnreleased = sampleChangelog.replace(
+      '## [Unreleased]\n\n## [3.11.0]',
+      '## [Unreleased]\n\n### Changed\n\n- Pending integration work\n\n## [3.11.0]',
+    );
+
+    expect(collectReleaseMetadataErrors({
+      packageVersion: '3.11.0',
+      packageLockVersion: '3.11.0',
+      changelog: withUnreleased,
+      changedFiles: ['src/features/work-orders/Foo.tsx'],
+      baseVersion: '3.11.0',
+      mode: 'preview',
+    })).toEqual([]);
+
+    const bumped = collectReleaseMetadataErrors({
+      packageVersion: '3.11.1',
+      packageLockVersion: '3.11.1',
+      changelog: withUnreleased.replace(
+        '## [Unreleased]\n\n### Changed\n\n- Pending integration work\n\n## [3.11.0]',
+        '## [Unreleased]\n\n### Changed\n\n- Pending integration work\n\n## [3.11.1] - 2026-07-17\n\n### Changed\n\n- Early bump\n\n## [3.11.0]',
+      ),
+      changedFiles: ['src/features/work-orders/Foo.tsx'],
+      baseVersion: '3.11.0',
+      mode: 'preview',
+    });
+    expect(bumped.some((error) => error.includes('must not bump'))).toBe(true);
+
+    const missingUnreleased = collectReleaseMetadataErrors({
+      packageVersion: '3.11.0',
+      packageLockVersion: '3.11.0',
+      changelog: sampleChangelog,
+      changedFiles: ['src/features/work-orders/Foo.tsx'],
+      baseVersion: '3.11.0',
+      mode: 'preview',
+    });
+    expect(missingUnreleased.some((error) => error.includes('[Unreleased] is empty'))).toBe(true);
+  });
+
+  it('preview mode allows workflow-only changes without Unreleased notes', () => {
+    const errors = collectReleaseMetadataErrors({
+      packageVersion: '3.11.0',
+      packageLockVersion: '3.11.0',
+      changelog: sampleChangelog,
+      changedFiles: ['AGENTS.md', '.cursor/rules/foo.mdc'],
+      baseVersion: '3.11.0',
+      mode: 'preview',
+    });
+
+    expect(errors).toEqual([]);
+  });
 });

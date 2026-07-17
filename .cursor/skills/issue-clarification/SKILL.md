@@ -65,7 +65,7 @@ Clarification Progress:
 - [ ] Affected user(s) defined
 - [ ] Problem statement written
 - [ ] Success criteria written (user perspective)
-- [ ] origin/main synced locally
+- [ ] origin/preview synced locally (integration tip)
 - [ ] Relevant codebase areas documented
 - [ ] Resolved-state check (if applicable)
 - [ ] Issue body and title updated on GitHub
@@ -99,17 +99,17 @@ Summarize what is wrong today in plain language. Separate observed behavior from
 
 State the intended outcome **from the user's perspective** — what they should be able to do or see when the issue is resolved. Use testable, user-visible criteria.
 
-### 5. Sync `main` and explore the codebase
+### 5. Sync `preview` and explore the codebase
 
-Align the local tree with `origin/main` before code exploration:
+Align the local tree with `origin/preview` (integration tip-of-tree) before code exploration. Use `origin/main` only when comparing production-shipped behavior.
 
 ```powershell
-git fetch origin main
-git switch main
-git merge origin/main
+git fetch origin preview
+git switch preview
+git merge origin/preview
 ```
 
-Review the **`origin/main`** branch (current `main` after sync) to locate potentially relevant files and areas the follow-up agent should explore first. Document:
+Review the **`origin/preview`** branch (current integration tip after sync) to locate potentially relevant files and areas the follow-up agent should explore first. Document:
 
 - Likely routes, components, hooks, or services
 - Edge functions, migrations, RLS, or RPC touchpoints
@@ -184,7 +184,7 @@ Use `<details>` / `<summary>` for expand/collapse. Collapsed sections omit `open
 <details open>
 <summary>Documented Findings</summary>
 
-### Relevant areas (origin/main)
+### Relevant areas (origin/preview)
 
 - `path/to/file` — …
 

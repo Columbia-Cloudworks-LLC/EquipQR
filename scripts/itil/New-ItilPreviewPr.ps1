@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Push HEAD branch and create a main-base PR (`gh pr create --base main`).
+  Push HEAD branch and create a preview-base PR (`gh pr create --base preview`).
 
 .PARAMETER Branch
   Local branch expected to match the remote branch name supplied to --head.
@@ -117,7 +117,7 @@ if ($DryRun) {
 
 else {
 
-    $prCmd = Invoke-ItilGhJson @('pr', 'create', '--repo', $slug, '--base', 'main', '--head', $Branch, '--title', $Title, '--body-file', $BodyFile)
+    $prCmd = Invoke-ItilGhJson @('pr', 'create', '--repo', $slug, '--base', 'preview', '--head', $Branch, '--title', $Title, '--body-file', $BodyFile)
 
     if ($prCmd.ExitCode -ne 0) {
 
@@ -141,7 +141,7 @@ $result = [ordered]@{
 
     prUrl  = $prUrl
 
-    base   = 'main'
+    base   = 'preview'
 
     dryRun = [bool]$DryRun
 
