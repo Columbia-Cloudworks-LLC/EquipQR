@@ -16,7 +16,7 @@ Agents** 1Password vault at job time. This:
 | Workflow | Status | Secrets to migrate | Replacement |
 |---|---|---|---|
 | [`ci.yml`](./ci.yml) | TODO | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `CODECOV_TOKEN` | `op://EquipQR Agents/app-env-prod-public/SUPABASE_URL`, `op://EquipQR Agents/app-env-prod-public/SUPABASE_ANON_KEY` (confirm field labels on the item with `op item get` metadata), `op://EquipQR Agents/codecov-token/credential` |
-| [`preview-domain-alias.yml`](./preview-domain-alias.yml) | **REMOVED (#1282)** | — | Retired; `preview.equipqr.app` tracks git `preview` via normal Vercel deploys |
+| `preview-domain-alias.yml` | **REMOVED (#1282)** | — | Retired; see [`docs/ops/git-and-deploy.md`](../../docs/ops/git-and-deploy.md) — `preview.equipqr.app` tracks git `preview` via normal Vercel deploys |
 | [`export-schema.yml`](./export-schema.yml) | TODO | `PREVIEW_DATABASE_URL` (→ production pooler after #1033) | `op://EquipQR Agents/preview-database-url/credential` |
 | [`production-release-readiness.yml`](./production-release-readiness.yml) | LIVE | `OP_SERVICE_ACCOUNT_TOKEN` + `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `VERCEL_TOKEN` via 1Password | `op://EquipQR Agents/supabase-write/SUPABASE_ACCESS_TOKEN`, `op://EquipQR Agents/supabase-write/prod_db_password`, `op://EquipQR Agents/vercel-write/VERCEL_TOKEN` |
 | [`deploy.yml`](./deploy.yml) | NEEDS AUDIT | (audit secret references) | TBD |
