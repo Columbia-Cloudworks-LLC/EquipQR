@@ -151,6 +151,33 @@ export function isUnreleasedSectionEmpty(changelog) {
 }
 
 /**
+ * True when [Unreleased] has at least one list bullet (ignores blanks, HTML
+ * comments, and ### category headings).
+ * @param {string} changelog
+ */
+export function hasNonEmptyUnreleasedBullets(changelog) {
+  const body = getUnreleasedSectionBody(changelog);
+  if (body == null) {
+    return false;
+  }
+
+  const meaningfulLines = body
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => {
+      if (line.length === 0 || line.startsWith('<!--')) {
+        return false;
+      }
+      if (/^###\s/.test(line)) {
+        return false;
+      }
+      return /^[-*]\s/.test(line);
+    });
+
+  return meaningfulLines.length > 0;
+}
+
+/**
  * @param {string} changelog
  * @param {string} version
  */
@@ -324,10 +351,10 @@ export function collectReleaseMetadataErrors(input) {
         );
       }
 
-      if (requiresBump && isUnreleasedSectionEmpty(input.changelog)) {
+      if (requiresBump && !hasNonEmptyUnreleasedBullets(input.changelog)) {
         errors.push(
           'Release-relevant files changed on a preview PR but CHANGELOG.md '
-            + '[Unreleased] is empty; document the change under [Unreleased]',
+            + '[Unreleased] has no list bullets; document the change under [Unreleased]',
         );
       }
     }

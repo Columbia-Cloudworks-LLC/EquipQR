@@ -161,7 +161,7 @@ Report only when Step 8 passes:
 | Release PR | URL — merge-ready |
 | CI / Qodo / threads | green / openCount=0 / clear |
 
-Remind: merge to `main` triggers **Production Release Readiness** and automatic **`vercel promote`**. After merge, ensure `preview` stays aligned with the promoted tip (back-merge/rebase if the release head was a `chore/release-v*` branch).
+Remind: merge to `main` triggers **Production Release Readiness** and automatic **`vercel promote`**. After merge, ensure `preview` stays aligned with the promoted tip via a PR (`main` or `chore/release-v*` → `preview`). Those sync heads use **main-mode** Release Metadata in CI so the version bump is allowed; do not force-push `preview`.
 
 ---
 

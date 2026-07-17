@@ -5,6 +5,7 @@ import {
   getReleasedSectionBody,
   getTopReleasedVersion,
   hasNonEmptyReleaseSection,
+  hasNonEmptyUnreleasedBullets,
   isReleaseRelevantPath,
   isUnreleasedSectionEmpty,
   parseSemver,
@@ -194,7 +195,22 @@ describe('collectReleaseMetadataErrors', () => {
       baseVersion: '3.11.0',
       mode: 'preview',
     });
-    expect(missingUnreleased.some((error) => error.includes('[Unreleased] is empty'))).toBe(true);
+    expect(missingUnreleased.some((error) => error.includes('[Unreleased] has no list bullets'))).toBe(true);
+
+    const headingOnly = sampleChangelog.replace(
+      '## [Unreleased]\n\n## [3.11.0]',
+      '## [Unreleased]\n\n### Changed\n\n## [3.11.0]',
+    );
+    expect(hasNonEmptyUnreleasedBullets(headingOnly)).toBe(false);
+    const headingOnlyErrors = collectReleaseMetadataErrors({
+      packageVersion: '3.11.0',
+      packageLockVersion: '3.11.0',
+      changelog: headingOnly,
+      changedFiles: ['src/features/work-orders/Foo.tsx'],
+      baseVersion: '3.11.0',
+      mode: 'preview',
+    });
+    expect(headingOnlyErrors.some((error) => error.includes('[Unreleased] has no list bullets'))).toBe(true);
   });
 
   it('preview mode allows workflow-only changes without Unreleased notes', () => {
@@ -205,6 +221,24 @@ describe('collectReleaseMetadataErrors', () => {
       changedFiles: ['AGENTS.md', '.cursor/rules/foo.mdc'],
       baseVersion: '3.11.0',
       mode: 'preview',
+    });
+
+    expect(errors).toEqual([]);
+  });
+
+  it('main mode accepts post-release sync bumps that empty Unreleased', () => {
+    const changelog = sampleChangelog.replace(
+      '## [Unreleased]\n\n## [3.11.0]',
+      '## [Unreleased]\n\n## [3.11.1] - 2026-07-17\n\n### Changed\n\n- Release sync\n\n## [3.11.0]',
+    );
+
+    const errors = collectReleaseMetadataErrors({
+      packageVersion: '3.11.1',
+      packageLockVersion: '3.11.1',
+      changelog,
+      changedFiles: ['scripts/verify-release-metadata.mjs'],
+      baseVersion: '3.11.0',
+      mode: 'main',
     });
 
     expect(errors).toEqual([]);
