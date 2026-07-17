@@ -133,7 +133,7 @@
     "date-fns-tz": "^3.2.0",
     "embla-carousel-react": "^8.3.1",
     "gsap": "3.15.0",
-    "idb-keyval": "6.2.4",
+    "idb-keyval": "6.3.0",
     "input-otp": "^1.2.5",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.18.0",
