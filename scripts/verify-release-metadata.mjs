@@ -3,14 +3,20 @@
 /**
  * Verify EquipQR release metadata on PRs and local checks.
  *
+ * Modes (RELEASE_METADATA_MODE or options.mode):
+ * - main (default): empty [Unreleased], semver bump when release-relevant,
+ *   versioned CHANGELOG section, lockfile aligned
+ * - preview: no version bump vs base; release-relevant diffs require non-empty
+ *   [Unreleased]; lockfile aligned; top released section still matches package.json
+ *
  * PR gate (when RELEASE_METADATA_BASE_SHA is set):
- * - [Unreleased] must stay empty
- * - Release-relevant file changes require a semver bump above the base branch
- * - When the version changes, CHANGELOG.md must contain a non-empty section for it
+ * - Diff vs base drives release-relevant path checks
  * - package-lock.json root version must match package.json
  *
- * Local/main invariant (no base SHA):
- * - [Unreleased] empty, lockfile aligned, top changelog release matches package.json
+ * Local invariant (no base SHA):
+ * - main: [Unreleased] empty, lockfile aligned, top changelog release matches package.json
+ * - preview: lockfile aligned, top changelog release matches package.json
+ *   ([Unreleased] may be non-empty)
  */
 
 import fs from 'node:fs';
@@ -20,10 +26,28 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
+/** @typedef {'main' | 'preview'} ReleaseMetadataMode */
+
 /** @param {string} message */
 function fail(message) {
   console.error(`verify-release-metadata: ${message}`);
   process.exit(1);
+}
+
+/**
+ * @param {unknown} value
+ * @returns {ReleaseMetadataMode}
+ */
+export function normalizeReleaseMetadataMode(value) {
+  const normalized = String(value ?? 'main').trim().toLowerCase();
+  if (normalized === 'preview') {
+    return 'preview';
+  }
+  if (normalized === 'main' || normalized === '') {
+    return 'main';
+  }
+  fail(`Unknown RELEASE_METADATA_MODE "${value}" (expected main or preview)`);
+  return 'main';
 }
 
 /** @param {string} version */
@@ -248,10 +272,12 @@ function readPackageVersionAtRef(ref) {
  *   changelog: string;
  *   changedFiles?: string[];
  *   baseVersion?: string;
+ *   mode?: ReleaseMetadataMode | string;
  * }} input
  * @returns {string[]}
  */
 export function collectReleaseMetadataErrors(input) {
+  const mode = normalizeReleaseMetadataMode(input.mode ?? 'main');
   const errors = [];
 
   if (!parseSemver(input.packageVersion)) {
@@ -263,10 +289,6 @@ export function collectReleaseMetadataErrors(input) {
       `package-lock.json version "${input.packageLockVersion}" must match package.json `
         + `"${input.packageVersion}"`,
     );
-  }
-
-  if (!isUnreleasedSectionEmpty(input.changelog)) {
-    errors.push('CHANGELOG.md [Unreleased] must be empty; move entries into a version section');
   }
 
   if (!topReleasedSectionMatches(input.changelog, input.packageVersion)) {
@@ -285,6 +307,37 @@ export function collectReleaseMetadataErrors(input) {
   }
 
   const requiresBump = (input.changedFiles ?? []).some(isReleaseRelevantPath);
+
+  if (mode === 'preview') {
+    if (input.baseVersion != null) {
+      const comparison = compareSemver(input.packageVersion, input.baseVersion);
+      if (comparison == null) {
+        errors.push(
+          `Could not compare package.json version "${input.packageVersion}" `
+            + `with base "${input.baseVersion}"`,
+        );
+      } else if (comparison !== 0) {
+        errors.push(
+          `PRs into preview must not bump package.json version `
+            + `(found "${input.packageVersion}", base "${input.baseVersion}"). `
+            + 'Defer the version bump to the preview → main release.',
+        );
+      }
+
+      if (requiresBump && isUnreleasedSectionEmpty(input.changelog)) {
+        errors.push(
+          'Release-relevant files changed on a preview PR but CHANGELOG.md '
+            + '[Unreleased] is empty; document the change under [Unreleased]',
+        );
+      }
+    }
+
+    return errors;
+  }
+
+  if (!isUnreleasedSectionEmpty(input.changelog)) {
+    errors.push('CHANGELOG.md [Unreleased] must be empty; move entries into a version section');
+  }
 
   if (input.baseVersion != null) {
     const comparison = compareSemver(input.packageVersion, input.baseVersion);
@@ -338,6 +391,9 @@ function loadCurrentMetadata() {
 export function verifyReleaseMetadata(options = {}) {
   const metadata = loadCurrentMetadata();
   const baseSha = options.baseSha ?? process.env.RELEASE_METADATA_BASE_SHA ?? '';
+  const mode = normalizeReleaseMetadataMode(
+    options.mode ?? process.env.RELEASE_METADATA_MODE ?? 'main',
+  );
 
   /** @type {string[] | undefined} */
   let changedFiles;
@@ -353,6 +409,7 @@ export function verifyReleaseMetadata(options = {}) {
     ...metadata,
     changedFiles,
     baseVersion,
+    mode,
   });
 
   if (errors.length > 0) {
@@ -364,11 +421,13 @@ export function verifyReleaseMetadata(options = {}) {
   if (baseSha) {
     const relevant = (changedFiles ?? []).filter(isReleaseRelevantPath);
     console.log(
-      `OK: release metadata valid for PR diff (${relevant.length} release-relevant file(s), `
-        + `version ${metadata.packageVersion}, base ${baseVersion})`,
+      `OK: release metadata valid for ${mode} PR diff (${relevant.length} release-relevant `
+        + `file(s), version ${metadata.packageVersion}, base ${baseVersion})`,
     );
   } else {
-    console.log(`OK: release metadata valid (version ${metadata.packageVersion})`);
+    console.log(
+      `OK: release metadata valid (${mode} mode, version ${metadata.packageVersion})`,
+    );
   }
 }
 

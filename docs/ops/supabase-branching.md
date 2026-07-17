@@ -2,11 +2,20 @@
 
 > Operational runbook for the per-PR ephemeral Supabase branching workflow that EquipQR enabled on 2026-05-03 as part of [issue #722](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/722) (Sub-change 3 of 3).
 
+## Cloud hostname vs ephemeral branches
+
+| Surface | Database |
+|---------|----------|
+| **`preview.equipqr.app`** / **`equipqr.app`** | **Production** Supabase (`https://supabase.equipqr.app`). No perpetual preview DB. |
+| **PR touching `supabase/**`** | **Ephemeral** Supabase branch for schema/RLS validation only; deleted when the PR closes. |
+
+Do not assume `preview.equipqr.app` uses a separate long-lived Supabase project. Ordinary (non-schema) QA on that hostname hits production data APIs; exercise risky OAuth/integration paths on the **local stack** before merge.
+
 ## What it is
 
-Supabase Database Branching creates a separate, isolated Supabase instance (its own Postgres, its own API, its own auth, its own anon key) per PR. When a PR is opened that touches database schema, Supabase clones the production schema into a new branch, runs the PR's migrations against that branch, and exposes a unique URL + anon key for the branch's preview environment. When the PR closes (merged or not), the branch is auto-deleted.
+Supabase Database Branching creates a separate, isolated Supabase instance (its own Postgres, its own API, its own auth, its own anon key) per PR. When a PR is opened that touches database schema, Supabase clones the production schema into a new branch, runs the PR's migrations against that branch, and exposes a unique URL + anon key for the branch. When the PR closes (merged or not), the branch is auto-deleted.
 
-The point: schema migrations are validated against a real Postgres instance — not just locally — before they land on `preview`, where the preview deployment of EquipQR consumes them. This is the safety net that catches Postgres-version drift, RLS-policy interaction bugs, and migration ordering issues that local `supabase db reset` cannot reproduce.
+The point: schema migrations are validated against a real Postgres instance — not just locally — before they land on git **`preview`** (and later promote to `main`). This catches Postgres-version drift, RLS-policy interaction bugs, and migration ordering issues that local `supabase db reset` cannot reproduce.
 
 ## Trigger policy
 

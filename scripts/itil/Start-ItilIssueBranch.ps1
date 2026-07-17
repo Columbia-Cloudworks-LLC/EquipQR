@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Fetch origin/main and sync a feature branch (create off main or switch + rebase).
+  Fetch origin/preview and sync a feature branch (create off preview or switch + rebase).
 
 .PARAMETER Type
   Branch prefix compatible with branching rule (feat/fix/chore/docs/refactor).
@@ -69,14 +69,14 @@ if ([string]::IsNullOrWhiteSpace($branchToUse)) {
     $branchToUse = New-ItilBranchName -Type $Type -IssueNumber $Issue -Slug $Slug
 }
 
-$fetch = Invoke-GitNative @('fetch', 'origin', 'main')
+$fetch = Invoke-GitNative @('fetch', 'origin', 'preview')
 if ($fetch.ExitCode -ne 0) {
-    throw "git fetch origin main failed: $($fetch.Text)"
+    throw "git fetch origin preview failed: $($fetch.Text)"
 }
 
-$peek = Invoke-GitNative @('rev-parse', '--verify', 'origin/main')
+$peek = Invoke-GitNative @('rev-parse', '--verify', 'origin/preview')
 if ($peek.ExitCode -ne 0) {
-    throw ('origin/main not found locally after fetch. Verify git remotes. Details: ' + $peek.Text)
+    throw ('origin/preview not found locally after fetch. Verify git remotes. Details: ' + $peek.Text)
 }
 
 $existsLocal = Invoke-GitNative @('show-ref', '--verify', '--quiet', ('refs/heads/{0}' -f $branchToUse))
@@ -87,15 +87,15 @@ if ($existsLocal.ExitCode -eq 0) {
         throw "git switch failed: $($sw.Text)"
     }
 
-    $rb = Invoke-GitNative @('rebase', 'origin/main')
+    $rb = Invoke-GitNative @('rebase', 'origin/preview')
     if ($rb.ExitCode -ne 0) {
-        throw "git rebase origin/main failed: $($rb.Text)"
+        throw "git rebase origin/preview failed: $($rb.Text)"
     }
 }
 
 else {
 
-    $cr = Invoke-GitNative @('switch', '-c', $branchToUse, 'origin/main')
+    $cr = Invoke-GitNative @('switch', '-c', $branchToUse, 'origin/preview')
     if ($cr.ExitCode -ne 0) {
         throw "git switch -c failed: $($cr.Text)"
     }
@@ -104,15 +104,15 @@ else {
 if ($Json) {
     [ordered]@{
         branch   = $branchToUse
-        base     = 'origin/main'
+        base     = 'origin/preview'
         repoRoot = $repoRoot
-        action   = 'synced-from-main'
+        action   = 'synced-from-preview'
     } | ConvertTo-Json -Compress
 }
 else {
 
     Write-Host ('Branch: {0}' -f $branchToUse)
-    Write-Host ('Base: origin/main')
+    Write-Host ('Base: origin/preview')
     Write-Host ('RepoRoot: {0}' -f $repoRoot)
 }
 

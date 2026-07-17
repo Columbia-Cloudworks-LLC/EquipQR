@@ -103,7 +103,7 @@ Google Workspace OAuth requires **matching client ID** in:
 After vault edit:
 
 1. `.\scripts\sync-vercel-from-1password.ps1 -Environment preview`
-2. Redeploy the latest Vercel Preview deployment (or wait for `preview-domain-alias.yml` on the next push to `main`)
+2. Redeploy the latest Vercel Preview deployment for git **`preview`** (or merge/push to `preview` so `preview.equipqr.app` rebuilds)
 3. Confirm edge secrets via `sync-supabase-secrets-from-1password.ps1 -Check -OpItem edge-env-prod-secrets`
 
 ### Rotate-and-verify playbook (preview + production)

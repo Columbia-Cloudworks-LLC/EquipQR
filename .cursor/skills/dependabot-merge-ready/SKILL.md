@@ -2,7 +2,8 @@
 name: dependabot-merge-ready
 description: >-
   Resolves Dependabot pull requests to merge-ready state with minimal remediation,
-  patch version bumps, tech-debt GitHub issue triage, and CI/Qodo monitoring.
+  Unreleased changelog notes (no package version bump on preview), tech-debt GitHub
+  issue triage, and CI/Qodo monitoring.
   Use when the user provides a Dependabot PR number or link, invokes
   /dependabot-merge-ready, or asks to make a dependabot dependency update
   merge-ready. Do not use for non-Dependabot PRs.
@@ -10,7 +11,7 @@ description: >-
 
 # Dependabot Merge-Ready
 
-Automated PR remediation for **Dependabot-originating PRs only**. Objective: resolve the current Dependabot PR with minimal necessary changes, ensure zero feature regression, manage technical debt via GitHub issues, bump the patch version, and monitor the CI pipeline to a green state.
+Automated PR remediation for **Dependabot-originating PRs only**. Objective: resolve the current Dependabot PR with minimal necessary changes, ensure zero feature regression, manage technical debt via GitHub issues, document under CHANGELOG `[Unreleased]` (**no** `package.json` bump on preview), and monitor the CI pipeline to a green state.
 
 **Before starting:** read `AGENTS.md` and relevant `.cursor/rules/*.mdc` (especially `pr-merge-ready-workflow.mdc`, `pr-ci-gate-before-open.mdc`, `fallow-before-commit.mdc`, `git-powershell.mdc`, `workflow-artifacts.mdc`).
 
@@ -32,7 +33,7 @@ gh pr view <number> --json author,title,headRefName,baseRefName,url
 |-------|-------------|
 | Author | `author.login` is `app/dependabot` |
 | PR input | User supplied PR number or Dependabot PR URL |
-| Base branch | Expected `main` (EquipQR Dependabot config) |
+| Base branch | Expected `preview` (EquipQR Dependabot / integration train) |
 
 Report the PR URL and dependency from the title, then proceed.
 
@@ -56,7 +57,7 @@ Execute the following phases sequentially. **Do not proceed to the next phase un
 ```powershell
 git fetch origin
 git switch <headRefName>   # from Get-PrContext
-git diff origin/main...HEAD -- package.json package-lock.json
+git diff origin/preview...HEAD -- package.json package-lock.json
 
 # CI-parity sync (prefer over npm install on this repo)
 .\dev-stop.bat             # if EPERM/EBUSY risk on Windows
@@ -114,32 +115,27 @@ gh issue comment <issue-number> --body-file "$env:TEMP\dependabot-debt-<slug>.md
 
 Skip Phase 4 when there are no debt findings beyond the routine bump.
 
-## Phase 5: Versioning
+## Phase 5: Changelog metadata (preview mode — no version bump)
 
-1. Read the current `version` in `package.json`.
-2. Strictly increment only the patch version (e.g., 3.23.0 -> 3.23.1). Do not bump minor or major versions under any circumstances.
-3. Save the `package.json`.
+Dependabot PRs target **`preview`**. Do **not** bump `package.json` / lockfile app version — that happens on `/release` promote to `main`.
 
-### EquipQR release metadata (required for merge-ready to `main`)
+### EquipQR release metadata (required for merge-ready to `preview`)
 
-After the patch bump:
-
-1. Add a `## [x.y.z] - <YYYY-MM-DD>` section at the top of `CHANGELOG.md` (below `[Unreleased]`); keep `[Unreleased]` empty.
-2. Add at least one bullet under `### Changed` describing the dependency update (and minimal remediation if any).
-3. Align `package-lock.json` root version with `package.json` (`npm ci` after version edit).
+1. Keep the existing root `package.json` version unchanged vs `origin/preview`.
+2. Add at least one bullet under CHANGELOG `## [Unreleased]` (e.g. `### Changed`) describing the dependency update and any minimal remediation.
+3. Ensure `package-lock.json` dependency changes from the bump are committed; root app version stays aligned with `package.json` (no bump).
 
 ```powershell
+$env:RELEASE_METADATA_MODE = 'preview'
+$env:RELEASE_METADATA_BASE_SHA = (git merge-base HEAD origin/preview)
 npm run verify:release-metadata
-# Optional PR simulation:
-$env:RELEASE_METADATA_BASE_SHA = (git merge-base HEAD origin/main)
-npm run verify:release-metadata
-Remove-Item Env:RELEASE_METADATA_BASE_SHA -ErrorAction SilentlyContinue
+Remove-Item Env:RELEASE_METADATA_MODE, Env:RELEASE_METADATA_BASE_SHA -ErrorAction SilentlyContinue
 ```
 
 ## Phase 6: Commit, Push, & CI Loop
 
 1. Stage all modified files.
-2. Commit with the message: `fix: minimal remediation and patch bump for <Dependency Name> update`
+2. Commit with the message: `fix: minimal remediation for <Dependency Name> update`
 3. Push changes to the current remote branch.
 4. Run `gh pr checks` or monitor the repository's CI pipeline.
 5. Review any Qodo/linter findings generated on the PR.
@@ -160,7 +156,7 @@ npx --yes fallow@2.88.0 dupes --format json --quiet > tmp\fallow-pre-commit-dupe
 
 ```powershell
 git add -A
-git commit -m "fix: minimal remediation and patch bump for <Dependency Name> update" -m "Fallow: exitCode=0, total_issues=0, clone_groups=0"
+git commit -m "fix: minimal remediation for <Dependency Name> update" -m "Fallow: exitCode=0, total_issues=0, clone_groups=0"
 git push -u origin HEAD
 ```
 
@@ -217,18 +213,19 @@ Address every unstriked Qodo item and unresolved thread; fix forward → Phase 3
 - CI run link (green)
 - Qodo parent comment URL with `openCount=0`
 - Tech-debt issue link (if Phase 4 created/updated one)
-- Confirmation: no feature regression; patch-only version bump
+- Confirmation: no feature regression; Unreleased changelog note; no package.json version bump
 
 ---
 
 ## Merge-ready exit checklist
 
 ```text
-- [ ] Dependabot author verified
+- [ ] Dependabot author verified; base is preview
 - [ ] npm ci + lint + type-check + test:ci + build green locally
 - [ ] Minimal remediation only (if needed)
 - [ ] Tech-debt issues idempotently updated/created (if applicable)
-- [ ] package.json patch bump + CHANGELOG + lockfile aligned
+- [ ] CHANGELOG [Unreleased] updated; package.json version unchanged vs preview
+- [ ] verify:release-metadata with RELEASE_METADATA_MODE=preview
 - [ ] Fallow clean; commit pushed
 - [ ] CI green (Get-PrChecks -Watch)
 - [ ] Qodo openCount=0
@@ -240,7 +237,7 @@ Address every unstriked Qodo item and unresolved thread; fix forward → Phase 3
 
 - PR is not from `app/dependabot` → stop; use `address-pr-feedback` instead.
 - Remediation requires product/architecture decisions outside dependency scope → post question on PR; stop.
-- CI failure unrelated to the bump persists after merging latest `origin/main` → report with failing job link.
+- CI failure unrelated to the bump persists after merging latest `origin/preview` → report with failing job link.
 - Secrets or maintainer-only OAuth needed → escalate per `AGENTS.md` §2.
 
 ## Related skills

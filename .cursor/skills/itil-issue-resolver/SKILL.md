@@ -1,6 +1,6 @@
 ---
 name: itil-issue-resolver
-description: Primary EquipQR implementation workflow for one approved issue or small change. Use when the user asks to resolve, implement, execute, or fix a single issue after the scope is clear. Always integrates via merge-ready PR to main per pr-merge-ready-workflow.mdc — never stop at commit-only or open-and-walk-away handoff.
+description: Primary EquipQR implementation workflow for one approved issue or small change. Use when the user asks to resolve, implement, execute, or fix a single issue after the scope is clear. Always integrates via merge-ready PR to preview per pr-merge-ready-workflow.mdc — never stop at commit-only or open-and-walk-away handoff. Production promote (preview → main) is a separate /release step.
 ---
 
 # ITIL Issue Resolver
@@ -28,9 +28,9 @@ If the request is still unclear, use:
 1. Work on one issue or change only.
 2. Check idempotency before creating branches, comments, or PRs.
 3. Respect `.cursor/rules/branching.mdc`:
-   - Main worktree: push work branch after local verify; open PR to `main` when ready.
-   - Linked worktree: branch from `origin/main`, push the branch, and open a PR into `main`.
-   - Never direct-push to `main`.
+   - Main worktree: push work branch after local verify; open PR to `preview` when ready.
+   - Linked worktree: branch from `origin/preview`, push the branch, and open a PR into `preview`.
+   - Never direct-push to `main` or `preview`. Production ships via a separate `preview` → `main` (or `/release`) promote.
 4. Use subagents only when they reduce uncertainty:
    - `explore` for broad impact discovery.
    - `docs-researcher` for current library/vendor docs.
@@ -124,18 +124,18 @@ If verification fails outside the change scope, report the blocker instead of br
 Summary commands:
 
 ```powershell
-git fetch origin main
-git switch -c <type>/issue-<number>-<slug> origin/main
+git fetch origin preview
+git switch -c <type>/issue-<number>-<slug> origin/preview
 # ... implement, verify (Fallow, npm ci, lint, test:ci, build, E2E) ...
 .\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts"
 git push -u origin HEAD
-gh pr create --base main --head <branch> --title "<title>" --body-file <body-file-with-evidence-markdown>
+gh pr create --base preview --head <branch> --title "<title>" --body-file <body-file-with-evidence-markdown>
 .\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts" -PrNumber <num> -Publish
 gh pr checks <num> --watch
 # Poll Get-PrQodoFindings until openCount=0; clear threads — see pr-merge-ready-workflow.mdc
 ```
 
-Use `Fixes #<number>` or `Closes #<number>` in the commit body or PR body when the issue should close after integration.
+Accumulate CHANGELOG notes under `[Unreleased]`; **do not** bump `package.json` on feature PRs. Use `Fixes #<number>` or `Closes #<number>` in the commit body or PR body when the issue should close after merge to `preview` (or after promote, if the issue should stay open until production).
 
 Merge `tmp/pr-evidence/<slug>/evidence-markdown.md` into the PR body. Add `e2e/pr-evidence/<feature>.spec.ts` when no existing spec covers the UI change.
 

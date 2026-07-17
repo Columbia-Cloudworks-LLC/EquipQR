@@ -1,5 +1,5 @@
 ---
-description: "Git branching model for EquipQR — apply when creating branches, committing, pushing, or opening PRs. main is production; feature branches PR into main."
+description: "Git branching model for EquipQR — apply when creating branches, committing, pushing, or opening PRs. feat → preview → main; version bumps only on preview → main."
 alwaysApply: true
 ---
 # Branching Model (authoritative)
@@ -11,35 +11,37 @@ See **`docs/ops/git-and-deploy.md`** for the full solo-developer deploy loop.
 | Branch | Role | Deploys to |
 |--------|------|------------|
 | **`main`** | Production source of truth | equipqr.app (after Production Release Readiness + `vercel promote`) |
+| **`preview`** | Integration / pre-production train | **`preview.equipqr.app`** (Vercel Preview domain bound to this branch) |
 | **`feat/*`, `fix/*`, etc.** | Short-lived work branches | Vercel **Preview** → commit-specific `*.vercel.app` URL |
-| **`preview`** | **Vercel domain anchor only** (not integration) | **`preview.equipqr.app`** when Vercel Preview domain is bound to this branch |
 
-There is **no `dev` branch**. Do **not** use git **`preview`** as an integration branch or PR target.
+There is **no `dev` branch**. Git **`preview`** is the default merge target for feature work.
 
 ## Rules for agents
 
-1. **Branch off `main`** for new feature, fix, refactor, chore, or experimental work.
-2. **All PRs target `main` by default.** Never open PRs into git **`preview`**.
+1. **Branch off `preview`** for new feature, fix, refactor, chore, or experimental work.
+2. **Day-to-day PRs target `preview`.** Production ships via a controlled **`preview` → `main`** PR (or `/release` promote path).
 3. When GitHub defaults or old docs disagree, **this rule wins** for day-to-day work.
 4. Before creating a branch:
    ```powershell
-   git fetch origin main
-   git switch -c feat/<short-name> origin/main
+   git fetch origin preview
+   git switch -c feat/<short-name> origin/preview
    ```
-5. When opening a PR:
+5. When opening a feature/fix PR:
    ```powershell
-   gh pr create --base main --head feat/<short-name> --title "<conventional-commit title>"
+   gh pr create --base preview --head feat/<short-name> --title "<conventional-commit title>"
    ```
-6. **Pre-production testing:**
-   - **Primary:** commit-specific Vercel Preview URL (`equipqr-<hash>-columbia-cloudworks-llc.vercel.app` pattern) after pushing a work branch.
-   - **Optional:** **`preview.equipqr.app`** — fixed hostname tied to git branch **`preview`** in Vercel; not required for every feature.
-   - Supabase **ephemeral PR branches** validate `supabase/**` on PRs to `main`.
+6. **Changelog / version discipline:**
+   - PRs into **`preview`**: accumulate notes under CHANGELOG `[Unreleased]`; **do not** bump `package.json` / lockfile app version.
+   - PRs into **`main`** (from `preview` / release): semver bump, versioned CHANGELOG section, empty `[Unreleased]` after cut.
+7. **Pre-production testing:**
+   - **Primary:** commit-specific Vercel Preview URL after pushing a work branch, and/or **`preview.equipqr.app`** after merge to `preview`.
+   - **Supabase:** no perpetual preview database. Cloud `preview.equipqr.app` uses **production** Supabase for ordinary (non-schema) QA. Use a properly seeded **ephemeral** Supabase PR branch only when actively testing `supabase/**` schema/RLS/migrations.
    - OAuth (Google Workspace, QuickBooks): verify on the **local stack** before merge.
-7. **Hotfix:** Branch off `origin/main`, PR into `main`.
-8. **Local E2E before push/PR.** No push and no PR open until `local-verify-before-preview-push.mdc` passes with zero user manual steps.
-9. **Worktree tempo:**
-   - **Main worktree:** merge via PR to `main` after local verify (protected branch).
-   - **Linked worktrees:** full merge-ready workflow per `pr-merge-ready-workflow.mdc`.
-   - **Never force-push to `main`.**
+8. **Hotfix:** Prefer `fix/*` → `preview` then promote; for production-only emergencies, branch off `origin/main`, PR into `main`, then back-merge/rebase `preview` so the train does not diverge permanently.
+9. **Local E2E before push/PR.** No push and no PR open until `local-verify-before-preview-push.mdc` passes with zero user manual steps.
+10. **Worktree tempo:**
+    - Feature work: merge-ready PR into **`preview`** per `pr-merge-ready-workflow.mdc`.
+    - Production: merge-ready **`preview` → `main`** (or `chore/release-v*` from curated preview tip).
+    - **Never force-push to `main` or `preview`.**
 
 See git-powershell.mdc for Windows worktree cleanup gotchas.

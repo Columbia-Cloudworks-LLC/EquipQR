@@ -12,8 +12,8 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 │  ┌─────────┐    ┌────────────────────────────────────────────────────────┐ │
 │  │  Push   │───▶│                  GitHub Actions                        │ │
 │  │ to Git  │    │  ┌─────────────┐  ┌──────────┐  ┌───────────────────┐  │ │
-│  └─────────┘    │  │ CI Workflow │  │ Deploy   │  │ Preview Domain    │  │ │
-│                 │  │ (parallel)  │  │ Workflow │  │ Alias (on deploy) │  │ │
+│  └─────────┘    │  │ CI Workflow │  │ Deploy   │  │ Release metadata │  │ │
+│                 │  │ (parallel)  │  │ Workflow │  │ (preview|main)   │  │ │
 │                 │  └─────────────┘  └──────────┘  └───────────────────┘  │ │
 │                 └────────────────────────────────────────────────────────┘ │
 │                                       │                                     │
@@ -21,17 +21,16 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 │  ┌─────────────────────────────────────────────────────────────────────────┐│
 │  │                         External Services                               ││
 │  │  ┌──────────────────┐    ┌─────────────────────────────────────────┐   ││
-│  │  │     Vercel       │    │   Preview Domain Alias workflow       │   ││
-│  │  │ (auto-deploys)   │    │   (preview.equipqr.app → latest       │   ││
-│  │  └──────────────────┘    │    Preview deployment URL)            │   ││
-│  │           │                └─────────────────────────────────────────┘   ││
-│  │           ▼                              │                              ││
+│  │  │     Vercel       │    │   preview.equipqr.app ← git preview   │   ││
+│  │  │ (auto-deploys)   │    │   (normal Preview deploys on merge)   │   ││
+│  │  └──────────────────┘    └─────────────────────────────────────────┘   ││
+│  │           │                                                              ││
+│  │           ▼                                                              ││
 │  │  ┌──────────────────┐    ┌─────────────────────────────────────────┐   ││
 │  │  │   Live Site      │    │   Shared Supabase (supabase.equipqr.app) │   ││
-│  │  │ equipqr.app or   │    │   Preview + Production cloud app        │   ││
-│  │  │ preview.equipqr  │    │   (schema validated via ephemeral PR    │   ││
-│  │  └──────────────────┘    │    branches when supabase/** changes)   │   ││
-│  │                          └─────────────────────────────────────────┘   ││
+│  │  │ equipqr.app or   │    │   + ephemeral PR branches when           │   ││
+│  │  │ preview.equipqr  │    │     supabase/** changes                  │   ││
+│  │  └──────────────────┘    └─────────────────────────────────────────┘   ││
 │  └─────────────────────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -41,15 +40,16 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 | Environment | Git trigger | Frontend URL | Supabase API |
 |-------------|-------------|--------------|--------------|
 | **Production** | Push to `main` (auto-promote via Production Release Readiness) | https://equipqr.app | `https://supabase.equipqr.app` (`ymxkzronkhwxzcdcbnwq`) |
-| **Preview** | PRs and non-`main` pushes (Vercel Preview) | https://preview.equipqr.app (alias → latest Preview deployment) | Same production API (`supabase.equipqr.app`) |
+| **Integration preview** | Push/merge to git **`preview`** | https://preview.equipqr.app | Same production API (`supabase.equipqr.app`) |
+| **PR Preview** | Feature PRs / work-branch pushes | Commit-specific `*.vercel.app` | Prod API by default; ephemeral Supabase when `supabase/**` changes |
 
-> **Migration (#1033) complete.** Authoritative git/deploy loop: **`docs/ops/git-and-deploy.md`**. Retired: git `preview` branch, Vercel custom **`staging`**, Supabase branch **`olsdirkvvfegvclbpgrg`**. History: `docs/ops/preview-architecture-migration.md`.
+> **Train (#1282):** feat → preview → main. Authoritative loop: **`docs/ops/git-and-deploy.md`**. Retired: `preview-domain-alias.yml`, Vercel custom **`staging`**, persistent Supabase **`olsdirkvvfegvclbpgrg`**. History: `docs/ops/preview-architecture-migration.md`.
 
 ## GitHub Actions Workflows
 
 ### 1. Continuous Integration (`ci.yml`)
 
-**Trigger:** Push or PR to `main`
+**Trigger:** Push or PR to `main` or `preview`
 
 **Purpose:** Validate code quality, run tests, and ensure build works
 
@@ -63,6 +63,8 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 | `build` | Self-hosted | Production build + bundle analysis |
 | `quality-gates` | Self-hosted | Final checks (bundle size limits, gzip size) |
 | `report-coverage` | GitHub-hosted | Post coverage report to PRs |
+| `preview-release-metadata` | CI | PRs into **`preview`**: Unreleased-only; forbid package version bump |
+| `release-metadata` | CI | PRs into **`main`**: empty Unreleased + semver bump when release-relevant |
 
 **Quality Gates:**
 - Build size must be < 12MB total
@@ -75,18 +77,11 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 
 **Purpose:** Notification workflow for Vercel production deployments
 
-> **Note:** Actual deployment is handled by Vercel's GitHub integration, not this workflow. Preview deployments (PRs and non-`main` branches) are also automatic; `preview-domain-alias.yml` keeps `preview.equipqr.app` on the latest `main`.
+> **Note:** Actual deployment is handled by Vercel's GitHub integration, not this workflow. Merges to git **`preview`** update **`preview.equipqr.app`** via normal Vercel Preview deploys. Feature PRs get commit-specific Preview URLs.
 
-### 3. Preview Domain Alias (`preview-domain-alias.yml`)
+### 3. Preview Domain Alias — REMOVED
 
-**Trigger:** Push to `main` only (no `pull_request` / `deployment_status` triggers, so it never attaches skipped checks to PRs)
-
-**Purpose:** Keep `preview.equipqr.app` (bound in Vercel to git branch `preview`, the domain anchor) tracking the latest `main`
-
-**What it does:**
-- Fast-forwards git branch `preview` to `main` (with a divergence guard — the branch is a pure mirror)
-- POSTs the Vercel `preview` deploy hook (a plain git push of a commit Vercel already built for `main` is deduplicated and produces no deployment, so the hook is the reliable trigger), then polls until the deployment is READY
-- Vercel aliases `preview.equipqr.app` to the new deployment automatically because the domain is branch-bound — no `vercel alias set` step is needed
+**`preview-domain-alias.yml` is retired (#1282).** It previously fast-forwarded git `preview` from `main` and fired a deploy hook. Do not reference it as live. `preview.equipqr.app` tracks git **`preview`** through ordinary Vercel deploys on that branch.
 
 ### 4. Auto Version Tag (`version-tag.yml`)
 
@@ -150,14 +145,14 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 | Git context | Vercel target | Stable alias |
 |-------------|---------------|--------------|
 | `main` | Production | `equipqr.app` (auto-promote after release readiness) |
-| `preview` (anchor branch, synced to `main` by `preview-domain-alias.yml`) | Preview | `preview.equipqr.app` (auto-aliased — the domain is branch-bound in Vercel) |
-| PR / non-`main` push | Preview | Per-deployment URL only |
+| `preview` (integration train) | Preview | `preview.equipqr.app` (branch-bound; normal deploys on push/merge) |
+| PR / other non-`main` push | Preview | Per-deployment URL only |
 
 **Key Settings (`vercel.json`):**
 - SPA routing (all routes → `/index.html`)
 - Security headers (HSTS, X-Frame-Options, etc.)
 - Asset caching (1 year for `/assets/*`)
-- Auto-deploy on git push: **`main`** (production build) and **`preview`** (domain-anchor branch for `preview.equipqr.app`; builds are triggered by the deploy hook in `preview-domain-alias.yml` since same-SHA branch pushes are deduplicated by Vercel). Feature-branch PRs also receive per-PR Preview URLs via the GitHub integration.
+- Auto-deploy on git push: **`main`** (production build) and **`preview`** (integration → `preview.equipqr.app`). Feature-branch PRs also receive per-PR Preview URLs via the GitHub integration.
 
 **Preview hostname:** `preview.equipqr.app` is attached to the standard **Preview** environment (not the retired custom **`staging`** environment).
 
@@ -206,7 +201,7 @@ Cloud preview (`preview.equipqr.app`) uses the **same** Supabase project as prod
 - `https://equipqr.app/**`
 - Local dev URLs (`http://localhost:8080/**`, etc.)
 
-The retired `configure-supabase-auth.yml` workflow (which patched **olsdirk** after each `preview` branch deploy) is removed under the main-centric model.
+The retired `configure-supabase-auth.yml` workflow (which patched **olsdirk** after each `preview` branch deploy) remains removed; cloud preview uses the production Supabase project.
 
 ---
 
@@ -222,15 +217,22 @@ When you open or update a PR (Preview deployment):
 | ~2:00 | Vercel Preview deployment ready (commit-specific URL; `preview.equipqr.app` is **not** touched by PR builds) |
 | ~3:00 | CI complete |
 
-When you merge to `main`:
+When you merge to git **`preview`**:
+
+| Time | Event |
+|------|-------|
+| 0:00 | Push/merge to `preview` |
+| 0:01 | CI on `preview` |
+| 0:01 | Vercel Preview build for branch `preview` |
+| ~2:00 | `preview.equipqr.app` points at the new Preview deployment |
+
+When you merge a promote to **`main`**:
 
 | Time | Event |
 |------|-------|
 | 0:00 | Push to `main` |
 | 0:01 | CI + Production Release Readiness workflows |
-| 0:01 | `preview-domain-alias.yml` fast-forwards `preview` and fires the deploy hook |
 | ~2:00 | Vercel Production build ready; Production Release Readiness promotes to `equipqr.app` |
-| ~2:30 | Preview-branch deployment READY; `preview.equipqr.app` auto-aliased |
 
 ---
 
@@ -296,7 +298,7 @@ See [Deployment Guide - Self-Hosted Runner Setup](./deployment.md#self-hosted-ru
 **Symptom:** Google OAuth redirects to a per-commit Vercel URL instead of `preview.equipqr.app`
 
 **Checks:**
-1. Confirm `preview-domain-alias.yml` ran green on the latest push to `main` (Actions tab).
+1. Confirm the latest Vercel Preview deployment for git branch **`preview`** is READY and aliased to `preview.equipqr.app`.
 2. Confirm Vercel Preview env has `VITE_SUPABASE_URL=https://supabase.equipqr.app` (`sync-vercel-from-1password.ps1 -Check -Environment preview`).
 3. Confirm Supabase Auth redirect URIs include `https://preview.equipqr.app/**` on the production project (`ymxkzronkhwxzcdcbnwq`).
 
@@ -339,7 +341,7 @@ See [Deployment Guide - Self-Hosted Runner Setup](./deployment.md#self-hosted-ru
 |------|---------|
 | `.github/workflows/ci.yml` | Continuous integration (lint, test, build, security) |
 | `.github/workflows/deploy.yml` | Deployment notifications |
-| `.github/workflows/preview-domain-alias.yml` | Sync `preview` anchor branch to `main` + deploy hook (keeps `preview.equipqr.app` current) |
+| `.github/workflows/preview-domain-alias.yml` | **REMOVED (#1282)** — do not restore; `preview.equipqr.app` tracks git `preview` via normal Vercel deploys |
 | `.github/workflows/version-tag.yml` | Auto-create git tags on version bump |
 | `.github/workflows/deployment-status.yml` | Log deployment status from Vercel |
 | `.github/workflows/export-schema.yml` | Export database schema from production to `supabase/schema.sql` |

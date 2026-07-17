@@ -159,9 +159,9 @@ passwords, Supabase keys, or session tokens.
 
 EquipQR™ is hosted on Vercel. The `main` branch promotes to `equipqr.app` after
 **Production Release Readiness** runs **`vercel promote`**. **`preview.equipqr.app`**
-is the stable pre-production hostname on Vercel **Preview** (latest work branch build,
-not a git branch named `preview`). SSL, CDN, and custom domain routing are managed
-in the Vercel dashboard.
+is the stable pre-production hostname bound to git branch **`preview`** (integration
+train) — Vercel Preview deploys on merges/pushes to that branch. SSL, CDN, and custom
+domain routing are managed in the Vercel dashboard.
 
 See **`docs/ops/git-and-deploy.md`** for the authoritative git/deploy loop.
 
@@ -207,9 +207,9 @@ Configure these environment variables in your Vercel project dashboard:
 
 #### Branch Configuration
 - **Production**: merges to `main` trigger Vercel production-environment builds for **equipqr.app**. Traffic stays on the prior deployment until **Production Release Readiness** runs `vercel promote` after migrations and schema drift pass.
-- **Preview**: PRs and non-`main` pushes get Vercel **Preview** deployments (commit-specific URLs). **`preview.equipqr.app`** tracks latest `main`: `.github/workflows/preview-domain-alias.yml` fast-forwards the `preview` domain-anchor branch and fires the Vercel deploy hook on every push to `main`; Vercel auto-aliases the branch-bound domain.
+- **Preview / integration**: merges and pushes to git **`preview`** deploy to **`preview.equipqr.app`** (branch-bound custom domain). Feature PRs also get commit-specific `*.vercel.app` URLs. There is no `preview-domain-alias.yml` fast-forward from `main`.
 
-See `docs/ops/preview-architecture-migration.md` (#1033) for the full cutover plan.
+See `docs/ops/git-and-deploy.md` and `docs/ops/preview-architecture-migration.md` (#1033 history, #1282 train restore).
 
 ### Production release readiness (Supabase + Vercel gate)
 

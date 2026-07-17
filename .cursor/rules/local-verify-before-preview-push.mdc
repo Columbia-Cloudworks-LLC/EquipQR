@@ -1,14 +1,14 @@
 ---
-description: "Hard gate — no push or PR to main until local end-to-end verification passes with zero user manual steps. Agent runs all checks autonomously."
+description: "Hard gate — no push or PR to preview/main until local end-to-end verification passes with zero user manual steps. Agent runs all checks autonomously."
 alwaysApply: true
 ---
-# Local Verify Before Push / PR to Main
+# Local Verify Before Push / PR to Preview
 
 As of 2026-06-13, the local dev stack has **production parity** (Auth, Edge Functions, Google Workspace Connect, etc.). Treat that as the mandatory pre-push gate.
 
 ## Hard rule
 
-**Do not push a work branch and do not open/merge a PR into `main` until the change is verified locally end-to-end with zero manual user intervention.**
+**Do not push a work branch and do not open/merge a PR into `preview` (or a release PR into `main`) until the change is verified locally end-to-end with zero manual user intervention.**
 
 - "Verified" means the agent ran the checks, observed pass signals, and can cite commands + outcomes in the handoff.
 - "Zero manual intervention" means no asking the maintainer to click OAuth, reload, sign in, or confirm behavior. Use shell, Vitest, Playwright, Supabase CLI, edge logs, and **browser MCP** instead.
@@ -63,7 +63,7 @@ Reference: `docs/technical/e2e-user-regression.md`, `docs/technical/testing-guid
 
 ## Push handoff requirements
 
-Before `git push -u origin HEAD` or `gh pr create --base main`, the agent report must include:
+Before `git push -u origin HEAD` or `gh pr create --base preview` (release: `--base main`), the agent report must include:
 
 - **`npm ci --prefer-offline --no-audit` pass** when dependencies changed or before first PR open on a feature branch.
 - Verification commands run (copy-pasteable).
@@ -74,4 +74,4 @@ Before `git push -u origin HEAD` or `gh pr create --base main`, the agent report
 
 ## Relationship to branching
 
-This gate **supersedes speed-over-safety** for pushes and PRs to **`main`**. See `docs/ops/git-and-deploy.md`.
+This gate **supersedes speed-over-safety** for pushes and PRs into **`preview`** (and release PRs into **`main`**). See `docs/ops/git-and-deploy.md` and `.cursor/rules/branching.mdc`.
