@@ -129,6 +129,30 @@ describe('workOrderRevertService.revertPMCompletion', () => {
     expect(result.error).toMatch(/could not be reopened/i);
   });
 
+  it('treats a stale non-terminal work order status as a successful concurrent reopen', async () => {
+    rpcMock
+      .mockResolvedValueOnce({
+        data: { success: true, old_status: 'completed', new_status: 'pending' },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: { success: false, error: 'Can only revert completed or cancelled work orders' },
+        error: null,
+      });
+
+    const result = await workOrderRevertService.revertPMCompletion('pm-1', {
+      workOrderId: 'wo-1',
+      workOrderStatus: 'completed',
+    });
+
+    expect(result).toEqual({
+      success: true,
+      old_status: 'completed',
+      new_status: 'pending',
+      work_order_reopened: false,
+    });
+  });
+
   it('keeps string reason overload for callers that do not pass work order context', async () => {
     rpcMock.mockResolvedValueOnce({
       data: { success: true, old_status: 'completed', new_status: 'pending' },

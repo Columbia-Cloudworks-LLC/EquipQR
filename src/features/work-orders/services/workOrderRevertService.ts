@@ -21,6 +21,7 @@ export type RevertPMCompletionOptions = {
 };
 
 const TERMINAL_WORK_ORDER_STATUSES = new Set(['completed', 'cancelled']);
+const NON_TERMINAL_REOPEN_ERROR = 'Can only revert completed or cancelled work orders';
 
 function shouldReopenWorkOrder(status: string | undefined): boolean {
   return typeof status === 'string' && TERMINAL_WORK_ORDER_STATUSES.has(status);
@@ -79,6 +80,9 @@ export const workOrderRevertService = {
 
       if (!woResult.success) {
         const woError = woResult.error?.trim();
+        if (woError === NON_TERMINAL_REOPEN_ERROR) {
+          return { ...pmResult, work_order_reopened: false };
+        }
         return {
           success: false,
           error: woError
