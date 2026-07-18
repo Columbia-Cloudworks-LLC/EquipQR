@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Memoize unified permissions (#1323)** — Wrap `equipment`, `workOrders`, `teams`, `inventory`, notes helper, and the hook return of `useUnifiedPermissions` in `useMemo` (keyed on session/auth fields) so dashboard consumers keep referential equality across parent re-renders.
 - **Faster component tests (#1314)** — Stabilize `TestProviders` QueryClient across re-renders; mock CSS layout twins and stub heavy ledger tables in the slowest suites; move checklist reorder utils to the unit project; prefer sync `getBy*` / `fireEvent` over async polling and `userEvent` for wiring smokes. Document performance guidance in `.cursor/rules/testing.mdc`.
 - **Feat → preview → main train restored (#1282)** — Day-to-day work merges into git `preview`; production ships via controlled `preview` → `main`. Version bumps and empty `[Unreleased]` are enforced only on promote to `main`; preview PRs accumulate Unreleased notes and must not bump `package.json`. `preview.equipqr.app` tracks the integration branch via normal Vercel deploys (`preview-domain-alias.yml` fast-forward from `main` removed). CI runs on PRs to `preview` and `main`, with split Release Metadata / Preview Release Metadata jobs. Dependabot targets `preview`. Cursor rules, skills, ITIL scripts, and ops docs updated for the train. No perpetual Supabase preview database — ephemeral branches only when testing schema/RLS/migrations.
 
