@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Dead cache preload API (#1320)** — Remove `CacheManager.preloadRelatedData()`, which called React Query `prefetchQuery` without a `queryFn` and was an unused silent no-op.
 - **Auth cold-load race (#1319)** — Remove the parallel `getSession()` call on `AuthProvider` mount so bootstrap relies only on `onAuthStateChange` / `INITIAL_SESSION`, avoiding non-deterministic session and loading flicker when both paths raced `setSession` / `setIsLoading`.
 - **Revert to Accepted refreshes details (#1278)** — After an org admin uses Revert to Accepted on a completed or cancelled work order, the details page invalidates `workOrderKeys.detail` (via `invalidateWorkOrderCaches`) so status, lock warning, and actions update without a hard browser refresh.
 - **Revert PM Completion unlocks edit (#1277)** — Org owners/admins reverting a completed PM on a completed (or cancelled) work order also reopen the work order to accepted in one confirmed action, so the checklist is editable again without a separate Revert to Accepted step. Confirm copy matches PM `pending` status and work-order reopen behavior.
