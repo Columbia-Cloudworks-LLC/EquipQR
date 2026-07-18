@@ -61,7 +61,7 @@ export const useUnifiedPermissions = () => {
     return canManageTeam(teamId);
   }, [canManageTeam]);
 
-  const clearPermissionCache = useCallback(() => {
+  const clearPermissionCache = useCallback((): void => {
     permissionEngine.clearCache();
   }, []);
 
