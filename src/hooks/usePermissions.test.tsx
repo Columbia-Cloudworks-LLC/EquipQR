@@ -4,7 +4,7 @@ import { usePermissions, useWorkOrderPermissions } from './usePermissions';
 import { 
   createMockUserContext,
   createMockSimpleOrganizationContext
-} from '@/test/mocks/testTypes';
+} from '@vitest-harness/mocks/testTypes';
 import type { WorkOrderData } from '@/features/work-orders/types/workOrder';
 
 // Mock the dependencies

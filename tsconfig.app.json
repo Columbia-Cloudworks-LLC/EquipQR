@@ -26,8 +26,9 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@vitest-harness/*": ["./vitest/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "vitest"]
 }

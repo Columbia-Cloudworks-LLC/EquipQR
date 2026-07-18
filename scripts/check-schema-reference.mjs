@@ -62,7 +62,7 @@ export function isDataOnlyMigration(sql) {
 }
 
 /**
- * Pure decision logic (unit-tested in src/tests/scripts/checkSchemaReference.test.ts).
+ * Pure decision logic (unit-tested in scripts/check-schema-reference.test.ts).
  *
  * @param {{
  *   referenceExists: boolean;

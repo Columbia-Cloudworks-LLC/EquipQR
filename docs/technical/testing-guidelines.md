@@ -25,6 +25,20 @@ As the product and test suite scale:
    --------------
 ```
 
+## Where tests live (single convention)
+
+**Sibling colocation only.** Put the Vitest file next to the module under test in the same directory. The `.test.ts` / `.test.tsx` / `.spec.ts` extension is the leaf sort — do **not** create `__tests__/` folders, `src/test/`, or `src/tests/`.
+
+| Subject | Test file |
+| --- | --- |
+| `src/features/equipment/components/Foo.tsx` | `src/features/equipment/components/Foo.test.tsx` |
+| `scripts/lib/demoScenarioEngine.mjs` | `scripts/lib/demoScenarioEngine.test.ts` |
+| `e2e/pr-evidence/shared/evidence-helpers.ts` | `e2e/pr-evidence/shared/evidence-helpers.test.ts` (or a dedicated helper test beside it) |
+
+Shared Vitest harness (setup, fixtures, mocks, journey renderers) lives at repo-root **`vitest/`** and is imported as `@vitest-harness/...`. It is not a place for product suites.
+
+Playwright end-to-end specs stay under `e2e/` (separate from Vitest). Deno edge tests use `*.deno.test.ts` next to edge modules.
+
 ## Test Infrastructure
 
 ### Vitest projects (environment isolation)
@@ -33,8 +47,8 @@ As the product and test suite scale:
 
 | Project | Environment | Scope |
 | --- | --- | --- |
-| `unit` | `node` | Pure-logic `*.test.ts` / `*.spec.ts` (feature utils, services, script tests) |
-| `component` | `jsdom` | `*.test.tsx` and browser-dependent co-located `*.test.ts` |
+| `unit` | `node` | Pure-logic `*.test.ts` / `*.spec.ts` under `src/`, `scripts/`, `e2e/**/*.test.ts`, `vitest/`, and `*.vitest.test.ts` beside shared edge helpers |
+| `component` | `jsdom` | `*.test.tsx` / `*.spec.tsx` and browser-dependent co-located `*.test.ts` |
 
 On Windows, `npm test` and `npm run test:component` run component tests in **four sequential shards** (~80 files each) so you get a summary between chunks instead of a long silent stretch. Linux/macOS CI uses the same shard count via GitHub Actions.
 
@@ -54,8 +68,8 @@ vitest run --project component --reporter=verbose
 
 ### Network mocking (no real Supabase in Vitest)
 
-- `@/integrations/supabase/client` is mocked globally in `src/test/setup-shared.ts`.
-- Journey and component tests seed data via `seedSupabaseMock()` from `@/test/mocks/supabase-scenario`.
+- `@/integrations/supabase/client` is mocked globally in `vitest/setup-shared.ts`.
+- Component tests seed data via `seedSupabaseMock()` from `@vitest-harness/mocks/supabase-scenario`.
 - Do **not** point Vitest at local Docker Supabase — reserve real DB access for Playwright and pgTAP.
 
 ### Teardown
@@ -67,14 +81,14 @@ vitest run --project component --reporter=verbose
 
 ### Unit Tests (Primary — ~70%)
 
-**Location**: Co-located with source (`*.test.ts`) or `src/test/unit/`
+**Location**: Sibling `*.test.ts` next to the source (or next to the script under `scripts/`).
 
 Appropriate for:
 
 - Pure utility functions, formatters, mappers
 - Service functions with mocked Supabase responses
 - Validation schemas (Zod)
-- Script and build-tool regression tests under `src/tests/scripts/`
+- Script and build-tool regression tests beside the script they cover
 
 **Example**:
 
@@ -91,7 +105,7 @@ describe('formatWorkingHours', () => {
 
 ### Component Tests (~20%)
 
-**Location**: Co-located `*.test.tsx` or journey-style tests in `src/tests/journeys/`
+**Location**: Sibling `*.test.tsx` next to the component or page under test.
 
 Mount UI with React Testing Library and jsdom. Mock only at external boundaries (Supabase), not internal hooks.
 
@@ -107,9 +121,9 @@ Mount UI with React Testing Library and jsdom. Mock only at external boundaries 
 import { describe, it, expect, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { screen, waitFor } from '@testing-library/react';
-import { renderJourney } from '@/test/journey/render-journey';
-import { seedSupabaseMock } from '@/test/mocks/supabase-scenario';
-import { equipment } from '@/test/fixtures/entities';
+import { renderJourney } from '@vitest-harness/journey/render-journey';
+import { seedSupabaseMock } from '@vitest-harness/mocks/supabase-scenario';
+import { equipment } from '@vitest-harness/fixtures/entities';
 
 describe('Work Order Creation Journey', () => {
   beforeEach(() => {
@@ -154,6 +168,7 @@ describe('Work Order Creation Journey', () => {
 - ❌ Mock internal hooks with `vi.mock('@/features/.../hooks/useXyz')` unless testing the hook itself
 - ❌ Assert on implementation details unrelated to user-visible behavior
 - ❌ Hit real Supabase from Vitest
+- ❌ Add `__tests__/` folders or centralized `src/tests/` suites
 
 ### E2E Journey Tests (~10%)
 
@@ -161,18 +176,14 @@ describe('Work Order Creation Journey', () => {
 
 Reserve for critical flows that need a real local stack: auth lifecycle, work order creation, offline sync, OAuth integrations. See [e2e-user-regression.md](./e2e-user-regression.md).
 
-### Integration Tests
-
-**Location**: `src/tests/integration/`
-
-Cross-cutting routing, providers, or RPC contract tests without full user interaction.
-
 ## Test Harness
+
+Shared helpers live under repo-root `vitest/` (`@vitest-harness/*`).
 
 ### Persona-Based Rendering
 
 ```typescript
-import { renderJourney } from '@/test/journey/render-journey';
+import { renderJourney } from '@vitest-harness/journey/render-journey';
 
 renderJourney({
   persona: 'technician',
@@ -185,7 +196,7 @@ Available personas: `owner`, `admin`, `teamManager`, `technician`, `viewer`.
 ### Supabase Scenario Mock
 
 ```typescript
-import { seedSupabaseMock, resetSupabaseMock } from '@/test/mocks/supabase-scenario';
+import { seedSupabaseMock, resetSupabaseMock } from '@vitest-harness/mocks/supabase-scenario';
 
 beforeEach(() => {
   resetSupabaseMock();
@@ -212,8 +223,9 @@ npm run test:e2e:full         # headless full suite
 # Full Vitest suite (unit, then component — phased progress)
 npm test
 
-# Journey component tests only
-npm run test:journeys
+# Unit or component project only
+npm run test:unit
+npm run test:component
 
 # Watch mode
 npm run test:watch
@@ -241,43 +253,42 @@ Validates RLS policies, triggers, and schema constraints. Requires local Supabas
 ## File Organization
 
 ```
-src/
-├── test/                         # Test utilities & harness
-│   ├── setup-shared.ts           # Supabase mock, env stubs (all projects)
-│   ├── setup.ts                  # jsdom DOM mocks + RTL cleanup (component project)
-│   ├── query-client-registry.ts  # React Query teardown registry
-│   ├── fixtures/
-│   ├── journey/
-│   └── mocks/
-│       └── supabase-scenario.ts  # Scenario-driven Supabase mock
-├── tests/
-│   ├── journeys/                 # Component journey tests
-│   └── integration/
-└── features/
-    └── equipment/
-        └── utils/
-            └── formatters.test.ts  # Co-located unit test
+vitest/                           # Shared harness only (not product suites)
+├── setup-shared.ts
+├── setup.ts
+├── fixtures/
+├── journey/
+└── mocks/
+
+src/features/equipment/
+├── components/
+│   ├── Foo.tsx
+│   └── Foo.test.tsx              # Sibling colocation
+scripts/lib/
+├── demoScenarioEngine.mjs
+└── demoScenarioEngine.test.ts
+e2e/user/                         # Playwright (not Vitest)
 ```
 
 ## Migration from Old Patterns
 
 If you encounter tests that:
 
-- Mock hooks directly for feature behavior → rewrite as a component/journey test or unit test the pure logic
-- Use `renderHookAsPersona` for feature logic → prefer `createTestQueryClient()` wrapper or journey test
-- Depend on `scripts/test-runner.mjs` → removed; use `vitest run` directly
+- Mock hooks directly for feature behavior → rewrite as a component test or unit test the pure logic
+- Use `renderHookAsPersona` for feature logic → prefer `createTestQueryClient()` wrapper or a page-level component test
+- Live under `__tests__/`, `src/test/`, or `src/tests/` → move to a sibling `*.test.*` beside the subject (harness → `vitest/`)
 
 ## DSR Cockpit Required Coverage
 
 - `supabase/functions/manage-dsr-request/manage-dsr-request.deno.test.ts`
 - `supabase/tests/07_dsr_cockpit_behavior.sql`
-- `src/tests/e2e/dsr-cockpit.spec.ts`
+- `src/features/dsr/api/dsrApi.spec.ts`
 
 Before promoting cockpit changes:
 
 ```bash
-npm run test -- src/tests/integration/AppRoutes.test.tsx
-npm run test -- src/tests/e2e/dsr-cockpit.spec.ts
+npm run test -- src/App.routes.test.tsx
+npm run test -- src/features/dsr/api/dsrApi.spec.ts
 deno test --allow-env --allow-net supabase/functions/manage-dsr-request/manage-dsr-request.deno.test.ts
 npm run test:db
 ```

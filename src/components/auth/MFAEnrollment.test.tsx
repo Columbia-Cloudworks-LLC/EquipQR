@@ -1,0 +1,146 @@
+import '@vitest-harness/utils/mock-use-app-toast';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import {
+  clickButtonWhenReadyWithUser,
+  ensureElementFromPointMock,
+  waitForButton,
+} from '@vitest-harness/utils/test-utils';
+import MFAEnrollment from './MFAEnrollment';
+
+ensureElementFromPointMock();
+
+// Mock useMFA hook
+const mockEnrollTOTP = vi.fn();
+const mockVerifyTOTP = vi.fn();
+
+vi.mock('@/hooks/useMFA', () => ({
+  useMFA: () => ({
+    enrollTOTP: mockEnrollTOTP,
+    verifyTOTP: mockVerifyTOTP,
+    factors: [],
+    currentLevel: null,
+    nextLevel: null,
+    isEnrolled: false,
+    isVerified: false,
+    needsVerification: false,
+    isLoading: false,
+    challengeAndVerify: vi.fn(),
+    unenrollFactor: vi.fn(),
+    refreshMFAStatus: vi.fn(),
+  }),
+}));
+
+describe('MFAEnrollment', () => {
+  const mockOnComplete = vi.fn();
+  const mockOnSkip = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    mockEnrollTOTP.mockResolvedValue({
+      qrCode: 'data:image/svg+xml;base64,testqrcode',
+      secret: 'JBSWY3DPEHPK3PXP',
+      factorId: 'factor-test-123',
+    });
+  });
+
+  afterEach(() => {
+    vi.clearAllTimers();
+    cleanup();
+    vi.useRealTimers();
+  });
+
+  it('shows loading state initially', () => {
+    render(<MFAEnrollment onComplete={mockOnComplete} />);
+
+    expect(screen.getByText('Setting up authenticator...')).toBeInTheDocument();
+  });
+
+  it('shows QR code after enrollment initialization', async () => {
+    render(<MFAEnrollment onComplete={mockOnComplete} />);
+
+    await waitFor(() => {
+      expect(screen.getByAltText(/QR code for authenticator app/)).toBeInTheDocument();
+    });
+
+    expect(mockEnrollTOTP).toHaveBeenCalled();
+  });
+
+  it('shows the secret for manual entry', async () => {
+    render(<MFAEnrollment onComplete={mockOnComplete} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('JBSWY3DPEHPK3PXP')).toBeInTheDocument();
+    });
+  });
+
+  it('shows "I\'ve Scanned the Code" button in scan step', async () => {
+    render(<MFAEnrollment onComplete={mockOnComplete} />);
+
+    await waitForButton(/scanned the code/i);
+  });
+
+  it('transitions to verify step when clicking "I\'ve Scanned the Code"', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime.bind(vi) });
+    render(<MFAEnrollment onComplete={mockOnComplete} />);
+
+    await clickButtonWhenReadyWithUser(user, /scanned the code/i);
+
+    expect(screen.getByText(/enter the 6-digit code/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /back/i })).toBeInTheDocument();
+  });
+
+  it('shows skip button when not required', async () => {
+    render(
+      <MFAEnrollment
+        onComplete={mockOnComplete}
+        onSkip={mockOnSkip}
+        isRequired={false}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /skip for now/i })).toBeInTheDocument();
+    });
+  });
+
+  it('hides skip button when isRequired is true', async () => {
+    render(
+      <MFAEnrollment
+        onComplete={mockOnComplete}
+        isRequired={true}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByAltText(/QR code for authenticator app/)).toBeInTheDocument();
+    });
+
+    expect(screen.queryByRole('button', { name: /skip for now/i })).not.toBeInTheDocument();
+  });
+
+  it('shows required message for admin accounts', async () => {
+    render(
+      <MFAEnrollment
+        onComplete={mockOnComplete}
+        isRequired={true}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/your role requires/i)).toBeInTheDocument();
+    });
+  });
+
+  it('shows error when enrollment fails', async () => {
+    mockEnrollTOTP.mockResolvedValueOnce(null);
+
+    render(<MFAEnrollment onComplete={mockOnComplete} />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/failed to start mfa enrollment/i)).toBeInTheDocument();
+    });
+  });
+});

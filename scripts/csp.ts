@@ -5,7 +5,7 @@
  * to append localhost allowances for HMR and local Supabase.
  *
  * `vercel.json` cannot import TypeScript at deploy time — keep its CSP header value
- * in sync via `src/tests/scripts/csp.test.ts`.
+ * in sync via `scripts/csp.test.ts`.
  */
 
 /** Production CSP directives — canonical list for vercel.json. */

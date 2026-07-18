@@ -13,20 +13,19 @@ const JSDOM_TS_TEST_GLOBS = [
   'src/**/hooks/**/*.test.ts',
   'src/utils/**/*.test.ts',
   'src/services/**/*.test.ts',
-  'src/lib/__tests__/**/*.test.ts',
   'src/components/**/*.test.ts',
   'src/contexts/**/*.test.ts',
   'src/pages/**/*.test.ts',
-  'src/tests/quickbooks/quickbooksAuth.test.ts',
-  'src/tests/quickbooks/useQuickBooksAccess.test.ts',
+  // Browser APIs (AudioContext / vibrate) — former lib/__tests__ suites
+  'src/lib/scanFeedback.test.ts',
 ];
 
 const coverageExclude = [
   'node_modules/',
-  'src/test/',
-  'src/tests/',
+  'vitest/',
   'scripts/**',
   'supabase/**',
+  'e2e/**',
   '**/*.d.ts',
   '**/*.config.*',
   '**/dist/**',
@@ -73,13 +72,29 @@ const coverageExclude = [
   '**/__tests__/**',
 ];
 
+const unitInclude = [
+  'src/**/*.test.ts',
+  'src/**/*.spec.ts',
+  'scripts/**/*.test.ts',
+  'scripts/**/*.test.mjs',
+  'e2e/**/*.test.ts',
+  'vitest/**/*.test.ts',
+  'supabase/functions/_shared/**/*.vitest.test.ts',
+];
+
+const componentInclude = [
+  'src/**/*.test.tsx',
+  'src/**/*.spec.tsx',
+  ...JSDOM_TS_TEST_GLOBS,
+];
+
 export default defineConfig({
   plugins: [react()],
   test: {
     globals: true,
     css: true,
     testTimeout: 10000,
-    exclude: ['supabase/**', 'node_modules/**'],
+    exclude: ['**/*.deno.test.ts', 'node_modules/**'],
     pool: 'forks',
     isolate: true,
     fileParallelism: isWindows ? false : isCI ? false : true,
@@ -109,9 +124,9 @@ export default defineConfig({
         test: {
           name: 'unit',
           environment: 'node',
-          include: ['src/**/*.test.ts', 'src/**/*.spec.ts', 'scripts/**/*.test.mjs'],
-          exclude: [...JSDOM_TS_TEST_GLOBS, 'supabase/**', 'node_modules/**'],
-          setupFiles: ['./src/test/setup-shared.ts'],
+          include: unitInclude,
+          exclude: [...JSDOM_TS_TEST_GLOBS, '**/*.deno.test.ts', 'node_modules/**'],
+          setupFiles: ['./vitest/setup-shared.ts'],
         },
       },
       {
@@ -119,8 +134,9 @@ export default defineConfig({
         test: {
           name: 'component',
           environment: 'jsdom',
-          include: ['src/**/*.test.tsx', 'src/**/*.spec.tsx', ...JSDOM_TS_TEST_GLOBS],
-          setupFiles: ['./src/test/setup-shared.ts', './src/test/setup.ts'],
+          include: componentInclude,
+          exclude: ['**/*.deno.test.ts', 'node_modules/**'],
+          setupFiles: ['./vitest/setup-shared.ts', './vitest/setup.ts'],
         },
       },
     ],
@@ -128,6 +144,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@vitest-harness': path.resolve(__dirname, './vitest'),
     },
   },
 });
