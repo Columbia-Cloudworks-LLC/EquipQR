@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { mkdirSync } from 'node:fs';
 import { platform } from 'node:os';
 
 const isCI = process.env.CI === 'true';
@@ -16,6 +17,9 @@ function resolveVitestResultsJsonPath(): string {
   const [shardIndex] = shardArg.replace('--shard=', '').split('/');
   return `artifacts/vitest-results/shard-${shardIndex}.json`;
 }
+
+// Ensure the JSON reporter can write its output for every Vitest entrypoint.
+mkdirSync(path.resolve(__dirname, 'artifacts/vitest-results'), { recursive: true });
 
 /** Co-located .test.ts files that need jsdom (hooks, browser APIs, RTL renderHook). */
 const JSDOM_TS_TEST_GLOBS = [
