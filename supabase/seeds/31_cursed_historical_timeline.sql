@@ -40,7 +40,7 @@ INSERT INTO auth.users (
   'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
   '00000000-0000-0000-0000-000000000000'::uuid,
   'owner@cursedtimeline.test',
-  extensions.crypt('password123', extensions.gen_salt('bf')),
+  extensions.crypt(extensions.gen_random_uuid()::text, extensions.gen_salt('bf')),
   NOW(),
   NOW(),
   NOW(),
@@ -128,7 +128,8 @@ VALUES (
   'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
   '660e8400-e29b-41d4-a716-446655440011'::uuid
 )
-ON CONFLICT DO NOTHING;
+ON CONFLICT (user_id) DO UPDATE
+  SET organization_id = EXCLUDED.organization_id;
 
 INSERT INTO public.teams (
   id,
