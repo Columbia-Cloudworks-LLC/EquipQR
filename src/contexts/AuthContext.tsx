@@ -145,19 +145,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (import.meta.env.DEV) {
-        logger.debug('Initial session check', {
-          user: session?.user?.email || 'none',
-          hasSession: !!session
-        });
-      }
-      setSession(session);
-      setUser(session?.user ?? null);
-      setIsLoading(false);
-    });
-
+    // Bootstrap from onAuthStateChange only — the SDK emits INITIAL_SESSION
+    // after storage init. A parallel getSession() raced that callback and could
+    // leave non-deterministic session / isLoading state on cold load.
     return () => subscription.unsubscribe();
   }, []);
 
