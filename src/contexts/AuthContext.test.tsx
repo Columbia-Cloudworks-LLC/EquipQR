@@ -255,6 +255,44 @@ describe('AuthContext', () => {
     expect(signUpResult).toEqual({ error: null });
   });
 
+  it('should trim signup name and fall back to email when empty or whitespace', async () => {
+    const { result } = renderAuthHook();
+    await flushAuthTimers();
+
+    await act(async () => {
+      await result.current!.signUp('test@example.com', 'password', '  ');
+    });
+    expect(vi.mocked(supabase.auth.signUp)).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          data: { name: 'test@example.com' },
+        }),
+      }),
+    );
+
+    await act(async () => {
+      await result.current!.signUp('test@example.com', 'password', '');
+    });
+    expect(vi.mocked(supabase.auth.signUp)).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          data: { name: 'test@example.com' },
+        }),
+      }),
+    );
+
+    await act(async () => {
+      await result.current!.signUp('test@example.com', 'password', '  Ada Lovelace  ');
+    });
+    expect(vi.mocked(supabase.auth.signUp)).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          data: { name: 'Ada Lovelace' },
+        }),
+      }),
+    );
+  });
+
   it('should handle sign in', async () => {
     const { result } = renderAuthHook();
 
