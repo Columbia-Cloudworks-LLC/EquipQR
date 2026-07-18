@@ -504,3 +504,54 @@ describe('useWorkOrderDetailsActions - PM template management', () => {
   });
 });
 
+describe('useWorkOrderDetailsActions - handleStatusUpdate cache refresh (#1278)', () => {
+  let invalidateSpy: ReturnType<typeof vi.spyOn>;
+  let mockMutateAsync: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    invalidateSpy = vi.spyOn(QueryClient.prototype, 'invalidateQueries');
+    mockMutateAsync = vi.fn().mockResolvedValue({ id: 'wo-1' });
+    vi.mocked(useUpdateWorkOrder).mockReturnValue({
+      mutateAsync: mockMutateAsync,
+      isPending: false,
+    } as unknown as ReturnType<typeof useUpdateWorkOrder>);
+  });
+
+  afterEach(() => {
+    invalidateSpy.mockRestore();
+  });
+
+  it('invalidates workOrderKeys.detail so Revert to Accepted refreshes the details page', async () => {
+    let capturedActions: ReturnType<typeof useWorkOrderDetailsActions> | undefined;
+
+    render(
+      <TestComponent
+        workOrderId="wo-1"
+        organizationId="org-1"
+        pmData={null}
+        onReady={(actions) => {
+          capturedActions = actions;
+        }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(capturedActions).toBeDefined();
+    });
+
+    invalidateSpy.mockClear();
+    capturedActions!.handleStatusUpdate();
+
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ['work-orders', 'detail', 'org-1', 'wo-1'],
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ['work-orders', 'list'],
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: ['preventativeMaintenance', 'wo-1'],
+    });
+  });
+});
+
