@@ -3,7 +3,10 @@ import React, { createContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import { getSafeRedirectPath } from '@/utils/redirectValidation';
+import {
+  buildGoogleOAuthRedirectTo,
+  getSafeRedirectPath,
+} from '@/utils/redirectValidation';
 import { schedulePendingTermsAcceptanceFlush } from '@/lib/termsAcceptanceRecording';
 import { clearOfflineBlobsForUser } from '@/services/offlineBlobStore';
 
@@ -178,15 +181,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInWithGoogle = async () => {
-    const redirectUrl = `${window.location.origin}/`;
-    
+    const pendingRedirect = sessionStorage.getItem('pendingRedirect');
+    const redirectTo = buildGoogleOAuthRedirectTo(
+      window.location.origin,
+      pendingRedirect,
+    );
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: redirectUrl
-      }
+        redirectTo,
+      },
     });
-    
+
     return { error };
   };
 

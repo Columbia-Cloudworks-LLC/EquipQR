@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { Loader2 } from 'lucide-react';
+import { getSafeRedirectPath } from '@/utils/redirectValidation';
 
 const Landing = lazy(() => import('@/pages/Landing'));
 
@@ -13,7 +14,8 @@ const Landing = lazy(() => import('@/pages/Landing'));
  *   with no dependency on auth resolution. The hero must never be gated on isLoading —
  *   when supabase-js retries a stale token refresh, that loop can take 13–60+s and
  *   would produce a fully black viewport for all visitors. See issue #671.
- * - For authenticated users: Redirects to the dashboard once auth resolves. A brief
+ * - For authenticated users: Honors `pendingRedirect` (e.g. QR scan after Google OAuth)
+ *   when present; otherwise redirects to the dashboard once auth resolves. A brief
  *   flash of the hero while the redirect effect fires is the accepted trade-off.
  *
  * Workspace onboarding is voluntary — users connect their Google Workspace from
@@ -24,9 +26,14 @@ const SmartLanding = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Redirect confirmed-authenticated users to the dashboard.
     // Guard on !isLoading so we don't redirect prematurely while auth is resolving.
     if (!isLoading && user) {
+      const pendingRedirect = sessionStorage.getItem('pendingRedirect');
+      if (pendingRedirect) {
+        sessionStorage.removeItem('pendingRedirect');
+        navigate(getSafeRedirectPath(pendingRedirect, '/dashboard'), { replace: true });
+        return;
+      }
       navigate('/dashboard', { replace: true });
     }
   }, [user, isLoading, navigate]);

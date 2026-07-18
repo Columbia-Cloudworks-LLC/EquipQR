@@ -10,7 +10,11 @@ import { CheckCircle, ExternalLink, Loader2, Mail, QrCode } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useMFA } from '@/hooks/useMFA';
 import { isMFAEnabled } from '@/lib/flags';
-import { isSafeRedirectPath, getSafeRedirectPath } from '@/utils/redirectValidation';
+import {
+  getSafeNextParam,
+  getSafeRedirectPath,
+  isSafeRedirectPath,
+} from '@/utils/redirectValidation';
 import Logo from '@/components/ui/Logo';
 import SignUpForm from '@/components/auth/SignUpForm';
 import SignInForm from '@/components/auth/SignInForm';
@@ -63,9 +67,16 @@ const Auth = () => {
   const suppressAuthRedirectRef = useRef(false);
   const { error: showErrorToast, success: showSuccessToast } = useAppToast();
 
-  // Check if user came here from a QR scan (read-only check, doesn't clear)
+  // Restore pendingRedirect from OAuth `?next=` (survives Google round-trip)
+  // and detect QR-scan messaging. Safe/invalid next values are ignored.
   useEffect(() => {
-    const pendingRedirect = sessionStorage.getItem('pendingRedirect');
+    const nextFromOAuth = getSafeNextParam(location.search);
+    if (nextFromOAuth) {
+      sessionStorage.setItem('pendingRedirect', nextFromOAuth);
+    }
+
+    const pendingRedirect =
+      nextFromOAuth ?? sessionStorage.getItem('pendingRedirect');
     if (
       pendingRedirect &&
       isSafeRedirectPath(pendingRedirect) &&
@@ -73,7 +84,7 @@ const Auth = () => {
     ) {
       setPendingQRScan(true);
     }
-  }, []);
+  }, [location.search]);
 
   // Handle pending redirects after authentication
   // This replaces usePendingRedirectHandler to avoid race conditions with duplicate effects

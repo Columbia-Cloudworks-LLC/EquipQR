@@ -4,7 +4,7 @@
  * Prevents open-redirect attacks by ensuring redirect targets are safe,
  * same-origin relative paths.  Used by every consumer of the
  * `pendingRedirect` sessionStorage value (AuthContext, Auth page,
- * usePendingRedirectHandler).
+ * usePendingRedirectHandler) and Google OAuth `redirectTo` / `?next=` flow.
  */
 
 /**
@@ -36,4 +36,34 @@ export function isSafeRedirectPath(path: string): boolean {
  */
 export function getSafeRedirectPath(path: string, fallback = '/'): string {
   return isSafeRedirectPath(path) ? path : fallback;
+}
+
+/**
+ * Builds the Supabase Auth `redirectTo` URL for Google OAuth.
+ *
+ * Always lands on `/auth` so the Auth page can honor `pendingRedirect`.
+ * When a safe pending path exists, it is carried in `?next=` so the
+ * destination survives OAuth even if sessionStorage is unavailable.
+ */
+export function buildGoogleOAuthRedirectTo(
+  origin: string,
+  pendingRedirect: string | null | undefined,
+): string {
+  const base = `${origin}/auth`;
+  if (!pendingRedirect || !isSafeRedirectPath(pendingRedirect)) {
+    return base;
+  }
+  return `${base}?next=${encodeURIComponent(pendingRedirect)}`;
+}
+
+/**
+ * Reads and validates a `next` query param from a search string
+ * (`?next=/path` or `next=/path`). Returns null when missing/unsafe.
+ */
+export function getSafeNextParam(search: string): string | null {
+  if (!search || typeof search !== 'string') return null;
+  const normalized = search.startsWith('?') ? search : `?${search}`;
+  const next = new URLSearchParams(normalized).get('next');
+  if (!next || !isSafeRedirectPath(next)) return null;
+  return next;
 }
