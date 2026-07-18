@@ -130,9 +130,24 @@ describe('OfflineQueueService', () => {
   it('starts with an empty queue', () => {
     const svc = createService();
     expect(svc.getAll()).toEqual([]);
-    expect(svc.getCount()).toBe(0);
-    expect(svc.getPendingCount()).toBe(0);
-    expect(svc.getFailedCount()).toBe(0);
+    expect(svc.getCounts()).toEqual({ pending: 0, failed: 0, total: 0 });
+  });
+
+  it('getCounts reads the queue once and returns pending, failed, and total', () => {
+    const svc = createService();
+    const [item1, item2] = enqueueItems(svc, 3);
+
+    svc.updateStatus(item1.id, 'failed', 'Error 1');
+    svc.updateStatus(item2.id, 'processing');
+    // third item stays pending
+
+    const getItemSpy = vi.spyOn(Storage.prototype, 'getItem');
+    getItemSpy.mockClear();
+
+    expect(svc.getCounts()).toEqual({ pending: 1, failed: 1, total: 3 });
+    expect(getItemSpy).toHaveBeenCalledTimes(1);
+
+    getItemSpy.mockRestore();
   });
 
   it('enqueues an item and persists to localStorage', () => {
@@ -224,13 +239,11 @@ describe('OfflineQueueService', () => {
     svc.updateStatus(item1.id, 'failed', 'Error 1');
     svc.updateStatus(item2.id, 'failed', 'Error 2');
 
-    expect(svc.getFailedCount()).toBe(2);
-    expect(svc.getPendingCount()).toBe(0);
+    expect(svc.getCounts()).toEqual({ pending: 0, failed: 2, total: 2 });
 
     svc.retryFailedItems();
 
-    expect(svc.getFailedCount()).toBe(0);
-    expect(svc.getPendingCount()).toBe(2);
+    expect(svc.getCounts()).toEqual({ pending: 2, failed: 0, total: 2 });
     expect(svc.getAll()[0].retryCount).toBe(0);
   });
 
