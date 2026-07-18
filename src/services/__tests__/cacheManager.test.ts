@@ -216,6 +216,18 @@ describe('CacheManager', () => {
       expect(mockQueryClient.invalidateQueries).toHaveBeenCalledTimes(1);
     });
 
+    it('matches canonical equipment and work-order query keys', () => {
+      cacheManager.batchInvalidate(organizationId, [
+        { type: 'equipment' as const, id: 'eq-1' },
+        { type: 'workOrder' as const, id: 'wo-1' },
+      ]);
+
+      const predicate = getBatchPredicate();
+
+      expect(predicate({ queryKey: ['equipment', organizationId, 'filtered'] })).toBe(true);
+      expect(predicate({ queryKey: ['work-orders', organizationId, 'filtered'] })).toBe(true);
+    });
+
     it('does not invalidate unrelated keys on substring collisions', () => {
       cacheManager.batchInvalidate(organizationId, [
         { type: 'equipment' as const, id: 'eq-1' },
@@ -232,9 +244,21 @@ describe('CacheManager', () => {
 
       expect(
         predicate({
+          queryKey: ['equipment', organizationId, 'eq-1'],
+        })
+      ).toBe(true);
+
+      expect(
+        predicate({
           queryKey: ['equipment-optimized', organizationId],
         })
       ).toBe(true);
+
+      expect(
+        predicate({
+          queryKey: ['work-orders', organizationId, 'equipment', 'eq-1'],
+        })
+      ).toBe(false);
 
       expect(
         predicate({

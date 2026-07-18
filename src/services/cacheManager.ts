@@ -1,4 +1,6 @@
 import { QueryClient, type QueryKey } from '@tanstack/react-query';
+import { equipment } from '../lib/queryKeys/equipment';
+import { workOrders } from '../lib/queryKeys/workOrders';
 
 /** True when `queryKey` begins with every segment of `prefix` (structural, not substring). */
 export function queryKeyMatchesPrefix(queryKey: QueryKey, prefix: QueryKey): boolean {
@@ -183,18 +185,21 @@ export class CacheManager {
       switch (op.type) {
         case 'equipment':
           if (op.id) {
+            addPattern(equipment.list(organizationId));
             addPattern(['equipment-optimized', organizationId]);
-            addPattern(['work-orders', 'equipment', organizationId, op.id]);
+            addPattern(workOrders.equipmentWorkOrders(organizationId, op.id));
             addPattern(['notes', organizationId, op.id]);
             addPattern(['dashboard-optimized', organizationId]);
           }
           break;
         case 'workOrder':
+          addPattern(workOrders.list(organizationId));
           addPattern(['work-orders-optimized', organizationId]);
           addPattern(['dashboard-optimized', organizationId]);
           if (op.equipmentId) {
+            addPattern(equipment.list(organizationId));
             addPattern(['equipment-optimized', organizationId]);
-            addPattern(['work-orders', 'equipment', organizationId, op.equipmentId]);
+            addPattern(workOrders.equipmentWorkOrders(organizationId, op.equipmentId));
             addPattern(['notes', organizationId, op.equipmentId]);
           }
           break;
