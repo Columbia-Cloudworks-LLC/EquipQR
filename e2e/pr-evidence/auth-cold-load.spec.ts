@@ -20,6 +20,9 @@ test.describe('PR evidence auth cold load @pr-evidence', () => {
     await evidenceScreenshot(page, '01-dashboard-before-reload', { target: mainNav });
 
     await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#main-content, main#main-content, main').first()).toBeVisible({
+      timeout: 60_000,
+    });
     await assertHealthyShell();
     await expect(mainNav).toBeVisible();
     await evidencePause(page, 800);
