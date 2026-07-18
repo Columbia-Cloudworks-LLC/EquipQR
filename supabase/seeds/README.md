@@ -192,8 +192,8 @@ production shapes that missed a leading `submitted` status-history event.
 | `…440c05` | Boundary: assigned without assignee |
 | `…440c06` | Boundary: out-of-order timestamps |
 
-Alex Apex is an **admin** member so default e2e personas can pin this org.
-Casey Cursed (`owner@cursedtimeline.test`) owns the fixture org.
+Alex Apex (`owner@apex.test`) owns the fixture org (additional business membership;
+no new auth user / password) so default e2e personas can pin this org.
 
 These rows intentionally keep the pre-#1276-repair shape. Seeds run after migrations,
 so the one-shot backfill does not rewrite them.

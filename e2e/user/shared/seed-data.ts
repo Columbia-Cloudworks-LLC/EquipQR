@@ -164,7 +164,6 @@ export type PersonaKey =
   | 'valleyOwner'
   | 'industrialOwner'
   | 'onboardingOwner'
-  | 'cursedTimelineOwner'
   | 'multiOrg'
   | 'pendingInvitee';
 
@@ -220,12 +219,6 @@ export const personas: Record<
     orgLabel: 'Fresh Start Equipment Co',
     defaultOrgId: freshStartOrgId,
   },
-  cursedTimelineOwner: {
-    displayName: 'Casey Cursed',
-    email: 'owner@cursedtimeline.test',
-    orgLabel: 'CURSED_HISTORICAL_FIXTURE Timeline Lab',
-    defaultOrgId: cursedHistoricalOrgId,
-  },
   multiOrg: {
     displayName: 'Multi Org User',
     email: 'multi@equipqr.test',
@@ -249,7 +242,6 @@ export const setupPersonas: PersonaKey[] = [
   'valleyOwner',
   'industrialOwner',
   'onboardingOwner',
-  'cursedTimelineOwner',
   'multiOrg',
   'pendingInvitee',
 ];

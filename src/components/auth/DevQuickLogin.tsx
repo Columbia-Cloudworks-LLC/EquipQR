@@ -40,13 +40,6 @@ const DEV_USERS = [
   { email: 'owner@industrial.test', name: 'Irene Industrial', role: 'Owner', org: 'Industrial Rentals' },
   // Fresh onboarding org (no teams/equipment)
   { email: 'owner@freshstart.test', name: 'Fresh Start Owner', role: 'Owner', org: 'Fresh Start Equipment' },
-  // Cursed historical timeline fixtures (#1279)
-  {
-    email: 'owner@cursedtimeline.test',
-    name: 'Casey Cursed',
-    role: 'Owner',
-    org: 'CURSED_HISTORICAL_FIXTURE',
-  },
   // Multi-org user
   { email: 'multi@equipqr.test', name: 'Multi Org User', role: 'Member', org: 'ALL Organizations' },
   // Pending invitation signup (personal org only until accept)
@@ -83,10 +76,6 @@ const USER_GROUPS = [
   {
     label: 'Fresh Start (Onboarding)',
     users: DEV_USERS.filter((u) => u.org === 'Fresh Start Equipment'),
-  },
-  {
-    label: 'Cursed Historical Timeline (#1279)',
-    users: DEV_USERS.filter((u) => u.org === 'CURSED_HISTORICAL_FIXTURE'),
   },
   {
     label: 'Multi-Org Testing',

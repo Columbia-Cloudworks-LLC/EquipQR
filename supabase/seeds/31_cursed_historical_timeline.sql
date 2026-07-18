@@ -18,55 +18,9 @@
 --   c06 — boundary: out-of-order timestamps (later event earlier changed_at)
 -- =====================================================
 
--- Dedicated owner (personal org for cursed fixture)
-INSERT INTO auth.users (
-  id,
-  instance_id,
-  email,
-  encrypted_password,
-  email_confirmed_at,
-  created_at,
-  updated_at,
-  raw_app_meta_data,
-  raw_user_meta_data,
-  is_super_admin,
-  role,
-  aud,
-  confirmation_token,
-  recovery_token,
-  email_change_token_new,
-  email_change
-) VALUES (
-  'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
-  '00000000-0000-0000-0000-000000000000'::uuid,
-  'owner@cursedtimeline.test',
-  extensions.crypt('password123', extensions.gen_salt('bf')),
-  NOW(),
-  NOW(),
-  NOW(),
-  '{"provider":"email","providers":["email"]}'::jsonb,
-  '{"name":"Casey Cursed"}'::jsonb,
-  false,
-  'authenticated',
-  'authenticated',
-  '',
-  '',
-  '',
-  ''
-)
-ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO public.profiles (id, email, name, created_at, updated_at)
-VALUES (
-  'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
-  'owner@cursedtimeline.test',
-  'Casey Cursed',
-  NOW(),
-  NOW()
-)
-ON CONFLICT (id) DO UPDATE
-  SET email = EXCLUDED.email,
-      name = EXCLUDED.name;
+-- No new auth.users row: reuse Alex Apex (owner@apex.test) as fixture org owner
+-- so we do not check in another known-password credential. Alex remains personal-org
+-- mapped to Apex; this org is an additional business membership only.
 
 INSERT INTO public.organizations (
   id,
@@ -81,7 +35,7 @@ INSERT INTO public.organizations (
   '660e8400-e29b-41d4-a716-446655440011'::uuid,
   'CURSED_HISTORICAL_FIXTURE Timeline Lab',
   'premium'::public.organization_plan,
-  2,
+  1,
   50,
   ARRAY['Equipment Management', 'Work Orders', 'Team Management'],
   '2024-06-01 00:00:00+00',
@@ -98,37 +52,19 @@ INSERT INTO public.organization_members (
   status,
   joined_date,
   product_onboarding_completed_at
-) VALUES
-  (
-    'cc0e8400-e29b-41d4-a716-4466554400a1'::uuid,
-    '660e8400-e29b-41d4-a716-446655440011'::uuid,
-    'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
-    'owner',
-    'active',
-    '2024-06-01 00:00:00+00',
-    '2024-06-01 00:00:00+00'
-  ),
-  -- Apex owner as admin so default e2e persona can pin this org
-  (
-    'cc0e8400-e29b-41d4-a716-4466554400a2'::uuid,
-    '660e8400-e29b-41d4-a716-446655440011'::uuid,
-    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
-    'admin',
-    'active',
-    '2024-06-01 00:00:00+00',
-    '2024-06-01 00:00:00+00'
-  )
+) VALUES (
+  'cc0e8400-e29b-41d4-a716-4466554400a1'::uuid,
+  '660e8400-e29b-41d4-a716-446655440011'::uuid,
+  'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
+  'owner',
+  'active',
+  '2024-06-01 00:00:00+00',
+  '2024-06-01 00:00:00+00'
+)
 ON CONFLICT (id) DO UPDATE
   SET role = EXCLUDED.role,
       status = EXCLUDED.status,
       product_onboarding_completed_at = EXCLUDED.product_onboarding_completed_at;
-
-INSERT INTO public.personal_organizations (user_id, organization_id)
-VALUES (
-  'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
-  '660e8400-e29b-41d4-a716-446655440011'::uuid
-)
-ON CONFLICT DO NOTHING;
 
 INSERT INTO public.teams (
   id,
@@ -162,21 +98,13 @@ INSERT INTO public.teams (
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.team_members (id, team_id, user_id, role, joined_date)
-VALUES
-  (
-    '990e8400-e29b-41d4-a716-4466554400a1'::uuid,
-    '880e8400-e29b-41d4-a716-446655440011'::uuid,
-    'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
-    'manager',
-    '2024-06-01 00:00:00+00'
-  ),
-  (
-    '990e8400-e29b-41d4-a716-4466554400a2'::uuid,
-    '880e8400-e29b-41d4-a716-446655440011'::uuid,
-    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
-    'technician',
-    '2024-06-01 00:00:00+00'
-  )
+VALUES (
+  '990e8400-e29b-41d4-a716-4466554400a1'::uuid,
+  '880e8400-e29b-41d4-a716-446655440011'::uuid,
+  'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
+  'manager',
+  '2024-06-01 00:00:00+00'
+)
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.equipment (
@@ -268,8 +196,8 @@ INSERT INTO public.work_orders (
     NULL,
     NULL,
     '880e8400-e29b-41d4-a716-446655440011'::uuid,
-    'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
-    'Casey Cursed',
+    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
+    'Alex Apex',
     '2026-03-24T13:00:00.000Z',
     NULL,
     NULL,
@@ -290,8 +218,8 @@ INSERT INTO public.work_orders (
     'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
     'Alex Apex',
     '880e8400-e29b-41d4-a716-446655440011'::uuid,
-    'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
-    'Casey Cursed',
+    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
+    'Alex Apex',
     '2026-02-10T09:00:00.000Z',
     NULL,
     NULL,
@@ -312,8 +240,8 @@ INSERT INTO public.work_orders (
     'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
     'Alex Apex',
     '880e8400-e29b-41d4-a716-446655440011'::uuid,
-    'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
-    'Casey Cursed',
+    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
+    'Alex Apex',
     '2025-11-01T08:00:00.000Z',
     NULL,
     NULL,
@@ -334,8 +262,8 @@ INSERT INTO public.work_orders (
     'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
     'Alex Apex',
     '880e8400-e29b-41d4-a716-446655440011'::uuid,
-    'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
-    'Casey Cursed',
+    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
+    'Alex Apex',
     '2026-01-05T08:00:00.000Z',
     NULL,
     '2026-01-09T17:00:00.000Z',
@@ -356,8 +284,8 @@ INSERT INTO public.work_orders (
     NULL,
     NULL,
     '880e8400-e29b-41d4-a716-446655440011'::uuid,
-    'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
-    'Casey Cursed',
+    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
+    'Alex Apex',
     '2026-04-01T10:00:00.000Z',
     NULL,
     NULL,
@@ -378,8 +306,8 @@ INSERT INTO public.work_orders (
     NULL,
     NULL,
     '880e8400-e29b-41d4-a716-446655440011'::uuid,
-    'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
-    'Casey Cursed',
+    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
+    'Alex Apex',
     '2026-05-01T12:00:00.000Z',
     NULL,
     NULL,
@@ -407,12 +335,12 @@ INSERT INTO public.work_order_status_history (
     'a00e8400-e29b-41d4-a716-446655440c01'::uuid,
     NULL,
     'accepted',
-    'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
     '2026-03-24T13:00:00.000Z',
     'Historical work order created',
     true,
     '{"fixture":"cursed_historical_c01","issue":1279}'::jsonb,
-    'Casey Cursed'
+    'Alex Apex'
   ),
   -- c02
   (
@@ -420,24 +348,24 @@ INSERT INTO public.work_order_status_history (
     'a00e8400-e29b-41d4-a716-446655440c02'::uuid,
     NULL,
     'accepted',
-    'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
     '2026-02-10T09:00:00.000Z',
     'Historical work order created',
     true,
     '{"fixture":"cursed_historical_c02","issue":1279}'::jsonb,
-    'Casey Cursed'
+    'Alex Apex'
   ),
   (
     'b10e8400-e29b-41d4-a716-446655440c21'::uuid,
     'a00e8400-e29b-41d4-a716-446655440c02'::uuid,
     'accepted',
     'assigned',
-    'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
     '2026-02-11T10:00:00.000Z',
     'Assigned technician',
     false,
     '{"fixture":"cursed_historical_c02","assignee_id":"bb0e8400-e29b-41d4-a716-446655440001"}'::jsonb,
-    'Casey Cursed'
+    'Alex Apex'
   ),
   (
     'b10e8400-e29b-41d4-a716-446655440c22'::uuid,
@@ -457,24 +385,24 @@ INSERT INTO public.work_order_status_history (
     'a00e8400-e29b-41d4-a716-446655440c03'::uuid,
     NULL,
     'accepted',
-    'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
     '2025-11-01T08:00:00.000Z',
     'Historical work order created',
     true,
     '{"fixture":"cursed_historical_c03","issue":1279}'::jsonb,
-    'Casey Cursed'
+    'Alex Apex'
   ),
   (
     'b10e8400-e29b-41d4-a716-446655440c31'::uuid,
     'a00e8400-e29b-41d4-a716-446655440c03'::uuid,
     'accepted',
     'assigned',
-    'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
     '2025-11-03T09:00:00.000Z',
     'Assigned field tech',
     false,
     '{"fixture":"cursed_historical_c03","assignee_id":"bb0e8400-e29b-41d4-a716-446655440001"}'::jsonb,
-    'Casey Cursed'
+    'Alex Apex'
   ),
   (
     'b10e8400-e29b-41d4-a716-446655440c32'::uuid,
@@ -518,36 +446,36 @@ INSERT INTO public.work_order_status_history (
     'a00e8400-e29b-41d4-a716-446655440c04'::uuid,
     NULL,
     'submitted',
-    'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
     '2026-01-05T08:00:00.000Z',
     'Historical status recorded',
     true,
     '{"fixture":"cursed_historical_c04","issue":1279}'::jsonb,
-    'Casey Cursed'
+    'Alex Apex'
   ),
   (
     'b10e8400-e29b-41d4-a716-446655440c41'::uuid,
     'a00e8400-e29b-41d4-a716-446655440c04'::uuid,
     'submitted',
     'accepted',
-    'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
     '2026-01-06T09:00:00.000Z',
     'Historical status recorded',
     false,
     '{"fixture":"cursed_historical_c04"}'::jsonb,
-    'Casey Cursed'
+    'Alex Apex'
   ),
   (
     'b10e8400-e29b-41d4-a716-446655440c42'::uuid,
     'a00e8400-e29b-41d4-a716-446655440c04'::uuid,
     'accepted',
     'assigned',
-    'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
     '2026-01-07T10:00:00.000Z',
     'Historical status recorded',
     false,
     '{"fixture":"cursed_historical_c04","assignee_id":"bb0e8400-e29b-41d4-a716-446655440001"}'::jsonb,
-    'Casey Cursed'
+    'Alex Apex'
   ),
   (
     'b10e8400-e29b-41d4-a716-446655440c43'::uuid,
@@ -579,36 +507,36 @@ INSERT INTO public.work_order_status_history (
     'a00e8400-e29b-41d4-a716-446655440c05'::uuid,
     NULL,
     'submitted',
-    'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
     '2026-04-01T10:00:00.000Z',
     'Historical status recorded',
     true,
     '{"fixture":"cursed_historical_c05","issue":1279}'::jsonb,
-    'Casey Cursed'
+    'Alex Apex'
   ),
   (
     'b10e8400-e29b-41d4-a716-446655440c51'::uuid,
     'a00e8400-e29b-41d4-a716-446655440c05'::uuid,
     'submitted',
     'accepted',
-    'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
     '2026-04-01T14:00:00.000Z',
     'Historical status recorded',
     false,
     '{"fixture":"cursed_historical_c05"}'::jsonb,
-    'Casey Cursed'
+    'Alex Apex'
   ),
   (
     'b10e8400-e29b-41d4-a716-446655440c52'::uuid,
     'a00e8400-e29b-41d4-a716-446655440c05'::uuid,
     'accepted',
     'assigned',
-    'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
     '2026-04-02T11:00:00.000Z',
     'Assigned without assignee id',
     false,
     '{"fixture":"cursed_historical_c05","missing_assignee":true}'::jsonb,
-    'Casey Cursed'
+    'Alex Apex'
   ),
   -- c06: submitted then accepted with out-of-order timestamps
   (
@@ -616,22 +544,23 @@ INSERT INTO public.work_order_status_history (
     'a00e8400-e29b-41d4-a716-446655440c06'::uuid,
     NULL,
     'submitted',
-    'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
     '2026-05-01T12:00:00.000Z',
     'Historical status recorded',
     true,
     '{"fixture":"cursed_historical_c06","issue":1279}'::jsonb,
-    'Casey Cursed'
+    'Alex Apex'
   ),
   (
     'b10e8400-e29b-41d4-a716-446655440c61'::uuid,
     'a00e8400-e29b-41d4-a716-446655440c06'::uuid,
     'submitted',
     'accepted',
-    'bb0e8400-e29b-41d4-a716-446655440011'::uuid,
+    'bb0e8400-e29b-41d4-a716-446655440001'::uuid,
     '2026-04-30T08:00:00.000Z',
     'Out of order acceptance',
     false,
     '{"fixture":"cursed_historical_c06","out_of_order":true}'::jsonb,
-    'Casey Cursed'
+    'Alex Apex'
   );
+
