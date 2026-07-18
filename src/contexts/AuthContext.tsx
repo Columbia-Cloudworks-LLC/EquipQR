@@ -3,7 +3,12 @@ import React, { createContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import { getSafeRedirectPath } from '@/utils/redirectValidation';
+import {
+  buildGoogleOAuthRedirectTo,
+  clearPendingRedirect,
+  getPendingRedirect,
+  toSameOriginPath,
+} from '@/utils/redirectValidation';
 import { schedulePendingTermsAcceptanceFlush } from '@/lib/termsAcceptanceRecording';
 import { clearOfflineBlobsForUser } from '@/services/offlineBlobStore';
 
@@ -63,14 +68,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Handle post-login redirect for QR code scans (only for actual sign-ins)
         if (isSignIn && session?.user) {
-          const pendingRedirect = sessionStorage.getItem('pendingRedirect');
+          const pendingRedirect = getPendingRedirect();
           if (pendingRedirect) {
-            sessionStorage.removeItem('pendingRedirect');
-            // Validate the redirect path to prevent open-redirect attacks
-            const safePath = getSafeRedirectPath(pendingRedirect);
+            clearPendingRedirect();
+            // Validate + rebuild via URL parser before location assignment
+            const safePath = toSameOriginPath(pendingRedirect);
             // Use setTimeout to ensure the redirect happens after state updates
             setTimeout(() => {
-              window.location.href = safePath;
+              window.location.assign(safePath);
             }, 100);
           }
 
@@ -178,15 +183,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInWithGoogle = async () => {
-    const redirectUrl = `${window.location.origin}/`;
-    
+    const redirectTo = buildGoogleOAuthRedirectTo(
+      window.location.origin,
+      getPendingRedirect(),
+    );
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: redirectUrl
-      }
+        redirectTo,
+      },
     });
-    
+
     return { error };
   };
 
@@ -205,7 +213,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       // Clear application-specific storage
       try {
-        sessionStorage.removeItem('pendingRedirect');
+        clearPendingRedirect();
         // Clear admin grants cache keys from localStorage (they start with equipqr_admin_grants_)
         Object.keys(localStorage)
           .filter(key => key.startsWith('equipqr_admin_grants_'))

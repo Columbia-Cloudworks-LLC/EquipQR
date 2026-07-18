@@ -108,11 +108,15 @@ describe('AuthContext', () => {
     });
 
     // Mock window.location
+    const locationMock = {
+      origin: 'http://localhost:3000',
+      href: 'http://localhost:3000',
+      assign: vi.fn((url: string) => {
+        locationMock.href = url;
+      }),
+    };
     Object.defineProperty(window, 'location', {
-      value: {
-        origin: 'http://localhost:3000',
-        href: 'http://localhost:3000',
-      },
+      value: locationMock,
       writable: true,
     });
   });
@@ -271,7 +275,9 @@ describe('AuthContext', () => {
     expect(signInResult).toEqual({ error: null });
   });
 
-  it('should handle Google sign in', async () => {
+  it('should handle Google sign in with /auth redirectTo by default', async () => {
+    window.sessionStorage.getItem = vi.fn().mockReturnValue(null);
+
     const { result } = renderAuthHook();
 
     // Wait for initial load
@@ -287,10 +293,48 @@ describe('AuthContext', () => {
     expect(vi.mocked(supabase.auth.signInWithOAuth)).toHaveBeenCalledWith({
       provider: 'google',
       options: {
-        redirectTo: 'http://localhost:3000/'
-      }
+        redirectTo: 'http://localhost:3000/auth',
+      },
     });
     expect(signInResult).toEqual({ error: null });
+  });
+
+  it('should pass pendingRedirect as next on Google OAuth redirectTo', async () => {
+    const pending = '/qr/equipment/abc-123?qr=true';
+    window.sessionStorage.getItem = vi.fn().mockReturnValue(pending);
+
+    const { result } = renderAuthHook();
+    await flushAuthTimers();
+
+    await act(async () => {
+      await result.current!.signInWithGoogle();
+    });
+
+    expect(window.sessionStorage.getItem).toHaveBeenCalledWith('pendingRedirect');
+    expect(vi.mocked(supabase.auth.signInWithOAuth)).toHaveBeenCalledWith({
+      provider: 'google',
+      options: {
+        redirectTo: `http://localhost:3000/auth?next=${encodeURIComponent(pending)}`,
+      },
+    });
+  });
+
+  it('should ignore unsafe pendingRedirect when building Google OAuth redirectTo', async () => {
+    window.sessionStorage.getItem = vi.fn().mockReturnValue('https://evil.com');
+
+    const { result } = renderAuthHook();
+    await flushAuthTimers();
+
+    await act(async () => {
+      await result.current!.signInWithGoogle();
+    });
+
+    expect(vi.mocked(supabase.auth.signInWithOAuth)).toHaveBeenCalledWith({
+      provider: 'google',
+      options: {
+        redirectTo: 'http://localhost:3000/auth',
+      },
+    });
   });
 
   it('should handle sign out', async () => {

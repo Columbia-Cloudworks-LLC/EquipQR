@@ -240,7 +240,7 @@ describe('Auth Page', () => {
       render(<Auth />);
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/');
+        expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
       });
     });
   });
@@ -253,6 +253,46 @@ describe('Auth Page', () => {
 
       expect(screen.getByText('Sign in to continue')).toBeInTheDocument();
       expect(screen.getByText('Complete sign in to view scanned equipment')).toBeInTheDocument();
+    });
+
+    it('restores QR prompt from OAuth next query param (#1322)', async () => {
+      // sessionStorage cleared in beforeEach — only `?next=` seeds the destination.
+      mockLocation.search = `?next=${encodeURIComponent('/qr/equipment/abc-123?qr=true')}`;
+
+      render(<Auth />);
+
+      expect(
+        await screen.findByText('Complete sign in to view scanned equipment'),
+      ).toBeInTheDocument();
+    });
+
+    it('ignores unsafe OAuth next query param', () => {
+      mockLocation.search = '?next=https%3A%2F%2Fevil.com';
+
+      render(<Auth />);
+
+      expect(
+        screen.queryByText('Complete sign in to view scanned equipment'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('clears QR prompt when search no longer has a QR destination', async () => {
+      mockLocation.search = `?next=${encodeURIComponent('/qr/equipment/abc-123?qr=true')}`;
+      const { rerender } = render(<Auth />);
+
+      expect(
+        await screen.findByText('Complete sign in to view scanned equipment'),
+      ).toBeInTheDocument();
+
+      mockLocation.search = '?tab=signin';
+      sessionStorage.clear();
+      rerender(<Auth />);
+
+      await waitFor(() => {
+        expect(
+          screen.queryByText('Complete sign in to view scanned equipment'),
+        ).not.toBeInTheDocument();
+      });
     });
   });
 

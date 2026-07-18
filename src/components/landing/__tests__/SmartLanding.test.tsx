@@ -50,6 +50,7 @@ const baseAuth = {
 describe('SmartLanding', () => {
   beforeEach(() => {
     mockNavigate.mockClear();
+    sessionStorage.clear();
   });
 
   it('renders the public landing page when isLoading is true and user is null (issue #671 regression)', () => {
@@ -95,6 +96,41 @@ describe('SmartLanding', () => {
   });
 
   it('calls navigate("/dashboard", { replace: true }) when an authenticated user lands on /', async () => {
+    vi.mocked(useAuthModule.useAuth).mockReturnValue({
+      ...baseAuth,
+      user: mockUser,
+      isLoading: false,
+    });
+
+    render(<SmartLanding />);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
+    });
+  });
+
+  it('honors pendingRedirect instead of dashboard after OAuth return (#1322)', async () => {
+    const pending = '/qr/equipment/abc-123?qr=true';
+    sessionStorage.setItem('pendingRedirect', pending);
+
+    vi.mocked(useAuthModule.useAuth).mockReturnValue({
+      ...baseAuth,
+      user: mockUser,
+      isLoading: false,
+    });
+
+    render(<SmartLanding />);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(pending, { replace: true });
+    });
+    expect(mockNavigate).not.toHaveBeenCalledWith('/dashboard', { replace: true });
+    expect(sessionStorage.getItem('pendingRedirect')).toBeNull();
+  });
+
+  it('falls back to dashboard when pendingRedirect is unsafe', async () => {
+    sessionStorage.setItem('pendingRedirect', 'https://evil.com');
+
     vi.mocked(useAuthModule.useAuth).mockReturnValue({
       ...baseAuth,
       user: mockUser,
