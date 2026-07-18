@@ -18,6 +18,8 @@ type PMChecklistDialogsProps = {
   onRevertPMDialogOpenChange: (open: boolean) => void;
   isReverting: boolean;
   onConfirmRevert: () => void;
+  /** When true, confirm copy explains the parent work order will reopen to accepted. */
+  willReopenWorkOrder?: boolean;
 };
 
 export function PMChecklistDialogs({
@@ -29,6 +31,7 @@ export function PMChecklistDialogs({
   onRevertPMDialogOpenChange,
   isReverting,
   onConfirmRevert,
+  willReopenWorkOrder = false,
 }: PMChecklistDialogsProps) {
   return (
     <>
@@ -56,9 +59,9 @@ export function PMChecklistDialogs({
           <AlertDialogHeader>
             <AlertDialogTitle>Revert PM Completion?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will revert the PM checklist status from completed back to in-progress. All
-              checklist item assessments and notes will be preserved. This action can only be
-              performed by an administrator.
+              {willReopenWorkOrder
+                ? 'This will revert the PM checklist status from completed back to pending and reopen this work order to accepted so the checklist can be edited again. All checklist item assessments and notes will be preserved. This action can only be performed by an organization owner or administrator.'
+                : 'This will revert the PM checklist status from completed back to pending. All checklist item assessments and notes will be preserved. This action can only be performed by an organization owner or administrator.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

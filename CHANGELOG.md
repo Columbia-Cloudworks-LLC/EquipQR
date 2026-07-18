@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Feat → preview → main train restored (#1282)** — Day-to-day work merges into git `preview`; production ships via controlled `preview` → `main`. Version bumps and empty `[Unreleased]` are enforced only on promote to `main`; preview PRs accumulate Unreleased notes and must not bump `package.json`. `preview.equipqr.app` tracks the integration branch via normal Vercel deploys (`preview-domain-alias.yml` fast-forward from `main` removed). CI runs on PRs to `preview` and `main`, with split Release Metadata / Preview Release Metadata jobs. Dependabot targets `preview`. Cursor rules, skills, ITIL scripts, and ops docs updated for the train. No perpetual Supabase preview database — ephemeral branches only when testing schema/RLS/migrations.
 
+### Fixed
+
+- **Revert PM Completion unlocks edit (#1277)** — Org owners/admins reverting a completed PM on a completed (or cancelled) work order also reopen the work order to accepted in one confirmed action, so the checklist is editable again without a separate Revert to Accepted step. Confirm copy matches PM `pending` status and work-order reopen behavior.
+
 ## [3.26.1] - 2026-07-16
 
 ### Fixed

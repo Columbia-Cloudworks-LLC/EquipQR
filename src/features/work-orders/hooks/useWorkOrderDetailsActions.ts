@@ -15,7 +15,10 @@ import { pmChecklistTemplatesService } from '@/features/pm-templates/services/pm
 import { useAuth } from '@/hooks/useAuth';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
-import { invalidateWorkOrderCaches } from '@/features/work-orders/utils/invalidateWorkOrderQueries';
+import {
+  invalidateWorkOrderCaches,
+  invalidateWorkOrderRecord,
+} from '@/features/work-orders/utils/invalidateWorkOrderQueries';
 import { preventiveMaintenance } from '@/lib/queryKeys';
 
 interface PMData {
@@ -307,32 +310,17 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
   }, []);
 
   const handleStatusUpdate = () => {
-    // Invalidate all relevant queries to refresh the data
-    queryClient.invalidateQueries({ 
-      queryKey: ['workOrder', 'enhanced', organizationId, workOrderId] 
-    });
-    queryClient.invalidateQueries({ 
-      queryKey: ['workOrder', organizationId, workOrderId] 
-    });
-    queryClient.invalidateQueries({ 
-      queryKey: ['workOrders', organizationId] 
-    });
-    queryClient.invalidateQueries({ 
-      queryKey: ['dashboardStats', organizationId] 
-    });
-    queryClient.invalidateQueries({ 
-      queryKey: ['preventativeMaintenance', workOrderId] 
+    invalidateWorkOrderCaches(queryClient, organizationId, workOrderId);
+    queryClient.invalidateQueries({
+      queryKey: preventiveMaintenance.byWorkOrder(workOrderId),
     });
   };
 
   const handlePMUpdate = () => {
-    // Don't invalidate PM queries - the mutation hook already handles cache updates
-    // Invalidating here causes refetches that can fail (406 errors) and trigger re-initialization
-    // Only invalidate work order queries to refresh status/completion state
-    queryClient.invalidateQueries({ 
-      queryKey: ['workOrder', organizationId, workOrderId],
-      refetchType: 'active' // Only refetch active queries
-    });
+    // Don't invalidate PM queries for routine save/complete — mutation hooks update cache.
+    // Still refresh the work order record so status/lock state stays in sync (e.g. after
+    // Revert PM Completion also reopens a completed work order).
+    invalidateWorkOrderRecord(queryClient, organizationId, workOrderId);
   };
 
   return {
