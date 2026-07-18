@@ -202,6 +202,7 @@ export async function resetCompletedWorkOrderForRevertEvidence(): Promise<void> 
       updated_at: '2025-12-18 16:00:00+00',
     })
     .eq('id', workOrderId)
+    .eq('organization_id', apexOrgId)
     .select('id');
 
   if (error) {
