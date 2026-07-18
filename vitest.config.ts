@@ -79,6 +79,7 @@ const unitInclude = [
   'scripts/**/*.test.mjs',
   'e2e/**/*.test.ts',
   'vitest/**/*.test.ts',
+  'vitest/**/*.test.tsx',
   'supabase/functions/_shared/**/*.vitest.test.ts',
 ];
 
