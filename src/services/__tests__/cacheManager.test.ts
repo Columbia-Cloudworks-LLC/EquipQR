@@ -232,19 +232,31 @@ describe('CacheManager', () => {
 
       expect(
         predicate({
+          queryKey: ['equipment', organizationId],
+        })
+      ).toBe(true);
+
+      expect(
+        predicate({
+          queryKey: ['equipment', organizationId, 'eq-1', 'scans'],
+        })
+      ).toBe(true);
+
+      expect(
+        predicate({
+          queryKey: ['work-orders', organizationId, 'equipment', 'eq-1'],
+        })
+      ).toBe(true);
+
+      expect(
+        predicate({
           queryKey: ['equipment-optimized', organizationId],
         })
       ).toBe(true);
 
       expect(
         predicate({
-          queryKey: ['work-orders', 'equipment', organizationId, 'eq-1'],
-        })
-      ).toBe(true);
-
-      expect(
-        predicate({
-          queryKey: ['work-orders-optimized', organizationId],
+          queryKey: ['work-orders', organizationId, 'enhanced'],
         })
       ).toBe(false);
     });

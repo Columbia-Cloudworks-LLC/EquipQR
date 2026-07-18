@@ -1,4 +1,11 @@
 import { QueryClient, type QueryKey } from '@tanstack/react-query';
+import {
+  equipment,
+  organization,
+  team,
+  teams,
+  workOrders,
+} from '@/lib/queryKeys';
 
 /** True when `queryKey` begins with every segment of `prefix` (structural, not substring). */
 export function queryKeyMatchesPrefix(queryKey: QueryKey, prefix: QueryKey): boolean {
@@ -179,10 +186,19 @@ export class CacheManager {
       uniqueInvalidations.set(pattern.map(String).join('\0'), pattern);
     };
 
+    const orgKeys = organization(organizationId);
+    const teamListKeys = teams(organizationId);
+
     operations.forEach(op => {
       switch (op.type) {
         case 'equipment':
           if (op.id) {
+            addPattern(equipment.list(organizationId));
+            addPattern(equipment.byId(organizationId, op.id));
+            addPattern(workOrders.equipmentWorkOrders(organizationId, op.id));
+            addPattern(equipment.notes(op.id, organizationId));
+            addPattern(orgKeys.dashboardStats());
+            // Legacy prefixes still used by other CacheManager helpers
             addPattern(['equipment-optimized', organizationId]);
             addPattern(['work-orders', 'equipment', organizationId, op.id]);
             addPattern(['notes', organizationId, op.id]);
@@ -190,35 +206,56 @@ export class CacheManager {
           }
           break;
         case 'workOrder':
+          addPattern(workOrders.list(organizationId));
+          addPattern(workOrders.optimized(organizationId));
+          addPattern(orgKeys.dashboardStats());
           addPattern(['work-orders-optimized', organizationId]);
           addPattern(['dashboard-optimized', organizationId]);
           if (op.equipmentId) {
+            addPattern(equipment.list(organizationId));
+            addPattern(workOrders.equipmentWorkOrders(organizationId, op.equipmentId));
+            addPattern(equipment.notes(op.equipmentId, organizationId));
             addPattern(['equipment-optimized', organizationId]);
             addPattern(['work-orders', 'equipment', organizationId, op.equipmentId]);
             addPattern(['notes', organizationId, op.equipmentId]);
           }
           break;
         case 'team':
-          addPattern(['teams-optimized', organizationId]);
+          addPattern(teamListKeys.root);
+          addPattern(teamListKeys.optimized());
           if (op.id) {
+            addPattern(team(op.id).root);
             addPattern(['team', organizationId, op.id]);
           }
+          addPattern(workOrders.list(organizationId));
+          addPattern(['teams-optimized', organizationId]);
           addPattern(['work-orders-optimized', organizationId]);
           break;
         case 'organization':
+          addPattern(orgKeys.dashboardStats());
           addPattern(['dashboard-optimized', organizationId]);
+          addPattern(['dashboard-trends', organizationId]);
+          addPattern(['dashboardStats', organizationId]);
           break;
         case 'organizationMember':
+          addPattern(orgKeys.members());
+          addPattern(orgKeys.membersOptimized());
+          addPattern(orgKeys.dashboardStats());
           addPattern(['organization-members', organizationId]);
           addPattern(['organization-admins', organizationId]);
           addPattern(['dashboard-optimized', organizationId]);
           break;
         case 'organizationSlot':
+          addPattern(orgKeys.slots());
+          addPattern(orgKeys.slotAvailability());
+          addPattern(orgKeys.slotPurchases());
           addPattern(['organization-slots', organizationId]);
           addPattern(['slot-availability', organizationId]);
           addPattern(['slot-purchases', organizationId]);
           break;
         case 'organizationInvitation':
+          addPattern(orgKeys.invitations());
+          addPattern(orgKeys.slotAvailability());
           addPattern(['organization-invitations', organizationId]);
           addPattern(['slot-availability', organizationId]);
           break;
