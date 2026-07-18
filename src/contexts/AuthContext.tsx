@@ -158,14 +158,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string, name?: string) => {
     const redirectUrl = `${window.location.origin}/`;
+    const trimmedEmail = email.trim();
     
     const { error } = await supabase.auth.signUp({
-      email,
+      email: trimmedEmail,
       password,
       options: {
         emailRedirectTo: redirectUrl,
         data: {
-          name: name?.trim() || email
+          name: name?.trim() || trimmedEmail
         }
       }
     });
