@@ -44,9 +44,12 @@ const mockSession: Session = {
 describe('AuthContext', () => {
   let mockSubscription: { unsubscribe: () => void; id: string; callback: () => void };
   let authStateChangeCallback: (event: string, session: Session | null) => void;
+  /** Session emitted on INITIAL_SESSION (mirrors SDK bootstrap after storage init). */
+  let initialSession: Session | null;
 
   beforeEach(() => {
     vi.useFakeTimers();
+    initialSession = null;
     
     mockSubscription = { 
       unsubscribe: vi.fn(),
@@ -56,9 +59,14 @@ describe('AuthContext', () => {
     
     vi.mocked(supabase.auth.onAuthStateChange).mockImplementation((callback) => {
       authStateChangeCallback = callback;
+      // Supabase emits INITIAL_SESSION after initializePromise — async, not sync.
+      void Promise.resolve().then(() => {
+        callback('INITIAL_SESSION', initialSession);
+      });
       return { data: { subscription: mockSubscription } };
     });
     
+    // getSession remains for deferred admin-grants path on SIGNED_IN only.
     vi.mocked(supabase.auth.getSession).mockImplementation(() => 
       Promise.resolve({
         data: { session: null },
@@ -135,22 +143,27 @@ describe('AuthContext', () => {
     expect(result.current?.session).toBe(null);
   });
 
-  it('should set user and session on initial load', async () => {
-    vi.mocked(supabase.auth.getSession).mockImplementation(() => 
-      Promise.resolve({
-        data: { session: mockSession },
-        error: null,
-      })
-    );
+  it('should set user and session on INITIAL_SESSION bootstrap', async () => {
+    initialSession = mockSession;
 
     const { result } = renderAuthHook();
 
-    // Wait for initial session check to complete
+    // Wait for INITIAL_SESSION microtask from onAuthStateChange
     await flushAuthTimers();
 
     expect(result.current?.isLoading).toBe(false);
     expect(result.current?.user).toEqual(mockUser);
     expect(result.current?.session).toEqual(mockSession);
+    expect(vi.mocked(supabase.auth.getSession)).not.toHaveBeenCalled();
+  });
+
+  it('should not call getSession on mount for bootstrap', async () => {
+    const { result } = renderAuthHook();
+
+    await flushAuthTimers();
+
+    expect(result.current?.isLoading).toBe(false);
+    expect(vi.mocked(supabase.auth.getSession)).not.toHaveBeenCalled();
   });
 
   it('should handle sign-in auth state change', async () => {
