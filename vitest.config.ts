@@ -85,6 +85,7 @@ const unitInclude = [
 const componentInclude = [
   'src/**/*.test.tsx',
   'src/**/*.spec.tsx',
+  'vitest/**/*.test.tsx',
   ...JSDOM_TS_TEST_GLOBS,
 ];
 
