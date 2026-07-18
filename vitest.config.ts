@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import fs from 'node:fs';
 import path from 'path';
 import { platform } from 'node:os';
 
@@ -9,12 +10,15 @@ const isShardRun = process.argv.some((a) => a.startsWith('--shard='));
 
 /** Shard-safe JSON results path so parallel CI jobs do not overwrite one file. */
 function resolveVitestResultsJsonPath(): string {
+  const resultsDir = path.resolve(__dirname, 'artifacts', 'vitest-results');
+  fs.mkdirSync(resultsDir, { recursive: true });
+
   const shardArg = process.argv.find((a) => a.startsWith('--shard='));
   if (!shardArg) {
-    return 'artifacts/vitest-results/results.json';
+    return path.join(resultsDir, 'results.json');
   }
   const [shardIndex] = shardArg.replace('--shard=', '').split('/');
-  return `artifacts/vitest-results/shard-${shardIndex}.json`;
+  return path.join(resultsDir, `shard-${shardIndex}.json`);
 }
 
 /** Co-located .test.ts files that need jsdom (hooks, browser APIs, RTL renderHook). */
