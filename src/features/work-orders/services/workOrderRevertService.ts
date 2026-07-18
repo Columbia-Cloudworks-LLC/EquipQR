@@ -22,8 +22,16 @@ export type RevertPMCompletionOptions = {
 
 const TERMINAL_WORK_ORDER_STATUSES = new Set(['completed', 'cancelled']);
 
+/** Matches `revert_work_order_status` when the live WO is already non-terminal. */
+const WORK_ORDER_ALREADY_NON_TERMINAL_ERROR =
+  'Can only revert completed or cancelled work orders';
+
 function shouldReopenWorkOrder(status: string | undefined): boolean {
   return typeof status === 'string' && TERMINAL_WORK_ORDER_STATUSES.has(status);
+}
+
+function isWorkOrderAlreadyNonTerminalError(error: string | undefined): boolean {
+  return (error?.trim() ?? '') === WORK_ORDER_ALREADY_NON_TERMINAL_ERROR;
 }
 
 export const workOrderRevertService = {
@@ -78,6 +86,14 @@ export const workOrderRevertService = {
       );
 
       if (!woResult.success) {
+        // Stale client status: another admin already reopened the WO — PM revert still succeeded.
+        if (isWorkOrderAlreadyNonTerminalError(woResult.error)) {
+          return {
+            ...pmResult,
+            work_order_reopened: false,
+          };
+        }
+
         const woError = woResult.error?.trim();
         return {
           success: false,

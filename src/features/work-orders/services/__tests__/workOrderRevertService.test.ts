@@ -114,7 +114,7 @@ describe('workOrderRevertService.revertPMCompletion', () => {
         error: null,
       })
       .mockResolvedValueOnce({
-        data: { success: false, error: 'not authorized' },
+        data: { success: false, error: 'Permission denied' },
         error: null,
       });
 
@@ -127,6 +127,33 @@ describe('workOrderRevertService.revertPMCompletion', () => {
     expect(result.new_status).toBe('pending');
     expect(result.work_order_reopened).toBe(false);
     expect(result.error).toMatch(/could not be reopened/i);
+  });
+
+  it('treats already-non-terminal work order as benign after successful PM revert', async () => {
+    rpcMock
+      .mockResolvedValueOnce({
+        data: { success: true, old_status: 'completed', new_status: 'pending' },
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: {
+          success: false,
+          error: 'Can only revert completed or cancelled work orders',
+        },
+        error: null,
+      });
+
+    const result = await workOrderRevertService.revertPMCompletion('pm-1', {
+      workOrderId: 'wo-1',
+      workOrderStatus: 'completed',
+    });
+
+    expect(result).toEqual({
+      success: true,
+      old_status: 'completed',
+      new_status: 'pending',
+      work_order_reopened: false,
+    });
   });
 
   it('keeps string reason overload for callers that do not pass work order context', async () => {
