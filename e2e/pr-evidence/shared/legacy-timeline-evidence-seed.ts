@@ -93,6 +93,15 @@ async function assertCursedFixturePrerequisites(admin: SupabaseClient): Promise<
     missing.push(`equipment ${cursedEquipmentId}`);
   }
 
+  const { data: ownerProfile, error: profileError } = await admin
+    .from('profiles')
+    .select('id')
+    .eq('id', apexOwnerUserId)
+    .maybeSingle();
+  if (profileError || !ownerProfile) {
+    missing.push(`profile ${apexOwnerUserId}`);
+  }
+
   if (missing.length > 0) {
     throw new Error(
       `Missing cursed fixture prerequisites (${missing.join(', ')}). ` +
