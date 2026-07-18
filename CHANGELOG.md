@@ -2,7 +2,7 @@
 
 <!-- markdownlint-disable MD024 -->
 
-All notable changes to EquipQR will be documented in this file.
+All notable changes to EquipQR by Columbia Cloudworks LLC will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Vitest duration CI artifacts (#1349)** — `slowTestThreshold` of 200ms plus default+JSON reporters write per-shard results under `artifacts/vitest-results/`; CI uploads `vitest-results-shard-N` with `if: always()` so failed shards still yield duration data for #1314 triage.
 - **Cursed historical timeline fixtures (#1279)** — Permanent anonymized seed org `CURSED_HISTORICAL_FIXTURE Timeline Lab` with legacy accepted-first, multi-event, long in-progress, happy-path contrast, and boundary historical work orders. Unit, pgTAP replace-rejection, and PR evidence e2e coverage pin these shapes so timeline editor/RPC regressions fail in CI. Optional production canary SQL under `scripts/sql/canary_legacy_historical_timeline_accepted_first.sql`.
 
 ### Changed

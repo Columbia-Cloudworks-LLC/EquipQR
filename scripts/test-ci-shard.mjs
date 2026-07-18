@@ -10,11 +10,14 @@
  *   can run different slices of the suite in parallel.
  * - Each shard writes its coverage artifacts to `coverage/` and the final
  *   merge happens in a downstream "coverage-merge" job.
+ * - Each shard also writes Jest-compatible JSON results (with per-test
+ *   durations) to `artifacts/vitest-results/shard-<N>.json` for CI upload.
  * - Skips the coverage-ratchet step inside the shard; ratchet runs once on
  *   the merged report instead.
  */
 
 import { spawn, execSync } from 'child_process';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -34,6 +37,8 @@ if (!shardArg) {
 
 const [shardIndex, shardTotal] = shardArg.replace('--shard=', '').split('/');
 console.log(`🧪 Running shard ${shardIndex}/${shardTotal} with coverage...`);
+
+fs.mkdirSync(path.join(repoRoot, 'artifacts', 'vitest-results'), { recursive: true });
 
 const vitestCli = path.join(repoRoot, 'node_modules', 'vitest', 'vitest.mjs');
 const vitestArgs = ['run', '--coverage', shardArg];
