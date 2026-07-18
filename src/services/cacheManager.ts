@@ -1,4 +1,24 @@
 import { QueryClient, type QueryKey } from '@tanstack/react-query';
+import {
+  equipment,
+  organization,
+  team,
+  teams,
+  workOrders,
+} from '@/lib/queryKeys';
+
+/** True when `queryKey` begins with every segment of `prefix` (structural, not substring). */
+export function queryKeyMatchesPrefix(queryKey: QueryKey, prefix: QueryKey): boolean {
+  if (prefix.length === 0 || prefix.length > queryKey.length) {
+    return false;
+  }
+  for (let i = 0; i < prefix.length; i++) {
+    if (queryKey[i] !== prefix[i]) {
+      return false;
+    }
+  }
+  return true;
+}
 
 // PHASE 3: Centralized cache invalidation and management
 export class CacheManager {
@@ -160,51 +180,99 @@ export class CacheManager {
   }>) {
     if (!this.queryClient) return;
 
-    const uniqueInvalidations = new Set<string>();
+    // Store real query-key prefixes (not flattened strings) to avoid substring false positives.
+    const uniqueInvalidations = new Map<string, QueryKey>();
+    const addPattern = (pattern: QueryKey) => {
+      uniqueInvalidations.set(pattern.map(String).join('\0'), pattern);
+    };
+
+    const orgKeys = organization(organizationId);
+    const teamListKeys = teams(organizationId);
 
     operations.forEach(op => {
       switch (op.type) {
         case 'equipment':
           if (op.id) {
-            uniqueInvalidations.add(`equipment-${organizationId}-${op.id}`);
+            addPattern(equipment.list(organizationId));
+            addPattern(equipment.byId(organizationId, op.id));
+            addPattern(workOrders.equipmentWorkOrders(organizationId, op.id));
+            addPattern(equipment.notes(op.id, organizationId));
+            addPattern(orgKeys.dashboardStats());
+            // Legacy prefixes still used by other CacheManager helpers
+            addPattern(['equipment-optimized', organizationId]);
+            addPattern(['work-orders', 'equipment', organizationId, op.id]);
+            addPattern(['notes', organizationId, op.id]);
+            addPattern(['dashboard-optimized', organizationId]);
           }
           break;
         case 'workOrder':
-          uniqueInvalidations.add(`work-orders-${organizationId}`);
+          addPattern(workOrders.list(organizationId));
+          addPattern(workOrders.optimized(organizationId));
+          addPattern(orgKeys.dashboardStats());
+          addPattern(['work-orders-optimized', organizationId]);
+          addPattern(['dashboard-optimized', organizationId]);
           if (op.equipmentId) {
-            uniqueInvalidations.add(`equipment-${organizationId}-${op.equipmentId}`);
+            addPattern(equipment.list(organizationId));
+            addPattern(workOrders.equipmentWorkOrders(organizationId, op.equipmentId));
+            addPattern(equipment.notes(op.equipmentId, organizationId));
+            addPattern(['equipment-optimized', organizationId]);
+            addPattern(['work-orders', 'equipment', organizationId, op.equipmentId]);
+            addPattern(['notes', organizationId, op.equipmentId]);
           }
           break;
         case 'team':
-          uniqueInvalidations.add(`teams-${organizationId}`);
-          uniqueInvalidations.add(`work-orders-${organizationId}`);
+          addPattern(teamListKeys.root);
+          addPattern(teamListKeys.optimized());
+          if (op.id) {
+            addPattern(team(op.id).root);
+            addPattern(['team', organizationId, op.id]);
+          }
+          addPattern(workOrders.list(organizationId));
+          addPattern(['teams-optimized', organizationId]);
+          addPattern(['work-orders-optimized', organizationId]);
           break;
         case 'organization':
-          uniqueInvalidations.add(`dashboard-${organizationId}`);
+          addPattern(orgKeys.dashboardStats());
+          addPattern(['dashboard-optimized', organizationId]);
+          addPattern(['dashboard-trends', organizationId]);
+          addPattern(['dashboardStats', organizationId]);
           break;
         case 'organizationMember':
-          uniqueInvalidations.add(`organization-members-${organizationId}`);
-          uniqueInvalidations.add(`organization-admins-${organizationId}`);
-          uniqueInvalidations.add(`dashboard-${organizationId}`);
+          addPattern(orgKeys.members());
+          addPattern(orgKeys.membersOptimized());
+          addPattern(orgKeys.dashboardStats());
+          addPattern(['organization-members', organizationId]);
+          addPattern(['organization-admins', organizationId]);
+          addPattern(['dashboard-optimized', organizationId]);
           break;
         case 'organizationSlot':
-          uniqueInvalidations.add(`organization-slots-${organizationId}`);
-          uniqueInvalidations.add(`slot-availability-${organizationId}`);
-          uniqueInvalidations.add(`slot-purchases-${organizationId}`);
+          addPattern(orgKeys.slots());
+          addPattern(orgKeys.slotAvailability());
+          addPattern(orgKeys.slotPurchases());
+          addPattern(['organization-slots', organizationId]);
+          addPattern(['slot-availability', organizationId]);
+          addPattern(['slot-purchases', organizationId]);
           break;
         case 'organizationInvitation':
-          uniqueInvalidations.add(`organization-invitations-${organizationId}`);
-          uniqueInvalidations.add(`slot-availability-${organizationId}`);
+          addPattern(orgKeys.invitations());
+          addPattern(orgKeys.slotAvailability());
+          addPattern(['organization-invitations', organizationId]);
+          addPattern(['slot-availability', organizationId]);
           break;
+        default: {
+          const _exhaustive: never = op.type;
+          void _exhaustive;
+          break;
+        }
       }
     });
 
-    // Execute batch invalidation
-    this.queryClient.invalidateQueries({ 
-      predicate: (query) => {
-        const keyStr = query.queryKey.join('-');
-        return Array.from(uniqueInvalidations).some(pattern => keyStr.includes(pattern));
-      }
+    const patterns = Array.from(uniqueInvalidations.values());
+
+    // Execute batch invalidation with structural prefix matching
+    this.queryClient.invalidateQueries({
+      predicate: (query) =>
+        patterns.some((pattern) => queryKeyMatchesPrefix(query.queryKey, pattern)),
     });
   }
 

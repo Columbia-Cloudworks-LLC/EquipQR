@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { QueryClient } from '@tanstack/react-query';
-import { CacheManager } from '../cacheManager';
+import { QueryClient, type QueryKey } from '@tanstack/react-query';
+import { CacheManager, queryKeyMatchesPrefix } from '../cacheManager';
 
 // Type definitions for mocks
 
@@ -155,8 +155,39 @@ describe('CacheManager', () => {
     });
   });
 
+  describe('queryKeyMatchesPrefix', () => {
+    it('matches structural prefixes and rejects mid-key substring collisions', () => {
+      expect(
+        queryKeyMatchesPrefix(
+          ['work-orders', 'equipment', 'org123', 'detail'],
+          ['equipment', 'org123']
+        )
+      ).toBe(false);
+
+      expect(
+        queryKeyMatchesPrefix(
+          ['equipment-optimized', 'org123'],
+          ['equipment-optimized', 'org123']
+        )
+      ).toBe(true);
+
+      expect(
+        queryKeyMatchesPrefix(
+          ['work-orders', 'equipment', 'org123', 'eq-1', 'detail'],
+          ['work-orders', 'equipment', 'org123', 'eq-1']
+        )
+      ).toBe(true);
+    });
+  });
+
   describe('batch invalidation', () => {
-    const organizationId = 'org-1';
+    const organizationId = 'org123';
+
+    const getBatchPredicate = () => {
+      const call = (mockQueryClient.invalidateQueries as ReturnType<typeof vi.fn>).mock
+        .calls[0][0] as { predicate: (query: { queryKey: QueryKey }) => boolean };
+      return call.predicate;
+    };
 
     it('should handle multiple operations efficiently', () => {
       const operations = [
@@ -183,6 +214,51 @@ describe('CacheManager', () => {
 
       // Should deduplicate operations
       expect(mockQueryClient.invalidateQueries).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not invalidate unrelated keys on substring collisions', () => {
+      cacheManager.batchInvalidate(organizationId, [
+        { type: 'equipment' as const, id: 'eq-1' },
+      ]);
+
+      const predicate = getBatchPredicate();
+
+      // Old join('-').includes() would false-positive match this key for "equipment-org123"
+      expect(
+        predicate({
+          queryKey: ['work-orders', 'equipment', organizationId, 'detail'],
+        })
+      ).toBe(false);
+
+      expect(
+        predicate({
+          queryKey: ['equipment', organizationId],
+        })
+      ).toBe(true);
+
+      expect(
+        predicate({
+          queryKey: ['equipment', organizationId, 'eq-1', 'scans'],
+        })
+      ).toBe(true);
+
+      expect(
+        predicate({
+          queryKey: ['work-orders', organizationId, 'equipment', 'eq-1'],
+        })
+      ).toBe(true);
+
+      expect(
+        predicate({
+          queryKey: ['equipment-optimized', organizationId],
+        })
+      ).toBe(true);
+
+      expect(
+        predicate({
+          queryKey: ['work-orders', organizationId, 'enhanced'],
+        })
+      ).toBe(false);
     });
   });
 

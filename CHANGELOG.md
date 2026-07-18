@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Cache batchInvalidate substring false positives (#1321)** — Match query keys by structural prefix arrays instead of `join('-').includes()`, so patterns like equipment/org segments no longer bust unrelated keys such as `work-orders-equipment-…`.
 - **Dead cache preload API (#1320)** — Remove `CacheManager.preloadRelatedData()`, which called React Query `prefetchQuery` without a `queryFn` and was an unused silent no-op.
 - **Auth cold-load race (#1319)** — Remove the parallel `getSession()` call on `AuthProvider` mount so bootstrap relies only on `onAuthStateChange` / `INITIAL_SESSION`, avoiding non-deterministic session and loading flicker when both paths raced `setSession` / `setIsLoading`.
 - **Revert to Accepted refreshes details (#1278)** — After an org admin uses Revert to Accepted on a completed or cancelled work order, the details page invalidates `workOrderKeys.detail` (via `invalidateWorkOrderCaches`) so status, lock warning, and actions update without a hard browser refresh.
