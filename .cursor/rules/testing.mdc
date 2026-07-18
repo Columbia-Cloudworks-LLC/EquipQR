@@ -5,7 +5,7 @@ globs: "**/*.test.{ts,tsx}"
 # Testing
 
 - **Framework:** Vitest + React Testing Library.
-- **Location:** Co-locate tests with source files (e.g., `Feature.tsx` -> `Feature.test.tsx`).
+- **Location:** Sibling colocation only — `Feature.tsx` + `Feature.test.tsx` in the same folder. No `__tests__/` folders, no `src/test/` or `src/tests/`. Shared harness is repo-root `vitest/` (`@vitest-harness/*`).
 - **Philosophy:** Test behavior, not implementation details.
 - **Mocking:** Mock Supabase client calls and Service layer functions. Do not mock internal component state logic if possible.
 - **Selectors:** Use accessible selectors (`getByRole`, `getByLabelText`) over `getByTestId` when possible.

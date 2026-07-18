@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import { createQueryClientWrapper } from '@/test/utils/test-utils';
+import { createQueryClientWrapper } from '@vitest-harness/utils/test-utils';
 
 // Mock supabase client
 vi.mock('@/integrations/supabase/client', () => ({

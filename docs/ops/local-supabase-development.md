@@ -516,7 +516,7 @@ Committed files under `supabase/seeds/` are the **durable core** — test users,
 | `.\dev-test.bat reset-db` / `run-user-regression.ps1 -ResetDb` | Regenerates at scale 1, then resets |
 | `npm run seed:generate [-- --scale N]` | Manual regeneration only (no DB reset) |
 
-Generation is deterministic (seeded RNG + counter UUIDs). Guardrail tests live in `src/tests/scripts/generateSeeds.test.ts`. See `supabase/seeds/README.md` for domain breakdown and E2E safety contracts (generated UUID prefixes stay disjoint from durable-core fixtures; Apex stays empty for operator check-ins and inventory RBAC deny paths).
+Generation is deterministic (seeded RNG + counter UUIDs). Guardrail tests live in `scripts/seed-data/generate-seeds.test.ts`. See `supabase/seeds/README.md` for domain breakdown and E2E safety contracts (generated UUID prefixes stay disjoint from durable-core fixtures; Apex stays empty for operator check-ins and inventory RBAC deny paths).
 
 ## Common Commands Reference
 

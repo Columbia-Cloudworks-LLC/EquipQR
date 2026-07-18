@@ -233,7 +233,7 @@ Bulk test data is produced by `scripts/seed-data/generate-seeds.ts` into `supaba
 | `run-user-regression.ps1 -ResetDb` (`dev-test.bat reset-db` / `local-full`) | Regenerates at scale 1, then resets |
 | `npm run seed:generate [-- --scale N]` | Manual regeneration only (no reset) |
 
-Generation is deterministic: the same scale always emits identical SQL (seeded RNG, counter-based UUIDs), so E2E behaves identically across machines and resets. Guardrail unit tests live in `src/tests/scripts/generateSeeds.test.ts`.
+Generation is deterministic: the same scale always emits identical SQL (seeded RNG, counter-based UUIDs), so E2E behaves identically across machines and resets. Guardrail unit tests live in `scripts/seed-data/generate-seeds.test.ts`.
 
 ### Domains at scale 1
 

@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { vi, beforeEach, describe, it, expect, type MockedFunction } from 'vitest';
 import PMProgressIndicator from './PMProgressIndicator';
-import { TestProviders } from '@/test/utils/TestProviders';
+import { TestProviders } from '@vitest-harness/utils/TestProviders';
 import { usePMByWorkOrderId } from '@/features/pm-templates/hooks/usePMData';
 
 // Mock hooks with proper factory to avoid hoisting

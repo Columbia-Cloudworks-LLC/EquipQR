@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Sibling-colocated Vitest layout (#1333)** — All Vitest suites live next to their subjects as `*.test.*` / `*.spec.*` siblings (no `__tests__/`, no `src/tests/`). Shared harness moves to repo-root `vitest/` (`@vitest-harness/*`). Script/tooling tests colocate under `scripts/`; docs and Vitest config updated for discovery.
 - **Dashboard cache invalidation (#1335)** — `invalidateWorkOrderRelated` skips a redundant `dashboard-optimized` invalidate when `equipmentId` is set, since `invalidateEquipmentRelated` already refreshes that query.
 - **Offline queue getCounts() (#1325)** — `OfflineQueueService.getCounts()` returns `{ pending, failed, total }` from one localStorage read; single-count helpers reuse it so callers that need multiple counts avoid triple deserialization.
 - **Memoize unified permissions (#1323)** — Wrap `equipment`, `workOrders`, `teams`, `inventory`, notes helper, and the hook return of `useUnifiedPermissions` in `useMemo` (keyed on session/auth fields) so dashboard consumers keep referential equality across parent re-renders.

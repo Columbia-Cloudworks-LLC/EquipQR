@@ -1,5 +1,5 @@
 /**
- * CLI argument parsing for demo-gif.mjs (unit-tested from src/tests/scripts).
+ * CLI argument parsing for demo-gif.mjs (unit-tested in scripts/lib/demoGifArgs.test.ts).
  * @typedef {object} DemoGifCliArgs
  * @property {string | null} scenarioName
  * @property {boolean} listOnly

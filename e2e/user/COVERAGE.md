@@ -67,9 +67,9 @@ CI now runs the full local suite on desktop plus the critical suite in the mobil
 
 | Workflow | Notes |
 |----------|--------|
-| QuickBooks export button disconnected state | `src/tests/quickbooks/` |
+| QuickBooks export button disconnected state | `src/features/work-orders/components/QuickBooksExportButton.test.tsx` |
 | Google Workspace integration panels | `OrganizationIntegrations.test.tsx` |
-| DSR cockpit API flows | `src/tests/e2e/dsr-cockpit.spec.ts` |
+| DSR cockpit API flows | `src/features/dsr/api/dsrApi.spec.ts` |
 
 ## Seed fixtures
 

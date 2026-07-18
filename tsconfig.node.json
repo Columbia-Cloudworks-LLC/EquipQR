@@ -18,7 +18,14 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
 
-    "types": ["node"]
+    "types": ["node", "vitest/globals"]
   },
-  "include": ["vite.config.ts", "playwright.config.ts", "playwright.user.config.ts", "e2e/**/*.ts", "scripts/csp.ts"]
+  "include": [
+    "vite.config.ts",
+    "playwright.config.ts",
+    "playwright.user.config.ts",
+    "e2e/**/*.ts",
+    "scripts/csp.ts",
+    "scripts/**/*.test.ts"
+  ]
 }

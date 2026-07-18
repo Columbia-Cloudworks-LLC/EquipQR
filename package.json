@@ -32,7 +32,6 @@
     "test:coverage": "node scripts/run-vitest-local.mjs --coverage",
     "test:watch": "vitest --watch",
     "test:ui": "vitest --ui",
-    "test:journeys": "vitest run src/tests/journeys",
     "test:e2e": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-user-regression.ps1 -Suite critical -Headless",
     "test:e2e:critical": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-user-regression.ps1 -Suite critical -Headless",
     "test:e2e:full": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run-user-regression.ps1 -Suite full -Headless",
