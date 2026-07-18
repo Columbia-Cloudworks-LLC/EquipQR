@@ -1,5 +1,6 @@
+import React from 'react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@/test/utils/test-utils';
+import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { OperatorCheckinLedgerPanel } from '@/features/operator-check-ins/components/OperatorCheckinLedgerPanel';
 
 const mockUseOperatorCheckinSubmissions = vi.fn();
@@ -22,6 +23,36 @@ vi.mock('@/features/operator-check-ins/hooks/useOperatorCheckinSettings', () => 
 vi.mock('@/features/operator-check-ins/components/OperatorCheckinReportExportDialog', () => ({
   OperatorCheckinReportExportDialog: () => null,
 }));
+
+// Stub heavy dual desktop/mobile ledger table for panel wiring tests (#1314).
+// Layout/sort coverage lives in OperatorCheckinLedgerPanel.table.test.tsx.
+vi.mock('@/features/operator-check-ins/components/OperatorCheckinLedgerTable', () => ({
+  OperatorCheckinLedgerTable: ({
+    scopeControls,
+    headerActions,
+    bodyFallback,
+    submissions,
+  }: {
+    scopeControls?: React.ReactNode;
+    headerActions?: React.ReactNode;
+    bodyFallback?: React.ReactNode;
+    submissions: Array<{ id: string; equipment?: { name?: string } | null }>;
+  }) => (
+    <div data-testid="ledger-table-stub">
+      {scopeControls}
+      {headerActions}
+      {bodyFallback}
+      {submissions.map((submission) => (
+        <div key={submission.id}>{submission.equipment?.name ?? submission.id}</div>
+      ))}
+    </div>
+  ),
+}));
+
+async function selectReportTemplate(name: string | RegExp) {
+  fireEvent.click(screen.getByRole('combobox', { name: /Report template/i }));
+  fireEvent.click(await screen.findByRole('option', { name }));
+}
 
 describe('OperatorCheckinLedgerPanel', () => {
   beforeEach(() => {
@@ -77,8 +108,7 @@ describe('OperatorCheckinLedgerPanel', () => {
     expect(screen.getByRole('button', { name: 'End date' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Export/i })).toBeDisabled();
 
-    fireEvent.click(screen.getByRole('combobox', { name: /Report template/i }));
-    fireEvent.click(await screen.findByRole('option', { name: 'Odometer Log' }));
+    await selectReportTemplate('Odometer Log');
 
     await waitFor(() => {
       expect(mockUseOperatorCheckinSubmissions).toHaveBeenCalledWith(
@@ -95,166 +125,12 @@ describe('OperatorCheckinLedgerPanel', () => {
   it('shows only equipment assigned to the selected report template', async () => {
     render(<OperatorCheckinLedgerPanel organizationId="org-1" />);
 
-    fireEvent.click(screen.getByRole('combobox', { name: /Report template/i }));
-    fireEvent.click(await screen.findByRole('option', { name: 'Daily Safety' }));
+    await selectReportTemplate('Daily Safety');
 
     fireEvent.click(screen.getByRole('button', { name: /Select equipment records/i }));
 
     expect(await screen.findByText('Truck 202')).toBeInTheDocument();
     expect(screen.queryByText('Truck 101')).not.toBeInTheDocument();
-  });
-
-  it('renders a template-driven ledger table for submissions', async () => {
-    mockUseOperatorCheckinSubmissions.mockReturnValue({
-      data: [
-        {
-          id: 'sub-1',
-          organization_id: 'org-1',
-          equipment_id: 'eq-1',
-          template_id: 'template-odo',
-          settings_id: 'settings-1',
-          submitted_at: '2026-07-04T14:30:00.000Z',
-          template_snapshot: {
-            name: 'Odometer Log',
-            checklistItems: [],
-            dataFields: [{ id: 'field-odo', label: 'Odometer reading', source: 'operator_input', inputType: 'number' }],
-          },
-          operator_field_values: [
-            { field_id: 'field-odo', label: 'Odometer reading', source: 'operator_input', value: 1200 },
-          ],
-          client_field_values: [],
-          equipment_field_values: [],
-          checklist_answers: [],
-          is_complete: true,
-          required_item_count: 0,
-          answered_required_count: 0,
-          equipment: { id: 'eq-1', name: 'Truck 101', serial_number: 'SN-1' },
-        },
-        {
-          id: 'sub-2',
-          organization_id: 'org-1',
-          equipment_id: 'eq-1',
-          template_id: 'template-odo',
-          settings_id: 'settings-1',
-          submitted_at: '2026-07-04T16:00:00.000Z',
-          template_snapshot: {
-            name: 'Odometer Log',
-            checklistItems: [],
-            dataFields: [{ id: 'field-odo', label: 'Odometer reading', source: 'operator_input', inputType: 'number' }],
-          },
-          operator_field_values: [
-            { field_id: 'field-odo', label: 'Odometer reading', source: 'operator_input', value: 1300 },
-          ],
-          client_field_values: [],
-          equipment_field_values: [],
-          checklist_answers: [],
-          is_complete: true,
-          required_item_count: 0,
-          answered_required_count: 0,
-          equipment: { id: 'eq-1', name: 'Truck 101', serial_number: 'SN-1' },
-        },
-      ],
-      isLoading: false,
-    });
-    mockUseOperatorChecklistTemplates.mockReturnValue({
-      data: [
-        {
-          id: 'template-odo',
-          name: 'Odometer Log',
-          is_active: true,
-          template_data: {
-            checklistItems: [],
-            dataFields: [{ id: 'field-odo', label: 'Odometer reading', source: 'operator_input', inputType: 'number' }],
-          },
-        },
-      ],
-      isLoading: false,
-    });
-
-    render(<OperatorCheckinLedgerPanel organizationId="org-1" />);
-
-    fireEvent.click(screen.getByRole('combobox', { name: /Report template/i }));
-    fireEvent.click(await screen.findByRole('option', { name: 'Odometer Log' }));
-
-    const desktopTable = await screen.findByTestId('ledger-desktop-table');
-    expect(within(desktopTable).getByRole('columnheader', { name: 'Odometer reading' })).toBeInTheDocument();
-    expect(within(desktopTable).getAllByText('Truck 101')).toHaveLength(2);
-    expect(within(desktopTable).getByText('1200')).toBeInTheDocument();
-    expect(within(desktopTable).getByText('1300')).toBeInTheDocument();
-
-    const submittedHeader = within(desktopTable).getByRole('columnheader', { name: /Submitted/i });
-    expect(submittedHeader).toHaveAttribute('aria-sort', 'descending');
-
-    const tableRows = within(desktopTable).getAllByRole('row').slice(1);
-    expect(within(tableRows[0]).getByText('1300')).toBeInTheDocument();
-    expect(within(tableRows[1]).getByText('1200')).toBeInTheDocument();
-
-    const mobileList = screen.getByTestId('ledger-mobile-list');
-    expect(within(mobileList).getAllByText('Truck 101')).toHaveLength(2);
-    expect(within(mobileList).getByText('1200')).toBeInTheDocument();
-    expect(within(mobileList).getByText('1300')).toBeInTheDocument();
-
-    expect(screen.getByText('2 submissions · 2 complete · Showing 1–2')).toBeInTheDocument();
-  });
-
-  it('resets sort to submitted descending when the report template changes', async () => {
-    mockUseOperatorCheckinSubmissions.mockReturnValue({
-      data: [
-        {
-          id: 'sub-1',
-          organization_id: 'org-1',
-          equipment_id: 'eq-1',
-          template_id: 'template-odo',
-          settings_id: 'settings-1',
-          submitted_at: '2026-07-04T14:30:00.000Z',
-          template_snapshot: {
-            name: 'Odometer Log',
-            checklistItems: [],
-            dataFields: [{ id: 'field-odo', label: 'Odometer reading', source: 'operator_input', inputType: 'number' }],
-          },
-          operator_field_values: [
-            { field_id: 'field-odo', label: 'Odometer reading', source: 'operator_input', value: 1200 },
-          ],
-          client_field_values: [],
-          equipment_field_values: [],
-          checklist_answers: [],
-          is_complete: true,
-          required_item_count: 0,
-          answered_required_count: 0,
-          equipment: { id: 'eq-1', name: 'Truck 101', serial_number: 'SN-1' },
-        },
-      ],
-      isLoading: false,
-    });
-
-    render(<OperatorCheckinLedgerPanel organizationId="org-1" />);
-
-    fireEvent.click(screen.getByRole('combobox', { name: /Report template/i }));
-    fireEvent.click(await screen.findByRole('option', { name: 'Odometer Log' }));
-
-    const desktopTable = await screen.findByTestId('ledger-desktop-table');
-    fireEvent.click(within(desktopTable).getByRole('button', { name: /Odometer reading/i }));
-
-    expect(within(desktopTable).getByRole('columnheader', { name: /Odometer reading/i })).toHaveAttribute(
-      'aria-sort',
-      'ascending',
-    );
-
-    fireEvent.click(screen.getByRole('combobox', { name: /Report template/i }));
-    fireEvent.click(await screen.findByRole('option', { name: 'Daily Safety' }));
-
-    fireEvent.click(screen.getByRole('combobox', { name: /Report template/i }));
-    fireEvent.click(await screen.findByRole('option', { name: 'Odometer Log' }));
-
-    const resetTable = await screen.findByTestId('ledger-desktop-table');
-    expect(within(resetTable).getByRole('columnheader', { name: /Submitted/i })).toHaveAttribute(
-      'aria-sort',
-      'descending',
-    );
-    expect(within(resetTable).getByRole('columnheader', { name: /Odometer reading/i })).toHaveAttribute(
-      'aria-sort',
-      'none',
-    );
   });
 
   it('hides deleted templates by default in the ledger picker', async () => {
@@ -345,8 +221,7 @@ describe('OperatorCheckinLedgerPanel', () => {
     render(<OperatorCheckinLedgerPanel organizationId="org-1" allowDeletedVisibilityToggle />);
 
     fireEvent.click(screen.getByRole('switch', { name: /Show deleted check-ins/i }));
-    fireEvent.click(screen.getByRole('combobox', { name: /Report template/i }));
-    fireEvent.click(await screen.findByRole('option', { name: 'Retired Checklist (deleted)' }));
+    await selectReportTemplate('Retired Checklist (deleted)');
 
     await waitFor(() => {
       expect(mockUseOperatorCheckinSubmissions).toHaveBeenCalledWith(

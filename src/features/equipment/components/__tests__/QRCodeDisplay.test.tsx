@@ -59,8 +59,10 @@ describe('QRCodeDisplay', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock successful QR code generation by default
-    (mockQRCode.default.toDataURL as ReturnType<typeof vi.fn>).mockResolvedValue('data:image/png;base64,mock-qr-code');
+    // Sync-resolved promise keeps generation waits short (#1314)
+    (mockQRCode.default.toDataURL as ReturnType<typeof vi.fn>).mockImplementation(() =>
+      Promise.resolve('data:image/png;base64,mock-qr-code'),
+    );
     
     // Mock window.location.origin
     Object.defineProperty(window, 'location', {
@@ -76,10 +78,6 @@ describe('QRCodeDisplay', () => {
       writable: true,
       configurable: true
     });
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
   });
 
   describe('Dialog Rendering', () => {
@@ -127,11 +125,8 @@ describe('QRCodeDisplay', () => {
     it('displays generated QR code image', async () => {
       render(<QRCodeDisplay {...defaultProps} />);
       
-      await waitFor(() => {
-        const img = screen.getByAltText('Equipment QR Code');
-        expect(img).toBeInTheDocument();
-        expect(img).toHaveAttribute('src', 'data:image/png;base64,mock-qr-code');
-      });
+      const img = await screen.findByAltText('Equipment QR Code');
+      expect(img).toHaveAttribute('src', 'data:image/png;base64,mock-qr-code');
     });
 
     it('shows loading state while generating QR code', () => {
@@ -201,6 +196,7 @@ describe('QRCodeDisplay', () => {
       expect(testLink).toHaveAttribute('href', 'https://test.com/qr/equipment/test-equipment-id');
       expect(testLink).toHaveAttribute('target', '_blank');
       expect(testLink).toHaveAttribute('rel', 'noopener noreferrer');
+      expect(screen.getByText('Copied')).toBeInTheDocument();
     });
 
     it('handles copy error', async () => {
@@ -229,6 +225,10 @@ describe('QRCodeDisplay', () => {
         }
         return originalCreateElement(tagName);
       });
+    });
+
+    afterEach(() => {
+      vi.mocked(document.createElement).mockRestore();
     });
 
     it('shows download format selector', () => {

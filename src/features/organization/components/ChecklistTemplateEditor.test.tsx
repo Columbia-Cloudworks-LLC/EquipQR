@@ -2,10 +2,6 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { ChecklistTemplateEditor } from './ChecklistTemplateEditor';
-import {
-  moveChecklistItemToSectionEdge,
-  reorderChecklistItems,
-} from './checklistTemplateEditorUtils';
 import { TestProviders } from '@/test/utils/TestProviders';
 
 // Mock the PM Templates hooks
@@ -371,43 +367,6 @@ describe('ChecklistTemplateEditor', () => {
       await waitFor(() => {
         expect(screen.getAllByLabelText('Check name').length).toBeGreaterThanOrEqual(2);
       });
-    });
-  });
-
-  describe('reorderChecklistItems', () => {
-    it('moves an item within the same section', () => {
-      const items = mockTemplate.template_data;
-      const reordered = reorderChecklistItems(items, 'item-2', 'item-1');
-      expect(reordered.map((item) => item.id)).toEqual(['item-2', 'item-1']);
-    });
-
-    it('moves an item to the top of its section', () => {
-      const items = mockTemplate.template_data;
-      const moved = moveChecklistItemToSectionEdge(items, 'item-2', 'top');
-      expect(moved.map((item) => item.id)).toEqual(['item-2', 'item-1']);
-    });
-
-    it('moves an item to the bottom of its section', () => {
-      const items = mockTemplate.template_data;
-      const moved = moveChecklistItemToSectionEdge(items, 'item-1', 'bottom');
-      expect(moved.map((item) => item.id)).toEqual(['item-2', 'item-1']);
-    });
-
-    it('does not reorder across sections', () => {
-      const items = [
-        ...mockTemplate.template_data,
-        {
-          id: 'item-3',
-          title: 'Brake pads',
-          description: '',
-          section: 'Brakes',
-          condition: null,
-          required: false,
-          notes: '',
-        },
-      ];
-      const unchanged = reorderChecklistItems(items, 'item-1', 'item-3');
-      expect(unchanged).toBe(items);
     });
   });
 

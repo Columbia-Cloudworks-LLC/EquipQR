@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 // Test utility file - Fast Refresh is not applicable here
 
-import React from 'react';
+import React, { useState } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { createTestQueryClient } from '@/test/utils/query-client-wrapper';
@@ -54,7 +54,9 @@ export const TestProviders = ({
   initialEntries,
   persona 
 }: TestProvidersProps) => {
-  const queryClient = createTestQueryClient();
+  // Fresh QueryClient per wrapper instance (test isolation). useState keeps the
+  // same client across re-renders so cache is not reset mid-test (#1314).
+  const [queryClient] = useState(() => createTestQueryClient());
 
   // Create persona-aware mock values if persona is provided
   const sessionValue = persona ? createMockSessionForPersona(persona) : undefined;

@@ -153,12 +153,37 @@ vi.mock('@/features/organization/components/SimplifiedInvitationDialog', () => (
   default: () => null,
 }));
 
+// Mount only one CSS layout twin per test (#1314) — jsdom ignores sm:hidden / hidden sm:block.
+const { membersLayoutMode } = vi.hoisted(() => ({
+  membersLayoutMode: { current: 'desktop' as 'desktop' | 'mobile' },
+}));
+
+vi.mock('@/features/organization/components/UnifiedMembersMobileList', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/features/organization/components/UnifiedMembersMobileList')>();
+  return {
+    UnifiedMembersMobileList: (props: React.ComponentProps<typeof actual.UnifiedMembersMobileList>) =>
+      membersLayoutMode.current === 'mobile' ? <actual.UnifiedMembersMobileList {...props} /> : null,
+  };
+});
+
+vi.mock('@/features/organization/components/UnifiedMembersDesktopTable', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/features/organization/components/UnifiedMembersDesktopTable')>();
+  return {
+    UnifiedMembersDesktopTable: (props: React.ComponentProps<typeof actual.UnifiedMembersDesktopTable>) =>
+      membersLayoutMode.current === 'desktop' ? <actual.UnifiedMembersDesktopTable {...props} /> : null,
+  };
+});
+
 // Import component after mocks to ensure they take effect
 import UnifiedMembersList from '../UnifiedMembersList';
 import { useGoogleWorkspaceMemberClaims } from '@/features/organization/hooks/useGoogleWorkspaceMemberClaims';
 import { usePartsManagers } from '@/features/inventory/hooks/usePartsManagers';
 
 describe('UnifiedMembersList', () => {
+  beforeEach(() => {
+    membersLayoutMode.current = 'desktop';
+  });
+
   const baseMembers: RealOrganizationMember[] = [
     {
       id: 'u-1',
@@ -180,7 +205,7 @@ describe('UnifiedMembersList', () => {
     },
   ];
 
-  it('renders active members and pending invitations in a unified list', async () => {
+  it('renders active members and pending invitations in a unified list', () => {
     customRender(
       <UnifiedMembersList
         members={baseMembers}
@@ -191,16 +216,13 @@ describe('UnifiedMembersList', () => {
       />
     );
 
-    // Active member (appears in both desktop table and mobile card views)
-    const aliceElements = await screen.findAllByText('Alice Admin');
-    expect(aliceElements[0]).toBeInTheDocument();
+    expect(screen.getByText('Alice Admin')).toBeInTheDocument();
     // Pending invitation row - "Pending Invite" appears in both name and status columns
-    const pendingInviteElements = screen.getAllByText('Pending Invite');
-    expect(pendingInviteElements.length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('invitee@example.com')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Pending Invite').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('invitee@example.com')).toBeInTheDocument();
   });
 
-  it('does not disable Invite button when billing is disabled (billing disabled by default)', async () => {
+  it('does not disable Invite button when billing is disabled (billing disabled by default)', () => {
     customRender(
       <UnifiedMembersList
         members={baseMembers}
@@ -211,12 +233,13 @@ describe('UnifiedMembersList', () => {
       />
     );
 
-    const inviteBtn = await screen.findByRole('button', { name: /invite member/i });
+    const inviteBtn = screen.getByRole('button', { name: /invite member/i });
     // With billing disabled by default, invitations are never blocked
     expect(inviteBtn).not.toBeDisabled();
   });
 
-  it('shows parts manager toggle on mobile for member-role users', async () => {
+  it('shows parts manager toggle on mobile for member-role users', () => {
+    membersLayoutMode.current = 'mobile';
     vi.mocked(usePartsManagers).mockReturnValue({
       data: [],
       isLoading: false,
@@ -232,7 +255,7 @@ describe('UnifiedMembersList', () => {
       />
     );
 
-    await screen.findAllByText('Bob Member');
+    expect(screen.getByText('Bob Member')).toBeInTheDocument();
 
     const partsManagerSwitch = screen.getByRole('switch', { name: 'Parts manager' });
     fireEvent.click(partsManagerSwitch);
@@ -243,7 +266,8 @@ describe('UnifiedMembersList', () => {
     });
   });
 
-  it('shows parts consumer toggle on mobile for member-role users', async () => {
+  it('shows parts consumer toggle on mobile for member-role users', () => {
+    membersLayoutMode.current = 'mobile';
     customRender(
       <UnifiedMembersList
         members={baseMembers}
@@ -254,7 +278,7 @@ describe('UnifiedMembersList', () => {
       />
     );
 
-    await screen.findAllByText('Bob Member');
+    expect(screen.getByText('Bob Member')).toBeInTheDocument();
 
     const partsConsumerSwitch = screen.getByRole('switch', { name: 'Parts consumer' });
     fireEvent.click(partsConsumerSwitch);
@@ -276,28 +300,23 @@ describe('UnifiedMembersList', () => {
       />
     );
 
-    // Wait for the component to render
-    await screen.findAllByText('Alice Admin');
-    await screen.findAllByText('Bob Member');
+    expect(screen.getByText('Alice Admin')).toBeInTheDocument();
+    expect(screen.getByText('Bob Member')).toBeInTheDocument();
 
-    // Scope to the desktop table to avoid mobile card duplicates
     const table = screen.getByRole('table');
     const bobRow = within(table).getByText('Bob Member').closest('tr');
     expect(bobRow).toBeInTheDocument();
     
     if (bobRow) {
-      // Find the select trigger within Bob's row
       const selectTrigger = bobRow.querySelector('[role="combobox"]');
       if (selectTrigger) {
         fireEvent.click(selectTrigger);
         
-        // Wait for dropdown options to appear
         const adminOption = await screen.findByRole('option', { name: /admin/i });
         fireEvent.click(adminOption);
 
         expect(mockUpdateRole).toHaveBeenCalled();
       } else {
-        // If no select found, just verify the role text is displayed
         expect(bobRow).toHaveTextContent('member');
       }
     }
@@ -389,7 +408,7 @@ describe('UnifiedMembersList', () => {
       });
     });
 
-    it('renders pending Google Workspace claims with name and Awaiting Sign-up status', async () => {
+    it('renders pending Google Workspace claims with name and Awaiting Sign-up status', () => {
       customRender(
         <UnifiedMembersList
           members={baseMembers}
@@ -400,16 +419,13 @@ describe('UnifiedMembersList', () => {
         />
       );
 
-      // Should show the GWS claim with full name (appears in both desktop and mobile views)
-      expect((await screen.findAllByText('Pending User'))[0]).toBeInTheDocument();
-      expect(screen.getAllByText('pending.user@workspace.example.com')[0]).toBeInTheDocument();
-      
-      // Should show "Awaiting Sign-up" status
-      const awaitingSignupBadges = screen.getAllByText('Awaiting Sign-up');
-      expect(awaitingSignupBadges.length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText('Pending User')).toBeInTheDocument();
+      expect(screen.getByText('pending.user@workspace.example.com')).toBeInTheDocument();
+      // Status badge + possible duplicate label in the same row
+      expect(screen.getAllByText('Awaiting Sign-up').length).toBeGreaterThanOrEqual(1);
     });
 
-    it('renders GWS claims without name as "Pending (Google Workspace)"', async () => {
+    it('renders GWS claims without name as "Pending (Google Workspace)"', () => {
       customRender(
         <UnifiedMembersList
           members={baseMembers}
@@ -420,12 +436,11 @@ describe('UnifiedMembersList', () => {
         />
       );
 
-      // Should show the fallback name for claim without fullName
-      expect((await screen.findAllByText('Pending (Google Workspace)'))[0]).toBeInTheDocument();
-      expect(screen.getAllByText('noname@workspace.example.com')[0]).toBeInTheDocument();
+      expect(screen.getByText('Pending (Google Workspace)')).toBeInTheDocument();
+      expect(screen.getByText('noname@workspace.example.com')).toBeInTheDocument();
     });
 
-    it('shows actions dropdown for GWS claims with remove action available', async () => {
+    it('shows actions dropdown for GWS claims with remove action available', () => {
       customRender(
         <UnifiedMembersList
           members={baseMembers}
@@ -436,9 +451,8 @@ describe('UnifiedMembersList', () => {
         />
       );
 
-      // Wait for GWS claim to render
-      await screen.findAllByText('Pending User');
-      
+      expect(screen.getByText('Pending User')).toBeInTheDocument();
+
       // Find the row for the GWS claim (scope to desktop table)
       const table = screen.getByRole('table');
       const gwsRow = within(table).getByText('Pending User').closest('tr');
@@ -455,7 +469,7 @@ describe('UnifiedMembersList', () => {
       }
     });
 
-    it('does not show GWS claims that are already active members', async () => {
+    it('does not show GWS claims that are already active members', () => {
       // Add a claim with the same email as an existing member
       const claimsWithDuplicate = [
         ...gwsClaims,
@@ -509,14 +523,11 @@ describe('UnifiedMembersList', () => {
         />
       );
 
-      // Alice Admin should appear (the active member)
-      expect((await screen.findAllByText('Alice Admin'))[0]).toBeInTheDocument();
-      
-      // But "Alice Duplicate" should NOT appear (filtered out as duplicate)
+      expect(screen.getByText('Alice Admin')).toBeInTheDocument();
       expect(screen.queryByText('Alice Duplicate')).not.toBeInTheDocument();
     });
 
-    it('does not show GWS claims that duplicate pending invitations', async () => {
+    it('does not show GWS claims that duplicate pending invitations', () => {
       // Add a claim with the same email as a pending invitation (invitee@example.com)
       const claimsWithInviteDuplicate = [
         ...gwsClaims,
@@ -570,10 +581,7 @@ describe('UnifiedMembersList', () => {
         />
       );
 
-      // The pending invitation should appear
-      expect((await screen.findAllByText('invitee@example.com'))[0]).toBeInTheDocument();
-      
-      // But "Invitee Duplicate" GWS claim should NOT appear (filtered out as duplicate of pending invitation)
+      expect(screen.getByText('invitee@example.com')).toBeInTheDocument();
       expect(screen.queryByText('Invitee Duplicate')).not.toBeInTheDocument();
     });
   });
@@ -591,7 +599,7 @@ describe('UnifiedMembersList', () => {
       });
     });
 
-    it('does not show Import from Google button when GWS is not connected', async () => {
+    it('does not show Import from Google button when GWS is not connected', () => {
       customRender(
         <UnifiedMembersList
           members={baseMembers}
@@ -602,16 +610,12 @@ describe('UnifiedMembersList', () => {
         />
       );
 
-      await screen.findAllByText('Alice Admin');
-      
-      // Should show Invite Member button
+      expect(screen.getByText('Alice Admin')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /invite member/i })).toBeInTheDocument();
-      
-      // Should NOT show Import from Google button
       expect(screen.queryByRole('button', { name: /import from google/i })).not.toBeInTheDocument();
     });
 
-    it('shows Import from Google button when GWS is connected and user can invite', async () => {
+    it('shows Import from Google button when GWS is connected and user can invite', () => {
       mockGwsConnectionStatus.mockReturnValue({
         isConnected: true,
         domain: 'example.com',
@@ -631,14 +635,12 @@ describe('UnifiedMembersList', () => {
         />
       );
 
-      await screen.findAllByText('Alice Admin');
-      
-      // Should show both buttons
+      expect(screen.getByText('Alice Admin')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /invite member/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /import from google/i })).toBeInTheDocument();
     });
 
-    it('does not show Import from Google button when user cannot invite members', async () => {
+    it('does not show Import from Google button when user cannot invite members', () => {
       mockGwsConnectionStatus.mockReturnValue({
         isConnected: true,
         domain: 'example.com',
@@ -658,14 +660,12 @@ describe('UnifiedMembersList', () => {
         />
       );
 
-      await screen.findAllByText('Alice Admin');
-      
-      // Should NOT show either button when user cannot invite
+      expect(screen.getByText('Alice Admin')).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /invite member/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /import from google/i })).not.toBeInTheDocument();
     });
 
-    it('opens import sheet when Import from Google button is clicked', async () => {
+    it('opens import sheet when Import from Google button is clicked', () => {
       mockGwsConnectionStatus.mockReturnValue({
         isConnected: true,
         domain: 'example.com',
@@ -685,16 +685,13 @@ describe('UnifiedMembersList', () => {
         />
       );
 
-      await screen.findAllByText('Alice Admin');
-      
-      // Sheet should not be visible initially
+      expect(screen.getByText('Alice Admin')).toBeInTheDocument();
       expect(screen.queryByTestId('gws-import-sheet')).not.toBeInTheDocument();
       
       const importButton = screen.getByRole('button', { name: /import from google/i });
       fireEvent.click(importButton);
       
-      // After clicking, the sheet should be visible (our mock renders conditionally based on `open` prop)
-      expect(await screen.findByTestId('gws-import-sheet')).toBeInTheDocument();
+      expect(screen.getByTestId('gws-import-sheet')).toBeInTheDocument();
     });
   });
 });
