@@ -742,4 +742,26 @@ describe('useUnifiedPermissions', () => {
       expect(permissionEngine.clearCache).toHaveBeenCalled();
     });
   });
+
+  describe('Referential stability', () => {
+    it('keeps permission domain objects and return value stable across re-renders', () => {
+      setupUnifiedPermissionsPersonaMocks('admin');
+
+      const { result, rerender } = renderHook(() => useUnifiedPermissions(), {
+        wrapper: createUnifiedPermissionsWrapper(),
+      });
+
+      const first = result.current;
+      rerender();
+      const second = result.current;
+
+      expect(second).toBe(first);
+      expect(second.organization).toBe(first.organization);
+      expect(second.equipment).toBe(first.equipment);
+      expect(second.workOrders).toBe(first.workOrders);
+      expect(second.teams).toBe(first.teams);
+      expect(second.inventory).toBe(first.inventory);
+      expect(second.getEquipmentNotesPermissions).toBe(first.getEquipmentNotesPermissions);
+    });
+  });
 });
