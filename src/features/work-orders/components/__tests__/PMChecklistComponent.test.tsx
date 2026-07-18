@@ -1,6 +1,9 @@
 import { screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import type { WorkOrderData } from '@/features/work-orders/types/workOrderDetails';
+import { workOrderRevertService } from '@/features/work-orders/services/workOrderRevertService';
+import { toast } from 'sonner';
 import {
   openPmSection,
   openPmSectionAndWaitForItem,
@@ -275,6 +278,61 @@ describe('PMChecklistComponent', () => {
 
       expect(screen.getByPlaceholderText('Add general notes about this PM...')).toBeDisabled();
       expect(screen.queryByRole('button', { name: 'Start voice input' })).not.toBeInTheDocument();
+    });
+  });
+
+  describe('revert PM completion', () => {
+    const completedWorkOrder = {
+      id: 'wo-1',
+      title: 'Completed WO',
+      description: '',
+      status: 'completed',
+      priority: 'medium',
+      created_date: '2024-01-01T00:00:00Z',
+      equipment_id: 'eq-1',
+      organization_id: 'org-1',
+    } satisfies WorkOrderData;
+
+    it('passes terminal work order context and explains reopen in confirm dialog', async () => {
+      vi.mocked(workOrderRevertService.revertPMCompletion).mockResolvedValue({
+        success: true,
+        old_status: 'completed',
+        new_status: 'pending',
+        work_order_reopened: true,
+        work_order_old_status: 'completed',
+        work_order_new_status: 'accepted',
+      });
+
+      const pm = createMockPM({ status: 'completed' });
+      renderPMChecklist(pm, {
+        onUpdate: mockOnUpdate,
+        isAdmin: true,
+        workOrder: completedWorkOrder,
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /revert pm completion/i }));
+
+      expect(
+        screen.getByText(/reopen this work order to accepted/i),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/back to pending/i)).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /yes, revert completion/i }));
+
+      await waitFor(() => {
+        expect(workOrderRevertService.revertPMCompletion).toHaveBeenCalledWith('pm-1', {
+          reason: 'PM completion reverted by admin',
+          workOrderId: 'wo-1',
+          workOrderStatus: 'completed',
+        });
+      });
+
+      await waitFor(() => {
+        expect(toast.success).toHaveBeenCalledWith(
+          expect.stringMatching(/work order reopened to accepted/i),
+        );
+        expect(mockOnUpdate).toHaveBeenCalled();
+      });
     });
   });
 });

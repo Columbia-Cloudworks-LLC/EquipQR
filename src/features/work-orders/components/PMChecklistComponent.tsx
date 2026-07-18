@@ -17,6 +17,7 @@ import { useUpdatePM } from '@/features/pm-templates/hooks/usePMData';
 import { useQueryClient } from '@tanstack/react-query';
 import { workOrderRevertService } from '@/features/work-orders/services/workOrderRevertService';
 import { WorkOrderData, EquipmentData, TeamMemberData, OrganizationData } from '@/features/work-orders/types/workOrderDetails';
+import { invalidateWorkOrderCaches } from '@/features/work-orders/utils/invalidateWorkOrderQueries';
 import { logger } from '@/utils/logger';
 import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
 import PMChecklistSections from '@/features/work-orders/components/PMChecklistSections';
@@ -30,6 +31,8 @@ import {
 import { isNegativePMCondition, PM_CONDITION_NOT_APPLICABLE } from '@/utils/pmChecklistHelpers';
 import { preventiveMaintenance } from '@/lib/queryKeys';
 import { useAuth } from '@/hooks/useAuth';
+
+const TERMINAL_WORK_ORDER_STATUSES = new Set(['completed', 'cancelled']);
 
 // ============================================
 // Pure utility functions (hoisted to module scope)
@@ -443,19 +446,40 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     }
   };
 
+  const workOrderId = workOrder?.id || pm.work_order_id;
+  const willReopenWorkOrder =
+    !!workOrderId && TERMINAL_WORK_ORDER_STATUSES.has(workOrder?.status ?? '');
+
   const revertPMCompletion = async () => {
     setIsReverting(true);
     try {
-      const result = await workOrderRevertService.revertPMCompletion(
-        pm.id,
-        'PM completion reverted by admin'
-      );
-      
+      const result = await workOrderRevertService.revertPMCompletion(pm.id, {
+        reason: 'PM completion reverted by admin',
+        workOrderId,
+        workOrderStatus: workOrder?.status,
+      });
+
+      const orgId = organization?.id || workOrder?.organization_id;
+      if (workOrderId) {
+        queryClient.invalidateQueries({ queryKey: preventiveMaintenance.byWorkOrder(workOrderId) });
+      }
+      if (orgId && workOrderId) {
+        invalidateWorkOrderCaches(queryClient, orgId, workOrderId);
+      }
+
       if (result.success) {
-        toast.success(`PM status reverted from ${result.old_status} to ${result.new_status}`);
+        if (result.work_order_reopened) {
+          toast.success(
+            `PM reverted to ${result.new_status} and work order reopened to ${result.work_order_new_status ?? 'accepted'}`,
+          );
+        } else {
+          toast.success(`PM status reverted from ${result.old_status} to ${result.new_status}`);
+        }
         onUpdate();
       } else {
+        // PM may already be pending when WO reopen fails — still refresh caches above.
         toast.error(result.error || 'Failed to revert PM completion');
+        onUpdate();
       }
     } catch (error) {
       logger.error('Error reverting PM completion', error);
@@ -862,6 +886,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
           onRevertPMDialogOpenChange={setShowRevertPMDialog}
           isReverting={isReverting}
           onConfirmRevert={revertPMCompletion}
+          willReopenWorkOrder={willReopenWorkOrder}
         />
       </CardContent>
     </Card>

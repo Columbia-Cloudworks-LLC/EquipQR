@@ -61,6 +61,11 @@ export const seedWorkOrders = {
     id: 'a00e8400-e29b-41d4-a716-446655440114',
     title: '200-Hour PM - Bobcat S770 Skid Steer',
   },
+  /** Apex completed WO + completed PM — used for admin Revert PM Completion (#1277). */
+  apexCompletedPm: {
+    id: 'a00e8400-e29b-41d4-a716-446655440101',
+    title: '250-Hour PM - CAT 320 Excavator',
+  },
   accepted: {
     id: 'a00e8400-e29b-41d4-a716-446655440012',
     title: 'Scissor Lift Hydraulic Repair',

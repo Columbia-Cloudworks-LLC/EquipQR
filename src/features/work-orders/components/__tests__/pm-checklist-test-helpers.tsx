@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@/test/utils/test-utils';
 import PMChecklistComponent from '../PMChecklistComponent';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import type { WorkOrderData } from '@/features/work-orders/types/workOrderDetails';
 
 export const defaultPmChecklistOrg = { id: 'org-1', name: 'Test Org' };
 
@@ -9,8 +10,10 @@ export function renderPMChecklist(
   pm: PreventativeMaintenance,
   options?: {
     readOnly?: boolean;
+    isAdmin?: boolean;
     onUpdate?: () => void;
     organization?: { id: string; name: string };
+    workOrder?: WorkOrderData;
   },
 ) {
   const onUpdate = options?.onUpdate ?? (() => undefined);
@@ -19,7 +22,9 @@ export function renderPMChecklist(
       pm={pm}
       onUpdate={onUpdate}
       readOnly={options?.readOnly ?? false}
+      isAdmin={options?.isAdmin ?? false}
       organization={options?.organization ?? defaultPmChecklistOrg}
+      workOrder={options?.workOrder}
     />,
   );
 }
