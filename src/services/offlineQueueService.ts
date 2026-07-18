@@ -455,19 +455,34 @@ export class OfflineQueueService {
     }
   }
 
+  /**
+   * Pending, failed, and total counts from a single localStorage read.
+   * Prefer this when a caller needs more than one count.
+   */
+  getCounts(): { pending: number; failed: number; total: number } {
+    const queue = this.getAll();
+    let pending = 0;
+    let failed = 0;
+    for (const item of queue) {
+      if (item.status === 'pending') pending += 1;
+      else if (item.status === 'failed') failed += 1;
+    }
+    return { pending, failed, total: queue.length };
+  }
+
   /** Number of items with status === 'pending'. */
   getPendingCount(): number {
-    return this.getAll().filter(i => i.status === 'pending').length;
+    return this.getCounts().pending;
   }
 
   /** Number of items with status === 'failed'. */
   getFailedCount(): number {
-    return this.getAll().filter(i => i.status === 'failed').length;
+    return this.getCounts().failed;
   }
 
   /** Total item count regardless of status. */
   getCount(): number {
-    return this.getAll().length;
+    return this.getCounts().total;
   }
 
   /** First pending item (FIFO). */
