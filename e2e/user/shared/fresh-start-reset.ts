@@ -5,6 +5,7 @@ import {
   freshStartOrgId,
   pendingApexInvitationId,
   pendingInviteeUserId,
+  seedWorkOrders,
 } from './seed-data';
 
 const LOCAL_SUPABASE_URL =
@@ -166,4 +167,24 @@ export async function resetPendingApexInviteFixture(): Promise<void> {
  */
 export async function seedFreshStartOneTeamOnly(): Promise<void> {
   await resetFreshStartOnboardingFixture({ seedOneTeam: true });
+}
+
+/**
+ * Restores the seeded completed work order so Revert to Accepted evidence is idempotent (#1278).
+ */
+export async function resetCompletedWorkOrderForRevertEvidence(): Promise<void> {
+  const admin = createE2EAdminClient();
+  const workOrderId = seedWorkOrders.completed.id;
+  const { error } = await admin
+    .from('work_orders')
+    .update({
+      status: 'completed',
+      completed_date: '2025-12-18',
+      updated_at: '2025-12-18 16:00:00+00',
+    })
+    .eq('id', workOrderId);
+
+  if (error) {
+    throw new Error(`Revert evidence reset failed for ${workOrderId}: ${error.message}`);
+  }
 }

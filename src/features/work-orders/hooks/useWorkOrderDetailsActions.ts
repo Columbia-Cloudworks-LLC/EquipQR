@@ -309,7 +309,10 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
     pendingFormDataRef.current = null; // Clear the ref when canceling
   }, []);
 
+  /** Called after admin Revert to Accepted (and similar status side-effects). */
   const handleStatusUpdate = () => {
+    // Details page reads workOrderKeys.detail via useWorkOrderById — must not
+    // invalidate legacy keys only (#1278 / same class as #599).
     invalidateWorkOrderCaches(queryClient, organizationId, workOrderId);
     queryClient.invalidateQueries({
       queryKey: preventiveMaintenance.byWorkOrder(workOrderId),
