@@ -275,6 +275,25 @@ describe('Auth Page', () => {
         screen.queryByText('Complete sign in to view scanned equipment'),
       ).not.toBeInTheDocument();
     });
+
+    it('clears QR prompt when search no longer has a QR destination', async () => {
+      mockLocation.search = `?next=${encodeURIComponent('/qr/equipment/abc-123?qr=true')}`;
+      const { rerender } = render(<Auth />);
+
+      expect(
+        await screen.findByText('Complete sign in to view scanned equipment'),
+      ).toBeInTheDocument();
+
+      mockLocation.search = '?tab=signin';
+      sessionStorage.clear();
+      rerender(<Auth />);
+
+      await waitFor(() => {
+        expect(
+          screen.queryByText('Complete sign in to view scanned equipment'),
+        ).not.toBeInTheDocument();
+      });
+    });
   });
 
   describe('Google Sign In', () => {

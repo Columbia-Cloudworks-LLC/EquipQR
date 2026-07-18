@@ -87,16 +87,15 @@ const Auth = () => {
   // Detect QR-scan messaging from OAuth `?next=` or existing sessionStorage.
   // Do not copy `next` into sessionStorage — keep the destination in the URL
   // (and any pre-OAuth pendingRedirect already stored by QR/ProtectedRoute).
+  // Always recompute so query-only navigations clear a stale QR prompt.
   useEffect(() => {
     const pendingRedirect =
       getSafeNextParam(location.search) ?? getPendingRedirect();
-    if (
-      pendingRedirect &&
+    const isQrDestination =
+      !!pendingRedirect &&
       isSafeRedirectPath(pendingRedirect) &&
-      (pendingRedirect.includes('qr=true') || pendingRedirect.startsWith('/qr/'))
-    ) {
-      setPendingQRScan(true);
-    }
+      (pendingRedirect.includes('qr=true') || pendingRedirect.startsWith('/qr/'));
+    setPendingQRScan(isQrDestination);
   }, [location.search]);
 
   // Handle pending redirects after authentication
