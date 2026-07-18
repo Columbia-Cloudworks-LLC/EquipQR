@@ -5,12 +5,15 @@ export const metroOrgId = '660e8400-e29b-41d4-a716-446655440001';
 export const valleyOrgId = '660e8400-e29b-41d4-a716-446655440002';
 export const industrialOrgId = '660e8400-e29b-41d4-a716-446655440003';
 export const freshStartOrgId = '660e8400-e29b-41d4-a716-446655440009';
+/** Dedicated org for permanent cursed historical timeline fixtures (#1279). */
+export const cursedHistoricalOrgId = '660e8400-e29b-41d4-a716-446655440011';
 
 export const orgIds = {
   apex: apexOrgId,
   metro: metroOrgId,
   valley: valleyOrgId,
   industrial: industrialOrgId,
+  cursedHistorical: cursedHistoricalOrgId,
 } as const;
 
 export const orgNames = {
@@ -69,6 +72,34 @@ export const seedWorkOrders = {
   viewerBobcatPm: {
     id: 'a00e8400-e29b-41d4-a716-446655440115',
     title: 'Customer Service PM - Bobcat S570',
+  },
+} as const;
+
+/** Permanent cursed historical timeline WOs (#1279) — see supabase/seeds/31_cursed_historical_timeline.sql */
+export const cursedHistoricalWorkOrders = {
+  acceptedFirstStub: {
+    id: 'a00e8400-e29b-41d4-a716-446655440c01',
+    title: 'Cursed Legacy Accepted Stub',
+  },
+  multiEventInProgress: {
+    id: 'a00e8400-e29b-41d4-a716-446655440c02',
+    title: 'Cursed Legacy Multi-Event In Progress',
+  },
+  longInProgressChain: {
+    id: 'a00e8400-e29b-41d4-a716-446655440c03',
+    title: 'Cursed Long In-Progress Chain',
+  },
+  happyPathSubmittedFirst: {
+    id: 'a00e8400-e29b-41d4-a716-446655440c04',
+    title: 'Cursed Happy Path Submitted First',
+  },
+  missingAssigneeBoundary: {
+    id: 'a00e8400-e29b-41d4-a716-446655440c05',
+    title: 'Cursed Boundary Missing Assignee',
+  },
+  outOfOrderTimestampsBoundary: {
+    id: 'a00e8400-e29b-41d4-a716-446655440c06',
+    title: 'Cursed Boundary Out-Of-Order Timestamps',
   },
 } as const;
 
@@ -133,6 +164,7 @@ export type PersonaKey =
   | 'valleyOwner'
   | 'industrialOwner'
   | 'onboardingOwner'
+  | 'cursedTimelineOwner'
   | 'multiOrg'
   | 'pendingInvitee';
 
@@ -188,6 +220,12 @@ export const personas: Record<
     orgLabel: 'Fresh Start Equipment Co',
     defaultOrgId: freshStartOrgId,
   },
+  cursedTimelineOwner: {
+    displayName: 'Casey Cursed',
+    email: 'owner@cursedtimeline.test',
+    orgLabel: 'CURSED_HISTORICAL_FIXTURE Timeline Lab',
+    defaultOrgId: cursedHistoricalOrgId,
+  },
   multiOrg: {
     displayName: 'Multi Org User',
     email: 'multi@equipqr.test',
@@ -211,6 +249,7 @@ export const setupPersonas: PersonaKey[] = [
   'valleyOwner',
   'industrialOwner',
   'onboardingOwner',
+  'cursedTimelineOwner',
   'multiOrg',
   'pendingInvitee',
 ];

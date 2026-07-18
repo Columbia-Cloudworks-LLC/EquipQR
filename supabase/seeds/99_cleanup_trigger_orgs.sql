@@ -36,7 +36,9 @@ DECLARE
     -- E2E onboarding fixture (Fresh Start Equipment Co)
     '660e8400-e29b-41d4-a716-446655440009'::uuid,   -- Fresh Start Equipment Co
     -- E2E invited-signup fixture (personal workspace for pending invitee)
-    '660e8400-e29b-41d4-a716-446655440010'::uuid   -- Invitee Personal Workspace
+    '660e8400-e29b-41d4-a716-446655440010'::uuid,  -- Invitee Personal Workspace
+    -- Cursed historical timeline fixtures (#1279)
+    '660e8400-e29b-41d4-a716-446655440011'::uuid   -- CURSED_HISTORICAL_FIXTURE Timeline Lab
   ];
   deleted_org_count int;
   deleted_member_count int;

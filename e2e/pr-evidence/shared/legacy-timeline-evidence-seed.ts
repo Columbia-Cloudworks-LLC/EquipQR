@@ -1,12 +1,19 @@
 import { execSync } from 'node:child_process';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { apexOrgId, seedEquipment } from '../../user/shared/seed-data';
+import {
+  cursedHistoricalOrgId,
+  cursedHistoricalWorkOrders,
+} from '../../user/shared/seed-data';
 
 const LOCAL_SUPABASE_URL =
   process.env.PR_EVIDENCE_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? 'http://127.0.0.1:54321';
 
-export const legacyTimelineEvidenceWorkOrderId = 'a00e8400-e29b-41d4-a716-4466554401ea';
-const apexOwnerUserId = 'bb0e8400-e29b-41d4-a716-446655440001';
+/** Durable cursed accepted-first stub (#1279) — primary evidence target. */
+export const legacyTimelineEvidenceWorkOrderId = cursedHistoricalWorkOrders.acceptedFirstStub.id;
+
+const cursedOwnerUserId = 'bb0e8400-e29b-41d4-a716-446655440011';
+const cursedEquipmentId = 'aa0e8400-e29b-41d4-a716-446655440c01';
+const cursedTeamId = '880e8400-e29b-41d4-a716-446655440011';
 
 let cachedLocalServiceRoleKey: string | null = null;
 
@@ -46,7 +53,7 @@ function resolveLocalServiceRoleKey(): string {
   }
 
   throw new Error(
-    'Legacy timeline evidence seed requires a running local Supabase stack (`npx supabase status -o json`).',
+    'Cursed timeline evidence seed requires a running local Supabase stack (`npx supabase status -o json`).',
   );
 }
 
@@ -56,6 +63,10 @@ function createE2EAdminClient(): SupabaseClient {
   });
 }
 
+/**
+ * Re-applies the durable cursed accepted-first stub shape after prior evidence
+ * runs may have saved a repaired timeline via the editor.
+ */
 export async function resetLegacyAcceptedTimelineEvidenceFixture(): Promise<void> {
   const admin = createE2EAdminClient();
   const workOrderId = legacyTimelineEvidenceWorkOrderId;
@@ -65,7 +76,7 @@ export async function resetLegacyAcceptedTimelineEvidenceFixture(): Promise<void
     .delete()
     .eq('work_order_id', workOrderId);
   if (historyDeleteError) {
-    throw new Error(`Legacy timeline evidence reset: history delete failed — ${historyDeleteError.message}`);
+    throw new Error(`Cursed timeline evidence reset: history delete failed — ${historyDeleteError.message}`);
   }
 
   const { error: workOrderDeleteError } = await admin
@@ -73,42 +84,45 @@ export async function resetLegacyAcceptedTimelineEvidenceFixture(): Promise<void
     .delete()
     .eq('id', workOrderId);
   if (workOrderDeleteError) {
-    throw new Error(`Legacy timeline evidence reset: work order delete failed — ${workOrderDeleteError.message}`);
+    throw new Error(`Cursed timeline evidence reset: work order delete failed — ${workOrderDeleteError.message}`);
   }
 
   const historicalStartDate = '2026-03-24T13:00:00.000Z';
-  const title = 'PR Evidence Legacy Accepted Timeline Seed';
+  const title = cursedHistoricalWorkOrders.acceptedFirstStub.title;
 
   const { error: workOrderInsertError } = await admin.from('work_orders').insert({
     id: workOrderId,
-    organization_id: apexOrgId,
-    equipment_id: seedEquipment.cat320.id,
+    organization_id: cursedHistoricalOrgId,
+    equipment_id: cursedEquipmentId,
     title,
-    description: 'Legacy historical create fixture for issue #1276 timeline editor evidence.',
+    description: 'Anonymized legacy historical create: first history row accepted only.',
     status: 'accepted',
     priority: 'medium',
-    created_by: apexOwnerUserId,
-    created_by_name: 'Alex Apex',
+    team_id: cursedTeamId,
+    created_by: cursedOwnerUserId,
+    created_by_name: 'Casey Cursed',
     created_date: historicalStartDate,
     is_historical: true,
     historical_start_date: historicalStartDate,
     has_pm: false,
   });
   if (workOrderInsertError) {
-    throw new Error(`Legacy timeline evidence seed: work order insert failed — ${workOrderInsertError.message}`);
+    throw new Error(`Cursed timeline evidence seed: work order insert failed — ${workOrderInsertError.message}`);
   }
 
   const { error: historyInsertError } = await admin.from('work_order_status_history').insert({
+    id: 'b10e8400-e29b-41d4-a716-446655440c01',
     work_order_id: workOrderId,
     old_status: null,
     new_status: 'accepted',
-    changed_by: apexOwnerUserId,
+    changed_by: cursedOwnerUserId,
     changed_at: historicalStartDate,
     reason: 'Historical work order created',
     is_historical_creation: true,
-    metadata: { fixture: 'issue_1276_legacy_accepted_seed' },
+    metadata: { fixture: 'cursed_historical_c01', issue: 1279 },
+    changed_by_name: 'Casey Cursed',
   });
   if (historyInsertError) {
-    throw new Error(`Legacy timeline evidence seed: history insert failed — ${historyInsertError.message}`);
+    throw new Error(`Cursed timeline evidence seed: history insert failed — ${historyInsertError.message}`);
   }
 }

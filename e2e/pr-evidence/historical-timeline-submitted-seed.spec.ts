@@ -1,19 +1,22 @@
 import { test, expect } from '../user/fixtures/equipqr-test';
 import { pinContextToOrg } from '../user/shared/auth-helpers';
-import { apexOrgId } from '../user/shared/seed-data';
+import {
+  cursedHistoricalOrgId,
+  cursedHistoricalWorkOrders,
+} from '../user/shared/seed-data';
 import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
 import {
   legacyTimelineEvidenceWorkOrderId,
   resetLegacyAcceptedTimelineEvidenceFixture,
 } from './shared/legacy-timeline-evidence-seed';
 
-test.describe('PR evidence: legacy historical timeline submitted seed @pr-evidence', () => {
+test.describe('PR evidence: cursed historical timeline submitted seed @pr-evidence', () => {
   test.beforeEach(async ({ context }) => {
-    await pinContextToOrg(context, apexOrgId);
+    await pinContextToOrg(context, cursedHistoricalOrgId);
     await resetLegacyAcceptedTimelineEvidenceFixture();
   });
 
-  test('repairs legacy accepted-first timelines so event 2 offers Accepted', async ({
+  test('repairs durable cursed accepted-first timelines so event 2 offers Accepted', async ({
     gotoDashboard,
     assertHealthyShell,
     page,
@@ -22,11 +25,15 @@ test.describe('PR evidence: legacy historical timeline submitted seed @pr-eviden
 
     await gotoDashboard(`/dashboard/work-orders/${legacyTimelineEvidenceWorkOrderId}`);
     await assertHealthyShell();
-    await expect(page.getByRole('heading', { name: /legacy accepted timeline seed/i })).toBeVisible({
+    await expect(
+      page.getByRole('heading', {
+        name: new RegExp(cursedHistoricalWorkOrders.acceptedFirstStub.title, 'i'),
+      }),
+    ).toBeVisible({
       timeout: 30_000,
     });
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '01-legacy-historical-work-order-details');
+    await evidenceScreenshot(page, '01-cursed-legacy-historical-work-order-details');
 
     await page.getByRole('button', { name: /edit timeline/i }).click();
     const editDialog = page.getByRole('dialog').filter({ hasText: /timeline editor/i });
@@ -44,6 +51,6 @@ test.describe('PR evidence: legacy historical timeline submitted seed @pr-eviden
     await editDialog.getByRole('button', { name: /save timeline/i }).click();
     await expect(editDialog).toBeHidden({ timeout: 15_000 });
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '03-legacy-timeline-saved');
+    await evidenceScreenshot(page, '03-cursed-legacy-timeline-saved');
   });
 });

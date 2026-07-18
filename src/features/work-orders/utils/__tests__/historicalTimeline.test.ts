@@ -21,6 +21,13 @@ import {
   validateTimelineEvents,
   type HistoricalTimelineEditorRow,
 } from '@/features/work-orders/utils/historicalTimeline';
+import {
+  cursedAcceptedFirstStubHistoryRows,
+  cursedHappyPathSubmittedFirstHistoryRows,
+  cursedLongInProgressHistoryRows,
+  cursedMultiEventLegacyHistoryRows,
+  cursedOutOfOrderTimestampEvents,
+} from '@/features/work-orders/utils/__tests__/fixtures/cursedHistoricalTimelineFixtures';
 
 describe('historicalTimeline helpers', () => {
   it('returns strict allowed next statuses', () => {
@@ -367,5 +374,76 @@ describe('historicalTimeline helpers', () => {
         ],
       ),
     ).toBe(true);
+  });
+
+  describe('cursed historical timeline fixtures (#1279)', () => {
+    it('normalizes durable accepted-first stub so Event 1 is locked to submitted', () => {
+      const events = historyRowsToEditorEvents(
+        cursedAcceptedFirstStubHistoryRows,
+        '2026-03-24T13:00:00.000Z',
+      );
+      const rows = timelineEventsToRows(events);
+
+      expect(events.map((event) => event.newStatus)).toEqual(['submitted', 'accepted']);
+      expect(getSelectableStatusesForRow(rows, 0)).toEqual(['submitted']);
+      expect(getSelectableStatusesForRow(rows, 1)).toEqual(['accepted', 'cancelled']);
+      expect(getAllowedNextStatuses('accepted')).toEqual(['assigned', 'cancelled']);
+      expect(validateTimelineEvents(events)).toEqual([]);
+    });
+
+    it('repairs multi-event legacy accepted-first chains for editor load', () => {
+      const events = historyRowsToEditorEvents(
+        cursedMultiEventLegacyHistoryRows,
+        '2026-02-10T09:00:00.000Z',
+      );
+
+      expect(events[0]?.newStatus).toBe('submitted');
+      expect(events.map((event) => event.newStatus)).toEqual([
+        'submitted',
+        'accepted',
+        'assigned',
+        'in_progress',
+      ]);
+      expect(validateTimelineEvents(events)).toEqual([]);
+    });
+
+    it('repairs long in_progress legacy chains without dropping later transitions', () => {
+      const events = historyRowsToEditorEvents(
+        cursedLongInProgressHistoryRows,
+        '2025-11-01T08:00:00.000Z',
+      );
+
+      expect(events[0]?.newStatus).toBe('submitted');
+      expect(events.map((event) => event.newStatus)).toEqual([
+        'submitted',
+        'accepted',
+        'assigned',
+        'in_progress',
+        'on_hold',
+        'in_progress',
+      ]);
+      expect(validateTimelineEvents(events)).toEqual([]);
+    });
+
+    it('leaves happy-path submitted-first contrast fixtures unchanged', () => {
+      const events = historyRowsToEditorEvents(
+        cursedHappyPathSubmittedFirstHistoryRows,
+        '2026-01-05T08:00:00.000Z',
+      );
+
+      expect(events.map((event) => event.newStatus)).toEqual([
+        'submitted',
+        'accepted',
+        'assigned',
+        'in_progress',
+        'completed',
+      ]);
+      expect(normalizeLoadedTimelineEvents(events)).toEqual(events);
+    });
+
+    it('flags out-of-order timestamp boundary fixtures', () => {
+      const errors = validateTimelineEvents(cursedOutOfOrderTimestampEvents);
+      expect(errors.some((error) => error.field === 'dates')).toBe(true);
+    });
   });
 });
