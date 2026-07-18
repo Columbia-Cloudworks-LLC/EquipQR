@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { Loader2 } from 'lucide-react';
-import { getSafeRedirectPath } from '@/utils/redirectValidation';
+import {
+  clearPendingRedirect,
+  getPendingRedirect,
+  getSafeRedirectPath,
+} from '@/utils/redirectValidation';
 
 const Landing = lazy(() => import('@/pages/Landing'));
 
@@ -28,9 +32,9 @@ const SmartLanding = () => {
   useEffect(() => {
     // Guard on !isLoading so we don't redirect prematurely while auth is resolving.
     if (!isLoading && user) {
-      const pendingRedirect = sessionStorage.getItem('pendingRedirect');
+      const pendingRedirect = getPendingRedirect();
       if (pendingRedirect) {
-        sessionStorage.removeItem('pendingRedirect');
+        clearPendingRedirect();
         navigate(getSafeRedirectPath(pendingRedirect, '/dashboard'), { replace: true });
         return;
       }

@@ -1,9 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   isSafeRedirectPath,
   getSafeRedirectPath,
   buildGoogleOAuthRedirectTo,
   getSafeNextParam,
+  getPendingRedirect,
+  clearPendingRedirect,
   toSameOriginPath,
 } from '../redirectValidation';
 
@@ -73,6 +75,33 @@ describe('redirectValidation', () => {
     it('falls back for unsafe inputs', () => {
       expect(toSameOriginPath('https://evil.com', '/dashboard')).toBe('/dashboard');
       expect(toSameOriginPath('//evil.com', '/')).toBe('/');
+    });
+  });
+
+  describe('getPendingRedirect / clearPendingRedirect', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      sessionStorage.clear();
+    });
+
+    it('reads and clears pendingRedirect', () => {
+      sessionStorage.setItem('pendingRedirect', '/qr/equipment/1');
+      expect(getPendingRedirect()).toBe('/qr/equipment/1');
+      clearPendingRedirect();
+      expect(getPendingRedirect()).toBeNull();
+    });
+
+    it('returns null when sessionStorage.getItem throws', () => {
+      vi.stubGlobal('sessionStorage', {
+        getItem: () => {
+          throw new Error('blocked');
+        },
+        removeItem: () => {
+          throw new Error('blocked');
+        },
+      });
+      expect(getPendingRedirect()).toBeNull();
+      expect(() => clearPendingRedirect()).not.toThrow();
     });
   });
 });

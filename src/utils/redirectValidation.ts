@@ -7,6 +7,27 @@
  * usePendingRedirectHandler) and Google OAuth `redirectTo` / `?next=` flow.
  */
 
+const PENDING_REDIRECT_STORAGE_KEY = 'pendingRedirect';
+
+/** sessionStorage may throw (private mode / blocked storage) — never crash auth. */
+export function getPendingRedirect(): string | null {
+  try {
+    return typeof sessionStorage !== 'undefined'
+      ? sessionStorage.getItem(PENDING_REDIRECT_STORAGE_KEY)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearPendingRedirect(): void {
+  try {
+    sessionStorage?.removeItem(PENDING_REDIRECT_STORAGE_KEY);
+  } catch {
+    // ignore unavailable storage
+  }
+}
+
 /**
  * Returns `true` when `path` is a same-origin relative path that is safe
  * to use with `window.location.href` or React Router `navigate()`.

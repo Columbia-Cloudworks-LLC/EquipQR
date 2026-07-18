@@ -11,6 +11,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useMFA } from '@/hooks/useMFA';
 import { isMFAEnabled } from '@/lib/flags';
 import {
+  clearPendingRedirect,
+  getPendingRedirect,
   getSafeNextParam,
   getSafeRedirectPath,
   isSafeRedirectPath,
@@ -60,10 +62,9 @@ function navigateAfterAuth(
   navigate: NavigateFunction,
   fallback = '/',
 ): void {
-  const pendingRedirect =
-    getSafeNextParam(search) ?? sessionStorage.getItem('pendingRedirect');
+  const pendingRedirect = getSafeNextParam(search) ?? getPendingRedirect();
   if (pendingRedirect) {
-    sessionStorage.removeItem('pendingRedirect');
+    clearPendingRedirect();
     navigate(getSafeRedirectPath(pendingRedirect), { replace: true });
     return;
   }
@@ -88,8 +89,7 @@ const Auth = () => {
   // (and any pre-OAuth pendingRedirect already stored by QR/ProtectedRoute).
   useEffect(() => {
     const pendingRedirect =
-      getSafeNextParam(location.search) ??
-      sessionStorage.getItem('pendingRedirect');
+      getSafeNextParam(location.search) ?? getPendingRedirect();
     if (
       pendingRedirect &&
       isSafeRedirectPath(pendingRedirect) &&

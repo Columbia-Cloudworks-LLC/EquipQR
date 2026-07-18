@@ -5,6 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import {
   buildGoogleOAuthRedirectTo,
+  clearPendingRedirect,
+  getPendingRedirect,
   toSameOriginPath,
 } from '@/utils/redirectValidation';
 import { schedulePendingTermsAcceptanceFlush } from '@/lib/termsAcceptanceRecording';
@@ -66,9 +68,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Handle post-login redirect for QR code scans (only for actual sign-ins)
         if (isSignIn && session?.user) {
-          const pendingRedirect = sessionStorage.getItem('pendingRedirect');
+          const pendingRedirect = getPendingRedirect();
           if (pendingRedirect) {
-            sessionStorage.removeItem('pendingRedirect');
+            clearPendingRedirect();
             // Validate + rebuild via URL parser before location assignment
             const safePath = toSameOriginPath(pendingRedirect);
             // Use setTimeout to ensure the redirect happens after state updates
@@ -181,10 +183,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInWithGoogle = async () => {
-    const pendingRedirect = sessionStorage.getItem('pendingRedirect');
     const redirectTo = buildGoogleOAuthRedirectTo(
       window.location.origin,
-      pendingRedirect,
+      getPendingRedirect(),
     );
 
     const { error } = await supabase.auth.signInWithOAuth({
@@ -212,7 +213,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       // Clear application-specific storage
       try {
-        sessionStorage.removeItem('pendingRedirect');
+        clearPendingRedirect();
         // Clear admin grants cache keys from localStorage (they start with equipqr_admin_grants_)
         Object.keys(localStorage)
           .filter(key => key.startsWith('equipqr_admin_grants_'))
