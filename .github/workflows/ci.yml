@@ -240,6 +240,15 @@ jobs:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
+    - name: Upload Vitest results JSON
+      if: always()
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      with:
+        name: vitest-results-shard-${{ matrix.shard }}
+        path: artifacts/vitest-results/shard-${{ matrix.shard }}.json
+        retention-days: 14
+        if-no-files-found: warn
+
     - name: Upload shard coverage
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
       with:
