@@ -175,16 +175,30 @@ export async function seedFreshStartOneTeamOnly(): Promise<void> {
 export async function resetCompletedWorkOrderForRevertEvidence(): Promise<void> {
   const admin = createE2EAdminClient();
   const workOrderId = seedWorkOrders.completed.id;
-  const { error } = await admin
+  const { error: historyError } = await admin
+    .from('work_order_status_history')
+    .delete()
+    .eq('work_order_id', workOrderId)
+    .eq('reason', 'Reverted to accepted status by admin');
+
+  if (historyError) {
+    throw new Error(`Revert evidence history reset failed for ${workOrderId}: ${historyError.message}`);
+  }
+
+  const { data, error } = await admin
     .from('work_orders')
     .update({
       status: 'completed',
       completed_date: '2025-12-18',
       updated_at: '2025-12-18 16:00:00+00',
     })
-    .eq('id', workOrderId);
+    .eq('id', workOrderId)
+    .select('id');
 
   if (error) {
     throw new Error(`Revert evidence reset failed for ${workOrderId}: ${error.message}`);
+  }
+  if (!data?.length) {
+    throw new Error(`Revert evidence reset failed: seeded work order ${workOrderId} was not found`);
   }
 }
