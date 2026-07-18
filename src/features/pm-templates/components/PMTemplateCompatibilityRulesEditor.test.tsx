@@ -1,8 +1,6 @@
-import React from 'react';
 import { screen, fireEvent, waitFor } from '@vitest-harness/utils/test-utils';
 import { renderPmTemplateCompatibilityRulesEditor } from '@vitest-harness/utils/renderCompatibilityRulesEditors';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { PMTemplateCompatibilityRulesEditor } from './PMTemplateCompatibilityRulesEditor';
 import type { PMTemplateCompatibilityRuleFormData } from '@/features/pm-templates/types/pmTemplateCompatibility';
 import {
   compatibilityRulesEditorOrgFixture,

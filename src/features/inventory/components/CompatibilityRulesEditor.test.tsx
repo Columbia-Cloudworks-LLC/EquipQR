@@ -1,8 +1,6 @@
-import React from 'react';
 import { screen, fireEvent, waitFor } from '@vitest-harness/utils/test-utils';
 import { renderInventoryCompatibilityRulesEditor } from '@vitest-harness/utils/renderCompatibilityRulesEditors';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { CompatibilityRulesEditor } from './CompatibilityRulesEditor';
 import type { PartCompatibilityRuleFormData } from '@/features/inventory/types/inventory';
 import {
   compatibilityRulesEditorOrgFixture,
