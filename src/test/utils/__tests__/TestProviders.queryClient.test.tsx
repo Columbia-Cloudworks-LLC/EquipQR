@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { describe, expect, it } from 'vitest';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { render, screen, fireEvent } from '@testing-library/react';
@@ -7,7 +7,10 @@ import { TestProviders } from '@/test/utils/TestProviders';
 function QueryClientProbe({ onReady }: { onReady: (client: QueryClient) => void }) {
   const queryClient = useQueryClient();
   const [tick, setTick] = useState(0);
-  onReady(queryClient);
+
+  useEffect(() => {
+    onReady(queryClient);
+  }, [onReady, queryClient, tick]);
   return (
     <button type="button" onClick={() => setTick((n) => n + 1)}>
       re-render {tick}
