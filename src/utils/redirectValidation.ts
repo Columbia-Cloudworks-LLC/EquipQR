@@ -67,3 +67,19 @@ export function getSafeNextParam(search: string): string | null {
   if (!next || !isSafeRedirectPath(next)) return null;
   return next;
 }
+
+/**
+ * Rebuilds a validated relative path through the URL parser so assignment to
+ * `window.location` cannot carry an unsanitized taint chain (CodeQL js/xss).
+ */
+export function toSameOriginPath(path: string, fallback = '/'): string {
+  if (!isSafeRedirectPath(path)) return fallback;
+  try {
+    const parsed = new URL(path, 'https://equipqr.invalid');
+    if (parsed.hostname !== 'equipqr.invalid') return fallback;
+    const rebuilt = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    return isSafeRedirectPath(rebuilt) ? rebuilt : fallback;
+  } catch {
+    return fallback;
+  }
+}

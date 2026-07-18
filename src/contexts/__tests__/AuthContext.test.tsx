@@ -108,11 +108,15 @@ describe('AuthContext', () => {
     });
 
     // Mock window.location
+    const locationMock = {
+      origin: 'http://localhost:3000',
+      href: 'http://localhost:3000',
+      assign: vi.fn((url: string) => {
+        locationMock.href = url;
+      }),
+    };
     Object.defineProperty(window, 'location', {
-      value: {
-        origin: 'http://localhost:3000',
-        href: 'http://localhost:3000',
-      },
+      value: locationMock,
       writable: true,
     });
   });

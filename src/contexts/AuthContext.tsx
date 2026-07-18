@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import {
   buildGoogleOAuthRedirectTo,
-  getSafeRedirectPath,
+  toSameOriginPath,
 } from '@/utils/redirectValidation';
 import { schedulePendingTermsAcceptanceFlush } from '@/lib/termsAcceptanceRecording';
 import { clearOfflineBlobsForUser } from '@/services/offlineBlobStore';
@@ -69,11 +69,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const pendingRedirect = sessionStorage.getItem('pendingRedirect');
           if (pendingRedirect) {
             sessionStorage.removeItem('pendingRedirect');
-            // Validate the redirect path to prevent open-redirect attacks
-            const safePath = getSafeRedirectPath(pendingRedirect);
+            // Validate + rebuild via URL parser before location assignment
+            const safePath = toSameOriginPath(pendingRedirect);
             // Use setTimeout to ensure the redirect happens after state updates
             setTimeout(() => {
-              window.location.href = safePath;
+              window.location.assign(safePath);
             }, 100);
           }
 

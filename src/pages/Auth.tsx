@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, type NavigateFunction } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -54,6 +54,22 @@ const getEmailProviderInboxUrl = (email?: string) => {
   return domain ? EMAIL_PROVIDER_INBOX_URLS[domain] : undefined;
 };
 
+/** Prefer OAuth `?next=`, then sessionStorage pendingRedirect; else fallback. */
+function navigateAfterAuth(
+  search: string,
+  navigate: NavigateFunction,
+  fallback = '/',
+): void {
+  const pendingRedirect =
+    getSafeNextParam(search) ?? sessionStorage.getItem('pendingRedirect');
+  if (pendingRedirect) {
+    sessionStorage.removeItem('pendingRedirect');
+    navigate(getSafeRedirectPath(pendingRedirect), { replace: true });
+    return;
+  }
+  navigate(fallback, { replace: true });
+}
+
 const Auth = () => {
   const navigate = useNavigate();
   const { user, signInWithGoogle, isLoading: authLoading } = useAuth();
@@ -67,16 +83,13 @@ const Auth = () => {
   const suppressAuthRedirectRef = useRef(false);
   const { error: showErrorToast, success: showSuccessToast } = useAppToast();
 
-  // Restore pendingRedirect from OAuth `?next=` (survives Google round-trip)
-  // and detect QR-scan messaging. Safe/invalid next values are ignored.
+  // Detect QR-scan messaging from OAuth `?next=` or existing sessionStorage.
+  // Do not copy `next` into sessionStorage — keep the destination in the URL
+  // (and any pre-OAuth pendingRedirect already stored by QR/ProtectedRoute).
   useEffect(() => {
-    const nextFromOAuth = getSafeNextParam(location.search);
-    if (nextFromOAuth) {
-      sessionStorage.setItem('pendingRedirect', nextFromOAuth);
-    }
-
     const pendingRedirect =
-      nextFromOAuth ?? sessionStorage.getItem('pendingRedirect');
+      getSafeNextParam(location.search) ??
+      sessionStorage.getItem('pendingRedirect');
     if (
       pendingRedirect &&
       isSafeRedirectPath(pendingRedirect) &&
@@ -103,17 +116,17 @@ const Auth = () => {
       // Don't redirect if we're showing MFA verification
       if (showMFAVerification) return;
 
-      // Check for pending redirect first (e.g., from OAuth callbacks or QR scans)
-      const pendingRedirect = sessionStorage.getItem('pendingRedirect');
-      if (pendingRedirect) {
-        // Clear it and navigate there (validated to prevent open redirects)
-        sessionStorage.removeItem('pendingRedirect');
-        navigate(getSafeRedirectPath(pendingRedirect), { replace: true });
-      } else {
-        navigate('/');
-      }
+      navigateAfterAuth(location.search, navigate);
     }
-  }, [user, authLoading, navigate, needsVerification, showMFAVerification, success]);
+  }, [
+    user,
+    authLoading,
+    navigate,
+    needsVerification,
+    showMFAVerification,
+    success,
+    location.search,
+  ]);
 
   const handleSuccess = (message: string, email?: string) => {
     setError(null);
@@ -178,15 +191,8 @@ const Auth = () => {
     // sees needsVerification === false and won't re-show the MFA screen.
     await refreshMFAStatus();
     setShowMFAVerification(false);
-    // Navigate after MFA success
-    const pendingRedirect = sessionStorage.getItem('pendingRedirect');
-    if (pendingRedirect) {
-      sessionStorage.removeItem('pendingRedirect');
-      navigate(getSafeRedirectPath(pendingRedirect), { replace: true });
-    } else {
-      navigate('/', { replace: true });
-    }
-  }, [refreshMFAStatus, navigate]);
+    navigateAfterAuth(location.search, navigate);
+  }, [refreshMFAStatus, navigate, location.search]);
 
   // Parse query params for tab/email/invitation info
   const { defaultTab, prefillEmail, invitedOrgId, invitedOrgName } = useMemo(() => {

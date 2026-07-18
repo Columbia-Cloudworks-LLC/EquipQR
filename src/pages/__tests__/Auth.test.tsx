@@ -240,7 +240,7 @@ describe('Auth Page', () => {
       render(<Auth />);
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/');
+        expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
       });
     });
   });

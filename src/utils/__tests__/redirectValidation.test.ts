@@ -4,6 +4,7 @@ import {
   getSafeRedirectPath,
   buildGoogleOAuthRedirectTo,
   getSafeNextParam,
+  toSameOriginPath,
 } from '../redirectValidation';
 
 describe('redirectValidation', () => {
@@ -59,6 +60,19 @@ describe('redirectValidation', () => {
       expect(getSafeNextParam('?tab=signin')).toBeNull();
       expect(getSafeNextParam('?next=https%3A%2F%2Fevil.com')).toBeNull();
       expect(getSafeNextParam('?next=%2F%2Fevil.com')).toBeNull();
+    });
+  });
+
+  describe('toSameOriginPath', () => {
+    it('rebuilds a safe relative path with query', () => {
+      expect(toSameOriginPath('/qr/equipment/abc?qr=true')).toBe(
+        '/qr/equipment/abc?qr=true',
+      );
+    });
+
+    it('falls back for unsafe inputs', () => {
+      expect(toSameOriginPath('https://evil.com', '/dashboard')).toBe('/dashboard');
+      expect(toSameOriginPath('//evil.com', '/')).toBe('/');
     });
   });
 });
