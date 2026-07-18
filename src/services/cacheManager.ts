@@ -98,14 +98,17 @@ export class CacheManager {
     });
     
     // If equipment is specified, invalidate equipment-related data
+    // (invalidateEquipmentRelated already invalidates dashboard-optimized)
     if (equipmentId) {
       this.invalidateEquipmentRelated(organizationId, equipmentId);
     }
 
-    // Update dashboard stats
-    this.queryClient.invalidateQueries({ 
-      queryKey: ['dashboard-optimized', organizationId] 
-    });
+    // Equipment-less path only — avoid a second dashboard refetch when equipmentId is set
+    if (!equipmentId) {
+      this.queryClient.invalidateQueries({
+        queryKey: ['dashboard-optimized', organizationId],
+      });
+    }
   }
 
   invalidateTeamRelated(organizationId: string, teamId: string) {

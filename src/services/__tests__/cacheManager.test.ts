@@ -112,19 +112,23 @@ describe('CacheManager', () => {
     const workOrderId = 'wo-1';
     const equipmentId = 'eq-1';
 
-    it('should invalidate work order queries', () => {
+    it('should invalidate work order queries and dashboard when no equipment ID', () => {
       cacheManager.invalidateWorkOrderRelated(organizationId, workOrderId);
 
       expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
         queryKey: ['work-orders-optimized', organizationId],
       });
 
-      expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
-        queryKey: ['dashboard-optimized', organizationId],
-      });
+      const dashboardCalls = mockQueryClient.invalidateQueries.mock.calls.filter(
+        ([arg]) =>
+          Array.isArray(arg?.queryKey) &&
+          arg.queryKey[0] === 'dashboard-optimized' &&
+          arg.queryKey[1] === organizationId
+      );
+      expect(dashboardCalls).toHaveLength(1);
     });
 
-    it('should also invalidate equipment data when equipment ID provided', () => {
+    it('should invalidate equipment data once for dashboard when equipment ID provided', () => {
       cacheManager.invalidateWorkOrderRelated(organizationId, workOrderId, equipmentId);
 
       expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
@@ -135,6 +139,15 @@ describe('CacheManager', () => {
       expect(mockQueryClient.invalidateQueries).toHaveBeenCalledWith({
         queryKey: ['equipment-optimized', organizationId],
       });
+
+      // dashboard-optimized must not be double-invalidated (#1335)
+      const dashboardCalls = mockQueryClient.invalidateQueries.mock.calls.filter(
+        ([arg]) =>
+          Array.isArray(arg?.queryKey) &&
+          arg.queryKey[0] === 'dashboard-optimized' &&
+          arg.queryKey[1] === organizationId
+      );
+      expect(dashboardCalls).toHaveLength(1);
     });
   });
 
