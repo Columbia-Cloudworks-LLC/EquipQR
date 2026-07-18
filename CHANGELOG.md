@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Cursed historical timeline fixtures (#1279)** — Permanent anonymized seed org `CURSED_HISTORICAL_FIXTURE Timeline Lab` with legacy accepted-first, multi-event, long in-progress, happy-path contrast, and boundary historical work orders. Unit, pgTAP replace-rejection, and PR evidence e2e coverage pin these shapes so timeline editor/RPC regressions fail in CI. Optional production canary SQL under `scripts/sql/canary_legacy_historical_timeline_accepted_first.sql`.
+
 ### Changed
 
 - **Feat → preview → main train restored (#1282)** — Day-to-day work merges into git `preview`; production ships via controlled `preview` → `main`. Version bumps and empty `[Unreleased]` are enforced only on promote to `main`; preview PRs accumulate Unreleased notes and must not bump `package.json`. `preview.equipqr.app` tracks the integration branch via normal Vercel deploys (`preview-domain-alias.yml` fast-forward from `main` removed). CI runs on PRs to `preview` and `main`, with split Release Metadata / Preview Release Metadata jobs. Dependabot targets `preview`. Cursor rules, skills, ITIL scripts, and ops docs updated for the train. No perpetual Supabase preview database — ephemeral branches only when testing schema/RLS/migrations.

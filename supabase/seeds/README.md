@@ -46,6 +46,8 @@ This folder contains the **durable core** of local development seed data — the
 | `24_part_compatibility_rules.sql` | Part-equipment compatibility rules (~40 rules) |
 | `25_part_alternate_groups.sql` | Part alternate/interchange groups (10 groups, 30+ identifiers) |
 | `29_e2e_playwright_fixtures.sql` | Playwright fixtures: requestor team member, pending invitation token, DSR case |
+| `30_e2e_onboarding_fixture.sql` | Fresh Start onboarding org (no teams/equipment) |
+| `31_cursed_historical_timeline.sql` | **CURSED_HISTORICAL_FIXTURE** — anonymized legacy historical timeline shapes (#1279) |
 | `generated/*.sql` (gitignored) | **Generated volume data** — see [Generated Volume Data](#generated-volume-data) |
 
 ## Test Accounts
@@ -174,6 +176,27 @@ The `25_part_alternate_groups.sql` file creates test data for the Part Alternate
 - **Aftermarket**: Third-party part numbers (e.g., `WIX-57090`)
 - **SKU**: Internal inventory SKUs linked to inventory items
 - **Cross-ref**: Cross-reference numbers from interchange guides
+
+## Cursed Historical Timeline Fixtures (#1279)
+
+`31_cursed_historical_timeline.sql` seeds org **CURSED_HISTORICAL_FIXTURE Timeline Lab**
+(`660e8400-e29b-41d4-a716-446655440011`) with anonymized reconstructions of legacy
+production shapes that missed a leading `submitted` status-history event.
+
+| WO suffix | Purpose |
+| --------- | ------- |
+| `…440c01` | Single-event accepted-first stub (`Historical work order created`) |
+| `…440c02` | Multi-event legacy ending `in_progress` |
+| `…440c03` | Long `in_progress` chain (legacy accepted start) |
+| `…440c04` | Happy-path submitted-first completed (contrast) |
+| `…440c05` | Boundary: assigned without assignee |
+| `…440c06` | Boundary: out-of-order timestamps |
+
+Alex Apex (`owner@apex.test`) owns the fixture org (additional business membership;
+no new auth user / password) so default e2e personas can pin this org.
+
+These rows intentionally keep the pre-#1276-repair shape. Seeds run after migrations,
+so the one-shot backfill does not rewrite them.
 
 ## Trigger Handling
 
