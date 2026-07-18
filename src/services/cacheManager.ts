@@ -234,35 +234,6 @@ export class CacheManager {
     }
   }
 
-  // Preload related data
-  preloadRelatedData(organizationId: string, type: 'equipment' | 'workOrder', id: string) {
-    if (!this.queryClient) return;
-
-    switch (type) {
-      case 'equipment':
-        // Preload work orders for this equipment
-        this.queryClient.prefetchQuery({
-          queryKey: ['work-orders', 'equipment', organizationId, id],
-          staleTime: 2 * 60 * 1000
-        });
-        
-        // Preload notes for this equipment
-        this.queryClient.prefetchQuery({
-          queryKey: ['notes', organizationId, id],
-          staleTime: 5 * 60 * 1000
-        });
-        break;
-      
-      case 'workOrder':
-        // Preload work order details
-        this.queryClient.prefetchQuery({
-          queryKey: ['work-order', organizationId, id],
-          staleTime: 2 * 60 * 1000
-        });
-        break;
-    }
-  }
-
   // Get cache statistics
   getCacheStats() {
     if (!this.queryClient) return null;

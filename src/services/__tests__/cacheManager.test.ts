@@ -24,7 +24,6 @@ describe('CacheManager', () => {
       cancelQueries: vi.fn(),
       getQueryData: vi.fn(),
       setQueryData: vi.fn(),
-      prefetchQuery: vi.fn(),
       getQueryCache: vi.fn(() => ({
         getAll: vi.fn(() => []),
       })),
@@ -221,33 +220,6 @@ describe('CacheManager', () => {
 
       expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(queryKey, updater);
       expect(mockQueryClient.setQueryData).toHaveBeenCalledWith(queryKey, oldData);
-    });
-  });
-
-  describe('preloading', () => {
-    const organizationId = 'org-1';
-
-    it('should preload equipment-related data', () => {
-      cacheManager.preloadRelatedData(organizationId, 'equipment', 'eq-1');
-
-      expect(mockQueryClient.prefetchQuery).toHaveBeenCalledWith({
-        queryKey: ['work-orders', 'equipment', organizationId, 'eq-1'],
-        staleTime: 2 * 60 * 1000,
-      });
-
-      expect(mockQueryClient.prefetchQuery).toHaveBeenCalledWith({
-        queryKey: ['notes', organizationId, 'eq-1'],
-        staleTime: 5 * 60 * 1000,
-      });
-    });
-
-    it('should preload work order data', () => {
-      cacheManager.preloadRelatedData(organizationId, 'workOrder', 'wo-1');
-
-      expect(mockQueryClient.prefetchQuery).toHaveBeenCalledWith({
-        queryKey: ['work-order', organizationId, 'wo-1'],
-        staleTime: 2 * 60 * 1000,
-      });
     });
   });
 
