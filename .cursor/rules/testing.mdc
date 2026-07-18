@@ -9,3 +9,12 @@ globs: "**/*.test.{ts,tsx}"
 - **Philosophy:** Test behavior, not implementation details.
 - **Mocking:** Mock Supabase client calls and Service layer functions. Do not mock internal component state logic if possible.
 - **Selectors:** Use accessible selectors (`getByRole`, `getByLabelText`) over `getByTestId` when possible.
+
+## Performance (#1314)
+
+- Prefer **unit** (`.test.ts` / node project) for pure utils; reserve `.test.tsx` (jsdom) for UI behavior.
+- Shared wrappers (`TestProviders`, `JourneyProviders`) must stabilize `QueryClient` with `useState(() => createTestQueryClient())` — never allocate a new client on every render.
+- Prefer `getBy*` / `getAllBy*` when data is sync-mocked; reserve `findBy*` / `waitFor` for real async (portals, promises, mutations).
+- Prefer `fireEvent` for simple clicks; use `userEvent` when testing keyboard/a11y sequencing.
+- When product mounts CSS layout twins (desktop + mobile), mock the unused twin unless the test specifically covers both.
+- Target: most new component tests under ~150–200ms when feasible.

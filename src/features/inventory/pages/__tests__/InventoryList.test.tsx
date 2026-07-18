@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@/test/utils/test-utils';
+import { render, screen, waitFor, fireEvent } from '@/test/utils/test-utils';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import InventoryList from '../InventoryList';
@@ -142,6 +142,11 @@ function mockMetadata() {
   });
 }
 
+async function renderUntilCatalogVisible() {
+  render(<InventoryList />);
+  expect(await screen.findByText('Healthy Part')).toBeInTheDocument();
+}
+
 describe('InventoryList — mobile', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -166,11 +171,8 @@ describe('InventoryList — mobile', () => {
   });
 
   it('renders mobile search, personalization, and filter controls', async () => {
-    render(<InventoryList />);
+    await renderUntilCatalogVisible();
 
-    await waitFor(() => {
-      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
-    });
     const search = screen.getByRole('textbox', { name: /search inventory by name, sku, or id/i });
     expect(search).toHaveAttribute('placeholder', 'Search by name, SKU, or ID…');
     expect(screen.getByRole('button', { name: /open personalization/i })).toBeInTheDocument();
@@ -178,15 +180,10 @@ describe('InventoryList — mobile', () => {
   });
 
   it('toggles low stock filter from the filter sheet', async () => {
-    const user = userEvent.setup();
-    render(<InventoryList />);
+    await renderUntilCatalogVisible();
 
-    await waitFor(() => {
-      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: /open filters/i }));
-    await user.click(screen.getByRole('switch', { name: /low stock only/i }));
+    fireEvent.click(screen.getByRole('button', { name: /open filters/i }));
+    fireEvent.click(screen.getByRole('switch', { name: /low stock only/i }));
 
     await waitFor(() => {
       expect(screen.queryByText('Healthy Part')).not.toBeInTheDocument();
@@ -195,14 +192,9 @@ describe('InventoryList — mobile', () => {
   });
 
   it('navigates to item detail when a card is activated', async () => {
-    const user = userEvent.setup();
-    render(<InventoryList />);
+    await renderUntilCatalogVisible();
 
-    await waitFor(() => {
-      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: /open inventory item healthy part/i }));
+    fireEvent.click(screen.getByRole('button', { name: /open inventory item healthy part/i }));
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/inventory/item-1');
   });
 
@@ -212,14 +204,9 @@ describe('InventoryList — mobile', () => {
       canManagePartsManagers: () => true,
     } as unknown as ReturnType<typeof usePermissionsModule.usePermissions>));
 
-    const user = userEvent.setup();
-    render(<InventoryList />);
+    await renderUntilCatalogVisible();
 
-    await waitFor(() => {
-      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole('button', { name: 'Update parts access' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Update parts access' }));
     expect(screen.getByTestId('parts-access-sheet')).toBeInTheDocument();
   });
 
@@ -243,21 +230,13 @@ describe('InventoryList — mobile', () => {
       } as unknown as ReturnType<typeof useInventoryModule.useInventoryItems>;
     });
 
-    render(<InventoryList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
-    });
+    await renderUntilCatalogVisible();
 
     expect(inventoryHookMocks.useInventoryListMetadata).toHaveBeenCalledWith('org-1');
   });
 
   it('does not show the desktop Add Item dropdown on mobile', async () => {
-    render(<InventoryList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
-    });
+    await renderUntilCatalogVisible();
 
     expect(screen.queryByRole('menuitem', { name: /bulk add \/ edit/i })).not.toBeInTheDocument();
   });
@@ -287,26 +266,19 @@ describe('InventoryList — desktop table', () => {
   });
 
   it('renders table chrome and health summary (not mobile filter icons)', async () => {
-    render(<InventoryList />);
+    await renderUntilCatalogVisible();
 
-    await waitFor(() => {
-      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
-    });
     expect(screen.getByRole('button', { name: /manage table columns/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /saved views/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /open personalization/i })).not.toBeInTheDocument();
 
-    const summary = await screen.findByLabelText(/inventory health summary/i);
+    const summary = screen.getByLabelText(/inventory health summary/i);
     expect(summary).toHaveTextContent('Total');
     expect(summary).toHaveTextContent('Low stock');
   });
 
   it('does not expose row selection or list-level bulk actions', async () => {
-    render(<InventoryList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
-    });
+    await renderUntilCatalogVisible();
 
     expect(
       screen.queryByRole('checkbox', { name: /select all inventory items/i }),
@@ -316,16 +288,12 @@ describe('InventoryList — desktop table', () => {
 
   it('Add Item dropdown opens single-item form and bulk navigate', async () => {
     const user = userEvent.setup();
-    render(<InventoryList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
-    });
+    await renderUntilCatalogVisible();
 
     const addButton = screen.getByRole('button', { name: /add item/i });
     await user.click(addButton);
     await user.click(await screen.findByRole('menuitem', { name: /add single item/i }));
-    expect(await screen.findByTestId('inventory-item-form')).toBeInTheDocument();
+    expect(screen.getByTestId('inventory-item-form')).toBeInTheDocument();
 
     await user.click(addButton);
     await user.click(await screen.findByRole('menuitem', { name: /bulk add \/ edit/i }));
@@ -333,13 +301,9 @@ describe('InventoryList — desktop table', () => {
   });
 
   it('navigates to alternate groups via row actions', async () => {
-    render(<InventoryList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Healthy Part')).toBeInTheDocument();
-    });
-
     const user = userEvent.setup();
+    await renderUntilCatalogVisible();
+
     const [actionsTrigger] = screen.getAllByRole('button', { name: /actions for healthy part/i });
     if (!actionsTrigger) {
       throw new Error('Expected at least one row actions trigger for Healthy Part');
@@ -369,12 +333,10 @@ describe('InventoryList — desktop table', () => {
 
     render(<InventoryList />);
 
-    await waitFor(() => {
-      expect(screen.getByText('Inventory Item 01')).toBeInTheDocument();
-      expect(screen.getByText('Inventory Item 25')).toBeInTheDocument();
-      expect(screen.queryByText('Inventory Item 26')).not.toBeInTheDocument();
-      expect(screen.getByTestId('inventory-list-pagination-footer')).toBeInTheDocument();
-      expect(screen.getByText(/Showing 1 to 25 of 30 items/)).toBeInTheDocument();
-    });
+    expect(await screen.findByText('Inventory Item 01')).toBeInTheDocument();
+    expect(screen.getByText('Inventory Item 25')).toBeInTheDocument();
+    expect(screen.queryByText('Inventory Item 26')).not.toBeInTheDocument();
+    expect(screen.getByTestId('inventory-list-pagination-footer')).toBeInTheDocument();
+    expect(screen.getByText(/Showing 1 to 25 of 30 items/)).toBeInTheDocument();
   });
 });
