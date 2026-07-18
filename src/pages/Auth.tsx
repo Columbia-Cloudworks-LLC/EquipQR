@@ -65,18 +65,29 @@ const Auth = () => {
   const [pendingQRScan, setPendingQRScan] = useState(false);
   const [showMFAVerification, setShowMFAVerification] = useState(false);
   const suppressAuthRedirectRef = useRef(false);
+  const pendingRedirectFromOAuthRef = useRef<string | null>(null);
   const { error: showErrorToast, success: showSuccessToast } = useAppToast();
 
   // Restore pendingRedirect from OAuth `?next=` (survives Google round-trip)
   // and detect QR-scan messaging. Safe/invalid next values are ignored.
   useEffect(() => {
     const nextFromOAuth = getSafeNextParam(location.search);
+    pendingRedirectFromOAuthRef.current = nextFromOAuth;
     if (nextFromOAuth) {
-      sessionStorage.setItem('pendingRedirect', nextFromOAuth);
+      try {
+        sessionStorage.setItem('pendingRedirect', nextFromOAuth);
+      } catch {
+        // sessionStorage may be unavailable or blocked.
+      }
     }
 
-    const pendingRedirect =
-      nextFromOAuth ?? sessionStorage.getItem('pendingRedirect');
+    let storedPendingRedirect: string | null = null;
+    try {
+      storedPendingRedirect = sessionStorage.getItem('pendingRedirect');
+    } catch {
+      // sessionStorage may be unavailable or blocked.
+    }
+    const pendingRedirect = nextFromOAuth ?? storedPendingRedirect;
     if (
       pendingRedirect &&
       isSafeRedirectPath(pendingRedirect) &&
@@ -104,10 +115,19 @@ const Auth = () => {
       if (showMFAVerification) return;
 
       // Check for pending redirect first (e.g., from OAuth callbacks or QR scans)
-      const pendingRedirect = sessionStorage.getItem('pendingRedirect');
+      let pendingRedirect: string | null = pendingRedirectFromOAuthRef.current;
+      try {
+        pendingRedirect = pendingRedirect ?? sessionStorage.getItem('pendingRedirect');
+      } catch {
+        // sessionStorage may be unavailable or blocked.
+      }
       if (pendingRedirect) {
         // Clear it and navigate there (validated to prevent open redirects)
-        sessionStorage.removeItem('pendingRedirect');
+        try {
+          sessionStorage.removeItem('pendingRedirect');
+        } catch {
+          // sessionStorage may be unavailable or blocked.
+        }
         navigate(getSafeRedirectPath(pendingRedirect), { replace: true });
       } else {
         navigate('/');
