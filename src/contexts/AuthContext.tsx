@@ -181,7 +181,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInWithGoogle = async () => {
-    const pendingRedirect = sessionStorage.getItem('pendingRedirect');
+    let pendingRedirect: string | null = null;
+    try {
+      pendingRedirect = sessionStorage.getItem('pendingRedirect');
+    } catch {
+      // sessionStorage may be unavailable or blocked; use the default redirect.
+    }
     const redirectTo = buildGoogleOAuthRedirectTo(
       window.location.origin,
       pendingRedirect,
