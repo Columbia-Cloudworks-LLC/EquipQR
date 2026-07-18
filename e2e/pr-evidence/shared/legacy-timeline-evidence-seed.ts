@@ -1,5 +1,6 @@
 import { execSync } from 'node:child_process';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+
 import {
   cursedHistoricalOrgId,
   cursedHistoricalWorkOrders,
@@ -70,6 +71,17 @@ function createE2EAdminClient(): SupabaseClient {
 export async function resetLegacyAcceptedTimelineEvidenceFixture(): Promise<void> {
   const admin = createE2EAdminClient();
   const workOrderId = legacyTimelineEvidenceWorkOrderId;
+
+  const [{ data: team, error: teamError }, { data: equipment, error: equipmentError }] = await Promise.all([
+    admin.from('teams').select('id').eq('id', cursedTeamId).maybeSingle(),
+    admin.from('equipment').select('id').eq('id', cursedEquipmentId).maybeSingle(),
+  ]);
+  if (teamError || equipmentError || !team || !equipment) {
+    const details = [teamError?.message, equipmentError?.message].filter(Boolean).join('; ');
+    throw new Error(
+      `Missing cursed fixture prerequisites (team/equipment). Run npx supabase db reset to apply seeds including 31_cursed_historical_timeline.sql.${details ? ` ${details}` : ''}`,
+    );
+  }
 
   const { error: historyDeleteError } = await admin
     .from('work_order_status_history')
