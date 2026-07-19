@@ -63,10 +63,11 @@ test.describe.serial('Help Center CSP hydration and branding @pr-evidence', () =
     await expect(page.locator('html')).toHaveClass(/dark/);
 
     // Mission Control primary (#B79CFF) wired into VitePress brand token.
+    // Custom properties may retain the var() expression rather than resolving it.
     const brandColor = await page.evaluate(() =>
       getComputedStyle(document.documentElement).getPropertyValue('--vp-c-brand-1').trim(),
     );
-    expect(brandColor.toLowerCase()).toMatch(/#b79cff|hsl\(\s*258/);
+    expect(brandColor).toBe('hsl(var(--eqr-primary))');
 
     // Open App CTA uses primary button treatment (desktop menu or mobile screen).
     const openAppDesktop = page.locator('.VPNavBarMenuLink[href="https://equipqr.app"]');
