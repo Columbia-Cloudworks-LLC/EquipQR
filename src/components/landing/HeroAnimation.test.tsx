@@ -1,6 +1,8 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+
+const qrPhaseSuspend = vi.hoisted(() => ({ enabled: false }));
 
 vi.mock('gsap', () => ({
   gsap: {
@@ -30,11 +32,28 @@ vi.mock('gsap', () => ({
 vi.mock('@gsap/react', () => ({ useGSAP: vi.fn() }));
 vi.mock('gsap/MorphSVGPlugin', () => ({ MorphSVGPlugin: {} }));
 
+vi.mock('./QRScanPhase', () => ({
+  default: function MockQRScanPhase({ onPhaseComplete }: { onPhaseComplete: () => void }) {
+    if (qrPhaseSuspend.enabled) {
+      // Suspend forever so Suspense paints the loading fallback (cold-load path).
+      throw new Promise(() => {});
+    }
+    return (
+      <div data-testid="qr-scan-phase">
+        <button type="button" onClick={onPhaseComplete}>
+          complete-qr
+        </button>
+      </div>
+    );
+  },
+}));
+
 import HeroAnimation from './HeroAnimation';
 import { ALL_STATE_CODES, STATE_VECTORS, STATES_RELATIVE } from './stateVectors';
 import type { StateCode } from './stateVectors';
 import { computeDotPositionsInState, chosenDotIndex } from './dotPositions';
 import { ALL_PM_ITEMS, EXPORT_TARGETS } from './pmChecklistData';
+import { HERO_VERTICAL_LINE } from './heroGeometry';
 
 function renderHero() {
   return render(
@@ -63,6 +82,11 @@ function setReducedMotion(enabled: boolean) {
 describe('HeroAnimation', () => {
   beforeEach(() => {
     setReducedMotion(false);
+    qrPhaseSuspend.enabled = false;
+  });
+
+  afterEach(() => {
+    qrPhaseSuspend.enabled = false;
   });
 
   it('renders a landmark region with the correct aria-label', () => {
@@ -94,6 +118,11 @@ describe('HeroAnimation', () => {
       expect(screen.getByTestId('static-hero-composite')).toBeInTheDocument();
     });
 
+    it('does not render the Suspense vertical-line loading fallback in reduced-motion mode', () => {
+      renderHero();
+      expect(screen.queryByTestId('hero-phase-loading-fallback')).not.toBeInTheDocument();
+    });
+
     it('does not render PM checklist phase in reduced-motion mode', () => {
       renderHero();
       expect(screen.queryByTestId('pm-checklist-phase')).not.toBeInTheDocument();
@@ -103,6 +132,28 @@ describe('HeroAnimation', () => {
       renderHero();
       expect(screen.queryByTestId('qr-scan-phase')).not.toBeInTheDocument();
       expect(screen.queryByTestId('state-morph-phase')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Suspense loading fallback (#1364)', () => {
+    it('shows the vertical-line loading fallback instead of Texas while a phase chunk is pending', () => {
+      qrPhaseSuspend.enabled = true;
+      renderHero();
+
+      const loading = screen.getByTestId('hero-phase-loading-fallback');
+      expect(loading).toBeInTheDocument();
+      expect(screen.queryByTestId('static-hero-composite')).not.toBeInTheDocument();
+
+      const path = loading.querySelector('path');
+      expect(path?.getAttribute('d')).toBe(HERO_VERTICAL_LINE);
+      expect(path?.getAttribute('d')).not.toBe(STATE_VECTORS.TX);
+    });
+
+    it('does not render the Texas static composite after animated phases resolve', async () => {
+      renderHero();
+      expect(await screen.findByTestId('qr-scan-phase')).toBeInTheDocument();
+      expect(screen.queryByTestId('static-hero-composite')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('hero-phase-loading-fallback')).not.toBeInTheDocument();
     });
   });
 
