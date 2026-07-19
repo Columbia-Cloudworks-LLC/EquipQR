@@ -1,0 +1,37 @@
+/**
+ * EquipQR Docs — design tokens mirrored from the product app.
+ *
+ * Source of truth: ../../src/index.css (:root Mission Control palette).
+ * When app tokens change, update the HSL values below and the VitePress
+ * --vp-* mappings in custom.css. See docs/ops/deployment.md § Design tokens.
+ *
+ * Values are HSL components (no hsl() wrapper) to match the app convention.
+ */
+
+:root {
+  /* App semantic tokens (shared reference for docs chrome) */
+  --eqr-background: 0 0% 4%;
+  --eqr-foreground: 0 0% 98%;
+  --eqr-card: 0 0% 7%;
+  --eqr-card-elevated: 0 0% 10%;
+  --eqr-primary: 258 100% 81%;
+  --eqr-primary-foreground: 0 0% 4%;
+  --eqr-secondary: 240 5% 13%;
+  --eqr-muted: 240 5% 13%;
+  --eqr-muted-foreground: 240 4% 65%;
+  --eqr-accent: 240 5% 13%;
+  --eqr-border: 240 4% 16%;
+  --eqr-ring: 258 100% 81%;
+  --eqr-success: 145 80% 65%;
+  --eqr-info: 213 100% 68%;
+  --eqr-warning: 42 100% 67%;
+  --eqr-destructive: 0 100% 76%;
+  --eqr-sidebar-background: 0 0% 7%;
+  --eqr-radius: 0;
+
+  /* System stack only — avoid third-party font CSS (docs CSP style-src 'self'). */
+  --eqr-font-display: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --eqr-font-body: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
