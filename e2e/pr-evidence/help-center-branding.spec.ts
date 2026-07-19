@@ -15,9 +15,13 @@ import { startDocsDistCspServer, type DocsCspServer } from './shared/docs-csp-se
  * (scripts/docs/externalize-docs-inline-scripts.mjs) so the CSP stays a static
  * script-src 'self' that can never drift.
  *
+ * Issue #1358 — VitePress theme mirrors Mission Control tokens from the app,
+ * defaults to dark, uses EquipQR (+ Docs) wordmark, and styles Open App as a
+ * primary CTA so the help center reads as the same product family.
+ *
  * This spec serves the built docs through the exact CSP shipped in
- * docs/vercel.json and proves hydration, navigation, theme toggling, and
- * branding assets all work under that policy.
+ * docs/vercel.json and proves hydration, navigation, theme toggling,
+ * branding assets, and #1358 design-system alignment under that policy.
  */
 test.describe.serial('Help Center CSP hydration and branding @pr-evidence', () => {
   let docsServer: DocsCspServer;
@@ -53,7 +57,24 @@ test.describe.serial('Help Center CSP hydration and branding @pr-evidence', () =
     await expect(navLogo).toHaveAttribute('src', /eqr-logo\/icon\.svg/);
     await expect(page.locator('.VPHero .VPImage')).toBeVisible();
 
+    // #1358 — product wordmark (EquipQR), not "EquipQR Help" as primary title.
+    await expect(page.locator('.VPNavBarTitle .title')).toContainText('EquipQR');
+    await expect(page.locator('.VPHero .name')).toHaveText(/EquipQR/i);
+    await expect(page.locator('html')).toHaveClass(/dark/);
+
+    // Mission Control primary (#B79CFF) wired into VitePress brand token.
+    const brandColor = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--vp-c-brand-1').trim(),
+    );
+    expect(brandColor.toLowerCase()).toMatch(/#b79cff|hsl\(\s*258/);
+
+    // Open App CTA uses primary button treatment (not a plain nav link).
+    const openApp = page.locator('.VPNavBarMenuLink[href="https://equipqr.app"]');
+    await expect(openApp).toBeVisible();
+    await expect(openApp).toHaveCSS('font-weight', /^(600|bold)$/);
+
     await evidencePause(page, 600);
+    // Full viewport — nav is edge-to-edge and fails { target } padding checks.
     await evidenceScreenshot(page, '01-homepage-branded-and-hydrated');
 
     expect(cspViolations).toEqual([]);
@@ -98,5 +119,12 @@ test.describe.serial('Help Center CSP hydration and branding @pr-evidence', () =
     await expect(html).toHaveClass(wasDark ? /^((?!dark).)*$/ : /dark/);
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '04-theme-toggle-works');
+
+    // #1358 — article chrome (sidebar + doc) under Mission Control tokens.
+    await page.goto(`${docsServer.baseUrl}/support/start-here/`);
+    await expect(page.getByRole('heading', { name: /start here/i }).first()).toBeVisible();
+    await expect(page.locator('.VPSidebar')).toBeVisible();
+    await evidencePause(page, 600);
+    await evidenceScreenshot(page, '05-article-chrome-mission-control');
   });
 });

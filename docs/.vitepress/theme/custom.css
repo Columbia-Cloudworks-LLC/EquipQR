@@ -1,0 +1,243 @@
+/**
+ * EquipQR Docs — VitePress theme overrides aligned with equipqr.app.
+ * Token source: equipqr-tokens.css (mirrored from src/index.css).
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
+@import "./equipqr-tokens.css";
+
+/* -------------------------------------------------------------------------- */
+/* Map EquipQR tokens → VitePress CSS variables (dark = product default)      */
+/* -------------------------------------------------------------------------- */
+
+:root,
+.dark {
+  --vp-c-brand-1: hsl(var(--eqr-primary));
+  --vp-c-brand-2: hsl(258 90% 72%);
+  --vp-c-brand-3: hsl(258 80% 62%);
+  --vp-c-brand-soft: hsl(var(--eqr-primary) / 0.14);
+
+  --vp-c-bg: hsl(var(--eqr-background));
+  --vp-c-bg-alt: hsl(var(--eqr-card));
+  --vp-c-bg-elv: hsl(var(--eqr-card-elevated));
+  --vp-c-bg-soft: hsl(var(--eqr-secondary));
+
+  --vp-c-border: hsl(var(--eqr-border));
+  --vp-c-divider: hsl(var(--eqr-border));
+  --vp-c-gutter: hsl(var(--eqr-card));
+
+  --vp-c-text-1: hsl(var(--eqr-foreground));
+  --vp-c-text-2: hsl(var(--eqr-muted-foreground));
+  --vp-c-text-3: hsl(240 4% 50%);
+
+  --vp-c-default-1: hsl(var(--eqr-secondary));
+  --vp-c-default-2: hsl(var(--eqr-card-elevated));
+  --vp-c-default-3: hsl(var(--eqr-border));
+  --vp-c-default-soft: hsl(var(--eqr-secondary));
+
+  --vp-c-tip-1: hsl(var(--eqr-info));
+  --vp-c-tip-2: hsl(213 90% 58%);
+  --vp-c-tip-3: hsl(213 80% 48%);
+  --vp-c-tip-soft: hsl(var(--eqr-info) / 0.14);
+
+  --vp-c-warning-1: hsl(var(--eqr-warning));
+  --vp-c-warning-2: hsl(42 90% 55%);
+  --vp-c-warning-3: hsl(42 80% 45%);
+  --vp-c-warning-soft: hsl(var(--eqr-warning) / 0.14);
+
+  --vp-c-danger-1: hsl(var(--eqr-destructive));
+  --vp-c-danger-2: hsl(0 90% 66%);
+  --vp-c-danger-3: hsl(0 80% 56%);
+  --vp-c-danger-soft: hsl(var(--eqr-destructive) / 0.14);
+
+  --vp-c-success-1: hsl(var(--eqr-success));
+  --vp-c-success-2: hsl(145 70% 52%);
+  --vp-c-success-3: hsl(145 60% 42%);
+  --vp-c-success-soft: hsl(var(--eqr-success) / 0.14);
+
+  --vp-button-brand-border: transparent;
+  --vp-button-brand-text: hsl(var(--eqr-primary-foreground));
+  --vp-button-brand-bg: hsl(var(--eqr-primary));
+  --vp-button-brand-hover-border: transparent;
+  --vp-button-brand-hover-text: hsl(var(--eqr-primary-foreground));
+  --vp-button-brand-hover-bg: hsl(258 90% 72%);
+  --vp-button-brand-active-border: transparent;
+  --vp-button-brand-active-text: hsl(var(--eqr-primary-foreground));
+  --vp-button-brand-active-bg: hsl(258 80% 62%);
+
+  --vp-button-alt-border: hsl(var(--eqr-border));
+  --vp-button-alt-text: hsl(var(--eqr-foreground));
+  --vp-button-alt-bg: hsl(var(--eqr-secondary));
+  --vp-button-alt-hover-border: hsl(var(--eqr-border));
+  --vp-button-alt-hover-text: hsl(var(--eqr-foreground));
+  --vp-button-alt-hover-bg: hsl(var(--eqr-card-elevated));
+  --vp-button-alt-active-border: hsl(var(--eqr-border));
+  --vp-button-alt-active-text: hsl(var(--eqr-foreground));
+  --vp-button-alt-active-bg: hsl(var(--eqr-muted));
+
+  --vp-c-mute: hsl(var(--eqr-secondary));
+  --vp-c-mute-dark: hsl(var(--eqr-card));
+  --vp-c-mute-darker: hsl(var(--eqr-background));
+
+  --vp-code-block-bg: hsl(var(--eqr-card));
+  --vp-code-copy-code-bg: hsl(var(--eqr-card-elevated));
+  --vp-code-copy-code-hover-bg: hsl(var(--eqr-secondary));
+
+  --vp-sidebar-bg-color: hsl(var(--eqr-sidebar-background));
+  --vp-nav-bg-color: hsl(var(--eqr-background) / 0.92);
+
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(
+    120deg,
+    hsl(var(--eqr-primary)) 30%,
+    hsl(var(--eqr-info))
+  );
+  --vp-home-hero-image-background-image: radial-gradient(
+    circle at 50% 50%,
+    hsl(var(--eqr-primary) / 0.28) 0%,
+    hsl(var(--eqr-info) / 0.08) 45%,
+    transparent 70%
+  );
+  --vp-home-hero-image-filter: blur(44px);
+
+  --vp-font-family-base: var(--eqr-font-body);
+  --vp-font-family-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono",
+    Menlo, Consolas, monospace;
+
+  color-scheme: dark;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Typography & chrome                                                        */
+/* -------------------------------------------------------------------------- */
+
+.VPNavBarTitle .title,
+.VPHero .name,
+.VPHero .text {
+  font-family: var(--eqr-font-display);
+}
+
+.VPNavBar .VPNavBarTitle .logo {
+  height: 28px;
+  width: 28px;
+}
+
+.VPSidebarItem.level-0 > .item > .text,
+.VPSidebarItem.level-0 > .item > .link > .text {
+  font-weight: 600;
+}
+
+.VPSidebarItem.is-active > .item .link > .text {
+  color: var(--vp-c-brand-1);
+  font-weight: 600;
+}
+
+.VPSidebarItem .link:hover .text {
+  color: var(--vp-c-brand-1);
+}
+
+.VPDoc h1,
+.VPDoc h2,
+.VPDoc h3 {
+  font-family: var(--eqr-font-display);
+  letter-spacing: -0.02em;
+}
+
+.VPDoc a {
+  color: var(--vp-c-brand-1);
+}
+
+.VPLocalSearchBox .result.selected,
+.VPLocalSearchBox .result:hover {
+  background: var(--vp-c-brand-soft);
+}
+
+/* Squared corners to match app --radius: 0 */
+.VPButton,
+.VPFeature,
+.VPLocalSearchButton,
+.DocSearch-Button,
+.VPNavBarSearchButton,
+input,
+.vp-code,
+div[class*="language-"] {
+  border-radius: var(--eqr-radius) !important;
+}
+
+.VPButton.brand,
+.VPButton.alt {
+  font-weight: 600;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Open App CTA — matches primary button treatment                            */
+/* -------------------------------------------------------------------------- */
+
+.VPNavBarMenuLink[href="https://equipqr.app"],
+.VPNavScreenMenuLink[href="https://equipqr.app"] {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.5rem;
+  padding: 0.35rem 0.85rem !important;
+  border-radius: var(--eqr-radius) !important;
+  background: var(--vp-button-brand-bg) !important;
+  color: var(--vp-button-brand-text) !important;
+  font-weight: 600;
+  line-height: 1.4;
+  transition: background-color 0.2s ease;
+}
+
+.VPNavBarMenuLink[href="https://equipqr.app"]:hover,
+.VPNavScreenMenuLink[href="https://equipqr.app"]:hover {
+  background: var(--vp-button-brand-hover-bg) !important;
+  color: var(--vp-button-brand-hover-text) !important;
+}
+
+.VPNavScreenMenuLink[href="https://equipqr.app"] {
+  margin: 0.75rem 1.5rem 0;
+  width: calc(100% - 3rem);
+}
+
+/* Secondary "Docs" label after wordmark (nav title stays EquipQR) */
+.VPNavBarTitle .title::after {
+  content: " Docs";
+  font-weight: 500;
+  color: var(--vp-c-text-2);
+  font-size: 0.92em;
+}
+
+/* Custom block / callout alignment */
+.custom-block.tip {
+  border-color: hsl(var(--eqr-info) / 0.45);
+}
+
+.custom-block.warning {
+  border-color: hsl(var(--eqr-warning) / 0.45);
+}
+
+.custom-block.danger {
+  border-color: hsl(var(--eqr-destructive) / 0.45);
+}
+
+/* Feature cards on home */
+.VPFeature {
+  border-color: hsl(var(--eqr-border));
+  background: hsl(var(--eqr-card));
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.VPFeature:hover {
+  border-color: hsl(var(--eqr-primary) / 0.45);
+  background: hsl(var(--eqr-card-elevated));
+}
+
+.VPFeature .title {
+  font-family: var(--eqr-font-display);
+}
+
+/* Footer */
+.VPFooter {
+  border-top-color: hsl(var(--eqr-border));
+  background: hsl(var(--eqr-card));
+}

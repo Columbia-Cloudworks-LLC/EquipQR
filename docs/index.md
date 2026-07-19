@@ -2,9 +2,9 @@
 layout: home
 
 hero:
-  name: EquipQR Help Center
-  text: Guides for your fleet, work orders, and field teams
-  tagline: Step-by-step help for technicians, managers, admins, and equipment owners — hosted at equipqr.info.
+  name: EquipQR
+  text: Docs for your fleet, work orders, and field teams
+  tagline: Step-by-step guides for technicians, managers, admins, and equipment owners — the same product family as equipqr.app.
   image:
     src: /eqr-logo/icon.svg
     alt: EquipQR logo
@@ -13,7 +13,7 @@ hero:
       text: Browse Help Center
       link: /support/
     - theme: alt
-      text: Open EquipQR
+      text: Open App
       link: https://equipqr.app
 
 features:
