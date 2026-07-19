@@ -234,8 +234,8 @@ export default function HeroAnimation() {
   // still avoid the GSAP / MorphSVG download.
   useEffect(() => {
     if (prefersReducedMotion) return;
-    void import('./QRScanPhase');
-    void import('./StateMorphPhase');
+    void import('./QRScanPhase').catch(() => undefined);
+    void import('./StateMorphPhase').catch(() => undefined);
   }, [prefersReducedMotion]);
 
   return (
