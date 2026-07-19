@@ -1,6 +1,9 @@
 import { test, expect } from '../user/fixtures/equipqr-test';
 import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
 
+// Unauthenticated — default owner storage would redirect `/` to the dashboard.
+test.use({ storageState: { cookies: [], origins: [] } });
+
 /**
  * PR evidence for #1364 — landing hero Suspense no longer flashes Texas while
  * lazy phase chunks load on cold first paint.
@@ -9,7 +12,7 @@ test.describe('PR evidence landing hero Suspense flash @pr-evidence', () => {
   test('cold load shows continuous hero stage without Texas static composite flash', async ({
     page,
   }) => {
-    // Hard navigation with cache disabled so lazy chunks behave like a first visit.
+    // Hard navigation so lazy chunks behave like a first visit.
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
     const hero = page.getByRole('region', { name: /EquipQR asset tracking demo/i });
