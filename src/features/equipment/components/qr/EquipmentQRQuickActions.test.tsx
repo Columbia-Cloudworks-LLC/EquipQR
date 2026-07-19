@@ -17,7 +17,7 @@ const mockGetMatchingPmTemplates = vi.hoisted(() => vi.fn());
 
 vi.mock('@/features/pm-templates/services/pmChecklistTemplatesService', async () => {
   const actual = await vi.importActual<typeof import('@/features/pm-templates/services/pmChecklistTemplatesService')>(
-    '@/features/pm-templates/services/pmChecklistTemplatesService'
+    '@/features/pm-templates/services/pmChecklistTemplatesService',
   );
   return {
     ...actual,
@@ -34,7 +34,7 @@ vi.mock('@/features/pm-templates/services/pmTemplateCompatibilityRulesService', 
 
 vi.mock('@/features/equipment/services/equipmentQRActionService', async () => {
   const actual = await vi.importActual<typeof import('@/features/equipment/services/equipmentQRActionService')>(
-    '@/features/equipment/services/equipmentQRActionService'
+    '@/features/equipment/services/equipmentQRActionService',
   );
 
   return {
@@ -47,7 +47,7 @@ vi.mock('@/features/equipment/services/equipmentQRActionService', async () => {
 
 vi.mock('@/features/equipment/services/equipmentQRPermissions', async () => {
   const actual = await vi.importActual<typeof import('@/features/equipment/services/equipmentQRPermissions')>(
-    '@/features/equipment/services/equipmentQRPermissions'
+    '@/features/equipment/services/equipmentQRPermissions',
   );
 
   return {
@@ -113,7 +113,6 @@ const mockCreateNote = vi.mocked(createQREquipmentNote);
 
 const POINTER_CAPTURE_KEYS = ['hasPointerCapture', 'setPointerCapture', 'releasePointerCapture'] as const;
 
-/** Snapshot real jsdom/native descriptors once; restore after each test to avoid pollution. */
 const originalPointerCaptureDescriptors: Partial<
   Record<(typeof POINTER_CAPTURE_KEYS)[number], PropertyDescriptor | undefined>
 > = {};
@@ -127,6 +126,23 @@ const baseEquipment = {
   defaultPmTemplateId: 'pm-template-1',
 };
 
+const defaultPmTemplates = [
+  {
+    id: 'pm-option-1',
+    organization_id: null,
+    name: 'Forklift PM',
+    description: null,
+    is_protected: false,
+    template_data: [],
+    interval_value: null,
+    interval_type: null,
+    created_by: 'user-1',
+    updated_by: null,
+    created_at: '2020-01-01T00:00:00Z',
+    updated_at: '2020-01-01T00:00:00Z',
+  },
+];
+
 function renderQuickActions(overrides?: Partial<React.ComponentProps<typeof EquipmentQRQuickActions>>) {
   return render(
     <EquipmentQRQuickActions
@@ -134,8 +150,33 @@ function renderQuickActions(overrides?: Partial<React.ComponentProps<typeof Equi
       userRole="member"
       userDisplayName="Tech User"
       {...overrides}
-    />
+    />,
   );
+}
+
+async function openWorkOrderDialog() {
+  fireEvent.click(screen.getByRole('button', { name: /^new work order$/i }));
+  await waitFor(() => {
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+}
+
+/** Radix Select needs pointer sequencing from userEvent. */
+async function selectPmTemplateOption(optionName: RegExp) {
+  const user = userEvent.setup();
+  const combobox = await screen.findByRole('combobox', { name: /pm template/i });
+  await user.click(combobox);
+  await user.click(await screen.findByRole('option', { name: optionName }));
+}
+
+function mockCreatedWorkOrder(id: string) {
+  mockCreateWorkOrder.mockResolvedValue({
+    workOrder: {
+      id,
+      title: 'Work order - Forklift 17',
+    } as WorkOrder,
+    creationPhotosAttached: true,
+  } as Awaited<ReturnType<typeof createQRWorkOrder>>);
 }
 
 describe('EquipmentQRQuickActions', () => {
@@ -146,7 +187,6 @@ describe('EquipmentQRQuickActions', () => {
   });
 
   beforeEach(() => {
-    // Radix Select expects Pointer Capture APIs; jsdom does not implement them.
     Object.defineProperty(Element.prototype, 'hasPointerCapture', {
       configurable: true,
       value: vi.fn(() => false),
@@ -161,22 +201,7 @@ describe('EquipmentQRQuickActions', () => {
     });
 
     vi.clearAllMocks();
-    mockListPmTemplates.mockResolvedValue([
-      {
-        id: 'pm-option-1',
-        organization_id: null,
-        name: 'Forklift PM',
-        description: null,
-        is_protected: false,
-        template_data: [],
-        interval_value: null,
-        interval_type: null,
-        created_by: 'user-1',
-        updated_by: null,
-        created_at: '2020-01-01T00:00:00Z',
-        updated_at: '2020-01-01T00:00:00Z',
-      },
-    ]);
+    mockListPmTemplates.mockResolvedValue(defaultPmTemplates);
     mockGetMatchingPmTemplates.mockResolvedValue([]);
   });
 
@@ -193,33 +218,41 @@ describe('EquipmentQRQuickActions', () => {
   });
 
   it('denies work order and note actions when the user is only a team viewer', async () => {
-    const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'viewer' }]);
     renderQuickActions();
 
-    await user.click(screen.getByRole('button', { name: /^new work order$/i }));
-    expect(await screen.findByText(/need work order access/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /^new work order$/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/need work order access/i)).toBeInTheDocument();
+    });
 
-    await user.click(screen.getByRole('button', { name: /add note \/ upload image/i }));
-    expect(await screen.findByText(/need equipment note access/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /add note \/ upload image/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/need equipment note access/i)).toBeInTheDocument();
+    });
 
     expect(mockCreateWorkOrder).not.toHaveBeenCalled();
     expect(mockCreateNote).not.toHaveBeenCalled();
   });
 
   it('shows inline permission denied for every action when a team-scoped user lacks team access', async () => {
-    const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([]);
     renderQuickActions();
 
-    await user.click(screen.getByRole('button', { name: /^new work order$/i }));
-    expect(await screen.findByText(/need work order access/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /^new work order$/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/need work order access/i)).toBeInTheDocument();
+    });
 
-    await user.click(screen.getByRole('button', { name: /update hours/i }));
-    expect(await screen.findByText(/only organization admins/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /update hours/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/only organization admins/i)).toBeInTheDocument();
+    });
 
-    await user.click(screen.getByRole('button', { name: /add note \/ upload image/i }));
-    expect(await screen.findByText(/need equipment note access/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /add note \/ upload image/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/need equipment note access/i)).toBeInTheDocument();
+    });
 
     expect(mockCreateWorkOrder).not.toHaveBeenCalled();
     expect(mockUpdateHours).not.toHaveBeenCalled();
@@ -227,71 +260,53 @@ describe('EquipmentQRQuickActions', () => {
   });
 
   it('opens and creates a work order with the equipment default PM template', async () => {
-    const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
-    mockCreateWorkOrder.mockResolvedValue({
-      workOrder: {
-        id: 'wo-1',
-        title: 'Work order - Forklift 17',
-      } as WorkOrder,
-      creationPhotosAttached: true,
-    } as Awaited<ReturnType<typeof createQRWorkOrder>>);
+    mockCreatedWorkOrder('wo-1');
 
     renderQuickActions();
-
-    await user.click(screen.getByRole('button', { name: /^new work order$/i }));
-    expect(await screen.findByRole('dialog', undefined, { timeout: 3000 })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /create work order/i }));
+    await openWorkOrderDialog();
+    fireEvent.click(screen.getByRole('button', { name: /create work order/i }));
 
     await waitFor(() => {
       expect(mockCreateWorkOrder).toHaveBeenCalledWith(
-        expect.objectContaining({ attachPM: true, equipment: baseEquipment })
+        expect.objectContaining({ attachPM: true, equipment: baseEquipment }),
       );
     });
-    expect(await screen.findByText(/work order "work order - forklift 17" was created/i)).toBeInTheDocument();
-    const openWorkOrderLink = screen.getByRole('link', { name: /open work order/i });
-    expect(openWorkOrderLink).toHaveAttribute('href', '/dashboard/work-orders/wo-1');
+    expect(screen.getByText(/work order "work order - forklift 17" was created/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /open work order/i })).toHaveAttribute(
+      'href',
+      '/dashboard/work-orders/wo-1',
+    );
   });
 
   it('opens and creates a work order without PM when None is selected', async () => {
-    const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
-    mockCreateWorkOrder.mockResolvedValue({
-      workOrder: {
-        id: 'wo-2',
-        title: 'Work order - Forklift 17',
-      } as WorkOrder,
-      creationPhotosAttached: true,
-    } as Awaited<ReturnType<typeof createQRWorkOrder>>);
+    mockCreatedWorkOrder('wo-2');
 
     renderQuickActions();
-
-    await user.click(screen.getByRole('button', { name: /^new work order$/i }));
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
-    await user.click(screen.getByRole('combobox', { name: /pm template/i }));
-    await user.click(await screen.findByRole('option', { name: /^none$/i }));
-    await user.click(screen.getByRole('button', { name: /create work order/i }));
+    await openWorkOrderDialog();
+    await selectPmTemplateOption(/^none$/i);
+    fireEvent.click(screen.getByRole('button', { name: /create work order/i }));
 
     await waitFor(() => {
       expect(mockCreateWorkOrder).toHaveBeenCalledWith(
-        expect.objectContaining({ attachPM: false, equipment: baseEquipment })
+        expect.objectContaining({ attachPM: false, equipment: baseEquipment }),
       );
     });
-    expect(await screen.findByText(/work order "work order - forklift 17" was created/i)).toBeInTheDocument();
-    const openWorkOrderLink = screen.getByRole('link', { name: /open work order/i });
-    expect(openWorkOrderLink).toHaveAttribute('href', '/dashboard/work-orders/wo-2');
+    expect(screen.getByText(/work order "work order - forklift 17" was created/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /open work order/i })).toHaveAttribute(
+      'href',
+      '/dashboard/work-orders/wo-2',
+    );
   });
 
   it('updates hours for an allowed team manager', async () => {
-    const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'manager' }]);
     mockUpdateHours.mockResolvedValue(undefined);
 
     renderQuickActions();
-
-    await user.click(screen.getByRole('button', { name: /update hours/i }));
+    fireEvent.click(screen.getByRole('button', { name: /update hours/i }));
     const hoursInput = await screen.findByLabelText(/new total hours/i);
-    // happy-dom: prefer fireEvent for number inputs + form submit (userEvent.type/click flaky).
     fireEvent.change(hoursInput, { target: { value: '125.5' } });
     fireEvent.change(screen.getByLabelText(/reason or note/i), {
       target: { value: 'Meter reading' },
@@ -310,24 +325,22 @@ describe('EquipmentQRQuickActions', () => {
           newHours: 125.5,
           notes: 'Meter reading',
           scanId: undefined,
-        })
+        }),
       );
     });
-    expect(await screen.findByText(/working hours updated to 125.5 hours/i)).toBeInTheDocument();
+    expect(screen.getByText(/working hours updated to 125.5 hours/i)).toBeInTheDocument();
   });
 
   it('appends voice dictation to the working-hours reason field', async () => {
-    const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'manager' }]);
     mockUpdateHours.mockResolvedValue(undefined);
 
     renderQuickActions();
-
-    await user.click(screen.getByRole('button', { name: /update hours/i }));
+    fireEvent.click(screen.getByRole('button', { name: /update hours/i }));
     const hoursInput = await screen.findByLabelText(/new total hours/i);
     fireEvent.change(hoursInput, { target: { value: '130' } });
     fireEvent.change(screen.getByLabelText(/reason or note/i), { target: { value: 'Meter' } });
-    await user.click(screen.getByRole('button', { name: 'Start voice input' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Start voice input' }));
     const form = hoursInput.closest('form');
     if (!(form instanceof HTMLFormElement)) {
       throw new Error('Expected working-hours dialog to wrap inputs in a form');
@@ -338,22 +351,22 @@ describe('EquipmentQRQuickActions', () => {
       expect(mockUpdateHours).toHaveBeenCalledWith(
         expect.objectContaining({
           notes: 'Meter voice reason',
-        })
+        }),
       );
     });
     expect(mockToggleListening).toHaveBeenCalled();
   });
 
   it('adds an equipment note for an allowed team member', async () => {
-    const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
     mockCreateNote.mockResolvedValue(undefined);
 
     renderQuickActions();
-
-    await user.click(screen.getByRole('button', { name: /add note \/ upload image/i }));
-    expect(await screen.findByRole('dialog', undefined, { timeout: 3000 })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /submit note/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add note \/ upload image/i }));
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /submit note/i }));
 
     await waitFor(() => {
       expect(mockCreateNote).toHaveBeenCalledWith({
@@ -365,19 +378,12 @@ describe('EquipmentQRQuickActions', () => {
         machineHours: undefined,
       });
     });
-    expect(await screen.findByText(/note added to equipment/i)).toBeInTheDocument();
+    expect(screen.getByText(/note added to equipment/i)).toBeInTheDocument();
   });
 
   it('opens the work order dialog with None selected when equipment has no default template', async () => {
-    const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
-    mockCreateWorkOrder.mockResolvedValue({
-      workOrder: {
-        id: 'wo-pm-pick',
-        title: 'Work order - Forklift 17',
-      } as WorkOrder,
-      creationPhotosAttached: true,
-    } as Awaited<ReturnType<typeof createQRWorkOrder>>);
+    mockCreatedWorkOrder('wo-pm-pick');
 
     renderQuickActions({
       equipment: {
@@ -386,15 +392,12 @@ describe('EquipmentQRQuickActions', () => {
       },
     });
 
-    await user.click(screen.getByRole('button', { name: /^new work order$/i }));
-    await screen.findByRole('dialog', undefined, { timeout: 5000 });
-
+    await openWorkOrderDialog();
     const createBtn = screen.getByRole('button', { name: /create work order/i });
     expect(createBtn).not.toBeDisabled();
 
-    await user.click(screen.getByRole('combobox', { name: /pm template/i }));
-    await user.click(await screen.findByRole('option', { name: /forklift pm/i }));
-    await user.click(createBtn);
+    await selectPmTemplateOption(/forklift pm/i);
+    fireEvent.click(createBtn);
 
     await waitFor(() => {
       expect(mockCreateWorkOrder).toHaveBeenCalledWith(
@@ -405,13 +408,12 @@ describe('EquipmentQRQuickActions', () => {
             id: 'equipment-1',
             defaultPmTemplateId: null,
           }),
-        })
+        }),
       );
     });
   });
 
   it('shows loading state inside the PM template field while templates load', async () => {
-    const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
     mockListPmTemplates.mockImplementation(() => new Promise(() => {}));
 
@@ -422,20 +424,14 @@ describe('EquipmentQRQuickActions', () => {
       },
     });
 
-    await user.click(screen.getByRole('button', { name: /^new work order$/i }));
-    await screen.findByRole('dialog', undefined, { timeout: 5000 });
-
-    expect(await screen.findByText(/loading templates/i)).toBeInTheDocument();
+    await openWorkOrderDialog();
+    expect(screen.getByText(/loading templates/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /create work order/i })).not.toBeDisabled();
     expect(mockCreateWorkOrder).not.toHaveBeenCalled();
   });
 
   it('renders PM template control after templates load', async () => {
-    const user = userEvent.setup();
-    let resolveList: (value: unknown) => void = () => {};
-    const listPromise = new Promise(resolve => {
-      resolveList = resolve;
-    });
+    const listPromise = new Promise(() => {});
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
     mockListPmTemplates.mockImplementation(() => listPromise as Promise<unknown>);
 
@@ -446,23 +442,14 @@ describe('EquipmentQRQuickActions', () => {
       },
     });
 
-    await user.click(screen.getByRole('button', { name: /^new work order$/i }));
-    await screen.findByRole('dialog', undefined, { timeout: 5000 });
-
-    expect(await screen.findByText(/pm template/i)).toBeInTheDocument();
+    await openWorkOrderDialog();
+    expect(screen.getByText(/pm template/i)).toBeInTheDocument();
   });
 
   it('still creates a PM work order when recommendation matching fails but templates load', async () => {
-    const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
     mockGetMatchingPmTemplates.mockRejectedValue(new Error('Access denied'));
-    mockCreateWorkOrder.mockResolvedValue({
-      workOrder: {
-        id: 'wo-pm-no-rec',
-        title: 'Work order - Forklift 17',
-      } as WorkOrder,
-      creationPhotosAttached: true,
-    } as Awaited<ReturnType<typeof createQRWorkOrder>>);
+    mockCreatedWorkOrder('wo-pm-no-rec');
 
     renderQuickActions({
       equipment: {
@@ -471,19 +458,16 @@ describe('EquipmentQRQuickActions', () => {
       },
     });
 
-    await user.click(screen.getByRole('button', { name: /^new work order$/i }));
-    await screen.findByRole('dialog', undefined, { timeout: 5000 });
-
-    await user.click(screen.getByRole('combobox', { name: /pm template/i }));
-    await user.click(await screen.findByRole('option', { name: /forklift pm/i }));
-    await user.click(screen.getByRole('button', { name: /create work order/i }));
+    await openWorkOrderDialog();
+    await selectPmTemplateOption(/forklift pm/i);
+    fireEvent.click(screen.getByRole('button', { name: /create work order/i }));
 
     await waitFor(() => {
       expect(mockCreateWorkOrder).toHaveBeenCalledWith(
         expect.objectContaining({
           attachPM: true,
           pmTemplateId: 'pm-option-1',
-        })
+        }),
       );
     });
   });
@@ -491,25 +475,15 @@ describe('EquipmentQRQuickActions', () => {
   it('passes attached jpeg files through to createQRWorkOrder', async () => {
     const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
-    mockCreateWorkOrder.mockResolvedValue({
-      workOrder: {
-        id: 'wo-with-photos',
-        title: 'Work order - Forklift 17',
-      } as WorkOrder,
-      creationPhotosAttached: true,
-    } as Awaited<ReturnType<typeof createQRWorkOrder>>);
+    mockCreatedWorkOrder('wo-with-photos');
 
     renderQuickActions();
-
-    await user.click(screen.getByRole('button', { name: /^new work order$/i }));
-    await screen.findByRole('dialog', undefined, { timeout: 3000 });
-    await user.click(screen.getByRole('combobox', { name: /pm template/i }));
-    await user.click(await screen.findByRole('option', { name: /^none$/i }));
+    await openWorkOrderDialog();
+    await selectPmTemplateOption(/^none$/i);
 
     const file = new File(['fake-bytes'], 'site-photo.jpg', { type: 'image/jpeg' });
     await user.upload(screen.getByLabelText(/attach photos from this request/i), file);
-
-    await user.click(screen.getByRole('button', { name: /create work order/i }));
+    fireEvent.click(screen.getByRole('button', { name: /create work order/i }));
 
     await waitFor(() => {
       expect(mockCreateWorkOrder).toHaveBeenCalled();
@@ -524,26 +498,15 @@ describe('EquipmentQRQuickActions', () => {
   });
 
   it('forwards the scanId to createQRWorkOrder so the action is attributed to the scan', async () => {
-    const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
-    mockCreateWorkOrder.mockResolvedValue({
-      workOrder: {
-        id: 'wo-scan',
-        title: 'Work order - Forklift 17',
-      } as WorkOrder,
-      creationPhotosAttached: true,
-    } as Awaited<ReturnType<typeof createQRWorkOrder>>);
+    mockCreatedWorkOrder('wo-scan');
 
     renderQuickActions({ scanId: 'scan-123' });
-
-    await user.click(screen.getByRole('button', { name: /^new work order$/i }));
-    await screen.findByRole('dialog', undefined, { timeout: 3000 });
-    await user.click(screen.getByRole('button', { name: /create work order/i }));
+    await openWorkOrderDialog();
+    fireEvent.click(screen.getByRole('button', { name: /create work order/i }));
 
     await waitFor(() => {
-      expect(mockCreateWorkOrder).toHaveBeenCalledWith(
-        expect.objectContaining({ scanId: 'scan-123' })
-      );
+      expect(mockCreateWorkOrder).toHaveBeenCalledWith(expect.objectContaining({ scanId: 'scan-123' }));
     });
   });
 });
