@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Signup empty name fallback (#1332)** — Trim signup display names before storing metadata; AuthContext no longer treats whitespace-only names as present, and the signup form keeps showing “Full name is required” instead of silently using the email.
+- **Signup empty name fallback (#1332)** — Trim signup display names before storing metadata; AuthContext rejects empty/whitespace-only names (no silent email rename), and the signup form keeps showing “Full name is required”.
 - **Google OAuth preserves QR pending redirect (#1322)** — `signInWithGoogle` now returns to `/auth` with a validated `?next=` when `pendingRedirect` is set, Auth restores that destination after the OAuth round-trip, and SmartLanding honors `pendingRedirect` instead of always sending authenticated users to the dashboard.
 - **Cache batchInvalidate substring false positives (#1321)** — Match query keys by structural prefix arrays instead of `join('-').includes()`, so patterns like equipment/org segments no longer bust unrelated keys such as `work-orders-equipment-…`.
 - **Dead cache preload API (#1320)** — Remove `CacheManager.preloadRelatedData()`, which called React Query `prefetchQuery` without a `queryFn` and was an unused silent no-op.

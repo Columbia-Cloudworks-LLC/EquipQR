@@ -255,38 +255,28 @@ describe('AuthContext', () => {
     expect(signUpResult).toEqual({ error: null });
   });
 
-  it('should trim signup name and email, falling back to trimmed email when name empty', async () => {
+  it('should reject empty/whitespace signup names and trim valid name/email', async () => {
     const { result } = renderAuthHook();
     await flushAuthTimers();
 
+    let whitespaceResult;
     await act(async () => {
-      await result.current!.signUp('  test@example.com  ', 'password', '  ');
+      whitespaceResult = await result.current!.signUp('  test@example.com  ', 'password', '  ');
     });
-    expect(vi.mocked(supabase.auth.signUp)).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        email: 'test@example.com',
-        options: expect.objectContaining({
-          data: { name: 'test@example.com' },
-        }),
-      }),
-    );
+    expect(whitespaceResult).toEqual({ error: new Error('Full name is required') });
+    expect(vi.mocked(supabase.auth.signUp)).not.toHaveBeenCalled();
 
+    let emptyResult;
     await act(async () => {
-      await result.current!.signUp('test@example.com', 'password', '');
+      emptyResult = await result.current!.signUp('test@example.com', 'password', '');
     });
-    expect(vi.mocked(supabase.auth.signUp)).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        email: 'test@example.com',
-        options: expect.objectContaining({
-          data: { name: 'test@example.com' },
-        }),
-      }),
-    );
+    expect(emptyResult).toEqual({ error: new Error('Full name is required') });
+    expect(vi.mocked(supabase.auth.signUp)).not.toHaveBeenCalled();
 
     await act(async () => {
       await result.current!.signUp('  ada@example.com  ', 'password', '  Ada Lovelace  ');
     });
-    expect(vi.mocked(supabase.auth.signUp)).toHaveBeenLastCalledWith(
+    expect(vi.mocked(supabase.auth.signUp)).toHaveBeenCalledWith(
       expect.objectContaining({
         email: 'ada@example.com',
         options: expect.objectContaining({

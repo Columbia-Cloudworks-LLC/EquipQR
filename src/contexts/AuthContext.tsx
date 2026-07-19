@@ -161,13 +161,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const trimmedEmail = email.trim();
     const trimmedName = name?.trim();
 
+    if (!trimmedName) {
+      return { error: new Error('Full name is required') };
+    }
+
     const { error } = await supabase.auth.signUp({
       email: trimmedEmail,
       password,
       options: {
         emailRedirectTo: redirectUrl,
         data: {
-          name: trimmedName || trimmedEmail
+          name: trimmedName
         }
       }
     });
