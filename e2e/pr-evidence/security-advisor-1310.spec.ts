@@ -6,6 +6,11 @@ import { evidencePause, evidenceScreenshot } from './shared/evidence-helpers';
 
 const SUPABASE_URL =
   process.env.PR_EVIDENCE_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? 'http://127.0.0.1:54321';
+const DOCS_BASE_URL = (
+  process.env.PR_EVIDENCE_DOCS_URL ??
+  process.env.DEMO_DOCS_BASE_URL ??
+  'http://localhost:5174'
+).replace(/\/$/, '');
 const PROBE_BUCKET = 'organization-logos';
 /** First path segment must be org id for organization-logos insert RLS. */
 const PROBE_PREFIX = `${apexOrgId}/pr-evidence-1310`;
@@ -62,8 +67,13 @@ test.describe('Security Advisor hardening (#1310) @pr-evidence', () => {
   test('public object URL works; listing does not enumerate; app/docs render', async ({
     page,
     request,
+    baseURL,
   }) => {
     const base = SUPABASE_URL.replace(/\/$/, '');
+    const appBase = (baseURL ?? process.env.DEMO_BASE_URL ?? 'http://localhost:8080').replace(
+      /\/$/,
+      '',
+    );
     const anonKey = resolveAnonKeyFromEnv();
     const ownerToken = resolveOwnerAccessToken();
     const publicUrl = `${base}/storage/v1/object/public/${PROBE_BUCKET}/${PROBE_OBJECT}`;
@@ -113,16 +123,17 @@ test.describe('Security Advisor hardening (#1310) @pr-evidence', () => {
 
     const anonContext = await page.context().browser()!.newContext({
       storageState: { cookies: [], origins: [] },
+      baseURL: appBase,
     });
     const anonPage = await anonContext.newPage();
-    await anonPage.goto('http://localhost:8080/', { waitUntil: 'domcontentloaded' });
+    await anonPage.goto('/', { waitUntil: 'domcontentloaded' });
     await expect(anonPage.getByRole('link', { name: /get started/i }).first()).toBeVisible({
       timeout: 30_000,
     });
     await evidencePause(anonPage, 1000);
     await evidenceScreenshot(anonPage, '02-marketing-landing-after-bucket-hardening');
 
-    await anonPage.goto('http://localhost:5174/', { waitUntil: 'domcontentloaded' });
+    await anonPage.goto(`${DOCS_BASE_URL}/`, { waitUntil: 'domcontentloaded' });
     await expect(anonPage.locator('body')).toBeVisible();
     await evidencePause(anonPage, 800);
     await evidenceScreenshot(anonPage, '03-docs-home-after-bucket-hardening');
