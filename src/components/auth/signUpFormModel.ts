@@ -114,8 +114,8 @@ export function buildSignupUserMetadata(
   options: { invitedOrgId?: string; invitedOrgName?: string },
 ): Record<string, string> {
   const signUpData: Record<string, string> = {
-    name: formData.name,
-    organization_name: formData.organizationName,
+    name: formData.name.trim(),
+    organization_name: formData.organizationName.trim(),
   };
 
   if (options.invitedOrgId) {

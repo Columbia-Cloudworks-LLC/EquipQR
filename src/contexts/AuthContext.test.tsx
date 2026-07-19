@@ -255,6 +255,37 @@ describe('AuthContext', () => {
     expect(signUpResult).toEqual({ error: null });
   });
 
+  it('should reject empty/whitespace signup names and trim valid name/email', async () => {
+    const { result } = renderAuthHook();
+    await flushAuthTimers();
+
+    let whitespaceResult;
+    await act(async () => {
+      whitespaceResult = await result.current!.signUp('  test@example.com  ', 'password', '  ');
+    });
+    expect(whitespaceResult).toEqual({ error: new Error('Full name is required') });
+    expect(vi.mocked(supabase.auth.signUp)).not.toHaveBeenCalled();
+
+    let emptyResult;
+    await act(async () => {
+      emptyResult = await result.current!.signUp('test@example.com', 'password', '');
+    });
+    expect(emptyResult).toEqual({ error: new Error('Full name is required') });
+    expect(vi.mocked(supabase.auth.signUp)).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await result.current!.signUp('  ada@example.com  ', 'password', '  Ada Lovelace  ');
+    });
+    expect(vi.mocked(supabase.auth.signUp)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: 'ada@example.com',
+        options: expect.objectContaining({
+          data: { name: 'Ada Lovelace' },
+        }),
+      }),
+    );
+  });
+
   it('should handle sign in', async () => {
     const { result } = renderAuthHook();
 

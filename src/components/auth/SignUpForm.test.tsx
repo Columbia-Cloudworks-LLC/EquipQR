@@ -198,6 +198,17 @@ describe('SignUpForm', () => {
       const submitButton = screen.getByRole('button', { name: /create account & organization/i });
       expect(submitButton).toBeDisabled();
     });
+
+    it('should show Full name is required for whitespace-only name', () => {
+      withRouter(<SignUpForm {...defaultSignUpFormProps} />);
+      fillSignUpFormFast({ name: '   ' });
+
+      const nameInput = screen.getByLabelText(/full name/i);
+      fireEvent.blur(nameInput);
+
+      expect(screen.getByText(/full name is required/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /create account & organization/i })).toBeDisabled();
+    });
   });
 
   describe('HCaptcha Integration', () => {

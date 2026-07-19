@@ -22,7 +22,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  signUp: (email: string, password: string, name?: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, name: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -156,16 +156,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, name?: string) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    name: string,
+  ): Promise<{ error: Error | null }> => {
     const redirectUrl = `${window.location.origin}/`;
-    
+    const trimmedEmail = email.trim();
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
+      return { error: new Error('Full name is required') };
+    }
+
     const { error } = await supabase.auth.signUp({
-      email,
+      email: trimmedEmail,
       password,
       options: {
         emailRedirectTo: redirectUrl,
         data: {
-          name: name || email
+          name: trimmedName
         }
       }
     });
