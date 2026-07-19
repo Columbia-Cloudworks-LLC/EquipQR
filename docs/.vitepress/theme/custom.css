@@ -3,7 +3,6 @@
  * Token source: equipqr-tokens.css (mirrored from src/index.css).
  */
 
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
 @import "./equipqr-tokens.css";
 
 /* -------------------------------------------------------------------------- */
@@ -176,8 +175,8 @@ div[class*="language-"] {
 /* Open App CTA — matches primary button treatment                            */
 /* -------------------------------------------------------------------------- */
 
-.VPNavBarMenuLink[href="https://equipqr.app"],
-.VPNavScreenMenuLink[href="https://equipqr.app"] {
+.VPNavBarMenuLink[href^="https://equipqr.app"],
+.VPNavScreenMenuLink[href^="https://equipqr.app"] {
   display: inline-flex !important;
   align-items: center;
   justify-content: center;
@@ -191,13 +190,13 @@ div[class*="language-"] {
   transition: background-color 0.2s ease;
 }
 
-.VPNavBarMenuLink[href="https://equipqr.app"]:hover,
-.VPNavScreenMenuLink[href="https://equipqr.app"]:hover {
+.VPNavBarMenuLink[href^="https://equipqr.app"]:hover,
+.VPNavScreenMenuLink[href^="https://equipqr.app"]:hover {
   background: var(--vp-button-brand-hover-bg) !important;
   color: var(--vp-button-brand-hover-text) !important;
 }
 
-.VPNavScreenMenuLink[href="https://equipqr.app"] {
+.VPNavScreenMenuLink[href^="https://equipqr.app"] {
   margin: 0.75rem 1.5rem 0;
   width: calc(100% - 3rem);
 }
@@ -243,4 +242,12 @@ div[class*="language-"] {
 .VPFooter {
   border-top-color: hsl(var(--eqr-border));
   background: hsl(var(--eqr-card));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .VPNavBarMenuLink[href^="https://equipqr.app"],
+  .VPNavScreenMenuLink[href^="https://equipqr.app"],
+  .VPFeature {
+    transition: none;
+  }
 }

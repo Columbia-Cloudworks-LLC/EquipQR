@@ -29,7 +29,9 @@
   --eqr-sidebar-background: 0 0% 7%;
   --eqr-radius: 0;
 
-  --eqr-font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  /* System stack only — avoid third-party font CSS (docs CSP style-src 'self'). */
+  --eqr-font-display: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --eqr-font-body: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }

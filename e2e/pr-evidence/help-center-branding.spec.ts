@@ -84,8 +84,8 @@ test.describe.serial('Help Center CSP hydration and branding @pr-evidence', () =
     expect(brandColors.actual).toBe(brandColors.expected);
 
     // Open App CTA uses primary button treatment (desktop menu or mobile screen).
-    const openAppDesktop = page.locator('.VPNavBarMenuLink[href="https://equipqr.app"]');
-    const openAppMobile = page.locator('.VPNavScreenMenuLink[href="https://equipqr.app"]');
+    const openAppDesktop = page.locator('.VPNavBarMenuLink[href^="https://equipqr.app"]');
+    const openAppMobile = page.locator('.VPNavScreenMenuLink[href^="https://equipqr.app"]');
     if (await openAppDesktop.isVisible()) {
       await expect(openAppDesktop).toHaveCSS('font-weight', /^(600|bold)$/);
     } else {
