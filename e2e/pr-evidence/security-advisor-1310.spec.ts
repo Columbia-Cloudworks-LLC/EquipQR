@@ -111,15 +111,21 @@ test.describe('Security Advisor hardening (#1310) @pr-evidence', () => {
       target: page.locator('#probe'),
     });
 
-    await page.context().clearCookies();
-    await page.goto('http://localhost:8080/', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('body')).toBeVisible();
-    await evidencePause(page, 1000);
-    await evidenceScreenshot(page, '02-marketing-landing-after-bucket-hardening');
+    const anonContext = await page.context().browser()!.newContext({
+      storageState: { cookies: [], origins: [] },
+    });
+    const anonPage = await anonContext.newPage();
+    await anonPage.goto('http://localhost:8080/', { waitUntil: 'domcontentloaded' });
+    await expect(anonPage.getByRole('link', { name: /get started/i }).first()).toBeVisible({
+      timeout: 30_000,
+    });
+    await evidencePause(anonPage, 1000);
+    await evidenceScreenshot(anonPage, '02-marketing-landing-after-bucket-hardening');
 
-    await page.goto('http://localhost:5174/', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('body')).toBeVisible();
-    await evidencePause(page, 800);
-    await evidenceScreenshot(page, '03-docs-home-after-bucket-hardening');
+    await anonPage.goto('http://localhost:5174/', { waitUntil: 'domcontentloaded' });
+    await expect(anonPage.locator('body')).toBeVisible();
+    await evidencePause(anonPage, 800);
+    await evidenceScreenshot(anonPage, '03-docs-home-after-bucket-hardening');
+    await anonContext.close();
   });
 });
