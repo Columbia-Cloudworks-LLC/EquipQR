@@ -68,10 +68,18 @@ test.describe.serial('Help Center CSP hydration and branding @pr-evidence', () =
     );
     expect(brandColor.toLowerCase()).toMatch(/#b79cff|hsl\(\s*258/);
 
-    // Open App CTA uses primary button treatment (not a plain nav link).
-    const openApp = page.locator('.VPNavBarMenuLink[href="https://equipqr.app"]');
-    await expect(openApp).toBeVisible();
-    await expect(openApp).toHaveCSS('font-weight', /^(600|bold)$/);
+    // Open App CTA uses primary button treatment (desktop menu or mobile screen).
+    const openAppDesktop = page.locator('.VPNavBarMenuLink[href="https://equipqr.app"]');
+    const openAppMobile = page.locator('.VPNavScreenMenuLink[href="https://equipqr.app"]');
+    if (await openAppDesktop.isVisible()) {
+      await expect(openAppDesktop).toHaveCSS('font-weight', /^(600|bold)$/);
+    } else {
+      await page.locator('.VPNavBarHamburger').click();
+      await expect(openAppMobile).toBeVisible();
+      await expect(openAppMobile).toHaveCSS('font-weight', /^(600|bold)$/);
+      // Close the screen so later homepage screenshots stay clean.
+      await page.locator('.VPNavBarHamburger').click();
+    }
 
     await evidencePause(page, 600);
     // Full viewport — nav is edge-to-edge and fails { target } padding checks.
