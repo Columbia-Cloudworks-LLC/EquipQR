@@ -34,19 +34,23 @@ DROP POLICY IF EXISTS "org_logos_select" ON storage.objects;
 -- -----------------------------------------------------------------------------
 
 DO $datadog$
+DECLARE
+  fn regprocedure;
 BEGIN
-  IF EXISTS (
-    SELECT 1
+  -- Identity args only (OUT params are not part of the identity signature).
+  FOR fn IN
+    SELECT p.oid::regprocedure
     FROM pg_proc p
     JOIN pg_namespace n ON n.oid = p.pronamespace
     WHERE n.nspname = 'datadog'
       AND p.proname = 'explain_statement'
-  ) THEN
-    EXECUTE $alter$
-      ALTER FUNCTION datadog.explain_statement(text, OUT explain json)
-      SET search_path = datadog, public
-    $alter$;
-  END IF;
+      AND pg_get_function_identity_arguments(p.oid) = 'l_query text'
+  LOOP
+    EXECUTE format(
+      'ALTER FUNCTION %s SET search_path = datadog, public',
+      fn
+    );
+  END LOOP;
 END;
 $datadog$;
 

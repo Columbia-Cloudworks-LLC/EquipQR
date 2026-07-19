@@ -14,19 +14,28 @@ const repoRoot = path.resolve(import.meta.dirname, '..');
 const jsonPath = path.join(repoRoot, 'scripts/security-definer-rpc-allowlists.json');
 const migrationsDir = path.join(repoRoot, 'supabase/migrations');
 
-/** Prefer the newest migration that declares authenticated_allowlist (issue #1310+). */
+/**
+ * Newest migration that declares the bulk allowlist arrays (lexicographic
+ * timestamp prefix — Supabase migration naming).
+ */
 function resolveLockdownMigrationPath() {
-  const preferred = path.join(
-    migrationsDir,
-    '20260719214316_security_advisor_1310_hardening.sql',
-  );
-  if (fs.existsSync(preferred)) {
-    return preferred;
+  const marker = 'authenticated_allowlist text[] := ARRAY[';
+  const matches = fs
+    .readdirSync(migrationsDir)
+    .filter((name) => name.endsWith('.sql'))
+    .filter((name) => {
+      const content = fs.readFileSync(path.join(migrationsDir, name), 'utf8');
+      return content.includes(marker);
+    })
+    .sort();
+
+  if (matches.length === 0) {
+    throw new Error(
+      `No migration in ${migrationsDir} declares authenticated_allowlist`,
+    );
   }
-  return path.join(
-    migrationsDir,
-    '20260602120000_lockdown_security_definer_rpc_grants.sql',
-  );
+
+  return path.join(migrationsDir, matches[matches.length - 1]);
 }
 
 function extractArray(content, varName) {
