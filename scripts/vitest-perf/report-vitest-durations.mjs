@@ -236,9 +236,16 @@ function truncateTitle(title, max = 100) {
   return `${title.slice(0, max - 3)}...`;
 }
 
-/** Escape backslashes then pipes for GitHub markdown table cells (CodeQL-complete). */
+/**
+ * Escape table-breaking / mention characters for GitHub markdown cells.
+ * Backslash before pipe (CodeQL-complete); collapse newlines; neutralize @mentions.
+ */
 function escapeMarkdownTableCell(text) {
-  return String(text).replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
+  return String(text)
+    .replace(/\\/g, '\\\\')
+    .replace(/\|/g, '\\|')
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/@/g, '@\u200B');
 }
 
 /**

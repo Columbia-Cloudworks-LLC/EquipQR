@@ -76,6 +76,33 @@ describe('report-vitest-durations', () => {
       expect(md).toContain('Worst offenders');
       expect(md).toContain('a slow');
       expect(md).toContain('| 400 |');
+
+      const safeMd = formatDurationMarkdown(
+        {
+          files: [{ file: 'src/x.test.tsx', ms: 900, tests: 1, avg: 900, fails: 0 }],
+          tests: [
+            {
+              file: 'src/x.test.tsx',
+              title: 'ping @maintainer\nwith | pipes',
+              ms: 900,
+              status: 'passed',
+            },
+          ],
+          summary: {
+            sourceFiles: 1,
+            tests: 1,
+            totalMs: 900,
+            slowMs: 200,
+            overSlowMs: 1,
+            over200ms: 1,
+            over500ms: 1,
+          },
+        },
+        { topFiles: 1, topTests: 1 },
+      );
+      expect(safeMd).toContain('@\u200Bmaintainer');
+      expect(safeMd).not.toMatch(/\nwith /);
+      expect(safeMd).toContain('\\|');
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

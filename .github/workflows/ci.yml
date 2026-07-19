@@ -391,7 +391,11 @@ jobs:
         fi
 
     - name: Upsert sticky PR comment
-      if: github.event_name == 'pull_request' && steps.duration_report.outputs.empty != 'true'
+      if: >
+        github.event_name == 'pull_request' &&
+        steps.duration_report.outputs.empty != 'true' &&
+        github.event.pull_request.head.repo.full_name == github.repository
+      continue-on-error: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GITHUB_REPOSITORY: ${{ github.repository }}
