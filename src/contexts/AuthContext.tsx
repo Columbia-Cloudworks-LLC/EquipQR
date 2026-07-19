@@ -156,7 +156,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, name: string) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    name: string,
+  ): Promise<{ error: Error | null }> => {
     const redirectUrl = `${window.location.origin}/`;
     const trimmedEmail = email.trim();
     const trimmedName = name.trim();
