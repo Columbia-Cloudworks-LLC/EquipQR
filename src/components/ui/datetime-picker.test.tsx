@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { DateTimePicker } from '@/components/ui/datetime-picker';
 
 vi.mock('@/components/ui/calendar', () => ({
-  Calendar: () => <div data-testid="calendar-stub">Calendar</div>,
+  Calendar: () => <div>Calendar</div>,
 }));
 
 describe('DateTimePicker', () => {
@@ -25,7 +25,7 @@ describe('DateTimePicker', () => {
     expect(screen.getByRole('button', { name: 'Now' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Start of day' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'End of day' })).toBeInTheDocument();
-    expect(screen.getByTestId('calendar-stub')).toBeInTheDocument();
+    expect(screen.getByText('Calendar')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Now' }));
 

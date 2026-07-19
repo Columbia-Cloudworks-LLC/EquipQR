@@ -252,7 +252,9 @@ export let testQueryClient: QueryClient = createTestQueryClient();
 vi.mock('@/components/providers/AppProviders', () => ({
   AppProviders: ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={testQueryClient}>
-      <div data-testid="app-providers">{children}</div>
+      <div role="region" aria-label="App providers">
+        {children}
+      </div>
     </QueryClientProvider>
   ),
 }));
