@@ -203,6 +203,8 @@ BEGIN
     EXECUTE format('REVOKE ALL ON FUNCTION %s FROM authenticated', fn);
   END LOOP;
 
+  -- Grant only the newest SECURITY DEFINER overload per allowlisted proname
+  -- (highest oid). Name-only grants would otherwise re-open every overload.
   FOREACH func_name IN ARRAY authenticated_allowlist LOOP
     FOR fn IN
       SELECT p.oid::regprocedure
@@ -212,6 +214,15 @@ BEGIN
         AND p.prokind = 'f'
         AND p.prosecdef
         AND p.proname = func_name
+        AND p.oid = (
+          SELECT max(p2.oid)
+          FROM pg_proc p2
+          JOIN pg_namespace n2 ON n2.oid = p2.pronamespace
+          WHERE n2.nspname = 'public'
+            AND p2.prokind = 'f'
+            AND p2.prosecdef
+            AND p2.proname = func_name
+        )
     LOOP
       EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated', fn);
     END LOOP;
@@ -226,6 +237,15 @@ BEGIN
         AND p.prokind = 'f'
         AND p.prosecdef
         AND p.proname = func_name
+        AND p.oid = (
+          SELECT max(p2.oid)
+          FROM pg_proc p2
+          JOIN pg_namespace n2 ON n2.oid = p2.pronamespace
+          WHERE n2.nspname = 'public'
+            AND p2.prokind = 'f'
+            AND p2.prosecdef
+            AND p2.proname = func_name
+        )
     LOOP
       EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated', fn);
     END LOOP;
@@ -240,39 +260,7 @@ BEGIN
         AND p.prokind = 'f'
         AND p.prosecdef
         AND p.proname = func_name
-    LOOP
-      EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO anon', fn);
-      EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated', fn);
-    END LOOP;
-  END LOOP;
-
-  -- Name-based grants can re-open every SECURITY DEFINER overload of an
-  -- allowlisted proname. Keep only the newest overload (highest oid) for
-  -- authenticated/anon when multiples exist (e.g. create_historical_work_order_with_pm).
-  FOR func_name IN
-    SELECT p.proname
-    FROM pg_proc p
-    JOIN pg_namespace n ON n.oid = p.pronamespace
-    WHERE n.nspname = 'public'
-      AND p.prokind = 'f'
-      AND p.prosecdef
-      AND (
-        p.proname = ANY (authenticated_allowlist)
-        OR p.proname = ANY (anon_allowlist)
-        OR p.proname = ANY (rls_helper_allowlist)
-      )
-    GROUP BY p.proname
-    HAVING count(*) > 1
-  LOOP
-    FOR fn IN
-      SELECT p.oid::regprocedure
-      FROM pg_proc p
-      JOIN pg_namespace n ON n.oid = p.pronamespace
-      WHERE n.nspname = 'public'
-        AND p.prokind = 'f'
-        AND p.prosecdef
-        AND p.proname = func_name
-        AND p.oid <> (
+        AND p.oid = (
           SELECT max(p2.oid)
           FROM pg_proc p2
           JOIN pg_namespace n2 ON n2.oid = p2.pronamespace
@@ -282,8 +270,8 @@ BEGIN
             AND p2.proname = func_name
         )
     LOOP
-      EXECUTE format('REVOKE ALL ON FUNCTION %s FROM anon', fn);
-      EXECUTE format('REVOKE ALL ON FUNCTION %s FROM authenticated', fn);
+      EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO anon', fn);
+      EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated', fn);
     END LOOP;
   END LOOP;
 END;

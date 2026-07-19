@@ -127,16 +127,20 @@ test.describe('Security Advisor hardening (#1310) @pr-evidence', () => {
     });
     const anonPage = await anonContext.newPage();
     await anonPage.goto('/', { waitUntil: 'domcontentloaded' });
-    await expect(anonPage.getByRole('link', { name: /get started/i }).first()).toBeVisible({
-      timeout: 30_000,
-    });
+    const getStarted = anonPage.getByRole('link', { name: /get started/i }).first();
+    await expect(getStarted).toBeVisible({ timeout: 30_000 });
     await evidencePause(anonPage, 1000);
-    await evidenceScreenshot(anonPage, '02-marketing-landing-after-bucket-hardening');
+    await evidenceScreenshot(anonPage, '02-marketing-landing-after-bucket-hardening', {
+      target: getStarted,
+    });
 
     await anonPage.goto(`${DOCS_BASE_URL}/`, { waitUntil: 'domcontentloaded' });
-    await expect(anonPage.locator('body')).toBeVisible();
+    const browseHelp = anonPage.getByRole('link', { name: /browse help center/i }).first();
+    await expect(browseHelp).toBeVisible({ timeout: 30_000 });
     await evidencePause(anonPage, 800);
-    await evidenceScreenshot(anonPage, '03-docs-home-after-bucket-hardening');
+    await evidenceScreenshot(anonPage, '03-docs-home-after-bucket-hardening', {
+      target: browseHelp,
+    });
     await anonContext.close();
   });
 });

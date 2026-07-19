@@ -16,26 +16,26 @@ const migrationsDir = path.join(repoRoot, 'supabase/migrations');
 
 /**
  * Newest migration that declares the bulk allowlist arrays (lexicographic
- * timestamp prefix — Supabase migration naming).
+ * timestamp prefix — Supabase migration naming). Scan newest-first and stop.
  */
 function resolveLockdownMigrationPath() {
   const marker = 'authenticated_allowlist text[] := ARRAY[';
-  const matches = fs
+  const candidates = fs
     .readdirSync(migrationsDir)
     .filter((name) => name.endsWith('.sql'))
-    .filter((name) => {
-      const content = fs.readFileSync(path.join(migrationsDir, name), 'utf8');
-      return content.includes(marker);
-    })
-    .sort();
+    .sort()
+    .reverse();
 
-  if (matches.length === 0) {
-    throw new Error(
-      `No migration in ${migrationsDir} declares authenticated_allowlist`,
-    );
+  for (const name of candidates) {
+    const content = fs.readFileSync(path.join(migrationsDir, name), 'utf8');
+    if (content.includes(marker)) {
+      return path.join(migrationsDir, name);
+    }
   }
 
-  return path.join(migrationsDir, matches[matches.length - 1]);
+  throw new Error(
+    `No migration in ${migrationsDir} declares authenticated_allowlist`,
+  );
 }
 
 function extractArray(content, varName) {
