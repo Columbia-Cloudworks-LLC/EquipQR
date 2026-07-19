@@ -185,8 +185,8 @@ export default defineConfig({
   description:
     "User guides, workflows, and how-tos for EquipQR fleet equipment management — technicians, managers, admins, and equipment owners.",
   lang: "en-US",
-  // Match product Mission Control dark default; toggle still available.
-  appearance: "dark",
+  // Mission Control is dark-only — force dark and hide the ineffective light toggle.
+  appearance: "force-dark",
   lastUpdated: true,
   cleanUrls: true,
   srcDir: ".",

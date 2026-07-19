@@ -16,12 +16,12 @@ import { startDocsDistCspServer, type DocsCspServer } from './shared/docs-csp-se
  * script-src 'self' that can never drift.
  *
  * Issue #1358 — VitePress theme mirrors Mission Control tokens from the app,
- * defaults to dark, uses EquipQR (+ Docs) wordmark, and styles Open App as a
- * primary CTA so the help center reads as the same product family.
+ * force-dark appearance (no light toggle), EquipQR (+ Docs) wordmark, and
+ * Open App as a primary CTA so the help center reads as the same product family.
  *
  * This spec serves the built docs through the exact CSP shipped in
- * docs/vercel.json and proves hydration, navigation, theme toggling,
- * branding assets, and #1358 design-system alignment under that policy.
+ * docs/vercel.json and proves hydration, navigation, branding assets, and
+ * #1358 design-system alignment under that policy.
  */
 test.describe.serial('Help Center CSP hydration and branding @pr-evidence', () => {
   let docsServer: DocsCspServer;
@@ -62,11 +62,26 @@ test.describe.serial('Help Center CSP hydration and branding @pr-evidence', () =
     await expect(page.locator('.VPHero .name')).toHaveText(/EquipQR/i);
     await expect(page.locator('html')).toHaveClass(/dark/);
 
-    // Mission Control primary (#B79CFF) wired into VitePress brand token.
-    const brandColor = await page.evaluate(() =>
-      getComputedStyle(document.documentElement).getPropertyValue('--vp-c-brand-1').trim(),
+    // Assert the source Mission Control token (stable HSL components).
+    const eqrPrimary = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--eqr-primary').trim(),
     );
-    expect(brandColor.toLowerCase()).toMatch(/#b79cff|hsl\(\s*258/);
+    expect(eqrPrimary).toBe('258 100% 81%');
+
+    // Brand button resolves --vp-c-brand-1 / --eqr-primary (browser HSL→RGB may vary slightly).
+    const brandColors = await page.locator('.VPButton.brand').first().evaluate((el) => {
+      const actual = getComputedStyle(el).backgroundColor;
+      const primary = getComputedStyle(document.documentElement)
+        .getPropertyValue('--eqr-primary')
+        .trim();
+      const probe = document.createElement('div');
+      probe.style.backgroundColor = `hsl(${primary})`;
+      document.body.appendChild(probe);
+      const expected = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      return { actual, expected };
+    });
+    expect(brandColors.actual).toBe(brandColors.expected);
 
     // Open App CTA uses primary button treatment (desktop menu or mobile screen).
     const openAppDesktop = page.locator('.VPNavBarMenuLink[href="https://equipqr.app"]');
@@ -97,7 +112,7 @@ test.describe.serial('Help Center CSP hydration and branding @pr-evidence', () =
     expect(logo.headers()['content-type']).toContain('image/svg+xml');
   });
 
-  test('feature cards, hero button, and theme toggle work under production CSP', async ({
+  test('feature cards, hero button, and force-dark chrome work under production CSP', async ({
     page,
   }) => {
     await page.goto(`${docsServer.baseUrl}/`);
@@ -120,24 +135,11 @@ test.describe.serial('Help Center CSP hydration and branding @pr-evidence', () =
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '03-browse-help-center-navigates');
 
-    // Theme toggle only works when the Vue app is interactive.
-    // Narrow viewports: open hamburger and use the VPNavScreen switch (multiple
-    // hidden .VPSwitchAppearance nodes exist in the desktop chrome).
-    const html = page.locator('html');
-    const wasDark = await html.evaluate((el) => el.classList.contains('dark'));
-    const isNarrow = (page.viewportSize()?.width ?? 1920) < 960;
-    if (isNarrow) {
-      await page.locator('.VPNavBarHamburger').click();
-      await page.locator('.VPNavScreen .VPSwitchAppearance').click();
-    } else {
-      await page.locator('.VPNavBar .VPSwitchAppearance').first().click();
-    }
-    await expect(html).toHaveClass(wasDark ? /^((?!dark).)*$/ : /dark/);
+    // force-dark: appearance switch is not offered (Mission Control is dark-only).
+    await expect(page.locator('.VPSwitchAppearance')).toHaveCount(0);
+    await expect(page.locator('html')).toHaveClass(/dark/);
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '04-theme-toggle-works');
-    if (isNarrow) {
-      await page.locator('.VPNavBarHamburger').click();
-    }
+    await evidenceScreenshot(page, '04-force-dark-no-appearance-toggle');
 
     // #1358 — article chrome (sidebar + doc) under Mission Control tokens.
     await page.goto(`${docsServer.baseUrl}/support/start-here/`);

@@ -10,8 +10,13 @@
 /* Map EquipQR tokens → VitePress CSS variables (dark = product default)      */
 /* -------------------------------------------------------------------------- */
 
-:root,
-.dark {
+/*
+ * Dark-only (appearance: force-dark). Tokens apply on :root because VitePress
+ * always renders with the dark scheme; no separate light palette.
+ */
+:root {
+  color-scheme: dark;
+
   --vp-c-brand-1: hsl(var(--eqr-primary));
   --vp-c-brand-2: hsl(258 90% 72%);
   --vp-c-brand-3: hsl(258 80% 62%);
@@ -103,8 +108,6 @@
   --vp-font-family-base: var(--eqr-font-body);
   --vp-font-family-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono",
     Menlo, Consolas, monospace;
-
-  color-scheme: dark;
 }
 
 /* -------------------------------------------------------------------------- */
