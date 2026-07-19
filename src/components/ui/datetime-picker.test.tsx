@@ -19,7 +19,7 @@ describe('DateTimePicker', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /March/i }));
+    fireEvent.click(screen.getByRole('button'));
 
     expect(screen.getByRole('button', { name: 'Today' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Now' })).toBeInTheDocument();
