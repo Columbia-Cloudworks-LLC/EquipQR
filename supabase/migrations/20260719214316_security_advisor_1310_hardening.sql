@@ -41,9 +41,10 @@ BEGIN
     JOIN pg_namespace n ON n.oid = p.pronamespace
     WHERE n.nspname = 'datadog'
       AND p.proname = 'explain_statement'
+      AND pg_get_function_identity_arguments(p.oid) = 'text'
   ) THEN
     EXECUTE $alter$
-      ALTER FUNCTION datadog.explain_statement(text, OUT explain json)
+      ALTER FUNCTION datadog.explain_statement(text)
       SET search_path = datadog, public
     $alter$;
   END IF;
