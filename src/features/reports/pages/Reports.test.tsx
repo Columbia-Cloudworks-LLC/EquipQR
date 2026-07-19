@@ -140,7 +140,7 @@ describe('Reports page (Fleet Export Console)', () => {
     setupMocks();
   });
 
-  it('renders the export console shell with status strip and grouped reports', () => {
+  it('renders the export console shell, featured packet, titles, counts, and export actions', () => {
     render(<Reports />);
 
     expect(screen.getByRole('heading', { name: /fleet export console/i })).toBeInTheDocument();
@@ -150,24 +150,11 @@ describe('Reports page (Fleet Export Console)', () => {
     expect(screen.getByRole('heading', { name: 'Fleet Assets' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Inventory & Parts' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Scan Evidence' })).toBeInTheDocument();
-  });
-
-  it('features the Internal Work Order Packet with inline worksheet selection', () => {
-    render(<Reports />);
 
     expect(screen.getAllByText('Internal Work Order Packet').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Worksheets to export').length).toBeGreaterThan(0);
     expect(screen.getAllByRole('button', { name: /export packet/i }).length).toBeGreaterThan(0);
-  });
-
-  it('shows record counts in module stats when data is available', () => {
-    render(<Reports />);
-
     expect(screen.getAllByText('42 RECORDS').length).toBeGreaterThan(0);
-  });
-
-  it('renders renamed report titles and inline field selection for CSV exports', () => {
-    render(<Reports />);
 
     expect(screen.getAllByText('Fleet Asset Register').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Parts Inventory Snapshot').length).toBeGreaterThan(0);
@@ -176,13 +163,7 @@ describe('Reports page (Fleet Export Console)', () => {
     expect(screen.getAllByText('Quick Form Submission Ledger').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Alternate Parts Cross-Reference').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Fields to export').length).toBeGreaterThan(0);
-  });
-
-  it('shows single export actions for CSV reports on desktop layout', () => {
-    render(<Reports />);
-
-    const exportButtons = screen.getAllByRole('button', { name: /^export$/i });
-    expect(exportButtons.length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: /^export$/i }).length).toBeGreaterThan(0);
   });
 
   it('disables export actions when record count is zero', () => {

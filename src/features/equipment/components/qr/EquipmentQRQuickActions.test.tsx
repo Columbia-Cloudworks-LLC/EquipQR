@@ -1,6 +1,5 @@
 import React from 'react';
 import { fireEvent } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@vitest-harness/utils/test-utils';
 import EquipmentQRQuickActions from '@/features/equipment/components/qr/EquipmentQRQuickActions';
@@ -77,6 +76,85 @@ vi.mock('@/components/common/InlineNoteComposer', () => ({
     >
       Submit note
     </button>
+  ),
+}));
+
+vi.mock('@/features/work-orders/components/WorkOrderPMChecklist', async () => {
+  const {
+    PM_TEMPLATE_NONE_VALUE,
+    useWorkOrderPMChecklist,
+  } = await import('@/features/work-orders/hooks/useWorkOrderPMChecklist');
+  type ChecklistProps = {
+    values: { hasPM: boolean; pmTemplateId: string | null };
+    setValue: (field: 'hasPM' | 'pmTemplateId', value: boolean | string | null) => void;
+    selectedEquipment?: { id: string; name: string; default_pm_template_id: string | null } | null;
+    allowTemplateOverride?: boolean;
+    autoDefaultFromEquipment?: boolean;
+  };
+
+  return {
+    WorkOrderPMChecklist: ({
+      values,
+      setValue,
+      selectedEquipment,
+      allowTemplateOverride,
+      autoDefaultFromEquipment,
+    }: ChecklistProps) => {
+      const { templates, isLoading, handleTemplateChange, selectValue } = useWorkOrderPMChecklist({
+        values,
+        setValue,
+        selectedEquipment,
+        allowTemplateOverride,
+        autoDefaultFromEquipment,
+      });
+
+      if (isLoading) {
+        return <p>Loading templates...</p>;
+      }
+
+      return (
+        <label>
+          PM Template
+          <select
+            aria-label="PM template"
+            value={selectValue}
+            onChange={(event) => handleTemplateChange(event.target.value)}
+          >
+            <option value={PM_TEMPLATE_NONE_VALUE}>None</option>
+            {templates.map((template) => (
+              <option key={template.id} value={template.id}>
+                {template.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      );
+    },
+  };
+});
+
+vi.mock('@/features/work-orders/components/WorkOrderCreationPhotoPicker', () => ({
+  default: ({
+    images,
+    onImagesChange,
+    disabled,
+  }: {
+    images: File[];
+    onImagesChange: (files: File[]) => void;
+    disabled?: boolean;
+  }) => (
+    <label>
+      Attach photos from this request
+      <input
+        type="file"
+        aria-label="Attach photos from this request"
+        disabled={disabled}
+        onChange={(event) => {
+          const picked = Array.from(event.target.files ?? []);
+          onImagesChange([...images, ...picked]);
+        }}
+      />
+    </label>
   ),
 }));
 
@@ -161,12 +239,13 @@ async function openWorkOrderDialog() {
   });
 }
 
-/** Radix Select needs pointer sequencing from userEvent. */
 async function selectPmTemplateOption(optionName: RegExp) {
-  const user = userEvent.setup();
-  const combobox = await screen.findByRole('combobox', { name: /pm template/i });
-  await user.click(combobox);
-  await user.click(await screen.findByRole('option', { name: optionName }));
+  const select = (await screen.findByLabelText(/pm template/i)) as HTMLSelectElement;
+  const option = Array.from(select.options).find((entry) => optionName.test(entry.textContent ?? ''));
+  if (!option) {
+    throw new Error(`PM template option not found: ${optionName}`);
+  }
+  fireEvent.change(select, { target: { value: option.value } });
 }
 
 function mockCreatedWorkOrder(id: string) {
@@ -271,8 +350,6 @@ describe('EquipmentQRQuickActions', () => {
       expect(mockCreateWorkOrder).toHaveBeenCalledWith(
         expect.objectContaining({ attachPM: true, equipment: baseEquipment }),
       );
-    });
-    await waitFor(() => {
       expect(screen.getByText(/work order "work order - forklift 17" was created/i)).toBeInTheDocument();
     });
     expect(screen.getByRole('link', { name: /open work order/i })).toHaveAttribute(
@@ -294,8 +371,6 @@ describe('EquipmentQRQuickActions', () => {
       expect(mockCreateWorkOrder).toHaveBeenCalledWith(
         expect.objectContaining({ attachPM: false, equipment: baseEquipment }),
       );
-    });
-    await waitFor(() => {
       expect(screen.getByText(/work order "work order - forklift 17" was created/i)).toBeInTheDocument();
     });
     expect(screen.getByRole('link', { name: /open work order/i })).toHaveAttribute(
@@ -331,8 +406,6 @@ describe('EquipmentQRQuickActions', () => {
           scanId: undefined,
         }),
       );
-    });
-    await waitFor(() => {
       expect(screen.getByText(/working hours updated to 125.5 hours/i)).toBeInTheDocument();
     });
   });
@@ -383,8 +456,6 @@ describe('EquipmentQRQuickActions', () => {
         isPrivate: false,
         machineHours: undefined,
       });
-    });
-    await waitFor(() => {
       expect(screen.getByText(/note added to equipment/i)).toBeInTheDocument();
     });
   });
@@ -458,7 +529,7 @@ describe('EquipmentQRQuickActions', () => {
 
     resolveList(defaultPmTemplates);
     await waitFor(() => {
-      expect(screen.getByRole('combobox', { name: /pm template/i })).toBeInTheDocument();
+      expect(screen.getByLabelText(/pm template/i)).toBeInTheDocument();
     });
   });
 
@@ -489,7 +560,6 @@ describe('EquipmentQRQuickActions', () => {
   });
 
   it('passes attached jpeg files through to createQRWorkOrder', async () => {
-    const user = userEvent.setup();
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
     mockCreatedWorkOrder('wo-with-photos');
 
@@ -498,7 +568,8 @@ describe('EquipmentQRQuickActions', () => {
     await selectPmTemplateOption(/^none$/i);
 
     const file = new File(['fake-bytes'], 'site-photo.jpg', { type: 'image/jpeg' });
-    await user.upload(screen.getByLabelText(/attach photos from this request/i), file);
+    const input = screen.getByLabelText(/attach photos from this request/i);
+    fireEvent.change(input, { target: { files: [file] } });
     fireEvent.click(screen.getByRole('button', { name: /create work order/i }));
 
     await waitFor(() => {
