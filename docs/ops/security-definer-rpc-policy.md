@@ -55,7 +55,7 @@ node scripts/validate-security-definer-allowlist-sync.mjs
 | --- | --- |
 | `public_bucket_allows_listing` | **0** — public buckets keep `public=true` for direct object URLs; broad `storage.objects` SELECT policies are dropped |
 | `function_search_path_mutable` on `datadog.explain_statement` | **0** when Datadog schema is present (pinned `search_path`) |
-| `anon_security_definer_function_executable` | **3** intentional token/pre-auth RPCs (`anonPublicRpc`) |
+| `anon_security_definer_function_executable` | **3** intentional token/pre-auth RPCs (`anonPublicRpc`). Broader anon EXECUTE on INVOKER RPCs is also revoked (PUBLIC + anon); only those three names remain callable by `anon`. |
 | `authenticated_security_definer_function_executable` | Intentional allowlist only (client DEFINER RPCs + RLS helpers). INVOKER names in the JSON are not advisor DEFINER rows |
 
 1. Deploy `20260719214316_security_advisor_1310_hardening.sql` (builds on `20260602120000_lockdown_security_definer_rpc_grants.sql`).

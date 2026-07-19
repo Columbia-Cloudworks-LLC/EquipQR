@@ -3,9 +3,21 @@
 -- (validated by scripts/validate-security-definer-allowlist-sync.mjs).
 
 BEGIN;
-SELECT plan(17);
+SELECT plan(22);
 
--- 1. Only intentional pre-auth / token RPCs remain callable by anon.
+-- 1. Only intentional pre-auth / token RPCs remain callable by anon
+--    (covers INVOKER + DEFINER — not DEFINER-only).
+SELECT is(
+  (SELECT count(*)::integer
+     FROM pg_proc p
+     JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.prokind = 'f'
+      AND has_function_privilege('anon', p.oid, 'EXECUTE')),
+  3,
+  'exactly three public functions are executable by anon'
+);
+
 SELECT is(
   (SELECT count(*)::integer
      FROM pg_proc p
@@ -43,6 +55,42 @@ SELECT is(
             'EXECUTE')),
   true,
   'anon may execute resolve_quick_form_by_token'
+);
+
+SELECT is(
+  (SELECT has_function_privilege(
+            'anon',
+            'public.bulk_set_compatibility_rules(uuid, uuid, jsonb)',
+            'EXECUTE')),
+  false,
+  'anon cannot execute INVOKER bulk_set_compatibility_rules'
+);
+
+SELECT is(
+  (SELECT has_function_privilege(
+            'authenticated',
+            'public.bulk_set_compatibility_rules(uuid, uuid, jsonb)',
+            'EXECUTE')),
+  true,
+  'authenticated can execute INVOKER bulk_set_compatibility_rules'
+);
+
+SELECT is(
+  (SELECT has_function_privilege(
+            'anon',
+            'public.update_updated_at_column()',
+            'EXECUTE')),
+  false,
+  'anon cannot execute trigger helper update_updated_at_column'
+);
+
+SELECT is(
+  (SELECT has_function_privilege(
+            'authenticated',
+            'public.update_updated_at_column()',
+            'EXECUTE')),
+  false,
+  'authenticated cannot execute trigger helper update_updated_at_column'
 );
 
 -- 2. Representative internal helpers are not REST-callable.

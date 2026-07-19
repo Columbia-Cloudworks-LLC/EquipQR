@@ -26,6 +26,9 @@ function resolveAnonKeyFromEnv(): string {
   const fromEnv = process.env.VITE_SUPABASE_ANON_KEY?.trim();
   if (fromEnv) return fromEnv;
   const envPath = path.join(process.cwd(), '.env');
+  if (!fs.existsSync(envPath)) {
+    throw new Error('Missing VITE_SUPABASE_ANON_KEY (env unset and .env not found)');
+  }
   const raw = fs.readFileSync(envPath, 'utf8');
   const line = raw.split(/\r?\n/).find((l) => l.startsWith('VITE_SUPABASE_ANON_KEY='));
   const value = line?.slice('VITE_SUPABASE_ANON_KEY='.length).trim();

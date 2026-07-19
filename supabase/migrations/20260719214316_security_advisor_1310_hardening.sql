@@ -9,7 +9,10 @@
 --   2. Pin search_path on datadog.explain_statement when the Datadog schema exists.
 --   3. Re-lock SECURITY DEFINER EXECUTE grants (post-#762 drift from
 --      ALTER DEFAULT PRIVILEGES … GRANT ALL ON FUNCTIONS TO anon/authenticated).
---   4. Stop default-granting new public functions to anon/authenticated so
+--   4. Revoke PUBLIC/anon EXECUTE from all public functions (INVOKER + DEFINER),
+--      then re-grant authenticated on non-trigger INVOKER RPCs and allowlisted
+--      DEFINER RPCs. Intentional anon surface remains the three token RPCs.
+--   5. Stop default-granting new public functions to anon/authenticated so
 --      future CREATE FUNCTION stays deny-by-default.
 --
 -- Allowlists must match scripts/security-definer-rpc-allowlists.json
@@ -70,7 +73,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
   GRANT ALL ON FUNCTIONS TO service_role;
 
 -- -----------------------------------------------------------------------------
--- 4) Re-lock SECURITY DEFINER REST surface to current allowlists
+-- 4) Re-lock public REST surface (anon + SECURITY DEFINER allowlists)
 -- -----------------------------------------------------------------------------
 
 DO $lockdown$
@@ -190,6 +193,20 @@ DECLARE
     'user_is_org_member'
   ];
 BEGIN
+  -- Strip PUBLIC/anon from every public function so default-privilege drift
+  -- cannot leave INVOKER RPCs (or DEFINER RPCs) callable unauthenticated.
+  FOR fn IN
+    SELECT p.oid::regprocedure
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.prokind = 'f'
+  LOOP
+    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC', fn);
+    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM anon', fn);
+  END LOOP;
+
+  -- DEFINER: deny authenticated by default; allowlists re-open below.
   FOR fn IN
     SELECT p.oid::regprocedure
     FROM pg_proc p
@@ -198,9 +215,33 @@ BEGIN
       AND p.prokind = 'f'
       AND p.prosecdef
   LOOP
-    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC', fn);
-    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM anon', fn);
     EXECUTE format('REVOKE ALL ON FUNCTION %s FROM authenticated', fn);
+  END LOOP;
+
+  -- INVOKER trigger helpers must not be REST-callable.
+  FOR fn IN
+    SELECT p.oid::regprocedure
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.prokind = 'f'
+      AND NOT p.prosecdef
+      AND pg_get_function_result(p.oid) = 'trigger'
+  LOOP
+    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM authenticated', fn);
+  END LOOP;
+
+  -- Non-trigger INVOKER RPCs remain client-callable under RLS as the invoker.
+  FOR fn IN
+    SELECT p.oid::regprocedure
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.prokind = 'f'
+      AND NOT p.prosecdef
+      AND pg_get_function_result(p.oid) <> 'trigger'
+  LOOP
+    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated', fn);
   END LOOP;
 
   -- Grant only the newest SECURITY DEFINER overload per allowlisted proname
