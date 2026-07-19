@@ -271,8 +271,6 @@ describe('EquipmentQRQuickActions', () => {
       expect(mockCreateWorkOrder).toHaveBeenCalledWith(
         expect.objectContaining({ attachPM: true, equipment: baseEquipment }),
       );
-    });
-    await waitFor(() => {
       expect(screen.getByText(/work order "work order - forklift 17" was created/i)).toBeInTheDocument();
     });
     expect(screen.getByRole('link', { name: /open work order/i })).toHaveAttribute(
@@ -294,8 +292,6 @@ describe('EquipmentQRQuickActions', () => {
       expect(mockCreateWorkOrder).toHaveBeenCalledWith(
         expect.objectContaining({ attachPM: false, equipment: baseEquipment }),
       );
-    });
-    await waitFor(() => {
       expect(screen.getByText(/work order "work order - forklift 17" was created/i)).toBeInTheDocument();
     });
     expect(screen.getByRole('link', { name: /open work order/i })).toHaveAttribute(
@@ -331,8 +327,6 @@ describe('EquipmentQRQuickActions', () => {
           scanId: undefined,
         }),
       );
-    });
-    await waitFor(() => {
       expect(screen.getByText(/working hours updated to 125.5 hours/i)).toBeInTheDocument();
     });
   });
@@ -383,8 +377,6 @@ describe('EquipmentQRQuickActions', () => {
         isPrivate: false,
         machineHours: undefined,
       });
-    });
-    await waitFor(() => {
       expect(screen.getByText(/note added to equipment/i)).toBeInTheDocument();
     });
   });

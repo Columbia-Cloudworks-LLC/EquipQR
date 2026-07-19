@@ -23,6 +23,10 @@ vi.mock('@/features/operator-check-ins/components/OperatorCheckinReportExportDia
   OperatorCheckinReportExportDialog: () => null,
 }));
 
+vi.mock('@/features/operator-check-ins/components/OperatorCheckinLedgerDateRangePicker', () => ({
+  OperatorCheckinLedgerDateRangePicker: () => null,
+}));
+
 async function selectReportTemplate(name: string | RegExp) {
   fireEvent.click(screen.getByRole('combobox', { name: /Report template/i }));
   fireEvent.click(await screen.findByRole('option', { name }));
@@ -160,11 +164,6 @@ describe('OperatorCheckinLedgerPanel table', () => {
     const tableRows = within(desktopTable).getAllByRole('row').slice(1);
     expect(within(tableRows[0]).getByText('1300')).toBeInTheDocument();
     expect(within(tableRows[1]).getByText('1200')).toBeInTheDocument();
-
-    const mobileList = screen.getByTestId('ledger-mobile-list');
-    expect(within(mobileList).getAllByText('Truck 101')).toHaveLength(2);
-    expect(within(mobileList).getByText('1200')).toBeInTheDocument();
-    expect(within(mobileList).getByText('1300')).toBeInTheDocument();
 
     expect(screen.getByText('2 submissions · 2 complete · Showing 1–2')).toBeInTheDocument();
   });

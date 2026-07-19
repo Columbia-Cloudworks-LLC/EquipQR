@@ -168,6 +168,77 @@ vi.mock('@/components/layout/TopBar', () => ({
   default: () => <div data-testid="top-bar">TopBar</div>,
 }));
 
+/** Sync stubs so App.routes avoids React.lazy / Suspense ticks per route. */
+vi.mock('@/routes/lazyPublicPages', () => ({
+  Auth: () => <div data-testid="auth-page">Auth</div>,
+  DebugAuth: null,
+  DebugScanFeedback: null,
+  RepairShops: () => null,
+  PMTemplatesFeature: () => null,
+  InventoryManagementFeature: () => null,
+  PartLookupAlternatesFeature: () => null,
+  QRCodeIntegrationFeature: () => null,
+  GoogleWorkspaceFeature: () => null,
+  QuickBooksFeature: () => null,
+  WorkOrderManagementFeature: () => null,
+  TeamCollaborationFeature: () => null,
+  FleetVisualizationFeature: () => null,
+  CustomerCRMFeature: () => null,
+  MobileFirstDesignFeature: () => null,
+  EquipmentQRScan: () => <div data-testid="equipment-qr-scan-page">Equipment QR Scan</div>,
+  InventoryQRRedirect: () => null,
+  WorkOrderQRRedirect: () => null,
+  LegacyEquipmentQRRedirect: () => null,
+  Support: () => <div data-testid="support-page">Support</div>,
+  InvitationAccept: () => null,
+  TermsOfService: () => <div data-testid="terms-page">Terms</div>,
+  PrivacyPolicy: () => <div data-testid="privacy-page">Privacy</div>,
+  PrivacyRequest: () => <div data-testid="privacy-request-page">Privacy Request</div>,
+  DoNotSellOrShare: () => <div data-testid="do-not-sell-or-share-page">Do Not Sell Or Share</div>,
+  Security: () => null,
+  OperatorCheckInPublicPage: () => null,
+  QuickFormPublicPage: () => null,
+}));
+
+vi.mock('@/routes/lazyDashboardPages', () => ({
+  AppSidebar: () => <div data-testid="app-sidebar">Sidebar</div>,
+  TopBar: () => <div data-testid="top-bar">TopBar</div>,
+  BottomNav: () => null,
+  Dashboard: () => <div data-testid="dashboard-page">Dashboard</div>,
+  Equipment: () => <div data-testid="equipment-page">Equipment</div>,
+  BulkEquipment: () => null,
+  EquipmentDetails: () => <div data-testid="equipment-details-page">Equipment Details</div>,
+  EquipmentScanner: () => <div data-testid="equipment-scanner-page">Equipment Scanner</div>,
+  WorkOrders: () => <div data-testid="work-orders-page">Work Orders</div>,
+  WorkOrderDetails: () => <div data-testid="work-order-details-page">Work Order Details</div>,
+  Teams: () => <div data-testid="teams-page">Teams</div>,
+  TeamDetails: () => null,
+  FleetMap: () => <div data-testid="fleet-map-page">Fleet Map</div>,
+  Organization: () => <div data-testid="organization-page">Organization</div>,
+  OrganizationMembers: () => null,
+  OrganizationIntegrations: () => null,
+  Settings: () => <div data-testid="settings-page">Settings</div>,
+  Reports: () => null,
+  DashboardSupport: () => null,
+  PMTemplates: () => null,
+  PMTemplateView: () => null,
+  PMTemplateEditor: () => null,
+  Notifications: () => null,
+  WorkspaceOnboarding: () => null,
+  GettingStartedOnboarding: () => null,
+  InventoryList: () => null,
+  BulkInventory: () => null,
+  InventoryItemDetail: () => null,
+  PartLookup: () => null,
+  AlternateGroupsPage: () => null,
+  AlternateGroupDetail: () => null,
+  AuditLog: () => null,
+  DSRCockpitPage: () => <div data-testid="dsr-cockpit-page">DSR Cockpit</div>,
+  DSRCasePage: () => <div data-testid="dsr-case-page">DSR Case</div>,
+  OperatorCheckInsPage: () => null,
+  QuickFormsPage: () => null,
+}));
+
 export const createTestQueryClient = () =>
   new QueryClient({
     defaultOptions: {
@@ -181,7 +252,9 @@ export let testQueryClient: QueryClient = createTestQueryClient();
 vi.mock('@/components/providers/AppProviders', () => ({
   AppProviders: ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={testQueryClient}>
-      <div data-testid="app-providers">{children}</div>
+      <div role="region" aria-label="App providers">
+        {children}
+      </div>
     </QueryClientProvider>
   ),
 }));

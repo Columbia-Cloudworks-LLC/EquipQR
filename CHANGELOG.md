@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Faster Vitest hotspots (#1355)** — Consolidate Privacy/Terms and Reports happy-path renders; sync `lazyPublicPages` / `lazyDashboardPages` stubs in `App.routes`; stub DateTimePicker calendar + ledger date-range picker; collapse duplicate waitFors in EquipmentQRQuickActions; add focused `QRWorkOrderDialog` coverage for Radix PM Select and photo-picker wiring. Reduces the 2026-07-19 duration-report offenders while keeping #1314 as the umbrella maintainability track.
 - **Sibling-colocated Vitest layout (#1333)** — All Vitest suites live next to their subjects as `*.test.*` / `*.spec.*` siblings (no `__tests__/`, no `src/tests/`). Shared harness moves to repo-root `vitest/` (`@vitest-harness/*`). Script/tooling tests colocate under `scripts/`; docs and Vitest config updated for discovery.
 - **Dashboard cache invalidation (#1335)** — `invalidateWorkOrderRelated` skips a redundant `dashboard-optimized` invalidate when `equipmentId` is set, since `invalidateEquipmentRelated` already refreshes that query.
 - **Offline queue getCounts() (#1325)** — `OfflineQueueService.getCounts()` returns `{ pending, failed, total }` from one localStorage read; single-count helpers reuse it so callers that need multiple counts avoid triple deserialization.

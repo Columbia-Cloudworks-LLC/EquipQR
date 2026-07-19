@@ -21,88 +21,78 @@ describe('App', () => {
 
   it('renders without crashing', () => {
     renderApp();
-    expect(screen.getByTestId('app-providers')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: /app providers/i })).toBeInTheDocument();
   });
 
-  it('renders landing page for root path', async () => {
+  it('renders landing page for root path', () => {
     renderApp(['/']);
-    expect(await screen.findByTestId('landing-page')).toBeInTheDocument();
+    expect(screen.getByText('Landing')).toBeInTheDocument();
   });
 
   it('redirects legacy /landing to canonical / with hash preserved', () => {
     renderApp(['/landing#pricing']);
-    expect(screen.getByTestId('navigate-to')).toHaveTextContent('Navigating to /#pricing');
+    expect(screen.getByText('Navigating to /#pricing')).toBeInTheDocument();
   });
 
-  it('renders auth page for /auth path', async () => {
+  it('renders auth page for /auth path', () => {
     renderApp(['/auth']);
-    expect(await screen.findByTestId('auth-page')).toBeInTheDocument();
+    expect(screen.getByText('Auth')).toBeInTheDocument();
   });
 
-  it('renders support page for /support path', async () => {
+  it('renders support page for /support path', () => {
     renderApp(['/support']);
-    expect(await screen.findByTestId('support-page')).toBeInTheDocument();
+    expect(screen.getByText('Support')).toBeInTheDocument();
   });
 
-  it('renders terms page for /terms-of-service path', async () => {
+  it('renders terms page for /terms-of-service path', () => {
     renderApp(['/terms-of-service']);
-    expect(await screen.findByTestId('terms-page')).toBeInTheDocument();
+    expect(screen.getByText('Terms')).toBeInTheDocument();
   });
 
-  it('renders privacy page for /privacy-policy path', async () => {
+  it('renders privacy page for /privacy-policy path', () => {
     renderApp(['/privacy-policy']);
-    expect(await screen.findByTestId('privacy-page')).toBeInTheDocument();
+    expect(screen.getByText('Privacy')).toBeInTheDocument();
   });
 
-  it('renders privacy request page for /privacy-request path', async () => {
+  it('renders privacy request page for /privacy-request path', () => {
     renderApp(['/privacy-request']);
-    expect(await screen.findByTestId('privacy-request-page')).toBeInTheDocument();
+    expect(screen.getByText('Privacy Request')).toBeInTheDocument();
   });
 
-  it('renders do-not-sell-or-share page for /do-not-sell-or-share path', async () => {
+  it('renders do-not-sell-or-share page for /do-not-sell-or-share path', () => {
     renderApp(['/do-not-sell-or-share']);
-    expect(await screen.findByTestId('do-not-sell-or-share-page')).toBeInTheDocument();
-  });
-
-  it('contains app providers', () => {
-    renderApp();
-    expect(screen.getByTestId('app-providers')).toBeInTheDocument();
+    expect(screen.getByText('Do Not Sell Or Share')).toBeInTheDocument();
   });
 
   it('redirects equipment to equipment list', () => {
     renderApp(['/equipment/test-equipment']);
-    expect(screen.getByTestId('navigate-to')).toHaveTextContent(
-      'Navigating to /dashboard/equipment/test-equipment',
-    );
+    expect(screen.getByText('Navigating to /dashboard/equipment/test-equipment')).toBeInTheDocument();
   });
 
-  it('renders lean equipment QR scan route outside the dashboard shell', async () => {
+  it('renders lean equipment QR scan route outside the dashboard shell', () => {
     renderApp(['/qr/equipment/test-equipment']);
-    expect(screen.getByText(/loading scanned equipment/i)).toBeInTheDocument();
-    expect(await screen.findByTestId('equipment-qr-scan-page')).toBeInTheDocument();
-    expect(screen.queryByTestId('top-bar')).not.toBeInTheDocument();
+    expect(screen.getByText('Equipment QR Scan')).toBeInTheDocument();
+    expect(screen.queryByText('TopBar')).not.toBeInTheDocument();
   });
 
   it('redirects work-orders to work-orders list', () => {
     renderApp(['/work-orders/test-work-order']);
-    expect(screen.getByTestId('navigate-to')).toHaveTextContent(
-      'Navigating to /dashboard/work-orders/test-work-order',
-    );
+    expect(screen.getByText('Navigating to /dashboard/work-orders/test-work-order')).toBeInTheDocument();
   });
 
-  it('renders TopBar component on dashboard route', async () => {
+  it('renders TopBar component on dashboard route', () => {
     renderApp(['/dashboard']);
-    expect(await screen.findByTestId('top-bar')).toBeInTheDocument();
+    expect(screen.getByText('TopBar')).toBeInTheDocument();
   });
 
-  it('renders /dashboard/scan inside dashboard shell with TopBar', async () => {
+  it('renders /dashboard/scan inside dashboard shell with TopBar', () => {
     renderApp(['/dashboard/scan']);
-    expect(await screen.findByTestId('top-bar')).toBeInTheDocument();
-    expect(await screen.findByTestId('equipment-scanner-page')).toBeInTheDocument();
+    expect(screen.getByText('TopBar')).toBeInTheDocument();
+    expect(screen.getByText('Equipment Scanner')).toBeInTheDocument();
   });
 
-  it('renders DSR cockpit route for dashboard users', async () => {
+  it('renders DSR cockpit route for dashboard users', () => {
     renderApp(['/dashboard/dsr']);
-    expect(await screen.findByTestId('dsr-cockpit-page')).toBeInTheDocument();
+    expect(screen.getByText('DSR Cockpit')).toBeInTheDocument();
   });
 });
