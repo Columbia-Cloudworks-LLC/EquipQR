@@ -121,12 +121,22 @@ test.describe.serial('Help Center CSP hydration and branding @pr-evidence', () =
     await evidenceScreenshot(page, '03-browse-help-center-navigates');
 
     // Theme toggle only works when the Vue app is interactive.
+    // On mobile it lives in the hamburger nav screen, not the desktop bar.
     const html = page.locator('html');
     const wasDark = await html.evaluate((el) => el.classList.contains('dark'));
-    await page.locator('.VPSwitchAppearance').first().click();
+    const appearanceSwitch = page.locator('.VPSwitchAppearance').first();
+    if (!(await appearanceSwitch.isVisible())) {
+      await page.locator('.VPNavBarHamburger').click();
+    }
+    await appearanceSwitch.click();
     await expect(html).toHaveClass(wasDark ? /^((?!dark).)*$/ : /dark/);
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '04-theme-toggle-works');
+    // Close mobile screen if still open before article navigation.
+    const hamburger = page.locator('.VPNavBarHamburger');
+    if (await page.locator('.VPNavScreen').isVisible().catch(() => false)) {
+      await hamburger.click();
+    }
 
     // #1358 — article chrome (sidebar + doc) under Mission Control tokens.
     await page.goto(`${docsServer.baseUrl}/support/start-here/`);
