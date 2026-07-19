@@ -231,6 +231,11 @@ function truncateTitle(title, max = 100) {
   return `${title.slice(0, max - 3)}...`;
 }
 
+/** Escape backslashes then pipes for GitHub markdown table cells (CodeQL-complete). */
+function escapeMarkdownTableCell(text) {
+  return String(text).replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
+}
+
 /**
  * @param {ReturnType<typeof aggregateVitestDurations>} report
  * @param {{ topFiles?: number; topTests?: number }} opts
@@ -302,8 +307,8 @@ export function formatDurationMarkdown(report, opts = {}) {
     lines.push('| ms | Test | File |');
     lines.push('| ---: | --- | --- |');
     for (const row of offenders) {
-      const title = truncateTitle(row.title, 80).replace(/\|/g, '\\|');
-      const file = path.basename(row.file).replace(/\|/g, '\\|');
+      const title = escapeMarkdownTableCell(truncateTitle(row.title, 80));
+      const file = escapeMarkdownTableCell(path.basename(row.file));
       lines.push(`| ${Math.round(row.ms)} | ${title} | \`${file}\` |`);
     }
     if (report.summary.overSlowMs > offenders.length) {
@@ -320,7 +325,7 @@ export function formatDurationMarkdown(report, opts = {}) {
   lines.push('| ms | tests | avg | File |');
   lines.push('| ---: | ---: | ---: | --- |');
   for (const row of report.files.slice(0, topFiles)) {
-    const file = row.file.replace(/\|/g, '\\|');
+    const file = escapeMarkdownTableCell(row.file);
     lines.push(`| ${row.ms} | ${row.tests} | ${row.avg} | \`${file}\` |`);
   }
   lines.push('');
