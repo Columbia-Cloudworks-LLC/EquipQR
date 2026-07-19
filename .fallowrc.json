@@ -26,6 +26,7 @@
       "src/**/*.test.tsx",
       "vitest/**",
       "scripts/**/*.test.ts",
+      "scripts/**/*.test.mjs",
       "e2e/**/*.test.ts",
       "supabase/functions/**/*.test.ts",
       "supabase/functions/**/*.deno.test.ts",
@@ -48,7 +49,9 @@
     "scripts/test-ci-windows.mjs",
     "scripts/upload-screenshot.ts",
     "scripts/docs-media/print-storage-path.ts",
-    "scripts/run-vitest-local.test.mjs"
+    "scripts/run-vitest-local.test.mjs",
+    "scripts/vitest-perf/report-vitest-durations.test.mjs",
+    "scripts/vitest-perf/publish-duration-pr-comment.mjs"
   ],
   "ignoreExports": [
     {
