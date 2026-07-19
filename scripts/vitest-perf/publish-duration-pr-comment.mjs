@@ -18,6 +18,35 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..', '..');
 const mdPath = path.join(repoRoot, 'tmp', 'vitest-perf', 'latest-report.md');
 
+/**
+ * @param {string} url
+ * @param {Record<string, string>} headers
+ * @returns {Promise<Array<{ id: number; body?: string }>>}
+ */
+async function listAllIssueComments(url, headers) {
+  /** @type {Array<{ id: number; body?: string }>} */
+  const all = [];
+  let nextUrl = `${url}${url.includes('?') ? '&' : '?'}per_page=100`;
+
+  while (nextUrl) {
+    const listRes = await fetch(nextUrl, { headers });
+    if (!listRes.ok) {
+      throw new Error(`list comments failed: ${listRes.status} ${await listRes.text()}`);
+    }
+    const page = await listRes.json();
+    if (!Array.isArray(page)) {
+      throw new Error('list comments returned non-array payload');
+    }
+    all.push(...page);
+
+    const link = listRes.headers.get('link') ?? '';
+    const nextMatch = link.match(/<([^>]+)>;\s*rel="next"/);
+    nextUrl = nextMatch?.[1] ?? '';
+  }
+
+  return all;
+}
+
 async function main() {
   const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
   const repo = process.env.GITHUB_REPOSITORY;
@@ -46,13 +75,8 @@ async function main() {
     'User-Agent': 'equipqr-vitest-perf',
   };
 
-  const listUrl = `https://api.github.com/repos/${owner}/${name}/issues/${prNumber}/comments?per_page=100`;
-  const listRes = await fetch(listUrl, { headers });
-  if (!listRes.ok) {
-    throw new Error(`list comments failed: ${listRes.status} ${await listRes.text()}`);
-  }
-  /** @type {Array<{ id: number; body?: string }>} */
-  const comments = await listRes.json();
+  const listUrl = `https://api.github.com/repos/${owner}/${name}/issues/${prNumber}/comments`;
+  const comments = await listAllIssueComments(listUrl, headers);
   const existing = comments.find((c) => typeof c.body === 'string' && c.body.includes(PR_COMMENT_MARKER));
 
   if (existing) {

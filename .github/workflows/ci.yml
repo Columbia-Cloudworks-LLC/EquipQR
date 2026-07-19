@@ -380,10 +380,18 @@ jobs:
         pattern: vitest-results-shard-*
 
     - name: Write duration report (job summary)
-      run: node scripts/vitest-perf/report-vitest-durations.mjs --markdown --github-summary vitest-results
+      id: duration_report
+      run: |
+        set -euo pipefail
+        node scripts/vitest-perf/report-vitest-durations.mjs --markdown --github-summary --allow-empty vitest-results
+        if grep -q '"empty": true' tmp/vitest-perf/latest-report.json 2>/dev/null; then
+          echo "empty=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "empty=false" >> "$GITHUB_OUTPUT"
+        fi
 
     - name: Upsert sticky PR comment
-      if: github.event_name == 'pull_request'
+      if: github.event_name == 'pull_request' && steps.duration_report.outputs.empty != 'true'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GITHUB_REPOSITORY: ${{ github.repository }}

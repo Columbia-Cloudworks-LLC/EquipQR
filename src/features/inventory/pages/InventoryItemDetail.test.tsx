@@ -383,7 +383,7 @@ describe('InventoryItemDetail - Item Information', () => {
       expect(screen.getByText('Storage address')).toBeInTheDocument();
       expect(screen.getByText('500 Org Default St, Austin, TX, USA')).toBeInTheDocument();
       expect(screen.getByText(/address inherited from organization/i)).toBeInTheDocument();
-      expect(screen.getByTestId('inventory-directions-map')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /tap for directions/i })).toBeInTheDocument();
     });
 
     it('shows part location source when item has structured storage coordinates', () => {
@@ -461,6 +461,7 @@ describe('InventoryItemDetail - Action Buttons', () => {
       expectItemHeading();
       fireEvent.click(screen.getByRole('button', { name: /qr/i }));
       await waitFor(() => {
+        // Stubbed InventoryQRCodeDisplay — no accessible name beyond the test hook.
         expect(screen.getByTestId('qr-code-display')).toBeInTheDocument();
       });
     });
@@ -560,8 +561,7 @@ describe('InventoryItemDetail - Tab Navigation', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /edit rules/i }));
     await waitFor(() => {
-      expect(screen.getByTestId('compatibility-rules-editor')).toBeInTheDocument();
-      expect(screen.getByTestId('rules-count')).toHaveTextContent('Rules: 2');
+      expect(screen.getByText('Rules: 2')).toBeInTheDocument();
     });
   });
 });

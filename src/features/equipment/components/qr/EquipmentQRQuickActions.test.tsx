@@ -439,7 +439,10 @@ describe('EquipmentQRQuickActions', () => {
   });
 
   it('renders PM template control after templates load', async () => {
-    const listPromise = new Promise(() => {});
+    let resolveList: (value: unknown) => void = () => {};
+    const listPromise = new Promise((resolve) => {
+      resolveList = resolve;
+    });
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
     mockListPmTemplates.mockImplementation(() => listPromise as Promise<unknown>);
 
@@ -451,7 +454,12 @@ describe('EquipmentQRQuickActions', () => {
     });
 
     await openWorkOrderDialog();
-    expect(screen.getByText(/pm template/i)).toBeInTheDocument();
+    expect(screen.getByText(/loading templates/i)).toBeInTheDocument();
+
+    resolveList(defaultPmTemplates);
+    await waitFor(() => {
+      expect(screen.getByRole('combobox', { name: /pm template/i })).toBeInTheDocument();
+    });
   });
 
   it('still creates a PM work order when recommendation matching fails but templates load', async () => {

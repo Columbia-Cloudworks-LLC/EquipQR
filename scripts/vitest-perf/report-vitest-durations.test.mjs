@@ -36,42 +36,48 @@ describe('report-vitest-durations', () => {
 
   it('aggregates assertion durations and formats markdown offenders', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vitest-perf-'));
-    const shard = path.join(dir, 'shard-1.json');
-    fs.writeFileSync(
-      shard,
-      JSON.stringify({
-        testResults: [
-          {
-            name: '/home/runner/work/EquipQR/EquipQR/src/a.test.tsx',
-            assertionResults: [
-              { fullName: 'a slow', duration: 400, status: 'passed' },
-              { fullName: 'a fast', duration: 50, status: 'passed' },
-            ],
-          },
-          {
-            name: '/home/runner/work/EquipQR/EquipQR/src/b.test.tsx',
-            assertionResults: [{ fullName: 'b mid', duration: 200, status: 'passed' }],
-          },
-        ],
-      }),
-      'utf8',
-    );
+    try {
+      const shard = path.join(dir, 'shard-1.json');
+      fs.writeFileSync(
+        shard,
+        JSON.stringify({
+          testResults: [
+            {
+              name: '/home/runner/work/EquipQR/EquipQR/src/a.test.tsx',
+              assertionResults: [
+                { fullName: 'a slow', duration: 400, status: 'passed' },
+                { fullName: 'a fast', duration: 50 },
+              ],
+            },
+            {
+              name: '/home/runner/work/EquipQR/EquipQR/src/b.test.tsx',
+              assertionResults: [{ fullName: 'b mid', duration: 200, status: 'passed' }],
+            },
+          ],
+        }),
+        'utf8',
+      );
 
-    const report = aggregateVitestDurations([shard], { slowMs: 200 });
-    expect(report.summary.tests).toBe(3);
-    expect(report.summary.overSlowMs).toBe(2);
-    expect(report.files[0].file).toBe('src/a.test.tsx');
-    expect(report.files[0].ms).toBe(450);
-    expect(report.tests[0].title).toBe('a slow');
+      const report = aggregateVitestDurations([shard], { slowMs: 200 });
+      expect(report.summary.tests).toBe(3);
+      expect(report.summary.overSlowMs).toBe(2);
+      expect(report.files[0].file).toBe('src/a.test.tsx');
+      expect(report.files[0].ms).toBe(450);
+      expect(report.files[0].fails).toBe(1);
+      expect(report.tests.find((t) => t.title === 'a fast')?.status).toBe('unknown');
+      expect(report.tests[0].title).toBe('a slow');
 
-    const text = formatDurationReport(report, { topFiles: 2, topTests: 2 });
-    expect(text).toContain('src/a.test.tsx');
-    expect(text).toContain('a slow');
+      const text = formatDurationReport(report, { topFiles: 2, topTests: 2 });
+      expect(text).toContain('src/a.test.tsx');
+      expect(text).toContain('a slow');
 
-    const md = formatDurationMarkdown(report, { topFiles: 2, topTests: 2 });
-    expect(md).toContain('## Vitest Duration Report');
-    expect(md).toContain('Worst offenders');
-    expect(md).toContain('a slow');
-    expect(md).toContain('| 400 |');
+      const md = formatDurationMarkdown(report, { topFiles: 2, topTests: 2 });
+      expect(md).toContain('## Vitest Duration Report');
+      expect(md).toContain('Worst offenders');
+      expect(md).toContain('a slow');
+      expect(md).toContain('| 400 |');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
