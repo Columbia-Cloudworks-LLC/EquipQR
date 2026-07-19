@@ -2,7 +2,11 @@ import { test, expect } from '../user/fixtures/equipqr-test';
 import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
 
 // Unauthenticated — default owner storage would redirect `/` to the dashboard.
-test.use({ storageState: { cookies: [], origins: [] } });
+// Pin reduced-motion off so assertions about the animated path stay deterministic.
+test.use({
+  storageState: { cookies: [], origins: [] },
+  reducedMotion: 'no-preference',
+});
 
 /**
  * PR evidence for #1364 — landing hero Suspense no longer flashes Texas while
