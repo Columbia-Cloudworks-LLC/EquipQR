@@ -121,24 +121,21 @@ test.describe.serial('Help Center CSP hydration and branding @pr-evidence', () =
     await evidenceScreenshot(page, '03-browse-help-center-navigates');
 
     // Theme toggle only works when the Vue app is interactive.
-    // Desktop: VPNavBar switch. Mobile: open hamburger, then VPNavScreen switch
-    // (do not use .VPSwitchAppearance.first() — the hidden desktop node wins).
+    // Narrow viewports: open hamburger and use the VPNavScreen switch (multiple
+    // hidden .VPSwitchAppearance nodes exist in the desktop chrome).
     const html = page.locator('html');
     const wasDark = await html.evaluate((el) => el.classList.contains('dark'));
-    const desktopSwitch = page.locator('.VPNavBar .VPSwitchAppearance');
-    const screenSwitch = page.locator('.VPNavScreen .VPSwitchAppearance');
-    if (await desktopSwitch.isVisible()) {
-      await desktopSwitch.click();
-    } else {
+    const isNarrow = (page.viewportSize()?.width ?? 1920) < 960;
+    if (isNarrow) {
       await page.locator('.VPNavBarHamburger').click();
-      await expect(screenSwitch).toBeVisible();
-      await screenSwitch.click();
+      await page.locator('.VPNavScreen .VPSwitchAppearance').click();
+    } else {
+      await page.locator('.VPNavBar .VPSwitchAppearance').first().click();
     }
     await expect(html).toHaveClass(wasDark ? /^((?!dark).)*$/ : /dark/);
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '04-theme-toggle-works');
-    // Close mobile screen if still open before article navigation.
-    if (await screenSwitch.isVisible().catch(() => false)) {
+    if (isNarrow) {
       await page.locator('.VPNavBarHamburger').click();
     }
 
