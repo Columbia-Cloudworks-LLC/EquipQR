@@ -234,8 +234,10 @@ export default function HeroAnimation() {
   // still avoid the GSAP / MorphSVG download.
   useEffect(() => {
     if (prefersReducedMotion) return;
-    void import('./QRScanPhase');
-    void import('./StateMorphPhase');
+    // Best-effort warm only — chunk failures stay on React.lazy/Suspense, not
+    // as unhandled promise rejections (stale shell / purged chunks).
+    void import('./QRScanPhase').catch(() => undefined);
+    void import('./StateMorphPhase').catch(() => undefined);
   }, [prefersReducedMotion]);
 
   return (
