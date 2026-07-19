@@ -18,9 +18,10 @@ globs: "**/*.test.{ts,tsx}"
 - Prefer `fireEvent` for simple clicks; use `userEvent` when testing keyboard/a11y sequencing.
 - When product mounts CSS layout twins (desktop + mobile), mock the unused twin unless the test specifically covers both.
 - Target: most new component tests under ~150–200ms when feasible.
-- **Duration triage (#1349):** CI uploads per-shard JSON under `artifacts/vitest-results/`. Download and rank:
+- **Duration triage (#1349):** CI uploads per-shard JSON under `artifacts/vitest-results/`. The **Vitest Duration Report** job writes a GitHub Actions summary and a sticky PR comment (tests ≥200ms). Locally:
 
       gh run download <runId> -n vitest-results-shard-1 -n vitest-results-shard-2 -n vitest-results-shard-3 -n vitest-results-shard-4 -D tmp/vitest-perf/ci-<runId>
       npm run test:perf:report -- tmp/vitest-perf/ci-<runId>
+      node scripts/vitest-perf/report-vitest-durations.mjs --markdown tmp/vitest-perf/ci-<runId>
 
-  Report writes `tmp/vitest-perf/latest-report.txt` and `latest-report.json`.
+  Report writes `tmp/vitest-perf/latest-report.txt`, `.md`, and `.json`. (Put path before flags when using `npm run`, or call `node` directly — npm can swallow `--markdown`.)

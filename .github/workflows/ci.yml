@@ -353,6 +353,43 @@ jobs:
         vite-config-path: vitest.config.ts
         comment-on: pr
 
+  # Aggregates sharded Vitest JSON durations into Actions job summary + sticky PR comment (#1349 / #1314).
+  report-vitest-perf:
+    name: Vitest Duration Report
+    runs-on: ubuntu-latest
+    needs: test
+    if: always() && needs.test.result != 'cancelled'
+    permissions:
+      contents: read
+      pull-requests: write
+    timeout-minutes: 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Download Vitest results artifacts
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+      with:
+        path: vitest-results
+        pattern: vitest-results-shard-*
+
+    - name: Write duration report (job summary)
+      run: node scripts/vitest-perf/report-vitest-durations.mjs --markdown --github-summary vitest-results
+
+    - name: Upsert sticky PR comment
+      if: github.event_name == 'pull_request'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+      run: node scripts/vitest-perf/publish-duration-pr-comment.mjs
+
   security:
     name: Security Scan
     runs-on: ubuntu-latest  # Keep security scans on GitHub-hosted for isolation

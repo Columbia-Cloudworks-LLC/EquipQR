@@ -56,6 +56,7 @@
     "test:ci:sharded": "node scripts/test-ci-sharded.mjs --shards=4",
     "test:shard": "node scripts/test-ci-shard.mjs",
     "test:perf:report": "node scripts/vitest-perf/report-vitest-durations.mjs",
+    "test:perf:publish-comment": "node scripts/vitest-perf/publish-duration-pr-comment.mjs",
     "coverage:merge": "node scripts/merge-coverage.mjs",
     "analyze": "npm run build && npx vite-bundle-analyzer",
     "size-check": "npx size-limit",

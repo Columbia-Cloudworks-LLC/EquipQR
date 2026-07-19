@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Vitest duration report script (#1349)** — `npm run test:perf:report` aggregates CI/local Vitest JSON results into ranked slow-file and slow-test lists under `tmp/vitest-perf/` for #1314 triage.
+- **Vitest duration report script (#1349)** — `npm run test:perf:report` aggregates CI/local Vitest JSON results into ranked slow-file and slow-test lists under `tmp/vitest-perf/` for #1314 triage. CI job **Vitest Duration Report** publishes the markdown summary to the Actions job summary and a sticky PR comment listing offenders ≥200ms.
 - **Vitest duration CI artifacts (#1349)** — `slowTestThreshold` of 200ms plus default+JSON reporters write per-shard results under `artifacts/vitest-results/`; CI uploads `vitest-results-shard-N` with `if: always()` so failed shards still yield duration data for #1314 triage.
 - **Cursed historical timeline fixtures (#1279)** — Permanent anonymized seed org `CURSED_HISTORICAL_FIXTURE Timeline Lab` with legacy accepted-first, multi-event, long in-progress, happy-path contrast, and boundary historical work orders. Unit, pgTAP replace-rejection, and PR evidence e2e coverage pin these shapes so timeline editor/RPC regressions fail in CI. Optional production canary SQL under `scripts/sql/canary_legacy_historical_timeline_accepted_first.sql`.
 

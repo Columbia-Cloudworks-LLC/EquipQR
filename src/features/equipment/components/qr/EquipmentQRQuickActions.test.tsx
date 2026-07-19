@@ -272,7 +272,9 @@ describe('EquipmentQRQuickActions', () => {
         expect.objectContaining({ attachPM: true, equipment: baseEquipment }),
       );
     });
-    expect(screen.getByText(/work order "work order - forklift 17" was created/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/work order "work order - forklift 17" was created/i)).toBeInTheDocument();
+    });
     expect(screen.getByRole('link', { name: /open work order/i })).toHaveAttribute(
       'href',
       '/dashboard/work-orders/wo-1',
@@ -293,7 +295,9 @@ describe('EquipmentQRQuickActions', () => {
         expect.objectContaining({ attachPM: false, equipment: baseEquipment }),
       );
     });
-    expect(screen.getByText(/work order "work order - forklift 17" was created/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/work order "work order - forklift 17" was created/i)).toBeInTheDocument();
+    });
     expect(screen.getByRole('link', { name: /open work order/i })).toHaveAttribute(
       'href',
       '/dashboard/work-orders/wo-2',
@@ -328,7 +332,9 @@ describe('EquipmentQRQuickActions', () => {
         }),
       );
     });
-    expect(screen.getByText(/working hours updated to 125.5 hours/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/working hours updated to 125.5 hours/i)).toBeInTheDocument();
+    });
   });
 
   it('appends voice dictation to the working-hours reason field', async () => {
@@ -378,7 +384,9 @@ describe('EquipmentQRQuickActions', () => {
         machineHours: undefined,
       });
     });
-    expect(screen.getByText(/note added to equipment/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/note added to equipment/i)).toBeInTheDocument();
+    });
   });
 
   it('opens the work order dialog with None selected when equipment has no default template', async () => {

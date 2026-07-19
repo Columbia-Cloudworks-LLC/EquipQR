@@ -6,13 +6,22 @@
  * Usage:
  *   node scripts/vitest-perf/report-vitest-durations.mjs [paths...]
  *   npm run test:perf:report -- tmp/vitest-perf/ci-<runId>
+ *   npm run test:perf:report -- --markdown --github-summary vitest-results
  *
- * Paths may be JSON files, directories (walked for *.json), or globs.
+ * Paths may be JSON files or directories (recursively walked for *.json).
  * Defaults to artifacts/vitest-results when no paths are given.
  *
  * Writes:
  *   tmp/vitest-perf/latest-report.txt
+ *   tmp/vitest-perf/latest-report.md
  *   tmp/vitest-perf/latest-report.json
+ *
+ * Flags:
+ *   --markdown          Also print markdown (always written to latest-report.md)
+ *   --github-summary    Append markdown to $GITHUB_STEP_SUMMARY when set
+ *   --top-files N       Cap file table (default 25)
+ *   --top-tests N       Cap individual-test table (default 30)
+ *   --slow-ms N         Slow threshold for offender section (default 200)
  */
 
 import fs from 'node:fs';
@@ -22,9 +31,10 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..', '..');
 
-const DEFAULT_TOP_FILES = 25;
-const DEFAULT_TOP_TESTS = 30;
-const SLOW_MS = 200;
+export const DEFAULT_TOP_FILES = 25;
+export const DEFAULT_TOP_TESTS = 30;
+export const DEFAULT_SLOW_MS = 200;
+export const PR_COMMENT_MARKER = '<!-- vitest-duration-report -->';
 
 /**
  * @param {string} dir
@@ -43,7 +53,7 @@ function collectJsonFiles(dir, out) {
 }
 
 /**
- * Expand CLI path args into concrete JSON file paths.
+ * Expand CLI path args into concrete JSON file paths (files or directories only).
  * @param {string[]} args
  * @returns {string[]}
  */
@@ -91,10 +101,9 @@ export function normalizeTestFilePath(name) {
     }
   }
   const repoNorm = repoRoot.replace(/\\/g, '/');
-  if (n.startsWith(repoNorm + '/')) {
+  if (n.startsWith(`${repoNorm}/`)) {
     n = n.slice(repoNorm.length + 1);
   }
-  // Drop leading drive-relative cwd residue
   if (n.includes('/src/')) {
     n = n.slice(n.indexOf('/src/') + 1);
   } else if (n.includes('/scripts/')) {
@@ -110,14 +119,35 @@ export function normalizeTestFilePath(name) {
 }
 
 /**
+ * @param {unknown} value
+ * @param {number} fallback
+ * @returns {number}
+ */
+export function sanitizePositiveInt(value, fallback) {
+  const n = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(n) || n < 1) return fallback;
+  return Math.floor(n);
+}
+
+/**
  * @param {string[]} jsonFiles
+ * @param {{ slowMs?: number }} [opts]
  * @returns {{
  *   files: Array<{ file: string; ms: number; tests: number; avg: number; fails: number }>;
  *   tests: Array<{ file: string; title: string; ms: number; status: string }>;
- *   summary: { sourceFiles: number; tests: number; totalMs: number; over200ms: number; over500ms: number };
+ *   summary: {
+ *     sourceFiles: number;
+ *     tests: number;
+ *     totalMs: number;
+ *     slowMs: number;
+ *     overSlowMs: number;
+ *     over200ms: number;
+ *     over500ms: number;
+ *   };
  * }}
  */
-export function aggregateVitestDurations(jsonFiles) {
+export function aggregateVitestDurations(jsonFiles, opts = {}) {
+  const slowMs = sanitizePositiveInt(opts.slowMs, DEFAULT_SLOW_MS);
   /** @type {Map<string, { duration: number; tests: number; fails: number }>} */
   const fileStats = new Map();
   /** @type {Array<{ file: string; title: string; ms: number; status: string }>} */
@@ -133,7 +163,6 @@ export function aggregateVitestDurations(jsonFiles) {
     }
 
     if (!payload || !Array.isArray(payload.testResults)) {
-      // Skip coverage summaries / other JSON
       continue;
     }
 
@@ -174,6 +203,9 @@ export function aggregateVitestDurations(jsonFiles) {
 
   const tests = [...testStats].sort((a, b) => b.ms - a.ms);
   const totalMs = testStats.reduce((sum, t) => sum + t.ms, 0);
+  const overSlowMs = testStats.filter((t) => t.ms >= slowMs).length;
+  const over200ms = testStats.filter((t) => t.ms >= 200).length;
+  const over500ms = testStats.filter((t) => t.ms >= 500).length;
 
   return {
     files,
@@ -182,10 +214,21 @@ export function aggregateVitestDurations(jsonFiles) {
       sourceFiles: jsonFiles.length,
       tests: testStats.length,
       totalMs: Math.round(totalMs),
-      over200ms: testStats.filter((t) => t.ms >= SLOW_MS).length,
-      over500ms: testStats.filter((t) => t.ms >= 500).length,
+      slowMs,
+      overSlowMs,
+      over200ms,
+      over500ms,
     },
   };
+}
+
+/**
+ * @param {string} title
+ * @param {number} max
+ */
+function truncateTitle(title, max = 100) {
+  if (title.length <= max) return title;
+  return `${title.slice(0, max - 3)}...`;
 }
 
 /**
@@ -194,13 +237,14 @@ export function aggregateVitestDurations(jsonFiles) {
  * @returns {string}
  */
 export function formatDurationReport(report, opts = {}) {
-  const topFiles = opts.topFiles ?? DEFAULT_TOP_FILES;
-  const topTests = opts.topTests ?? DEFAULT_TOP_TESTS;
+  const topFiles = sanitizePositiveInt(opts.topFiles, DEFAULT_TOP_FILES);
+  const topTests = sanitizePositiveInt(opts.topTests, DEFAULT_TOP_TESTS);
+  const slowMs = report.summary.slowMs;
   const lines = [];
 
   lines.push('=== Vitest duration report ===');
   lines.push(
-    `sources=${report.summary.sourceFiles} tests=${report.summary.tests} totalMs=${report.summary.totalMs} over${SLOW_MS}ms=${report.summary.over200ms} over500ms=${report.summary.over500ms}`,
+    `sources=${report.summary.sourceFiles} tests=${report.summary.tests} totalMs=${report.summary.totalMs} over${slowMs}ms=${report.summary.overSlowMs} over500ms=${report.summary.over500ms}`,
   );
   lines.push('');
   lines.push(`=== TOP ${topFiles} FILES BY TOTAL ASSERTION DURATION (ms) ===`);
@@ -212,18 +256,92 @@ export function formatDurationReport(report, opts = {}) {
   lines.push(`=== TOP ${topTests} INDIVIDUAL TESTS ===`);
   lines.push('ms\tstatus\ttitle\tfile');
   for (const row of report.tests.slice(0, topTests)) {
-    const title = row.title.length > 100 ? `${row.title.slice(0, 97)}...` : row.title;
-    lines.push(`${Math.round(row.ms)}\t${row.status}\t${title}\t${path.basename(row.file)}`);
+    lines.push(`${Math.round(row.ms)}\t${row.status}\t${truncateTitle(row.title)}\t${path.basename(row.file)}`);
   }
   lines.push('');
   return lines.join('\n');
 }
 
-function parseCliArgs(argv) {
+/**
+ * GitHub-flavored markdown for Actions job summary / sticky PR comment.
+ * @param {ReturnType<typeof aggregateVitestDurations>} report
+ * @param {{ topFiles?: number; topTests?: number }} opts
+ * @returns {string}
+ */
+export function formatDurationMarkdown(report, opts = {}) {
+  const topFiles = sanitizePositiveInt(opts.topFiles, DEFAULT_TOP_FILES);
+  const topTests = sanitizePositiveInt(opts.topTests, DEFAULT_TOP_TESTS);
+  const slowMs = report.summary.slowMs;
+  const offenders = report.tests.filter((t) => t.ms >= slowMs).slice(0, topTests);
+  const totalSec = (report.summary.totalMs / 1000).toFixed(1);
+  const lines = [];
+
+  lines.push('## Vitest Duration Report');
+  lines.push('');
+  lines.push(
+    `Threshold: **${slowMs}ms** (\`slowTestThreshold\` in \`vitest.config.ts\` — visibility only; does not fail CI).`,
+  );
+  lines.push('');
+  lines.push('| Metric | Value |');
+  lines.push('| --- | ---: |');
+  lines.push(`| Source JSON files | ${report.summary.sourceFiles} |`);
+  lines.push(`| Tests | ${report.summary.tests} |`);
+  lines.push(`| Total assertion time | ${totalSec}s |`);
+  lines.push(`| ≥${slowMs}ms | ${report.summary.overSlowMs} |`);
+  lines.push(`| ≥500ms | ${report.summary.over500ms} |`);
+  lines.push('');
+
+  if (offenders.length === 0) {
+    lines.push(`### Worst offenders (≥${slowMs}ms)`);
+    lines.push('');
+    lines.push(`None — every assertion was under ${slowMs}ms.`);
+    lines.push('');
+  } else {
+    lines.push(`### Worst offenders (≥${slowMs}ms)`);
+    lines.push('');
+    lines.push('| ms | Test | File |');
+    lines.push('| ---: | --- | --- |');
+    for (const row of offenders) {
+      const title = truncateTitle(row.title, 80).replace(/\|/g, '\\|');
+      const file = path.basename(row.file).replace(/\|/g, '\\|');
+      lines.push(`| ${Math.round(row.ms)} | ${title} | \`${file}\` |`);
+    }
+    if (report.summary.overSlowMs > offenders.length) {
+      lines.push('');
+      lines.push(
+        `_Showing top ${offenders.length} of ${report.summary.overSlowMs} tests ≥${slowMs}ms._`,
+      );
+    }
+    lines.push('');
+  }
+
+  lines.push('### Slowest files (by total assertion time)');
+  lines.push('');
+  lines.push('| ms | tests | avg | File |');
+  lines.push('| ---: | ---: | ---: | --- |');
+  for (const row of report.files.slice(0, topFiles)) {
+    const file = row.file.replace(/\|/g, '\\|');
+    lines.push(`| ${row.ms} | ${row.tests} | ${row.avg} | \`${file}\` |`);
+  }
+  lines.push('');
+  lines.push(
+    '<sub>Generated by <code>npm run test:perf:report</code> from Vitest JSON shard artifacts (#1349 / #1314).</sub>',
+  );
+  lines.push('');
+  return lines.join('\n');
+}
+
+/**
+ * @param {string[]} argv
+ */
+export function parseCliArgs(argv) {
   /** @type {string[]} */
   const paths = [];
   let topFiles = DEFAULT_TOP_FILES;
   let topTests = DEFAULT_TOP_TESTS;
+  let slowMs = DEFAULT_SLOW_MS;
+  let markdown = false;
+  let githubSummary = false;
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -243,21 +361,53 @@ function parseCliArgs(argv) {
       topTests = Number(arg.slice('--top-tests='.length));
       continue;
     }
+    if (arg === '--slow-ms') {
+      slowMs = Number(argv[++i]);
+      continue;
+    }
+    if (arg.startsWith('--slow-ms=')) {
+      slowMs = Number(arg.slice('--slow-ms='.length));
+      continue;
+    }
+    if (arg === '--markdown') {
+      markdown = true;
+      continue;
+    }
+    if (arg === '--github-summary') {
+      githubSummary = true;
+      continue;
+    }
     if (arg === '--help' || arg === '-h') {
-      return { help: true, paths, topFiles, topTests };
+      return { help: true, paths, topFiles, topTests, slowMs, markdown, githubSummary };
     }
     paths.push(arg);
   }
 
-  return { help: false, paths, topFiles, topTests };
+  return {
+    help: false,
+    paths,
+    topFiles: sanitizePositiveInt(topFiles, DEFAULT_TOP_FILES),
+    topTests: sanitizePositiveInt(topTests, DEFAULT_TOP_TESTS),
+    slowMs: sanitizePositiveInt(slowMs, DEFAULT_SLOW_MS),
+    markdown,
+    githubSummary,
+  };
 }
 
 function main() {
   const cli = parseCliArgs(process.argv.slice(2));
   if (cli.help) {
-    console.log(`Usage: node scripts/vitest-perf/report-vitest-durations.mjs [paths...] [--top-files N] [--top-tests N]
+    console.log(`Usage: node scripts/vitest-perf/report-vitest-durations.mjs [paths...] [flags]
 
-Defaults to artifacts/vitest-results when no paths are given.
+Paths: JSON files or directories (walked for *.json). Defaults to artifacts/vitest-results.
+
+Flags:
+  --markdown          Print markdown to stdout (always writes latest-report.md)
+  --github-summary    Append markdown to $GITHUB_STEP_SUMMARY when set
+  --top-files N       Cap file table (default ${DEFAULT_TOP_FILES})
+  --top-tests N       Cap individual-test / offender tables (default ${DEFAULT_TOP_TESTS})
+  --slow-ms N         Offender threshold (default ${DEFAULT_SLOW_MS})
+
 Example (CI artifacts):
   gh run download <runId> -n vitest-results-shard-1 -n vitest-results-shard-2 -n vitest-results-shard-3 -n vitest-results-shard-4 -D tmp/vitest-perf/ci-<runId>
   npm run test:perf:report -- tmp/vitest-perf/ci-<runId>`);
@@ -270,22 +420,23 @@ Example (CI artifacts):
     process.exit(1);
   }
 
-  const report = aggregateVitestDurations(jsonFiles);
+  const report = aggregateVitestDurations(jsonFiles, { slowMs: cli.slowMs });
   if (report.summary.tests === 0) {
     console.error('[vitest-perf] no testResults found in input JSON (wrong files?)');
     process.exit(1);
   }
 
-  const text = formatDurationReport(report, {
-    topFiles: Number.isFinite(cli.topFiles) ? cli.topFiles : DEFAULT_TOP_FILES,
-    topTests: Number.isFinite(cli.topTests) ? cli.topTests : DEFAULT_TOP_TESTS,
-  });
+  const limits = { topFiles: cli.topFiles, topTests: cli.topTests };
+  const text = formatDurationReport(report, limits);
+  const markdown = formatDurationMarkdown(report, limits);
 
   const outDir = path.join(repoRoot, 'tmp', 'vitest-perf');
   fs.mkdirSync(outDir, { recursive: true });
   const txtPath = path.join(outDir, 'latest-report.txt');
+  const mdPath = path.join(outDir, 'latest-report.md');
   const jsonPath = path.join(outDir, 'latest-report.json');
   fs.writeFileSync(txtPath, text, 'utf8');
+  fs.writeFileSync(mdPath, markdown, 'utf8');
   fs.writeFileSync(
     jsonPath,
     JSON.stringify(
@@ -298,6 +449,10 @@ Example (CI artifacts):
           ...t,
           ms: Math.round(t.ms),
         })),
+        offenders: report.tests
+          .filter((t) => t.ms >= cli.slowMs)
+          .slice(0, cli.topTests)
+          .map((t) => ({ ...t, ms: Math.round(t.ms) })),
       },
       null,
       2,
@@ -305,12 +460,22 @@ Example (CI artifacts):
     'utf8',
   );
 
-  process.stdout.write(text);
+  if (cli.githubSummary && process.env.GITHUB_STEP_SUMMARY) {
+    fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${markdown}\n`, 'utf8');
+    console.log(`[vitest-perf] appended markdown to GITHUB_STEP_SUMMARY`);
+  }
+
+  if (cli.markdown) {
+    process.stdout.write(markdown);
+  } else {
+    process.stdout.write(text);
+  }
   console.log(`Wrote ${path.relative(repoRoot, txtPath)}`);
+  console.log(`Wrote ${path.relative(repoRoot, mdPath)}`);
   console.log(`Wrote ${path.relative(repoRoot, jsonPath)}`);
 }
 
-const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
 if (isMain) {
   main();
 }
