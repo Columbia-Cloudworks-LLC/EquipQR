@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Landing hero Texas flash on cold load (#1364)** — Suspense fallback for lazy GSAP phase chunks is a neutral vertical line (morph start) instead of the Texas static composite; reduced-motion visitors still see Texas + dots; first two phase chunks are warmed on mount for animated visitors only.
 - **Signup empty name fallback (#1332)** — Trim signup display names before storing metadata; AuthContext rejects empty/whitespace-only names (no silent email rename), and the signup form keeps showing “Full name is required”.
 - **Google OAuth preserves QR pending redirect (#1322)** — `signInWithGoogle` now returns to `/auth` with a validated `?next=` when `pendingRedirect` is set, Auth restores that destination after the OAuth round-trip, and SmartLanding honors `pendingRedirect` instead of always sending authenticated users to the dashboard.
 - **Cache batchInvalidate substring false positives (#1321)** — Match query keys by structural prefix arrays instead of `join('-').includes()`, so patterns like equipment/org segments no longer bust unrelated keys such as `work-orders-equipment-…`.

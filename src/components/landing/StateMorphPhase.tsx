@@ -4,6 +4,7 @@ import { gsap } from 'gsap';
 import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
 import type { StateCode } from './stateVectors';
 import { STATE_VECTORS } from './stateVectors';
+import { HERO_VERTICAL_LINE } from './heroGeometry';
 
 gsap.registerPlugin(MorphSVGPlugin);
 
@@ -20,7 +21,6 @@ interface StateMorphPhaseProps {
  * viewBox. MorphSVGPlugin animates the d attribute to the target state shape.
  */
 
-const VERTICAL_LINE = 'M 50 0 L 50 100 Z';
 const VIEWBOX = 100;
 
 export default function StateMorphPhase({ stateKey, onComplete }: StateMorphPhaseProps) {
@@ -49,7 +49,7 @@ export default function StateMorphPhase({ stateKey, onComplete }: StateMorphPhas
     >
       <path
         ref={pathRef}
-        d={VERTICAL_LINE}
+        d={HERO_VERTICAL_LINE}
         fill="none"
         stroke="hsl(var(--primary))"
         strokeWidth={1.5}
