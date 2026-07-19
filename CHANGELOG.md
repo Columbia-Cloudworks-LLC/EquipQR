@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Supabase Security Advisor warnings (#1310)** — Drop listing `SELECT` policies on public buckets (`docs-media`, `landing-page-images`, `landing-page-videos`, `organization-logos`); pin `datadog.explain_statement` `search_path` when present; re-lock `SECURITY DEFINER` `EXECUTE` grants to the allowlist and revoke default `postgres` function privileges for `anon`/`authenticated` so new RPCs stay deny-by-default. Intentional `anon` surface remains the three token/pre-auth resolvers; submit-operator-check-in stays `service_role` (edge) only.
 - **Landing hero Texas flash on cold load (#1364)** — Suspense fallback for lazy GSAP phase chunks is a neutral vertical line (morph start) instead of the Texas static composite; reduced-motion visitors still see Texas + dots; first two phase chunks are warmed on mount for animated visitors only.
 - **Signup empty name fallback (#1332)** — Trim signup display names before storing metadata; AuthContext rejects empty/whitespace-only names (no silent email rename), and the signup form keeps showing “Full name is required”.
 - **Google OAuth preserves QR pending redirect (#1322)** — `signInWithGoogle` now returns to `/auth` with a validated `?next=` when `pendingRedirect` is set, Auth restores that destination after the OAuth round-trip, and SmartLanding honors `pendingRedirect` instead of always sending authenticated users to the dashboard.

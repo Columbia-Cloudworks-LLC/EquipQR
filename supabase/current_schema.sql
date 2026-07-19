@@ -37,7 +37,7 @@ COMMENT ON SCHEMA "pgmq_public" IS 'Public-facing SECURITY DEFINER wrappers arou
 
 
 
-COMMENT ON SCHEMA "public" IS 'EquipQR application schema. SECURITY DEFINER EXECUTE grants follow docs/ops/security-definer-rpc-policy.md (issue #762).';
+COMMENT ON SCHEMA "public" IS 'EquipQR application schema. SECURITY DEFINER EXECUTE grants follow docs/ops/security-definer-rpc-policy.md (issues #762, #1310).';
 
 
 
@@ -22841,8 +22841,8 @@ GRANT ALL ON FUNCTION "public"."can_access_inventory"("p_organization_id" "uuid"
 
 
 REVOKE ALL ON FUNCTION "public"."can_access_work_order_costs"("p_work_order_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."can_access_work_order_costs"("p_work_order_id" "uuid", "p_user_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."can_access_work_order_costs"("p_work_order_id" "uuid", "p_user_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."can_access_work_order_costs"("p_work_order_id" "uuid", "p_user_id" "uuid") TO "authenticated";
 
 
 
@@ -22878,9 +22878,9 @@ GRANT ALL ON FUNCTION "public"."can_manage_invitation_safe"("user_uuid" "uuid", 
 
 
 
-GRANT ALL ON FUNCTION "public"."can_manage_manual_external_customer_contact"("p_organization_id" "uuid", "p_customer_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."can_manage_manual_external_customer_contact"("p_organization_id" "uuid", "p_customer_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."can_manage_manual_external_customer_contact"("p_organization_id" "uuid", "p_customer_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."can_manage_manual_external_customer_contact"("p_organization_id" "uuid", "p_customer_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."can_manage_manual_external_customer_contact"("p_organization_id" "uuid", "p_customer_id" "uuid") TO "authenticated";
 
 
 
@@ -22966,8 +22966,6 @@ GRANT ALL ON FUNCTION "public"."claim_quickbooks_invoice_status_events"("p_batch
 
 
 REVOKE ALL ON FUNCTION "public"."cleanup_expired_export_results"("p_retention_days" integer) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."cleanup_expired_export_results"("p_retention_days" integer) TO "anon";
-GRANT ALL ON FUNCTION "public"."cleanup_expired_export_results"("p_retention_days" integer) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."cleanup_expired_export_results"("p_retention_days" integer) TO "service_role";
 
 
@@ -22987,8 +22985,7 @@ GRANT ALL ON FUNCTION "public"."cleanup_expired_quickbooks_oauth_sessions"() TO 
 
 
 
-GRANT ALL ON FUNCTION "public"."cleanup_inventory_grants_on_member_removal"() TO "anon";
-GRANT ALL ON FUNCTION "public"."cleanup_inventory_grants_on_member_removal"() TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."cleanup_inventory_grants_on_member_removal"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."cleanup_inventory_grants_on_member_removal"() TO "service_role";
 
 
@@ -23019,14 +23016,14 @@ GRANT ALL ON FUNCTION "public"."clear_rls_context"() TO "service_role";
 
 
 REVOKE ALL ON FUNCTION "public"."complete_product_onboarding"("p_organization_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."complete_product_onboarding"("p_organization_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."complete_product_onboarding"("p_organization_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."complete_product_onboarding"("p_organization_id" "uuid") TO "authenticated";
 
 
 
-GRANT ALL ON FUNCTION "public"."convert_work_order_to_historical"("p_work_order_id" "uuid", "p_organization_id" "uuid", "p_events" "jsonb", "p_skip_audit" boolean) TO "anon";
-GRANT ALL ON FUNCTION "public"."convert_work_order_to_historical"("p_work_order_id" "uuid", "p_organization_id" "uuid", "p_events" "jsonb", "p_skip_audit" boolean) TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."convert_work_order_to_historical"("p_work_order_id" "uuid", "p_organization_id" "uuid", "p_events" "jsonb", "p_skip_audit" boolean) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."convert_work_order_to_historical"("p_work_order_id" "uuid", "p_organization_id" "uuid", "p_events" "jsonb", "p_skip_audit" boolean) TO "service_role";
+GRANT ALL ON FUNCTION "public"."convert_work_order_to_historical"("p_work_order_id" "uuid", "p_organization_id" "uuid", "p_events" "jsonb", "p_skip_audit" boolean) TO "authenticated";
 
 
 
@@ -23054,9 +23051,9 @@ GRANT ALL ON FUNCTION "public"."create_historical_work_order_with_pm"("p_organiz
 
 
 
-GRANT ALL ON FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text", "p_assignee_id" "uuid", "p_team_id" "uuid", "p_due_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_has_pm" boolean, "p_pm_status" "text", "p_pm_completion_date" timestamp with time zone, "p_pm_notes" "text", "p_pm_checklist_data" "jsonb", "p_timeline_events" "jsonb") TO "anon";
-GRANT ALL ON FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text", "p_assignee_id" "uuid", "p_team_id" "uuid", "p_due_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_has_pm" boolean, "p_pm_status" "text", "p_pm_completion_date" timestamp with time zone, "p_pm_notes" "text", "p_pm_checklist_data" "jsonb", "p_timeline_events" "jsonb") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text", "p_assignee_id" "uuid", "p_team_id" "uuid", "p_due_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_has_pm" boolean, "p_pm_status" "text", "p_pm_completion_date" timestamp with time zone, "p_pm_notes" "text", "p_pm_checklist_data" "jsonb", "p_timeline_events" "jsonb") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text", "p_assignee_id" "uuid", "p_team_id" "uuid", "p_due_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_has_pm" boolean, "p_pm_status" "text", "p_pm_completion_date" timestamp with time zone, "p_pm_notes" "text", "p_pm_checklist_data" "jsonb", "p_timeline_events" "jsonb") TO "service_role";
+GRANT ALL ON FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text", "p_assignee_id" "uuid", "p_team_id" "uuid", "p_due_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_has_pm" boolean, "p_pm_status" "text", "p_pm_completion_date" timestamp with time zone, "p_pm_notes" "text", "p_pm_checklist_data" "jsonb", "p_timeline_events" "jsonb") TO "authenticated";
 
 
 
@@ -23087,22 +23084,21 @@ GRANT ALL ON TABLE "public"."external_customer_contacts" TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."create_manual_external_customer_contact"("p_organization_id" "uuid", "p_customer_id" "uuid", "p_name" "text", "p_email" "text", "p_phone" "text", "p_role" "text", "p_notes" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."create_manual_external_customer_contact"("p_organization_id" "uuid", "p_customer_id" "uuid", "p_name" "text", "p_email" "text", "p_phone" "text", "p_role" "text", "p_notes" "text") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."create_manual_external_customer_contact"("p_organization_id" "uuid", "p_customer_id" "uuid", "p_name" "text", "p_email" "text", "p_phone" "text", "p_role" "text", "p_notes" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."create_manual_external_customer_contact"("p_organization_id" "uuid", "p_customer_id" "uuid", "p_name" "text", "p_email" "text", "p_phone" "text", "p_role" "text", "p_notes" "text") TO "service_role";
+GRANT ALL ON FUNCTION "public"."create_manual_external_customer_contact"("p_organization_id" "uuid", "p_customer_id" "uuid", "p_name" "text", "p_email" "text", "p_phone" "text", "p_role" "text", "p_notes" "text") TO "authenticated";
 
 
 
 REVOKE ALL ON FUNCTION "public"."create_operator_checkin_assignment"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_template_id" "uuid", "p_enabled" boolean) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."create_operator_checkin_assignment"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_template_id" "uuid", "p_enabled" boolean) TO "anon";
-GRANT ALL ON FUNCTION "public"."create_operator_checkin_assignment"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_template_id" "uuid", "p_enabled" boolean) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."create_operator_checkin_assignment"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_template_id" "uuid", "p_enabled" boolean) TO "service_role";
+GRANT ALL ON FUNCTION "public"."create_operator_checkin_assignment"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_template_id" "uuid", "p_enabled" boolean) TO "authenticated";
 
 
 
 REVOKE ALL ON FUNCTION "public"."create_quick_form"("p_organization_id" "uuid", "p_name" "text", "p_description" "text", "p_form_data" "jsonb") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."create_quick_form"("p_organization_id" "uuid", "p_name" "text", "p_description" "text", "p_form_data" "jsonb") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."create_quick_form"("p_organization_id" "uuid", "p_name" "text", "p_description" "text", "p_form_data" "jsonb") TO "service_role";
+GRANT ALL ON FUNCTION "public"."create_quick_form"("p_organization_id" "uuid", "p_name" "text", "p_description" "text", "p_form_data" "jsonb") TO "authenticated";
 
 
 
@@ -23135,15 +23131,15 @@ GRANT ALL ON FUNCTION "public"."delete_equipment_note_image_audited"("p_organiza
 
 
 
-GRANT ALL ON FUNCTION "public"."delete_manual_external_customer_contact"("p_organization_id" "uuid", "p_contact_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."delete_manual_external_customer_contact"("p_organization_id" "uuid", "p_contact_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."delete_manual_external_customer_contact"("p_organization_id" "uuid", "p_contact_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."delete_manual_external_customer_contact"("p_organization_id" "uuid", "p_contact_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."delete_manual_external_customer_contact"("p_organization_id" "uuid", "p_contact_id" "uuid") TO "authenticated";
 
 
 
 REVOKE ALL ON FUNCTION "public"."delete_operator_checklist_template"("p_template_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."delete_operator_checklist_template"("p_template_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."delete_operator_checklist_template"("p_template_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."delete_operator_checklist_template"("p_template_id" "uuid") TO "authenticated";
 
 
 
@@ -23153,9 +23149,9 @@ GRANT ALL ON FUNCTION "public"."delete_organization"("p_organization_id" "uuid",
 
 
 
-GRANT ALL ON FUNCTION "public"."delete_work_order_cascade"("p_work_order_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."delete_work_order_cascade"("p_work_order_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."delete_work_order_cascade"("p_work_order_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."delete_work_order_cascade"("p_work_order_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."delete_work_order_cascade"("p_work_order_id" "uuid") TO "authenticated";
 
 
 
@@ -23205,9 +23201,8 @@ GRANT ALL ON FUNCTION "public"."enforce_work_order_primary_image_match"() TO "se
 
 
 REVOKE ALL ON FUNCTION "public"."enqueue_export_job"("p_organization_id" "uuid", "p_report_type" "text", "p_payload" "jsonb") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."enqueue_export_job"("p_organization_id" "uuid", "p_report_type" "text", "p_payload" "jsonb") TO "anon";
-GRANT ALL ON FUNCTION "public"."enqueue_export_job"("p_organization_id" "uuid", "p_report_type" "text", "p_payload" "jsonb") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."enqueue_export_job"("p_organization_id" "uuid", "p_report_type" "text", "p_payload" "jsonb") TO "service_role";
+GRANT ALL ON FUNCTION "public"."enqueue_export_job"("p_organization_id" "uuid", "p_report_type" "text", "p_payload" "jsonb") TO "authenticated";
 
 
 
@@ -23223,16 +23218,14 @@ GRANT ALL ON FUNCTION "public"."expire_old_invitations"() TO "service_role";
 
 
 REVOKE ALL ON FUNCTION "public"."export_equipment_csv_rows"("p_organization_id" "uuid", "p_columns" "text"[], "p_status" "text", "p_team_id" "uuid", "p_location" "text", "p_limit" integer) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."export_equipment_csv_rows"("p_organization_id" "uuid", "p_columns" "text"[], "p_status" "text", "p_team_id" "uuid", "p_location" "text", "p_limit" integer) TO "anon";
-GRANT ALL ON FUNCTION "public"."export_equipment_csv_rows"("p_organization_id" "uuid", "p_columns" "text"[], "p_status" "text", "p_team_id" "uuid", "p_location" "text", "p_limit" integer) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."export_equipment_csv_rows"("p_organization_id" "uuid", "p_columns" "text"[], "p_status" "text", "p_team_id" "uuid", "p_location" "text", "p_limit" integer) TO "service_role";
+GRANT ALL ON FUNCTION "public"."export_equipment_csv_rows"("p_organization_id" "uuid", "p_columns" "text"[], "p_status" "text", "p_team_id" "uuid", "p_location" "text", "p_limit" integer) TO "authenticated";
 
 
 
 REVOKE ALL ON FUNCTION "public"."export_work_orders_csv_rows"("p_organization_id" "uuid", "p_columns" "text"[], "p_status" "text", "p_team_id" "uuid", "p_priority" "text", "p_date_from" timestamp with time zone, "p_date_to" timestamp with time zone, "p_accessible_team_ids" "uuid"[], "p_limit" integer) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."export_work_orders_csv_rows"("p_organization_id" "uuid", "p_columns" "text"[], "p_status" "text", "p_team_id" "uuid", "p_priority" "text", "p_date_from" timestamp with time zone, "p_date_to" timestamp with time zone, "p_accessible_team_ids" "uuid"[], "p_limit" integer) TO "anon";
-GRANT ALL ON FUNCTION "public"."export_work_orders_csv_rows"("p_organization_id" "uuid", "p_columns" "text"[], "p_status" "text", "p_team_id" "uuid", "p_priority" "text", "p_date_from" timestamp with time zone, "p_date_to" timestamp with time zone, "p_accessible_team_ids" "uuid"[], "p_limit" integer) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."export_work_orders_csv_rows"("p_organization_id" "uuid", "p_columns" "text"[], "p_status" "text", "p_team_id" "uuid", "p_priority" "text", "p_date_from" timestamp with time zone, "p_date_to" timestamp with time zone, "p_accessible_team_ids" "uuid"[], "p_limit" integer) TO "service_role";
+GRANT ALL ON FUNCTION "public"."export_work_orders_csv_rows"("p_organization_id" "uuid", "p_columns" "text"[], "p_status" "text", "p_team_id" "uuid", "p_priority" "text", "p_date_from" timestamp with time zone, "p_date_to" timestamp with time zone, "p_accessible_team_ids" "uuid"[], "p_limit" integer) TO "authenticated";
 
 
 
@@ -23288,9 +23281,8 @@ GRANT ALL ON FUNCTION "public"."get_current_user_id"() TO "service_role";
 
 
 REVOKE ALL ON FUNCTION "public"."get_dashboard_trends"("p_org_id" "uuid", "p_days" integer, "p_team_id" "uuid", "p_unassigned" boolean) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."get_dashboard_trends"("p_org_id" "uuid", "p_days" integer, "p_team_id" "uuid", "p_unassigned" boolean) TO "anon";
-GRANT ALL ON FUNCTION "public"."get_dashboard_trends"("p_org_id" "uuid", "p_days" integer, "p_team_id" "uuid", "p_unassigned" boolean) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_dashboard_trends"("p_org_id" "uuid", "p_days" integer, "p_team_id" "uuid", "p_unassigned" boolean) TO "service_role";
+GRANT ALL ON FUNCTION "public"."get_dashboard_trends"("p_org_id" "uuid", "p_days" integer, "p_team_id" "uuid", "p_unassigned" boolean) TO "authenticated";
 
 
 
@@ -23313,9 +23305,8 @@ GRANT ALL ON FUNCTION "public"."get_equipment_pm_status"("p_equipment_id" "uuid"
 
 
 REVOKE ALL ON FUNCTION "public"."get_export_job_status"("p_job_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."get_export_job_status"("p_job_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."get_export_job_status"("p_job_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_export_job_status"("p_job_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."get_export_job_status"("p_job_id" "uuid") TO "authenticated";
 
 
 
@@ -23440,8 +23431,8 @@ GRANT ALL ON FUNCTION "public"."get_personal_org_merge_preview"("p_workspace_org
 
 
 REVOKE ALL ON FUNCTION "public"."get_product_onboarding_status"("p_organization_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."get_product_onboarding_status"("p_organization_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_product_onboarding_status"("p_organization_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."get_product_onboarding_status"("p_organization_id" "uuid") TO "authenticated";
 
 
 
@@ -23648,8 +23639,8 @@ GRANT ALL ON FUNCTION "public"."list_active_stripe_subscriptions"() TO "service_
 
 
 REVOKE ALL ON FUNCTION "public"."list_operator_checkin_restorable_template_ids"("p_organization_id" "uuid", "p_template_ids" "uuid"[]) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."list_operator_checkin_restorable_template_ids"("p_organization_id" "uuid", "p_template_ids" "uuid"[]) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."list_operator_checkin_restorable_template_ids"("p_organization_id" "uuid", "p_template_ids" "uuid"[]) TO "service_role";
+GRANT ALL ON FUNCTION "public"."list_operator_checkin_restorable_template_ids"("p_organization_id" "uuid", "p_template_ids" "uuid"[]) TO "authenticated";
 
 
 
@@ -23844,9 +23835,9 @@ GRANT ALL ON FUNCTION "public"."remove_organization_member_safely"("user_uuid" "
 
 
 
-GRANT ALL ON FUNCTION "public"."replace_historical_work_order_timeline"("p_work_order_id" "uuid", "p_organization_id" "uuid", "p_events" "jsonb", "p_skip_audit" boolean) TO "anon";
-GRANT ALL ON FUNCTION "public"."replace_historical_work_order_timeline"("p_work_order_id" "uuid", "p_organization_id" "uuid", "p_events" "jsonb", "p_skip_audit" boolean) TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."replace_historical_work_order_timeline"("p_work_order_id" "uuid", "p_organization_id" "uuid", "p_events" "jsonb", "p_skip_audit" boolean) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."replace_historical_work_order_timeline"("p_work_order_id" "uuid", "p_organization_id" "uuid", "p_events" "jsonb", "p_skip_audit" boolean) TO "service_role";
+GRANT ALL ON FUNCTION "public"."replace_historical_work_order_timeline"("p_work_order_id" "uuid", "p_organization_id" "uuid", "p_events" "jsonb", "p_skip_audit" boolean) TO "authenticated";
 
 
 
@@ -23868,16 +23859,16 @@ GRANT ALL ON FUNCTION "public"."resolve_effective_pm_interval_policy"("p_equipme
 
 
 REVOKE ALL ON FUNCTION "public"."resolve_operator_checkin_by_token"("p_token_hash" "text") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."resolve_operator_checkin_by_token"("p_token_hash" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."resolve_operator_checkin_by_token"("p_token_hash" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."resolve_operator_checkin_by_token"("p_token_hash" "text") TO "service_role";
+GRANT ALL ON FUNCTION "public"."resolve_operator_checkin_by_token"("p_token_hash" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."resolve_operator_checkin_by_token"("p_token_hash" "text") TO "anon";
 
 
 
 REVOKE ALL ON FUNCTION "public"."resolve_quick_form_by_token"("p_token_hash" "text") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."resolve_quick_form_by_token"("p_token_hash" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."resolve_quick_form_by_token"("p_token_hash" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."resolve_quick_form_by_token"("p_token_hash" "text") TO "service_role";
+GRANT ALL ON FUNCTION "public"."resolve_quick_form_by_token"("p_token_hash" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."resolve_quick_form_by_token"("p_token_hash" "text") TO "anon";
 
 
 
@@ -23894,8 +23885,8 @@ GRANT ALL ON FUNCTION "public"."respond_to_workspace_personal_org_merge"("p_requ
 
 
 REVOKE ALL ON FUNCTION "public"."restore_operator_checklist_template"("p_template_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."restore_operator_checklist_template"("p_template_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."restore_operator_checklist_template"("p_template_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."restore_operator_checklist_template"("p_template_id" "uuid") TO "authenticated";
 
 
 
@@ -23912,15 +23903,14 @@ GRANT ALL ON FUNCTION "public"."revert_work_order_status"("p_work_order_id" "uui
 
 
 REVOKE ALL ON FUNCTION "public"."rotate_operator_checkin_token"("p_settings_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."rotate_operator_checkin_token"("p_settings_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."rotate_operator_checkin_token"("p_settings_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."rotate_operator_checkin_token"("p_settings_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."rotate_operator_checkin_token"("p_settings_id" "uuid") TO "authenticated";
 
 
 
 REVOKE ALL ON FUNCTION "public"."rotate_quick_form_token"("p_quick_form_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."rotate_quick_form_token"("p_quick_form_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."rotate_quick_form_token"("p_quick_form_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."rotate_quick_form_token"("p_quick_form_id" "uuid") TO "authenticated";
 
 
 
@@ -23935,8 +23925,7 @@ GRANT ALL ON FUNCTION "public"."set_bypass_triggers"("bypass" boolean) TO "servi
 
 
 
-GRANT ALL ON FUNCTION "public"."set_equipment_note_organization_id"() TO "anon";
-GRANT ALL ON FUNCTION "public"."set_equipment_note_organization_id"() TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."set_equipment_note_organization_id"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."set_equipment_note_organization_id"() TO "service_role";
 
 
@@ -23973,8 +23962,6 @@ GRANT ALL ON FUNCTION "public"."storage_object_path_segment_uuid"("p_object_name
 
 
 REVOKE ALL ON FUNCTION "public"."submit_operator_checkin_public"("p_token_hash" "text", "p_operator_field_values" "jsonb", "p_client_field_values" "jsonb", "p_equipment_field_values" "jsonb", "p_checklist_answers" "jsonb", "p_template_snapshot" "jsonb", "p_is_complete" boolean, "p_required_item_count" integer, "p_answered_required_count" integer, "p_request_fingerprint" "text") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."submit_operator_checkin_public"("p_token_hash" "text", "p_operator_field_values" "jsonb", "p_client_field_values" "jsonb", "p_equipment_field_values" "jsonb", "p_checklist_answers" "jsonb", "p_template_snapshot" "jsonb", "p_is_complete" boolean, "p_required_item_count" integer, "p_answered_required_count" integer, "p_request_fingerprint" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."submit_operator_checkin_public"("p_token_hash" "text", "p_operator_field_values" "jsonb", "p_client_field_values" "jsonb", "p_equipment_field_values" "jsonb", "p_checklist_answers" "jsonb", "p_template_snapshot" "jsonb", "p_is_complete" boolean, "p_required_item_count" integer, "p_answered_required_count" integer, "p_request_fingerprint" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."submit_operator_checkin_public"("p_token_hash" "text", "p_operator_field_values" "jsonb", "p_client_field_values" "jsonb", "p_equipment_field_values" "jsonb", "p_checklist_answers" "jsonb", "p_template_snapshot" "jsonb", "p_is_complete" boolean, "p_required_item_count" integer, "p_answered_required_count" integer, "p_request_fingerprint" "text") TO "service_role";
 
 
@@ -23989,8 +23976,7 @@ GRANT ALL ON FUNCTION "public"."sync_equipment_customer_from_team"() TO "service
 
 
 
-GRANT ALL ON FUNCTION "public"."sync_equipment_last_known_location_from_scan"() TO "anon";
-GRANT ALL ON FUNCTION "public"."sync_equipment_last_known_location_from_scan"() TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."sync_equipment_last_known_location_from_scan"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."sync_equipment_last_known_location_from_scan"() TO "service_role";
 
 
@@ -24043,15 +24029,15 @@ GRANT ALL ON FUNCTION "public"."update_external_customer_contacts_updated_at"() 
 
 
 
-GRANT ALL ON FUNCTION "public"."update_historical_work_order_note_timestamp"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid", "p_created_at" timestamp with time zone) TO "anon";
-GRANT ALL ON FUNCTION "public"."update_historical_work_order_note_timestamp"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid", "p_created_at" timestamp with time zone) TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."update_historical_work_order_note_timestamp"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid", "p_created_at" timestamp with time zone) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_historical_work_order_note_timestamp"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid", "p_created_at" timestamp with time zone) TO "service_role";
+GRANT ALL ON FUNCTION "public"."update_historical_work_order_note_timestamp"("p_organization_id" "uuid", "p_work_order_id" "uuid", "p_note_id" "uuid", "p_created_at" timestamp with time zone) TO "authenticated";
 
 
 
-GRANT ALL ON FUNCTION "public"."update_manual_external_customer_contact"("p_organization_id" "uuid", "p_contact_id" "uuid", "p_name" "text", "p_email" "text", "p_phone" "text", "p_role" "text", "p_notes" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."update_manual_external_customer_contact"("p_organization_id" "uuid", "p_contact_id" "uuid", "p_name" "text", "p_email" "text", "p_phone" "text", "p_role" "text", "p_notes" "text") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."update_manual_external_customer_contact"("p_organization_id" "uuid", "p_contact_id" "uuid", "p_name" "text", "p_email" "text", "p_phone" "text", "p_role" "text", "p_notes" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_manual_external_customer_contact"("p_organization_id" "uuid", "p_contact_id" "uuid", "p_name" "text", "p_email" "text", "p_phone" "text", "p_role" "text", "p_notes" "text") TO "service_role";
+GRANT ALL ON FUNCTION "public"."update_manual_external_customer_contact"("p_organization_id" "uuid", "p_contact_id" "uuid", "p_name" "text", "p_email" "text", "p_phone" "text", "p_role" "text", "p_notes" "text") TO "authenticated";
 
 
 
@@ -24709,8 +24695,6 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQ
 
 
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "anon";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "service_role";
 
 

@@ -19,6 +19,7 @@ const allowlists = JSON.parse(
 
 const expected = new Set([
   ...allowlists.authenticatedPublicRpc,
+  ...allowlists.anonPublicRpc,
   ...allowlists.rlsPredicateHelpers,
 ]);
 

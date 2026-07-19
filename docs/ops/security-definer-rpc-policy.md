@@ -2,7 +2,7 @@
 
 EquipQR uses many `SECURITY DEFINER` PostgreSQL functions in `public`. PostgREST exposes any function granted `EXECUTE` to `anon` or `authenticated` at `/rest/v1/rpc/<name>`.
 
-Issue [#762](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/762) locked down the default-allow posture from the baseline migration.
+Issue [#762](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/762) locked down the default-allow posture from the baseline migration. Issue [#1310](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/1310) re-locked after post-#762 drift (new `CREATE FUNCTION` inherited `ALTER DEFAULT PRIVILEGES … GRANT ALL ON FUNCTIONS TO anon/authenticated`) and removed public-bucket listing policies.
 
 ## Categories
 
@@ -24,7 +24,7 @@ Issue [#762](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/762) lock
 
 ## Allowlists (source of truth)
 
-- `scripts/security-definer-rpc-allowlists.json` — names granted back to `authenticated` / `anon` after the bulk revoke in `20260602120000_lockdown_security_definer_rpc_grants.sql`.
+- `scripts/security-definer-rpc-allowlists.json` — names granted back to `authenticated` / `anon` after bulk revoke. Source of truth for the latest re-lockdown migration (`20260719214316_security_advisor_1310_hardening.sql`; originally `20260602120000_lockdown_security_definer_rpc_grants.sql`).
 
 ## Inventory
 
@@ -49,14 +49,20 @@ Keep allowlists aligned:
 node scripts/validate-security-definer-allowlist-sync.mjs
 ```
 
-## Supabase Advisor lint 0029
+## Supabase Advisor lints (0025 / 0029 / anon DEFINER)
 
-Lint `authenticated_security_definer_function_executable` reports every public `SECURITY DEFINER` function still granted to `authenticated`. After lockdown, that set is **intentional** (~51 client DEFINER RPCs + 6 RLS helpers = 57 rows in a typical advisor export). Additional client RPCs in `security-definer-rpc-allowlists.json` may be `SECURITY INVOKER` and are not advisor DEFINER warnings. Pre-lockdown blast radius was ~160 definers callable by `anon`/`authenticated`.
+| Lint | Expected after #1310 |
+| --- | --- |
+| `public_bucket_allows_listing` | **0** — public buckets keep `public=true` for direct object URLs; broad `storage.objects` SELECT policies are dropped |
+| `function_search_path_mutable` on `datadog.explain_statement` | **0** when Datadog schema is present (pinned `search_path`) |
+| `anon_security_definer_function_executable` | **3** intentional token/pre-auth RPCs (`anonPublicRpc`) |
+| `authenticated_security_definer_function_executable` | Intentional allowlist only (client DEFINER RPCs + RLS helpers). INVOKER names in the JSON are not advisor DEFINER rows |
 
-1. Deploy `20260602120000_lockdown_security_definer_rpc_grants.sql` (and follow-ups) to preview/production.
-2. Regenerate inventory and confirm only allowlisted names have `authenticated EXECUTE = yes`.
-3. Reconcile advisor exports: `node scripts/reconcile-advisor-rpc-warnings.mjs advisor-functions.txt`
-4. Authorization evidence for high-risk RPCs: [security-definer-rpc-audit.md](./security-definer-rpc-audit.md)
+1. Deploy `20260719214316_security_advisor_1310_hardening.sql` (builds on `20260602120000_lockdown_security_definer_rpc_grants.sql`).
+2. Confirm `ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public` no longer grants new functions to `anon`/`authenticated`.
+3. Regenerate inventory and confirm only allowlisted names have `authenticated EXECUTE = yes`.
+4. Reconcile advisor exports: `node scripts/reconcile-advisor-rpc-warnings.mjs advisor-functions.txt`
+5. Authorization evidence for high-risk RPCs: [security-definer-rpc-audit.md](./security-definer-rpc-audit.md)
 
 ## Future refactor (zero advisor warnings)
 
