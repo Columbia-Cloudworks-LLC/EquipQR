@@ -1,10 +1,5 @@
 import { useEffect, useCallback } from 'react';
 import { logger } from '@/utils/logger';
-import {
-  getPreferenceLocalStorage,
-  isPreferenceStorageAllowed,
-  setPreferenceLocalStorage,
-} from '@/lib/cookieConsent';
 
 interface UseBrowserStorageOptions<T> {
   key: string;
@@ -12,13 +7,17 @@ interface UseBrowserStorageOptions<T> {
   enabled?: boolean;
 }
 
+/**
+ * Draft/backup persistence for in-progress editors (PM checklist, template editor).
+ * Strictly necessary to avoid losing work on refresh — not preference-gated.
+ */
 export const useBrowserStorage = <T>({ key, data, enabled = true }: UseBrowserStorageOptions<T>) => {
   // Save to localStorage
   const saveToStorage = useCallback(() => {
-    if (!enabled || typeof window === 'undefined' || !isPreferenceStorageAllowed()) return;
+    if (!enabled || typeof window === 'undefined') return;
     
     try {
-      setPreferenceLocalStorage(key, JSON.stringify({
+      localStorage.setItem(key, JSON.stringify({
         data,
         timestamp: Date.now()
       }));
@@ -29,10 +28,10 @@ export const useBrowserStorage = <T>({ key, data, enabled = true }: UseBrowserSt
 
   // Load from localStorage
   const loadFromStorage = useCallback((): T | null => {
-    if (!enabled || typeof window === 'undefined' || !isPreferenceStorageAllowed()) return null;
+    if (!enabled || typeof window === 'undefined') return null;
     
     try {
-      const stored = getPreferenceLocalStorage(key);
+      const stored = localStorage.getItem(key);
       if (stored) {
         const parsed = JSON.parse(stored);
         // Check if data is less than 24 hours old

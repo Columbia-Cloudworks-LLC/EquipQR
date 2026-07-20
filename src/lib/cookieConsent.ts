@@ -10,6 +10,7 @@
  * - Active organization hints (`equipqr_current_organization`, `equipqr_current_org`)
  * - Sanitized session cache (`equipqr_session_data` — no street/coords; name allowed)
  * - Admin grant throttle keys (`equipqr_admin_grants_*`)
+ * - In-progress editor draft backups (`pm-checklist-*`, `pm-template-editor-*`)
  *
  * Preference / optional storage (Accept only; cleared on Reject):
  * - `sidebar:state` cookie and UI preference localStorage keys listed below
@@ -39,8 +40,6 @@ const OPTIONAL_LOCAL_STORAGE_PREFIXES = [
   'equipqr_dashboard_layout_',
   'eqr_work_timer_',
   'equipqr_export_columns_',
-  'pm-checklist-',
-  'pm-template-editor-',
 ] as const;
 
 export function isCookieConsentDecision(value: unknown): value is CookieConsentDecision {

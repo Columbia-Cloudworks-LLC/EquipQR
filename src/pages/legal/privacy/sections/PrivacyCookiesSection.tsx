@@ -95,12 +95,20 @@ export function PrivacyCookiesSection() {
                   ),
                 },
                 {
-                  label: 'Admin grant throttling',
+                  label: <code>equipqr_admin_grants_*</code>,
                   content: (
                     <>
-                      {' '}
-                      &mdash; Prevents redundant permission lookups within a short window. Strictly necessary for
-                      reliable sign-in performance (not advertising or tracking).
+                      &mdash; Throttles redundant permission grant RPCs after sign-in. Strictly necessary for
+                      reliable auth performance (not advertising or tracking). Written regardless of Accept/Reject.
+                    </>
+                  ),
+                },
+                {
+                  label: 'Editor draft backups',
+                  content: (
+                    <>
+                      &mdash; Short-lived backups of in-progress PM checklists and template editors so a refresh
+                      does not lose work. Strictly necessary for data integrity while editing.
                     </>
                   ),
                 },
@@ -109,7 +117,8 @@ export function PrivacyCookiesSection() {
             <p>
               None of this data is sent to any server or third party. It remains in your browser
               and can be cleared at any time through your browser settings. Choosing Reject clears
-              preference keys EquipQR controls and stops writing them until you Accept.
+              optional UI preference keys EquipQR controls and stops writing them until you Accept;
+              strictly necessary keys listed above remain available.
             </p>
 
             <h3>Session Storage</h3>
