@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { flexRender, type Cell, type ColumnSizingState, type Header, type Table as TanStackTable } from '@tanstack/react-table';
 import { Card, CardContent } from '@/components/ui/card';
@@ -317,13 +317,19 @@ export function usePersistedColumnSizing(storageKey: string, defaults: ColumnSiz
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(() =>
     loadPersistedColumnSizing(storageKey, defaults),
   );
+  const columnSizingRef = useRef(columnSizing);
+  columnSizingRef.current = columnSizing;
 
-  const rehydrate = useCallback(() => {
+  const rehydrateOrFlush = useCallback(() => {
     const raw = getPreferenceLocalStorage(storageKey);
-    if (!raw) return;
-    setColumnSizing(loadPersistedColumnSizing(storageKey, defaults));
+    if (raw) {
+      setColumnSizing(loadPersistedColumnSizing(storageKey, defaults));
+      return;
+    }
+    // Flush in-memory sizing chosen before Accept (prior writes were no-ops).
+    setPreferenceLocalStorage(storageKey, JSON.stringify(columnSizingRef.current));
   }, [defaults, storageKey]);
-  useWhenPreferenceStorageAllowed(rehydrate);
+  useWhenPreferenceStorageAllowed(rehydrateOrFlush);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;

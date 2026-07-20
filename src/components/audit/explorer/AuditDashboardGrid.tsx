@@ -525,17 +525,20 @@ export function AuditDashboardGrid({ widgets }: AuditDashboardGridProps) {
   const layoutAtDragStartRef = useRef<Layout | null>(null);
   const floatingCloneRef = useRef<HTMLElement | null>(null);
 
-  const rehydrateGrid = useCallback(() => {
-    const raw = getPreferenceLocalStorage(STORAGE_KEY);
-    if (!raw) return;
-    setState(readPersistedState(widgets));
-  }, [widgets]);
-  useWhenPreferenceStorageAllowed(rehydrateGrid);
-
   // Persist state changes debounced: drag/resize emit many layout updates and
   // localStorage writes are synchronous, so coalesce them. Flush on unmount.
   const stateRef = useRef(state);
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const rehydrateOrFlushGrid = useCallback(() => {
+    const raw = getPreferenceLocalStorage(STORAGE_KEY);
+    if (raw) {
+      setState(readPersistedState(widgets));
+      return;
+    }
+    persistState(stateRef.current);
+  }, [widgets]);
+  useWhenPreferenceStorageAllowed(rehydrateOrFlushGrid);
   useEffect(() => {
     stateRef.current = state;
     if (persistTimerRef.current) clearTimeout(persistTimerRef.current);

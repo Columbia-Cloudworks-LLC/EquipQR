@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeam } from '@/features/teams/hooks/useTeam';
 import { logger } from '@/utils/logger';
@@ -52,18 +52,24 @@ export const SelectedTeamProvider: React.FC<{ children: React.ReactNode }> = ({
   const { teamMemberships, isLoading: teamMembershipsLoading } = useTeam();
 
   const [selectedTeamId, setSelectedTeamIdState] = useState<SelectedTeamId>(null);
+  const selectedTeamIdRef = useRef(selectedTeamId);
+  selectedTeamIdRef.current = selectedTeamId;
 
   // Re-hydrate when the active organization changes.
   useEffect(() => {
     setSelectedTeamIdState(readStoredTeamId(organizationId));
   }, [organizationId]);
 
-  // Accept mid-session: apply a stored team preference that was gated on first paint.
-  const rehydrateStoredTeam = useCallback(() => {
+  // Accept mid-session: restore stored team, or flush a pre-consent selection.
+  const rehydrateOrFlushTeam = useCallback(() => {
     const stored = readStoredTeamId(organizationId);
-    if (stored) setSelectedTeamIdState(stored);
+    if (stored) {
+      setSelectedTeamIdState(stored);
+      return;
+    }
+    writeStoredTeamId(organizationId, selectedTeamIdRef.current);
   }, [organizationId]);
-  useWhenPreferenceStorageAllowed(rehydrateStoredTeam);
+  useWhenPreferenceStorageAllowed(rehydrateOrFlushTeam);
 
   // Auto-clear when the selected team is no longer in the user's memberships
   // for the active organization (e.g. removed from the team, or org switched

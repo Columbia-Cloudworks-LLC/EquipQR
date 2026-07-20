@@ -94,12 +94,17 @@ const SidebarProvider = React.forwardRef<
       [setOpenProp, open]
     )
 
-    const rehydrateSidebar = React.useCallback(() => {
+    const openRef = React.useRef(open)
+    openRef.current = open
+    const rehydrateOrFlushSidebar = React.useCallback(() => {
       const stored = readSidebarCookieOpen()
-      if (stored === null) return
-      _setOpen(stored)
+      if (stored !== null) {
+        _setOpen(stored)
+        return
+      }
+      setPreferenceCookie(SIDEBAR_COOKIE_NAME, String(openRef.current), SIDEBAR_COOKIE_MAX_AGE)
     }, [readSidebarCookieOpen])
-    useWhenPreferenceStorageAllowed(rehydrateSidebar)
+    useWhenPreferenceStorageAllowed(rehydrateOrFlushSidebar)
 
     // Helper to toggle the sidebar.
     const toggleSidebar = React.useCallback(() => {

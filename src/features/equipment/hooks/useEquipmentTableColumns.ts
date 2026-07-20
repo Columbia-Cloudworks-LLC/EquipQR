@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useWhenPreferenceStorageAllowed } from '@/contexts/CookieConsentContext';
 import {
@@ -97,6 +97,8 @@ export const useEquipmentTableColumns = (
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(
     () => ({ ...DEFAULT_VISIBLE_COLUMNS }),
   );
+  const visibleColumnsRef = useRef(visibleColumns);
+  visibleColumnsRef.current = visibleColumns;
 
   // Hydrate from storage whenever the active org changes.
   useEffect(() => {
@@ -108,12 +110,16 @@ export const useEquipmentTableColumns = (
     setVisibleColumns(saved ?? { ...DEFAULT_VISIBLE_COLUMNS });
   }, [organizationId]);
 
-  const rehydrateColumns = useCallback(() => {
+  const rehydrateOrFlushColumns = useCallback(() => {
     if (!organizationId) return;
     const saved = readSavedVisibility(organizationId);
-    if (saved) setVisibleColumns(saved);
+    if (saved) {
+      setVisibleColumns(saved);
+      return;
+    }
+    writeSavedVisibility(organizationId, visibleColumnsRef.current);
   }, [organizationId]);
-  useWhenPreferenceStorageAllowed(rehydrateColumns);
+  useWhenPreferenceStorageAllowed(rehydrateOrFlushColumns);
 
   const persist = useCallback(
     (next: Record<string, boolean>) => {

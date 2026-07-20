@@ -72,13 +72,18 @@ const Equipment = () => {
   const [showQRCode, setShowQRCode] = useState<string | null>(null);
   const [showImportCsv, setShowImportCsv] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<EquipmentViewMode>(() => readEquipmentViewMode(isMobile));
+  const viewModeRef = useRef(viewMode);
+  viewModeRef.current = viewMode;
 
-  const rehydrateViewMode = useCallback(() => {
+  const rehydrateOrFlushViewMode = useCallback(() => {
     const stored = getPreferenceLocalStorage('equipqr:equipment-view-mode');
-    if (!stored) return;
-    setViewMode(readEquipmentViewMode(isMobile));
+    if (stored) {
+      setViewMode(readEquipmentViewMode(isMobile));
+      return;
+    }
+    setPreferenceLocalStorage('equipqr:equipment-view-mode', viewModeRef.current);
   }, [isMobile]);
-  useWhenPreferenceStorageAllowed(rehydrateViewMode);
+  useWhenPreferenceStorageAllowed(rehydrateOrFlushViewMode);
 
   const {
     filters,

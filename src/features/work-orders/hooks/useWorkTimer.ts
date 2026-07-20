@@ -165,11 +165,24 @@ export const useWorkTimer = (workOrderId: string | undefined): UseWorkTimerResul
     applySavedState(workOrderId, true);
   }, [workOrderId, applySavedState]);
 
-  const rehydrateTimer = useCallback(() => {
+  const rehydrateOrFlushTimer = useCallback(() => {
     if (!workOrderId) return;
-    applySavedState(workOrderId, false);
-  }, [workOrderId, applySavedState]);
-  useWhenPreferenceStorageAllowed(rehydrateTimer);
+    const savedState = loadState(workOrderId);
+    if (savedState) {
+      applySavedState(workOrderId, false);
+      return;
+    }
+    // Flush an in-progress timer that could not persist before Accept.
+    if (!isRunning && accumulatedSeconds === 0 && currentSessionSeconds === 0) return;
+    saveState({
+      workOrderId,
+      startTime: startTimeRef.current ?? 0,
+      originalStartTime: originalStartTimeRef.current ?? startTimeRef.current ?? 0,
+      accumulatedSeconds,
+      isRunning,
+    });
+  }, [workOrderId, applySavedState, isRunning, accumulatedSeconds, currentSessionSeconds]);
+  useWhenPreferenceStorageAllowed(rehydrateOrFlushTimer);
 
   // Tick interval when running
   useEffect(() => {

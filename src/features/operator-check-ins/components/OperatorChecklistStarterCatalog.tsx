@@ -1,4 +1,4 @@
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { ChevronDown, ChevronRight, Gauge, Sparkles, Truck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -45,13 +45,18 @@ export function OperatorChecklistStarterCatalog({
   const [expanded, setExpanded] = useState(() =>
     resolveInitialExpanded(organizationId, hasExistingTemplates),
   );
+  const expandedRef = useRef(expanded);
+  expandedRef.current = expanded;
 
-  const rehydrateExpanded = useCallback(() => {
+  const rehydrateOrFlushExpanded = useCallback(() => {
     const stored = getStarterCatalogExpandedPreference(organizationId);
-    if (stored === null) return;
-    setExpanded(stored);
+    if (stored !== null) {
+      setExpanded(stored);
+      return;
+    }
+    setStarterCatalogExpandedPreference(organizationId, expandedRef.current);
   }, [organizationId]);
-  useWhenPreferenceStorageAllowed(rehydrateExpanded);
+  useWhenPreferenceStorageAllowed(rehydrateOrFlushExpanded);
 
   function handleOpenChange(nextExpanded: boolean) {
     setExpanded(nextExpanded);

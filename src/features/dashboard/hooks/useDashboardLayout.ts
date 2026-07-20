@@ -71,6 +71,8 @@ export function useDashboardLayout(organizationId: string | undefined): UseDashb
 
   const [activeWidgets, setActiveWidgets] = useState<string[]>([]);
   const [initialized, setInitialized] = useState(false);
+  const activeWidgetsRef = useRef(activeWidgets);
+  activeWidgetsRef.current = activeWidgets;
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -96,12 +98,20 @@ export function useDashboardLayout(organizationId: string | undefined): UseDashb
     setInitialized(true);
   }, [userId, organizationId]);
 
-  const rehydrateLocalLayout = useCallback(() => {
+  const rehydrateOrFlushLocalLayout = useCallback(() => {
     if (!userId || !organizationId) return;
     const stored = readFromLocalStorage(userId, organizationId);
-    if (stored) setActiveWidgets(stored.activeWidgets);
+    if (stored) {
+      setActiveWidgets(stored.activeWidgets);
+      return;
+    }
+    if (activeWidgetsRef.current.length === 0) return;
+    writeToLocalStorage(userId, organizationId, {
+      activeWidgets: activeWidgetsRef.current,
+      updatedAt: new Date().toISOString(),
+    });
   }, [userId, organizationId]);
-  useWhenPreferenceStorageAllowed(rehydrateLocalLayout);
+  useWhenPreferenceStorageAllowed(rehydrateOrFlushLocalLayout);
 
   // Background fetch from Supabase to sync across devices
   const { data: supabasePrefs } = useQuery({

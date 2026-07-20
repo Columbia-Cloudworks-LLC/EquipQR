@@ -12,8 +12,7 @@ export function CookieConsentBanner() {
   if (!needsConsent) return null;
 
   return (
-    <div
-      role="region"
+    <section
       aria-label="Cookie consent"
       className="fixed inset-x-0 bottom-0 z-[var(--z-cookie-banner)] border-t border-border bg-background/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/90"
     >
@@ -41,6 +40,6 @@ export function CookieConsentBanner() {
           </Button>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
