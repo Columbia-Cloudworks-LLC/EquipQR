@@ -32,6 +32,7 @@ const JSDOM_TS_TEST_GLOBS = [
   'src/pages/**/*.test.ts',
   // Browser APIs (AudioContext / vibrate) — former lib/__tests__ suites
   'src/lib/scanFeedback.test.ts',
+  'src/lib/cookieConsent.test.ts',
 ];
 
 const coverageExclude = [

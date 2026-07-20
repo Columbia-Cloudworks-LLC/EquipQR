@@ -114,6 +114,7 @@ const createWrapper = () => {
 describe('SimpleOrganizationProvider syncWithSession', () => {
   beforeEach(() => {
     localStorage.clear();
+    localStorage.setItem('equipqr:cookie-consent', 'accepted');
     mockSession.sessionData = {
       currentOrganizationId: 'session-org',
       organizations: [],

@@ -20,8 +20,7 @@ describe('PrivacyPolicy', () => {
     const heading = screen.getByRole('heading', { level: 1 });
     expect(heading).toHaveTextContent('Privacy Policy');
     expect(screen.getByText(/Last updated:/)).toBeInTheDocument();
-    expect(screen.getByText(/March \d{1,2}, \d{4}/)).toBeInTheDocument();
-    expect(screen.getByText(/March 29, 2026/)).toBeInTheDocument();
+    expect(screen.getByText(/July 20, 2026/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument();
     expect(screen.getAllByRole('heading').length).toBeGreaterThan(1);
     expect(screen.getByText('Privacy Policy').closest('[class*="container"]')).toBeInTheDocument();

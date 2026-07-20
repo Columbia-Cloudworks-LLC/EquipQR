@@ -93,6 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // apply_pending_admin_grants_for_user applies grants for the user across ALL
           // organizations they belong to, so organization context isn't needed.
           const adminGrantsCacheKey = `equipqr_admin_grants_${session.user.id}`;
+          // Throttle key is strictly necessary (RPC rate limiting), not a UI preference.
           const lastAppliedStr = localStorage.getItem(adminGrantsCacheKey);
           const lastAppliedAt = lastAppliedStr ? parseInt(lastAppliedStr, 10) : 0;
           const shouldApplyGrants = Date.now() - lastAppliedAt > ADMIN_GRANTS_THROTTLE_MS;

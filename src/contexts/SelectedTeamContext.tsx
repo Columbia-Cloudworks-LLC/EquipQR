@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeam } from '@/features/teams/hooks/useTeam';
 import { logger } from '@/utils/logger';
@@ -8,6 +8,12 @@ import {
   type SelectedTeamContextType,
   type SelectedTeamId,
 } from './selected-team-context';
+import { useWhenPreferenceStorageAllowed } from '@/contexts/CookieConsentContext';
+import {
+  getPreferenceLocalStorage,
+  removePreferenceLocalStorage,
+  setPreferenceLocalStorage,
+} from '@/lib/cookieConsent';
 
 const STORAGE_KEY_PREFIX = 'equipqr:selectedTeamId:';
 
@@ -18,7 +24,7 @@ const readStoredTeamId = (organizationId: string | null): SelectedTeamId => {
   const key = storageKeyFor(organizationId);
   if (!key) return null;
   try {
-    return localStorage.getItem(key);
+    return getPreferenceLocalStorage(key);
   } catch (error) {
     logger.warn('SelectedTeamProvider: failed to read selected team from storage', error);
     return null;
@@ -30,9 +36,9 @@ const writeStoredTeamId = (organizationId: string | null, teamId: SelectedTeamId
   if (!key) return;
   try {
     if (teamId) {
-      localStorage.setItem(key, teamId);
+      setPreferenceLocalStorage(key, teamId);
     } else {
-      localStorage.removeItem(key);
+      removePreferenceLocalStorage(key);
     }
   } catch (error) {
     logger.warn('SelectedTeamProvider: failed to persist selected team to storage', error);
@@ -46,11 +52,24 @@ export const SelectedTeamProvider: React.FC<{ children: React.ReactNode }> = ({
   const { teamMemberships, isLoading: teamMembershipsLoading } = useTeam();
 
   const [selectedTeamId, setSelectedTeamIdState] = useState<SelectedTeamId>(null);
+  const selectedTeamIdRef = useRef(selectedTeamId);
+  selectedTeamIdRef.current = selectedTeamId;
 
   // Re-hydrate when the active organization changes.
   useEffect(() => {
     setSelectedTeamIdState(readStoredTeamId(organizationId));
   }, [organizationId]);
+
+  // Accept mid-session: restore stored team, or flush a pre-consent selection.
+  const rehydrateOrFlushTeam = useCallback(() => {
+    const stored = readStoredTeamId(organizationId);
+    if (stored) {
+      setSelectedTeamIdState(stored);
+      return;
+    }
+    writeStoredTeamId(organizationId, selectedTeamIdRef.current);
+  }, [organizationId]);
+  useWhenPreferenceStorageAllowed(rehydrateOrFlushTeam);
 
   // Auto-clear when the selected team is no longer in the user's memberships
   // for the active organization (e.g. removed from the team, or org switched

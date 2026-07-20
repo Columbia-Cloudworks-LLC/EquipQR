@@ -20,6 +20,7 @@ const STORAGE_KEY = (orgId: string) => `equipqr:equipment-table-columns:${orgId}
 describe('useEquipmentTableColumns', () => {
   beforeEach(() => {
     localStorage.clear();
+    localStorage.setItem('equipqr:cookie-consent', 'accepted');
   });
 
   it('returns DEFAULT_VISIBLE_COLUMNS when no localStorage entry exists', () => {

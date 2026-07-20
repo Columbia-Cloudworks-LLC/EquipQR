@@ -1,5 +1,5 @@
 import { logger } from '@/utils/logger';
-import type { SessionData } from '@/types/session';
+import type { SessionData, SessionOrganization } from '@/types/session';
 import { 
   getSessionStorageKey, 
   getSessionVersion,
@@ -8,6 +8,41 @@ import {
 
 const SESSION_STORAGE_KEY = getSessionStorageKey();
 const SESSION_VERSION = getSessionVersion();
+
+/**
+ * Strip inventory default location fields before writing SessionData to
+ * localStorage — those address/lat-lng values are sensitive and must stay
+ * in-memory / server-sourced only (Qodo rule: no PII in Web Storage).
+ */
+function toPersistedSessionOrganization(org: SessionOrganization): SessionOrganization {
+  return {
+    id: org.id,
+    name: org.name,
+    plan: org.plan,
+    memberCount: org.memberCount,
+    maxMembers: org.maxMembers,
+    features: org.features,
+    billingCycle: org.billingCycle,
+    nextBillingDate: org.nextBillingDate,
+    logo: org.logo,
+    backgroundColor: org.backgroundColor,
+    scanLocationCollectionEnabled: org.scanLocationCollectionEnabled,
+    // Keep the human-readable location *name* for UX; omit street/city/coords (PII).
+    inventoryDefaultLocationName: org.inventoryDefaultLocationName,
+    userRole: org.userRole,
+    userStatus: org.userStatus,
+  };
+}
+
+function toPersistedSessionData(data: SessionData): SessionData {
+  return {
+    organizations: data.organizations.map(toPersistedSessionOrganization),
+    currentOrganizationId: data.currentOrganizationId,
+    teamMemberships: data.teamMemberships,
+    lastUpdated: data.lastUpdated,
+    version: data.version,
+  };
+}
 
 export class SessionStorageService {
   static loadSessionFromStorage(): SessionData | null {
@@ -44,7 +79,9 @@ export class SessionStorageService {
 
   static saveSessionToStorage(data: SessionData): void {
     try {
-      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(data));
+      // Strictly necessary session cache (not preference-gated). Never persist
+      // inventory default location / address fields.
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(toPersistedSessionData(data)));
     } catch (error) {
       logger.error('💾 Error saving session to storage:', error);
     }

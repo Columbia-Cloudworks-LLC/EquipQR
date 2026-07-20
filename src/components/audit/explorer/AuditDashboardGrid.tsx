@@ -18,6 +18,8 @@ import 'react-grid-layout/css/styles.css';
 import './audit-dashboard-grid.css';
 import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, GripVertical, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useWhenPreferenceStorageAllowed } from '@/contexts/CookieConsentContext';
+import { getPreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
 import { logger } from '@/utils/logger';
 
 const STORAGE_KEY = 'audit-dashboard-grid-v1';
@@ -110,7 +112,7 @@ function readPersistedState(widgets: AuditDashboardWidgetDef[]): PersistedGridSt
     return fallback;
   }
   try {
-    const raw = globalThis.localStorage.getItem(STORAGE_KEY);
+    const raw = getPreferenceLocalStorage(STORAGE_KEY);
     if (!raw) return fallback;
     const parsed = JSON.parse(raw) as Partial<PersistedGridState>;
     if (!Array.isArray(parsed.layout)) return fallback;
@@ -152,7 +154,7 @@ function readPersistedState(widgets: AuditDashboardWidgetDef[]): PersistedGridSt
 function persistState(state: PersistedGridState): void {
   if (typeof globalThis === 'undefined' || !('localStorage' in globalThis)) return;
   try {
-    globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    setPreferenceLocalStorage(STORAGE_KEY, JSON.stringify(state));
   } catch {
     // Storage quota / privacy mode — layout customization just won't persist.
   }
@@ -527,6 +529,16 @@ export function AuditDashboardGrid({ widgets }: AuditDashboardGridProps) {
   // localStorage writes are synchronous, so coalesce them. Flush on unmount.
   const stateRef = useRef(state);
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const rehydrateOrFlushGrid = useCallback(() => {
+    const raw = getPreferenceLocalStorage(STORAGE_KEY);
+    if (raw) {
+      setState(readPersistedState(widgets));
+      return;
+    }
+    persistState(stateRef.current);
+  }, [widgets]);
+  useWhenPreferenceStorageAllowed(rehydrateOrFlushGrid);
   useEffect(() => {
     stateRef.current = state;
     if (persistTimerRef.current) clearTimeout(persistTimerRef.current);

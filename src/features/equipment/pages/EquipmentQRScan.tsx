@@ -13,7 +13,7 @@ import {
   mergeAllowedOrganizationIds,
   resolveValidatedOrganizationId,
 } from '@/utils/trustedOrganizationScope';
-import { saveOrganizationPreference } from '@/utils/sessionPersistence';
+import { persistDashboardOrganizationSelection } from '@/utils/organizationSelection';
 import type { Database } from '@/integrations/supabase/types';
 import type { Role } from '@/types/permissions';
 import QrPageLoadingShell from '@/features/equipment/components/qr/QrPageLoadingShell';
@@ -34,8 +34,6 @@ import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
 type EquipmentStatus = Database['public']['Enums']['equipment_status'];
 
 const PRODUCTION_URL = 'https://equipqr.app';
-/** Matches SimpleOrganizationProvider — ensures dashboard loads the scanned org after full-document navigation. */
-const DASHBOARD_CURRENT_ORG_STORAGE_KEY = 'equipqr_current_organization';
 const EquipmentQRQuickActions = lazy(() => import('@/features/equipment/components/qr/EquipmentQRQuickActions'));
 
 type ScanStatus = 'idle' | 'logging' | 'logged' | 'failed';
@@ -226,12 +224,7 @@ const EquipmentQRScan = () => {
 
   const openDashboardRecord = useCallback(async () => {
     if (!payload) return;
-    saveOrganizationPreference(payload.organization.id);
-    try {
-      localStorage.setItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY, payload.organization.id);
-    } catch {
-      // ignore storage failures (private mode, quota)
-    }
+    persistDashboardOrganizationSelection(payload.organization.id);
     // Best-effort scan attribution; never block navigation on it.
     if (scanId) {
       try {

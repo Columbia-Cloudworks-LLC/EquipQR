@@ -14,6 +14,7 @@ const STORAGE_KEY = (orgId: string) => `equipqr:inventory-table-preferences:${or
 describe('useInventoryTablePreferences', () => {
   beforeEach(() => {
     localStorage.clear();
+    localStorage.setItem('equipqr:cookie-consent', 'accepted');
   });
 
   it('returns defaults when no localStorage entry exists', () => {

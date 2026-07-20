@@ -7,6 +7,8 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useWhenPreferenceStorageAllowed } from '@/contexts/CookieConsentContext';
+import { getPreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
 
 interface WorkTimerState {
   workOrderId: string;
@@ -43,7 +45,7 @@ const getStorageKey = (workOrderId: string): string => {
 /** Load timer state from localStorage */
 const loadState = (workOrderId: string): WorkTimerState | null => {
   try {
-    const stored = localStorage.getItem(getStorageKey(workOrderId));
+    const stored = getPreferenceLocalStorage(getStorageKey(workOrderId));
     if (!stored) return null;
     return JSON.parse(stored) as WorkTimerState;
   } catch {
@@ -54,7 +56,7 @@ const loadState = (workOrderId: string): WorkTimerState | null => {
 /** Save timer state to localStorage */
 const saveState = (state: WorkTimerState): void => {
   try {
-    localStorage.setItem(getStorageKey(state.workOrderId), JSON.stringify(state));
+    setPreferenceLocalStorage(getStorageKey(state.workOrderId), JSON.stringify(state));
   } catch {
     // Ignore storage errors (e.g., quota exceeded)
   }
@@ -103,19 +105,8 @@ export const useWorkTimer = (workOrderId: string | undefined): UseWorkTimerResul
   // not total elapsed time including gaps
   const originalStartTimeRef = useRef<number | null>(null);
 
-  // Load initial state from localStorage
-  useEffect(() => {
-    if (!workOrderId) {
-      // No-op when workOrderId is empty/undefined to prevent state bleeding
-      setIsRunning(false);
-      setAccumulatedSeconds(0);
-      setCurrentSessionSeconds(0);
-      startTimeRef.current = null;
-      originalStartTimeRef.current = null;
-      return;
-    }
-
-    const savedState = loadState(workOrderId);
+  const applySavedState = useCallback((id: string, resetWhenMissing: boolean) => {
+    const savedState = loadState(id);
     if (savedState) {
       // Restore original start time from saved state (if available, for backward compatibility)
       // Note: We keep this for backward compatibility but don't use it for elapsed time calculations
@@ -125,7 +116,7 @@ export const useWorkTimer = (workOrderId: string | undefined): UseWorkTimerResul
         // Backward compatibility: if originalStartTime not saved, use startTime
         originalStartTimeRef.current = savedState.startTime;
       }
-      
+
       if (savedState.isRunning && savedState.startTime > 0) {
         // Resume running timer - only track active time
         const now = Date.now();
@@ -147,15 +138,51 @@ export const useWorkTimer = (workOrderId: string | undefined): UseWorkTimerResul
         }
         setIsRunning(false);
       }
-    } else {
-      // No saved state for this work order; reset timer state so previous work order data doesn't leak
+      return;
+    }
+
+    if (!resetWhenMissing) return;
+    // No saved state for this work order; reset timer state so previous work order data doesn't leak
+    setIsRunning(false);
+    setAccumulatedSeconds(0);
+    setCurrentSessionSeconds(0);
+    startTimeRef.current = null;
+    originalStartTimeRef.current = null;
+  }, []);
+
+  // Load initial state from localStorage
+  useEffect(() => {
+    if (!workOrderId) {
+      // No-op when workOrderId is empty/undefined to prevent state bleeding
       setIsRunning(false);
       setAccumulatedSeconds(0);
       setCurrentSessionSeconds(0);
       startTimeRef.current = null;
       originalStartTimeRef.current = null;
+      return;
     }
-  }, [workOrderId]);
+
+    applySavedState(workOrderId, true);
+  }, [workOrderId, applySavedState]);
+
+  const rehydrateOrFlushTimer = useCallback(() => {
+    if (!workOrderId) return;
+    const savedState = loadState(workOrderId);
+    if (savedState) {
+      applySavedState(workOrderId, false);
+      return;
+    }
+    // Flush an in-progress timer that could not persist before Accept.
+    if (!isRunning && accumulatedSeconds === 0 && currentSessionSeconds === 0) return;
+    saveState({
+      workOrderId,
+      startTime: startTimeRef.current ?? 0,
+      originalStartTime: originalStartTimeRef.current ?? startTimeRef.current ?? 0,
+      accumulatedSeconds,
+      isRunning,
+    });
+  }, [workOrderId, applySavedState, isRunning, accumulatedSeconds, currentSessionSeconds]);
+  useWhenPreferenceStorageAllowed(rehydrateOrFlushTimer);
 
   // Tick interval when running
   useEffect(() => {
