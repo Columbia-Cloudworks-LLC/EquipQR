@@ -281,7 +281,33 @@ export function findBranchByName(list, branchName) {
 }
 
 function log(message) {
-  console.log(`  [cloud-seed] ${message}`);
+  // stderr so stdout can carry shell assignments (anon key only) for eval.
+  console.error(`  [cloud-seed] ${message}`);
+}
+
+export async function fetchProjectApiKeys(projectRef, accessToken) {
+  const ref = String(projectRef || '').trim();
+  const token = String(accessToken || '').trim();
+  if (!ref || !token) {
+    throw new Error('projectRef and SUPABASE_ACCESS_TOKEN are required to fetch API keys');
+  }
+  const response = await fetch(
+    `https://api.supabase.com/v1/projects/${encodeURIComponent(ref)}/api-keys?reveal=true`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`Management API api-keys failed (${response.status})`);
+  }
+  const keys = resolveKeysFromPayload(await response.json());
+  if (!keys.anonKey || !keys.serviceRoleKey) {
+    throw new Error('Management API api-keys response missing anon or service_role');
+  }
+  return keys;
 }
 
 async function ensureAuthUser(admin, persona) {
@@ -632,17 +658,6 @@ async function main() {
     return;
   }
 
-  if (process.argv.includes('--print-anon-key')) {
-    const raw = fs.readFileSync(0, 'utf8');
-    const keys = resolveKeysFromPayload(JSON.parse(raw || 'null'));
-    if (!keys.anonKey) {
-      console.error('Could not resolve anon key from keys payload');
-      process.exit(2);
-    }
-    process.stdout.write(`${formatAnonKeyAssignment(keys.anonKey)}\n`);
-    return;
-  }
-
   if (process.argv.includes('--find-branch')) {
     const branchName = readArg('--find-branch');
     const list = JSON.parse(fs.readFileSync(0, 'utf8') || '[]');
@@ -654,17 +669,36 @@ async function main() {
 
   const apiUrl = process.env.CLOUD_AGENT_SUPABASE_URL;
   const projectRef = process.env.CLOUD_AGENT_SUPABASE_PROJECT_REF;
-  let serviceRoleKey = process.env.CLOUD_AGENT_SUPABASE_SERVICE_ROLE_KEY;
 
-  // Prefer keys JSON on stdin so bash never holds/prints service_role.
-  if (process.argv.includes('--keys-json-stdin')) {
-    const keys = resolveKeysFromPayload(JSON.parse(fs.readFileSync(0, 'utf8') || 'null'));
-    serviceRoleKey = keys.serviceRoleKey;
+  // Fetch service_role inside Node (never expose to bash), seed, print anon only.
+  if (process.argv.includes('--fetch-keys-seed-print-anon')) {
+    if (!apiUrl || !projectRef || !process.env.SUPABASE_ACCESS_TOKEN) {
+      console.error(
+        'Usage: set CLOUD_AGENT_SUPABASE_URL, CLOUD_AGENT_SUPABASE_PROJECT_REF, SUPABASE_ACCESS_TOKEN then --fetch-keys-seed-print-anon',
+      );
+      process.exit(2);
+    }
+    const keys = await fetchProjectApiKeys(
+      projectRef,
+      process.env.SUPABASE_ACCESS_TOKEN,
+    );
+    const result = await seedQuickLogin({
+      apiUrl,
+      serviceRoleKey: keys.serviceRoleKey,
+      projectRef,
+    });
+    log(`Seeded ${result.seededEmails.length} Quick Login personas`);
+    if (result.apexOrgId) {
+      log(`Primary smoke org id: ${result.apexOrgId}`);
+    }
+    process.stdout.write(`${formatAnonKeyAssignment(keys.anonKey)}\n`);
+    return;
   }
 
+  const serviceRoleKey = process.env.CLOUD_AGENT_SUPABASE_SERVICE_ROLE_KEY;
   if (!apiUrl || !serviceRoleKey || !projectRef) {
     console.error(
-      'Usage: set CLOUD_AGENT_SUPABASE_URL + CLOUD_AGENT_SUPABASE_PROJECT_REF and either CLOUD_AGENT_SUPABASE_SERVICE_ROLE_KEY or pipe keys JSON with --keys-json-stdin',
+      'Usage: set CLOUD_AGENT_SUPABASE_URL, CLOUD_AGENT_SUPABASE_SERVICE_ROLE_KEY, CLOUD_AGENT_SUPABASE_PROJECT_REF — or use --fetch-keys-seed-print-anon',
     );
     process.exit(2);
   }

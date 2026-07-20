@@ -119,7 +119,6 @@ branch_id=""
 project_ref=""
 api_url=""
 anon_key=""
-keys_payload=""
 
 if [[ "$reuse_existing" -eq 1 ]]; then
   branch_name="$(ca_read_state_field branchName)"
@@ -176,39 +175,16 @@ fi
 
 ca_assert_branch_ref_safe "$project_ref" "$api_url"
 
-ca_log "Fetching branch API keys..."
-creds_raw="$(npx supabase branches get "$branch_name" --project-ref "$PARENT_PROJECT_REF" --output json 2>/dev/null || true)"
-creds_json="$(ca_extract_json "$creds_raw" 2>/dev/null || true)"
-if [[ -n "$creds_json" ]]; then
-  keys_payload="$creds_json"
-  eval "$(printf '%s' "$creds_json" | node -e '
-const fs = require("fs");
-const j = JSON.parse(fs.readFileSync(0, "utf8"));
-const anon = j.SUPABASE_ANON_KEY || j.anon_key;
-const url = j.SUPABASE_URL || j.api_url;
-const q = (s) => "'"'"'" + String(s).replace(/'"'"'/g, "'"'"'\"'"'"'\"'"'"'") + "'"'"'";
-if (url) process.stdout.write("api_url=" + q(url) + "\n");
-if (anon) process.stdout.write("anon_key=" + q(anon) + "\n");
-')"
-fi
-
-if [[ -z "${anon_key:-}" || -z "$keys_payload" ]]; then
-  keys_payload="$(ca_fetch_project_keys "$project_ref")"
-  eval "$(printf '%s' "$keys_payload" | node "${REPO_ROOT}/scripts/cloud-agent/seed-quick-login.mjs" --print-anon-key)"
-fi
-
-if [[ -z "${anon_key:-}" || -z "$keys_payload" ]]; then
-  ca_fail "Could not resolve anon key / keys payload for ${project_ref}"
-  exit 1
-fi
-ca_ok "Resolved branch anon key (service_role stays in-process for seed)"
-
-ca_log "Applying cloud-safe Quick Login seed..."
-# service_role is piped on stdin — never assigned to a bash variable or printed.
+ca_log "Fetching keys + applying Quick Login seed (service_role stays in Node)..."
 export CLOUD_AGENT_SUPABASE_URL="$api_url"
 export CLOUD_AGENT_SUPABASE_PROJECT_REF="$project_ref"
 ca_resolve_quick_login_password
-printf '%s' "$keys_payload" | node "${REPO_ROOT}/scripts/cloud-agent/seed-quick-login.mjs" --keys-json-stdin
+# stdout: anon_key=... only; seed logs go to stderr.
+eval "$(node "${REPO_ROOT}/scripts/cloud-agent/seed-quick-login.mjs" --fetch-keys-seed-print-anon)"
+if [[ -z "${anon_key:-}" ]]; then
+  ca_fail "Seed did not emit anon_key for ${project_ref}"
+  exit 1
+fi
 ca_ok "Quick Login seed applied"
 
 ca_backup_env_file
@@ -216,7 +192,9 @@ ca_upsert_env_key "${REPO_ROOT}/.env" "VITE_SUPABASE_URL" "$api_url"
 ca_upsert_env_key "${REPO_ROOT}/.env" "VITE_SUPABASE_ANON_KEY" "$anon_key"
 ca_upsert_env_key "${REPO_ROOT}/.env" "SUPABASE_URL" "$api_url"
 ca_upsert_env_key "${REPO_ROOT}/.env" "SUPABASE_ANON_KEY" "$anon_key"
-ca_ok "Wrote branch VITE_SUPABASE_* into .env"
+# Persist password so a later `npm run dev` after --skip-vite matches Auth Admin seed.
+ca_upsert_env_key "${REPO_ROOT}/.env" "VITE_DEV_TEST_PASSWORD" "$RESOLVED_QUICK_LOGIN_PASSWORD"
+ca_ok "Wrote branch VITE_SUPABASE_* (+ VITE_DEV_TEST_PASSWORD) into .env"
 
 created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 expires_at="$(node -e "const d=new Date(Date.now()+Number(process.argv[1])*3600e3); process.stdout.write(d.toISOString().replace(/\\.\\d{3}Z$/,'Z'))" "$DEFAULT_TTL_HOURS")"

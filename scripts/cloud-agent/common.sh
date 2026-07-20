@@ -197,11 +197,6 @@ ca_management_delete() {
     "https://api.supabase.com/v1${path}"
 }
 
-ca_fetch_project_keys() {
-  local project_ref="$1"
-  ca_management_get "/projects/${project_ref}/api-keys?reveal=true"
-}
-
 # Prefer Management API create with git_branch so migrations deploy (CLI-only
 # creates often land in MIGRATIONS_FAILED without a git association).
 CLOUD_AGENT_GIT_BRANCH="${CLOUD_AGENT_GIT_BRANCH:-preview}"
