@@ -91,12 +91,6 @@ export function useCookieConsent(): CookieConsentContextValue {
   return ctx;
 }
 
-/** Whether preference cookies / localStorage may be read and written. */
-export function usePreferenceStorageAllowed(): boolean {
-  const ctx = useContext(CookieConsentContext);
-  return ctx?.canUsePreferences ?? isPreferenceStorageAllowed();
-}
-
 /**
  * Runs `onAllowed` when preference storage becomes allowed mid-session
  * (Accept). Does not re-run on mount when consent was already accepted —
