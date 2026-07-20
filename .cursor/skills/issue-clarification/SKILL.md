@@ -1,6 +1,6 @@
 ---
 name: issue-clarification
-description: Clarifies one open EquipQR GitHub issue before implementation by defining affected users, problem, success criteria, and codebase findings, then drafts a rewritten issue title and body for user approval. Use when the user asks to clarify, triage, scope, or document an issue, or invokes /issue-clarification. Requires a valid open issue number or URL. Does not implement fixes.
+description: Clarifies one open EquipQR GitHub issue before implementation by defining affected users, problem, success criteria, and codebase findings, then rewrites the issue title and body on GitHub. Use when the user asks to clarify, triage, scope, or document an issue, or invokes /issue-clarification. Requires a valid open issue number or URL. Ask product questions via AskQuestion when needed; do not wait for a separate approve step before gh issue edit. Does not implement fixes.
 disable-model-invocation: true
 ---
 
@@ -8,9 +8,11 @@ disable-model-invocation: true
 
 ## Purpose
 
-Turn a raw or ambiguous GitHub issue into a structured, actionable record on the issue itself. This skill is **read-only for product code** — it may only draft and (after explicit user approval) update the issue title and body.
+Turn a raw or ambiguous GitHub issue into a structured, actionable record on the issue itself. This skill is **read-only for product code** — it may only draft and update the issue title and body on GitHub.
 
-Hand off to `itil-problem-record` (root-cause depth) or `itil-issue-resolver` (implementation) only after the user authorizes the next step.
+Invoking `/issue-clarification` **authorizes** the full clarify → publish loop. Use **`AskQuestion`** for product or scope decisions you cannot infer; do **not** pause for a separate “approve the draft” step before `gh issue edit`. Stop only when the existing-structure gate blocks overwrite, required product answers are still open, or the resolved-state check needs a human close/continue choice.
+
+Hand off to `itil-problem-record` (root-cause depth) or `itil-issue-resolver` (implementation) when the user asks for the next step.
 
 ## Hard Gate — Issue Required
 
@@ -75,8 +77,7 @@ Clarification Progress:
 - [ ] Gated-policy deliverables complete (if heuristic matched) or N/A
 - [ ] Resolved-state check (if applicable)
 - [ ] Draft written under artifacts/issue-clarification-drafts/
-- [ ] User approved the exact draft
-- [ ] Issue title and body updated on GitHub
+- [ ] Issue title and body updated on GitHub (no separate draft-approval gate)
 ```
 
 ### 1. Review the issue
@@ -183,7 +184,7 @@ If investigation suggests the issue is already fixed on production or the integr
 
 **Never auto-close.** Do not close the issue without explicit user approval.
 
-### 9. Draft the clarified issue (do not push yet)
+### 9. Draft the clarified issue, then publish
 
 Write the complete proposed **new title** and **full body** to a persistent draft under `artifacts/issue-clarification-drafts/` (create the directory if missing). Do not commit the draft unless the user asks.
 
@@ -279,11 +280,11 @@ Write the complete proposed **new title** and **full body** to a persistent draf
 </details>
 ```
 
-Show the user a clear summary of the proposed title, triage line, and section highlights, plus the **full path** to the draft file. Ask them to approve the exact draft content (or request edits).
+Write the draft, then **immediately** update GitHub (same turn when possible). After publish, show a summary of the title, triage line, section highlights, link to the issue, and the **full path** to the draft file on disk.
 
-### 10. Apply GitHub update only after approval
+### 10. Apply GitHub update (mandatory end of skill)
 
-Only after the user **explicitly approves the exact draft content**, update GitHub.
+Update GitHub as soon as the draft is complete and any required `AskQuestion` decisions are resolved. Do not wait for the user to reply “approve.”
 
 Prefer a connected GitHub integration when available. Fallback (desktop Cursor / PowerShell):
 
@@ -301,8 +302,8 @@ Confirm with `gh issue view <number> --web` or re-fetch JSON and verify triage l
 - **Do NOT implement fixes** — no product code edits, migrations, or PRs from this skill.
 - Do not open, merge, or close PRs or issues unless the user explicitly asks after the resolved-state check.
 - Do not expose secrets, tokens, or PII in the issue body or draft file.
-- Do not guess affected users or matrix cells — mark uncertainty; ask product questions before finalizing.
-- Do not call `gh issue edit` (or equivalent) until the user approves the draft on disk.
+- Do not guess affected users or matrix cells — mark uncertainty; use `AskQuestion` before finalizing the draft.
+- Do not skip `gh issue edit` when clarification is complete — invoking the skill is the authorization to publish.
 - Prefer `AGENTS.md` and `.cursor/rules/*.mdc` for stack conventions when interpreting findings.
 
 ## Handoff
@@ -310,5 +311,5 @@ Confirm with `gh issue view <number> --web` or re-fetch JSON and verify triage l
 After a successful GitHub update, tell the user:
 
 - Link to the updated issue.
-- Recommended next skill: `itil-problem-record` (deeper diagnosis) or `itil-issue-resolver` (implementation) once scope is approved.
+- Recommended next skill: `itil-problem-record` (deeper diagnosis) or `itil-issue-resolver` (implementation).
 - Any remaining blockers or open product decisions that were surfaced (including unresolved `(assumption)` cells the user deferred).
