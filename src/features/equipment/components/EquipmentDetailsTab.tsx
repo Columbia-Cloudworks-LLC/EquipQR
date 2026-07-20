@@ -26,6 +26,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { equipment as equipmentKeys } from "@/lib/queryKeys";
 import { toast } from "sonner";
 import { EquipmentPrimaryMediaPanel } from "@/features/equipment/components/media/EquipmentPrimaryMediaPanel";
+import { getEquipmentViewTransitionStyle } from "@/features/equipment/transitions/equipmentViewTransitionNames";
+import { useEquipmentCardTransitionState } from "@/features/equipment/transitions/useEquipmentCardTransitionState";
 
 type Equipment = Tables<'equipment'>;
 
@@ -48,6 +50,8 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
   const permissions = useUnifiedPermissions();
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
+  const { activeEquipmentId } = useEquipmentCardTransitionState();
+  const isTransitionActive = activeEquipmentId === equipment.id;
   const canAssignTeams = permissions.organization?.canManageMembers ?? false;
   const { data: fetchedTeams = [] } = useTeams(currentOrganization?.id, { enabled: canAssignTeams });
   const teams: EquipmentTeamSummary[] = fetchedTeams.length > 0
@@ -146,6 +150,7 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
             equipmentName={equipment.name}
             currentDisplayImage={equipment.image_url}
             emptyClassName="h-48"
+            mediaStyle={getEquipmentViewTransitionStyle('image', isTransitionActive)}
           />
         </div>
       ) : null}

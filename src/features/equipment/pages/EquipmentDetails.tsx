@@ -27,6 +27,9 @@ import { EquipmentLocationMapPanel } from '@/components/location/EquipmentLocati
 import { EquipmentDetailsModals } from '@/features/equipment/components/EquipmentDetailsModals';
 import { EquipmentQuickAccessDrawer } from '@/features/equipment/components/EquipmentQuickAccessDrawer';
 import { useEquipmentScanLogger } from '@/features/equipment/hooks/useEquipmentScanLogger';
+import { getEquipmentViewTransitionStyle } from '@/features/equipment/transitions/equipmentViewTransitionNames';
+import { useEquipmentCardTransitionState } from '@/features/equipment/transitions/useEquipmentCardTransitionState';
+import { useScrollMainContentToTopOnMount } from '@/features/equipment/transitions/useScrollMainContentToTopOnMount';
 
 const EquipmentNotesTab = lazy(() => import('@/features/equipment/components/EquipmentNotesTab'));
 const EquipmentWorkOrdersTab = lazy(() => import('@/features/equipment/components/EquipmentWorkOrdersTab'));
@@ -73,6 +76,10 @@ const EquipmentDetails = () => {
   const isMobile = useIsMobile();
   const isQRScan = searchParams.get('qr') === 'true';
   const { canView: canViewInventory, isLoading: inventoryAccessLoading } = useInventoryAccess();
+  const { activeEquipmentId } = useEquipmentCardTransitionState();
+  const isTransitionActive = !!equipmentId && activeEquipmentId === equipmentId;
+
+  useScrollMainContentToTopOnMount(equipmentId);
 
   const [activeTab, setActiveTab] = useState(() => normalizeTabParam(searchParams.get('tab')));
   const [isWorkOrderFormOpen, setIsWorkOrderFormOpen] = useState(false);
@@ -183,14 +190,19 @@ const EquipmentDetails = () => {
   if (isLoading) {
     return (
       <Page maxWidth="7xl" padding="responsive">
-        <PageHeader title="Equipment Details" description="Loading equipment information..." />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
-            <Skeleton className="h-64 w-full rounded-lg" />
-          </div>
-          <div className="lg:col-span-2 space-y-4">
-            <Skeleton className="h-32 w-full rounded-lg" />
-            <Skeleton className="h-32 w-full rounded-lg" />
+        <div
+          className="space-y-6"
+          style={getEquipmentViewTransitionStyle('shell', isTransitionActive)}
+        >
+          <PageHeader title="Equipment Details" description="Loading equipment information..." />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1">
+              <Skeleton className="h-64 w-full rounded-lg" />
+            </div>
+            <div className="lg:col-span-2 space-y-4">
+              <Skeleton className="h-32 w-full rounded-lg" />
+              <Skeleton className="h-32 w-full rounded-lg" />
+            </div>
           </div>
         </div>
       </Page>
@@ -224,7 +236,10 @@ const EquipmentDetails = () => {
 
   return (
     <Page maxWidth="7xl" padding="responsive">
-      <div className="space-y-6">
+      <div
+        className="space-y-6"
+        style={getEquipmentViewTransitionStyle('shell', isTransitionActive)}
+      >
         {isMobile ? (
           <>
             <MobileEquipmentHeader
@@ -264,6 +279,8 @@ const EquipmentDetails = () => {
               density="compact"
               title={equipment.name}
               description={`${equipment.manufacturer} ${equipment.model} • ${equipment.serial_number}`}
+              titleStyle={getEquipmentViewTransitionStyle('name', isTransitionActive)}
+              descriptionStyle={getEquipmentViewTransitionStyle('meta', isTransitionActive)}
               breadcrumbs={[
                 { label: 'Equipment', href: '/dashboard/equipment' },
                 { label: equipment.name },
@@ -286,6 +303,7 @@ const EquipmentDetails = () => {
               isEditingLocation={isEditingSummaryLocation}
               isSavingLocation={isSavingSummaryLocation}
               isPlacesLoaded={isPlacesLoadedForSummary}
+              mediaStyle={getEquipmentViewTransitionStyle('image', isTransitionActive)}
               onStartLocationEdit={() => setIsEditingSummaryLocation(true)}
               onCancelLocationEdit={() => setIsEditingSummaryLocation(false)}
               onSaveLocation={async (data) => {

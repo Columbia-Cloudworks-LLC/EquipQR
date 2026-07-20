@@ -495,6 +495,76 @@
       transition: none !important;
     }
   }
+
+  /* ============================================
+     Equipment card → details morph transition
+     ============================================ */
+
+  [data-equipment-list-transitioning] [data-equipment-list-chrome],
+  [data-equipment-list-transitioning] [data-equipment-id]:not([data-equipment-transition-active]) {
+    opacity: 0.18;
+    pointer-events: none;
+    transition: opacity 200ms ease;
+  }
+
+  [data-equipment-list-transitioning] [data-equipment-transition-active] {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Card silhouette expands into the details page shell. */
+  ::view-transition-group(eq-vt-shell) {
+    animation-duration: 450ms;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  ::view-transition-old(eq-vt-shell),
+  ::view-transition-new(eq-vt-shell) {
+    animation-duration: 450ms;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    /* Keep shell content clipped while the bounds morph so the card
+       silhouette reads as expanding into the details layout. */
+    overflow: clip;
+  }
+
+  ::view-transition-old(eq-vt-image),
+  ::view-transition-new(eq-vt-image),
+  ::view-transition-old(eq-vt-name),
+  ::view-transition-new(eq-vt-name),
+  ::view-transition-old(eq-vt-meta),
+  ::view-transition-new(eq-vt-meta),
+  ::view-transition-old(eq-vt-location),
+  ::view-transition-new(eq-vt-location),
+  ::view-transition-old(eq-vt-hours),
+  ::view-transition-new(eq-vt-hours) {
+    animation-duration: 400ms;
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-equipment-list-transitioning] [data-equipment-list-chrome],
+    [data-equipment-list-transitioning] [data-equipment-id]:not([data-equipment-transition-active]) {
+      opacity: 1;
+      pointer-events: auto;
+      transition: none;
+    }
+
+    ::view-transition-group(eq-vt-shell),
+    ::view-transition-old(eq-vt-shell),
+    ::view-transition-new(eq-vt-shell),
+    ::view-transition-old(eq-vt-image),
+    ::view-transition-new(eq-vt-image),
+    ::view-transition-old(eq-vt-name),
+    ::view-transition-new(eq-vt-name),
+    ::view-transition-old(eq-vt-meta),
+    ::view-transition-new(eq-vt-meta),
+    ::view-transition-old(eq-vt-location),
+    ::view-transition-new(eq-vt-location),
+    ::view-transition-old(eq-vt-hours),
+    ::view-transition-new(eq-vt-hours) {
+      animation: none !important;
+    }
+  }
   
   /* ============================================
      Construction Border (Existing)

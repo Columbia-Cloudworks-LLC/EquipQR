@@ -1,7 +1,8 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@vitest-harness/utils/test-utils';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@vitest-harness/utils/test-utils';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import EquipmentCard from './EquipmentCard';
+import { resetEquipmentCardTransitionStoreForTests } from '@/features/equipment/transitions/equipmentCardTransitionStore';
 
 // Mock hooks
 vi.mock('@/hooks/use-mobile', () => ({
@@ -17,6 +18,15 @@ vi.mock('react-router-dom', async () => {
     useNavigate: () => mockNavigate
   };
 });
+
+vi.mock('@/features/equipment/services/EquipmentService', () => ({
+  EquipmentService: {
+    getById: vi.fn().mockResolvedValue({
+      success: true,
+      data: { id: 'eq-1', name: 'Forklift A1' },
+    }),
+  },
+}));
 
 const mockEquipment = {
   id: 'eq-1',
@@ -36,6 +46,11 @@ describe('EquipmentCard', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetEquipmentCardTransitionStoreForTests();
+  });
+
+  afterEach(() => {
+    resetEquipmentCardTransitionStoreForTests();
   });
 
   describe('Core Rendering', () => {
@@ -102,17 +117,22 @@ describe('EquipmentCard', () => {
   });
 
   describe('Click Handlers', () => {
-    it('navigates to equipment details when card is clicked', () => {
+    it('navigates to equipment details when card is clicked', async () => {
       render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
 
       // Find the card and click it
       const nameEl = screen.getAllByText('Forklift A1')[0];
       const card = nameEl.closest('article') || nameEl.closest('[class*="card"]');
       
-      if (card) {
-        fireEvent.click(card);
-        expect(mockNavigate).toHaveBeenCalledWith('/dashboard/equipment/eq-1');
-      }
+      expect(card).toBeTruthy();
+      fireEvent.click(card!);
+
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith(
+          '/dashboard/equipment/eq-1',
+          expect.objectContaining({ viewTransition: expect.any(Boolean) }),
+        );
+      });
     });
 
     it('calls onShowQRCode when QR button is clicked', () => {

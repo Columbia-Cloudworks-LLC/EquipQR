@@ -6,6 +6,8 @@ import { ArrowLeft, QrCode, MapPin, Calendar, Trash2, Clock, ChevronRight } from
 import { Tables } from '@/integrations/supabase/types';
 import { getStatusColor, EQUIPMENT_STATUS_OPTIONS } from '@/features/equipment/utils/equipmentHelpers';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
+import { getEquipmentViewTransitionStyle } from '@/features/equipment/transitions/equipmentViewTransitionNames';
+import { useEquipmentCardTransitionState } from '@/features/equipment/transitions/useEquipmentCardTransitionState';
 
 type Equipment = Tables<'equipment'>;
 
@@ -26,6 +28,8 @@ const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
 }) => {
   const navigate = useNavigate();
   const { formatDate } = useFormatTimestamp();
+  const { activeEquipmentId } = useEquipmentCardTransitionState();
+  const isTransitionActive = activeEquipmentId === equipment.id;
 
   return (
     <div className="space-y-4">
@@ -55,17 +59,24 @@ const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
       {/* Equipment Title */}
       <div className="space-y-2">
         <div className="flex items-center gap-2 flex-wrap">
-          <h1 className="text-2xl font-bold leading-tight">{equipment.name}</h1>
+          <h1
+            className="text-2xl font-bold leading-tight"
+            style={getEquipmentViewTransitionStyle('name', isTransitionActive)}
+          >
+            {equipment.name}
+          </h1>
           <Badge className={`${getStatusColor(equipment.status || 'active')} rounded-full px-2 py-0.5 text-xs`} variant="outline">
             {EQUIPMENT_STATUS_OPTIONS.find(opt => opt.value === equipment.status)?.label || 'Active'}
           </Badge>
         </div>
-        <p className="text-sm text-muted-foreground">
-          {equipment.manufacturer} {equipment.model}
-        </p>
-        <p className="text-sm text-muted-foreground">
-          S/N: {equipment.serial_number}
-        </p>
+        <div style={getEquipmentViewTransitionStyle('meta', isTransitionActive)}>
+          <p className="text-sm text-muted-foreground">
+            {equipment.manufacturer} {equipment.model}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            S/N: {equipment.serial_number}
+          </p>
+        </div>
       </div>
 
       {/* Quick Info Cards */}
@@ -77,6 +88,7 @@ const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
             onClick={onShowWorkingHours}
             aria-label={`Working hours: ${equipment.working_hours?.toLocaleString() || '0'}. Tap to log hours.`}
             className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg hover:bg-muted/70 transition-colors text-left w-full min-h-[44px] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            style={getEquipmentViewTransitionStyle('hours', isTransitionActive)}
           >
             <Clock className="h-4 w-4 text-muted-foreground shrink-0" aria-hidden="true" />
             <div className="min-w-0 flex-1">
@@ -90,7 +102,10 @@ const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
           </button>
         )}
         
-        <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+        <div
+          className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
+          style={getEquipmentViewTransitionStyle('location', isTransitionActive)}
+        >
           <MapPin className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium">Location</p>

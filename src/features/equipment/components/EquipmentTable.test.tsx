@@ -1,8 +1,9 @@
 import React from 'react';
-import { render, screen, fireEvent, within } from '@vitest-harness/utils/test-utils';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, within, waitFor } from '@vitest-harness/utils/test-utils';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import EquipmentTable from './EquipmentTable';
+import { resetEquipmentCardTransitionStoreForTests } from '@/features/equipment/transitions/equipmentCardTransitionStore';
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -12,6 +13,15 @@ vi.mock('react-router-dom', async () => {
     useNavigate: () => mockNavigate,
   };
 });
+
+vi.mock('@/features/equipment/services/EquipmentService', () => ({
+  EquipmentService: {
+    getById: vi.fn().mockResolvedValue({
+      success: true,
+      data: { id: 'eq-1', name: 'Forklift A1' },
+    }),
+  },
+}));
 
 const mockEquipment = [
   {
@@ -50,6 +60,11 @@ describe('EquipmentTable', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    resetEquipmentCardTransitionStoreForTests();
+  });
+
+  afterEach(() => {
+    resetEquipmentCardTransitionStoreForTests();
   });
 
   it('renders one row per equipment item with name and serial', () => {
@@ -127,10 +142,15 @@ describe('EquipmentTable', () => {
     expect(onShowQRCode).toHaveBeenCalledWith('eq-1');
   });
 
-  it('navigates to the equipment detail route when the name link is clicked', () => {
+  it('navigates to the equipment detail route when the name link is clicked', async () => {
     render(<EquipmentTable equipment={mockEquipment} onShowQRCode={onShowQRCode} />);
     fireEvent.click(screen.getByRole('button', { name: 'Forklift A1' }));
-    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/equipment/eq-1');
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        '/dashboard/equipment/eq-1',
+        expect.objectContaining({ viewTransition: expect.any(Boolean) }),
+      );
+    });
   });
 
   it('renders monospace serial column header', () => {

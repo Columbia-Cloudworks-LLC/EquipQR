@@ -35,6 +35,7 @@ import { EQUIPMENT_TABLE_COLUMN_META } from '@/features/equipment/components/equ
 import { useEquipmentTableColumns } from '@/features/equipment/hooks/useEquipmentTableColumns';
 import { useOfflineMergedEquipment } from '@/features/equipment/hooks/useOfflineMergedEquipment';
 import { useOrgEquipmentPMStatuses } from '@/features/equipment/hooks/useEquipmentPMStatus';
+import { EquipmentListTransitionRoot } from '@/features/equipment/transitions/EquipmentListTransitionRoot';
 
 const Equipment = () => {
   const { currentOrganization } = useOrganization();
@@ -215,62 +216,68 @@ const Equipment = () => {
 
   return (
     <Page maxWidth="7xl" padding="responsive">
-      <div className={cn('space-y-4 md:space-y-6', isMobile && canCreate && 'pb-28')}>
-        <PageHeader 
-          title="Equipment" 
-          description={`Manage equipment for ${currentOrganization.name}`}
-          hideDescriptionOnMobile
-          actions={
-            canCreate && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button className="hidden sm:inline-flex">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Equipment
-                    <ChevronDown className="ml-1 h-4 w-4" aria-hidden />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={handleAddEquipment}>
-                    Add Single Equipment
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => navigate('/dashboard/equipment/bulk')}>
-                    Bulk Edit (Grid)
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )
+      <EquipmentListTransitionRoot
+        className={cn('space-y-4 md:space-y-6', isMobile && canCreate && 'pb-28')}
+      >
+        <div data-equipment-list-chrome="">
+          <PageHeader 
+            title="Equipment" 
+            description={`Manage equipment for ${currentOrganization.name}`}
+            hideDescriptionOnMobile
+            actions={
+              canCreate && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button className="hidden sm:inline-flex">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Equipment
+                      <ChevronDown className="ml-1 h-4 w-4" aria-hidden />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={handleAddEquipment}>
+                      Add Single Equipment
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => navigate('/dashboard/equipment/bulk')}>
+                      Bulk Edit (Grid)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )
+            }
+          />
+        </div>
+
+      <div data-equipment-list-chrome="">
+        <EquipmentFilters
+          filters={filters}
+          sortConfig={sortConfig}
+          onFilterChange={updateFilter}
+          onClearFilters={clearFilters}
+          onQuickFilter={applyQuickFilter}
+          onSortChange={updateSort}
+          filterOptions={filterOptions}
+          hasActiveFilters={hasActiveFilters}
+          activeQuickFilter={activeQuickFilter}
+          viewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+          canImport={canImport}
+          canExport={canExport}
+          onImportCsv={() => setShowImportCsv(true)}
+          equipment={equipment}
+          columnPicker={
+            viewMode === 'table' ? (
+              <EquipmentColumnPicker
+                allColumns={EQUIPMENT_TABLE_COLUMN_META}
+                visibleColumns={visibleColumns}
+                onToggle={toggleColumn}
+                onReset={resetColumnVisibility}
+                hasOverrides={hasColumnOverrides}
+              />
+            ) : undefined
           }
         />
-
-      <EquipmentFilters
-        filters={filters}
-        sortConfig={sortConfig}
-        onFilterChange={updateFilter}
-        onClearFilters={clearFilters}
-        onQuickFilter={applyQuickFilter}
-        onSortChange={updateSort}
-        filterOptions={filterOptions}
-        hasActiveFilters={hasActiveFilters}
-        activeQuickFilter={activeQuickFilter}
-        viewMode={viewMode}
-        onViewModeChange={handleViewModeChange}
-        canImport={canImport}
-        canExport={canExport}
-        onImportCsv={() => setShowImportCsv(true)}
-        equipment={equipment}
-        columnPicker={
-          viewMode === 'table' ? (
-            <EquipmentColumnPicker
-              allColumns={EQUIPMENT_TABLE_COLUMN_META}
-              visibleColumns={visibleColumns}
-              onToggle={toggleColumn}
-              onReset={resetColumnVisibility}
-              hasOverrides={hasColumnOverrides}
-            />
-          ) : undefined
-        }
-      />
+      </div>
 
       <div className="space-y-4">
         <EquipmentGrid
@@ -289,15 +296,17 @@ const Equipment = () => {
           visibleColumns={visibleColumns}
         />
 
-        <EquipmentPaginationFooter
-          totalItems={totalFilteredCount}
-          page={currentPage}
-          pageSize={pageSize}
-          pageSizeOptions={pageSizeOptions}
-          itemLabel="result"
-          onPageChange={setCurrentPage}
-          onPageSizeChange={setPageSize}
-        />
+        <div data-equipment-list-chrome="">
+          <EquipmentPaginationFooter
+            totalItems={totalFilteredCount}
+            page={currentPage}
+            pageSize={pageSize}
+            pageSizeOptions={pageSizeOptions}
+            itemLabel="result"
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
+        </div>
       </div>
 
       {/* Equipment Form Modal */}
@@ -334,6 +343,7 @@ const Equipment = () => {
         <Button
           type="button"
           size="icon"
+          data-equipment-list-chrome=""
           onClick={handleAddEquipment}
           aria-label="Add equipment"
           className={cn(
@@ -346,7 +356,7 @@ const Equipment = () => {
           <Plus className="h-6 w-6" aria-hidden />
         </Button>
       )}
-      </div>
+      </EquipmentListTransitionRoot>
     </Page>
   );
 };

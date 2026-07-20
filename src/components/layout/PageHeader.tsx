@@ -30,6 +30,9 @@ interface PageHeaderProps {
    *  'default' = space-y-4 everywhere.
    *  'compact' = space-y-4 on mobile, space-y-2 on lg+. Ideal for detail pages with breadcrumbs. */
   density?: 'default' | 'compact';
+  /** Optional inline styles for shared-element transitions (e.g. view-transition-name). */
+  titleStyle?: React.CSSProperties;
+  descriptionStyle?: React.CSSProperties;
 }
 
 const densityClasses = {
@@ -48,6 +51,8 @@ const PageHeader: React.FC<PageHeaderProps> = ({
   hideDescriptionOnMobile = false,
   inlineMetaOnMobile = false,
   density = 'default',
+  titleStyle,
+  descriptionStyle,
 }) => {
   useDocumentTitle(title);
 
@@ -99,6 +104,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
               className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl"
               data-route-heading="true"
               tabIndex={-1}
+              style={titleStyle}
             >
               {title}
             </h1>
@@ -118,10 +124,13 @@ const PageHeader: React.FC<PageHeaderProps> = ({
           )}
           
           {description && (
-            <p className={cn(
-              "text-sm text-muted-foreground line-clamp-2",
-              hideDescriptionOnMobile && "hidden md:block"
-            )}>
+            <p
+              className={cn(
+                "text-sm text-muted-foreground line-clamp-2",
+                hideDescriptionOnMobile && "hidden md:block"
+              )}
+              style={descriptionStyle}
+            >
               {description}
             </p>
           )}

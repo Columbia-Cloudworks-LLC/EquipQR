@@ -172,7 +172,10 @@ export const useEquipmentById = (
   const { enableSync, staleTime } = resolveEquipmentQuerySyncOptions(options);
 
   const query = useQuery({
-    queryKey: ['equipment', organizationId, equipmentId],
+    queryKey:
+      organizationId && equipmentId
+        ? equipmentKeys.byId(organizationId, equipmentId)
+        : ['equipment', organizationId, equipmentId],
     queryFn: async () => {
       if (!organizationId || !equipmentId) return undefined;
       const result = await EquipmentService.getById(organizationId, equipmentId);
