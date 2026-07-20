@@ -7,6 +7,7 @@ import {
   getCookieConsentDecision,
   getPreferenceLocalStorage,
   isPreferenceStorageAllowed,
+  removePreferenceLocalStorage,
   setPreferenceCookie,
   setPreferenceLocalStorage,
 } from './cookieConsent';
@@ -56,6 +57,25 @@ describe('cookieConsent', () => {
     expect(setPreferenceLocalStorage('unknown-preference-key', 'x')).toBe(false);
     expect(localStorage.getItem('unknown-preference-key')).toBeNull();
     expect(setPreferenceLocalStorage('equipqr:equipment-view-mode', 'grid')).toBe(true);
+  });
+
+  it('returns false when preference setItem throws instead of crashing', () => {
+    applyCookieConsentDecision('accepted');
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key: string) => {
+      if (key === 'equipqr:equipment-view-mode') throw new Error('quota');
+    });
+    expect(setPreferenceLocalStorage('equipqr:equipment-view-mode', 'table')).toBe(false);
+    vi.restoreAllMocks();
+  });
+
+  it('does not remove optional preference keys before Accept', () => {
+    localStorage.setItem('equipqr:selectedTeamId:org-1', 'team-A');
+    removePreferenceLocalStorage('equipqr:selectedTeamId:org-1');
+    expect(localStorage.getItem('equipqr:selectedTeamId:org-1')).toBe('team-A');
+
+    applyCookieConsentDecision('accepted');
+    removePreferenceLocalStorage('equipqr:selectedTeamId:org-1');
+    expect(localStorage.getItem('equipqr:selectedTeamId:org-1')).toBeNull();
   });
 
   it('persists Reject, blocks preference writes, and clears optional keys', () => {

@@ -103,12 +103,18 @@ export function setPreferenceLocalStorage(key: string, value: string): boolean {
   if (!storage || !isPreferenceStorageAllowed()) return false;
   // Only known optional keys may be written — keeps Reject cleanup complete.
   if (!isOptionalLocalStorageKey(key)) return false;
-  // Let quota / privacy-mode errors propagate to callers that log them.
-  storage.setItem(key, value);
-  return true;
+  try {
+    storage.setItem(key, value);
+    return true;
+  } catch {
+    // Quota / privacy mode — callers treat false as best-effort failure.
+    return false;
+  }
 }
 
+/** Removes an optional preference key only after Accept (Reject uses clearOptional). */
 export function removePreferenceLocalStorage(key: string): void {
+  if (!isPreferenceStorageAllowed()) return;
   const storage = getLocalStorage();
   if (!storage) return;
   try {
