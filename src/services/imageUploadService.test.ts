@@ -266,8 +266,29 @@ describe('imageUploadService', () => {
       expect(normalizeStoredObjectPath(url, 'inventory-item-images')).toBe('org/a/1.jpg');
     });
 
+    it('normalizes relative /object/sign URLs to object paths', () => {
+      const relative =
+        '/object/sign/user-avatars/user-1/avatar.webp?token=abc123';
+      expect(normalizeStoredObjectPath(relative, 'user-avatars')).toBe('user-1/avatar.webp');
+    });
+
     it('accepts bare object paths', () => {
       expect(normalizeStoredObjectPath('user123/avatar.png', 'user-avatars')).toBe('user123/avatar.png');
+    });
+
+    it('normalizes legacy user-avatars public URLs to object paths', () => {
+      const url =
+        'https://example.supabase.co/storage/v1/object/public/user-avatars/user123/avatar.png';
+      expect(normalizeStoredObjectPath(url, 'user-avatars')).toBe('user123/avatar.png');
+    });
+
+    it('returns null for external Google avatar CDN URLs', () => {
+      expect(
+        normalizeStoredObjectPath(
+          'https://lh3.googleusercontent.com/a/photo',
+          'user-avatars',
+        ),
+      ).toBeNull();
     });
 
     it('strips query strings from bare paths', () => {
@@ -494,7 +515,7 @@ describe('imageUploadService', () => {
     });
 
     it('passes batch TTL to per-path fallback when batch omits a usable URL', async () => {
-      mockFrom.mockImplementation((bucket: string) => ({
+      mockFrom.mockImplementation(() => ({
         upload: mockUpload,
         getPublicUrl: mockGetPublicUrl,
         createSignedUrl: mockCreateSignedUrl,
