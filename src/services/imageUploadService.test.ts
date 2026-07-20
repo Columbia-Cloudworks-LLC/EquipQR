@@ -270,6 +270,21 @@ describe('imageUploadService', () => {
       expect(normalizeStoredObjectPath('user123/avatar.png', 'user-avatars')).toBe('user123/avatar.png');
     });
 
+    it('normalizes legacy user-avatars public URLs to object paths', () => {
+      const url =
+        'https://example.supabase.co/storage/v1/object/public/user-avatars/user123/avatar.png';
+      expect(normalizeStoredObjectPath(url, 'user-avatars')).toBe('user123/avatar.png');
+    });
+
+    it('returns null for external Google avatar CDN URLs', () => {
+      expect(
+        normalizeStoredObjectPath(
+          'https://lh3.googleusercontent.com/a/photo',
+          'user-avatars',
+        ),
+      ).toBeNull();
+    });
+
     it('strips query strings from bare paths', () => {
       expect(normalizeStoredObjectPath('a/b.jpg?v=1', 'team-images')).toBe('a/b.jpg');
     });
