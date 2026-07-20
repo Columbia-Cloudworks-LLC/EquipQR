@@ -17,7 +17,7 @@ import { resolveEffectiveAvatarUrl } from '@/utils/resolveEffectiveAvatarUrl';
 const ProfileSettings = () => {
   const { currentUser, setCurrentUser } = useUser();
   const { user: authUser } = useAuth();
-  const { data: avatarDisplayUrl, isPending: isAvatarPending } = useResolvedAvatarUrl(currentUser?.avatar_url);
+  const { data: avatarDisplayUrl } = useResolvedAvatarUrl(currentUser?.avatar_url);
   const appToast = useAppToast();
   const [name, setName] = useState(currentUser?.name || '');
   const [isLoading, setIsLoading] = useState(false);
@@ -88,7 +88,7 @@ const ProfileSettings = () => {
         maxSizeMB={5}
         disabled={isLoading}
         variant="avatar"
-        avatarFallback={isAvatarPending && canDeleteAvatar ? '' : initials}
+        avatarFallback={initials}
       />
 
       <div className="space-y-2">
