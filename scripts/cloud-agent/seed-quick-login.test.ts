@@ -27,6 +27,9 @@ describe('cloud-agent seed-quick-login helpers', () => {
     expect(QUICK_LOGIN_PERSONAS.find((p) => p.email === 'owner@apex.test')?.seedFleet).toBe(
       true,
     );
+    expect(QUICK_LOGIN_PERSONAS.some((p) => p.email === 'owner@freshstart.test')).toBe(
+      true,
+    );
   });
 
   it('parses legacy anon and service_role api keys', () => {

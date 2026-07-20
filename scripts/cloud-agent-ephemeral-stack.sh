@@ -204,8 +204,11 @@ ca_log "Applying cloud-safe Quick Login seed..."
 export CLOUD_AGENT_SUPABASE_URL="$api_url"
 export CLOUD_AGENT_SUPABASE_SERVICE_ROLE_KEY="$service_role_key"
 export CLOUD_AGENT_SUPABASE_PROJECT_REF="$project_ref"
-# Password contract matches DevQuickLogin.tsx / local seeds when unset.
-export CLOUD_AGENT_QUICK_LOGIN_PASSWORD="${CLOUD_AGENT_QUICK_LOGIN_PASSWORD:-${VITE_DEV_TEST_PASSWORD:-password123}}"
+# One password for seed + DevQuickLogin (UI reads VITE_DEV_TEST_PASSWORD only).
+# Export to the Vite process env — do not persist the password into .env.
+RESOLVED_QUICK_LOGIN_PASSWORD="${CLOUD_AGENT_QUICK_LOGIN_PASSWORD:-${VITE_DEV_TEST_PASSWORD:-password123}}"
+export CLOUD_AGENT_QUICK_LOGIN_PASSWORD="$RESOLVED_QUICK_LOGIN_PASSWORD"
+export VITE_DEV_TEST_PASSWORD="$RESOLVED_QUICK_LOGIN_PASSWORD"
 node "${REPO_ROOT}/scripts/cloud-agent/seed-quick-login.mjs"
 unset CLOUD_AGENT_SUPABASE_SERVICE_ROLE_KEY
 ca_ok "Quick Login seed applied"
@@ -237,11 +240,14 @@ process.stdout.write(JSON.stringify(state, null, 2));
 
 ca_ok "Session state: $STATE_FILE"
 ca_log "Quick Login persona: owner@apex.test against ${api_url}"
-ca_log "Password: same contract as DevQuickLogin / local seeds (override via CLOUD_AGENT_QUICK_LOGIN_PASSWORD)"
+ca_log "Password: same contract as DevQuickLogin (CLOUD_AGENT_QUICK_LOGIN_PASSWORD / VITE_DEV_TEST_PASSWORD)"
 ca_log "Teardown: bash scripts/cloud-agent-ephemeral-teardown.sh"
 
+# Keep Vite + DevQuickLogin aligned with the password used for Auth Admin seed.
+export VITE_DEV_TEST_PASSWORD="$RESOLVED_QUICK_LOGIN_PASSWORD"
+
 if [[ "$SKIP_VITE" -eq 1 ]]; then
-  ca_ok "Skipping Vite (--skip-vite). Start with: npm run dev"
+  ca_ok "Skipping Vite (--skip-vite). Start with: npm run dev (VITE_DEV_TEST_PASSWORD already exported in this shell if sourced)"
   exit 0
 fi
 

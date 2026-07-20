@@ -36,7 +36,7 @@ export function resolveDevPassword() {
   return value;
 }
 
-/** Core Dev Quick Login personas (emails/password match DevQuickLogin.tsx). */
+/** Dev Quick Login personas (emails match DevQuickLogin.tsx; password via env). */
 export const QUICK_LOGIN_PERSONAS = [
   {
     id: 'bb0e8400-e29b-41d4-a716-446655440001',
@@ -99,6 +99,22 @@ export const QUICK_LOGIN_PERSONAS = [
     email: 'multi@equipqr.test',
     name: 'Multi Org User',
     organizationName: 'Multi Org Consulting',
+    plan: 'free',
+    seedFleet: false,
+  },
+  {
+    id: 'bb0e8400-e29b-41d4-a716-446655440009',
+    email: 'owner@freshstart.test',
+    name: 'Fresh Start Owner',
+    organizationName: 'Fresh Start Equipment',
+    plan: 'free',
+    seedFleet: false,
+  },
+  {
+    id: 'bb0e8400-e29b-41d4-a716-446655440010',
+    email: 'e2e.invitee.pending@apex.test',
+    name: 'E2E Pending Invitee',
+    organizationName: 'Invitee Personal Workspace',
     plan: 'free',
     seedFleet: false,
   },
@@ -379,34 +395,41 @@ const CLOUD_AGENT_TEAM_NAME = 'Heavy Equipment Team';
  * local-seed fixture IDs (880e/aa0e/dd0e…), which would overwrite shared rows
  * if a branch ever retained seed data.
  */
-async function ensureFleet(admin, orgId, ownerUserId) {
-  const { data: existingEq, error: eqLookupError } = await admin
-    .from('equipment')
-    .select('id')
-    .eq('organization_id', orgId)
-    .eq('serial_number', CLOUD_AGENT_EQUIPMENT_SERIAL)
-    .maybeSingle();
-  if (eqLookupError) {
-    throw new Error(`equipment lookup failed: ${eqLookupError.message}`);
+/** First matching id; tolerates duplicate rows (no unique constraint on filters). */
+async function findFirstId(query, label) {
+  const { data, error } = await query.limit(1);
+  if (error) {
+    throw new Error(`${label} lookup failed: ${error.message}`);
   }
-  if (existingEq?.id) {
+  const row = Array.isArray(data) ? data[0] : data;
+  return row?.id ?? null;
+}
+
+async function ensureFleet(admin, orgId, ownerUserId) {
+  const existingEqId = await findFirstId(
+    admin
+      .from('equipment')
+      .select('id')
+      .eq('organization_id', orgId)
+      .eq('serial_number', CLOUD_AGENT_EQUIPMENT_SERIAL)
+      .order('created_at', { ascending: true }),
+    'equipment',
+  );
+  if (existingEqId) {
     return;
   }
 
-  let teamId;
-  const { data: existingTeam, error: teamLookupError } = await admin
-    .from('teams')
-    .select('id')
-    .eq('organization_id', orgId)
-    .eq('name', CLOUD_AGENT_TEAM_NAME)
-    .maybeSingle();
-  if (teamLookupError) {
-    throw new Error(`teams lookup failed: ${teamLookupError.message}`);
-  }
+  let teamId = await findFirstId(
+    admin
+      .from('teams')
+      .select('id')
+      .eq('organization_id', orgId)
+      .eq('name', CLOUD_AGENT_TEAM_NAME)
+      .order('created_at', { ascending: true }),
+    'teams',
+  );
 
-  if (existingTeam?.id) {
-    teamId = existingTeam.id;
-  } else {
+  if (!teamId) {
     teamId = randomUUID();
     const { error: teamError } = await admin.from('teams').insert({
       id: teamId,
@@ -425,16 +448,16 @@ async function ensureFleet(admin, orgId, ownerUserId) {
     }
   }
 
-  const { data: existingMember, error: tmLookupError } = await admin
-    .from('team_members')
-    .select('id')
-    .eq('team_id', teamId)
-    .eq('user_id', ownerUserId)
-    .maybeSingle();
-  if (tmLookupError) {
-    throw new Error(`team_members lookup failed: ${tmLookupError.message}`);
-  }
-  if (!existingMember?.id) {
+  const existingMemberId = await findFirstId(
+    admin
+      .from('team_members')
+      .select('id')
+      .eq('team_id', teamId)
+      .eq('user_id', ownerUserId)
+      .order('joined_date', { ascending: true }),
+    'team_members',
+  );
+  if (!existingMemberId) {
     const { error: tmError } = await admin.from('team_members').insert({
       id: randomUUID(),
       team_id: teamId,
