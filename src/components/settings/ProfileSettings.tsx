@@ -8,6 +8,7 @@ import { useAppToast } from '@/hooks/useAppToast';
 import { useAuth } from '@/hooks/useAuth';
 import SingleImageUpload from '@/components/common/SingleImageUpload';
 import { uploadAvatar, deleteAvatar } from '@/services/profileService';
+import { normalizeStoredObjectPath } from '@/services/imageUploadService';
 import { useResolvedAvatarUrl } from '@/hooks/useResolvedAvatarUrl';
 import { Save, Loader2 } from 'lucide-react';
 import { trimmedAvatarPath, userDisplayInitials } from '@/utils/userDisplayInitials';
@@ -56,10 +57,10 @@ const ProfileSettings = () => {
   const handleAvatarDelete = async () => {
     if (!currentUser) return;
     const avatarPath = trimmedAvatarPath(currentUser.avatar_url);
-    // Only EquipQR storage paths can be deleted; Google CDN URLs are fallbacks
-    if (!avatarPath || /^https?:\/\//i.test(avatarPath)) return;
+    const deletablePath = normalizeStoredObjectPath(avatarPath, 'user-avatars');
+    if (!deletablePath) return;
 
-    await deleteAvatar(currentUser.id, avatarPath);
+    await deleteAvatar(currentUser.id, deletablePath);
     setCurrentUser({
       ...currentUser,
       avatar_url: resolveEffectiveAvatarUrl(null, authUser?.user_metadata),
@@ -70,18 +71,18 @@ const ProfileSettings = () => {
 
   const initials = userDisplayInitials(currentUser.name);
   const avatarPath = trimmedAvatarPath(currentUser.avatar_url);
-  const hasCanonicalAvatarPath = avatarPath.length > 0 && !/^https?:\/\//i.test(avatarPath);
+  const deletableAvatarPath = normalizeStoredObjectPath(avatarPath, 'user-avatars');
 
   return (
     <>
       <SingleImageUpload
         currentImageUrl={avatarDisplayUrl}
         onUpload={handleAvatarUpload}
-        onDelete={hasCanonicalAvatarPath ? handleAvatarDelete : undefined}
+        onDelete={deletableAvatarPath ? handleAvatarDelete : undefined}
         maxSizeMB={5}
         disabled={isLoading}
         variant="avatar"
-        avatarFallback={isAvatarPending && hasCanonicalAvatarPath ? '' : initials}
+        avatarFallback={isAvatarPending && deletableAvatarPath ? '' : initials}
       />
 
       <div className="space-y-2">
