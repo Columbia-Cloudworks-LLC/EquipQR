@@ -51,6 +51,13 @@ describe('cookieConsent', () => {
     vi.restoreAllMocks();
   });
 
+  it('refuses preference writes for keys outside the optional allowlist', () => {
+    applyCookieConsentDecision('accepted');
+    expect(setPreferenceLocalStorage('unknown-preference-key', 'x')).toBe(false);
+    expect(localStorage.getItem('unknown-preference-key')).toBeNull();
+    expect(setPreferenceLocalStorage('equipqr:equipment-view-mode', 'grid')).toBe(true);
+  });
+
   it('persists Reject, blocks preference writes, and clears optional keys', () => {
     localStorage.setItem('equipqr:equipment-view-mode', 'list');
     localStorage.setItem('equipqr:selectedTeamId:org-1', 'team-A');

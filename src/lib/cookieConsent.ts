@@ -100,6 +100,8 @@ export function getPreferenceLocalStorage(key: string): string | null {
 export function setPreferenceLocalStorage(key: string, value: string): boolean {
   const storage = getLocalStorage();
   if (!storage || !isPreferenceStorageAllowed()) return false;
+  // Only known optional keys may be written — keeps Reject cleanup complete.
+  if (!isOptionalLocalStorageKey(key)) return false;
   // Let quota / privacy-mode errors propagate to callers that log them.
   storage.setItem(key, value);
   return true;
@@ -115,10 +117,19 @@ export function removePreferenceLocalStorage(key: string): void {
   }
 }
 
+function preferenceCookieFlags(): string {
+  const secure =
+    typeof globalThis.location !== 'undefined' && globalThis.location.protocol === 'https:'
+      ? '; Secure'
+      : '';
+  return `; SameSite=Lax${secure}`;
+}
+
 export function setPreferenceCookie(name: string, value: string, maxAgeSeconds: number): boolean {
   if (typeof document === 'undefined' || !isPreferenceStorageAllowed()) return false;
+  if (name !== SIDEBAR_COOKIE_NAME) return false;
   try {
-    document.cookie = `${name}=${value}; path=/; max-age=${maxAgeSeconds}`;
+    document.cookie = `${name}=${value}; path=/; max-age=${maxAgeSeconds}${preferenceCookieFlags()}`;
     return true;
   } catch {
     return false;
@@ -128,7 +139,7 @@ export function setPreferenceCookie(name: string, value: string, maxAgeSeconds: 
 function clearSidebarPreferenceCookie(): void {
   if (typeof document === 'undefined') return;
   try {
-    document.cookie = `${SIDEBAR_COOKIE_NAME}=; path=/; max-age=0`;
+    document.cookie = `${SIDEBAR_COOKIE_NAME}=; path=/; max-age=0${preferenceCookieFlags()}`;
   } catch {
     // ignore
   }
