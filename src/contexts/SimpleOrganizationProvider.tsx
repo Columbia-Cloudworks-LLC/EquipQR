@@ -23,7 +23,8 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
   const { user } = useAuth();
   const [currentOrganizationId, setCurrentOrganizationId] = useState<string | null>(() => {
     try {
-      return localStorage.getItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY);
+      return sessionStorage.getItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY)
+        ?? localStorage.getItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY);
     } catch {
       return null;
     }
@@ -36,9 +37,12 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
   // Initialize from localStorage
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY);
+      const stored = sessionStorage.getItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY)
+        ?? localStorage.getItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY);
       if (stored) {
         setCurrentOrganizationId(stored);
+        // The QR hint is single-use; do not retain navigation state.
+        sessionStorage.removeItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY);
       }
     } catch (error) {
       logger.warn('Failed to load current organization from storage', error);
