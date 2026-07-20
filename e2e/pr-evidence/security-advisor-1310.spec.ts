@@ -109,77 +109,93 @@ test.describe('Security Advisor hardening (#1310) @pr-evidence', () => {
     const anonKey = resolveAnonKeyFromEnv();
     const ownerToken = resolveOwnerAccessToken();
     const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${PROBE_BUCKET}/${PROBE_OBJECT}`;
+    let uploaded = false;
 
-    const upload = await request.post(
-      `${SUPABASE_URL}/storage/v1/object/${PROBE_BUCKET}/${PROBE_OBJECT}`,
-      {
+    try {
+      const upload = await request.post(
+        `${SUPABASE_URL}/storage/v1/object/${PROBE_BUCKET}/${PROBE_OBJECT}`,
+        {
+          headers: {
+            apikey: anonKey,
+            Authorization: `Bearer ${ownerToken}`,
+            'Content-Type': 'image/png',
+          },
+          data: PROBE_PNG,
+        },
+      );
+      expect(
+        upload.ok(),
+        `authenticated upload: ${upload.status()} ${await upload.text()}`,
+      ).toBeTruthy();
+      uploaded = true;
+
+      const probe = await request.get(publicUrl);
+      expect(probe.ok(), `public object GET ${publicUrl}`).toBeTruthy();
+      expect(probe.headers()['content-type'] ?? '').toMatch(/image\//);
+
+      // Prefix-scoped list: if SELECT listing still worked, this would return the probe.
+      const list = await request.post(`${SUPABASE_URL}/storage/v1/object/list/${PROBE_BUCKET}`, {
         headers: {
           apikey: anonKey,
-          Authorization: `Bearer ${ownerToken}`,
-          'Content-Type': 'image/png',
+          Authorization: `Bearer ${anonKey}`,
+          'Content-Type': 'application/json',
         },
-        data: PROBE_PNG,
-      },
-    );
-    expect(upload.ok(), `authenticated upload: ${upload.status()} ${await upload.text()}`).toBeTruthy();
+        data: { prefix: PROBE_PREFIX, limit: 100 },
+      });
+      expect(list.ok(), `anon list status ${list.status()}`).toBeTruthy();
+      const listed = (await list.json()) as Array<{ name?: string }>;
+      expect(listed).toEqual([]);
 
-    const probe = await request.get(publicUrl);
-    expect(probe.ok(), `public object GET ${publicUrl}`).toBeTruthy();
-    expect(probe.headers()['content-type'] ?? '').toMatch(/image\//);
-
-    // Prefix-scoped list: if SELECT listing still worked, this would return the probe.
-    const list = await request.post(`${SUPABASE_URL}/storage/v1/object/list/${PROBE_BUCKET}`, {
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${anonKey}`,
-        'Content-Type': 'application/json',
-      },
-      data: { prefix: PROBE_PREFIX, limit: 100 },
-    });
-    expect(list.ok(), `anon list status ${list.status()}`).toBeTruthy();
-    const listed = (await list.json()) as Array<{ name?: string }>;
-    expect(listed).toEqual([]);
-
-    await page.setContent(
-      `<!doctype html><html><body style="margin:0;background:#0b1220;display:grid;place-items:center;min-height:100vh;font-family:system-ui,sans-serif;color:#e2e8f0">
+      await page.setContent(
+        `<!doctype html><html><body style="margin:0;background:#0b1220;display:grid;place-items:center;min-height:100vh;font-family:system-ui,sans-serif;color:#e2e8f0">
         <main style="text-align:center;padding:2rem">
           <h1 style="font-size:1.25rem;margin:0 0 1rem">Public bucket object URL (#1310)</h1>
           <p style="margin:0 0 1rem;opacity:.8">Direct GET without listing policy</p>
           <img id="probe" alt="Security advisor public probe" src="${publicUrl}" width="192" height="192" style="image-rendering:pixelated;border:2px solid #38bdf8;border-radius:8px;background:#fff" />
         </main>
       </body></html>`,
-      { waitUntil: 'load' },
-    );
-    await expect(page.locator('#probe')).toBeVisible();
-    await evidencePause(page, 400);
-    await evidenceScreenshot(page, '01-public-bucket-object-url', {
-      target: page.locator('#probe'),
-    });
+        { waitUntil: 'load' },
+      );
+      await expect(page.locator('#probe')).toBeVisible();
+      await evidencePause(page, 400);
+      await evidenceScreenshot(page, '01-public-bucket-object-url', {
+        target: page.locator('#probe'),
+      });
 
-    const browser = page.context().browser();
-    if (!browser) {
-      throw new Error('Playwright browser() is null — cannot open anon evidence context');
+      const browser = page.context().browser();
+      if (!browser) {
+        throw new Error('Playwright browser() is null — cannot open anon evidence context');
+      }
+      const anonContext = await browser.newContext({
+        storageState: { cookies: [], origins: [] },
+        baseURL: appBase,
+      });
+      const anonPage = await anonContext.newPage();
+      await anonPage.goto('/', { waitUntil: 'domcontentloaded' });
+      const getStarted = anonPage.getByRole('link', { name: /get started/i }).first();
+      await expect(getStarted).toBeVisible({ timeout: 30_000 });
+      await evidencePause(anonPage, 1000);
+      await evidenceScreenshot(anonPage, '02-marketing-landing-after-bucket-hardening', {
+        target: getStarted,
+      });
+
+      await anonPage.goto(`${DOCS_BASE_URL}/`, { waitUntil: 'domcontentloaded' });
+      const browseHelp = anonPage.getByRole('link', { name: /browse help center/i }).first();
+      await expect(browseHelp).toBeVisible({ timeout: 30_000 });
+      await evidencePause(anonPage, 800);
+      await evidenceScreenshot(anonPage, '03-docs-home-after-bucket-hardening', {
+        target: browseHelp,
+      });
+      await anonContext.close();
+    } finally {
+      if (uploaded) {
+        await request.delete(`${SUPABASE_URL}/storage/v1/object/${PROBE_BUCKET}/${PROBE_OBJECT}`, {
+          headers: {
+            apikey: anonKey,
+            Authorization: `Bearer ${ownerToken}`,
+          },
+        });
+      }
     }
-    const anonContext = await browser.newContext({
-      storageState: { cookies: [], origins: [] },
-      baseURL: appBase,
-    });
-    const anonPage = await anonContext.newPage();
-    await anonPage.goto('/', { waitUntil: 'domcontentloaded' });
-    const getStarted = anonPage.getByRole('link', { name: /get started/i }).first();
-    await expect(getStarted).toBeVisible({ timeout: 30_000 });
-    await evidencePause(anonPage, 1000);
-    await evidenceScreenshot(anonPage, '02-marketing-landing-after-bucket-hardening', {
-      target: getStarted,
-    });
-
-    await anonPage.goto(`${DOCS_BASE_URL}/`, { waitUntil: 'domcontentloaded' });
-    const browseHelp = anonPage.getByRole('link', { name: /browse help center/i }).first();
-    await expect(browseHelp).toBeVisible({ timeout: 30_000 });
-    await evidencePause(anonPage, 800);
-    await evidenceScreenshot(anonPage, '03-docs-home-after-bucket-hardening', {
-      target: browseHelp,
-    });
-    await anonContext.close();
   });
 });
