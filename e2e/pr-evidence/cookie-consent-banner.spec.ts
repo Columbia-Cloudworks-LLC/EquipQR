@@ -18,10 +18,12 @@ test.describe('PR evidence cookie consent banner @pr-evidence', () => {
     const privacyLink = page.getByRole('link', { name: /privacy policy — cookies/i });
     await expect(privacyLink).toHaveAttribute('href', '/privacy-policy#cookies');
 
+    const acceptBtn = page.getByRole('button', { name: /^accept$/i });
     await evidencePause(page, 400);
-    await evidenceScreenshot(page, '01-cookie-consent-first-visit', { target: banner });
+    // Target the Accept control — the banner is full-bleed and fails frame padding checks.
+    await evidenceScreenshot(page, '01-cookie-consent-first-visit', { target: acceptBtn });
 
-    await page.getByRole('button', { name: /^accept$/i }).click();
+    await acceptBtn.click();
     await expect(banner).toHaveCount(0);
 
     const stored = await page.evaluate(() => localStorage.getItem('equipqr:cookie-consent'));
@@ -38,10 +40,11 @@ test.describe('PR evidence cookie consent banner @pr-evidence', () => {
 
     const banner = page.getByRole('region', { name: /cookie consent/i });
     await expect(banner).toBeVisible({ timeout: 30_000 });
+    const rejectBtn = page.getByRole('button', { name: /^reject$/i });
     await evidencePause(page, 300);
-    await evidenceScreenshot(page, '03-cookie-consent-on-privacy', { target: banner });
+    await evidenceScreenshot(page, '03-cookie-consent-on-privacy', { target: rejectBtn });
 
-    await page.getByRole('button', { name: /^reject$/i }).click();
+    await rejectBtn.click();
     await expect(banner).toHaveCount(0);
 
     const stored = await page.evaluate(() => localStorage.getItem('equipqr:cookie-consent'));
