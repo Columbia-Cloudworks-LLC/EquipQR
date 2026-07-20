@@ -15,8 +15,12 @@ test.describe('RBAC @critical', () => {
     // Audit log moved out of main navigation into org settings (#1122).
     await expectNavigationLinkHidden(page, /audit log/i);
 
-    await page.getByRole('button', { name: /legal links/i }).click();
-    await expect(page.getByRole('menuitem', { name: /dsr cockpit/i })).toBeVisible({
+    const legalTrigger = page.getByRole('button', { name: /legal links/i });
+    await legalTrigger.click();
+    const legalMenu = page
+      .getByRole('menu')
+      .filter({ hasText: /terms of service|privacy policy|do not sell|dsr cockpit/i });
+    await expect(legalMenu.getByRole('menuitem', { name: /dsr cockpit/i })).toBeVisible({
       timeout: 10_000,
     });
   });
