@@ -6,7 +6,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/utils/logger';
 import { dashboardPreferences } from '@/lib/queryKeys';
 import { generateDefaultLayout, WIDGET_REGISTRY } from '@/features/dashboard/registry/widgetRegistry';
-import { getPreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
+import {
+  getPreferenceLocalStorage,
+  isPreferenceStorageAllowed,
+  setPreferenceLocalStorage,
+} from '@/lib/cookieConsent';
 
 /** localStorage key scoped to user + organization */
 function storageKey(userId: string, orgId: string): string {
@@ -112,6 +116,17 @@ export function useDashboardLayout(organizationId: string | undefined): UseDashb
     });
   }, [userId, organizationId, initialized]);
   useWhenPreferenceStorageAllowed(rehydrateOrFlushLocalLayout);
+
+  // Accept can fire before org/user init finishes; flush once initialized.
+  useEffect(() => {
+    if (!initialized || !userId || !organizationId) return;
+    if (!isPreferenceStorageAllowed()) return;
+    if (readFromLocalStorage(userId, organizationId)) return;
+    writeToLocalStorage(userId, organizationId, {
+      activeWidgets: activeWidgetsRef.current,
+      updatedAt: new Date().toISOString(),
+    });
+  }, [initialized, userId, organizationId]);
 
   // Background fetch from Supabase to sync across devices
   const { data: supabasePrefs } = useQuery({
