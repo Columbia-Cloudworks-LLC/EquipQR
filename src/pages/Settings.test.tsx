@@ -152,6 +152,10 @@ describe('Settings Page', () => {
       render(<Settings />);
       expect(screen.getByText('Submit Privacy Request')).toBeInTheDocument();
       expect(screen.getByText('View Privacy Policy')).toBeInTheDocument();
+      expect(screen.getByRole('link', { name: /dsr cockpit/i })).toHaveAttribute(
+        'href',
+        '/dashboard/dsr',
+      );
     });
 
     it('renders section headings in sidebar layout', () => {

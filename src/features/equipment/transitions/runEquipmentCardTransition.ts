@@ -6,8 +6,7 @@ import type { ScrollMainContentToTopOptions } from '@/features/equipment/transit
 import { shouldEnableEquipmentViewTransition } from '@/features/equipment/transitions/supportsViewTransitions';
 import { EQUIPMENT_CARD_VIEW_TRANSITION_FALLBACK_MS } from '@/features/equipment/transitions/waitForEquipmentViewTransition';
 
-export const EQUIPMENT_CARD_PREFETCH_TIMEOUT_MS = 800;
-export { EQUIPMENT_CARD_VIEW_TRANSITION_FALLBACK_MS };
+const EQUIPMENT_CARD_PREFETCH_TIMEOUT_MS = 800;
 
 export type EquipmentCardTransitionDeps = {
   prefetch: (equipmentId: string) => Promise<unknown>;

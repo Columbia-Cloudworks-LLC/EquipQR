@@ -10,9 +10,18 @@ test.describe('RBAC @critical', () => {
   test('owner sees admin-only sidebar items', async ({ page, gotoDashboard }) => {
     await gotoDashboard('/');
     await expectNavigationLinkVisible(page, /pm templates/i);
-    await expectNavigationLinkVisible(page, /dsr cockpit/i);
+    // DSR Cockpit moved to Legal footer + Settings → Privacy (admin-only).
+    await expectNavigationLinkHidden(page, /dsr cockpit/i);
     // Audit log moved out of main navigation into org settings (#1122).
     await expectNavigationLinkHidden(page, /audit log/i);
+
+    await page.getByRole('button', { name: /legal links/i }).click();
+    const legalMenu = page
+      .getByRole('menu')
+      .filter({ hasText: /terms of service|privacy policy|do not sell/i });
+    await expect(legalMenu.getByRole('menuitem', { name: /dsr cockpit/i })).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test('admin sees admin-only sidebar items', async ({ browser }) => {
