@@ -216,14 +216,13 @@ const state = {
   gitBranch: process.argv[6],
   createdAt: process.argv[7],
   expiresAt: process.argv[8],
-  passwordHint: "password123",
   primaryPersona: "owner@apex.test",
 };
 process.stdout.write(JSON.stringify(state, null, 2));
 ' "$branch_name" "$branch_id" "$project_ref" "$api_url" "$PARENT_PROJECT_REF" "$CLOUD_AGENT_GIT_BRANCH" "$created_at" "$expires_at")"
 
 ca_ok "Session state: $STATE_FILE"
-ca_log "Quick Login: owner@apex.test / password123 against ${api_url}"
+ca_log "Quick Login persona: owner@apex.test against ${api_url}"
 ca_log "Teardown: bash scripts/cloud-agent-ephemeral-teardown.sh"
 
 if [[ "$SKIP_VITE" -eq 1 ]]; then
