@@ -129,6 +129,16 @@ describe('UserProfileMenu', () => {
     expect(container.querySelector('img')).toBeNull();
   });
 
+  it('trims whitespace-only names so avatar fallback is not "?"', () => {
+    mockCurrentUser = {
+      ...mockCurrentUser,
+      name: '   ',
+    };
+    render(<UserProfileMenu />);
+    expect(screen.getByText('U')).toBeInTheDocument();
+    expect(screen.queryByText('?')).not.toBeInTheDocument();
+  });
+
   it('shows a Google (http) avatar image on the trigger when provided', async () => {
     mockCurrentUser = {
       ...mockCurrentUser,

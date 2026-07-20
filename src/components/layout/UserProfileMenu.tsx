@@ -42,7 +42,7 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ className }) => {
     await signOut();
   };
 
-  const displayName = currentUser?.name || 'User';
+  const displayName = currentUser?.name?.trim() || 'User';
   const displayEmail = currentUser?.email || '';
   const initials = userDisplayInitials(displayName);
   const triggerLabel =
@@ -64,7 +64,7 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ className }) => {
         >
           <Avatar className="h-7 w-7">
             {resolvedAvatarUrl ? (
-              <AvatarImage src={resolvedAvatarUrl} alt="" />
+              <AvatarImage src={resolvedAvatarUrl} alt={displayName} />
             ) : null}
             <AvatarFallback className="bg-sidebar-primary text-[10px] text-sidebar-primary-foreground">
               {initials}
@@ -90,7 +90,7 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ className }) => {
           <div className="flex min-w-0 items-center gap-2">
             <Avatar className="h-8 w-8 shrink-0">
               {resolvedAvatarUrl ? (
-                <AvatarImage src={resolvedAvatarUrl} alt="" />
+                <AvatarImage src={resolvedAvatarUrl} alt={displayName} />
               ) : null}
               <AvatarFallback className="bg-sidebar-primary text-xs text-sidebar-primary-foreground">
                 {initials}

@@ -61,4 +61,14 @@ describe('useResolvedAvatarUrl', () => {
     });
     expect(resolveImageDisplayUrl).toHaveBeenCalledWith('user-avatars', 'user-1/avatar.webp');
   });
+
+  it('normalizes relative /object/sign user-avatars URLs before signing', async () => {
+    const relative = '/object/sign/user-avatars/user-1/avatar.webp?token=abc';
+    const { result } = renderHook(() => useResolvedAvatarUrl(relative), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data).toBe('https://signed.example/avatar.webp');
+    });
+    expect(resolveImageDisplayUrl).toHaveBeenCalledWith('user-avatars', 'user-1/avatar.webp');
+  });
 });

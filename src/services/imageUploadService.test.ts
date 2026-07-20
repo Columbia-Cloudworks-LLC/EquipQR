@@ -266,6 +266,12 @@ describe('imageUploadService', () => {
       expect(normalizeStoredObjectPath(url, 'inventory-item-images')).toBe('org/a/1.jpg');
     });
 
+    it('normalizes relative /object/sign URLs to object paths', () => {
+      const relative =
+        '/object/sign/user-avatars/user-1/avatar.webp?token=abc123';
+      expect(normalizeStoredObjectPath(relative, 'user-avatars')).toBe('user-1/avatar.webp');
+    });
+
     it('accepts bare object paths', () => {
       expect(normalizeStoredObjectPath('user123/avatar.png', 'user-avatars')).toBe('user123/avatar.png');
     });
@@ -509,7 +515,7 @@ describe('imageUploadService', () => {
     });
 
     it('passes batch TTL to per-path fallback when batch omits a usable URL', async () => {
-      mockFrom.mockImplementation((bucket: string) => ({
+      mockFrom.mockImplementation((_bucket: string) => ({
         upload: mockUpload,
         getPublicUrl: mockGetPublicUrl,
         createSignedUrl: mockCreateSignedUrl,
