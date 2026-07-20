@@ -44,7 +44,7 @@ Cloud Agent secrets must include at least:
 
 Same emails/password contract as local Dev Quick Login (`DevQuickLogin.tsx` / local seeds). Auth users are created with the **Auth Admin API** (hosted-safe). Direct `auth.users` SQL inserts are never used against hosted projects.
 
-Password resolution order: `CLOUD_AGENT_QUICK_LOGIN_PASSWORD` → `VITE_DEV_TEST_PASSWORD` → local Quick Login default. Scripts do **not** persist or log the password value.
+Password: set `CLOUD_AGENT_QUICK_LOGIN_PASSWORD` or `VITE_DEV_TEST_PASSWORD`. The stack script exports the Dev Quick Login default when both are unset. Scripts do **not** persist or log the password value; the service role key is passed via env only (never argv).
 
 Primary smoke persona: `owner@apex.test` — org upgraded with one team + `CAT 320 Excavator`.
 

@@ -16,8 +16,8 @@ describe('cloud-agent seed-quick-login helpers', () => {
     delete process.env.VITE_DEV_TEST_PASSWORD;
   });
 
-  it('exposes Dev Quick Login personas and password contract', () => {
-    expect(resolveDevPassword()).toBe('password123');
+  it('exposes Dev Quick Login personas and password contract via env', () => {
+    expect(() => resolveDevPassword()).toThrow(/CLOUD_AGENT_QUICK_LOGIN_PASSWORD/);
     process.env.CLOUD_AGENT_QUICK_LOGIN_PASSWORD = 'override-pass';
     expect(resolveDevPassword()).toBe('override-pass');
     expect(QUICK_LOGIN_PERSONAS.some((p) => p.email === 'owner@apex.test')).toBe(

@@ -36,7 +36,7 @@ test.describe('Cloud agent Quick Login smoke', () => {
     await page.goto('http://localhost:8080/dashboard/equipment', {
       waitUntil: 'domcontentloaded',
     });
-    await expect(page.getByText('CAT 320 Excavator', { exact: false })).toBeVisible({
+    await expect(page.getByText('CAT 320 Excavator', { exact: true })).toBeVisible({
       timeout: 60_000,
     });
   });

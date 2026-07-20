@@ -17,14 +17,19 @@ export const PARENT_PROJECT_REF = 'ymxkzronkhwxzcdcbnwq';
 
 /**
  * Same password contract as DevQuickLogin.tsx / local supabase seeds.
- * Override with CLOUD_AGENT_QUICK_LOGIN_PASSWORD or VITE_DEV_TEST_PASSWORD.
+ * Callers must set CLOUD_AGENT_QUICK_LOGIN_PASSWORD or VITE_DEV_TEST_PASSWORD
+ * (the stack script exports the Dev Quick Login default when unset).
  */
 export function resolveDevPassword() {
-  return (
+  const value =
     process.env.CLOUD_AGENT_QUICK_LOGIN_PASSWORD ||
-    process.env.VITE_DEV_TEST_PASSWORD ||
-    'password123'
-  );
+    process.env.VITE_DEV_TEST_PASSWORD;
+  if (!value) {
+    throw new Error(
+      'Set CLOUD_AGENT_QUICK_LOGIN_PASSWORD or VITE_DEV_TEST_PASSWORD before seeding',
+    );
+  }
+  return value;
 }
 
 /** Core Dev Quick Login personas (emails/password match DevQuickLogin.tsx). */
@@ -223,48 +228,60 @@ function log(message) {
 }
 
 async function ensureAuthUser(admin, persona) {
-  const { data: listed, error: listError } = await admin.auth.admin.listUsers({
-    page: 1,
-    perPage: 200,
-  });
-  if (listError) {
-    throw new Error(`listUsers failed: ${listError.message}`);
-  }
+  const password = resolveDevPassword();
+  const meta = {
+    name: persona.name,
+    organization_name: persona.organizationName,
+  };
 
-  const existing = (listed?.users || []).find(
-    (user) =>
-      user.id === persona.id ||
-      String(user.email || '').toLowerCase() === persona.email.toLowerCase(),
+  const { data: byIdData, error: byIdError } = await admin.auth.admin.getUserById(
+    persona.id,
   );
-
-  if (existing) {
-    const password = resolveDevPassword();
+  if (!byIdError && byIdData?.user) {
     const { error: updateError } = await admin.auth.admin.updateUserById(
-      existing.id,
-      {
-        password,
-        email_confirm: true,
-        user_metadata: {
-          name: persona.name,
-          organization_name: persona.organizationName,
-        },
-      },
+      byIdData.user.id,
+      { password, email_confirm: true, user_metadata: meta },
     );
     if (updateError) {
       throw new Error(`updateUserById(${persona.email}) failed: ${updateError.message}`);
     }
-    return existing.id;
+    return byIdData.user.id;
+  }
+
+  let page = 1;
+  while (page <= 20) {
+    const { data: listed, error: listError } = await admin.auth.admin.listUsers({
+      page,
+      perPage: 200,
+    });
+    if (listError) {
+      throw new Error(`listUsers failed: ${listError.message}`);
+    }
+    const users = listed?.users || [];
+    const existing = users.find(
+      (user) =>
+        String(user.email || '').toLowerCase() === persona.email.toLowerCase(),
+    );
+    if (existing) {
+      const { error: updateError } = await admin.auth.admin.updateUserById(
+        existing.id,
+        { password, email_confirm: true, user_metadata: meta },
+      );
+      if (updateError) {
+        throw new Error(`updateUserById(${persona.email}) failed: ${updateError.message}`);
+      }
+      return existing.id;
+    }
+    if (users.length < 200) break;
+    page += 1;
   }
 
   const { data, error } = await admin.auth.admin.createUser({
     id: persona.id,
     email: persona.email,
-    password: resolveDevPassword(),
+    password,
     email_confirm: true,
-    user_metadata: {
-      name: persona.name,
-      organization_name: persona.organizationName,
-    },
+    user_metadata: meta,
   });
   if (error) {
     throw new Error(`createUser(${persona.email}) failed: ${error.message}`);
@@ -291,7 +308,7 @@ async function getOwnerOrgId(admin, userId) {
   return data.organization_id;
 }
 
-async function upgradeOrg(admin, orgId, persona) {
+async function upgradeOrg(admin, orgId, persona, userId) {
   const { error: orgError } = await admin
     .from('organizations')
     .update({
@@ -317,7 +334,7 @@ async function upgradeOrg(admin, orgId, persona) {
       product_onboarding_completed_at: '2024-01-01T00:00:00.000Z',
     })
     .eq('organization_id', orgId)
-    .eq('user_id', persona.id);
+    .eq('user_id', userId);
 
   if (memberError) {
     throw new Error(`organization_members onboarding update failed: ${memberError.message}`);
@@ -458,7 +475,7 @@ export async function seedQuickLogin({
       throw lastError || new Error(`Timed out waiting for owner org for ${persona.email}`);
     }
 
-    await upgradeOrg(admin, orgId, persona);
+    await upgradeOrg(admin, orgId, persona, userId);
     orgIdsByEmail.set(persona.email, orgId);
 
     if (persona.seedFleet) {
@@ -513,15 +530,13 @@ async function main() {
     return;
   }
 
-  const apiUrl = readArg('--api-url') || process.env.CLOUD_AGENT_SUPABASE_URL;
-  const serviceRoleKey =
-    readArg('--service-role-key') || process.env.CLOUD_AGENT_SUPABASE_SERVICE_ROLE_KEY;
-  const projectRef =
-    readArg('--project-ref') || process.env.CLOUD_AGENT_SUPABASE_PROJECT_REF;
+  const apiUrl = process.env.CLOUD_AGENT_SUPABASE_URL;
+  const serviceRoleKey = process.env.CLOUD_AGENT_SUPABASE_SERVICE_ROLE_KEY;
+  const projectRef = process.env.CLOUD_AGENT_SUPABASE_PROJECT_REF;
 
   if (!apiUrl || !serviceRoleKey || !projectRef) {
     console.error(
-      'Usage: node scripts/cloud-agent/seed-quick-login.mjs --api-url <url> --service-role-key <key> --project-ref <ref>',
+      'Usage: set CLOUD_AGENT_SUPABASE_URL, CLOUD_AGENT_SUPABASE_SERVICE_ROLE_KEY, CLOUD_AGENT_SUPABASE_PROJECT_REF then run seed-quick-login.mjs',
     );
     process.exit(2);
   }

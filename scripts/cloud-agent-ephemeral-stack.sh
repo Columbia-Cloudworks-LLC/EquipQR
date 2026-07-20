@@ -193,10 +193,14 @@ fi
 ca_ok "Resolved branch anon + service_role keys"
 
 ca_log "Applying cloud-safe Quick Login seed..."
-node "${REPO_ROOT}/scripts/cloud-agent/seed-quick-login.mjs" \
-  --api-url "$api_url" \
-  --service-role-key "$service_role_key" \
-  --project-ref "$project_ref"
+# Pass privileged keys via env (not argv — visible in `ps` / shell history).
+export CLOUD_AGENT_SUPABASE_URL="$api_url"
+export CLOUD_AGENT_SUPABASE_SERVICE_ROLE_KEY="$service_role_key"
+export CLOUD_AGENT_SUPABASE_PROJECT_REF="$project_ref"
+# Password contract matches DevQuickLogin.tsx / local seeds when unset.
+export CLOUD_AGENT_QUICK_LOGIN_PASSWORD="${CLOUD_AGENT_QUICK_LOGIN_PASSWORD:-${VITE_DEV_TEST_PASSWORD:-password123}}"
+node "${REPO_ROOT}/scripts/cloud-agent/seed-quick-login.mjs"
+unset CLOUD_AGENT_SUPABASE_SERVICE_ROLE_KEY
 ca_ok "Quick Login seed applied"
 
 ca_backup_env_file
