@@ -8,6 +8,8 @@ STATE_FILE="${CLOUD_AGENT_STATE_FILE:-${STATE_DIR}/ephemeral-stack.json}"
 ENV_BACKUP_FILE="${CLOUD_AGENT_ENV_BACKUP:-${STATE_DIR}/.env.pre-ephemeral}"
 DEFAULT_TTL_HOURS="${CLOUD_AGENT_BRANCH_TTL_HOURS:-4}"
 BRANCH_NAME_PREFIX="${CLOUD_AGENT_BRANCH_PREFIX:-agent}"
+# EquipQR Agents vault UUID (spaced names break some op CLI paths).
+OP_EQUIPQR_AGENTS_VAULT_ID="${CLOUD_AGENT_OP_VAULT_ID:-tgo2m6qbct5otqeqirjocn3joa}"
 
 ca_log() { echo "  [cloud-agent] $*"; }
 ca_ok() { echo "  [cloud-agent] OK   $*"; }
@@ -38,10 +40,10 @@ ca_load_supabase_access_token() {
   fi
 
   local token
-  token="$(op read "op://EquipQR Agents/supabase-write/SUPABASE_ACCESS_TOKEN" 2>/dev/null || true)"
+  token="$(op read "op://${OP_EQUIPQR_AGENTS_VAULT_ID}/supabase-write/SUPABASE_ACCESS_TOKEN" 2>/dev/null || true)"
   token="$(printf '%s' "$token" | tr -d '\r\n')"
   if [[ -z "$token" ]]; then
-    ca_fail "Could not read op://EquipQR Agents/supabase-write/SUPABASE_ACCESS_TOKEN"
+    ca_fail "Could not read op://${OP_EQUIPQR_AGENTS_VAULT_ID}/supabase-write/SUPABASE_ACCESS_TOKEN"
     return 1
   fi
 
@@ -193,10 +195,31 @@ ca_find_branch_json() {
 
 ca_assert_safe_agent_branch_name() {
   local branch_name="$1"
-  if [[ ! "$branch_name" =~ ^${BRANCH_NAME_PREFIX}-[a-z0-9][a-z0-9-]*$ ]]; then
+  local expected_prefix="${BRANCH_NAME_PREFIX}-"
+  # Literal prefix match — never interpolate BRANCH_NAME_PREFIX into a regex.
+  if [[ "$branch_name" != "${expected_prefix}"* ]]; then
     ca_fail "Refusing branch name outside ${BRANCH_NAME_PREFIX}-* namespace: ${branch_name}"
     return 1
   fi
+  local suffix="${branch_name#"$expected_prefix"}"
+  if [[ -z "$suffix" || ! "$suffix" =~ ^[a-z0-9][a-z0-9-]*$ ]]; then
+    ca_fail "Refusing branch name with invalid suffix under ${BRANCH_NAME_PREFIX}-*: ${branch_name}"
+    return 1
+  fi
+}
+
+# Positive integer hours in [1, 168]. Invalid values fail closed (no mass delete).
+ca_validate_ttl_hours() {
+  local ttl="${1:-$DEFAULT_TTL_HOURS}"
+  if [[ ! "$ttl" =~ ^[1-9][0-9]*$ ]]; then
+    ca_fail "CLOUD_AGENT_BRANCH_TTL_HOURS must be an integer from 1 to 168 (got: ${ttl})"
+    return 1
+  fi
+  if (( ttl < 1 || ttl > 168 )); then
+    ca_fail "CLOUD_AGENT_BRANCH_TTL_HOURS must be an integer from 1 to 168 (got: ${ttl})"
+    return 1
+  fi
+  DEFAULT_TTL_HOURS="$ttl"
 }
 
 ca_delete_branch_api() {
@@ -234,18 +257,12 @@ try {
 }
 
 # Supabase CLI may print spinner/progress on stdout before JSON.
-# Use a repo-relative path so Windows node.exe (invoked from Git Bash) can read it.
+# Parse via stdin only — never write CLI credential payloads to disk.
 ca_extract_json() {
   local raw="$1"
-  local tmp_rel="tmp/cloud-agent/cli-json-$$.txt"
-  local tmp_abs="${REPO_ROOT}/${tmp_rel}"
-  ca_ensure_state_dir
-  # Guaranteed cleanup even when callers use `set -e` and the parser fails.
-  trap 'rm -f -- "$tmp_abs"; trap - RETURN' RETURN
-  printf '%s' "$raw" >"$tmp_abs"
   (
     cd "$REPO_ROOT"
-    node scripts/cloud-agent/seed-quick-login.mjs --extract-cli-json "$tmp_rel"
+    printf '%s' "$raw" | node scripts/cloud-agent/seed-quick-login.mjs --extract-cli-json -
   )
 }
 

@@ -41,6 +41,7 @@ ca_require_cmd curl
 ca_require_cmd npx
 
 ca_load_supabase_access_token
+ca_validate_ttl_hours "$DEFAULT_TTL_HOURS"
 ca_ensure_state_dir
 
 reuse_existing=0
@@ -69,6 +70,7 @@ if [[ "$FORCE_NEW" -eq 0 && -f "$STATE_FILE" ]]; then
 fi
 
 cleanup_stale_agent_branches() {
+  ca_validate_ttl_hours "$DEFAULT_TTL_HOURS" || return 1
   ca_log "Scanning for stale ${BRANCH_NAME_PREFIX}-* branches (TTL ${DEFAULT_TTL_HOURS}h)..."
   local list_json
   list_json="$(ca_list_branches_api)"
@@ -77,7 +79,12 @@ cleanup_stale_agent_branches() {
 import { normalizeBranchList } from "./scripts/cloud-agent/seed-quick-login.mjs";
 const raw = JSON.parse(process.env.LIST_JSON || "[]");
 const branches = normalizeBranchList(raw);
-const ttlMs = Number(process.env.TTL_HOURS) * 3600 * 1000;
+const ttlHours = Number(process.env.TTL_HOURS);
+if (!Number.isFinite(ttlHours) || ttlHours < 1 || ttlHours > 168) {
+  console.error(`Invalid TTL_HOURS=${process.env.TTL_HOURS}; refusing stale-branch cleanup`);
+  process.exit(1);
+}
+const ttlMs = ttlHours * 3600 * 1000;
 const prefix = process.env.PREFIX;
 const keep = process.env.KEEP_NAME || "";
 const now = Date.now();

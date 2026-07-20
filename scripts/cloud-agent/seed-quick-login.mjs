@@ -528,12 +528,19 @@ function readArg(flag) {
 
 async function main() {
   if (process.argv.includes('--extract-cli-json')) {
-    const filePath = readArg('--extract-cli-json');
-    if (!filePath) {
-      console.error('Usage: node seed-quick-login.mjs --extract-cli-json <file>');
+    const source = readArg('--extract-cli-json');
+    if (!source) {
+      console.error(
+        'Usage: node seed-quick-login.mjs --extract-cli-json -   (stdin; preferred)',
+      );
+      console.error(
+        '   or: node seed-quick-login.mjs --extract-cli-json <file>',
+      );
       process.exit(2);
     }
-    const parsed = extractCliJson(fs.readFileSync(filePath, 'utf8'));
+    const rawText =
+      source === '-' ? fs.readFileSync(0, 'utf8') : fs.readFileSync(source, 'utf8');
+    const parsed = extractCliJson(rawText);
     process.stdout.write(JSON.stringify(parsed));
     return;
   }

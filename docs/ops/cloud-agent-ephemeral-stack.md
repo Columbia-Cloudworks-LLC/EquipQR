@@ -16,8 +16,9 @@ Cloud agents **do not** run `npx supabase start` in Docker. Cursor Cloud VMs hav
 ## What the scripts do
 
 1. `scripts/cloud-agent-ephemeral-stack.sh`
-   - Loads `SUPABASE_ACCESS_TOKEN` (env or `op://EquipQR Agents/supabase-write/SUPABASE_ACCESS_TOKEN`)
-   - Deletes stale `agent-*` branches older than TTL (default **4 hours**)
+   - Loads `SUPABASE_ACCESS_TOKEN` (env or `op://tgo2m6qbct5otqeqirjocn3joa/supabase-write/SUPABASE_ACCESS_TOKEN`)
+   - Deletes stale `agent-*` branches older than TTL (default **4 hours**; invalid TTL fails closed)
+
    - Creates `agent-<session>` via **Management API** with `git_branch=preview` (required so migrations deploy; CLI-only creates often hit `MIGRATIONS_FAILED`)
    - Polls until `FUNCTIONS_DEPLOYED`
    - Fetches branch anon + service_role keys (`supabase branches get -o json`)
