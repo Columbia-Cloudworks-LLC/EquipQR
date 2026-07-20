@@ -37,7 +37,7 @@ test.describe('Cloud agent Quick Login smoke', () => {
       waitUntil: 'domcontentloaded',
     });
     await expect(
-      page.getByText(/CAT 320 Excavator|Equipment/i).first(),
+      page.getByText('CAT 320 Excavator', { exact: true }),
     ).toBeVisible({ timeout: 60_000 });
   });
 });
