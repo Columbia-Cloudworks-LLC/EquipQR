@@ -158,6 +158,15 @@ Place full matrices and tables primarily under **Documented Findings**. Mirror c
 
 **Do not guess cells.** Any matrix cell that is an assumption must be marked `(assumption)` and preferably turned into an explicit product question for the user **before** the draft is finalized. Clarification is incomplete while required cells remain unmarked guesses.
 
+### Product questions — use AskQuestion
+
+Whenever clarification needs a product, scope, or UX decision from the user (including gated-policy assumptions and draft open questions):
+
+1. Use Cursor’s **`AskQuestion`** tool with fixed options (single- or multi-select as appropriate).
+2. Do **not** dump numbered choice lists in ordinary chat when `AskQuestion` is available.
+3. Prefer one focused `AskQuestion` round before finalizing the draft (batch related decisions into that call when possible).
+4. If `AskQuestion` is unavailable in the session, ask the same questions briefly in prose and note the fallback.
+
 ### 8. Already-resolved check
 
 If investigation suggests the issue is already fixed on production or the integration tip:
