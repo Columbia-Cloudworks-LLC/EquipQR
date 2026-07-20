@@ -99,8 +99,8 @@ export function PrivacyCookiesSection() {
                   content: (
                     <>
                       {' '}
-                      &mdash; Prevents redundant permission lookups within a short window. Written only after
-                      Accept.
+                      &mdash; Prevents redundant permission lookups within a short window. Strictly necessary for
+                      reliable sign-in performance (not advertising or tracking).
                     </>
                   ),
                 },

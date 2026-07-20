@@ -8,7 +8,8 @@
  * - Offline mutation queue (`equipqr_offline_queue_*`)
  * - Pending terms-acceptance markers (`equipqr_pending_terms_acceptance:*`)
  * - Active organization hints (`equipqr_current_organization`, `equipqr_current_org`)
- * - Sanitized session cache (`equipqr_session_data` — no location/address fields)
+ * - Sanitized session cache (`equipqr_session_data` — no street/coords; name allowed)
+ * - Admin grant throttle keys (`equipqr_admin_grants_*`)
  *
  * Preference / optional storage (Accept only; cleared on Reject):
  * - `sidebar:state` cookie and UI preference localStorage keys listed below
