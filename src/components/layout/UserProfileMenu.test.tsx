@@ -77,18 +77,17 @@ vi.mock('@/hooks/useOrganizationNotifications', () => ({
   }),
 }));
 
-vi.mock('@/hooks/useResolvedAvatarUrl', () => ({
-  useResolvedAvatarUrl: (stored: string | null | undefined) => {
-    const trimmed = stored?.trim() ?? '';
-    if (!trimmed) {
-      return { data: null, isPending: false };
-    }
-    if (/^https?:\/\//i.test(trimmed)) {
-      return { data: trimmed, isPending: false };
-    }
-    return { data: `https://signed.example/${trimmed}`, isPending: false };
-  },
-}));
+const resolveImageDisplayUrl = vi.fn();
+
+vi.mock('@/services/imageUploadService', async () => {
+  const actual = await vi.importActual<typeof import('@/services/imageUploadService')>(
+    '@/services/imageUploadService',
+  );
+  return {
+    ...actual,
+    resolveImageDisplayUrl: (...args: unknown[]) => resolveImageDisplayUrl(...args),
+  };
+});
 
 import UserProfileMenu from './UserProfileMenu';
 
@@ -96,6 +95,13 @@ describe('UserProfileMenu', () => {
   beforeEach(() => {
     signOutMock.mockReset();
     openBugReportMock.mockReset();
+    resolveImageDisplayUrl.mockReset();
+    resolveImageDisplayUrl.mockImplementation(async (_bucket: string, stored: string) => {
+      const trimmed = stored?.trim() ?? '';
+      if (!trimmed) return null;
+      if (/^https?:\/\//i.test(trimmed)) return trimmed;
+      return `https://signed.example/${trimmed}`;
+    });
     restoreImageSrc = stubImageLoadSuccess();
     mockCurrentUser = {
       id: 'test-user',
