@@ -190,7 +190,8 @@ CA_CURL_MAX_TIME="${CLOUD_AGENT_CURL_MAX_TIME:-60}"
 ca_management_get() {
   local path="$1"
   ca_require_supabase_access_token || return 1
-  curl -sS \
+  # -f: fail on HTTP >=400 so callers do not treat error HTML/JSON as success.
+  curl -sS -f \
     --connect-timeout "$CA_CURL_CONNECT_TIMEOUT" \
     --max-time "$CA_CURL_MAX_TIME" \
     -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
@@ -202,7 +203,7 @@ ca_management_post() {
   local path="$1"
   local body="$2"
   ca_require_supabase_access_token || return 1
-  curl -sS \
+  curl -sS -f \
     --connect-timeout "$CA_CURL_CONNECT_TIMEOUT" \
     --max-time "$CA_CURL_MAX_TIME" \
     -X POST \
@@ -215,7 +216,7 @@ ca_management_post() {
 ca_management_delete() {
   local path="$1"
   ca_require_supabase_access_token || return 1
-  curl -sS \
+  curl -sS -f \
     --connect-timeout "$CA_CURL_CONNECT_TIMEOUT" \
     --max-time "$CA_CURL_MAX_TIME" \
     -X DELETE \
