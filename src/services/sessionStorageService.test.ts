@@ -96,12 +96,26 @@ describe('SessionStorageService', () => {
   });
 
   describe('saveSessionToStorage', () => {
-    it('persists session JSON', () => {
-      const session = buildSession();
+    it('persists session JSON without inventory location fields', () => {
+      const session = buildSession({
+        organizations: [
+          {
+            ...buildSession().organizations[0]!,
+            inventoryDefaultLocationAddress: '123 Main St',
+            inventoryDefaultLocationCity: 'Springfield',
+            inventoryDefaultLocationLat: 41.5,
+            inventoryDefaultLocationLng: -87.5,
+          },
+        ],
+      });
 
       SessionStorageService.saveSessionToStorage(session);
 
-      expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!)).toEqual(session);
+      const persisted = JSON.parse(localStorage.getItem(STORAGE_KEY)!) as typeof session;
+      expect(persisted.currentOrganizationId).toBe(session.currentOrganizationId);
+      expect(persisted.organizations[0]?.id).toBe('org-1');
+      expect(persisted.organizations[0]).not.toHaveProperty('inventoryDefaultLocationAddress');
+      expect(persisted.organizations[0]).not.toHaveProperty('inventoryDefaultLocationLat');
     });
 
     it('logs when localStorage setItem fails', () => {

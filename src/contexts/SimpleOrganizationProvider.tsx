@@ -12,7 +12,6 @@ import {
 } from '@/utils/trustedOrganizationScope';
 import { getPrioritizedOrganizationId } from '@/utils/prioritizeOrganizations';
 import { DASHBOARD_CURRENT_ORG_STORAGE_KEY } from '@/utils/organizationSelection';
-import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
 import {
   SimpleOrganizationContext,
   SimpleOrganization,
@@ -161,7 +160,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     lastMismatchSyncAttemptRef.current = syncAttemptKey;
     setCurrentOrganizationId(sessionOrgId);
     try {
-      setPreferenceLocalStorage(DASHBOARD_CURRENT_ORG_STORAGE_KEY, sessionOrgId);
+      localStorage.setItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY, sessionOrgId);
     } catch (error) {
       logger.warn('Failed to save current organization to storage', error);
       lastMismatchSyncAttemptRef.current = null;
@@ -184,7 +183,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
         // Syncing with session organization
         setCurrentOrganizationId(sessionOrgId);
         try {
-          setPreferenceLocalStorage(DASHBOARD_CURRENT_ORG_STORAGE_KEY, sessionOrgId);
+          localStorage.setItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY, sessionOrgId);
         } catch (error) {
           logger.warn('Failed to save current organization to storage', error);
         }
@@ -196,7 +195,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
       // Auto-selecting prioritized organization
       setCurrentOrganizationId(prioritizedOrgId);
       try {
-        setPreferenceLocalStorage(DASHBOARD_CURRENT_ORG_STORAGE_KEY, prioritizedOrgId);
+        localStorage.setItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY, prioritizedOrgId);
       } catch (error) {
         logger.warn('Failed to save current organization to storage', error);
       }
@@ -217,7 +216,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
         const prioritizedOrgId = getPrioritizedOrganization(organizations);
         setCurrentOrganizationId(prioritizedOrgId);
         try {
-          setPreferenceLocalStorage(DASHBOARD_CURRENT_ORG_STORAGE_KEY, prioritizedOrgId);
+          localStorage.setItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY, prioritizedOrgId);
         } catch (error) {
           logger.warn('Failed to save current organization to storage', error);
         }
@@ -228,7 +227,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
   const setCurrentOrganization = useCallback((organizationId: string) => {
     setCurrentOrganizationId(organizationId);
     try {
-      setPreferenceLocalStorage(DASHBOARD_CURRENT_ORG_STORAGE_KEY, organizationId);
+      localStorage.setItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY, organizationId);
     } catch (error) {
       logger.warn('Failed to save current organization to storage', error);
     }

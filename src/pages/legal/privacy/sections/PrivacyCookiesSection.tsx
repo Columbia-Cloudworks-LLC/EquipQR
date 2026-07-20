@@ -63,8 +63,18 @@ export function PrivacyCookiesSection() {
                   label: 'Organization preference',
                   content: (
                     <>
-                      &mdash; Remembers which organization you last selected (if you belong to multiple).
-                      Written only after Accept.
+                      &mdash; Remembers which organization you last selected (if you belong to multiple) and
+                      carries the org hint from public QR scans into the dashboard. Strictly necessary for
+                      correct organization scoping.
+                    </>
+                  ),
+                },
+                {
+                  label: 'Sanitized session cache',
+                  content: (
+                    <>
+                      &mdash; Short-lived client cache of organization ids/names/roles (no street addresses or
+                      map coordinates). Strictly necessary for faster dashboard boot after sign-in.
                     </>
                   ),
                 },

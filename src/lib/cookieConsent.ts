@@ -7,6 +7,8 @@
  * - `pendingRedirect` / scan-feedback sessionStorage (auth & QR flows)
  * - Offline mutation queue (`equipqr_offline_queue_*`)
  * - Pending terms-acceptance markers (`equipqr_pending_terms_acceptance:*`)
+ * - Active organization hints (`equipqr_current_organization`, `equipqr_current_org`)
+ * - Sanitized session cache (`equipqr_session_data` — no location/address fields)
  *
  * Preference / optional storage (Accept only; cleared on Reject):
  * - `sidebar:state` cookie and UI preference localStorage keys listed below
@@ -21,9 +23,6 @@ export const SIDEBAR_COOKIE_NAME = 'sidebar:state';
 export type CookieConsentDecision = 'accepted' | 'rejected';
 
 const OPTIONAL_LOCAL_STORAGE_EXACT = new Set([
-  'equipqr_current_org',
-  'equipqr_current_organization',
-  'equipqr_session_data',
   'equipqr:equipment-view-mode',
   'equipqr:alternate-groups-table-column-sizing',
   'equipqr:equipment-table-column-sizing:v2',

@@ -57,13 +57,17 @@ describe('cookieConsent', () => {
     expect(document.cookie).not.toContain(`${SIDEBAR_COOKIE_NAME}=true`);
   });
 
-  it('clearOptionalPreferenceStorage leaves consent and auth-adjacent keys alone', () => {
+  it('clearOptionalPreferenceStorage leaves consent and necessary keys alone', () => {
     localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'rejected');
     localStorage.setItem('equipqr_pending_terms_acceptance:user-1', '1');
-    localStorage.setItem('equipqr_session_data', '{"version":2}');
+    localStorage.setItem('equipqr_session_data', '{"version":3}');
+    localStorage.setItem('equipqr_current_organization', 'org-1');
+    localStorage.setItem('equipqr:equipment-view-mode', 'table');
     clearOptionalPreferenceStorage();
     expect(localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY)).toBe('rejected');
     expect(localStorage.getItem('equipqr_pending_terms_acceptance:user-1')).toBe('1');
-    expect(localStorage.getItem('equipqr_session_data')).toBeNull();
+    expect(localStorage.getItem('equipqr_session_data')).toBe('{"version":3}');
+    expect(localStorage.getItem('equipqr_current_organization')).toBe('org-1');
+    expect(localStorage.getItem('equipqr:equipment-view-mode')).toBeNull();
   });
 });

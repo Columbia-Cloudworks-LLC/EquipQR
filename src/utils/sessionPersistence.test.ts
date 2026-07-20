@@ -204,7 +204,7 @@ describe('sessionPersistence', () => {
     });
 
     it('should return session version', () => {
-      expect(getSessionVersion()).toBe(2);
+      expect(getSessionVersion()).toBe(3);
     });
   });
 });

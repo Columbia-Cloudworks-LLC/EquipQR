@@ -1,9 +1,9 @@
 import { logger } from '@/utils/logger';
-import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
 
 const SESSION_STORAGE_KEY = 'equipqr_session_data';
 const ORGANIZATION_PREFERENCE_KEY = 'equipqr_current_org';
-const SESSION_VERSION = 2;
+/** v3: session cache omits inventory default location / address fields (no PII in Web Storage). */
+const SESSION_VERSION = 3;
 
 export const saveOrganizationPreference = (organizationId: string | null) => {
   try {
@@ -11,9 +11,8 @@ export const saveOrganizationPreference = (organizationId: string | null) => {
       selectedOrgId: organizationId,
       selectionTimestamp: new Date().toISOString()
     };
-    if (!setPreferenceLocalStorage(ORGANIZATION_PREFERENCE_KEY, JSON.stringify(preference))) {
-      return;
-    }
+    // Org id hint is strictly necessary for multi-org + QR dashboard handoff.
+    localStorage.setItem(ORGANIZATION_PREFERENCE_KEY, JSON.stringify(preference));
     logger.debug('Organization preference saved', { organizationId });
   } catch (error) {
     logger.warn('Failed to save organization preference', error);
