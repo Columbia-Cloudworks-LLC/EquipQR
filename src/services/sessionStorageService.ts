@@ -1,6 +1,5 @@
 import { logger } from '@/utils/logger';
 import type { SessionData } from '@/types/session';
-import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
 import { 
   getSessionStorageKey, 
   getSessionVersion,
@@ -45,7 +44,14 @@ export class SessionStorageService {
 
   static saveSessionToStorage(data: SessionData): void {
     try {
-      setPreferenceLocalStorage(SESSION_STORAGE_KEY, JSON.stringify(data));
+      // Only retain non-sensitive bootstrap metadata. Organization details and
+      // location fields remain in memory and are fetched from the server.
+      const cache = {
+        currentOrganizationId: data.currentOrganizationId,
+        lastUpdated: data.lastUpdated,
+        version: data.version,
+      };
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(cache));
     } catch (error) {
       logger.error('💾 Error saving session to storage:', error);
     }
