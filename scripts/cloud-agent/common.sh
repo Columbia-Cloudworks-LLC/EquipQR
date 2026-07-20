@@ -180,7 +180,7 @@ ca_find_branch_json() {
   local list_json="$2"
   BRANCH_NAME="$branch_name" node -e '
 const list = JSON.parse(process.argv[1] || "[]");
-const branches = Array.isArray(list) ? list : (list.branches || []);
+const branches = Array.isArray(list) ? list : (list.branches || list.data || list.projects || []);
 const match = branches.find((b) => b.name === process.env.BRANCH_NAME);
 if (!match) process.exit(2);
 process.stdout.write(JSON.stringify(match));
@@ -217,12 +217,12 @@ ca_extract_json() {
   local tmp_abs="${REPO_ROOT}/${tmp_rel}"
   ca_ensure_state_dir
   printf '%s' "$raw" >"$tmp_abs"
+  local rc=0
   (
     cd "$REPO_ROOT"
     node scripts/cloud-agent/seed-quick-login.mjs --extract-cli-json "$tmp_rel"
-  )
-  local rc=$?
-  rm -f "$tmp_abs"
+  ) || rc=$?
+  rm -f -- "$tmp_abs"
   return "$rc"
 }
 
