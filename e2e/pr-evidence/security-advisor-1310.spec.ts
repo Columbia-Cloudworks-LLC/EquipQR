@@ -25,11 +25,23 @@ const PROBE_PNG = Buffer.from(
 function resolveAnonKeyFromEnv(): string {
   const fromEnv = process.env.VITE_SUPABASE_ANON_KEY?.trim();
   if (fromEnv) return fromEnv;
+
   const envPath = path.join(process.cwd(), '.env');
   if (!fs.existsSync(envPath)) {
-    throw new Error('Missing VITE_SUPABASE_ANON_KEY (env unset and .env not found)');
+    throw new Error(
+      'Missing VITE_SUPABASE_ANON_KEY — set the env var or create a repo-root .env for PR evidence',
+    );
   }
-  const raw = fs.readFileSync(envPath, 'utf8');
+
+  let raw: string;
+  try {
+    raw = fs.readFileSync(envPath, 'utf8');
+  } catch (err) {
+    throw new Error(
+      `Unable to read ${envPath} for VITE_SUPABASE_ANON_KEY: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
   const line = raw.split(/\r?\n/).find((l) => l.startsWith('VITE_SUPABASE_ANON_KEY='));
   const value = line?.slice('VITE_SUPABASE_ANON_KEY='.length).trim();
   if (!value) {
@@ -124,7 +136,11 @@ test.describe('Security Advisor hardening (#1310) @pr-evidence', () => {
       target: page.locator('#probe'),
     });
 
-    const anonContext = await page.context().browser()!.newContext({
+    const browser = page.context().browser();
+    if (!browser) {
+      throw new Error('Playwright browser() is null — cannot open anon evidence context');
+    }
+    const anonContext = await browser.newContext({
       storageState: { cookies: [], origins: [] },
       baseURL: appBase,
     });

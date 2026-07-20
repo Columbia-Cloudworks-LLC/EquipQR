@@ -193,8 +193,9 @@ DECLARE
     'user_is_org_member'
   ];
 BEGIN
-  -- Strip PUBLIC/anon from every public function so default-privilege drift
-  -- cannot leave INVOKER RPCs (or DEFINER RPCs) callable unauthenticated.
+  -- Anon surface lockdown (INVOKER + DEFINER): revoke PUBLIC/anon from every
+  -- public function first. Do NOT filter on prosecdef here — INVOKER RPCs that
+  -- inherited default grants must lose anon EXECUTE too.
   FOR fn IN
     SELECT p.oid::regprocedure
     FROM pg_proc p
@@ -206,7 +207,7 @@ BEGIN
     EXECUTE format('REVOKE ALL ON FUNCTION %s FROM anon', fn);
   END LOOP;
 
-  -- DEFINER: deny authenticated by default; allowlists re-open below.
+  -- DEFINER-only: deny authenticated by default; allowlists re-open below.
   FOR fn IN
     SELECT p.oid::regprocedure
     FROM pg_proc p
@@ -244,8 +245,9 @@ BEGIN
     EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated', fn);
   END LOOP;
 
-  -- Grant only the newest SECURITY DEFINER overload per allowlisted proname
-  -- (highest oid). Name-only grants would otherwise re-open every overload.
+  -- Grant every SECURITY DEFINER overload for allowlisted names. Clients may
+  -- omit optional args (undefined → older PostgREST overload); restricting to
+  -- max(oid) broke create_historical_work_order_with_pm without p_timeline_events.
   FOREACH func_name IN ARRAY authenticated_allowlist LOOP
     FOR fn IN
       SELECT p.oid::regprocedure
@@ -255,15 +257,6 @@ BEGIN
         AND p.prokind = 'f'
         AND p.prosecdef
         AND p.proname = func_name
-        AND p.oid = (
-          SELECT max(p2.oid)
-          FROM pg_proc p2
-          JOIN pg_namespace n2 ON n2.oid = p2.pronamespace
-          WHERE n2.nspname = 'public'
-            AND p2.prokind = 'f'
-            AND p2.prosecdef
-            AND p2.proname = func_name
-        )
     LOOP
       EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated', fn);
     END LOOP;
@@ -278,15 +271,6 @@ BEGIN
         AND p.prokind = 'f'
         AND p.prosecdef
         AND p.proname = func_name
-        AND p.oid = (
-          SELECT max(p2.oid)
-          FROM pg_proc p2
-          JOIN pg_namespace n2 ON n2.oid = p2.pronamespace
-          WHERE n2.nspname = 'public'
-            AND p2.prokind = 'f'
-            AND p2.prosecdef
-            AND p2.proname = func_name
-        )
     LOOP
       EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated', fn);
     END LOOP;
@@ -301,15 +285,6 @@ BEGIN
         AND p.prokind = 'f'
         AND p.prosecdef
         AND p.proname = func_name
-        AND p.oid = (
-          SELECT max(p2.oid)
-          FROM pg_proc p2
-          JOIN pg_namespace n2 ON n2.oid = p2.pronamespace
-          WHERE n2.nspname = 'public'
-            AND p2.prokind = 'f'
-            AND p2.prosecdef
-            AND p2.proname = func_name
-        )
     LOOP
       EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO anon', fn);
       EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated', fn);

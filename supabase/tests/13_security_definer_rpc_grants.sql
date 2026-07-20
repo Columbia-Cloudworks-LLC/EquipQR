@@ -3,7 +3,7 @@
 -- (validated by scripts/validate-security-definer-allowlist-sync.mjs).
 
 BEGIN;
-SELECT plan(22);
+SELECT plan(24);
 
 -- 1. Only intentional pre-auth / token RPCs remain callable by anon
 --    (covers INVOKER + DEFINER — not DEFINER-only).
@@ -164,6 +164,33 @@ SELECT is(
             'EXECUTE')),
   false,
   'anon cannot execute submit_operator_checkin_public (edge service_role only)'
+);
+
+-- 2b. Allowlisted DEFINER overloads all keep authenticated EXECUTE
+--     (create_historical_work_order_with_pm has legacy + timeline signatures).
+SELECT is(
+  (SELECT count(*)::integer
+     FROM pg_proc p
+     JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.prokind = 'f'
+      AND p.prosecdef
+      AND p.proname = 'create_historical_work_order_with_pm'
+      AND has_function_privilege('authenticated', p.oid, 'EXECUTE')),
+  2,
+  'both create_historical_work_order_with_pm overloads are executable by authenticated'
+);
+
+SELECT is(
+  (SELECT count(*)::integer
+     FROM pg_proc p
+     JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.prokind = 'f'
+      AND p.prosecdef
+      AND p.proname = 'create_historical_work_order_with_pm'),
+  2,
+  'create_historical_work_order_with_pm has exactly two SECURITY DEFINER overloads'
 );
 
 -- 3. Dashboard RPC is authenticated-only.
