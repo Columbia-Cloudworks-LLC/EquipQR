@@ -99,18 +99,18 @@ export function useDashboardLayout(organizationId: string | undefined): UseDashb
   }, [userId, organizationId]);
 
   const rehydrateOrFlushLocalLayout = useCallback(() => {
-    if (!userId || !organizationId) return;
+    if (!userId || !organizationId || !initialized) return;
     const stored = readFromLocalStorage(userId, organizationId);
     if (stored) {
       setActiveWidgets(stored.activeWidgets);
       return;
     }
-    if (activeWidgetsRef.current.length === 0) return;
+    // Persist current layout including an intentional empty widget list.
     writeToLocalStorage(userId, organizationId, {
       activeWidgets: activeWidgetsRef.current,
       updatedAt: new Date().toISOString(),
     });
-  }, [userId, organizationId]);
+  }, [userId, organizationId, initialized]);
   useWhenPreferenceStorageAllowed(rehydrateOrFlushLocalLayout);
 
   // Background fetch from Supabase to sync across devices
