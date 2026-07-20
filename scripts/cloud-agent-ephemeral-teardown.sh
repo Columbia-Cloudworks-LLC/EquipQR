@@ -34,11 +34,22 @@ if [[ -f "$STATE_FILE" ]]; then
   branch_name="$(ca_read_state_field branchName 2>/dev/null || true)"
   branch_id="$(ca_read_state_field branchId 2>/dev/null || true)"
   project_ref="$(ca_read_state_field projectRef 2>/dev/null || true)"
+  state_parent_ref="$(ca_read_state_field parentProjectRef 2>/dev/null || true)"
 fi
 
-if [[ "$project_ref" == "$PARENT_PROJECT_REF" ]]; then
-  ca_fail "State file points at parent project — refusing delete."
-  exit 1
+if [[ -n "$branch_name" ]]; then
+  if [[ -z "$project_ref" || "$project_ref" == "$PARENT_PROJECT_REF" ]]; then
+    ca_fail "State file has an invalid or parent project ref — refusing delete."
+    exit 1
+  fi
+  if [[ -z "${state_parent_ref:-}" || "$state_parent_ref" != "$PARENT_PROJECT_REF" ]]; then
+    ca_fail "State file parent project ref does not match — refusing delete."
+    exit 1
+  fi
+  if [[ ! "$branch_name" =~ ^${BRANCH_NAME_PREFIX}-[a-z0-9-]+$ ]]; then
+    ca_fail "State file has an invalid branch name — refusing delete."
+    exit 1
+  fi
 fi
 
 if [[ -n "$branch_id" ]]; then
