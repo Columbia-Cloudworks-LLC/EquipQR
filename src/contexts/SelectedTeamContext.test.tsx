@@ -41,6 +41,7 @@ const STORAGE_KEY = 'equipqr:selectedTeamId:org-1';
 describe('SelectedTeamProvider', () => {
   beforeEach(() => {
     localStorage.clear();
+    localStorage.setItem('equipqr:cookie-consent', 'accepted');
     mockOrganization.organizationId = 'org-1';
     mockTeam.teamMemberships = [];
     mockTeam.isLoading = true;
