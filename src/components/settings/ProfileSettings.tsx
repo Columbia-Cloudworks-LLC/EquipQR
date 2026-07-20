@@ -64,17 +64,12 @@ const ProfileSettings = () => {
     );
     if (!deletablePath) return;
 
-    try {
-      await deleteAvatar(currentUser.id, deletablePath);
-      setCurrentUser({
-        ...currentUser,
-        avatar_url: resolveEffectiveAvatarUrl(null, authUser?.user_metadata),
-      });
-    } catch (error) {
-      console.error('Error removing avatar:', error);
-      appToast.error({ description: 'Failed to remove avatar' });
-      throw error;
-    }
+    // Errors propagate to SingleImageUpload, which surfaces useAppToast feedback.
+    await deleteAvatar(currentUser.id, deletablePath);
+    setCurrentUser({
+      ...currentUser,
+      avatar_url: resolveEffectiveAvatarUrl(null, authUser?.user_metadata),
+    });
   };
 
   if (!currentUser) return null;
