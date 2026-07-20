@@ -245,12 +245,25 @@ export function extractCliJson(rawText) {
   throw new Error('Could not parse JSON payload from CLI output');
 }
 
-export function formatShellKeyAssignments({ anonKey, serviceRoleKey }) {
+/** Shell-safe anon key only — never emit service_role on stdout. */
+export function formatAnonKeyAssignment(anonKey) {
   const shellQuote = (value) => `'${String(value).replace(/'/g, `'\"'\"'`)}'`;
-  return [
-    `anon_key=${shellQuote(anonKey)}`,
-    `service_role_key=${shellQuote(serviceRoleKey)}`,
-  ].join('\n');
+  return `anon_key=${shellQuote(anonKey)}`;
+}
+
+/** Accept Management API key list or `branches get` credential object. */
+export function resolveKeysFromPayload(raw) {
+  if (Array.isArray(raw)) {
+    return parseProjectApiKeys(raw);
+  }
+  if (!raw || typeof raw !== 'object') {
+    return { anonKey: undefined, serviceRoleKey: undefined };
+  }
+  return {
+    anonKey: raw.SUPABASE_ANON_KEY || raw.anon_key || undefined,
+    serviceRoleKey:
+      raw.SUPABASE_SERVICE_ROLE_KEY || raw.service_role_key || undefined,
+  };
 }
 
 /** Normalize Management API / CLI branch list shapes. */
@@ -619,10 +632,14 @@ async function main() {
     return;
   }
 
-  if (process.argv.includes('--print-keys')) {
+  if (process.argv.includes('--print-anon-key')) {
     const raw = fs.readFileSync(0, 'utf8');
-    const keys = parseProjectApiKeys(JSON.parse(raw || '[]'));
-    process.stdout.write(`${formatShellKeyAssignments(keys)}\n`);
+    const keys = resolveKeysFromPayload(JSON.parse(raw || 'null'));
+    if (!keys.anonKey) {
+      console.error('Could not resolve anon key from keys payload');
+      process.exit(2);
+    }
+    process.stdout.write(`${formatAnonKeyAssignment(keys.anonKey)}\n`);
     return;
   }
 
@@ -636,12 +653,18 @@ async function main() {
   }
 
   const apiUrl = process.env.CLOUD_AGENT_SUPABASE_URL;
-  const serviceRoleKey = process.env.CLOUD_AGENT_SUPABASE_SERVICE_ROLE_KEY;
   const projectRef = process.env.CLOUD_AGENT_SUPABASE_PROJECT_REF;
+  let serviceRoleKey = process.env.CLOUD_AGENT_SUPABASE_SERVICE_ROLE_KEY;
+
+  // Prefer keys JSON on stdin so bash never holds/prints service_role.
+  if (process.argv.includes('--keys-json-stdin')) {
+    const keys = resolveKeysFromPayload(JSON.parse(fs.readFileSync(0, 'utf8') || 'null'));
+    serviceRoleKey = keys.serviceRoleKey;
+  }
 
   if (!apiUrl || !serviceRoleKey || !projectRef) {
     console.error(
-      'Usage: set CLOUD_AGENT_SUPABASE_URL, CLOUD_AGENT_SUPABASE_SERVICE_ROLE_KEY, CLOUD_AGENT_SUPABASE_PROJECT_REF then run seed-quick-login.mjs',
+      'Usage: set CLOUD_AGENT_SUPABASE_URL + CLOUD_AGENT_SUPABASE_PROJECT_REF and either CLOUD_AGENT_SUPABASE_SERVICE_ROLE_KEY or pipe keys JSON with --keys-json-stdin',
     );
     process.exit(2);
   }

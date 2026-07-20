@@ -106,8 +106,9 @@ for (const b of branches) {
     ca_warn "Deleting stale branch: $stale_name"
     if [[ -n "$stale_id" ]]; then
       ca_delete_branch_api "$stale_id" >/dev/null 2>&1 || true
+    else
+      npx supabase branches delete "$stale_name" --project-ref "$PARENT_PROJECT_REF" --yes >/dev/null 2>&1 || true
     fi
-    npx supabase branches delete "$stale_name" --project-ref "$PARENT_PROJECT_REF" --yes >/dev/null 2>&1 || true
   done
 }
 
@@ -118,7 +119,7 @@ branch_id=""
 project_ref=""
 api_url=""
 anon_key=""
-service_role_key=""
+keys_payload=""
 
 if [[ "$reuse_existing" -eq 1 ]]; then
   branch_name="$(ca_read_state_field branchName)"
@@ -179,40 +180,35 @@ ca_log "Fetching branch API keys..."
 creds_raw="$(npx supabase branches get "$branch_name" --project-ref "$PARENT_PROJECT_REF" --output json 2>/dev/null || true)"
 creds_json="$(ca_extract_json "$creds_raw" 2>/dev/null || true)"
 if [[ -n "$creds_json" ]]; then
-  eval "$(echo "$creds_json" | node -e '
+  keys_payload="$creds_json"
+  eval "$(printf '%s' "$creds_json" | node -e '
 const fs = require("fs");
 const j = JSON.parse(fs.readFileSync(0, "utf8"));
 const anon = j.SUPABASE_ANON_KEY || j.anon_key;
-const service = j.SUPABASE_SERVICE_ROLE_KEY || j.service_role_key;
 const url = j.SUPABASE_URL || j.api_url;
 const q = (s) => "'"'"'" + String(s).replace(/'"'"'/g, "'"'"'\"'"'"'\"'"'"'") + "'"'"'";
 if (url) process.stdout.write("api_url=" + q(url) + "\n");
 if (anon) process.stdout.write("anon_key=" + q(anon) + "\n");
-if (service) process.stdout.write("service_role_key=" + q(service) + "\n");
 ')"
 fi
 
-if [[ -z "${anon_key:-}" || -z "${service_role_key:-}" ]]; then
-  keys_json="$(ca_fetch_project_keys "$project_ref")"
-  eval "$(printf '%s' "$keys_json" | node "${REPO_ROOT}/scripts/cloud-agent/seed-quick-login.mjs" --print-keys)"
+if [[ -z "${anon_key:-}" || -z "$keys_payload" ]]; then
+  keys_payload="$(ca_fetch_project_keys "$project_ref")"
+  eval "$(printf '%s' "$keys_payload" | node "${REPO_ROOT}/scripts/cloud-agent/seed-quick-login.mjs" --print-anon-key)"
 fi
 
-if [[ -z "${anon_key:-}" || -z "${service_role_key:-}" ]]; then
-  ca_fail "Could not resolve anon/service_role keys for ${project_ref}"
+if [[ -z "${anon_key:-}" || -z "$keys_payload" ]]; then
+  ca_fail "Could not resolve anon key / keys payload for ${project_ref}"
   exit 1
 fi
-ca_ok "Resolved branch anon + service_role keys"
+ca_ok "Resolved branch anon key (service_role stays in-process for seed)"
 
 ca_log "Applying cloud-safe Quick Login seed..."
-# Pass privileged keys via env (not argv — visible in `ps` / shell history).
+# service_role is piped on stdin — never assigned to a bash variable or printed.
 export CLOUD_AGENT_SUPABASE_URL="$api_url"
-export CLOUD_AGENT_SUPABASE_SERVICE_ROLE_KEY="$service_role_key"
 export CLOUD_AGENT_SUPABASE_PROJECT_REF="$project_ref"
-# One password for seed + DevQuickLogin (UI reads VITE_DEV_TEST_PASSWORD only).
-# Export to the Vite process env — do not persist/overwrite the password in .env.
 ca_resolve_quick_login_password
-node "${REPO_ROOT}/scripts/cloud-agent/seed-quick-login.mjs"
-unset CLOUD_AGENT_SUPABASE_SERVICE_ROLE_KEY
+printf '%s' "$keys_payload" | node "${REPO_ROOT}/scripts/cloud-agent/seed-quick-login.mjs" --keys-json-stdin
 ca_ok "Quick Login seed applied"
 
 ca_backup_env_file

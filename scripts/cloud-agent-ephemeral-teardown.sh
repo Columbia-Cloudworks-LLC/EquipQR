@@ -49,53 +49,56 @@ if [[ -z "$branch_name" && -z "$branch_id" ]]; then
 elif [[ "$has_token" -ne 1 ]]; then
   ca_warn "SUPABASE_ACCESS_TOKEN unset — skipping remote branch delete; keeping session state for a later credentialed teardown."
 else
-  remote_delete_attempted=1
+  skip_remote=0
   if [[ -z "$project_ref" ]]; then
-    ca_fail "State file missing projectRef — refusing remote delete."
-    exit 1
-  fi
-  if [[ "$project_ref" == "$PARENT_PROJECT_REF" ]]; then
-    ca_fail "State file points at parent/production project — refusing delete."
-    exit 1
-  fi
-  if [[ -n "$parent_ref" && "$parent_ref" != "$PARENT_PROJECT_REF" ]]; then
-    ca_fail "State parentProjectRef (${parent_ref}) does not match ${PARENT_PROJECT_REF} — refusing delete."
-    exit 1
-  fi
-  if [[ -n "$branch_name" ]]; then
-    ca_assert_safe_agent_branch_name "$branch_name" || exit 1
+    ca_warn "State file missing projectRef — skipping remote delete; continuing local cleanup."
+    skip_remote=1
+  elif [[ "$project_ref" == "$PARENT_PROJECT_REF" ]]; then
+    ca_warn "State file points at parent/production project — skipping remote delete; continuing local cleanup."
+    skip_remote=1
+  elif [[ -n "$parent_ref" && "$parent_ref" != "$PARENT_PROJECT_REF" ]]; then
+    ca_warn "State parentProjectRef (${parent_ref}) does not match ${PARENT_PROJECT_REF} — skipping remote delete."
+    skip_remote=1
+  elif [[ -n "$branch_name" ]] && ! ca_assert_safe_agent_branch_name "$branch_name"; then
+    ca_warn "Branch name failed agent-* safety check — skipping remote delete."
+    skip_remote=1
   fi
 
-  list_json="$(ca_list_branches_api 2>/dev/null || echo '[]')"
-  if [[ -n "$branch_name" ]]; then
-    if live_json="$(ca_find_branch_json "$branch_name" "$list_json" 2>/dev/null)"; then
-      live_ref="$(echo "$live_json" | node -e 'const j=JSON.parse(require("fs").readFileSync(0,"utf8")); process.stdout.write(String(j.project_ref||""))')"
-      live_id="$(echo "$live_json" | node -e 'const j=JSON.parse(require("fs").readFileSync(0,"utf8")); process.stdout.write(String(j.id||""))')"
-      if [[ -n "$live_ref" && "$live_ref" != "$project_ref" ]]; then
-        ca_fail "Live branch project_ref (${live_ref}) does not match state (${project_ref}) — refusing delete."
-        exit 1
+  if [[ "$skip_remote" -eq 0 ]]; then
+    remote_delete_attempted=1
+    list_json="$(ca_list_branches_api 2>/dev/null || echo '[]')"
+    if [[ -n "$branch_name" ]]; then
+      if live_json="$(ca_find_branch_json "$branch_name" "$list_json" 2>/dev/null)"; then
+        live_ref="$(echo "$live_json" | node -e 'const j=JSON.parse(require("fs").readFileSync(0,"utf8")); process.stdout.write(String(j.project_ref||""))')"
+        live_id="$(echo "$live_json" | node -e 'const j=JSON.parse(require("fs").readFileSync(0,"utf8")); process.stdout.write(String(j.id||""))')"
+        if [[ -n "$live_ref" && "$live_ref" != "$project_ref" ]]; then
+          ca_warn "Live branch project_ref (${live_ref}) does not match state (${project_ref}) — skipping remote delete."
+          skip_remote=1
+          remote_delete_attempted=0
+        elif [[ -n "$branch_id" && -n "$live_id" && "$branch_id" != "$live_id" ]]; then
+          ca_warn "Live branch id (${live_id}) does not match state (${branch_id}) — skipping remote delete."
+          skip_remote=1
+          remote_delete_attempted=0
+        else
+          branch_id="${branch_id:-$live_id}"
+        fi
+      else
+        ca_warn "Branch ${branch_name} not found in live list (may already be deleted)."
       fi
-      if [[ -n "$branch_id" && -n "$live_id" && "$branch_id" != "$live_id" ]]; then
-        ca_fail "Live branch id (${live_id}) does not match state (${branch_id}) — refusing delete."
-        exit 1
-      fi
-      branch_id="${branch_id:-$live_id}"
-    else
-      ca_warn "Branch ${branch_name} not found in live list (may already be deleted)."
     fi
   fi
 
-  if [[ -n "$branch_id" ]]; then
-    ca_log "Deleting branch id ${branch_id} (${branch_name})..."
-    ca_delete_branch_api "$branch_id" >/dev/null 2>&1 || true
-  fi
-
-  if [[ -n "$branch_name" ]]; then
-    ca_log "Deleting branch name ${branch_name} via CLI (idempotent)..."
-    if npx supabase branches delete "$branch_name" --project-ref "$PARENT_PROJECT_REF" --yes; then
-      ca_ok "Deleted branch ${branch_name}"
-    else
-      ca_warn "Branch delete returned non-zero (may already be gone)"
+  if [[ "$skip_remote" -eq 0 ]]; then
+    if [[ -n "$branch_id" ]]; then
+      ca_log "Deleting branch id ${branch_id} (${branch_name})..."
+      ca_delete_branch_api "$branch_id" >/dev/null 2>&1 || true
+    elif [[ -n "$branch_name" ]]; then
+      ca_log "Deleting branch name ${branch_name} via CLI..."
+      if npx supabase branches delete "$branch_name" --project-ref "$PARENT_PROJECT_REF" --yes; then
+        ca_ok "Deleted branch ${branch_name}"
+      else
+        ca_warn "Branch delete returned non-zero (may already be gone)"
+      fi
     fi
   fi
 fi

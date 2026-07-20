@@ -7,8 +7,10 @@ import {
   normalizeBranchList,
   parseProjectApiKeys,
   CLOUD_AGENT_EQUIPMENT_SERIAL,
+  formatAnonKeyAssignment,
   QUICK_LOGIN_PERSONAS,
   resolveDevPassword,
+  resolveKeysFromPayload,
 } from './seed-quick-login.mjs';
 
 describe('cloud-agent seed-quick-login helpers', () => {
@@ -41,6 +43,25 @@ describe('cloud-agent seed-quick-login helpers', () => {
       anonKey: 'anon-key-value',
       serviceRoleKey: 'service-key-value',
     });
+    expect(
+      resolveKeysFromPayload([
+        { name: 'anon', api_key: 'anon-key-value' },
+        { name: 'service_role', api_key: 'service-key-value' },
+      ]),
+    ).toEqual(parsed);
+    expect(
+      resolveKeysFromPayload({
+        SUPABASE_ANON_KEY: 'anon-from-branch',
+        SUPABASE_SERVICE_ROLE_KEY: 'service-from-branch',
+      }),
+    ).toEqual({
+      anonKey: 'anon-from-branch',
+      serviceRoleKey: 'service-from-branch',
+    });
+    expect(formatAnonKeyAssignment('anon-key-value')).toBe(
+      "anon_key='anon-key-value'",
+    );
+    expect(formatAnonKeyAssignment('anon-key-value')).not.toMatch(/service/i);
   });
 
   it('refuses parent/production and spoofed hosts', () => {
