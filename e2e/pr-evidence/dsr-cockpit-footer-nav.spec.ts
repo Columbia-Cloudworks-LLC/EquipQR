@@ -22,7 +22,9 @@ test.describe('PR evidence DSR cockpit footer nav @pr-evidence', () => {
     const legalTrigger = page.getByRole('button', { name: /legal links/i });
     await expect(legalTrigger).toBeVisible();
     await legalTrigger.click();
-    const legalMenu = page.getByRole('menu');
+    const legalMenu = page
+      .getByRole('menu')
+      .filter({ hasText: /terms of service|privacy policy|do not sell/i });
     await expect(legalMenu).toBeVisible();
     const footerDsr = legalMenu.getByRole('menuitem', { name: /dsr cockpit/i });
     await expect(footerDsr).toBeVisible();
@@ -32,8 +34,10 @@ test.describe('PR evidence DSR cockpit footer nav @pr-evidence', () => {
     await footerDsr.click();
     await expect(page).toHaveURL(/\/dashboard\/dsr\/?$/);
     await assertHealthyShell();
+    const cockpitHeading = page.getByRole('heading', { name: /^dsr cockpit$/i });
+    await expect(cockpitHeading).toBeVisible();
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '03-dsr-cockpit-from-footer');
+    await evidenceScreenshot(page, '03-dsr-cockpit-from-footer', { target: cockpitHeading });
 
     await gotoDashboard('/settings');
     await assertHealthyShell();
@@ -48,7 +52,8 @@ test.describe('PR evidence DSR cockpit footer nav @pr-evidence', () => {
     await settingsDsr.click();
     await expect(page).toHaveURL(/\/dashboard\/dsr\/?$/);
     await assertHealthyShell();
+    await expect(cockpitHeading).toBeVisible();
     await evidencePause(page, 500);
-    await evidenceScreenshot(page, '05-dsr-cockpit-from-settings');
+    await evidenceScreenshot(page, '05-dsr-cockpit-from-settings', { target: cockpitHeading });
   });
 });
