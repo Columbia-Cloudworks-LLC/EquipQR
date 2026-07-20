@@ -14,7 +14,10 @@ import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 
 export const PARENT_PROJECT_REF = 'ymxkzronkhwxzcdcbnwq';
-export const DEV_PASSWORD = 'password123';
+export const DEV_PASSWORD = process.env.CLOUD_AGENT_DEV_PASSWORD;
+if (!DEV_PASSWORD) {
+  throw new Error('CLOUD_AGENT_DEV_PASSWORD must be set to seed Quick Login users.');
+}
 
 /** Core Dev Quick Login personas (emails/password match DevQuickLogin.tsx). */
 export const QUICK_LOGIN_PERSONAS = [
