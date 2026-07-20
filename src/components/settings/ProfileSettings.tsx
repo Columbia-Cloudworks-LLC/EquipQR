@@ -64,11 +64,17 @@ const ProfileSettings = () => {
     );
     if (!deletablePath) return;
 
-    await deleteAvatar(currentUser.id, deletablePath);
-    setCurrentUser({
-      ...currentUser,
-      avatar_url: resolveEffectiveAvatarUrl(null, authUser?.user_metadata),
-    });
+    try {
+      await deleteAvatar(currentUser.id, deletablePath);
+      setCurrentUser({
+        ...currentUser,
+        avatar_url: resolveEffectiveAvatarUrl(null, authUser?.user_metadata),
+      });
+    } catch (error) {
+      console.error('Error removing avatar:', error);
+      appToast.error({ description: 'Failed to remove avatar' });
+      throw error;
+    }
   };
 
   if (!currentUser) return null;
@@ -77,8 +83,6 @@ const ProfileSettings = () => {
   const avatarPath = trimmedAvatarPath(currentUser.avatar_url);
   const deletableAvatarPath = normalizeStoredObjectPath(avatarPath, 'user-avatars');
   const canDeleteAvatar = deletableAvatarPath != null;
-  const needsSignedAvatarResolve =
-    avatarPath.length > 0 && !/^https?:\/\//i.test(avatarPath);
 
   return (
     <>
@@ -89,7 +93,7 @@ const ProfileSettings = () => {
         maxSizeMB={5}
         disabled={isLoading}
         variant="avatar"
-        avatarFallback={isAvatarPending && needsSignedAvatarResolve ? '' : initials}
+        avatarFallback={isAvatarPending && canDeleteAvatar ? '' : initials}
       />
 
       <div className="space-y-2">

@@ -1,0 +1,64 @@
+import React from 'react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderHook, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const resolveImageDisplayUrl = vi.fn();
+
+vi.mock('@/services/imageUploadService', async () => {
+  const actual = await vi.importActual<typeof import('@/services/imageUploadService')>(
+    '@/services/imageUploadService',
+  );
+  return {
+    ...actual,
+    resolveImageDisplayUrl: (...args: unknown[]) => resolveImageDisplayUrl(...args),
+  };
+});
+
+import { useResolvedAvatarUrl } from './useResolvedAvatarUrl';
+
+function wrapper({ children }: { children: React.ReactNode }) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
+
+describe('useResolvedAvatarUrl', () => {
+  beforeEach(() => {
+    resolveImageDisplayUrl.mockReset();
+    resolveImageDisplayUrl.mockResolvedValue('https://signed.example/avatar.webp');
+  });
+
+  it('returns external Google CDN URLs without signing', () => {
+    const { result } = renderHook(
+      () => useResolvedAvatarUrl('https://lh3.googleusercontent.com/a/photo'),
+      { wrapper },
+    );
+
+    expect(result.current.data).toBe('https://lh3.googleusercontent.com/a/photo');
+    expect(resolveImageDisplayUrl).not.toHaveBeenCalled();
+  });
+
+  it('signs bare storage paths', async () => {
+    const { result } = renderHook(() => useResolvedAvatarUrl('user-1/avatar.webp'), {
+      wrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.data).toBe('https://signed.example/avatar.webp');
+    });
+    expect(resolveImageDisplayUrl).toHaveBeenCalledWith('user-avatars', 'user-1/avatar.webp');
+  });
+
+  it('normalizes legacy Supabase user-avatars URLs before signing', async () => {
+    const legacy =
+      'https://example.supabase.co/storage/v1/object/public/user-avatars/user-1/avatar.webp';
+    const { result } = renderHook(() => useResolvedAvatarUrl(legacy), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data).toBe('https://signed.example/avatar.webp');
+    });
+    expect(resolveImageDisplayUrl).toHaveBeenCalledWith('user-avatars', 'user-1/avatar.webp');
+  });
+});

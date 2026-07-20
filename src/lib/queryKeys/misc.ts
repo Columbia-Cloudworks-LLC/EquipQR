@@ -4,6 +4,13 @@ export const notifications = {
   byOrg: (orgId: string) => ['notifications', orgId] as const,
 };
 
+/** Signed display URLs for the private `user-avatars` bucket. */
+export const userAvatars = {
+  root: ['resolved-avatar-url'] as const,
+  resolvedUrl: (storedPathOrKey: string) =>
+    ['resolved-avatar-url', storedPathOrKey] as const,
+};
+
 // Inventory keys
 export const inventory = {
   root: ['inventory'] as const,
