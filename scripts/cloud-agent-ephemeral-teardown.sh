@@ -35,6 +35,7 @@ branch_name=""
 branch_id=""
 project_ref=""
 parent_ref=""
+remote_delete_attempted=0
 if [[ -f "$STATE_FILE" ]]; then
   branch_name="$(ca_read_state_field branchName 2>/dev/null || true)"
   branch_id="$(ca_read_state_field branchId 2>/dev/null || true)"
@@ -44,9 +45,11 @@ fi
 
 if [[ -z "$branch_name" && -z "$branch_id" ]]; then
   ca_warn "No session state found at ${STATE_FILE}; nothing to delete remotely."
+  remote_delete_attempted=1
 elif [[ "$has_token" -ne 1 ]]; then
-  ca_warn "SUPABASE_ACCESS_TOKEN unset — skipping remote branch delete; continuing local cleanup."
+  ca_warn "SUPABASE_ACCESS_TOKEN unset — skipping remote branch delete; keeping session state for a later credentialed teardown."
 else
+  remote_delete_attempted=1
   if [[ -z "$project_ref" ]]; then
     ca_fail "State file missing projectRef — refusing remote delete."
     exit 1
@@ -103,9 +106,11 @@ else
   ca_warn "Keeping current .env (--keep-env)"
 fi
 
-if [[ -f "$STATE_FILE" ]]; then
+if [[ "$remote_delete_attempted" -eq 1 && -f "$STATE_FILE" ]]; then
   rm -f "$STATE_FILE"
   ca_ok "Removed session state file"
+elif [[ -f "$STATE_FILE" ]]; then
+  ca_warn "Kept session state at ${STATE_FILE} (remote delete was skipped)."
 fi
 
 ca_ok "Ephemeral cloud-agent stack teardown complete."

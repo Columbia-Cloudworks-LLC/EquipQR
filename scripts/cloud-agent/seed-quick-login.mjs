@@ -7,6 +7,10 @@
  * personal org for the primary smoke persona with a team + equipment row.
  *
  * Safety: refuses parent/production project refs and supabase.equipqr.app.
+ *
+ * service_role (approved DX exception): Auth Admin on the *ephemeral* branch
+ * only — never parent/prod. Same class of CLI exception as upload-screenshot.ts.
+ * Do not move this into a production Edge Function (that would widen blast radius).
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -365,16 +369,49 @@ async function upgradeOrg(admin, orgId, persona, userId) {
   }
 }
 
-async function ensureFleet(admin, orgId, ownerUserId) {
-  const teamId = '880e8400-e29b-41d4-a716-446655440000';
-  const equipmentId = 'aa0e8400-e29b-41d4-a716-446655440000';
-  const teamMemberId = 'dd0e8400-e29b-41d4-a716-446655440001';
+/** Stable serial for idempotent cloud-agent fleet seed (not a local-fixture UUID). */
+export const CLOUD_AGENT_EQUIPMENT_SERIAL = 'CAT320GC-CLOUD-AGENT-001';
+const CLOUD_AGENT_TEAM_NAME = 'Heavy Equipment Team';
 
-  const { error: teamError } = await admin.from('teams').upsert(
-    {
+/**
+ * Ensure a smoke team + CAT 320 exists for the primary persona org.
+ * Uses fresh random UUIDs and insert-if-missing — never upserts canonical
+ * local-seed fixture IDs (880e/aa0e/dd0e…), which would overwrite shared rows
+ * if a branch ever retained seed data.
+ */
+async function ensureFleet(admin, orgId, ownerUserId) {
+  const { data: existingEq, error: eqLookupError } = await admin
+    .from('equipment')
+    .select('id')
+    .eq('organization_id', orgId)
+    .eq('serial_number', CLOUD_AGENT_EQUIPMENT_SERIAL)
+    .maybeSingle();
+  if (eqLookupError) {
+    throw new Error(`equipment lookup failed: ${eqLookupError.message}`);
+  }
+  if (existingEq?.id) {
+    return;
+  }
+
+  let teamId;
+  const { data: existingTeam, error: teamLookupError } = await admin
+    .from('teams')
+    .select('id')
+    .eq('organization_id', orgId)
+    .eq('name', CLOUD_AGENT_TEAM_NAME)
+    .maybeSingle();
+  if (teamLookupError) {
+    throw new Error(`teams lookup failed: ${teamLookupError.message}`);
+  }
+
+  if (existingTeam?.id) {
+    teamId = existingTeam.id;
+  } else {
+    teamId = randomUUID();
+    const { error: teamError } = await admin.from('teams').insert({
       id: teamId,
       organization_id: orgId,
-      name: 'Heavy Equipment Team',
+      name: CLOUD_AGENT_TEAM_NAME,
       description: 'Cloud-agent smoke team',
       location_city: 'Dallas',
       location_state: 'TX',
@@ -382,46 +419,50 @@ async function ensureFleet(admin, orgId, ownerUserId) {
       location_lat: 32.776664,
       location_lng: -96.796988,
       override_equipment_location: true,
-    },
-    { onConflict: 'id' },
-  );
-  if (teamError) {
-    throw new Error(`teams upsert failed: ${teamError.message}`);
+    });
+    if (teamError) {
+      throw new Error(`teams insert failed: ${teamError.message}`);
+    }
   }
 
-  const { error: tmError } = await admin.from('team_members').upsert(
-    {
-      id: teamMemberId,
+  const { data: existingMember, error: tmLookupError } = await admin
+    .from('team_members')
+    .select('id')
+    .eq('team_id', teamId)
+    .eq('user_id', ownerUserId)
+    .maybeSingle();
+  if (tmLookupError) {
+    throw new Error(`team_members lookup failed: ${tmLookupError.message}`);
+  }
+  if (!existingMember?.id) {
+    const { error: tmError } = await admin.from('team_members').insert({
+      id: randomUUID(),
       team_id: teamId,
       user_id: ownerUserId,
       role: 'manager',
       joined_date: '2024-01-01T00:00:00.000Z',
-    },
-    { onConflict: 'id' },
-  );
-  if (tmError) {
-    throw new Error(`team_members upsert failed: ${tmError.message}`);
+    });
+    if (tmError) {
+      throw new Error(`team_members insert failed: ${tmError.message}`);
+    }
   }
 
-  const { error: eqError } = await admin.from('equipment').upsert(
-    {
-      id: equipmentId,
-      organization_id: orgId,
-      team_id: teamId,
-      name: 'CAT 320 Excavator',
-      manufacturer: 'Caterpillar',
-      model: '320 GC',
-      serial_number: 'CAT320GC-CLOUD-AGENT-001',
-      status: 'active',
-      location: 'Dallas, TX',
-      installation_date: '2023-03-15',
-      working_hours: 100,
-      custom_attributes: {},
-    },
-    { onConflict: 'id' },
-  );
+  const { error: eqError } = await admin.from('equipment').insert({
+    id: randomUUID(),
+    organization_id: orgId,
+    team_id: teamId,
+    name: 'CAT 320 Excavator',
+    manufacturer: 'Caterpillar',
+    model: '320 GC',
+    serial_number: CLOUD_AGENT_EQUIPMENT_SERIAL,
+    status: 'active',
+    location: 'Dallas, TX',
+    installation_date: '2023-03-15',
+    working_hours: 100,
+    custom_attributes: {},
+  });
   if (eqError) {
-    throw new Error(`equipment upsert failed: ${eqError.message}`);
+    throw new Error(`equipment insert failed: ${eqError.message}`);
   }
 }
 

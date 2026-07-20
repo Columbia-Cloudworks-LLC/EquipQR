@@ -6,6 +6,7 @@ import {
   findBranchByName,
   normalizeBranchList,
   parseProjectApiKeys,
+  CLOUD_AGENT_EQUIPMENT_SERIAL,
   QUICK_LOGIN_PERSONAS,
   resolveDevPassword,
 } from './seed-quick-login.mjs';
@@ -93,6 +94,12 @@ describe('cloud-agent seed-quick-login helpers', () => {
       'abcdefghijklmnop',
     );
     expect(findBranchByName({ branches: [] }, 'missing')).toBeNull();
+  });
+
+  it('uses a cloud-agent equipment serial instead of local fixture UUIDs', () => {
+    expect(CLOUD_AGENT_EQUIPMENT_SERIAL).toBe('CAT320GC-CLOUD-AGENT-001');
+    // Canonical local seed fixture IDs must not be reused (upsert overwrite risk).
+    expect(CLOUD_AGENT_EQUIPMENT_SERIAL).not.toMatch(/880e8400|aa0e8400|dd0e8400/);
   });
 
   it('extracts branch JSON despite ANSI spinner noise', () => {
