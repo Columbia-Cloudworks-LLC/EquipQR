@@ -57,7 +57,8 @@ if [[ "$FORCE_NEW" -eq 0 && -f "$STATE_FILE" ]]; then
     exp_epoch="$(node -e "const d=Date.parse(process.argv[1]); process.stdout.write(String(Number.isFinite(d)?Math.floor(d/1000):0))" "$expires_at")"
   fi
   if [[ -n "$existing_ref" && -n "$existing_name" && -n "$existing_url" && "$exp_epoch" -gt "$now_epoch" ]]; then
-    if ca_assert_branch_ref_safe "$existing_ref" "$existing_url"; then
+    if ca_assert_safe_agent_branch_name "$existing_name" \
+      && ca_assert_branch_ref_safe "$existing_ref" "$existing_url"; then
       list_json="$(ca_list_branches_api)"
       if status_json="$(ca_find_branch_json "$existing_name" "$list_json" 2>/dev/null)"; then
         if ca_branch_is_healthy_json "$status_json"; then
@@ -65,6 +66,9 @@ if [[ "$FORCE_NEW" -eq 0 && -f "$STATE_FILE" ]]; then
           ca_ok "Reusing healthy branch ${existing_name} (${existing_ref})"
         fi
       fi
+    else
+      ca_warn "Ignoring session state — branch name/ref failed safety checks; will create a new branch."
+      existing_name=""
     fi
   fi
 fi

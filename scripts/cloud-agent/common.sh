@@ -156,10 +156,16 @@ ca_require_supabase_access_token() {
   fi
 }
 
+# Avoid indefinite hangs on stalled Management API requests.
+CA_CURL_CONNECT_TIMEOUT="${CLOUD_AGENT_CURL_CONNECT_TIMEOUT:-15}"
+CA_CURL_MAX_TIME="${CLOUD_AGENT_CURL_MAX_TIME:-60}"
+
 ca_management_get() {
   local path="$1"
   ca_require_supabase_access_token || return 1
   curl -sS \
+    --connect-timeout "$CA_CURL_CONNECT_TIMEOUT" \
+    --max-time "$CA_CURL_MAX_TIME" \
     -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
     -H "Content-Type: application/json" \
     "https://api.supabase.com/v1${path}"
@@ -170,6 +176,8 @@ ca_management_post() {
   local body="$2"
   ca_require_supabase_access_token || return 1
   curl -sS \
+    --connect-timeout "$CA_CURL_CONNECT_TIMEOUT" \
+    --max-time "$CA_CURL_MAX_TIME" \
     -X POST \
     -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
     -H "Content-Type: application/json" \
@@ -181,6 +189,8 @@ ca_management_delete() {
   local path="$1"
   ca_require_supabase_access_token || return 1
   curl -sS \
+    --connect-timeout "$CA_CURL_CONNECT_TIMEOUT" \
+    --max-time "$CA_CURL_MAX_TIME" \
     -X DELETE \
     -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
     -H "Content-Type: application/json" \
