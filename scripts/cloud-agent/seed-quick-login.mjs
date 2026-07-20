@@ -284,7 +284,12 @@ async function ensureAuthUser(admin, persona) {
   if (!byIdError && byIdData?.user) {
     const { error: updateError } = await admin.auth.admin.updateUserById(
       byIdData.user.id,
-      { password, email_confirm: true, user_metadata: meta },
+      {
+        email: persona.email,
+        password,
+        email_confirm: true,
+        user_metadata: meta,
+      },
     );
     if (updateError) {
       throw new Error(`updateUserById(${persona.email}) failed: ${updateError.message}`);
@@ -309,7 +314,12 @@ async function ensureAuthUser(admin, persona) {
     if (existing) {
       const { error: updateError } = await admin.auth.admin.updateUserById(
         existing.id,
-        { password, email_confirm: true, user_metadata: meta },
+        {
+          email: persona.email,
+          password,
+          email_confirm: true,
+          user_metadata: meta,
+        },
       );
       if (updateError) {
         throw new Error(`updateUserById(${persona.email}) failed: ${updateError.message}`);

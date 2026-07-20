@@ -205,10 +205,8 @@ export CLOUD_AGENT_SUPABASE_URL="$api_url"
 export CLOUD_AGENT_SUPABASE_SERVICE_ROLE_KEY="$service_role_key"
 export CLOUD_AGENT_SUPABASE_PROJECT_REF="$project_ref"
 # One password for seed + DevQuickLogin (UI reads VITE_DEV_TEST_PASSWORD only).
-# Export to the Vite process env — do not persist the password into .env.
-RESOLVED_QUICK_LOGIN_PASSWORD="${CLOUD_AGENT_QUICK_LOGIN_PASSWORD:-${VITE_DEV_TEST_PASSWORD:-password123}}"
-export CLOUD_AGENT_QUICK_LOGIN_PASSWORD="$RESOLVED_QUICK_LOGIN_PASSWORD"
-export VITE_DEV_TEST_PASSWORD="$RESOLVED_QUICK_LOGIN_PASSWORD"
+# Export to the Vite process env — do not persist/overwrite the password in .env.
+ca_resolve_quick_login_password
 node "${REPO_ROOT}/scripts/cloud-agent/seed-quick-login.mjs"
 unset CLOUD_AGENT_SUPABASE_SERVICE_ROLE_KEY
 ca_ok "Quick Login seed applied"

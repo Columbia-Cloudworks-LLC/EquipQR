@@ -56,6 +56,34 @@ ca_ensure_state_dir() {
   chmod 700 "$STATE_DIR" 2>/dev/null || true
 }
 
+# Resolve Quick Login password from env or existing .env (no hardcoded default).
+# Sets RESOLVED_QUICK_LOGIN_PASSWORD and exports CLOUD_AGENT_QUICK_LOGIN_PASSWORD + VITE_DEV_TEST_PASSWORD.
+ca_resolve_quick_login_password() {
+  local resolved="${CLOUD_AGENT_QUICK_LOGIN_PASSWORD:-${VITE_DEV_TEST_PASSWORD:-}}"
+  if [[ -z "$resolved" && -f "${REPO_ROOT}/.env" ]]; then
+    resolved="$(
+      grep -E '^VITE_DEV_TEST_PASSWORD=' "${REPO_ROOT}/.env" 2>/dev/null \
+        | head -n 1 \
+        | cut -d= -f2- \
+        | tr -d '\r' \
+        || true
+    )"
+    # Strip optional surrounding quotes from .env values.
+    if [[ "$resolved" == \"*\" && "$resolved" == *\" ]]; then
+      resolved="${resolved:1:${#resolved}-2}"
+    elif [[ "$resolved" == \'*\' && "$resolved" == *\' ]]; then
+      resolved="${resolved:1:${#resolved}-2}"
+    fi
+  fi
+  if [[ -z "$resolved" ]]; then
+    ca_fail "Set CLOUD_AGENT_QUICK_LOGIN_PASSWORD or VITE_DEV_TEST_PASSWORD (or VITE_DEV_TEST_PASSWORD in .env)."
+    return 1
+  fi
+  RESOLVED_QUICK_LOGIN_PASSWORD="$resolved"
+  export CLOUD_AGENT_QUICK_LOGIN_PASSWORD="$resolved"
+  export VITE_DEV_TEST_PASSWORD="$resolved"
+}
+
 ca_session_slug() {
   local raw
   raw="${CURSOR_AGENT_ID:-${CLOUD_AGENT_SESSION_ID:-}}"
