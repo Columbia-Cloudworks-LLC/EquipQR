@@ -102,8 +102,6 @@ export const QUICK_LOGIN_PERSONAS = [
 
 export function assertBranchSafeTarget({ projectRef, apiUrl }) {
   const ref = String(projectRef || '').trim();
-  const url = String(apiUrl || '').trim().toLowerCase();
-
   if (!ref) {
     throw new Error('projectRef is required');
   }
@@ -112,12 +110,38 @@ export function assertBranchSafeTarget({ projectRef, apiUrl }) {
       `Refusing to seed parent/production project ${PARENT_PROJECT_REF}`,
     );
   }
-  if (url.includes('supabase.equipqr.app')) {
+
+  let parsed;
+  try {
+    parsed = new URL(String(apiUrl || '').trim());
+  } catch {
+    throw new Error(`Invalid API URL: ${apiUrl}`);
+  }
+
+  if (parsed.username || parsed.password) {
+    throw new Error('API URL must not include credentials');
+  }
+
+  const host = parsed.hostname.toLowerCase();
+  const isLocal = host === 'localhost' || host === '127.0.0.1';
+  if (isLocal) {
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error(`Unexpected local API protocol: ${parsed.protocol}`);
+    }
+    return;
+  }
+
+  if (parsed.protocol !== 'https:') {
+    throw new Error('Hosted API URL must use https');
+  }
+  if (host === 'supabase.equipqr.app') {
     throw new Error('Refusing to seed production custom domain supabase.equipqr.app');
   }
-  if (!url.includes('supabase.co') && !url.includes('localhost')) {
-    // Allow supabase.co branch hosts; localhost only for unit tests.
-    throw new Error(`Unexpected API URL for ephemeral seed: ${apiUrl}`);
+  const expectedHost = `${ref.toLowerCase()}.supabase.co`;
+  if (host !== expectedHost) {
+    throw new Error(
+      `API host ${host} does not match expected branch host ${expectedHost}`,
+    );
   }
 }
 

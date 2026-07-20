@@ -26,6 +26,10 @@ EOF
 done
 
 ca_load_supabase_access_token || true
+has_token=0
+if [[ -n "${SUPABASE_ACCESS_TOKEN:-}" ]]; then
+  has_token=1
+fi
 
 branch_name=""
 branch_id=""
@@ -39,10 +43,12 @@ if [[ -f "$STATE_FILE" ]]; then
 fi
 
 if [[ -z "$branch_name" && -z "$branch_id" ]]; then
-  ca_warn "No session state found at ${STATE_FILE}; nothing to delete."
+  ca_warn "No session state found at ${STATE_FILE}; nothing to delete remotely."
+elif [[ "$has_token" -ne 1 ]]; then
+  ca_warn "SUPABASE_ACCESS_TOKEN unset — skipping remote branch delete; continuing local cleanup."
 else
   if [[ -z "$project_ref" ]]; then
-    ca_fail "State file missing projectRef — refusing delete."
+    ca_fail "State file missing projectRef — refusing remote delete."
     exit 1
   fi
   if [[ "$project_ref" == "$PARENT_PROJECT_REF" ]]; then
@@ -57,7 +63,6 @@ else
     ca_assert_safe_agent_branch_name "$branch_name" || exit 1
   fi
 
-  # Fail closed: confirm the live branch list still matches state before delete.
   list_json="$(ca_list_branches_api 2>/dev/null || echo '[]')"
   if [[ -n "$branch_name" ]]; then
     if live_json="$(ca_find_branch_json "$branch_name" "$list_json" 2>/dev/null)"; then

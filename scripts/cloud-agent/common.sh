@@ -119,8 +119,16 @@ ca_upsert_env_key() {
   chmod 600 "$env_file" 2>/dev/null || true
 }
 
+ca_require_supabase_access_token() {
+  if [[ -z "${SUPABASE_ACCESS_TOKEN:-}" ]]; then
+    ca_fail "SUPABASE_ACCESS_TOKEN is unset"
+    return 1
+  fi
+}
+
 ca_management_get() {
   local path="$1"
+  ca_require_supabase_access_token || return 1
   curl -sS \
     -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
     -H "Content-Type: application/json" \
@@ -130,6 +138,7 @@ ca_management_get() {
 ca_management_post() {
   local path="$1"
   local body="$2"
+  ca_require_supabase_access_token || return 1
   curl -sS \
     -X POST \
     -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
@@ -140,6 +149,7 @@ ca_management_post() {
 
 ca_management_delete() {
   local path="$1"
+  ca_require_supabase_access_token || return 1
   curl -sS \
     -X DELETE \
     -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
@@ -205,10 +215,22 @@ ca_assert_branch_ref_safe() {
     ca_fail "Refusing to seed or rewrite env for parent/production project (${PARENT_PROJECT_REF})."
     return 1
   fi
-  if [[ "$api_url" == *"supabase.equipqr.app"* ]]; then
-    ca_fail "Refusing to target production custom domain supabase.equipqr.app."
+  PROJECT_REF="$project_ref" API_URL="$api_url" \
+    node --input-type=module -e '
+import { assertBranchSafeTarget } from "./scripts/cloud-agent/seed-quick-login.mjs";
+try {
+  assertBranchSafeTarget({
+    projectRef: process.env.PROJECT_REF,
+    apiUrl: process.env.API_URL,
+  });
+} catch (error) {
+  console.error(String(error.message || error));
+  process.exit(1);
+}
+' || {
+    ca_fail "Branch target failed safety checks for ${project_ref} / ${api_url}"
     return 1
-  fi
+  }
 }
 
 # Supabase CLI may print spinner/progress on stdout before JSON.

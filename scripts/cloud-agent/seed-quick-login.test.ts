@@ -39,7 +39,7 @@ describe('cloud-agent seed-quick-login helpers', () => {
     });
   });
 
-  it('refuses parent/production targets', () => {
+  it('refuses parent/production and spoofed hosts', () => {
     expect(() =>
       assertBranchSafeTarget({
         projectRef: PARENT_PROJECT_REF,
@@ -49,17 +49,37 @@ describe('cloud-agent seed-quick-login helpers', () => {
 
     expect(() =>
       assertBranchSafeTarget({
-        projectRef: 'branchref1234567',
+        projectRef: 'abcdefghijklmnop',
         apiUrl: 'https://supabase.equipqr.app',
       }),
     ).toThrow(/supabase\.equipqr\.app/);
+
+    expect(() =>
+      assertBranchSafeTarget({
+        projectRef: 'abcdefghijklmnop',
+        apiUrl: 'https://supabase.co.attacker.tld',
+      }),
+    ).toThrow(/does not match expected branch host/);
+
+    expect(() =>
+      assertBranchSafeTarget({
+        projectRef: 'abcdefghijklmnop',
+        apiUrl: 'https://evil.tld/localhost',
+      }),
+    ).toThrow(/does not match expected branch host/);
   });
 
-  it('allows ephemeral supabase.co branch hosts', () => {
+  it('allows exact ephemeral supabase.co branch hosts and localhost', () => {
     expect(() =>
       assertBranchSafeTarget({
         projectRef: 'abcdefghijklmnop',
         apiUrl: 'https://abcdefghijklmnop.supabase.co',
+      }),
+    ).not.toThrow();
+    expect(() =>
+      assertBranchSafeTarget({
+        projectRef: 'abcdefghijklmnop',
+        apiUrl: 'http://localhost:54321',
       }),
     ).not.toThrow();
   });
