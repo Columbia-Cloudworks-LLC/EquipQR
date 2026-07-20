@@ -8,7 +8,11 @@ import {
   type SelectedTeamContextType,
   type SelectedTeamId,
 } from './selected-team-context';
-import { removePreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
+import {
+  getPreferenceLocalStorage,
+  removePreferenceLocalStorage,
+  setPreferenceLocalStorage,
+} from '@/lib/cookieConsent';
 
 const STORAGE_KEY_PREFIX = 'equipqr:selectedTeamId:';
 
@@ -19,7 +23,7 @@ const readStoredTeamId = (organizationId: string | null): SelectedTeamId => {
   const key = storageKeyFor(organizationId);
   if (!key) return null;
   try {
-    return localStorage.getItem(key);
+    return getPreferenceLocalStorage(key);
   } catch (error) {
     logger.warn('SelectedTeamProvider: failed to read selected team from storage', error);
     return null;

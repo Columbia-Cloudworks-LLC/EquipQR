@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/utils/logger';
 import { dashboardPreferences } from '@/lib/queryKeys';
 import { generateDefaultLayout, WIDGET_REGISTRY } from '@/features/dashboard/registry/widgetRegistry';
-import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
+import { getPreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
 
 /** localStorage key scoped to user + organization */
 function storageKey(userId: string, orgId: string): string {
@@ -22,7 +22,7 @@ interface StoredPreferences {
  */
 function readFromLocalStorage(userId: string, orgId: string): StoredPreferences | null {
   try {
-    const raw = localStorage.getItem(storageKey(userId, orgId));
+    const raw = getPreferenceLocalStorage(storageKey(userId, orgId));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     // Accept both new and legacy shapes — only activeWidgets is required.

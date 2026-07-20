@@ -87,6 +87,17 @@ export function isPreferenceStorageAllowed(): boolean {
   return getCookieConsentDecision() === 'accepted';
 }
 
+export function getPreferenceLocalStorage(key: string): string | null {
+  if (!isPreferenceStorageAllowed()) return null;
+  const storage = getLocalStorage();
+  if (!storage) return null;
+  try {
+    return storage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
 export function setPreferenceLocalStorage(key: string, value: string): boolean {
   const storage = getLocalStorage();
   if (!storage || !isPreferenceStorageAllowed()) return false;

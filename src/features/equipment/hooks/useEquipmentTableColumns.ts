@@ -4,7 +4,7 @@ import {
   DEFAULT_VISIBLE_COLUMNS,
   EQUIPMENT_TABLE_COLUMN_META,
 } from '@/features/equipment/components/equipmentTableColumns';
-import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
+import { getPreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
 
 const STORAGE_PREFIX = 'equipqr:equipment-table-columns:';
 
@@ -18,7 +18,7 @@ const buildStorageKey = (organizationId: string): string =>
  */
 const readSavedVisibility = (organizationId: string): Record<string, boolean> | null => {
   try {
-    const raw = localStorage.getItem(buildStorageKey(organizationId));
+    const raw = getPreferenceLocalStorage(buildStorageKey(organizationId));
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {

@@ -1,10 +1,10 @@
-import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
+import { getPreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
 
 const STORAGE_PREFIX = 'equipqr-operator-checkin-starter-catalog-expanded:';
 
 export function getStarterCatalogExpandedPreference(organizationId: string): boolean | null {
   try {
-    const stored = localStorage.getItem(`${STORAGE_PREFIX}${organizationId}`);
+    const stored = getPreferenceLocalStorage(`${STORAGE_PREFIX}${organizationId}`);
     if (stored === '1') return true;
     if (stored === '0') return false;
     return null;

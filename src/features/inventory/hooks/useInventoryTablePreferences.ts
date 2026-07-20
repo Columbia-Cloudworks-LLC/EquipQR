@@ -12,7 +12,7 @@ import type {
   InventoryTableDensity,
   InventoryTablePreferences,
 } from '@/features/inventory/types/inventory';
-import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
+import { getPreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
 
 const STORAGE_PREFIX = 'equipqr:inventory-table-preferences:';
 const PREFERENCES_VERSION = 1;
@@ -98,7 +98,7 @@ function sanitizeSavedViews(raw: unknown): InventorySavedView[] {
 
 const readSavedPreferences = (organizationId: string): InventoryTablePreferences | null => {
   try {
-    const raw = localStorage.getItem(buildStorageKey(organizationId));
+    const raw = getPreferenceLocalStorage(buildStorageKey(organizationId));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<InventoryTablePreferences>;
     return {

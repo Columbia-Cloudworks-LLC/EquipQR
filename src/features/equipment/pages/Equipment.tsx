@@ -36,7 +36,7 @@ import { useEquipmentTableColumns } from '@/features/equipment/hooks/useEquipmen
 import { useOfflineMergedEquipment } from '@/features/equipment/hooks/useOfflineMergedEquipment';
 import { useOrgEquipmentPMStatuses } from '@/features/equipment/hooks/useEquipmentPMStatus';
 import { EquipmentListTransitionRoot } from '@/features/equipment/transitions/EquipmentListTransitionRoot';
-import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
+import { getPreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
 
 const Equipment = () => {
   const { currentOrganization } = useOrganization();
@@ -52,7 +52,7 @@ const Equipment = () => {
   const [showQRCode, setShowQRCode] = useState<string | null>(null);
   const [showImportCsv, setShowImportCsv] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<EquipmentViewMode>(() => {
-    const stored = localStorage.getItem('equipqr:equipment-view-mode');
+    const stored = getPreferenceLocalStorage('equipqr:equipment-view-mode');
     let initial: EquipmentViewMode;
     switch (stored) {
       case 'table':

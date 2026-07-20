@@ -18,7 +18,7 @@ import 'react-grid-layout/css/styles.css';
 import './audit-dashboard-grid.css';
 import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, GripVertical, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
+import { getPreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
 import { logger } from '@/utils/logger';
 
 const STORAGE_KEY = 'audit-dashboard-grid-v1';
@@ -111,7 +111,7 @@ function readPersistedState(widgets: AuditDashboardWidgetDef[]): PersistedGridSt
     return fallback;
   }
   try {
-    const raw = globalThis.localStorage.getItem(STORAGE_KEY);
+    const raw = getPreferenceLocalStorage(STORAGE_KEY);
     if (!raw) return fallback;
     const parsed = JSON.parse(raw) as Partial<PersistedGridState>;
     if (!Array.isArray(parsed.layout)) return fallback;

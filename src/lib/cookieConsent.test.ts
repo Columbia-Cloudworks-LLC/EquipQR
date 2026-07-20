@@ -5,6 +5,7 @@ import {
   applyCookieConsentDecision,
   clearOptionalPreferenceStorage,
   getCookieConsentDecision,
+  getPreferenceLocalStorage,
   isPreferenceStorageAllowed,
   setPreferenceCookie,
   setPreferenceLocalStorage,
@@ -26,6 +27,8 @@ describe('cookieConsent', () => {
   it('returns null when no decision is stored', () => {
     expect(getCookieConsentDecision()).toBeNull();
     expect(isPreferenceStorageAllowed()).toBe(false);
+    localStorage.setItem('equipqr:equipment-view-mode', 'table');
+    expect(getPreferenceLocalStorage('equipqr:equipment-view-mode')).toBeNull();
   });
 
   it('persists Accept and allows preference storage', () => {

@@ -10,7 +10,7 @@ import {
   toSameOriginPath,
 } from '@/utils/redirectValidation';
 import { schedulePendingTermsAcceptanceFlush } from '@/lib/termsAcceptanceRecording';
-import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
+import { getPreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
 import { clearOfflineBlobsForUser } from '@/services/offlineBlobStore';
 
 /**
@@ -94,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // apply_pending_admin_grants_for_user applies grants for the user across ALL
           // organizations they belong to, so organization context isn't needed.
           const adminGrantsCacheKey = `equipqr_admin_grants_${session.user.id}`;
-          const lastAppliedStr = localStorage.getItem(adminGrantsCacheKey);
+          const lastAppliedStr = getPreferenceLocalStorage(adminGrantsCacheKey);
           const lastAppliedAt = lastAppliedStr ? parseInt(lastAppliedStr, 10) : 0;
           const shouldApplyGrants = Date.now() - lastAppliedAt > ADMIN_GRANTS_THROTTLE_MS;
 

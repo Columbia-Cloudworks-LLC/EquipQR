@@ -1,6 +1,10 @@
 import { useEffect, useCallback } from 'react';
 import { logger } from '@/utils/logger';
-import { isPreferenceStorageAllowed, setPreferenceLocalStorage } from '@/lib/cookieConsent';
+import {
+  getPreferenceLocalStorage,
+  isPreferenceStorageAllowed,
+  setPreferenceLocalStorage,
+} from '@/lib/cookieConsent';
 
 interface UseBrowserStorageOptions<T> {
   key: string;
@@ -25,10 +29,10 @@ export const useBrowserStorage = <T>({ key, data, enabled = true }: UseBrowserSt
 
   // Load from localStorage
   const loadFromStorage = useCallback((): T | null => {
-    if (!enabled || typeof window === 'undefined') return null;
+    if (!enabled || typeof window === 'undefined' || !isPreferenceStorageAllowed()) return null;
     
     try {
-      const stored = localStorage.getItem(key);
+      const stored = getPreferenceLocalStorage(key);
       if (stored) {
         const parsed = JSON.parse(stored);
         // Check if data is less than 24 hours old

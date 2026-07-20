@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/table';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { measureColumnAutoFitWidth } from '@/features/inventory/utils/tableColumnAutoFit';
-import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
+import { getPreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
 import { cn } from '@/lib/utils';
 
 export type ResizableColumnMeta = {
@@ -297,7 +297,7 @@ export function loadPersistedColumnSizing(
   }
 
   try {
-    const raw = window.localStorage.getItem(storageKey);
+    const raw = getPreferenceLocalStorage(storageKey);
     if (!raw) {
       return defaults;
     }
