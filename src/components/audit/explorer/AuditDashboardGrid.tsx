@@ -18,6 +18,7 @@ import 'react-grid-layout/css/styles.css';
 import './audit-dashboard-grid.css';
 import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, GripVertical, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useWhenPreferenceStorageAllowed } from '@/contexts/CookieConsentContext';
 import { getPreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
 import { logger } from '@/utils/logger';
 
@@ -523,6 +524,13 @@ export function AuditDashboardGrid({ widgets }: AuditDashboardGridProps) {
   const dragSessionRef = useRef<WidgetDragSession | null>(null);
   const layoutAtDragStartRef = useRef<Layout | null>(null);
   const floatingCloneRef = useRef<HTMLElement | null>(null);
+
+  const rehydrateGrid = useCallback(() => {
+    const raw = getPreferenceLocalStorage(STORAGE_KEY);
+    if (!raw) return;
+    setState(readPersistedState(widgets));
+  }, [widgets]);
+  useWhenPreferenceStorageAllowed(rehydrateGrid);
 
   // Persist state changes debounced: drag/resize emit many layout updates and
   // localStorage writes are synchronous, so coalesce them. Flush on unmount.

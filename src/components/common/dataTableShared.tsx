@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { flexRender, type Cell, type ColumnSizingState, type Header, type Table as TanStackTable } from '@tanstack/react-table';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { useWhenPreferenceStorageAllowed } from '@/contexts/CookieConsentContext';
 import { measureColumnAutoFitWidth } from '@/features/inventory/utils/tableColumnAutoFit';
 import { getPreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
 import { cn } from '@/lib/utils';
@@ -316,6 +317,13 @@ export function usePersistedColumnSizing(storageKey: string, defaults: ColumnSiz
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(() =>
     loadPersistedColumnSizing(storageKey, defaults),
   );
+
+  const rehydrate = useCallback(() => {
+    const raw = getPreferenceLocalStorage(storageKey);
+    if (!raw) return;
+    setColumnSizing(loadPersistedColumnSizing(storageKey, defaults));
+  }, [defaults, storageKey]);
+  useWhenPreferenceStorageAllowed(rehydrate);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;

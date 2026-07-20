@@ -1,6 +1,15 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { toast } from 'sonner';
 import {
+  COOKIE_CONSENT_CHANGED_EVENT,
   COOKIE_CONSENT_STORAGE_KEY,
   applyCookieConsentDecision,
   getCookieConsentDecision,
@@ -80,4 +89,45 @@ export function useCookieConsent(): CookieConsentContextValue {
     throw new Error('useCookieConsent must be used within CookieConsentProvider');
   }
   return ctx;
+}
+
+/** Whether preference cookies / localStorage may be read and written. */
+export function usePreferenceStorageAllowed(): boolean {
+  const ctx = useContext(CookieConsentContext);
+  return ctx?.canUsePreferences ?? isPreferenceStorageAllowed();
+}
+
+/**
+ * Runs `onAllowed` when preference storage becomes allowed mid-session
+ * (Accept). Does not re-run on mount when consent was already accepted —
+ * mount-time loaders should keep using their existing initializers.
+ *
+ * Safe outside CookieConsentProvider (falls back to storage + consent event).
+ */
+export function useWhenPreferenceStorageAllowed(onAllowed: () => void): void {
+  const ctx = useContext(CookieConsentContext);
+  const allowed = ctx?.canUsePreferences ?? isPreferenceStorageAllowed();
+  const prevAllowed = useRef(allowed);
+  const onAllowedRef = useRef(onAllowed);
+  onAllowedRef.current = onAllowed;
+
+  useEffect(() => {
+    if (!prevAllowed.current && allowed) {
+      onAllowedRef.current();
+    }
+    prevAllowed.current = allowed;
+  }, [allowed]);
+
+  useEffect(() => {
+    if (ctx) return;
+    const onChange = () => {
+      const next = isPreferenceStorageAllowed();
+      if (!prevAllowed.current && next) {
+        onAllowedRef.current();
+      }
+      prevAllowed.current = next;
+    };
+    window.addEventListener(COOKIE_CONSENT_CHANGED_EVENT, onChange);
+    return () => window.removeEventListener(COOKIE_CONSENT_CHANGED_EVENT, onChange);
+  }, [ctx]);
 }

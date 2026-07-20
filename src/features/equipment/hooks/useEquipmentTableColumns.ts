@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { useWhenPreferenceStorageAllowed } from '@/contexts/CookieConsentContext';
 import {
   DEFAULT_VISIBLE_COLUMNS,
   EQUIPMENT_TABLE_COLUMN_META,
@@ -106,6 +107,13 @@ export const useEquipmentTableColumns = (
     const saved = readSavedVisibility(organizationId);
     setVisibleColumns(saved ?? { ...DEFAULT_VISIBLE_COLUMNS });
   }, [organizationId]);
+
+  const rehydrateColumns = useCallback(() => {
+    if (!organizationId) return;
+    const saved = readSavedVisibility(organizationId);
+    if (saved) setVisibleColumns(saved);
+  }, [organizationId]);
+  useWhenPreferenceStorageAllowed(rehydrateColumns);
 
   const persist = useCallback(
     (next: Record<string, boolean>) => {

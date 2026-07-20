@@ -27,6 +27,7 @@ import {
   useSidebar,
   type SidebarContextValue,
 } from "./sidebar-context"
+import { useWhenPreferenceStorageAllowed } from "@/contexts/CookieConsentContext"
 import {
   SIDEBAR_COOKIE_NAME,
   isPreferenceStorageAllowed,
@@ -64,16 +65,18 @@ const SidebarProvider = React.forwardRef<
 
     // This is the internal state of the sidebar.
     // We use openProp and setOpenProp for control from outside the component.
-    const [_open, _setOpen] = React.useState(() => {
-      if (typeof document === "undefined") return defaultOpen
-      // Do not apply a leftover preference cookie until the user has Accepted.
-      if (!isPreferenceStorageAllowed()) return defaultOpen
+    const readSidebarCookieOpen = React.useCallback((): boolean | null => {
+      if (typeof document === "undefined") return null
+      if (!isPreferenceStorageAllowed()) return null
       const cookieMatch = document.cookie
         .split("; ")
         .find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
-      if (!cookieMatch) return defaultOpen
-      const cookieValue = cookieMatch.split("=")[1]
-      return cookieValue === "true"
+      if (!cookieMatch) return null
+      return cookieMatch.split("=")[1] === "true"
+    }, [])
+
+    const [_open, _setOpen] = React.useState(() => {
+      return readSidebarCookieOpen() ?? defaultOpen
     })
     const open = openProp ?? _open
     const setOpen = React.useCallback(
@@ -90,6 +93,13 @@ const SidebarProvider = React.forwardRef<
       },
       [setOpenProp, open]
     )
+
+    const rehydrateSidebar = React.useCallback(() => {
+      const stored = readSidebarCookieOpen()
+      if (stored === null) return
+      _setOpen(stored)
+    }, [readSidebarCookieOpen])
+    useWhenPreferenceStorageAllowed(rehydrateSidebar)
 
     // Helper to toggle the sidebar.
     const toggleSidebar = React.useCallback(() => {

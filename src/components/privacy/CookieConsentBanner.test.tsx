@@ -4,8 +4,11 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { CookieConsentBanner } from './CookieConsentBanner';
-import { CookieConsentProvider } from '@/contexts/CookieConsentContext';
-import { COOKIE_CONSENT_STORAGE_KEY } from '@/lib/cookieConsent';
+import {
+  CookieConsentProvider,
+  useWhenPreferenceStorageAllowed,
+} from '@/contexts/CookieConsentContext';
+import { COOKIE_CONSENT_STORAGE_KEY, getPreferenceLocalStorage } from '@/lib/cookieConsent';
 
 const toastError = vi.fn();
 vi.mock('sonner', () => ({
@@ -27,6 +30,13 @@ function renderBanner() {
       </CookieConsentProvider>
     </MemoryRouter>,
   );
+}
+
+function PreferenceProbe({ onRehydrate }: { onRehydrate: (value: string | null) => void }) {
+  useWhenPreferenceStorageAllowed(() => {
+    onRehydrate(getPreferenceLocalStorage('equipqr:equipment-view-mode'));
+  });
+  return null;
 }
 
 describe('CookieConsentBanner', () => {
@@ -86,5 +96,25 @@ describe('CookieConsentBanner', () => {
     expect(screen.getByRole('region', { name: /cookie consent/i })).toBeInTheDocument();
     expect(toastError).toHaveBeenCalled();
     vi.restoreAllMocks();
+  });
+
+  it('rehydrates stored preferences when Accept is clicked mid-session', async () => {
+    const user = userEvent.setup();
+    const onRehydrate = vi.fn();
+    // Legacy preference present before consent — gated until Accept.
+    localStorage.setItem('equipqr:equipment-view-mode', 'table');
+
+    render(
+      <MemoryRouter future={ROUTER_FUTURE}>
+        <CookieConsentProvider>
+          <PreferenceProbe onRehydrate={onRehydrate} />
+          <CookieConsentBanner />
+        </CookieConsentProvider>
+      </MemoryRouter>,
+    );
+
+    expect(getPreferenceLocalStorage('equipqr:equipment-view-mode')).toBeNull();
+    await user.click(screen.getByRole('button', { name: /^accept$/i }));
+    expect(onRehydrate).toHaveBeenCalledWith('table');
   });
 });

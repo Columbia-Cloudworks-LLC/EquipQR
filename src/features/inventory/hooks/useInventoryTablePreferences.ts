@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useWhenPreferenceStorageAllowed } from '@/contexts/CookieConsentContext';
 import {
   DEFAULT_COLUMN_ORDER,
   DEFAULT_COLUMN_SIZING,
@@ -196,6 +197,13 @@ export const useInventoryTablePreferences = (
     const saved = readSavedPreferences(organizationId);
     setPreferences(saved ?? { ...DEFAULT_TABLE_PREFERENCES });
   }, [organizationId]);
+
+  const rehydratePreferences = useCallback(() => {
+    if (!organizationId) return;
+    const saved = readSavedPreferences(organizationId);
+    if (saved) setPreferences(saved);
+  }, [organizationId]);
+  useWhenPreferenceStorageAllowed(rehydratePreferences);
 
   const persist = useCallback(
     (next: InventoryTablePreferences) => {

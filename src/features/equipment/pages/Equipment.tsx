@@ -36,7 +36,27 @@ import { useEquipmentTableColumns } from '@/features/equipment/hooks/useEquipmen
 import { useOfflineMergedEquipment } from '@/features/equipment/hooks/useOfflineMergedEquipment';
 import { useOrgEquipmentPMStatuses } from '@/features/equipment/hooks/useEquipmentPMStatus';
 import { EquipmentListTransitionRoot } from '@/features/equipment/transitions/EquipmentListTransitionRoot';
+import { useWhenPreferenceStorageAllowed } from '@/contexts/CookieConsentContext';
 import { getPreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
+
+function readEquipmentViewMode(isMobile: boolean): EquipmentViewMode {
+  const stored = getPreferenceLocalStorage('equipqr:equipment-view-mode');
+  let initial: EquipmentViewMode;
+  switch (stored) {
+    case 'table':
+      initial = 'table';
+      break;
+    case 'list':
+      initial = 'grid';
+      break;
+    default:
+      initial = 'grid';
+  }
+  if (initial === 'table' && isMobile) {
+    return 'grid';
+  }
+  return initial;
+}
 
 const Equipment = () => {
   const { currentOrganization } = useOrganization();
@@ -51,24 +71,14 @@ const Equipment = () => {
   const [editingEquipment, setEditingEquipment] = useState<EquipmentRecord | null>(null);
   const [showQRCode, setShowQRCode] = useState<string | null>(null);
   const [showImportCsv, setShowImportCsv] = useState<boolean>(false);
-  const [viewMode, setViewMode] = useState<EquipmentViewMode>(() => {
+  const [viewMode, setViewMode] = useState<EquipmentViewMode>(() => readEquipmentViewMode(isMobile));
+
+  const rehydrateViewMode = useCallback(() => {
     const stored = getPreferenceLocalStorage('equipqr:equipment-view-mode');
-    let initial: EquipmentViewMode;
-    switch (stored) {
-      case 'table':
-        initial = 'table';
-        break;
-      case 'list':
-        initial = 'grid';
-        break;
-      default:
-        initial = 'grid';
-    }
-    if (initial === 'table' && isMobile) {
-      return 'grid';
-    }
-    return initial;
-  });
+    if (!stored) return;
+    setViewMode(readEquipmentViewMode(isMobile));
+  }, [isMobile]);
+  useWhenPreferenceStorageAllowed(rehydrateViewMode);
 
   const {
     filters,

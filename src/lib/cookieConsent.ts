@@ -20,6 +20,7 @@
  */
 
 export const COOKIE_CONSENT_STORAGE_KEY = 'equipqr:cookie-consent';
+export const COOKIE_CONSENT_CHANGED_EVENT = 'equipqr:cookie-consent-changed';
 export const SIDEBAR_COOKIE_NAME = 'sidebar:state';
 
 export type CookieConsentDecision = 'accepted' | 'rejected';
@@ -184,6 +185,15 @@ export function applyCookieConsentDecision(decision: CookieConsentDecision): boo
   if (!persisted) return false;
   if (decision === 'rejected') {
     clearOptionalPreferenceStorage();
+  }
+  try {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent(COOKIE_CONSENT_CHANGED_EVENT, { detail: { decision } }),
+      );
+    }
+  } catch {
+    // ignore — preference rehydrate listeners are best-effort
   }
   return true;
 }

@@ -8,6 +8,7 @@ import {
   type SelectedTeamContextType,
   type SelectedTeamId,
 } from './selected-team-context';
+import { useWhenPreferenceStorageAllowed } from '@/contexts/CookieConsentContext';
 import {
   getPreferenceLocalStorage,
   removePreferenceLocalStorage,
@@ -56,6 +57,13 @@ export const SelectedTeamProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     setSelectedTeamIdState(readStoredTeamId(organizationId));
   }, [organizationId]);
+
+  // Accept mid-session: apply a stored team preference that was gated on first paint.
+  const rehydrateStoredTeam = useCallback(() => {
+    const stored = readStoredTeamId(organizationId);
+    if (stored) setSelectedTeamIdState(stored);
+  }, [organizationId]);
+  useWhenPreferenceStorageAllowed(rehydrateStoredTeam);
 
   // Auto-clear when the selected team is no longer in the user's memberships
   // for the active organization (e.g. removed from the team, or org switched

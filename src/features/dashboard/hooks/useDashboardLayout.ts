@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useWhenPreferenceStorageAllowed } from '@/contexts/CookieConsentContext';
 import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/utils/logger';
 import { dashboardPreferences } from '@/lib/queryKeys';
@@ -94,6 +95,13 @@ export function useDashboardLayout(organizationId: string | undefined): UseDashb
     }
     setInitialized(true);
   }, [userId, organizationId]);
+
+  const rehydrateLocalLayout = useCallback(() => {
+    if (!userId || !organizationId) return;
+    const stored = readFromLocalStorage(userId, organizationId);
+    if (stored) setActiveWidgets(stored.activeWidgets);
+  }, [userId, organizationId]);
+  useWhenPreferenceStorageAllowed(rehydrateLocalLayout);
 
   // Background fetch from Supabase to sync across devices
   const { data: supabasePrefs } = useQuery({
