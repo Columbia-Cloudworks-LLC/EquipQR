@@ -27,6 +27,8 @@ function toPersistedSessionOrganization(org: SessionOrganization): SessionOrgani
     logo: org.logo,
     backgroundColor: org.backgroundColor,
     scanLocationCollectionEnabled: org.scanLocationCollectionEnabled,
+    // Keep the human-readable location *name* for UX; omit street/city/coords (PII).
+    inventoryDefaultLocationName: org.inventoryDefaultLocationName,
     userRole: org.userRole,
     userStatus: org.userStatus,
   };

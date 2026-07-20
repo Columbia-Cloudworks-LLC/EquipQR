@@ -10,7 +10,6 @@ import {
   toSameOriginPath,
 } from '@/utils/redirectValidation';
 import { schedulePendingTermsAcceptanceFlush } from '@/lib/termsAcceptanceRecording';
-import { getPreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
 import { clearOfflineBlobsForUser } from '@/services/offlineBlobStore';
 
 /**
@@ -94,7 +93,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // apply_pending_admin_grants_for_user applies grants for the user across ALL
           // organizations they belong to, so organization context isn't needed.
           const adminGrantsCacheKey = `equipqr_admin_grants_${session.user.id}`;
-          const lastAppliedStr = getPreferenceLocalStorage(adminGrantsCacheKey);
+          // Throttle key is strictly necessary (RPC rate limiting), not a UI preference.
+          const lastAppliedStr = localStorage.getItem(adminGrantsCacheKey);
           const lastAppliedAt = lastAppliedStr ? parseInt(lastAppliedStr, 10) : 0;
           const shouldApplyGrants = Date.now() - lastAppliedAt > ADMIN_GRANTS_THROTTLE_MS;
 
@@ -123,7 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     p_user_id: userIdAtSignIn,
                   })
                     .then(() => {
-                      setPreferenceLocalStorage(adminGrantsCacheKey, String(Date.now()));
+                      localStorage.setItem(adminGrantsCacheKey, String(Date.now()));
                     })
                     .catch((error) => {
                       if (import.meta.env.DEV) {

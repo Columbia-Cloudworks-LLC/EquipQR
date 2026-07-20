@@ -37,7 +37,6 @@ const OPTIONAL_LOCAL_STORAGE_PREFIXES = [
   'equipqr-operator-checkin-starter-catalog-expanded:',
   'equipqr_dashboard_layout_',
   'eqr_work_timer_',
-  'equipqr_admin_grants_',
   'equipqr_export_columns_',
   'pm-checklist-',
   'pm-template-editor-',

@@ -101,6 +101,7 @@ describe('SessionStorageService', () => {
         organizations: [
           {
             ...buildSession().organizations[0]!,
+            inventoryDefaultLocationName: 'Main Yard',
             inventoryDefaultLocationAddress: '123 Main St',
             inventoryDefaultLocationCity: 'Springfield',
             inventoryDefaultLocationLat: 41.5,
@@ -114,6 +115,7 @@ describe('SessionStorageService', () => {
       const persisted = JSON.parse(localStorage.getItem(STORAGE_KEY)!) as typeof session;
       expect(persisted.currentOrganizationId).toBe(session.currentOrganizationId);
       expect(persisted.organizations[0]?.id).toBe('org-1');
+      expect(persisted.organizations[0]?.inventoryDefaultLocationName).toBe('Main Yard');
       expect(persisted.organizations[0]).not.toHaveProperty('inventoryDefaultLocationAddress');
       expect(persisted.organizations[0]).not.toHaveProperty('inventoryDefaultLocationLat');
     });
