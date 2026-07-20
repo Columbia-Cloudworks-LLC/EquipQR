@@ -3,7 +3,7 @@
 -- (validated by scripts/validate-security-definer-allowlist-sync.mjs).
 
 BEGIN;
-SELECT plan(24);
+SELECT plan(26);
 
 -- 1. Only intentional pre-auth / token RPCs remain callable by anon
 --    (covers INVOKER + DEFINER — not DEFINER-only).
@@ -91,6 +91,24 @@ SELECT is(
             'EXECUTE')),
   false,
   'authenticated cannot execute trigger helper update_updated_at_column'
+);
+
+SELECT is(
+  (SELECT has_function_privilege(
+            'authenticated',
+            'public.storage_object_path_segment_uuid(text, integer)',
+            'EXECUTE')),
+  false,
+  'authenticated cannot execute internal INVOKER storage_object_path_segment_uuid'
+);
+
+SELECT is(
+  (SELECT has_function_privilege(
+            'authenticated',
+            'public.normalize_email(text)',
+            'EXECUTE')),
+  false,
+  'authenticated cannot execute internal INVOKER normalize_email'
 );
 
 -- 2. Representative internal helpers are not REST-callable.

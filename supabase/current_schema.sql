@@ -22721,7 +22721,6 @@ GRANT ALL ON FUNCTION "public"."adjust_inventory_quantity"("p_item_id" "uuid", "
 
 
 REVOKE ALL ON FUNCTION "public"."anonymize_audit_changes"("p_changes" "jsonb", "p_email" "text") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."anonymize_audit_changes"("p_changes" "jsonb", "p_email" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."anonymize_audit_changes"("p_changes" "jsonb", "p_email" "text") TO "service_role";
 
 
@@ -22743,8 +22742,8 @@ GRANT ALL ON FUNCTION "public"."apply_pending_admin_grants_for_user"("p_user_id"
 
 
 REVOKE ALL ON FUNCTION "public"."assert_inventory_read_access"("p_organization_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."assert_inventory_read_access"("p_organization_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."assert_inventory_read_access"("p_organization_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."assert_inventory_read_access"("p_organization_id" "uuid") TO "authenticated";
 
 
 
@@ -22809,14 +22808,14 @@ GRANT ALL ON FUNCTION "public"."broadcast_ticket_status_update"() TO "service_ro
 
 
 REVOKE ALL ON FUNCTION "public"."bulk_set_compatibility_rules"("p_organization_id" "uuid", "p_item_id" "uuid", "p_rules" "jsonb") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."bulk_set_compatibility_rules"("p_organization_id" "uuid", "p_item_id" "uuid", "p_rules" "jsonb") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."bulk_set_compatibility_rules"("p_organization_id" "uuid", "p_item_id" "uuid", "p_rules" "jsonb") TO "service_role";
+GRANT ALL ON FUNCTION "public"."bulk_set_compatibility_rules"("p_organization_id" "uuid", "p_item_id" "uuid", "p_rules" "jsonb") TO "authenticated";
 
 
 
 REVOKE ALL ON FUNCTION "public"."bulk_set_pm_template_rules"("p_organization_id" "uuid", "p_template_id" "uuid", "p_rules" "jsonb") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."bulk_set_pm_template_rules"("p_organization_id" "uuid", "p_template_id" "uuid", "p_rules" "jsonb") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."bulk_set_pm_template_rules"("p_organization_id" "uuid", "p_template_id" "uuid", "p_rules" "jsonb") TO "service_role";
+GRANT ALL ON FUNCTION "public"."bulk_set_pm_template_rules"("p_organization_id" "uuid", "p_template_id" "uuid", "p_rules" "jsonb") TO "authenticated";
 
 
 
@@ -22831,8 +22830,8 @@ GRANT ALL ON FUNCTION "public"."calculate_organization_billing"("org_id" "uuid")
 
 
 REVOKE ALL ON FUNCTION "public"."can_access_inventory"("p_organization_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."can_access_inventory"("p_organization_id" "uuid", "p_user_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."can_access_inventory"("p_organization_id" "uuid", "p_user_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."can_access_inventory"("p_organization_id" "uuid", "p_user_id" "uuid") TO "authenticated";
 
 
 
@@ -22853,8 +22852,8 @@ GRANT ALL ON FUNCTION "public"."can_edit_work_order_note"("p_user_id" "uuid", "p
 
 
 REVOKE ALL ON FUNCTION "public"."can_manage_inventory"("p_organization_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."can_manage_inventory"("p_organization_id" "uuid", "p_user_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."can_manage_inventory"("p_organization_id" "uuid", "p_user_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."can_manage_inventory"("p_organization_id" "uuid", "p_user_id" "uuid") TO "authenticated";
 
 
 
@@ -22914,8 +22913,8 @@ GRANT ALL ON FUNCTION "public"."check_email_exists_in_auth"("p_email" "text") TO
 
 
 REVOKE ALL ON FUNCTION "public"."check_export_rate_limit"("p_user_id" "uuid", "p_organization_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."check_export_rate_limit"("p_user_id" "uuid", "p_organization_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."check_export_rate_limit"("p_user_id" "uuid", "p_organization_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."check_export_rate_limit"("p_user_id" "uuid", "p_organization_id" "uuid") TO "authenticated";
 
 
 
@@ -23024,14 +23023,14 @@ GRANT ALL ON FUNCTION "public"."convert_work_order_to_historical"("p_work_order_
 
 
 REVOKE ALL ON FUNCTION "public"."count_equipment_matching_pm_rules"("p_organization_id" "uuid", "p_rules" "jsonb") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."count_equipment_matching_pm_rules"("p_organization_id" "uuid", "p_rules" "jsonb") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."count_equipment_matching_pm_rules"("p_organization_id" "uuid", "p_rules" "jsonb") TO "service_role";
+GRANT ALL ON FUNCTION "public"."count_equipment_matching_pm_rules"("p_organization_id" "uuid", "p_rules" "jsonb") TO "authenticated";
 
 
 
 REVOKE ALL ON FUNCTION "public"."count_equipment_matching_rules"("p_organization_id" "uuid", "p_rules" "jsonb") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."count_equipment_matching_rules"("p_organization_id" "uuid", "p_rules" "jsonb") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."count_equipment_matching_rules"("p_organization_id" "uuid", "p_rules" "jsonb") TO "service_role";
+GRANT ALL ON FUNCTION "public"."count_equipment_matching_rules"("p_organization_id" "uuid", "p_rules" "jsonb") TO "authenticated";
 
 
 
@@ -23229,14 +23228,14 @@ GRANT ALL ON FUNCTION "public"."fulfill_dsr_deletion"("p_dsr_request_id" "uuid",
 
 
 REVOKE ALL ON FUNCTION "public"."get_alternates_for_inventory_item"("p_organization_id" "uuid", "p_inventory_item_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."get_alternates_for_inventory_item"("p_organization_id" "uuid", "p_inventory_item_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_alternates_for_inventory_item"("p_organization_id" "uuid", "p_inventory_item_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."get_alternates_for_inventory_item"("p_organization_id" "uuid", "p_inventory_item_id" "uuid") TO "authenticated";
 
 
 
 REVOKE ALL ON FUNCTION "public"."get_alternates_for_part_number"("p_organization_id" "uuid", "p_part_number" "text") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."get_alternates_for_part_number"("p_organization_id" "uuid", "p_part_number" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_alternates_for_part_number"("p_organization_id" "uuid", "p_part_number" "text") TO "service_role";
+GRANT ALL ON FUNCTION "public"."get_alternates_for_part_number"("p_organization_id" "uuid", "p_part_number" "text") TO "authenticated";
 
 
 
@@ -23252,20 +23251,20 @@ GRANT ALL ON FUNCTION "public"."get_audit_log_timeline"("p_organization_id" "uui
 
 
 REVOKE ALL ON FUNCTION "public"."get_compatible_parts_for_equipment"("p_organization_id" "uuid", "p_equipment_ids" "uuid"[]) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."get_compatible_parts_for_equipment"("p_organization_id" "uuid", "p_equipment_ids" "uuid"[]) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_compatible_parts_for_equipment"("p_organization_id" "uuid", "p_equipment_ids" "uuid"[]) TO "service_role";
+GRANT ALL ON FUNCTION "public"."get_compatible_parts_for_equipment"("p_organization_id" "uuid", "p_equipment_ids" "uuid"[]) TO "authenticated";
 
 
 
 REVOKE ALL ON FUNCTION "public"."get_compatible_parts_for_make_model"("p_organization_id" "uuid", "p_manufacturer" "text", "p_model" "text") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."get_compatible_parts_for_make_model"("p_organization_id" "uuid", "p_manufacturer" "text", "p_model" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_compatible_parts_for_make_model"("p_organization_id" "uuid", "p_manufacturer" "text", "p_model" "text") TO "service_role";
+GRANT ALL ON FUNCTION "public"."get_compatible_parts_for_make_model"("p_organization_id" "uuid", "p_manufacturer" "text", "p_model" "text") TO "authenticated";
 
 
 
 REVOKE ALL ON FUNCTION "public"."get_current_billing_period"() FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."get_current_billing_period"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_current_billing_period"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."get_current_billing_period"() TO "authenticated";
 
 
 
@@ -23287,8 +23286,8 @@ GRANT ALL ON FUNCTION "public"."get_effective_pm_interval_policy_for_equipment"(
 
 
 REVOKE ALL ON FUNCTION "public"."get_equipment_for_inventory_item_rules"("p_organization_id" "uuid", "p_item_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."get_equipment_for_inventory_item_rules"("p_organization_id" "uuid", "p_item_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_equipment_for_inventory_item_rules"("p_organization_id" "uuid", "p_item_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."get_equipment_for_inventory_item_rules"("p_organization_id" "uuid", "p_item_id" "uuid") TO "authenticated";
 
 
 
@@ -23305,14 +23304,14 @@ GRANT ALL ON FUNCTION "public"."get_export_job_status"("p_job_id" "uuid") TO "au
 
 
 REVOKE ALL ON FUNCTION "public"."get_fleet_efficiency"("p_org_id" "uuid", "p_team_ids" "uuid"[]) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."get_fleet_efficiency"("p_org_id" "uuid", "p_team_ids" "uuid"[]) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_fleet_efficiency"("p_org_id" "uuid", "p_team_ids" "uuid"[]) TO "service_role";
+GRANT ALL ON FUNCTION "public"."get_fleet_efficiency"("p_org_id" "uuid", "p_team_ids" "uuid"[]) TO "authenticated";
 
 
 
 REVOKE ALL ON FUNCTION "public"."get_global_pm_template_names"() FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."get_global_pm_template_names"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_global_pm_template_names"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."get_global_pm_template_names"() TO "authenticated";
 
 
 
@@ -23323,8 +23322,8 @@ GRANT ALL ON FUNCTION "public"."get_google_workspace_connection_status"("p_organ
 
 
 REVOKE ALL ON FUNCTION "public"."get_inventory_list_metadata"("p_organization_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."get_inventory_list_metadata"("p_organization_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_inventory_list_metadata"("p_organization_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."get_inventory_list_metadata"("p_organization_id" "uuid") TO "authenticated";
 
 
 
@@ -23353,8 +23352,8 @@ GRANT ALL ON FUNCTION "public"."get_latest_completed_pm"("equipment_uuid" "uuid"
 
 
 REVOKE ALL ON FUNCTION "public"."get_matching_pm_templates"("p_organization_id" "uuid", "p_equipment_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."get_matching_pm_templates"("p_organization_id" "uuid", "p_equipment_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_matching_pm_templates"("p_organization_id" "uuid", "p_equipment_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."get_matching_pm_templates"("p_organization_id" "uuid", "p_equipment_id" "uuid") TO "authenticated";
 
 
 
@@ -23528,8 +23527,8 @@ GRANT ALL ON FUNCTION "public"."handle_updated_at"() TO "service_role";
 
 
 REVOKE ALL ON FUNCTION "public"."historical_timeline_allowed_next_statuses"("p_current_status" "public"."work_order_status") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."historical_timeline_allowed_next_statuses"("p_current_status" "public"."work_order_status") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."historical_timeline_allowed_next_statuses"("p_current_status" "public"."work_order_status") TO "service_role";
+GRANT ALL ON FUNCTION "public"."historical_timeline_allowed_next_statuses"("p_current_status" "public"."work_order_status") TO "authenticated";
 
 
 
@@ -23579,14 +23578,14 @@ GRANT ALL ON FUNCTION "public"."is_organization_member"("user_uuid" "uuid", "org
 
 
 REVOKE ALL ON FUNCTION "public"."is_parts_consumer"("p_organization_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."is_parts_consumer"("p_organization_id" "uuid", "p_user_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."is_parts_consumer"("p_organization_id" "uuid", "p_user_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."is_parts_consumer"("p_organization_id" "uuid", "p_user_id" "uuid") TO "authenticated";
 
 
 
 REVOKE ALL ON FUNCTION "public"."is_parts_manager"("p_organization_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."is_parts_manager"("p_organization_id" "uuid", "p_user_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."is_parts_manager"("p_organization_id" "uuid", "p_user_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."is_parts_manager"("p_organization_id" "uuid", "p_user_id" "uuid") TO "authenticated";
 
 
 
@@ -23611,8 +23610,8 @@ GRANT ALL ON FUNCTION "public"."is_work_order_team_manager"("p_user_id" "uuid", 
 
 
 REVOKE ALL ON FUNCTION "public"."latest_scans_for_equipment_ids"("p_organization_id" "uuid", "p_equipment_ids" "uuid"[]) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."latest_scans_for_equipment_ids"("p_organization_id" "uuid", "p_equipment_ids" "uuid"[]) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."latest_scans_for_equipment_ids"("p_organization_id" "uuid", "p_equipment_ids" "uuid"[]) TO "service_role";
+GRANT ALL ON FUNCTION "public"."latest_scans_for_equipment_ids"("p_organization_id" "uuid", "p_equipment_ids" "uuid"[]) TO "authenticated";
 
 
 
@@ -23639,14 +23638,14 @@ GRANT ALL ON FUNCTION "public"."list_operator_checkin_restorable_template_ids"("
 
 
 REVOKE ALL ON FUNCTION "public"."list_pm_templates"() FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."list_pm_templates"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."list_pm_templates"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."list_pm_templates"() TO "authenticated";
 
 
 
 REVOKE ALL ON FUNCTION "public"."list_pm_templates"("org_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."list_pm_templates"("org_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."list_pm_templates"("org_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."list_pm_templates"("org_id" "uuid") TO "authenticated";
 
 
 
@@ -23714,25 +23713,22 @@ GRANT ALL ON FUNCTION "public"."migrate_personal_orgs_to_workspace"("p_workspace
 
 
 REVOKE ALL ON FUNCTION "public"."monitoring_healthcheck"() FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."monitoring_healthcheck"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."monitoring_healthcheck"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."monitoring_healthcheck"() TO "authenticated";
 
 
 
 REVOKE ALL ON FUNCTION "public"."normalize_compatibility_pattern"("p_match_type" "public"."model_match_type", "p_pattern" "text") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."normalize_compatibility_pattern"("p_match_type" "public"."model_match_type", "p_pattern" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."normalize_compatibility_pattern"("p_match_type" "public"."model_match_type", "p_pattern" "text") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."normalize_domain"("p_domain" "text") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."normalize_domain"("p_domain" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."normalize_domain"("p_domain" "text") TO "service_role";
 
 
 
 REVOKE ALL ON FUNCTION "public"."normalize_email"("p_email" "text") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."normalize_email"("p_email" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."normalize_email"("p_email" "text") TO "service_role";
 
 
@@ -23949,7 +23945,6 @@ GRANT ALL ON FUNCTION "public"."snapshot_pm_working_hours"() TO "service_role";
 
 REVOKE ALL ON FUNCTION "public"."storage_object_path_segment_uuid"("p_object_name" "text", "p_segment_index" integer) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."storage_object_path_segment_uuid"("p_object_name" "text", "p_segment_index" integer) TO "service_role";
-GRANT ALL ON FUNCTION "public"."storage_object_path_segment_uuid"("p_object_name" "text", "p_segment_index" integer) TO "authenticated";
 
 
 
@@ -23984,7 +23979,6 @@ GRANT ALL ON FUNCTION "public"."sync_work_order_primary_equipment"() TO "service
 
 
 REVOKE ALL ON FUNCTION "public"."synthesize_historical_timeline_events"("p_historical_start_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_status" "public"."work_order_status", "p_assignee_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."synthesize_historical_timeline_events"("p_historical_start_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_status" "public"."work_order_status", "p_assignee_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."synthesize_historical_timeline_events"("p_historical_start_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_status" "public"."work_order_status", "p_assignee_id" "uuid") TO "service_role";
 
 

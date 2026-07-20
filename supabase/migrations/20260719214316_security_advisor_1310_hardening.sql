@@ -192,6 +192,32 @@ DECLARE
     'user_is_org_admin',
     'user_is_org_member'
   ];
+  invoker_client_allowlist text[] := ARRAY[
+    'assert_inventory_read_access',
+    'bulk_set_compatibility_rules',
+    'bulk_set_pm_template_rules',
+    'can_access_inventory',
+    'can_manage_inventory',
+    'check_export_rate_limit',
+    'count_equipment_matching_pm_rules',
+    'count_equipment_matching_rules',
+    'get_alternates_for_inventory_item',
+    'get_alternates_for_part_number',
+    'get_compatible_parts_for_equipment',
+    'get_compatible_parts_for_make_model',
+    'get_current_billing_period',
+    'get_equipment_for_inventory_item_rules',
+    'get_fleet_efficiency',
+    'get_global_pm_template_names',
+    'get_inventory_list_metadata',
+    'get_matching_pm_templates',
+    'historical_timeline_allowed_next_statuses',
+    'is_parts_consumer',
+    'is_parts_manager',
+    'latest_scans_for_equipment_ids',
+    'list_pm_templates',
+    'monitoring_healthcheck'
+  ];
 BEGIN
   -- Anon surface lockdown (INVOKER + DEFINER): revoke PUBLIC/anon from every
   -- public function first. Do NOT filter on prosecdef here — INVOKER RPCs that
@@ -232,17 +258,20 @@ BEGIN
     EXECUTE format('REVOKE ALL ON FUNCTION %s FROM authenticated', fn);
   END LOOP;
 
-  -- Non-trigger INVOKER RPCs remain client-callable under RLS as the invoker.
-  FOR fn IN
-    SELECT p.oid::regprocedure
-    FROM pg_proc p
-    JOIN pg_namespace n ON n.oid = p.pronamespace
-    WHERE n.nspname = 'public'
-      AND p.prokind = 'f'
-      AND NOT p.prosecdef
-      AND pg_get_function_result(p.oid) <> 'trigger'
-  LOOP
-    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated', fn);
+  -- Client-callable SECURITY INVOKER RPCs only (not internal helpers such as
+  -- storage_object_path_segment_uuid / normalize_* / synthesize_*).
+  FOREACH func_name IN ARRAY invoker_client_allowlist LOOP
+    FOR fn IN
+      SELECT p.oid::regprocedure
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+      WHERE n.nspname = 'public'
+        AND p.prokind = 'f'
+        AND NOT p.prosecdef
+        AND p.proname = func_name
+    LOOP
+      EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated', fn);
+    END LOOP;
   END LOOP;
 
   -- Grant every SECURITY DEFINER overload for allowlisted names. Clients may
