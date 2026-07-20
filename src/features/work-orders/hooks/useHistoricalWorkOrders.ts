@@ -157,9 +157,11 @@ export const useCreateHistoricalWorkOrder = (options?: {
           p_pm_checklist_data: data.hasPM && (!data.pmChecklistData || data.pmChecklistData.length === 0)
             ? defaultForkliftChecklist
             : data.pmChecklistData || [],
-          p_timeline_events: data.timelineEvents
-            ? eventsToRpcPayload(data.timelineEvents)
-            : undefined,
+          // Omit when absent: both DEFINER overloads retain authenticated EXECUTE
+          // after #1310 re-lock (legacy without p_timeline_events + timeline).
+          ...(data.timelineEvents
+            ? { p_timeline_events: eventsToRpcPayload(data.timelineEvents) }
+            : {}),
         },
       );
 
