@@ -5,14 +5,17 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAppToast } from '@/hooks/useAppToast';
+import { useAuth } from '@/hooks/useAuth';
 import SingleImageUpload from '@/components/common/SingleImageUpload';
 import { uploadAvatar, deleteAvatar } from '@/services/profileService';
 import { useResolvedAvatarUrl } from '@/hooks/useResolvedAvatarUrl';
 import { Save, Loader2 } from 'lucide-react';
 import { trimmedAvatarPath, userDisplayInitials } from '@/utils/userDisplayInitials';
+import { resolveEffectiveAvatarUrl } from '@/utils/resolveEffectiveAvatarUrl';
 
 const ProfileSettings = () => {
   const { currentUser, setCurrentUser } = useUser();
+  const { user: authUser } = useAuth();
   const { data: avatarDisplayUrl, isPending: isAvatarPending } = useResolvedAvatarUrl(currentUser?.avatar_url);
   const appToast = useAppToast();
   const [name, setName] = useState(currentUser?.name || '');
@@ -51,9 +54,16 @@ const ProfileSettings = () => {
   };
 
   const handleAvatarDelete = async () => {
-    if (!currentUser?.avatar_url) return;
-    await deleteAvatar(currentUser.id, currentUser.avatar_url);
-    setCurrentUser({ ...currentUser, avatar_url: null });
+    if (!currentUser) return;
+    const avatarPath = trimmedAvatarPath(currentUser.avatar_url);
+    // Only EquipQR storage paths can be deleted; Google CDN URLs are fallbacks
+    if (!avatarPath || /^https?:\/\//i.test(avatarPath)) return;
+
+    await deleteAvatar(currentUser.id, avatarPath);
+    setCurrentUser({
+      ...currentUser,
+      avatar_url: resolveEffectiveAvatarUrl(null, authUser?.user_metadata),
+    });
   };
 
   if (!currentUser) return null;
@@ -67,7 +77,7 @@ const ProfileSettings = () => {
       <SingleImageUpload
         currentImageUrl={avatarDisplayUrl}
         onUpload={handleAvatarUpload}
-        onDelete={handleAvatarDelete}
+        onDelete={hasCanonicalAvatarPath ? handleAvatarDelete : undefined}
         maxSizeMB={5}
         disabled={isLoading}
         variant="avatar"
