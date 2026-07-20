@@ -515,7 +515,7 @@ describe('imageUploadService', () => {
     });
 
     it('passes batch TTL to per-path fallback when batch omits a usable URL', async () => {
-      mockFrom.mockImplementation((_bucket: string) => ({
+      mockFrom.mockImplementation(() => ({
         upload: mockUpload,
         getPublicUrl: mockGetPublicUrl,
         createSignedUrl: mockCreateSignedUrl,
