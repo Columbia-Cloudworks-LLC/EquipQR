@@ -157,11 +157,11 @@ export const useCreateHistoricalWorkOrder = (options?: {
           p_pm_checklist_data: data.hasPM && (!data.pmChecklistData || data.pmChecklistData.length === 0)
             ? defaultForkliftChecklist
             : data.pmChecklistData || [],
-          // Prefer null over undefined so PostgREST binds the timeline overload
-          // (omitted keys can resolve to a legacy signature without this arg).
-          p_timeline_events: data.timelineEvents
-            ? eventsToRpcPayload(data.timelineEvents)
-            : null,
+          // Omit when absent: both DEFINER overloads retain authenticated EXECUTE
+          // after #1310 re-lock (legacy without p_timeline_events + timeline).
+          ...(data.timelineEvents
+            ? { p_timeline_events: eventsToRpcPayload(data.timelineEvents) }
+            : {}),
         },
       );
 

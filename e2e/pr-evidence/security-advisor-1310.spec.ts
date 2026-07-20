@@ -4,8 +4,10 @@ import { test, expect } from '@playwright/test';
 import { apexOrgId } from '../user/shared/seed-data';
 import { evidencePause, evidenceScreenshot } from './shared/evidence-helpers';
 
-const SUPABASE_URL =
-  process.env.PR_EVIDENCE_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? 'http://127.0.0.1:54321';
+/** Local stack only — do not fall back to VITE_SUPABASE_URL in PR evidence. */
+const SUPABASE_URL = (
+  process.env.PR_EVIDENCE_SUPABASE_URL ?? 'http://127.0.0.1:54321'
+).replace(/\/$/, '');
 const DOCS_BASE_URL = (
   process.env.PR_EVIDENCE_DOCS_URL ??
   process.env.DEMO_DOCS_BASE_URL ??
@@ -52,14 +54,30 @@ function resolveAnonKeyFromEnv(): string {
 
 function resolveOwnerAccessToken(): string {
   const statePath = path.join(process.cwd(), 'tmp', 'playwright', 'auth', 'owner.json');
-  const state = JSON.parse(fs.readFileSync(statePath, 'utf8')) as {
+  if (!fs.existsSync(statePath)) {
+    throw new Error(`Missing Playwright owner auth state at ${statePath}`);
+  }
+
+  let state: {
     origins?: Array<{ localStorage?: Array<{ name: string; value: string }> }>;
   };
+  try {
+    state = JSON.parse(fs.readFileSync(statePath, 'utf8')) as typeof state;
+  } catch (err) {
+    throw new Error(
+      `Invalid Playwright owner auth JSON at ${statePath}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
   for (const origin of state.origins ?? []) {
     for (const entry of origin.localStorage ?? []) {
       if (!entry.name.includes('-auth-token')) continue;
-      const session = JSON.parse(entry.value) as { access_token?: string };
-      if (session.access_token) return session.access_token;
+      try {
+        const session = JSON.parse(entry.value) as { access_token?: string };
+        if (session.access_token) return session.access_token;
+      } catch {
+        // Skip corrupt localStorage entries; keep scanning.
+      }
     }
   }
   throw new Error(`Missing owner access_token in ${statePath}`);
@@ -84,23 +102,25 @@ test.describe('Security Advisor hardening (#1310) @pr-evidence', () => {
     request,
     baseURL,
   }) => {
-    const base = SUPABASE_URL.replace(/\/$/, '');
     const appBase = (baseURL ?? process.env.DEMO_BASE_URL ?? 'http://localhost:8080').replace(
       /\/$/,
       '',
     );
     const anonKey = resolveAnonKeyFromEnv();
     const ownerToken = resolveOwnerAccessToken();
-    const publicUrl = `${base}/storage/v1/object/public/${PROBE_BUCKET}/${PROBE_OBJECT}`;
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${PROBE_BUCKET}/${PROBE_OBJECT}`;
 
-    const upload = await request.post(`${base}/storage/v1/object/${PROBE_BUCKET}/${PROBE_OBJECT}`, {
-      headers: {
-        apikey: anonKey,
-        Authorization: `Bearer ${ownerToken}`,
-        'Content-Type': 'image/png',
+    const upload = await request.post(
+      `${SUPABASE_URL}/storage/v1/object/${PROBE_BUCKET}/${PROBE_OBJECT}`,
+      {
+        headers: {
+          apikey: anonKey,
+          Authorization: `Bearer ${ownerToken}`,
+          'Content-Type': 'image/png',
+        },
+        data: PROBE_PNG,
       },
-      data: PROBE_PNG,
-    });
+    );
     expect(upload.ok(), `authenticated upload: ${upload.status()} ${await upload.text()}`).toBeTruthy();
 
     const probe = await request.get(publicUrl);
@@ -108,7 +128,7 @@ test.describe('Security Advisor hardening (#1310) @pr-evidence', () => {
     expect(probe.headers()['content-type'] ?? '').toMatch(/image\//);
 
     // Prefix-scoped list: if SELECT listing still worked, this would return the probe.
-    const list = await request.post(`${base}/storage/v1/object/list/${PROBE_BUCKET}`, {
+    const list = await request.post(`${SUPABASE_URL}/storage/v1/object/list/${PROBE_BUCKET}`, {
       headers: {
         apikey: anonKey,
         Authorization: `Bearer ${anonKey}`,
