@@ -9,7 +9,8 @@ Issue [#762](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/762) lock
 | Category | Callable by | Examples |
 | --- | --- | --- |
 | **anon public RPC** | `anon`, `authenticated` | Pre-auth flows that must work before sign-in (`get_invitation_by_token_secure`) |
-| **authenticated public RPC** | `authenticated` only | Dashboard, inventory, invitations, OAuth session setup, org admin actions |
+| **authenticated public RPC** | `authenticated` only | Dashboard, inventory, invitations, OAuth session setup, org admin actions (`SECURITY DEFINER`) |
+| **invoker client RPC** | `authenticated` only | Client-callable `SECURITY INVOKER` helpers under RLS (`invokerClientRpc` in the JSON allowlist) |
 | **RLS predicate helper** | `authenticated` only (not `anon`) | `is_org_member`, `is_org_admin`, `user_is_org_member` — required for policy evaluation, not public REST APIs |
 | **internal / service** | `service_role`, trigger/cron context only | `notify_org_admins`, `invoke_queue_worker`, audit triggers |
 | **internal trigger** | Not REST-callable | `handle_new_user`, `audit_*_changes`, `log_work_order_status_change` |
