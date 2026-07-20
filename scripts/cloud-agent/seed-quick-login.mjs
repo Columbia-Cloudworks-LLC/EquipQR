@@ -14,7 +14,18 @@ import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 
 export const PARENT_PROJECT_REF = 'ymxkzronkhwxzcdcbnwq';
-export const DEV_PASSWORD = 'password123';
+
+/**
+ * Same password contract as DevQuickLogin.tsx / local supabase seeds.
+ * Override with CLOUD_AGENT_QUICK_LOGIN_PASSWORD or VITE_DEV_TEST_PASSWORD.
+ */
+export function resolveDevPassword() {
+  return (
+    process.env.CLOUD_AGENT_QUICK_LOGIN_PASSWORD ||
+    process.env.VITE_DEV_TEST_PASSWORD ||
+    'password123'
+  );
+}
 
 /** Core Dev Quick Login personas (emails/password match DevQuickLogin.tsx). */
 export const QUICK_LOGIN_PERSONAS = [
@@ -193,6 +204,20 @@ export function formatShellKeyAssignments({ anonKey, serviceRoleKey }) {
   ].join('\n');
 }
 
+/** Normalize Management API / CLI branch list shapes. */
+export function normalizeBranchList(list) {
+  if (Array.isArray(list)) return list;
+  if (!list || typeof list !== 'object') return [];
+  const nested = list.branches || list.data || list.projects;
+  return Array.isArray(nested) ? nested : [];
+}
+
+export function findBranchByName(list, branchName) {
+  return (
+    normalizeBranchList(list).find((branch) => branch?.name === branchName) || null
+  );
+}
+
 function log(message) {
   console.log(`  [cloud-seed] ${message}`);
 }
@@ -213,10 +238,11 @@ async function ensureAuthUser(admin, persona) {
   );
 
   if (existing) {
+    const password = resolveDevPassword();
     const { error: updateError } = await admin.auth.admin.updateUserById(
       existing.id,
       {
-        password: DEV_PASSWORD,
+        password,
         email_confirm: true,
         user_metadata: {
           name: persona.name,
@@ -233,7 +259,7 @@ async function ensureAuthUser(admin, persona) {
   const { data, error } = await admin.auth.admin.createUser({
     id: persona.id,
     email: persona.email,
-    password: DEV_PASSWORD,
+    password: resolveDevPassword(),
     email_confirm: true,
     user_metadata: {
       name: persona.name,
@@ -450,7 +476,6 @@ export async function seedQuickLogin({
   return {
     seededEmails: personas.map((p) => p.email),
     apexOrgId,
-    password: DEV_PASSWORD,
   };
 }
 
@@ -479,6 +504,15 @@ async function main() {
     return;
   }
 
+  if (process.argv.includes('--find-branch')) {
+    const branchName = readArg('--find-branch');
+    const list = JSON.parse(fs.readFileSync(0, 'utf8') || '[]');
+    const match = findBranchByName(list, branchName);
+    if (!match) process.exit(2);
+    process.stdout.write(JSON.stringify(match));
+    return;
+  }
+
   const apiUrl = readArg('--api-url') || process.env.CLOUD_AGENT_SUPABASE_URL;
   const serviceRoleKey =
     readArg('--service-role-key') || process.env.CLOUD_AGENT_SUPABASE_SERVICE_ROLE_KEY;
@@ -493,7 +527,7 @@ async function main() {
   }
 
   const result = await seedQuickLogin({ apiUrl, serviceRoleKey, projectRef });
-  log(`Seeded ${result.seededEmails.length} Quick Login personas (password: ${DEV_PASSWORD})`);
+  log(`Seeded ${result.seededEmails.length} Quick Login personas`);
   if (result.apexOrgId) {
     log(`Primary smoke org id: ${result.apexOrgId}`);
   }

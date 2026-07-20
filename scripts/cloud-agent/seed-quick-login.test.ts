@@ -1,15 +1,25 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   PARENT_PROJECT_REF,
   assertBranchSafeTarget,
+  extractCliJson,
+  findBranchByName,
+  normalizeBranchList,
   parseProjectApiKeys,
   QUICK_LOGIN_PERSONAS,
-  DEV_PASSWORD,
+  resolveDevPassword,
 } from './seed-quick-login.mjs';
 
 describe('cloud-agent seed-quick-login helpers', () => {
-  it('exposes Dev Quick Login password contract', () => {
-    expect(DEV_PASSWORD).toBe('password123');
+  afterEach(() => {
+    delete process.env.CLOUD_AGENT_QUICK_LOGIN_PASSWORD;
+    delete process.env.VITE_DEV_TEST_PASSWORD;
+  });
+
+  it('exposes Dev Quick Login personas and password contract', () => {
+    expect(resolveDevPassword()).toBe('password123');
+    process.env.CLOUD_AGENT_QUICK_LOGIN_PASSWORD = 'override-pass';
+    expect(resolveDevPassword()).toBe('override-pass');
     expect(QUICK_LOGIN_PERSONAS.some((p) => p.email === 'owner@apex.test')).toBe(
       true,
     );
@@ -52,5 +62,29 @@ describe('cloud-agent seed-quick-login helpers', () => {
         apiUrl: 'https://abcdefghijklmnop.supabase.co',
       }),
     ).not.toThrow();
+  });
+
+  it('normalizes branch list shapes for lookup', () => {
+    const branch = { name: 'agent-demo', project_ref: 'abcdefghijklmnop' };
+    expect(normalizeBranchList([branch])).toEqual([branch]);
+    expect(normalizeBranchList({ branches: [branch] })).toEqual([branch]);
+    expect(normalizeBranchList({ data: [branch] })).toEqual([branch]);
+    expect(findBranchByName({ data: [branch] }, 'agent-demo')?.project_ref).toBe(
+      'abcdefghijklmnop',
+    );
+    expect(findBranchByName({ branches: [] }, 'missing')).toBeNull();
+  });
+
+  it('extracts branch JSON despite ANSI spinner noise', () => {
+    const noisy = [
+      '\u001b[1G\u001b[J[ spinner noise',
+      'Created preview branch:',
+      '{',
+      '  "name": "agent-demo",',
+      '  "project_ref": "abcdefghijklmnop",',
+      '  "status": "FUNCTIONS_DEPLOYED"',
+      '}',
+    ].join('\n');
+    expect(extractCliJson(noisy).project_ref).toBe('abcdefghijklmnop');
   });
 });

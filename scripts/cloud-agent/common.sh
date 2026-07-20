@@ -178,13 +178,15 @@ ca_list_branches_api() {
 ca_find_branch_json() {
   local branch_name="$1"
   local list_json="$2"
-  BRANCH_NAME="$branch_name" node -e '
-const list = JSON.parse(process.argv[1] || "[]");
-const branches = Array.isArray(list) ? list : (list.branches || []);
-const match = branches.find((b) => b.name === process.env.BRANCH_NAME);
-if (!match) process.exit(2);
-process.stdout.write(JSON.stringify(match));
-' "$list_json"
+  printf '%s' "$list_json" | node "${REPO_ROOT}/scripts/cloud-agent/seed-quick-login.mjs" --find-branch "$branch_name"
+}
+
+ca_assert_safe_agent_branch_name() {
+  local branch_name="$1"
+  if [[ ! "$branch_name" =~ ^${BRANCH_NAME_PREFIX}-[a-z0-9][a-z0-9-]*$ ]]; then
+    ca_fail "Refusing branch name outside ${BRANCH_NAME_PREFIX}-* namespace: ${branch_name}"
+    return 1
+  fi
 }
 
 ca_delete_branch_api() {
@@ -216,14 +218,13 @@ ca_extract_json() {
   local tmp_rel="tmp/cloud-agent/cli-json-$$.txt"
   local tmp_abs="${REPO_ROOT}/${tmp_rel}"
   ca_ensure_state_dir
+  # Guaranteed cleanup even when callers use `set -e` and the parser fails.
+  trap 'rm -f -- "$tmp_abs"; trap - RETURN' RETURN
   printf '%s' "$raw" >"$tmp_abs"
   (
     cd "$REPO_ROOT"
     node scripts/cloud-agent/seed-quick-login.mjs --extract-cli-json "$tmp_rel"
   )
-  local rc=$?
-  rm -f "$tmp_abs"
-  return "$rc"
 }
 
 ca_branch_is_healthy_json() {

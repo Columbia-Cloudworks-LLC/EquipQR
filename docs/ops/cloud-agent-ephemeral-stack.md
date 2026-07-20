@@ -42,11 +42,13 @@ Cloud Agent secrets must include at least:
 
 ## Quick Login contract
 
-Same emails/password as local Dev Quick Login (`password123`). Auth users are created with the **Auth Admin API** (hosted-safe). Direct `auth.users` SQL inserts are never used against hosted projects.
+Same emails/password contract as local Dev Quick Login (`DevQuickLogin.tsx` / local seeds). Auth users are created with the **Auth Admin API** (hosted-safe). Direct `auth.users` SQL inserts are never used against hosted projects.
+
+Password resolution order: `CLOUD_AGENT_QUICK_LOGIN_PASSWORD` → `VITE_DEV_TEST_PASSWORD` → local Quick Login default. Scripts do **not** persist or log the password value.
 
 Primary smoke persona: `owner@apex.test` — org upgraded with one team + `CAT 320 Excavator`.
 
-**Safety rails:** seed and env rewrite refuse parent project ref `ymxkzronkhwxzcdcbnwq` and custom domain `supabase.equipqr.app`.
+**Safety rails:** seed and env rewrite refuse parent project ref `ymxkzronkhwxzcdcbnwq` and custom domain `supabase.equipqr.app`. Teardown only deletes `agent-*` branches whose live metadata matches the session state file.
 
 ## Manual commands
 

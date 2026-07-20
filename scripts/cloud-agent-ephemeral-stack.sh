@@ -72,9 +72,11 @@ cleanup_stale_agent_branches() {
   ca_log "Scanning for stale ${BRANCH_NAME_PREFIX}-* branches (TTL ${DEFAULT_TTL_HOURS}h)..."
   local list_json
   list_json="$(ca_list_branches_api)"
-  TTL_HOURS="$DEFAULT_TTL_HOURS" PREFIX="$BRANCH_NAME_PREFIX" KEEP_NAME="${existing_name:-}" node -e '
-const raw = JSON.parse(process.argv[1] || "[]");
-const branches = Array.isArray(raw) ? raw : (raw.branches || raw.data || []);
+  LIST_JSON="$list_json" TTL_HOURS="$DEFAULT_TTL_HOURS" PREFIX="$BRANCH_NAME_PREFIX" KEEP_NAME="${existing_name:-}" \
+    node --input-type=module -e '
+import { normalizeBranchList } from "./scripts/cloud-agent/seed-quick-login.mjs";
+const raw = JSON.parse(process.env.LIST_JSON || "[]");
+const branches = normalizeBranchList(raw);
 const ttlMs = Number(process.env.TTL_HOURS) * 3600 * 1000;
 const prefix = process.env.PREFIX;
 const keep = process.env.KEEP_NAME || "";
@@ -87,8 +89,9 @@ for (const b of branches) {
   if (!created || now - created < ttlMs) continue;
   process.stdout.write(`${b.id || ""}\t${name}\n`);
 }
-' "$list_json" | while IFS=$'\t' read -r stale_id stale_name; do
+' | while IFS=$'\t' read -r stale_id stale_name; do
     [[ -z "$stale_name" ]] && continue
+    ca_assert_safe_agent_branch_name "$stale_name" || continue
     ca_warn "Deleting stale branch: $stale_name"
     if [[ -n "$stale_id" ]]; then
       ca_delete_branch_api "$stale_id" >/dev/null 2>&1 || true
@@ -216,14 +219,14 @@ const state = {
   gitBranch: process.argv[6],
   createdAt: process.argv[7],
   expiresAt: process.argv[8],
-  passwordHint: "password123",
   primaryPersona: "owner@apex.test",
 };
 process.stdout.write(JSON.stringify(state, null, 2));
 ' "$branch_name" "$branch_id" "$project_ref" "$api_url" "$PARENT_PROJECT_REF" "$CLOUD_AGENT_GIT_BRANCH" "$created_at" "$expires_at")"
 
 ca_ok "Session state: $STATE_FILE"
-ca_log "Quick Login: owner@apex.test / password123 against ${api_url}"
+ca_log "Quick Login persona: owner@apex.test against ${api_url}"
+ca_log "Password: same contract as DevQuickLogin / local seeds (override via CLOUD_AGENT_QUICK_LOGIN_PASSWORD)"
 ca_log "Teardown: bash scripts/cloud-agent-ephemeral-teardown.sh"
 
 if [[ "$SKIP_VITE" -eq 1 ]]; then
