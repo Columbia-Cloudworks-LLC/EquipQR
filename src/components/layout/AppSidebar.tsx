@@ -26,7 +26,6 @@ import {
   Warehouse,
   Search,
   Layers,
-  ShieldCheck,
   Plug,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -83,13 +82,8 @@ const navigationGroups: NavigationGroup[] = [
       { title: "Integrations", url: ORGANIZATION_INTEGRATIONS_PATH, icon: Plug, adminOnly: true },
     ],
   },
-  {
-    label: "Audit",
-    items: [
-      // Audit Log intentionally lives under Organization settings (#1122), not main nav.
-      { title: "DSR Cockpit", url: "/dashboard/dsr", icon: ShieldCheck, adminOnly: true },
-    ],
-  },
+  // Audit Log lives under Organization settings (#1122).
+  // DSR Cockpit lives in the Legal footer drawer + Settings → Privacy (admin-only).
 ];
 
 const AppSidebar = () => {

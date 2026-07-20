@@ -1,18 +1,19 @@
 ---
 title: "Find your way around the app"
 description: "A fast tour of the sidebar, top bar, mobile bottom nav, and where admin-only surfaces live."
-lastReviewed: 2026-07-06
+lastReviewed: 2026-07-19
 personas: ["all"]
 ---
 
 **For:** Everyone  
-**Last reviewed:** 2026-07-06
+**Last reviewed:** 2026-07-19
 ## 1. Sidebar groups (desktop and tablet)
 
 - **Fleet** — Equipment, Fleet Map, Inventory, Part Lookup, Part Alternates.
 - **Operations** — Dashboard, Work Orders, Daily Check-Ins (admin-only), PM Templates (admin-only), Reports.
 - **Infrastructure** — Teams, Organization, Integrations.
-- **Audit** — DSR Cockpit (admin-only). The Audit Log lives under **Organization → Audit Log** (admin-only).
+
+The **Audit Log** lives under **Organization → Audit Log** (admin-only). **DSR Cockpit** (admin-only) lives under the footer **Legal** menu and **Settings → Privacy**.
 
 ![Equipment list from the sidebar](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/start-here/desktop/02-navigation-equipment.png)
 
@@ -34,7 +35,7 @@ The top bar shows your current organization, notifications, and your user menu. 
 
 ## 4. Admin-only surfaces are hidden by default
 
-If you do not see PM Templates or DSR Cockpit in the sidebar, or the Audit Log tab under Organization, your account is not an Organization Owner or Admin. Ask an admin to grant access if you need it.
+If you do not see PM Templates in the sidebar, DSR Cockpit under Legal / Settings → Privacy, or the Audit Log tab under Organization, your account is not an Organization Owner or Admin. Ask an admin to grant access if you need it.
 
 ## Related articles
 

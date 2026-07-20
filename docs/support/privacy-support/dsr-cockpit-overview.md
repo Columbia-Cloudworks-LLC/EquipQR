@@ -1,13 +1,13 @@
 ---
 title: "DSR cockpit for privacy operators"
 description: "Where Admins and Owners process data subject requests through verification, extension, completion, or denial."
-lastReviewed: 2026-05-01
+lastReviewed: 2026-07-19
 personas: ["admin","owner"]
 requirement: "DSR Cockpit is restricted to Organization Owners and Admins."
 ---
 
 **For:** Admin, Owner  
-**Last reviewed:** 2026-05-01
+**Last reviewed:** 2026-07-19
 
 ::: info Requires
 DSR Cockpit is restricted to Organization Owners and Admins.
@@ -15,7 +15,7 @@ DSR Cockpit is restricted to Organization Owners and Admins.
 
 ## 1. Open DSR Cockpit
 
-From the sidebar under Audit, click DSR Cockpit. The queue shows every open request that needs action.
+Open **Legal** in the footer and choose **DSR Cockpit**, or go to **Settings → Privacy** and click **DSR Cockpit**. The queue shows every open request that needs action.
 
 ## 2. Open a case
 

@@ -42,25 +42,26 @@ describe('AppSidebar', () => {
     });
   });
 
-  it('renders the four operational group labels for an admin', () => {
+  it('renders the three operational group labels for an admin', () => {
     renderAsPersona(<AppSidebar />, 'admin');
 
     expect(screen.getByText('Fleet')).toBeInTheDocument();
     expect(screen.getByText('Operations')).toBeInTheDocument();
     expect(screen.getByText('Infrastructure')).toBeInTheDocument();
-    expect(screen.getByText('Audit')).toBeInTheDocument();
+    expect(screen.queryByText('Audit')).not.toBeInTheDocument();
   });
 
-  it('exposes admin-only items (PM Templates, DSR Cockpit) for an admin', () => {
+  it('exposes admin-only PM Templates for an admin', () => {
     renderAsPersona(<AppSidebar />, 'admin');
 
     expect(screen.getByRole('link', { name: /pm templates/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /dsr cockpit/i })).toBeInTheDocument();
   });
 
-  it('does not expose the audit log in main navigation (lives under org settings, #1122)', () => {
+  it('does not expose DSR Cockpit or audit log in main navigation', () => {
     renderAsPersona(<AppSidebar />, 'admin');
 
+    // DSR Cockpit lives in Legal footer + Settings → Privacy; Audit Log under org settings (#1122).
+    expect(screen.queryByRole('link', { name: /dsr cockpit/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /audit log/i })).not.toBeInTheDocument();
   });
 
@@ -69,12 +70,7 @@ describe('AppSidebar', () => {
 
     expect(screen.queryByRole('link', { name: /pm templates/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /audit log/i })).not.toBeInTheDocument();
-  });
-
-  it('drops the Audit group entirely when all its items are filtered out for non-admins', () => {
-    renderAsPersona(<AppSidebar />, 'technician');
-
-    expect(screen.queryByText('Audit')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /dsr cockpit/i })).not.toBeInTheDocument();
   });
 
   it('hides inventory navigation for users without inventory access', () => {
