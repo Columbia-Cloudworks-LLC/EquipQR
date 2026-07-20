@@ -6,6 +6,8 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { MFAProvider } from '@/contexts/MFAContext';
 import { UserProvider } from '@/contexts/UserContext';
 import { SessionProvider } from '@/contexts/SessionContext';
+import { CookieConsentProvider } from '@/contexts/CookieConsentContext';
+import { CookieConsentBanner } from '@/components/privacy/CookieConsentBanner';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as SonnerToaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -78,13 +80,16 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
     return (
       <QueryClientProvider client={queryClient}>
         <ThemeProvider attribute="class" forcedTheme="dark">
-          <TooltipProvider>
-            <AuthProvider>
-              <SessionProvider>{children}</SessionProvider>
-            </AuthProvider>
-          </TooltipProvider>
-          <Toaster />
-          <AppSonnerToaster />
+          <CookieConsentProvider>
+            <TooltipProvider>
+              <AuthProvider>
+                <SessionProvider>{children}</SessionProvider>
+              </AuthProvider>
+            </TooltipProvider>
+            <CookieConsentBanner />
+            <Toaster />
+            <AppSonnerToaster />
+          </CookieConsentProvider>
         </ThemeProvider>
       </QueryClientProvider>
     );
@@ -93,17 +98,20 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" forcedTheme="dark">
-        <TooltipProvider>
-          <AuthProvider>
-            <MFAProvider>
-              <UserProvider>
-                <SessionProvider>{children}</SessionProvider>
-              </UserProvider>
-            </MFAProvider>
-          </AuthProvider>
-        </TooltipProvider>
-        <Toaster />
-        <AppSonnerToaster />
+        <CookieConsentProvider>
+          <TooltipProvider>
+            <AuthProvider>
+              <MFAProvider>
+                <UserProvider>
+                  <SessionProvider>{children}</SessionProvider>
+                </UserProvider>
+              </MFAProvider>
+            </AuthProvider>
+          </TooltipProvider>
+          <CookieConsentBanner />
+          <Toaster />
+          <AppSonnerToaster />
+        </CookieConsentProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

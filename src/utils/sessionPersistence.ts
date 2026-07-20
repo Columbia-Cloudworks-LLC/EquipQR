@@ -1,5 +1,5 @@
-
 import { logger } from '@/utils/logger';
+import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
 
 const SESSION_STORAGE_KEY = 'equipqr_session_data';
 const ORGANIZATION_PREFERENCE_KEY = 'equipqr_current_org';
@@ -11,7 +11,9 @@ export const saveOrganizationPreference = (organizationId: string | null) => {
       selectedOrgId: organizationId,
       selectionTimestamp: new Date().toISOString()
     };
-    localStorage.setItem(ORGANIZATION_PREFERENCE_KEY, JSON.stringify(preference));
+    if (!setPreferenceLocalStorage(ORGANIZATION_PREFERENCE_KEY, JSON.stringify(preference))) {
+      return;
+    }
     logger.debug('Organization preference saved', { organizationId });
   } catch (error) {
     logger.warn('Failed to save organization preference', error);

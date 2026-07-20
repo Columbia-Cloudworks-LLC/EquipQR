@@ -1,6 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { UserSettings, defaultUserSettings } from '@/types/settings';
+import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
 
 const SETTINGS_STORAGE_KEY = 'equipqr-user-settings';
 
@@ -27,7 +27,7 @@ export const useUserSettings = () => {
   useEffect(() => {
     if (!isLoading) {
       try {
-        localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+        setPreferenceLocalStorage(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
       } catch (error) {
         console.error('Error saving user settings:', error);
       }

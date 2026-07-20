@@ -36,6 +36,7 @@ import { useEquipmentTableColumns } from '@/features/equipment/hooks/useEquipmen
 import { useOfflineMergedEquipment } from '@/features/equipment/hooks/useOfflineMergedEquipment';
 import { useOrgEquipmentPMStatuses } from '@/features/equipment/hooks/useEquipmentPMStatus';
 import { EquipmentListTransitionRoot } from '@/features/equipment/transitions/EquipmentListTransitionRoot';
+import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
 
 const Equipment = () => {
   const { currentOrganization } = useOrganization();
@@ -118,7 +119,7 @@ const Equipment = () => {
 
   const handleViewModeChange = useCallback((mode: EquipmentViewMode) => {
     setViewMode(mode);
-    localStorage.setItem('equipqr:equipment-view-mode', mode);
+    setPreferenceLocalStorage('equipqr:equipment-view-mode', mode);
   }, []);
 
   // Apply URL parameter filters on initial load.

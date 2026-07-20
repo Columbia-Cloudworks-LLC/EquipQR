@@ -10,6 +10,7 @@ import {
   toSameOriginPath,
 } from '@/utils/redirectValidation';
 import { schedulePendingTermsAcceptanceFlush } from '@/lib/termsAcceptanceRecording';
+import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
 import { clearOfflineBlobsForUser } from '@/services/offlineBlobStore';
 
 /**
@@ -122,7 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     p_user_id: userIdAtSignIn,
                   })
                     .then(() => {
-                      localStorage.setItem(adminGrantsCacheKey, String(Date.now()));
+                      setPreferenceLocalStorage(adminGrantsCacheKey, String(Date.now()));
                     })
                     .catch((error) => {
                       if (import.meta.env.DEV) {

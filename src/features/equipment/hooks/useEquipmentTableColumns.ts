@@ -4,6 +4,7 @@ import {
   DEFAULT_VISIBLE_COLUMNS,
   EQUIPMENT_TABLE_COLUMN_META,
 } from '@/features/equipment/components/equipmentTableColumns';
+import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
 
 const STORAGE_PREFIX = 'equipqr:equipment-table-columns:';
 
@@ -43,7 +44,7 @@ const writeSavedVisibility = (
   visibility: Record<string, boolean>,
 ): void => {
   try {
-    localStorage.setItem(buildStorageKey(organizationId), JSON.stringify(visibility));
+    setPreferenceLocalStorage(buildStorageKey(organizationId), JSON.stringify(visibility));
   } catch {
     // Ignore quota / availability errors.
   }

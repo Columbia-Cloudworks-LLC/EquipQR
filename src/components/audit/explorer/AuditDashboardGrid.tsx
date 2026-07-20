@@ -18,6 +18,7 @@ import 'react-grid-layout/css/styles.css';
 import './audit-dashboard-grid.css';
 import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, GripVertical, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
 import { logger } from '@/utils/logger';
 
 const STORAGE_KEY = 'audit-dashboard-grid-v1';
@@ -152,7 +153,7 @@ function readPersistedState(widgets: AuditDashboardWidgetDef[]): PersistedGridSt
 function persistState(state: PersistedGridState): void {
   if (typeof globalThis === 'undefined' || !('localStorage' in globalThis)) return;
   try {
-    globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    setPreferenceLocalStorage(STORAGE_KEY, JSON.stringify(state));
   } catch {
     // Storage quota / privacy mode — layout customization just won't persist.
   }

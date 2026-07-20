@@ -1,5 +1,6 @@
 import { logger } from '@/utils/logger';
 import type { SessionData } from '@/types/session';
+import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
 import { 
   getSessionStorageKey, 
   getSessionVersion,
@@ -44,7 +45,7 @@ export class SessionStorageService {
 
   static saveSessionToStorage(data: SessionData): void {
     try {
-      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(data));
+      setPreferenceLocalStorage(SESSION_STORAGE_KEY, JSON.stringify(data));
     } catch (error) {
       logger.error('💾 Error saving session to storage:', error);
     }

@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { logger } from '@/utils/logger';
+import { isPreferenceStorageAllowed, setPreferenceLocalStorage } from '@/lib/cookieConsent';
 
 interface UseBrowserStorageOptions<T> {
   key: string;
@@ -10,10 +11,10 @@ interface UseBrowserStorageOptions<T> {
 export const useBrowserStorage = <T>({ key, data, enabled = true }: UseBrowserStorageOptions<T>) => {
   // Save to localStorage
   const saveToStorage = useCallback(() => {
-    if (!enabled || typeof window === 'undefined') return;
+    if (!enabled || typeof window === 'undefined' || !isPreferenceStorageAllowed()) return;
     
     try {
-      localStorage.setItem(key, JSON.stringify({
+      setPreferenceLocalStorage(key, JSON.stringify({
         data,
         timestamp: Date.now()
       }));

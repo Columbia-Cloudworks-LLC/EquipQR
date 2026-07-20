@@ -1,4 +1,5 @@
 import { logger } from '@/utils/logger';
+import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
 import { saveOrganizationPreference } from '@/utils/sessionPersistence';
 
 /** Matches SimpleOrganizationProvider and QR redirect flows. */
@@ -8,7 +9,9 @@ export function persistDashboardOrganizationSelection(organizationId: string): v
   saveOrganizationPreference(organizationId);
 
   try {
-    localStorage.setItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY, organizationId);
+    if (!setPreferenceLocalStorage(DASHBOARD_CURRENT_ORG_STORAGE_KEY, organizationId)) {
+      return;
+    }
   } catch (error) {
     logger.warn('Failed to save dashboard organization selection', error);
   }

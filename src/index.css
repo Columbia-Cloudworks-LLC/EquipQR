@@ -140,6 +140,7 @@
     --z-popover: 1060;
     --z-tooltip: 1070;
     --z-toast: 1080;
+    --z-cookie-banner: 1090;
 
     /* Focus outline tokens */
     --focus-ring-width: 2px;

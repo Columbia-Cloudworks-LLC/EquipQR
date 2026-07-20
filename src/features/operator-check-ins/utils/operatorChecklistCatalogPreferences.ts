@@ -1,3 +1,5 @@
+import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
+
 const STORAGE_PREFIX = 'equipqr-operator-checkin-starter-catalog-expanded:';
 
 export function getStarterCatalogExpandedPreference(organizationId: string): boolean | null {
@@ -13,7 +15,7 @@ export function getStarterCatalogExpandedPreference(organizationId: string): boo
 
 export function setStarterCatalogExpandedPreference(organizationId: string, expanded: boolean): void {
   try {
-    localStorage.setItem(`${STORAGE_PREFIX}${organizationId}`, expanded ? '1' : '0');
+    setPreferenceLocalStorage(`${STORAGE_PREFIX}${organizationId}`, expanded ? '1' : '0');
   } catch {
     // Best-effort only — catalog defaults to org template count when unset.
   }

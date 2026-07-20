@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
 
 interface WorkTimerState {
   workOrderId: string;
@@ -54,7 +55,7 @@ const loadState = (workOrderId: string): WorkTimerState | null => {
 /** Save timer state to localStorage */
 const saveState = (state: WorkTimerState): void => {
   try {
-    localStorage.setItem(getStorageKey(state.workOrderId), JSON.stringify(state));
+    setPreferenceLocalStorage(getStorageKey(state.workOrderId), JSON.stringify(state));
   } catch {
     // Ignore storage errors (e.g., quota exceeded)
   }

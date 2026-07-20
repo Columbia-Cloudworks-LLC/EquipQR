@@ -7,6 +7,7 @@ import {
 describe('persistDashboardOrganizationSelection', () => {
   beforeEach(() => {
     localStorage.clear();
+    localStorage.setItem('equipqr:cookie-consent', 'accepted');
   });
 
   it('writes invited org to dashboard and session preference storage', () => {

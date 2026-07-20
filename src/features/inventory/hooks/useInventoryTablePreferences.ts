@@ -12,6 +12,7 @@ import type {
   InventoryTableDensity,
   InventoryTablePreferences,
 } from '@/features/inventory/types/inventory';
+import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
 
 const STORAGE_PREFIX = 'equipqr:inventory-table-preferences:';
 const PREFERENCES_VERSION = 1;
@@ -120,7 +121,7 @@ const writeSavedPreferences = (
   preferences: InventoryTablePreferences,
 ): void => {
   try {
-    localStorage.setItem(buildStorageKey(organizationId), JSON.stringify(preferences));
+    setPreferenceLocalStorage(buildStorageKey(organizationId), JSON.stringify(preferences));
   } catch {
     // Ignore quota / availability errors.
   }

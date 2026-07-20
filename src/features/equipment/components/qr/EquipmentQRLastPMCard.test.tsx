@@ -6,8 +6,8 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import EquipmentQRLastPMCard from './EquipmentQRLastPMCard';
 import type { LatestCompletedPMDetails } from '@/features/pm-templates/services/preventativeMaintenanceService';
 
-vi.mock('@/utils/sessionPersistence', () => ({
-  saveOrganizationPreference: vi.fn(),
+vi.mock('@/utils/organizationSelection', () => ({
+  persistDashboardOrganizationSelection: vi.fn(),
 }));
 
 const baseDetails: LatestCompletedPMDetails = {

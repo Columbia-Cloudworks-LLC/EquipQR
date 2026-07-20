@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/utils/logger';
 import { dashboardPreferences } from '@/lib/queryKeys';
 import { generateDefaultLayout, WIDGET_REGISTRY } from '@/features/dashboard/registry/widgetRegistry';
+import { setPreferenceLocalStorage } from '@/lib/cookieConsent';
 
 /** localStorage key scoped to user + organization */
 function storageKey(userId: string, orgId: string): string {
@@ -38,7 +39,7 @@ function readFromLocalStorage(userId: string, orgId: string): StoredPreferences 
 /** Write preferences to localStorage */
 function writeToLocalStorage(userId: string, orgId: string, prefs: StoredPreferences): void {
   try {
-    localStorage.setItem(storageKey(userId, orgId), JSON.stringify(prefs));
+    setPreferenceLocalStorage(storageKey(userId, orgId), JSON.stringify(prefs));
   } catch {
     logger.error('Failed to write dashboard preferences to localStorage');
   }

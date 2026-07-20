@@ -8,6 +8,7 @@ import {
   type SelectedTeamContextType,
   type SelectedTeamId,
 } from './selected-team-context';
+import { removePreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
 
 const STORAGE_KEY_PREFIX = 'equipqr:selectedTeamId:';
 
@@ -30,9 +31,9 @@ const writeStoredTeamId = (organizationId: string | null, teamId: SelectedTeamId
   if (!key) return;
   try {
     if (teamId) {
-      localStorage.setItem(key, teamId);
+      setPreferenceLocalStorage(key, teamId);
     } else {
-      localStorage.removeItem(key);
+      removePreferenceLocalStorage(key);
     }
   } catch (error) {
     logger.warn('SelectedTeamProvider: failed to persist selected team to storage', error);
