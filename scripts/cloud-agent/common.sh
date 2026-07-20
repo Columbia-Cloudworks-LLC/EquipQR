@@ -92,7 +92,17 @@ ca_session_slug() {
     raw="${raw}-$(date -u +%Y%m%d%H%M%S)"
   fi
   raw="$(printf '%s' "$raw" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9-' | cut -c1-40)"
-  printf '%s-%s' "$BRANCH_NAME_PREFIX" "$raw"
+  # Sanitization can wipe an exotic CURSOR_AGENT_ID — never emit agent- with empty suffix.
+  if [[ -z "$raw" ]]; then
+    raw="session-$(date -u +%Y%m%d%H%M%S)"
+  fi
+  local name
+  name="$(printf '%s-%s' "$BRANCH_NAME_PREFIX" "$raw")"
+  ca_assert_safe_agent_branch_name "$name" || {
+    name="$(printf '%s-session-%s' "$BRANCH_NAME_PREFIX" "$(date -u +%Y%m%d%H%M%S)")"
+    ca_assert_safe_agent_branch_name "$name" || return 1
+  }
+  printf '%s' "$name"
 }
 
 ca_write_state() {
@@ -139,14 +149,31 @@ ca_upsert_env_key() {
   local env_file="$1"
   local key="$2"
   local value="$3"
-  local tmp
+  local tmp quoted
   tmp="$(mktemp)"
+  # Double-quote + escape for dotenv round-trip (handles spaces/quotes/$).
+  quoted="$(VALUE="$value" node -e 'process.stdout.write(JSON.stringify(process.env.VALUE ?? ""))')"
   if [[ -f "$env_file" ]]; then
     grep -v -E "^${key}=" "$env_file" >"$tmp" || true
   fi
-  printf '%s=%s\n' "$key" "$value" >>"$tmp"
+  printf '%s=%s\n' "$key" "$quoted" >>"$tmp"
   mv "$tmp" "$env_file"
   chmod 600 "$env_file" 2>/dev/null || true
+}
+
+# Password for later Vite after --skip-vite — not written into app .env.
+VITE_PASSWORD_FILE="${CLOUD_AGENT_VITE_PASSWORD_FILE:-${STATE_DIR}/vite-dev-password.env}"
+
+ca_write_vite_password_file() {
+  local password="${1:-$RESOLVED_QUICK_LOGIN_PASSWORD}"
+  if [[ -z "$password" ]]; then
+    return 1
+  fi
+  ca_ensure_state_dir
+  local quoted
+  quoted="$(VALUE="$password" node -e 'process.stdout.write(JSON.stringify(process.env.VALUE ?? ""))')"
+  printf 'VITE_DEV_TEST_PASSWORD=%s\n' "$quoted" >"$VITE_PASSWORD_FILE"
+  chmod 600 "$VITE_PASSWORD_FILE" 2>/dev/null || true
 }
 
 ca_require_supabase_access_token() {

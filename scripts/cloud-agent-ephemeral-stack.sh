@@ -112,7 +112,9 @@ for (const b of branches) {
   done
 }
 
-cleanup_stale_agent_branches
+if ! cleanup_stale_agent_branches; then
+  ca_warn "Stale-branch cleanup failed; continuing with stack start (best-effort)."
+fi
 
 branch_name=""
 branch_id=""
@@ -126,7 +128,10 @@ if [[ "$reuse_existing" -eq 1 ]]; then
   project_ref="$(ca_read_state_field projectRef)"
   api_url="$(ca_read_state_field apiUrl)"
 else
-  branch_name="$(ca_session_slug)"
+  branch_name="$(ca_session_slug)" || {
+    ca_fail "Could not generate a safe agent-* session branch name"
+    exit 1
+  }
   ca_log "Creating ephemeral branch via Management API: $branch_name"
   create_raw="$(ca_create_branch_api "$branch_name")"
   create_json="$(ca_extract_json "$create_raw")"
@@ -192,9 +197,8 @@ ca_upsert_env_key "${REPO_ROOT}/.env" "VITE_SUPABASE_URL" "$api_url"
 ca_upsert_env_key "${REPO_ROOT}/.env" "VITE_SUPABASE_ANON_KEY" "$anon_key"
 ca_upsert_env_key "${REPO_ROOT}/.env" "SUPABASE_URL" "$api_url"
 ca_upsert_env_key "${REPO_ROOT}/.env" "SUPABASE_ANON_KEY" "$anon_key"
-# Persist password so a later `npm run dev` after --skip-vite matches Auth Admin seed.
-ca_upsert_env_key "${REPO_ROOT}/.env" "VITE_DEV_TEST_PASSWORD" "$RESOLVED_QUICK_LOGIN_PASSWORD"
-ca_ok "Wrote branch VITE_SUPABASE_* (+ VITE_DEV_TEST_PASSWORD) into .env"
+ca_write_vite_password_file "$RESOLVED_QUICK_LOGIN_PASSWORD"
+ca_ok "Wrote branch VITE_SUPABASE_* into .env (password sidecar: ${VITE_PASSWORD_FILE})"
 
 created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 expires_at="$(node -e "const d=new Date(Date.now()+Number(process.argv[1])*3600e3); process.stdout.write(d.toISOString().replace(/\\.\\d{3}Z$/,'Z'))" "$DEFAULT_TTL_HOURS")"
@@ -223,9 +227,15 @@ ca_log "Teardown: bash scripts/cloud-agent-ephemeral-teardown.sh"
 export VITE_DEV_TEST_PASSWORD="$RESOLVED_QUICK_LOGIN_PASSWORD"
 
 if [[ "$SKIP_VITE" -eq 1 ]]; then
-  ca_ok "Skipping Vite (--skip-vite). Start with: npm run dev (VITE_DEV_TEST_PASSWORD already exported in this shell if sourced)"
+  ca_ok "Skipping Vite (--skip-vite)."
+  ca_log "Later: set -a; source ${VITE_PASSWORD_FILE}; set +a; npm run dev"
   exit 0
 fi
 
 ca_log "Starting Vite on :8080..."
+# shellcheck disable=SC1090
+set -a
+# shellcheck source=/dev/null
+source "$VITE_PASSWORD_FILE"
+set +a
 exec npm run dev

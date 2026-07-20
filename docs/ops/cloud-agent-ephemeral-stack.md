@@ -45,7 +45,7 @@ Cloud Agent secrets must include at least:
 
 Same emails/password contract as local Dev Quick Login (`DevQuickLogin.tsx` / local seeds). Auth users are created with the **Auth Admin API** (hosted-safe). Direct `auth.users` SQL inserts are never used against hosted projects.
 
-Password: set `CLOUD_AGENT_QUICK_LOGIN_PASSWORD` or `VITE_DEV_TEST_PASSWORD`, or ensure `VITE_DEV_TEST_PASSWORD` is already in `.env` (from agent bootstrap / `app-env-local-dev`). The stack writes the resolved value to `.env` as `VITE_DEV_TEST_PASSWORD` so `--skip-vite` + a later `npm run dev` stay aligned. No hardcoded password fallback. The branch `service_role` key is fetched and used only inside Node (never assigned to a bash variable or printed).
+Password: set `CLOUD_AGENT_QUICK_LOGIN_PASSWORD` or `VITE_DEV_TEST_PASSWORD`, or ensure `VITE_DEV_TEST_PASSWORD` is already in `.env` (from agent bootstrap / `app-env-local-dev`). The stack does **not** write the password into app `.env`; it writes a chmod-600 sidecar at `tmp/cloud-agent/vite-dev-password.env` for Vite/`--skip-vite` (source it before `npm run dev`). No hardcoded password fallback. The branch `service_role` key is fetched and used only inside Node (never assigned to a bash variable or printed).
 
 Primary smoke persona: `owner@apex.test` — org upgraded with one team + `CAT 320 Excavator`.
 
