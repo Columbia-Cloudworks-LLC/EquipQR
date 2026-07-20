@@ -42,6 +42,7 @@ describe('SessionStorageService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    localStorage.setItem('equipqr:cookie-consent', 'accepted');
   });
 
   afterEach(() => {
@@ -112,15 +113,17 @@ describe('SessionStorageService', () => {
       const protoSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(throwQuota);
       const instanceSpy = vi.spyOn(localStorage, 'setItem').mockImplementation(throwQuota);
 
-      SessionStorageService.saveSessionToStorage(session);
+      try {
+        SessionStorageService.saveSessionToStorage(session);
 
-      expect(logger.error).toHaveBeenCalledWith(
-        '💾 Error saving session to storage:',
-        expect.any(Error)
-      );
-
-      protoSpy.mockRestore();
-      instanceSpy.mockRestore();
+        expect(logger.error).toHaveBeenCalledWith(
+          '💾 Error saving session to storage:',
+          expect.any(Error)
+        );
+      } finally {
+        protoSpy.mockRestore();
+        instanceSpy.mockRestore();
+      }
     });
   });
 

@@ -48,10 +48,23 @@ export function isCookieConsentDecision(value: unknown): value is CookieConsentD
   return value === 'accepted' || value === 'rejected';
 }
 
-export function getCookieConsentDecision(): CookieConsentDecision | null {
-  if (typeof window === 'undefined') return null;
+/** Prefer globalThis so Vitest node + jsdom harnesses both work. */
+function getLocalStorage(): Storage | null {
   try {
-    const raw = localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY);
+    if (typeof globalThis !== 'undefined' && 'localStorage' in globalThis) {
+      return globalThis.localStorage;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+export function getCookieConsentDecision(): CookieConsentDecision | null {
+  const storage = getLocalStorage();
+  if (!storage) return null;
+  try {
+    const raw = storage.getItem(COOKIE_CONSENT_STORAGE_KEY);
     return isCookieConsentDecision(raw) ? raw : null;
   } catch {
     return null;
@@ -59,9 +72,10 @@ export function getCookieConsentDecision(): CookieConsentDecision | null {
 }
 
 export function setCookieConsentDecision(decision: CookieConsentDecision): void {
-  if (typeof window === 'undefined') return;
+  const storage = getLocalStorage();
+  if (!storage) return;
   try {
-    localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, decision);
+    storage.setItem(COOKIE_CONSENT_STORAGE_KEY, decision);
   } catch {
     // Best-effort — banner may reappear if storage is unavailable.
   }
@@ -73,16 +87,18 @@ export function isPreferenceStorageAllowed(): boolean {
 }
 
 export function setPreferenceLocalStorage(key: string, value: string): boolean {
-  if (typeof window === 'undefined' || !isPreferenceStorageAllowed()) return false;
+  const storage = getLocalStorage();
+  if (!storage || !isPreferenceStorageAllowed()) return false;
   // Let quota / privacy-mode errors propagate to callers that log them.
-  localStorage.setItem(key, value);
+  storage.setItem(key, value);
   return true;
 }
 
 export function removePreferenceLocalStorage(key: string): void {
-  if (typeof window === 'undefined') return;
+  const storage = getLocalStorage();
+  if (!storage) return;
   try {
-    localStorage.removeItem(key);
+    storage.removeItem(key);
   } catch {
     // ignore
   }
@@ -115,20 +131,21 @@ function isOptionalLocalStorageKey(key: string): boolean {
 
 /** Remove product-controlled preference storage after Reject. */
 export function clearOptionalPreferenceStorage(): void {
-  if (typeof window === 'undefined') return;
+  const storage = getLocalStorage();
+  if (!storage) return;
 
   clearSidebarPreferenceCookie();
 
   try {
     const keysToRemove: string[] = [];
-    for (let i = 0; i < localStorage.length; i += 1) {
-      const key = localStorage.key(i);
+    for (let i = 0; i < storage.length; i += 1) {
+      const key = storage.key(i);
       if (key && isOptionalLocalStorageKey(key)) {
         keysToRemove.push(key);
       }
     }
     for (const key of keysToRemove) {
-      localStorage.removeItem(key);
+      storage.removeItem(key);
     }
   } catch {
     // ignore

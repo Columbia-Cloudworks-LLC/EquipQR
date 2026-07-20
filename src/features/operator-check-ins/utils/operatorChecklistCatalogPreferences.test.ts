@@ -7,6 +7,7 @@ import {
 describe('operatorChecklistCatalogPreferences', () => {
   beforeEach(() => {
     localStorage.clear();
+    localStorage.setItem('equipqr:cookie-consent', 'accepted');
   });
 
   it('returns null when no preference is stored', () => {
