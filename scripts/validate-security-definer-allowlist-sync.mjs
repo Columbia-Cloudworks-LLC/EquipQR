@@ -58,10 +58,12 @@ function main() {
   const migrationAuth = extractArray(migration, 'authenticated_allowlist');
   const migrationAnon = extractArray(migration, 'anon_allowlist');
   const migrationRls = extractArray(migration, 'rls_helper_allowlist');
+  const migrationInvoker = extractArray(migration, 'invoker_client_allowlist');
 
   const jsonAuth = [...allowlists.authenticatedPublicRpc].sort();
   const jsonAnon = [...allowlists.anonPublicRpc].sort();
   const jsonRls = [...allowlists.rlsPredicateHelpers].sort();
+  const jsonInvoker = [...(allowlists.invokerClientRpc ?? [])].sort();
 
   const diffs = [];
 
@@ -76,6 +78,7 @@ function main() {
   compare('authenticatedPublicRpc', migrationAuth, jsonAuth);
   compare('anonPublicRpc', migrationAnon, jsonAnon);
   compare('rlsPredicateHelpers', migrationRls, jsonRls);
+  compare('invokerClientRpc', migrationInvoker, jsonInvoker);
 
   if (diffs.length) {
     console.error(`Allowlist drift detected (vs ${path.basename(migrationPath)}):\n`);

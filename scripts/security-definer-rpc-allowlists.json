@@ -110,5 +110,31 @@
     "update_member_quickbooks_permission",
     "update_work_order_note",
     "validate_quickbooks_oauth_session"
+  ],
+  "invokerClientRpc": [
+    "assert_inventory_read_access",
+    "bulk_set_compatibility_rules",
+    "bulk_set_pm_template_rules",
+    "can_access_inventory",
+    "can_manage_inventory",
+    "check_export_rate_limit",
+    "count_equipment_matching_pm_rules",
+    "count_equipment_matching_rules",
+    "get_alternates_for_inventory_item",
+    "get_alternates_for_part_number",
+    "get_compatible_parts_for_equipment",
+    "get_compatible_parts_for_make_model",
+    "get_current_billing_period",
+    "get_equipment_for_inventory_item_rules",
+    "get_fleet_efficiency",
+    "get_global_pm_template_names",
+    "get_inventory_list_metadata",
+    "get_matching_pm_templates",
+    "historical_timeline_allowed_next_statuses",
+    "is_parts_consumer",
+    "is_parts_manager",
+    "latest_scans_for_equipment_ids",
+    "list_pm_templates",
+    "monitoring_healthcheck"
   ]
 }
