@@ -27,7 +27,11 @@ import {
   useSidebar,
   type SidebarContextValue,
 } from "./sidebar-context"
-import { SIDEBAR_COOKIE_NAME, setPreferenceCookie } from "@/lib/cookieConsent"
+import {
+  SIDEBAR_COOKIE_NAME,
+  isPreferenceStorageAllowed,
+  setPreferenceCookie,
+} from "@/lib/cookieConsent"
 
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "16rem"
@@ -62,6 +66,8 @@ const SidebarProvider = React.forwardRef<
     // We use openProp and setOpenProp for control from outside the component.
     const [_open, _setOpen] = React.useState(() => {
       if (typeof document === "undefined") return defaultOpen
+      // Do not apply a leftover preference cookie until the user has Accepted.
+      if (!isPreferenceStorageAllowed()) return defaultOpen
       const cookieMatch = document.cookie
         .split("; ")
         .find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))

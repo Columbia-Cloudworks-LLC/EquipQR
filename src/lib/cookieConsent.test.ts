@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   COOKIE_CONSENT_STORAGE_KEY,
   SIDEBAR_COOKIE_NAME,
@@ -29,7 +29,7 @@ describe('cookieConsent', () => {
   });
 
   it('persists Accept and allows preference storage', () => {
-    applyCookieConsentDecision('accepted');
+    expect(applyCookieConsentDecision('accepted')).toBe(true);
     expect(getCookieConsentDecision()).toBe('accepted');
     expect(localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY)).toBe('accepted');
     expect(isPreferenceStorageAllowed()).toBe(true);
@@ -37,6 +37,15 @@ describe('cookieConsent', () => {
     expect(localStorage.getItem('equipqr:equipment-view-mode')).toBe('table');
     expect(setPreferenceCookie(SIDEBAR_COOKIE_NAME, 'true', 60)).toBe(true);
     expect(document.cookie).toContain(`${SIDEBAR_COOKIE_NAME}=true`);
+  });
+
+  it('returns false when consent cannot be persisted', () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('quota');
+    });
+    expect(applyCookieConsentDecision('accepted')).toBe(false);
+    expect(getCookieConsentDecision()).toBeNull();
+    vi.restoreAllMocks();
   });
 
   it('persists Reject, blocks preference writes, and clears optional keys', () => {

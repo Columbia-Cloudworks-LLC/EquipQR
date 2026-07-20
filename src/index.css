@@ -139,8 +139,9 @@
     --mobile-bottom-nav-height: calc(4.875rem + env(safe-area-inset-bottom, 0px));
     --z-popover: 1060;
     --z-tooltip: 1070;
+    /* Cookie banner below toasts so Sonner feedback stays visible while consent is pending. */
+    --z-cookie-banner: 1075;
     --z-toast: 1080;
-    --z-cookie-banner: 1090;
 
     /* Focus outline tokens */
     --focus-ring-width: 2px;

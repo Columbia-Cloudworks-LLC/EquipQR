@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import {
   applyCookieConsentDecision,
   getCookieConsentDecision,
@@ -22,12 +23,18 @@ export const CookieConsentProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   const accept = useCallback(() => {
-    applyCookieConsentDecision('accepted');
+    if (!applyCookieConsentDecision('accepted')) {
+      toast.error('Could not save your cookie preference. Please try again.');
+      return;
+    }
     setDecision('accepted');
   }, []);
 
   const reject = useCallback(() => {
-    applyCookieConsentDecision('rejected');
+    if (!applyCookieConsentDecision('rejected')) {
+      toast.error('Could not save your cookie preference. Please try again.');
+      return;
+    }
     setDecision('rejected');
   }, []);
 

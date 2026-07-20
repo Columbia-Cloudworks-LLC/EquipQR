@@ -70,13 +70,15 @@ export function getCookieConsentDecision(): CookieConsentDecision | null {
   }
 }
 
-export function setCookieConsentDecision(decision: CookieConsentDecision): void {
+/** @returns true when the decision was persisted successfully. */
+export function setCookieConsentDecision(decision: CookieConsentDecision): boolean {
   const storage = getLocalStorage();
-  if (!storage) return;
+  if (!storage) return false;
   try {
     storage.setItem(COOKIE_CONSENT_STORAGE_KEY, decision);
+    return storage.getItem(COOKIE_CONSENT_STORAGE_KEY) === decision;
   } catch {
-    // Best-effort — banner may reappear if storage is unavailable.
+    return false;
   }
 }
 
@@ -151,9 +153,16 @@ export function clearOptionalPreferenceStorage(): void {
   }
 }
 
-export function applyCookieConsentDecision(decision: CookieConsentDecision): void {
-  setCookieConsentDecision(decision);
+/**
+ * Persist Accept/Reject. On Reject, clears optional preference storage only after
+ * the decision write succeeds.
+ * @returns true when the decision was stored.
+ */
+export function applyCookieConsentDecision(decision: CookieConsentDecision): boolean {
+  const persisted = setCookieConsentDecision(decision);
+  if (!persisted) return false;
   if (decision === 'rejected') {
     clearOptionalPreferenceStorage();
   }
+  return true;
 }

@@ -1,11 +1,18 @@
 import React from 'react';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { CookieConsentBanner } from './CookieConsentBanner';
 import { CookieConsentProvider } from '@/contexts/CookieConsentContext';
 import { COOKIE_CONSENT_STORAGE_KEY } from '@/lib/cookieConsent';
+
+const toastError = vi.fn();
+vi.mock('sonner', () => ({
+  toast: {
+    error: (...args: unknown[]) => toastError(...args),
+  },
+}));
 
 const ROUTER_FUTURE = {
   v7_startTransition: true,
@@ -25,6 +32,7 @@ function renderBanner() {
 describe('CookieConsentBanner', () => {
   beforeEach(() => {
     localStorage.clear();
+    toastError.mockClear();
   });
 
   it('shows Accept and Reject with a privacy cookies link on first visit', () => {
@@ -64,5 +72,19 @@ describe('CookieConsentBanner', () => {
     localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'accepted');
     renderBanner();
     expect(screen.queryByRole('region', { name: /cookie consent/i })).not.toBeInTheDocument();
+  });
+
+  it('keeps the banner and toasts when persistence fails', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('quota');
+    });
+    renderBanner();
+
+    await user.click(screen.getByRole('button', { name: /^accept$/i }));
+
+    expect(screen.getByRole('region', { name: /cookie consent/i })).toBeInTheDocument();
+    expect(toastError).toHaveBeenCalled();
+    vi.restoreAllMocks();
   });
 });
