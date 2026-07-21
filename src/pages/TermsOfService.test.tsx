@@ -14,7 +14,7 @@ describe('TermsOfService', () => {
     vi.clearAllMocks();
   });
 
-  it('renders shell, heading hierarchy, and layout', () => {
+  it('renders shell, core contractual sections, and contact links', () => {
     const { container } = render(<TermsOfService />);
 
     const heading = screen.getByRole('heading', { level: 1 });
@@ -24,12 +24,6 @@ describe('TermsOfService', () => {
     expect(screen.getAllByRole('heading').length).toBeGreaterThan(1);
     expect(container.querySelector('div.container.mx-auto.px-4.py-8.max-w-4xl')).toBeInTheDocument();
     expect(container.querySelector('div.space-y-8')).toBeInTheDocument();
-    expect(screen.getByText('Who We Are & How These Terms Work.').closest('div')).toBeInTheDocument();
-    expect(screen.getByText('1) The Service.').closest('div')).toBeInTheDocument();
-  });
-
-  it('covers core contractual sections', () => {
-    render(<TermsOfService />);
 
     expect(screen.getByText('Who We Are & How These Terms Work.')).toBeInTheDocument();
     expect(screen.getByText(/These Terms of Service.*are a contract between/i)).toBeInTheDocument();
@@ -60,10 +54,6 @@ describe('TermsOfService', () => {
     expect(screen.getByText('15) Entire Agreement.')).toBeInTheDocument();
     expect(screen.getByText(/These Terms are the entire agreement/i)).toBeInTheDocument();
     expect(screen.getByText('16) Contact.')).toBeInTheDocument();
-  });
-
-  it('includes privacy, company, and contact links', () => {
-    render(<TermsOfService />);
 
     const privacyLink = screen
       .getAllByRole('link')

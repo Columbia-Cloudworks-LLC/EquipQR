@@ -70,6 +70,14 @@ vi.mock('@/features/inventory/components/PartsAccessSheet', () => ({
     open ? <div data-testid="parts-access-sheet">Parts Access</div> : null,
 }));
 
+vi.mock('@/features/inventory/components/InventoryColumnManager', () => ({
+  InventoryColumnManager: () => (
+    <button type="button" aria-label="Manage table columns">
+      Columns
+    </button>
+  ),
+}));
+
 const baseItem = (overrides: Partial<InventoryItem>): InventoryItem => ({
   id: 'item-1',
   organization_id: 'org-1',
@@ -150,7 +158,7 @@ function renderUntilCatalogVisible() {
 
 /** Radix DropdownMenu needs userEvent pointer sequencing. */
 async function openMenuItem(trigger: HTMLElement, itemName: RegExp) {
-  const user = userEvent.setup();
+  const user = userEvent.setup({ delay: null });
   await user.click(trigger);
   await user.click(await screen.findByRole('menuitem', { name: itemName }));
 }

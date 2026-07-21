@@ -133,7 +133,7 @@ describe('QRWorkOrderDialog', () => {
   });
 
   it('selects a PM template through the real Radix Select and creates the work order', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     const onCreated = vi.fn();
     const onOpenChange = vi.fn();
 
@@ -165,7 +165,7 @@ describe('QRWorkOrderDialog', () => {
   });
 
   it('passes photos through the real WorkOrderCreationPhotoPicker into createQRWorkOrder', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
 
     render(
       <QRWorkOrderDialog

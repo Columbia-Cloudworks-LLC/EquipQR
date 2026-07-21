@@ -34,6 +34,11 @@ vi.mock('@/features/organization/hooks/useGoogleWorkspaceConnectionStatus', () =
   useGoogleWorkspaceConnectionStatus: vi.fn(),
 }));
 
+// Collapsed checkbox pickers are not exercised here — keep card titles only (#1314).
+vi.mock('@/components/common/ExportCollapsibleCheckboxPicker', () => ({
+  ExportCollapsibleCheckboxPicker: ({ title }: { title: string }) => <div>{title}</div>,
+}));
+
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
@@ -140,11 +145,14 @@ describe('Reports page (Fleet Export Console)', () => {
     setupMocks();
   });
 
-  it('renders the export console shell, featured packet, titles, counts, and export actions', () => {
+  it('renders the export console shell, featured packet, titles, counts, export actions, and GW status', () => {
+    setupMocks({ isGoogleConnected: true });
     render(<Reports />);
 
     expect(screen.getByRole('heading', { name: /fleet export console/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/export console status/i)).toBeInTheDocument();
+    const statusStrip = screen.getByLabelText(/export console status/i);
+    expect(statusStrip).toBeInTheDocument();
+    expect(within(statusStrip).getByText('Connected')).toBeInTheDocument();
     expect(screen.getByText(organizations.acme.name)).toBeInTheDocument();
     expect(screen.getByText(/primary export/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Fleet Assets' })).toBeInTheDocument();
@@ -209,11 +217,4 @@ describe('Reports page (Fleet Export Console)', () => {
     expect(screen.queryByText(/primary export/i)).not.toBeInTheDocument();
   });
 
-  it('shows Google Workspace connection status in the status strip', () => {
-    setupMocks({ isGoogleConnected: true });
-    render(<Reports />);
-
-    const statusStrip = screen.getByLabelText(/export console status/i);
-    expect(within(statusStrip).getByText('Connected')).toBeInTheDocument();
-  });
 });

@@ -114,15 +114,10 @@ describe('PMChecklistComponent', () => {
       const selectTrigger = screen.getByRole('combobox');
       fireEvent.click(selectTrigger);
 
-      await waitFor(() => {
-        expect(screen.getByText('Adjusted')).toBeInTheDocument();
-      });
+      const adjusted = await screen.findByRole('option', { name: /adjusted/i });
+      fireEvent.click(adjusted);
 
-      fireEvent.click(screen.getByText('Adjusted'));
-
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText('Add notes for this item...')).toBeInTheDocument();
-      });
+      expect(await screen.findByPlaceholderText('Add notes for this item...')).toBeInTheDocument();
     });
 
     it('shows notes when item has existing notes regardless of condition', async () => {

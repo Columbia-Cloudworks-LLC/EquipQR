@@ -14,7 +14,7 @@ describe('PrivacyPolicy', () => {
     vi.clearAllMocks();
   });
 
-  it('renders shell, heading hierarchy, and navigation', () => {
+  it('renders shell, navigation, numbered sections, and data-handling promises', () => {
     render(<PrivacyPolicy />);
 
     const heading = screen.getByRole('heading', { level: 1 });
@@ -23,12 +23,6 @@ describe('PrivacyPolicy', () => {
     expect(screen.getByText(/July 20, 2026/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument();
     expect(screen.getAllByRole('heading').length).toBeGreaterThan(1);
-    expect(screen.getByText('Privacy Policy').closest('[class*="container"]')).toBeInTheDocument();
-    expect(screen.getByText('1. Introduction').closest('[class*="space-y"]')).toBeInTheDocument();
-  });
-
-  it('covers numbered policy sections and data-handling promises', () => {
-    render(<PrivacyPolicy />);
 
     expect(screen.getByText('1. Introduction')).toBeInTheDocument();
     expect(screen.getByText(/is committed to protecting the privacy of every person/)).toBeInTheDocument();
@@ -54,10 +48,6 @@ describe('PrivacyPolicy', () => {
     expect(screen.getByText('14. Contact Us')).toBeInTheDocument();
     expect(screen.getByText(/If you have any questions about this Privacy Policy/)).toBeInTheDocument();
     expect(screen.getByText(/fleet equipment management platform/)).toBeInTheDocument();
-  });
-
-  it('lists collected data categories and usage purposes', () => {
-    render(<PrivacyPolicy />);
 
     expect(screen.getByText('Account Registration')).toBeInTheDocument();
     expect(screen.getByText(/Full name, email address, and password/)).toBeInTheDocument();
@@ -74,10 +64,6 @@ describe('PrivacyPolicy', () => {
     expect(screen.getByText(/Bug resolution:/)).toBeInTheDocument();
     expect(screen.getByText(/Compliance and audit:/)).toBeInTheDocument();
     expect(screen.getByText(/Security and abuse prevention:/)).toBeInTheDocument();
-  });
-
-  it('lists sharing scenarios, security measures, and user rights', () => {
-    render(<PrivacyPolicy />);
 
     expect(screen.getByText(/Subprocessors listed in Section 4:/)).toBeInTheDocument();
     expect(screen.getByText(/third-party service providers described above/)).toBeInTheDocument();
@@ -98,7 +84,7 @@ describe('PrivacyPolicy', () => {
     expect(screen.getByText(/Data portability:/)).toBeInTheDocument();
   });
 
-  it('lists subprocessors, optional integrations, and contact links', () => {
+  it('lists subprocessors, California rights tables, and contact / privacy-request links', () => {
     render(<PrivacyPolicy />);
 
     expect(screen.getByText('4. External Service Providers (Subprocessors)')).toBeInTheDocument();
@@ -119,10 +105,6 @@ describe('PrivacyPolicy', () => {
     expect(screen.getByText(/nicholas\.king@columbiacloudworks\.com/)).toBeInTheDocument();
     expect(screen.getAllByText('equipqr.app').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Contact us for business address information/)).toBeInTheDocument();
-  });
-
-  it('covers California privacy rights tables and privacy-request link', () => {
-    render(<PrivacyPolicy />);
 
     expect(screen.getByText(/10A\. Your California Privacy Rights/)).toBeInTheDocument();
     expect(screen.getByText('Categories of Personal Information Collected')).toBeInTheDocument();

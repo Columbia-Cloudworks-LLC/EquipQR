@@ -127,6 +127,41 @@ vi.mock('@/integrations/supabase/client', () => ({
   }
 }));
 
+// Lightweight editor stub: #602 form-wiring coverage only needs Add Rule + row persistence.
+// Full Select UX lives in CompatibilityRulesEditor.test.tsx (#1314).
+vi.mock('@/features/inventory/components/CompatibilityRulesEditor', () => ({
+  CompatibilityRulesEditor: ({
+    rules,
+    onChange,
+    disabled,
+  }: {
+    rules: Array<Record<string, unknown>>;
+    onChange: (rules: Array<Record<string, unknown>>) => void;
+    disabled?: boolean;
+  }) => (
+    <div>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() =>
+          onChange([
+            ...rules,
+            {
+              manufacturer: '',
+              model: null,
+              match_type: 'exact',
+              status: 'unverified',
+            },
+          ])
+        }
+      >
+        Add Rule
+      </button>
+      {rules.length > 0 ? <span>Select manufacturer</span> : null}
+    </div>
+  ),
+}));
+
 describe('InventoryItemForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
