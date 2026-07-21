@@ -51,7 +51,8 @@
     "scripts/docs-media/print-storage-path.ts",
     "scripts/run-vitest-local.test.mjs",
     "scripts/vitest-perf/report-vitest-durations.test.mjs",
-    "scripts/vitest-perf/publish-duration-pr-comment.mjs"
+    "scripts/vitest-perf/publish-duration-pr-comment.mjs",
+    "scripts/cloud-agent/seed-quick-login.mjs"
   ],
   "ignoreExports": [
     {
