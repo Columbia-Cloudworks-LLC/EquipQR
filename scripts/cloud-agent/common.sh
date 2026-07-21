@@ -65,7 +65,7 @@ ca_env_value() {
   [[ -f "$file" ]] || return 0
   value="$(
     grep -E "^${key}=" "$file" 2>/dev/null \
-      | head -n 1 \
+      | tail -n 1 \
       | cut -d= -f2- \
       | tr -d '\r' \
       || true
