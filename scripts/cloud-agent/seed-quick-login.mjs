@@ -563,6 +563,9 @@ function seedImageMime(ext) {
  * Upload TopBar workspace branding for cloud-agent smoke.
  * Mix: Apex + Metro get org logos; Apex Heavy Equipment team gets an image;
  * Valley / Industrial stay without logos so fallback icons remain testable.
+ *
+ * Applies by organization/team **name** across all matching rows so duplicate
+ * fixture + trigger-created orgs on reused branches still get branding.
  */
 async function ensureWorkspaceBranding(admin, { apexOrgId, apexTeamId, metroOrgId }) {
   const apexLogoPath = path.join(
@@ -578,18 +581,76 @@ async function ensureWorkspaceBranding(admin, { apexOrgId, apexTeamId, metroOrgI
     'supabase/seed-images/teams/880e8400-e29b-41d4-a716-446655440000.png',
   );
 
-  if (apexOrgId && fs.existsSync(apexLogoPath)) {
-    await uploadOrganizationLogo(admin, apexOrgId, apexLogoPath);
-    log('Seeded Apex organization logo');
+  const apexOrgIds = new Set(
+    await findOrganizationIdsByName(admin, 'Apex Construction Company'),
+  );
+  if (apexOrgId) apexOrgIds.add(apexOrgId);
+
+  const metroOrgIds = new Set(
+    await findOrganizationIdsByName(admin, 'Metro Equipment Services'),
+  );
+  if (metroOrgId) metroOrgIds.add(metroOrgId);
+
+  if (fs.existsSync(apexLogoPath)) {
+    for (const orgId of apexOrgIds) {
+      await uploadOrganizationLogo(admin, orgId, apexLogoPath);
+    }
+    if (apexOrgIds.size > 0) {
+      log(`Seeded Apex organization logo (${apexOrgIds.size} org row(s))`);
+    }
   }
-  if (metroOrgId && fs.existsSync(metroLogoPath)) {
-    await uploadOrganizationLogo(admin, metroOrgId, metroLogoPath);
-    log('Seeded Metro organization logo (no team image — fallback mix)');
+
+  if (fs.existsSync(metroLogoPath)) {
+    for (const orgId of metroOrgIds) {
+      await uploadOrganizationLogo(admin, orgId, metroLogoPath);
+    }
+    if (metroOrgIds.size > 0) {
+      log(`Seeded Metro organization logo (${metroOrgIds.size} org row(s); no team image — fallback mix)`);
+    }
   }
-  if (apexOrgId && apexTeamId && fs.existsSync(teamImagePath)) {
-    await uploadTeamImage(admin, apexOrgId, apexTeamId, teamImagePath);
-    log('Seeded Apex Heavy Equipment team image');
+
+  if (fs.existsSync(teamImagePath)) {
+    const heavyTeams = await findHeavyEquipmentTeams(admin, [...apexOrgIds]);
+    if (apexOrgId && apexTeamId) {
+      heavyTeams.push({ orgId: apexOrgId, teamId: apexTeamId });
+    }
+    const seen = new Set();
+    for (const { orgId, teamId } of heavyTeams) {
+      const key = `${orgId}:${teamId}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      await uploadTeamImage(admin, orgId, teamId, teamImagePath);
+    }
+    if (seen.size > 0) {
+      log(`Seeded Apex Heavy Equipment team image (${seen.size} team row(s))`);
+    }
   }
+}
+
+async function findOrganizationIdsByName(admin, name) {
+  const { data, error } = await admin
+    .from('organizations')
+    .select('id')
+    .eq('name', name);
+  if (error) {
+    throw new Error(`organizations lookup by name failed: ${error.message}`);
+  }
+  return (data || []).map((row) => row.id).filter(Boolean);
+}
+
+async function findHeavyEquipmentTeams(admin, orgIds) {
+  if (!orgIds.length) return [];
+  const { data, error } = await admin
+    .from('teams')
+    .select('id, organization_id')
+    .eq('name', CLOUD_AGENT_TEAM_NAME)
+    .in('organization_id', orgIds);
+  if (error) {
+    throw new Error(`teams lookup for branding failed: ${error.message}`);
+  }
+  return (data || [])
+    .filter((row) => row.id && row.organization_id)
+    .map((row) => ({ orgId: row.organization_id, teamId: row.id }));
 }
 
 async function uploadOrganizationLogo(admin, orgId, localPath) {
