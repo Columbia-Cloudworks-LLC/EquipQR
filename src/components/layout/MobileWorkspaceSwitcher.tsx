@@ -5,7 +5,6 @@ import {
   Check,
   ChevronsUpDown,
   Plus,
-  Users as UsersIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,9 +15,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import WorkspaceAvatar from '@/components/layout/WorkspaceAvatar';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeam } from '@/features/teams/hooks/useTeam';
 import { useSelectedTeam } from '@/hooks/useSelectedTeam';
+import { useSelectedTeamImageUrl } from '@/hooks/useSelectedTeamImageUrl';
 import { usePermissions } from '@/hooks/usePermissions';
 import {
   UNASSIGNED_TEAM_ID,
@@ -52,6 +53,7 @@ const MobileWorkspaceSwitcher: React.FC<MobileWorkspaceSwitcherProps> = ({
     useOrganization();
   const { teamMemberships } = useTeam();
   const { selectedTeamId, setSelectedTeamId } = useSelectedTeam();
+  const { data: selectedTeamImageUrl } = useSelectedTeamImageUrl(selectedTeamId);
   const { canCreateTeam } = usePermissions();
   const canCreateTeams = canCreateTeam();
 
@@ -91,14 +93,29 @@ const MobileWorkspaceSwitcher: React.FC<MobileWorkspaceSwitcherProps> = ({
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen(true)}
-        className="h-auto w-full min-w-0 flex-col items-center gap-0 px-1 py-1 hover:bg-accent/50"
+        className="h-auto w-full min-w-0 flex-col items-center gap-0.5 px-1 py-1 hover:bg-accent/50"
       >
+        <span className="inline-flex max-w-full items-center justify-center gap-1.5">
+          <WorkspaceAvatar
+            kind="organization"
+            src={currentOrganization.logo}
+            name={currentOrganization.name}
+            size="sm"
+          />
+          {showTeamSegment && (
+            <WorkspaceAvatar
+              kind="team"
+              src={selectedTeamImageUrl}
+              name={teamLabel}
+              size="sm"
+            />
+          )}
+        </span>
         <span className="w-full text-center text-sm font-medium leading-snug line-clamp-2">
           {currentOrganization.name}
         </span>
         {showTeamSegment && (
           <span className="mt-0.5 inline-flex max-w-full items-center gap-1 text-xs text-muted-foreground">
-            <UsersIcon className="h-3 w-3 shrink-0" aria-hidden="true" />
             <span className="truncate">{teamLabel}</span>
             <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-50" aria-hidden="true" />
           </span>

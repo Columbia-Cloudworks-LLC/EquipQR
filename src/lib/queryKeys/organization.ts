@@ -15,6 +15,8 @@ export const team = (teamId: string) => ({
   root: ['team', teamId] as const,
   members: () => ['team', teamId, 'members'] as const,
   managerCheck: (userId: string) => ['team', teamId, 'manager', userId] as const,
+  /** Signed display URL for the private team-images bucket (TopBar workspace avatar). */
+  displayImage: () => ['team', teamId, 'display-image'] as const,
 });
 
 // Team stats keys

@@ -23,6 +23,21 @@ import {
 // Re-export types for backward compatibility
 export type { Team, TeamMember, TeamWithMembers };
 
+export const getTeamImageUrl = async (
+  teamId: string,
+  organizationId: string,
+): Promise<string | null> => {
+  const { data, error } = await supabase
+    .from('teams')
+    .select('image_url')
+    .eq('id', teamId)
+    .eq('organization_id', organizationId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data?.image_url ?? null;
+};
+
 // Create a team and automatically add creator as manager
 export const createTeamWithCreator = async (
   teamData: TeamInsert, 
