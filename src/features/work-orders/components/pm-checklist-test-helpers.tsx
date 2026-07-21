@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@vitest-harness/utils/test-utils';
+import { render, screen, fireEvent } from '@vitest-harness/utils/test-utils';
 import PMChecklistComponent from './PMChecklistComponent';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import type { WorkOrderData } from '@/features/work-orders/types/workOrderDetails';
@@ -34,9 +34,8 @@ export function openPmSection(sectionName: string): void {
 }
 
 export async function waitForPmItem(title: string): Promise<void> {
-  await waitFor(() => {
-    expect(screen.getByText(title)).toBeInTheDocument();
-  });
+  // Accordion content may mount asynchronously; findBy avoids waitFor polling loops.
+  expect(await screen.findByText(title)).toBeInTheDocument();
 }
 
 export async function openPmSectionAndWaitForItem(

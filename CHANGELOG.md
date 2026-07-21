@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Faster Vitest hotspots (#1314 follow-up)** — Restore native PM/photo stubs in `EquipmentQRQuickActions` (real Radix coverage stays in `QRWorkOrderDialog`); stub Reports column/worksheet pickers and ledger date-range; consolidate Privacy/Terms and InventoryItemDetail renders; lighten InventoryList column manager and InventoryItemForm compatibility editor; prefer `userEvent.setup({ delay: null })` / sync asserts in remaining slow suites.
 - **DSR Cockpit entry points** — Remove DSR Cockpit from the main sidebar Audit section. Owners/admins open it from **Legal → DSR Cockpit** in the footer or **Settings → Privacy**. Docs and RBAC nav coverage updated to match.
 - **Equipment list → details view transitions (#1380, partial)** — Card and table row navigation morph into the equipment details page via the View Transitions API when supported; respects `prefers-reduced-motion`, and details always open scrolled to the top of main content.
 - **equipqr.info branding aligned with equipqr.app (#1358)** — VitePress theme mirrors Mission Control HSL tokens (primary, neutrals, semantic status colors), uses `appearance: force-dark` (no light toggle), EquipQR wordmark with secondary Docs label, styles the Open App nav CTA as a primary button (system fonts; no third-party font CSS), honors `prefers-reduced-motion`, and documents token propagation in `docs/ops/deployment.md`.
