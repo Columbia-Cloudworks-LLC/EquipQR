@@ -604,7 +604,8 @@ if ($uuidTeamImages.Count -gt 0) {
             $objectPath = "$orgId/$teamId/image.$ext"
             Invoke-LocalDevStorageUpload -Bucket 'team-images' -ObjectPath $objectPath -FilePath $img.FullName -StorageHeaders $StorageHeaders -ApiPort $ApiPort -RequestTimeoutSec $RequestTimeoutSec
             $objectPathSql = Escape-SqlLiteral $objectPath
-            Invoke-PsqlNonQuery -Sql "UPDATE teams SET image_url = '$objectPathSql', updated_at = NOW() WHERE id = '$teamId'" -Label "update teams.image_url $teamId"
+            $orgIdSql = Escape-SqlLiteral $orgId
+            Invoke-PsqlNonQuery -Sql "UPDATE teams SET image_url = '$objectPathSql', updated_at = NOW() WHERE id = '$teamId' AND organization_id = '$orgIdSql'" -Label "update teams.image_url $teamId"
             $stats.TeamImages++
         }
         catch {
