@@ -667,7 +667,7 @@ async function uploadOrganizationLogo(admin, orgId, localPath) {
   const { data } = admin.storage.from('organization-logos').getPublicUrl(objectPath);
   const { error: updateError } = await admin
     .from('organizations')
-    .update({ logo: data.publicUrl, updated_at: new Date().toISOString() })
+    .update({ logo: `${data.publicUrl}?v=${Date.now()}`, updated_at: new Date().toISOString() })
     .eq('id', orgId);
   if (updateError) {
     throw new Error(`organizations.logo update failed: ${updateError.message}`);
