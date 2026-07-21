@@ -58,25 +58,39 @@ ca_ensure_state_dir() {
 
 # Resolve Quick Login password from env or existing .env (no hardcoded default).
 # Sets RESOLVED_QUICK_LOGIN_PASSWORD and exports CLOUD_AGENT_QUICK_LOGIN_PASSWORD + VITE_DEV_TEST_PASSWORD.
+ca_env_value() {
+  local key="$1"
+  local file="${2:-${REPO_ROOT}/.env}"
+  local value=""
+  [[ -f "$file" ]] || return 0
+  value="$(
+    grep -E "^${key}=" "$file" 2>/dev/null \
+      | tail -n 1 \
+      | cut -d= -f2- \
+      | tr -d '\r' \
+      || true
+  )"
+  # Strip optional surrounding quotes from .env values.
+  if [[ "$value" == \"*\" && "$value" == *\" ]]; then
+    value="${value:1:${#value}-2}"
+  elif [[ "$value" == \'*\' && "$value" == *\' ]]; then
+    value="${value:1:${#value}-2}"
+  fi
+  printf '%s' "$value"
+}
+
 ca_resolve_quick_login_password() {
+  # Prefer explicit agent overrides, then Vite-prefixed, then app-env-local-dev's
+  # DEV_LOGIN_PASSWORD (what agent-bootstrap writes into cloud .env).
   local resolved="${CLOUD_AGENT_QUICK_LOGIN_PASSWORD:-${VITE_DEV_TEST_PASSWORD:-}}"
-  if [[ -z "$resolved" && -f "${REPO_ROOT}/.env" ]]; then
-    resolved="$(
-      grep -E '^VITE_DEV_TEST_PASSWORD=' "${REPO_ROOT}/.env" 2>/dev/null \
-        | head -n 1 \
-        | cut -d= -f2- \
-        | tr -d '\r' \
-        || true
-    )"
-    # Strip optional surrounding quotes from .env values.
-    if [[ "$resolved" == \"*\" && "$resolved" == *\" ]]; then
-      resolved="${resolved:1:${#resolved}-2}"
-    elif [[ "$resolved" == \'*\' && "$resolved" == *\' ]]; then
-      resolved="${resolved:1:${#resolved}-2}"
-    fi
+  if [[ -z "$resolved" ]]; then
+    resolved="$(ca_env_value VITE_DEV_TEST_PASSWORD)"
   fi
   if [[ -z "$resolved" ]]; then
-    ca_fail "Set CLOUD_AGENT_QUICK_LOGIN_PASSWORD or VITE_DEV_TEST_PASSWORD (or VITE_DEV_TEST_PASSWORD in .env)."
+    resolved="$(ca_env_value DEV_LOGIN_PASSWORD)"
+  fi
+  if [[ -z "$resolved" ]]; then
+    ca_fail "Set CLOUD_AGENT_QUICK_LOGIN_PASSWORD or VITE_DEV_TEST_PASSWORD (or VITE_DEV_TEST_PASSWORD / DEV_LOGIN_PASSWORD in .env)."
     return 1
   fi
   RESOLVED_QUICK_LOGIN_PASSWORD="$resolved"

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   PARENT_PROJECT_REF,
   assertBranchSafeTarget,
@@ -14,6 +14,11 @@ import {
 } from './seed-quick-login.mjs';
 
 describe('cloud-agent seed-quick-login helpers', () => {
+  beforeEach(() => {
+    delete process.env.CLOUD_AGENT_QUICK_LOGIN_PASSWORD;
+    delete process.env.VITE_DEV_TEST_PASSWORD;
+  });
+
   afterEach(() => {
     delete process.env.CLOUD_AGENT_QUICK_LOGIN_PASSWORD;
     delete process.env.VITE_DEV_TEST_PASSWORD;
