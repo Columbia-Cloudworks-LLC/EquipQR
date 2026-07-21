@@ -36,7 +36,9 @@ test.describe('Cloud agent Quick Login smoke', () => {
     await page.goto('http://localhost:8080/dashboard/equipment', {
       waitUntil: 'domcontentloaded',
     });
-    await expect(page.getByText('CAT 320 Excavator', { exact: true })).toBeVisible({
+    // Unique serial from cloud-agent seed (avoids strict-mode dupes if local
+    // seed serials also landed on the branch).
+    await expect(page.getByText('CAT320GC-CLOUD-AGENT-001', { exact: true })).toBeVisible({
       timeout: 60_000,
     });
   });
