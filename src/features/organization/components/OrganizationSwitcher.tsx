@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, ChevronsUpDown, Building } from 'lucide-react';
@@ -12,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import WorkspaceAvatar from '@/components/layout/WorkspaceAvatar';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { cn } from '@/lib/utils';
 
@@ -26,7 +26,7 @@ interface OrganizationSwitcherProps {
    * Visual density.
    * - `sidebar` (default) — full-width trigger with role subtitle, used in `AppSidebar`.
    * - `topbar` — compact, single-line trigger styled to flow inside the global
-   *   breadcrumb in `TopBar` (org name + chevron only, no role line, no logo box).
+   *   breadcrumb in `TopBar` (logo + org name + chevron; no role line).
    */
   variant?: 'sidebar' | 'topbar';
 }
@@ -80,10 +80,16 @@ const OrganizationSwitcher: React.FC<OrganizationSwitcherProps> = ({
             size="sm"
             aria-label={`Switch organization (current: ${currentOrganization.name})`}
             className={cn(
-              'inline-flex max-w-full items-center justify-center sm:justify-start gap-1 h-8 px-2 sm:max-w-[14rem] text-foreground hover:text-foreground',
+              'inline-flex max-w-full items-center justify-center sm:justify-start gap-1.5 h-8 px-2 sm:max-w-[14rem] text-foreground hover:text-foreground',
               className
             )}
           >
+            <WorkspaceAvatar
+              kind="organization"
+              src={currentOrganization.logo}
+              name={currentOrganization.name}
+              size="sm"
+            />
             <span className="text-sm font-medium truncate">
               {currentOrganization.name}
             </span>

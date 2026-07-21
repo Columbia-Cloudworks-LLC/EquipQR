@@ -17,8 +17,19 @@ Step **5b** runs `scripts/seed-dev-media.ps1` after `supabase db reset`.
 | `equipment/` | Any other filename (e.g. `CAT-320.jpg`) | Treated as **backfill** photos — assigned to equipment missing display images, then cycled across the rest |
 | `drop/` | Any filename | Same backfill behavior; also round-robins into equipment note images and work order images |
 | `work-orders/` | `{work-order-uuid}.jpg` | Creates a seed note + `work_order_images` row on that work order |
+| `organizations/` | `{organization-uuid}.{ext}` | Uploads to public `organization-logos` and sets `organizations.logo` (public URL) |
+| `teams/` | `{team-uuid}.{ext}` | Uploads to `team-images` and sets `teams.image_url` (canonical path `{orgId}/{teamId}/image.{ext}`) |
 
 The committed UUID JPEGs map to durable-core equipment (`aa0e8400-…`). Add human-readable filenames directly in `equipment/` or `drop/` — no SQL edits required.
+
+### Org / team branding mix (#1379)
+
+Committed seed logos intentionally cover **most but not all** fixture orgs and teams so TopBar workspace avatars can be tested with and without images:
+
+| Entity | Has image | Intentionally missing |
+| ------ | --------- | --------------------- |
+| Orgs | Apex, Metro, Industrial, Amanda personal | Valley (+ other personal orgs) |
+| Teams | Heavy Equipment, Rental Fleet, Grounds Crew, Warehouse | Site Operations, Customer Service |
 
 ## Storage contract
 

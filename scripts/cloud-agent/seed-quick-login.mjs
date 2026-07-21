@@ -16,6 +16,13 @@
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const REPO_ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../..',
+);
 
 export const PARENT_PROJECT_REF = 'ymxkzronkhwxzcdcbnwq';
 
@@ -464,9 +471,6 @@ async function ensureFleet(admin, orgId, ownerUserId) {
       .order('created_at', { ascending: true }),
     'equipment',
   );
-  if (existingEqId) {
-    return;
-  }
 
   let teamId = await findFirstId(
     admin
@@ -519,22 +523,114 @@ async function ensureFleet(admin, orgId, ownerUserId) {
     }
   }
 
-  const { error: eqError } = await admin.from('equipment').insert({
-    id: randomUUID(),
-    organization_id: orgId,
-    team_id: teamId,
-    name: 'CAT 320 Excavator',
-    manufacturer: 'Caterpillar',
-    model: '320 GC',
-    serial_number: CLOUD_AGENT_EQUIPMENT_SERIAL,
-    status: 'active',
-    location: 'Dallas, TX',
-    installation_date: '2023-03-15',
-    working_hours: 100,
-    custom_attributes: {},
+  if (!existingEqId) {
+    const { error: eqError } = await admin.from('equipment').insert({
+      id: randomUUID(),
+      organization_id: orgId,
+      team_id: teamId,
+      name: 'CAT 320 Excavator',
+      manufacturer: 'Caterpillar',
+      model: '320 GC',
+      serial_number: CLOUD_AGENT_EQUIPMENT_SERIAL,
+      status: 'active',
+      location: 'Dallas, TX',
+      installation_date: '2023-03-15',
+      working_hours: 100,
+      custom_attributes: {},
+    });
+    if (eqError) {
+      throw new Error(`equipment insert failed: ${eqError.message}`);
+    }
+  }
+
+  return { teamId };
+}
+
+function seedImageMime(ext) {
+  switch (String(ext || '').toLowerCase()) {
+    case 'png':
+      return 'image/png';
+    case 'webp':
+      return 'image/webp';
+    case 'gif':
+      return 'image/gif';
+    default:
+      return 'image/jpeg';
+  }
+}
+
+/**
+ * Upload TopBar workspace branding for cloud-agent smoke.
+ * Mix: Apex + Metro get org logos; Apex Heavy Equipment team gets an image;
+ * Valley / Industrial stay without logos so fallback icons remain testable.
+ */
+async function ensureWorkspaceBranding(admin, { apexOrgId, apexTeamId, metroOrgId }) {
+  const apexLogoPath = path.join(
+    REPO_ROOT,
+    'supabase/seed-images/organizations/660e8400-e29b-41d4-a716-446655440000.png',
+  );
+  const metroLogoPath = path.join(
+    REPO_ROOT,
+    'supabase/seed-images/organizations/660e8400-e29b-41d4-a716-446655440001.png',
+  );
+  const teamImagePath = path.join(
+    REPO_ROOT,
+    'supabase/seed-images/teams/880e8400-e29b-41d4-a716-446655440000.png',
+  );
+
+  if (apexOrgId && fs.existsSync(apexLogoPath)) {
+    await uploadOrganizationLogo(admin, apexOrgId, apexLogoPath);
+    log('Seeded Apex organization logo');
+  }
+  if (metroOrgId && fs.existsSync(metroLogoPath)) {
+    await uploadOrganizationLogo(admin, metroOrgId, metroLogoPath);
+    log('Seeded Metro organization logo (no team image — fallback mix)');
+  }
+  if (apexOrgId && apexTeamId && fs.existsSync(teamImagePath)) {
+    await uploadTeamImage(admin, apexOrgId, apexTeamId, teamImagePath);
+    log('Seeded Apex Heavy Equipment team image');
+  }
+}
+
+async function uploadOrganizationLogo(admin, orgId, localPath) {
+  const ext = path.extname(localPath).slice(1).toLowerCase() || 'png';
+  const objectPath = `${orgId}/logo.${ext}`;
+  const bytes = fs.readFileSync(localPath);
+  const { error } = await admin.storage.from('organization-logos').upload(objectPath, bytes, {
+    contentType: seedImageMime(ext),
+    upsert: true,
   });
-  if (eqError) {
-    throw new Error(`equipment insert failed: ${eqError.message}`);
+  if (error) {
+    throw new Error(`organization logo upload failed: ${error.message}`);
+  }
+  const { data } = admin.storage.from('organization-logos').getPublicUrl(objectPath);
+  const { error: updateError } = await admin
+    .from('organizations')
+    .update({ logo: data.publicUrl, updated_at: new Date().toISOString() })
+    .eq('id', orgId);
+  if (updateError) {
+    throw new Error(`organizations.logo update failed: ${updateError.message}`);
+  }
+}
+
+async function uploadTeamImage(admin, orgId, teamId, localPath) {
+  const ext = path.extname(localPath).slice(1).toLowerCase() || 'png';
+  const objectPath = `${orgId}/${teamId}/image.${ext}`;
+  const bytes = fs.readFileSync(localPath);
+  const { error } = await admin.storage.from('team-images').upload(objectPath, bytes, {
+    contentType: seedImageMime(ext),
+    upsert: true,
+  });
+  if (error) {
+    throw new Error(`team image upload failed: ${error.message}`);
+  }
+  const { error: updateError } = await admin
+    .from('teams')
+    .update({ image_url: objectPath, updated_at: new Date().toISOString() })
+    .eq('id', teamId)
+    .eq('organization_id', orgId);
+  if (updateError) {
+    throw new Error(`teams.image_url update failed: ${updateError.message}`);
   }
 }
 
@@ -590,6 +686,7 @@ export async function seedQuickLogin({
   const orgIdsByEmail = new Map();
   let apexUserId = null;
   let apexOrgId = null;
+  let apexTeamId = null;
 
   for (const persona of personas) {
     log(`Ensuring auth user ${persona.email}`);
@@ -619,7 +716,8 @@ export async function seedQuickLogin({
       apexUserId = userId;
       apexOrgId = orgId;
       log(`Seeding smoke fleet on ${persona.organizationName}`);
-      await ensureFleet(admin, orgId, userId);
+      const fleet = await ensureFleet(admin, orgId, userId);
+      apexTeamId = fleet.teamId;
     }
   }
 
@@ -627,12 +725,21 @@ export async function seedQuickLogin({
     await ensureApexCrossMemberships(admin, apexUserId, orgIdsByEmail);
   }
 
+  try {
+    await ensureWorkspaceBranding(admin, {
+      apexOrgId,
+      apexTeamId,
+      metroOrgId: orgIdsByEmail.get('owner@metro.test') ?? null,
+    });
+  } catch (error) {
+    log(`WARN workspace branding seed: ${error.message}`);
+  }
+
   return {
     seededEmails: personas.map((p) => p.email),
     apexOrgId,
   };
 }
-
 function readArg(flag) {
   const idx = process.argv.indexOf(flag);
   if (idx === -1) return undefined;

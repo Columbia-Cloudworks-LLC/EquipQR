@@ -35,6 +35,16 @@ vi.mock('@/hooks/usePermissions', () => ({
   }),
 }));
 
+const { mockSelectedTeamImageUrlRef } = vi.hoisted(() => ({
+  mockSelectedTeamImageUrlRef: { current: null as string | null },
+}));
+
+vi.mock('@/hooks/useSelectedTeamImageUrl', () => ({
+  useSelectedTeamImageUrl: () => ({
+    data: mockSelectedTeamImageUrlRef.current,
+  }),
+}));
+
 // CreateTeamDialog is mocked so we don't pull in Google Maps loader, customer
 // queries, or the team mutation hook chain in this lightweight breadcrumb
 // test. The mock just renders a sentinel element when open=true so we can
@@ -111,6 +121,7 @@ describe('ContextBreadcrumb', () => {
     vi.clearAllMocks();
     mockIsMobileRef.current = false;
     mockCanCreateTeamRef.current = false;
+    mockSelectedTeamImageUrlRef.current = null;
   });
 
   it('renders the section label resolved from the current route', () => {
@@ -154,6 +165,56 @@ describe('ContextBreadcrumb', () => {
 
     expect(
       screen.getByRole('button', { name: /switch team \(current: parts\)/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows org logo and selected team image in the desktop TopBar triggers', () => {
+    mockSelectedTeamImageUrlRef.current = 'https://example.com/team.png';
+
+    renderWithTeamContext({
+      teamMemberships: [
+        { team_id: 't1', team_name: 'Heavy Equipment Team', role: 'manager', joined_date: '2026-01-01' },
+      ],
+      selectedTeamId: 't1',
+      initialEntries: ['/dashboard'],
+      orgValue: createMockSimpleOrgValue({
+        currentOrganization: {
+          id: 'org-1',
+          name: 'Apex Construction Company',
+          plan: 'premium',
+          memberCount: 5,
+          maxMembers: 50,
+          features: [],
+          logo: 'https://example.com/org-logo.png',
+          userRole: 'owner',
+          userStatus: 'active',
+        },
+      }),
+    });
+
+    expect(
+      screen.getByRole('img', { name: 'Apex Construction Company logo' }),
+    ).toHaveAttribute('src', 'https://example.com/org-logo.png');
+    expect(
+      screen.getByRole('img', { name: 'Heavy Equipment Team team image' }),
+    ).toHaveAttribute('src', 'https://example.com/team.png');
+  });
+
+  it('keeps generic icons when org logo and team image are absent', () => {
+    renderWithTeamContext({
+      teamMemberships: [
+        { team_id: 't1', team_name: 'Site Operations Team', role: 'manager', joined_date: '2026-01-01' },
+      ],
+      selectedTeamId: 't1',
+      initialEntries: ['/dashboard'],
+    });
+
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /switch organization \(current: test org\)/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /switch team \(current: site operations team\)/i }),
     ).toBeInTheDocument();
   });
 
@@ -252,6 +313,39 @@ describe('ContextBreadcrumb', () => {
     expect(
       screen.queryByRole('button', { name: /switch organization/i }),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows side-by-side org and team avatars on mobile when both images exist', () => {
+    mockIsMobileRef.current = true;
+    mockSelectedTeamImageUrlRef.current = 'https://example.com/team.png';
+
+    renderWithTeamContext({
+      teamMemberships: [
+        { team_id: 't1', team_name: 'Heavy Equipment Team', role: 'manager', joined_date: '2026-01-01' },
+      ],
+      selectedTeamId: 't1',
+      initialEntries: ['/dashboard'],
+      orgValue: createMockSimpleOrgValue({
+        currentOrganization: {
+          id: 'org-1',
+          name: 'Apex Construction Company',
+          plan: 'premium',
+          memberCount: 5,
+          maxMembers: 50,
+          features: [],
+          logo: 'https://example.com/org-logo.png',
+          userRole: 'owner',
+          userStatus: 'active',
+        },
+      }),
+    });
+
+    expect(
+      screen.getByRole('img', { name: 'Apex Construction Company logo' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: 'Heavy Equipment Team team image' }),
+    ).toBeInTheDocument();
   });
 
   it('closes the mobile workspace sheet after org switch and after team selection', async () => {
