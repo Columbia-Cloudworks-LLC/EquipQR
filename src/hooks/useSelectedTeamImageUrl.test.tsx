@@ -5,22 +5,23 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
 import { useSelectedTeamImageUrl } from './useSelectedTeamImageUrl';
 
-const { mockMaybeSingle, mockResolve, mockDisplay } = vi.hoisted(() => ({
-  mockMaybeSingle: vi.fn(),
-  mockResolve: vi.fn(),
-  mockDisplay: vi.fn(),
+const { mockGetTeamImageUrl, mockResolve, mockDisplay, mockOrganizationIdRef } = vi.hoisted(
+  () => ({
+    mockGetTeamImageUrl: vi.fn(),
+    mockResolve: vi.fn(),
+    mockDisplay: vi.fn(),
+    mockOrganizationIdRef: { current: 'org-1' as string | null },
+  }),
+);
+
+vi.mock('@/features/teams/services/teamService', () => ({
+  getTeamImageUrl: (...args: unknown[]) => mockGetTeamImageUrl(...args),
 }));
 
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          maybeSingle: mockMaybeSingle,
-        }),
-      }),
-    }),
-  },
+vi.mock('@/contexts/OrganizationContext', () => ({
+  useOrganization: () => ({
+    organizationId: mockOrganizationIdRef.current,
+  }),
 }));
 
 vi.mock('@/services/imageUploadService', () => ({
@@ -39,6 +40,7 @@ function wrapper({ children }: { children: React.ReactNode }) {
 describe('useSelectedTeamImageUrl', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockOrganizationIdRef.current = 'org-1';
   });
 
   it('does not query for All teams or Unassigned', () => {
@@ -52,14 +54,23 @@ describe('useSelectedTeamImageUrl', () => {
       { wrapper },
     );
     expect(unassigned.current.fetchStatus).toBe('idle');
-    expect(mockMaybeSingle).not.toHaveBeenCalled();
+    expect(mockGetTeamImageUrl).not.toHaveBeenCalled();
+  });
+
+  it('does not query when organizationId is missing', () => {
+    mockOrganizationIdRef.current = null;
+
+    const { result } = renderHook(
+      () => useSelectedTeamImageUrl('880e8400-e29b-41d4-a716-446655440000'),
+      { wrapper },
+    );
+
+    expect(result.current.fetchStatus).toBe('idle');
+    expect(mockGetTeamImageUrl).not.toHaveBeenCalled();
   });
 
   it('resolves a signed display URL for a selected team with an image', async () => {
-    mockMaybeSingle.mockResolvedValue({
-      data: { image_url: 'org/team/image.png' },
-      error: null,
-    });
+    mockGetTeamImageUrl.mockResolvedValue('org/team/image.png');
     mockResolve.mockResolvedValue('https://signed.example/team.png');
     mockDisplay.mockReturnValue('https://signed.example/team.png');
 
@@ -71,11 +82,15 @@ describe('useSelectedTeamImageUrl', () => {
     await waitFor(() => {
       expect(result.current.data).toBe('https://signed.example/team.png');
     });
+    expect(mockGetTeamImageUrl).toHaveBeenCalledWith(
+      '880e8400-e29b-41d4-a716-446655440000',
+      'org-1',
+    );
     expect(mockResolve).toHaveBeenCalledWith('team-images', 'org/team/image.png');
   });
 
   it('returns null when the selected team has no image_url', async () => {
-    mockMaybeSingle.mockResolvedValue({ data: { image_url: null }, error: null });
+    mockGetTeamImageUrl.mockResolvedValue(null);
 
     const { result } = renderHook(
       () => useSelectedTeamImageUrl('880e8400-e29b-41d4-a716-446655440001'),

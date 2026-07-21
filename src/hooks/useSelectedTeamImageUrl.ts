@@ -30,7 +30,8 @@ export function useSelectedTeamImageUrl(selectedTeamId: SelectedTeamId) {
       : null;
 
   return useQuery({
-    queryKey: team(teamId ?? 'none').displayImage(),
+    // Include organizationId so org switches cannot reuse a prior team's signed URL.
+    queryKey: [...team(teamId ?? 'none').displayImage(), organizationId ?? 'none'] as const,
     enabled: Boolean(teamId && organizationId),
     queryFn: async (): Promise<string | null> => {
       if (!teamId || !organizationId) return null;
