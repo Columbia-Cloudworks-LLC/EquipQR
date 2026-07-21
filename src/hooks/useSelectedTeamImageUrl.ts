@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { getTeamImageUrl } from '@/features/teams/services/teamService';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import {
   DEFAULT_SIGNED_URL_TTL_SECONDS,
   displayUrlForStoredPrivateImage,
@@ -22,6 +23,7 @@ const TEAM_IMAGE_SIGNED_URL_REFRESH_MS = Math.max(
  * Returns null for All teams / Unassigned / missing image (TopBar keeps Users icon).
  */
 export function useSelectedTeamImageUrl(selectedTeamId: SelectedTeamId) {
+  const { organizationId } = useOrganization();
   const teamId =
     selectedTeamId && selectedTeamId !== UNASSIGNED_TEAM_ID
       ? selectedTeamId
@@ -29,19 +31,11 @@ export function useSelectedTeamImageUrl(selectedTeamId: SelectedTeamId) {
 
   return useQuery({
     queryKey: team(teamId ?? 'none').displayImage(),
-    enabled: Boolean(teamId),
+    enabled: Boolean(teamId && organizationId),
     queryFn: async (): Promise<string | null> => {
-      if (!teamId) return null;
+      if (!teamId || !organizationId) return null;
 
-      const { data, error } = await supabase
-        .from('teams')
-        .select('image_url')
-        .eq('id', teamId)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      const raw = data?.image_url?.trim();
+      const raw = (await getTeamImageUrl(teamId, organizationId))?.trim();
       if (!raw) return null;
 
       const signed = await resolveImageDisplayUrl('team-images', raw);

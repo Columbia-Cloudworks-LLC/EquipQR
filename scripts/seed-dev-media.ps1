@@ -19,7 +19,8 @@ param(
     [int]$RequestTimeoutSec = 30,
     [int]$StorageReadyTimeoutSec = 120,
     [int]$SupabaseStatusTimeoutSec = 45,
-    [int]$MaxRetries = 3
+    [int]$MaxRetries = 3,
+    [string]$PublicStorageHost = '127.0.0.1'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -574,7 +575,7 @@ if ($uuidOrganizationImages.Count -gt 0) {
             if ($ext -eq 'jpeg') { $ext = 'jpg' }
             $objectPath = "$orgId/logo.$ext"
             Invoke-LocalDevStorageUpload -Bucket 'organization-logos' -ObjectPath $objectPath -FilePath $img.FullName -StorageHeaders $StorageHeaders -ApiPort $ApiPort -RequestTimeoutSec $RequestTimeoutSec
-            $publicUrl = "http://127.0.0.1:$ApiPort/storage/v1/object/public/organization-logos/$objectPath"
+            $publicUrl = "http://$PublicStorageHost`:$ApiPort/storage/v1/object/public/organization-logos/$objectPath"
             $publicUrlSql = Escape-SqlLiteral $publicUrl
             Invoke-PsqlNonQuery -Sql "UPDATE organizations SET logo = '$publicUrlSql', updated_at = NOW() WHERE id = '$orgId'" -Label "update organizations.logo $orgId"
             $stats.OrgLogos++
