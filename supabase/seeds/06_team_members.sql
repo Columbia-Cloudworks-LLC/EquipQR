@@ -34,5 +34,12 @@ INSERT INTO public.team_members (
   -- Warehouse Team (Industrial)
   ('dd0e8400-e29b-41d4-a716-446655440010'::uuid, '880e8400-e29b-41d4-a716-446655440005'::uuid, 'bb0e8400-e29b-41d4-a716-446655440007'::uuid, 'manager', '2024-02-15 00:00:00+00'),
   ('dd0e8400-e29b-41d4-a716-446655440011'::uuid, '880e8400-e29b-41d4-a716-446655440005'::uuid, 'bb0e8400-e29b-41d4-a716-446655440004'::uuid, 'technician', '2024-02-20 00:00:00+00'),
-  ('dd0e8400-e29b-41d4-a716-446655440012'::uuid, '880e8400-e29b-41d4-a716-446655440005'::uuid, 'bb0e8400-e29b-41d4-a716-446655440008'::uuid, 'technician', '2024-02-25 00:00:00+00')
+  ('dd0e8400-e29b-41d4-a716-446655440012'::uuid, '880e8400-e29b-41d4-a716-446655440005'::uuid, 'bb0e8400-e29b-41d4-a716-446655440008'::uuid, 'technician', '2024-02-25 00:00:00+00'),
+
+  -- Multi Org User needs team membership on Apex + Metro so org-scoped equipment
+  -- is visible under equipment RLS (org members only see team-assigned equipment).
+  -- Heavy Equipment Team (Apex) — CAT 320 Excavator fixture
+  ('dd0e8400-e29b-41d4-a716-446655440014'::uuid, '880e8400-e29b-41d4-a716-446655440000'::uuid, 'bb0e8400-e29b-41d4-a716-446655440008'::uuid, 'technician', '2024-01-10 00:00:00+00'),
+  -- Rental Fleet Team (Metro) — Bobcat S770 fixture
+  ('dd0e8400-e29b-41d4-a716-446655440015'::uuid, '880e8400-e29b-41d4-a716-446655440002'::uuid, 'bb0e8400-e29b-41d4-a716-446655440008'::uuid, 'technician', '2024-01-18 00:00:00+00')
 ON CONFLICT (id) DO NOTHING;

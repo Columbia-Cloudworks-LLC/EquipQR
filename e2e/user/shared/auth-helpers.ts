@@ -112,25 +112,11 @@ export async function pinContextToOrg(
       }),
     );
 
-    const sessionKey = 'equipqr_session_data';
-    const rawSession = localStorage.getItem(sessionKey);
-    if (rawSession) {
-      try {
-        const session = JSON.parse(rawSession) as {
-          currentOrganizationId?: string | null;
-          userPreference?: { selectedOrgId?: string | null; selectionTimestamp?: string };
-        };
-        session.currentOrganizationId = orgId;
-        session.userPreference = {
-          ...session.userPreference,
-          selectedOrgId: orgId,
-          selectionTimestamp,
-        };
-        localStorage.setItem(sessionKey, JSON.stringify(session));
-      } catch {
-        // Ignore corrupt session cache; org preference keys above still apply.
-      }
-    }
+    // Drop cached session payload. Preferring a pinned org while leaving
+    // stale teamMemberships (often []) causes equipment list RBAC to
+    // short-circuit empty for non-admin personas. Cleared session forces a
+    // fresh fetchSessionData for the preferred org.
+    localStorage.removeItem('equipqr_session_data');
   }, organizationId);
 }
 

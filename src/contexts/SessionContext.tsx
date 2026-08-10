@@ -4,6 +4,8 @@ import { usePageVisibility } from '@/hooks/usePageVisibility';
 import { useSessionManager } from '@/hooks/useSessionManager';
 import { SessionStorageService } from '@/services/sessionStorageService';
 import { SessionPermissionService } from '@/services/sessionPermissionService';
+import { SessionDataService } from '@/services/sessionDataService';
+import { getOrganizationPreference } from '@/utils/sessionPersistence';
 import type { SessionData, SessionOrganization } from '@/types/session';
 
 export type { SessionData, SessionOrganization } from '@/types/session';
@@ -105,11 +107,54 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     if (result.shouldLoadFromCache && result.cachedData) {
-      setSessionData(result.cachedData);
-      setIsLoading(false);
+      const preferredOrgId = getOrganizationPreference()?.selectedOrgId ?? null;
+      let hydrated = result.cachedData;
+      const preferredIsMember =
+        !!preferredOrgId &&
+        hydrated.organizations.some((org) => org.id === preferredOrgId);
+      if (preferredIsMember && preferredOrgId !== hydrated.currentOrganizationId) {
+        // Org preference (or E2E pin) outranks a stale cached org id — clear
+        // teams until we re-fetch for the preferred org.
+        hydrated = {
+          ...hydrated,
+          currentOrganizationId: preferredOrgId,
+          teamMemberships: [],
+        };
+      }
 
-      if (result.needsRefresh) {
-        Promise.resolve(managerRefresh(false)).finally(() => setIsLoading(false));
+      setSessionData(hydrated);
+
+      const orgForTeams = hydrated.currentOrganizationId;
+      if (user?.id && orgForTeams) {
+        // Keep session loading until team memberships match the active org.
+        // Otherwise equipment RBAC can short-circuit on a transient [].
+        setIsLoading(true);
+        void SessionDataService.fetchTeamMemberships(user.id, orgForTeams)
+          .then((teamMemberships) => {
+            setSessionData((prev) => {
+              if (!prev || prev.currentOrganizationId !== orgForTeams) {
+                return prev;
+              }
+              const next: SessionData = {
+                ...prev,
+                teamMemberships,
+                lastUpdated: new Date().toISOString(),
+              };
+              SessionStorageService.saveSessionToStorage(next);
+              return next;
+            });
+          })
+          .finally(() => {
+            setIsLoading(false);
+            if (result.needsRefresh) {
+              void managerRefresh(false);
+            }
+          });
+      } else {
+        setIsLoading(false);
+        if (result.needsRefresh) {
+          Promise.resolve(managerRefresh(false)).finally(() => setIsLoading(false));
+        }
       }
     } else {
       Promise.resolve(managerRefresh(true)).finally(() => setIsLoading(false));
