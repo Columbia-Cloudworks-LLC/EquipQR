@@ -16,6 +16,8 @@ globs: "**/*.test.{ts,tsx}"
 - Shared wrappers (`TestProviders`, `JourneyProviders`) must stabilize `QueryClient` with `useState(() => createTestQueryClient())` — never allocate a new client on every render.
 - Prefer `getBy*` / `getAllBy*` when data is sync-mocked; reserve `findBy*` / `waitFor` for real async (portals, promises, mutations).
 - Prefer `fireEvent` for simple clicks; use `userEvent` when testing keyboard/a11y sequencing.
+- When `userEvent` is required (Radix Tabs/Select/DropdownMenu), call `userEvent.setup({ delay: null })` — default typing delay inflates suite times.
+- Stub heavy children (calendars, checkbox pickers, column managers, nested Selects) when the suite under test only needs wiring; keep one focused suite with the real Radix/UI control.
 - When product mounts CSS layout twins (desktop + mobile), mock the unused twin unless the test specifically covers both.
 - Target: most new component tests under ~150–200ms when feasible.
 - **Duration triage (#1349):** CI uploads per-shard JSON under `artifacts/vitest-results/`. The **Vitest Duration Report** job writes a GitHub Actions summary and a sticky PR comment (tests ≥200ms). Locally:

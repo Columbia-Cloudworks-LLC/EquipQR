@@ -296,7 +296,7 @@ function expectItemHeading() {
 
 /** Radix Tabs ignore plain fireEvent.click; userEvent is required for tab activation. */
 async function activateTab(name: RegExp) {
-  const user = userEvent.setup();
+  const user = userEvent.setup({ delay: null });
   const tab = screen.getByRole('tab', { name });
   await user.click(tab);
   return tab;
@@ -309,47 +309,22 @@ describe('InventoryItemDetail - Compatibility Rules', () => {
     setupMocks();
   });
 
-  describe('Page Rendering', () => {
-    it('renders the inventory item with item name in heading', () => {
-      renderDetail();
-      expectItemHeading();
-    });
-
-    it('renders all tab triggers including Compatibility', () => {
-      renderDetail();
-      const tabs = screen.getAllByRole('tab');
-      expect(tabs.length).toBeGreaterThanOrEqual(3);
-      const tabTexts = tabs.map((t) => t.textContent?.toLowerCase() || '');
-      expect(tabTexts.some((t) => t.includes('compatibility'))).toBe(true);
-    });
-
-    it('shows Healthy stock badge when quantity is above threshold', () => {
-      renderDetail();
-      expect(screen.getAllByText('Healthy').length).toBeGreaterThanOrEqual(1);
-    });
+  it('renders heading, tabs, healthy badge, and loads compatibility hooks', () => {
+    renderDetail();
+    expectItemHeading();
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs.length).toBeGreaterThanOrEqual(3);
+    expect(tabs.some((t) => (t.textContent ?? '').toLowerCase().includes('compatibility'))).toBe(true);
+    expect(screen.getAllByText('Healthy').length).toBeGreaterThanOrEqual(1);
+    expect(useInventoryModule.useCompatibilityRulesForItem).toHaveBeenCalledWith('org-1', 'item-1');
+    expect(useInventoryModule.useBulkSetCompatibilityRules).toHaveBeenCalled();
   });
 
-  describe('Hooks Usage', () => {
-    it('calls useCompatibilityRulesForItem hook with correct params', () => {
-      renderDetail();
-      expectItemHeading();
-      expect(useInventoryModule.useCompatibilityRulesForItem).toHaveBeenCalledWith('org-1', 'item-1');
-    });
-
-    it('calls useBulkSetCompatibilityRules hook', () => {
-      renderDetail();
-      expectItemHeading();
-      expect(useInventoryModule.useBulkSetCompatibilityRules).toHaveBeenCalled();
-    });
-  });
-
-  describe('Loading State', () => {
-    it('shows skeleton while loading', () => {
-      setupMocks({ itemLoading: true });
-      renderDetail();
-      const skeletons = document.querySelectorAll('[class*="animate-shimmer"], .bg-muted.rounded-md');
-      expect(skeletons.length).toBeGreaterThan(0);
-    });
+  it('shows skeleton while loading', () => {
+    setupMocks({ itemLoading: true });
+    renderDetail();
+    const skeletons = document.querySelectorAll('[class*="animate-shimmer"], .bg-muted.rounded-md');
+    expect(skeletons.length).toBeGreaterThan(0);
   });
 });
 
@@ -359,84 +334,59 @@ describe('InventoryItemDetail - Item Information', () => {
     setupMocks();
   });
 
-  describe('Overview Tab', () => {
-    it('displays item SKU', () => {
-      renderDetail();
-      expect(screen.getByText('TEST-001')).toBeInTheDocument();
-    });
-
-    it('displays quantity on hand', () => {
-      renderDetail();
-      expect(screen.getByText('100')).toBeInTheDocument();
-    });
-
-    it('displays location name label and value without map capture', () => {
-      renderDetail();
-      expect(screen.getByText('Location Name')).toBeInTheDocument();
-      expect(screen.getByText('Warehouse A')).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /use my current location/i })).not.toBeInTheDocument();
-    });
-
-    it('shows organization default storage address when item has no part-specific address', () => {
-      renderDetail();
-      expect(screen.getByText('Organization default')).toBeInTheDocument();
-      expect(screen.getByText('Storage address')).toBeInTheDocument();
-      expect(screen.getByText('500 Org Default St, Austin, TX, USA')).toBeInTheDocument();
-      expect(screen.getByText(/address inherited from organization/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /tap for directions/i })).toBeInTheDocument();
-    });
-
-    it('shows part location source when item has structured storage coordinates', () => {
-      vi.mocked(useInventoryModule.useInventoryItem).mockReturnValue({
-        data: {
-          ...mockItem,
-          location_address: '200 Part Bin Ln',
-          location_city: 'Dallas',
-          location_state: 'TX',
-          location_country: 'USA',
-          location_lat: 32.77,
-          location_lng: -96.79,
-        },
-        isLoading: false,
-        isError: false,
-        error: null,
-        refetch: vi.fn(),
-      } as unknown as ReturnType<typeof useInventoryModule.useInventoryItem>);
-
-      renderDetail();
-      expect(screen.getByText('Part location')).toBeInTheDocument();
-      expect(screen.getByText('200 Part Bin Ln, Dallas, TX, USA')).toBeInTheDocument();
-    });
-
-    it('displays description', () => {
-      renderDetail();
-      expect(screen.getByText('Test description')).toBeInTheDocument();
-    });
+  it('displays overview SKU, quantity, location, org-default address, and description', () => {
+    renderDetail();
+    expect(screen.getByText('TEST-001')).toBeInTheDocument();
+    expect(screen.getByText('100')).toBeInTheDocument();
+    expect(screen.getByText('Location Name')).toBeInTheDocument();
+    expect(screen.getByText('Warehouse A')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /use my current location/i })).not.toBeInTheDocument();
+    expect(screen.getByText('Organization default')).toBeInTheDocument();
+    expect(screen.getByText('Storage address')).toBeInTheDocument();
+    expect(screen.getByText('500 Org Default St, Austin, TX, USA')).toBeInTheDocument();
+    expect(screen.getByText(/address inherited from organization/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /tap for directions/i })).toBeInTheDocument();
+    expect(screen.getByText('Test description')).toBeInTheDocument();
+    expect(screen.queryByText('Low stock')).not.toBeInTheDocument();
   });
 
-  describe('Low Stock Indicator', () => {
-    it('does not show low stock badge when stock is sufficient', () => {
-      renderDetail();
-      expectItemHeading();
-      expect(screen.queryByText('Low stock')).not.toBeInTheDocument();
-    });
+  it('shows part location source when item has structured storage coordinates', () => {
+    vi.mocked(useInventoryModule.useInventoryItem).mockReturnValue({
+      data: {
+        ...mockItem,
+        location_address: '200 Part Bin Ln',
+        location_city: 'Dallas',
+        location_state: 'TX',
+        location_country: 'USA',
+        location_lat: 32.77,
+        location_lng: -96.79,
+      },
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useInventoryModule.useInventoryItem>);
 
-    it('shows low stock badge when stock is low', () => {
-      vi.mocked(useInventoryModule.useInventoryItem).mockReturnValue({
-        data: {
-          ...mockItem,
-          quantity_on_hand: 5,
-          isLowStock: true,
-        },
-        isLoading: false,
-        isError: false,
-        error: null,
-        refetch: vi.fn(),
-      } as unknown as ReturnType<typeof useInventoryModule.useInventoryItem>);
+    renderDetail();
+    expect(screen.getByText('Part location')).toBeInTheDocument();
+    expect(screen.getByText('200 Part Bin Ln, Dallas, TX, USA')).toBeInTheDocument();
+  });
 
-      renderDetail();
-      expect(screen.getAllByText('Low stock').length).toBeGreaterThanOrEqual(1);
-    });
+  it('shows low stock badge when stock is low', () => {
+    vi.mocked(useInventoryModule.useInventoryItem).mockReturnValue({
+      data: {
+        ...mockItem,
+        quantity_on_hand: 5,
+        isLowStock: true,
+      },
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    } as unknown as ReturnType<typeof useInventoryModule.useInventoryItem>);
+
+    renderDetail();
+    expect(screen.getAllByText('Low stock').length).toBeGreaterThanOrEqual(1);
   });
 });
 
@@ -446,34 +396,18 @@ describe('InventoryItemDetail - Action Buttons', () => {
     setupMocks();
   });
 
-  describe('Back Button', () => {
-    it('navigates back to inventory list when back button is clicked', () => {
-      renderDetail();
-      expectItemHeading();
-      const breadcrumbLink = screen.getByRole('link', { name: /inventory/i });
-      expect(breadcrumbLink).toHaveAttribute('href', '/dashboard/inventory');
-    });
-  });
+  it('links inventory breadcrumb and opens QR display from the QR button', async () => {
+    renderDetail();
+    expectItemHeading();
+    expect(screen.getByRole('link', { name: /inventory/i })).toHaveAttribute(
+      'href',
+      '/dashboard/inventory',
+    );
+    expect(screen.getByText('TEST-001')).toBeInTheDocument();
+    expect(screen.getByText('Warehouse A')).toBeInTheDocument();
 
-  describe('QR Code Button', () => {
-    it('shows QR code display when QR button is clicked', async () => {
-      renderDetail();
-      expectItemHeading();
-      fireEvent.click(screen.getByRole('button', { name: /qr/i }));
-      await waitFor(() => {
-        // Stubbed InventoryQRCodeDisplay — no accessible name beyond the test hook.
-        expect(screen.getByTestId('qr-code-display')).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('Inline Editing', () => {
-    it('displays editable fields for inventory item', () => {
-      renderDetail();
-      expectItemHeading();
-      expect(screen.getByText('TEST-001')).toBeInTheDocument();
-      expect(screen.getByText('Warehouse A')).toBeInTheDocument();
-    });
+    fireEvent.click(screen.getByRole('button', { name: /qr/i }));
+    expect(await screen.findByTestId('qr-code-display')).toBeInTheDocument();
   });
 });
 
@@ -496,9 +430,7 @@ describe('InventoryItemDetail - Quantity Adjustment', () => {
     renderDetail();
     expectItemHeading();
     fireEvent.click(screen.getByRole('button', { name: /adjust/i }));
-    await waitFor(() => {
-      expect(screen.getByRole('dialog')).toBeInTheDocument();
-    });
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
   it('opens adjust bottom sheet on mobile when adjust quantity is clicked', async () => {
@@ -506,10 +438,8 @@ describe('InventoryItemDetail - Quantity Adjustment', () => {
     renderDetail();
     expectItemHeading();
     fireEvent.click(screen.getByRole('button', { name: /adjust/i }));
-    await waitFor(() => {
-      expect(screen.getByRole('dialog')).toBeInTheDocument();
-      expect(screen.getByRole('heading', { name: /adjust quantity/i })).toBeInTheDocument();
-    });
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /adjust quantity/i })).toBeInTheDocument();
   });
 
   it('resets the adjustment reason when closing with the cancel button', async () => {
@@ -526,9 +456,7 @@ describe('InventoryItemDetail - Quantity Adjustment', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: /adjust/i }));
-    await waitFor(() => {
-      expect(screen.getByRole('textbox', { name: /reason/i })).toHaveValue('');
-    });
+    expect(await screen.findByRole('textbox', { name: /reason/i })).toHaveValue('');
   });
 });
 
@@ -538,31 +466,19 @@ describe('InventoryItemDetail - Tab Navigation', () => {
     setupMocks();
   });
 
-  it('switches to Transactions tab when clicked', async () => {
+  it('switches tabs and opens the compatibility rules editor', async () => {
     renderDetail();
     expectItemHeading();
+
     const transactionsTab = await activateTab(/transaction/i);
     expect(transactionsTab).toHaveAttribute('aria-selected', 'true');
-  });
 
-  it('switches to Compatibility tab when clicked', async () => {
-    renderDetail();
-    expectItemHeading();
     const compatibilityTab = await activateTab(/compatibility/i);
     expect(compatibilityTab).toHaveAttribute('aria-selected', 'true');
-  });
-
-  it('shows compatibility rules in Compatibility tab and opens editor on Edit Rules click', async () => {
-    renderDetail();
-    expectItemHeading();
-
-    await activateTab(/compatibility/i);
     expect(screen.getByText('Compatibility Rules')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /edit rules/i }));
-    await waitFor(() => {
-      expect(screen.getByText('Rules: 2')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('Rules: 2')).toBeInTheDocument();
   });
 });
 
@@ -584,10 +500,8 @@ describe('InventoryItemDetail - Delete Functionality', () => {
     renderDetail();
     expectItemHeading();
     fireEvent.click(screen.getByRole('button', { name: /delete/i }));
-    await waitFor(() => {
-      expect(screen.getByRole('dialog')).toBeInTheDocument();
-      expect(screen.getByText(/are you sure/i)).toBeInTheDocument();
-    });
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText(/are you sure/i)).toBeInTheDocument();
   });
 });
 

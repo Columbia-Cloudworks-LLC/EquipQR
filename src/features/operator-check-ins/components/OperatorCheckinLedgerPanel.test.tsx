@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@vitest-harness/utils/test-utils';
+import { render, screen, fireEvent } from '@vitest-harness/utils/test-utils';
 import { OperatorCheckinLedgerPanel } from '@/features/operator-check-ins/components/OperatorCheckinLedgerPanel';
 
 const mockUseOperatorCheckinSubmissions = vi.fn();
@@ -45,6 +45,16 @@ vi.mock('@/features/operator-check-ins/components/OperatorCheckinLedgerTable', (
       {submissions.map((submission) => (
         <div key={submission.id}>{submission.equipment?.name ?? submission.id}</div>
       ))}
+    </div>
+  ),
+}));
+
+// Calendar popovers are covered in OperatorCheckinLedgerDateRangePicker.test.tsx.
+vi.mock('@/features/operator-check-ins/components/OperatorCheckinLedgerDateRangePicker', () => ({
+  OperatorCheckinLedgerDateRangePicker: () => (
+    <div>
+      <button type="button">Start date</button>
+      <button type="button">End date</button>
     </div>
   ),
 }));
@@ -110,16 +120,14 @@ describe('OperatorCheckinLedgerPanel', () => {
 
     await selectReportTemplate('Odometer Log');
 
-    await waitFor(() => {
-      expect(mockUseOperatorCheckinSubmissions).toHaveBeenCalledWith(
-        'org-1',
-        expect.objectContaining({
-          templateId: 'template-odo',
-          equipmentIds: ['eq-1'],
-        }),
-        true,
-      );
-    });
+    expect(mockUseOperatorCheckinSubmissions).toHaveBeenCalledWith(
+      'org-1',
+      expect.objectContaining({
+        templateId: 'template-odo',
+        equipmentIds: ['eq-1'],
+      }),
+      true,
+    );
   });
 
   it('shows only equipment assigned to the selected report template', async () => {
@@ -223,16 +231,14 @@ describe('OperatorCheckinLedgerPanel', () => {
     fireEvent.click(screen.getByRole('switch', { name: /Show deleted check-ins/i }));
     await selectReportTemplate('Retired Checklist (deleted)');
 
-    await waitFor(() => {
-      expect(mockUseOperatorCheckinSubmissions).toHaveBeenCalledWith(
-        'org-1',
-        expect.objectContaining({
-          templateId: 'template-deleted',
-          equipmentIds: ['eq-retired'],
-        }),
-        true,
-      );
-    });
+    expect(mockUseOperatorCheckinSubmissions).toHaveBeenCalledWith(
+      'org-1',
+      expect.objectContaining({
+        templateId: 'template-deleted',
+        equipmentIds: ['eq-retired'],
+      }),
+      true,
+    );
   });
 
   it('scopes the ledger to one equipment record and its assigned report templates', async () => {
@@ -253,16 +259,14 @@ describe('OperatorCheckinLedgerPanel', () => {
 
     fireEvent.click(screen.getByRole('option', { name: 'Odometer Log' }));
 
-    await waitFor(() => {
-      expect(mockUseOperatorCheckinSubmissions).toHaveBeenCalledWith(
-        'org-1',
-        expect.objectContaining({
-          templateId: 'template-odo',
-          equipmentIds: ['eq-1'],
-        }),
-        true,
-      );
-    });
+    expect(mockUseOperatorCheckinSubmissions).toHaveBeenCalledWith(
+      'org-1',
+      expect.objectContaining({
+        templateId: 'template-odo',
+        equipmentIds: ['eq-1'],
+      }),
+      true,
+    );
   });
 
   it('shows an empty state when the equipment has no assigned report templates', () => {
