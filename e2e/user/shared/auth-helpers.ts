@@ -1,5 +1,5 @@
 import path from 'path';
-import { expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
+import { errors, expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import {
   apexOrgId,
   authStatePath,
@@ -77,9 +77,15 @@ export async function ensureCookieConsentAccepted(page: Page): Promise<void> {
   });
 
   const banner = page.locator('section[aria-label="Cookie consent"]');
-  if (await banner.isVisible().catch(() => false)) {
-    await banner.getByRole('button', { name: /^accept$/i }).click();
+  const acceptButton = banner.getByRole('button', { name: /^accept$/i });
+
+  try {
+    await acceptButton.click({ timeout: 5_000 });
     await expect(banner).toBeHidden({ timeout: 10_000 });
+  } catch (error) {
+    if (!(error instanceof errors.TimeoutError)) {
+      throw error;
+    }
   }
 }
 
