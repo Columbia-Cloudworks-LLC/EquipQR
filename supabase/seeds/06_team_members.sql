@@ -42,4 +42,4 @@ INSERT INTO public.team_members (
   ('dd0e8400-e29b-41d4-a716-446655440014'::uuid, '880e8400-e29b-41d4-a716-446655440000'::uuid, 'bb0e8400-e29b-41d4-a716-446655440008'::uuid, 'technician', '2024-01-10 00:00:00+00'),
   -- Rental Fleet Team (Metro) — Bobcat S770 fixture
   ('dd0e8400-e29b-41d4-a716-446655440015'::uuid, '880e8400-e29b-41d4-a716-446655440002'::uuid, 'bb0e8400-e29b-41d4-a716-446655440008'::uuid, 'technician', '2024-01-18 00:00:00+00')
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (team_id, user_id) DO NOTHING;

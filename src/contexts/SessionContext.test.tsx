@@ -29,12 +29,6 @@ vi.mock('@/services/sessionStorageService', () => ({
   },
 }));
 
-vi.mock('@/services/sessionDataService', () => ({
-  SessionDataService: {
-    fetchTeamMemberships: vi.fn(),
-  },
-}));
-
 vi.mock('@/utils/sessionPersistence', () => ({
   getOrganizationPreference: vi.fn(),
 }));
@@ -93,10 +87,11 @@ describe('SessionContext', () => {
   let mockUseSessionManager: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
+    vi.clearAllMocks();
+
     const { useAuth } = await import('@/hooks/useAuth');
     const { usePageVisibility } = await import('@/hooks/usePageVisibility');
     const { useSessionManager } = await import('@/hooks/useSessionManager');
-    const { SessionDataService } = await import('@/services/sessionDataService');
     const { getOrganizationPreference } = await import('@/utils/sessionPersistence');
     
     mockUseAuth = vi.mocked(useAuth);
@@ -105,7 +100,7 @@ describe('SessionContext', () => {
     
     mockSessionManager = {
       switchOrganization: vi.fn(),
-      refreshSession: vi.fn(),
+      refreshSession: vi.fn().mockResolvedValue(undefined),
       initializeSession: vi.fn().mockReturnValue({
         shouldLoadFromCache: false,
         cachedData: null,
@@ -121,9 +116,6 @@ describe('SessionContext', () => {
     });
     mockUseSessionManager.mockReturnValue(mockSessionManager);
     vi.mocked(getOrganizationPreference).mockReturnValue(null);
-    vi.mocked(SessionDataService.fetchTeamMemberships).mockResolvedValue(
-      mockSessionData.teamMemberships,
-    );
   });
 
   const createWrapper = () => ({ children }: { children: React.ReactNode }) => (
@@ -175,9 +167,7 @@ describe('SessionContext', () => {
     expect(mockSessionManager.refreshSession).not.toHaveBeenCalled();
   });
 
-  it('should re-sync team memberships for preferred org on cache hydrate', async () => {
-    const { SessionDataService } = await import('@/services/sessionDataService');
-    const { SessionStorageService } = await import('@/services/sessionStorageService');
+  it('should force server refresh when preferred org differs from cache', async () => {
     const { getOrganizationPreference } = await import('@/utils/sessionPersistence');
 
     const org2: SessionOrganization = {
@@ -190,32 +180,21 @@ describe('SessionContext', () => {
       ...mockSessionData,
       organizations: [mockOrganization, org2],
       currentOrganizationId: 'org-1',
-      teamMemberships: [],
+      teamMemberships: mockSessionData.teamMemberships,
     };
-    const preferredTeams = [
-      {
-        teamId: 'team-2',
-        teamName: 'Preferred Team',
-        role: 'technician' as const,
-        joinedDate: '2024-02-01',
-      },
-    ];
 
     vi.mocked(getOrganizationPreference).mockReturnValue({
       selectedOrgId: 'org-2',
       selectionTimestamp: '2024-02-01T00:00:00Z',
     });
-    vi.mocked(SessionDataService.fetchTeamMemberships).mockResolvedValue(preferredTeams);
     mockCachedSession({ cachedData: cachedForWrongOrg });
 
     const { result } = await renderLoadedSessionHook();
 
-    await waitFor(() => {
-      expect(SessionDataService.fetchTeamMemberships).toHaveBeenCalledWith('user-1', 'org-2');
-    });
     expect(result.current?.sessionData?.currentOrganizationId).toBe('org-2');
-    expect(result.current?.sessionData?.teamMemberships).toEqual(preferredTeams);
-    expect(SessionStorageService.saveSessionToStorage).toHaveBeenCalled();
+    expect(result.current?.sessionData?.teamMemberships).toEqual([]);
+    expect(mockSessionManager.refreshSession).toHaveBeenCalledTimes(1);
+    expect(mockSessionManager.refreshSession).toHaveBeenCalledWith(true);
   });
 
   it('should refresh in background when cache needs update', async () => {

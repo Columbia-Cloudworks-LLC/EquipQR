@@ -76,10 +76,21 @@ export async function ensureCookieConsentAccepted(page: Page): Promise<void> {
     localStorage.setItem('equipqr:cookie-consent', 'accepted');
   });
 
-  const banner = page.locator('section[aria-label="Cookie consent"]');
-  if (await banner.isVisible().catch(() => false)) {
-    await banner.getByRole('button', { name: /^accept$/i }).click();
-    await expect(banner).toBeHidden({ timeout: 10_000 });
+  // Same-tab localStorage writes do not re-sync CookieConsentProvider; if the
+  // banner mounts after the seed, click Accept when it appears briefly.
+  const acceptButton = page
+    .locator('section[aria-label="Cookie consent"]')
+    .getByRole('button', { name: /^accept$/i });
+  try {
+    await acceptButton.click({ timeout: 5_000 });
+    await expect(page.locator('section[aria-label="Cookie consent"]')).toBeHidden({
+      timeout: 10_000,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/Timeout/i.test(message)) {
+      throw error;
+    }
   }
 }
 
@@ -87,6 +98,10 @@ export async function loginAndPersistStorageState(
   page: Page,
   persona: PersonaKey,
 ): Promise<void> {
+  // Seed consent before auth navigation so CookieConsentProvider mounts accepted.
+  await page.addInitScript(() => {
+    localStorage.setItem('equipqr:cookie-consent', 'accepted');
+  });
   await quickLogin(page, persona);
   await ensureCookieConsentAccepted(page);
   await savePersonaStorageState(page, persona);
