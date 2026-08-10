@@ -66,11 +66,29 @@ export async function savePersonaStorageState(
   await page.context().storageState({ path: authStatePath(persona) });
 }
 
+/**
+ * Persist Accept so the fixed cookie banner does not intercept clicks in E2E.
+ * Prefer storing the decision (and dismissing a visible banner) before saving
+ * Playwright storageState so later tests reuse the consent key.
+ */
+export async function ensureCookieConsentAccepted(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    localStorage.setItem('equipqr:cookie-consent', 'accepted');
+  });
+
+  const banner = page.locator('section[aria-label="Cookie consent"]');
+  if (await banner.isVisible().catch(() => false)) {
+    await banner.getByRole('button', { name: /^accept$/i }).click();
+    await expect(banner).toBeHidden({ timeout: 10_000 });
+  }
+}
+
 export async function loginAndPersistStorageState(
   page: Page,
   persona: PersonaKey,
 ): Promise<void> {
   await quickLogin(page, persona);
+  await ensureCookieConsentAccepted(page);
   await savePersonaStorageState(page, persona);
 }
 
@@ -144,6 +162,7 @@ export async function gotoDashboardRoute(page: Page, route: string): Promise<voi
   await expect(page.locator('#main-content, main#main-content, main').first()).toBeVisible({
     timeout: 60_000,
   });
+  await ensureCookieConsentAccepted(page);
 }
 
 export async function expectNoAppErrorBoundary(page: Page): Promise<void> {
