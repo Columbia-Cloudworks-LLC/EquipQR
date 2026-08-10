@@ -25,7 +25,18 @@ vi.mock('@/hooks/useSessionManager', () => ({
 vi.mock('@/services/sessionStorageService', () => ({
   SessionStorageService: {
     clearSessionStorage: vi.fn(),
+    saveSessionToStorage: vi.fn(),
   },
+}));
+
+vi.mock('@/services/sessionDataService', () => ({
+  SessionDataService: {
+    fetchTeamMemberships: vi.fn(),
+  },
+}));
+
+vi.mock('@/utils/sessionPersistence', () => ({
+  getOrganizationPreference: vi.fn(),
 }));
 
 vi.mock('@/services/sessionPermissionService', () => ({
@@ -85,6 +96,8 @@ describe('SessionContext', () => {
     const { useAuth } = await import('@/hooks/useAuth');
     const { usePageVisibility } = await import('@/hooks/usePageVisibility');
     const { useSessionManager } = await import('@/hooks/useSessionManager');
+    const { SessionDataService } = await import('@/services/sessionDataService');
+    const { getOrganizationPreference } = await import('@/utils/sessionPersistence');
     
     mockUseAuth = vi.mocked(useAuth);
     mockUsePageVisibility = vi.mocked(usePageVisibility) as typeof mockUsePageVisibility;
@@ -107,6 +120,10 @@ describe('SessionContext', () => {
       mockUsePageVisibility.mockVisibilityCallback = onVisibilityChange;
     });
     mockUseSessionManager.mockReturnValue(mockSessionManager);
+    vi.mocked(getOrganizationPreference).mockReturnValue(null);
+    vi.mocked(SessionDataService.fetchTeamMemberships).mockResolvedValue(
+      mockSessionData.teamMemberships,
+    );
   });
 
   const createWrapper = () => ({ children }: { children: React.ReactNode }) => (
@@ -149,8 +166,56 @@ describe('SessionContext', () => {
 
     const { result } = await renderLoadedSessionHook();
 
-    expect(result.current?.sessionData).toEqual(mockSessionData);
+    expect(result.current?.sessionData).toMatchObject({
+      organizations: mockSessionData.organizations,
+      currentOrganizationId: mockSessionData.currentOrganizationId,
+      teamMemberships: mockSessionData.teamMemberships,
+      version: mockSessionData.version,
+    });
     expect(mockSessionManager.refreshSession).not.toHaveBeenCalled();
+  });
+
+  it('should re-sync team memberships for preferred org on cache hydrate', async () => {
+    const { SessionDataService } = await import('@/services/sessionDataService');
+    const { SessionStorageService } = await import('@/services/sessionStorageService');
+    const { getOrganizationPreference } = await import('@/utils/sessionPersistence');
+
+    const org2: SessionOrganization = {
+      ...mockOrganization,
+      id: 'org-2',
+      name: 'Other Organization',
+      userRole: 'member',
+    };
+    const cachedForWrongOrg: SessionData = {
+      ...mockSessionData,
+      organizations: [mockOrganization, org2],
+      currentOrganizationId: 'org-1',
+      teamMemberships: [],
+    };
+    const preferredTeams = [
+      {
+        teamId: 'team-2',
+        teamName: 'Preferred Team',
+        role: 'technician' as const,
+        joinedDate: '2024-02-01',
+      },
+    ];
+
+    vi.mocked(getOrganizationPreference).mockReturnValue({
+      selectedOrgId: 'org-2',
+      selectionTimestamp: '2024-02-01T00:00:00Z',
+    });
+    vi.mocked(SessionDataService.fetchTeamMemberships).mockResolvedValue(preferredTeams);
+    mockCachedSession({ cachedData: cachedForWrongOrg });
+
+    const { result } = await renderLoadedSessionHook();
+
+    await waitFor(() => {
+      expect(SessionDataService.fetchTeamMemberships).toHaveBeenCalledWith('user-1', 'org-2');
+    });
+    expect(result.current?.sessionData?.currentOrganizationId).toBe('org-2');
+    expect(result.current?.sessionData?.teamMemberships).toEqual(preferredTeams);
+    expect(SessionStorageService.saveSessionToStorage).toHaveBeenCalled();
   });
 
   it('should refresh in background when cache needs update', async () => {
@@ -158,7 +223,8 @@ describe('SessionContext', () => {
 
     const { result } = await renderLoadedSessionHook();
 
-    expect(result.current?.sessionData).toEqual(mockSessionData);
+    expect(result.current?.sessionData?.currentOrganizationId).toBe('org-1');
+    expect(result.current?.sessionData?.teamMemberships).toEqual(mockSessionData.teamMemberships);
     expect(mockSessionManager.refreshSession).toHaveBeenCalledWith(false);
   });
 
@@ -242,7 +308,13 @@ describe('SessionContext', () => {
 
     await result.current!.switchOrganization('org-2');
 
-    expect(mockSessionManager.switchOrganization).toHaveBeenCalledWith('org-2', mockSessionData);
+    expect(mockSessionManager.switchOrganization).toHaveBeenCalledWith(
+      'org-2',
+      expect.objectContaining({
+        currentOrganizationId: 'org-1',
+        teamMemberships: mockSessionData.teamMemberships,
+      }),
+    );
   });
 
   it('should clear session', async () => {
