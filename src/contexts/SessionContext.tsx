@@ -4,6 +4,7 @@ import { usePageVisibility } from '@/hooks/usePageVisibility';
 import { useSessionManager } from '@/hooks/useSessionManager';
 import { SessionStorageService } from '@/services/sessionStorageService';
 import { SessionPermissionService } from '@/services/sessionPermissionService';
+import { getOrganizationPreference } from '@/utils/sessionPersistence';
 import type { SessionData, SessionOrganization } from '@/types/session';
 
 export type { SessionData, SessionOrganization } from '@/types/session';
@@ -105,11 +106,42 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
 
     if (result.shouldLoadFromCache && result.cachedData) {
-      setSessionData(result.cachedData);
-      setIsLoading(false);
+      const preferredOrgId = getOrganizationPreference()?.selectedOrgId ?? null;
+      const organizations = Array.isArray(result.cachedData.organizations)
+        ? result.cachedData.organizations
+        : [];
+      const teamMemberships = Array.isArray(result.cachedData.teamMemberships)
+        ? result.cachedData.teamMemberships
+        : [];
+      let hydrated: SessionData = {
+        ...result.cachedData,
+        organizations,
+        teamMemberships,
+      };
+      const preferredIsMember =
+        !!preferredOrgId && organizations.some((org) => org.id === preferredOrgId);
+      const needsOrgAlign =
+        preferredIsMember && preferredOrgId !== hydrated.currentOrganizationId;
 
-      if (result.needsRefresh) {
-        Promise.resolve(managerRefresh(false)).finally(() => setIsLoading(false));
+      if (needsOrgAlign && preferredOrgId) {
+        // Preference (or E2E pin) outranks a stale cached org id. Clear teams
+        // immediately so RBAC cannot serve the previous org's memberships, then
+        // force a server refresh so org/memberships come from trusted RPCs
+        // (not a localStorage-derived org_id on a one-off team fetch).
+        hydrated = {
+          ...hydrated,
+          currentOrganizationId: preferredOrgId,
+          teamMemberships: [],
+        };
+        setSessionData(hydrated);
+        setIsLoading(true);
+        Promise.resolve(managerRefresh(true)).finally(() => setIsLoading(false));
+      } else {
+        setSessionData(hydrated);
+        setIsLoading(false);
+        if (result.needsRefresh) {
+          Promise.resolve(managerRefresh(false)).finally(() => setIsLoading(false));
+        }
       }
     } else {
       Promise.resolve(managerRefresh(true)).finally(() => setIsLoading(false));

@@ -249,7 +249,9 @@ describe('useSessionManager', () => {
       });
 
       expect(logger.error).toHaveBeenCalledWith('Error switching organization', expect.any(Error));
+      expect(saveOrganizationPreference).not.toHaveBeenCalled();
       expect(onSessionUpdate).not.toHaveBeenCalled();
+      expect(SessionStorageService.saveSessionToStorage).not.toHaveBeenCalled();
     });
   });
 
