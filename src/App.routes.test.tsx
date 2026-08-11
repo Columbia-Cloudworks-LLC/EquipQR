@@ -1,9 +1,9 @@
-import './appRoutesTestMocks';
+import '@/appRoutesTestMocks';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import App from '@/App';
-import { resetAppRoutesTestQueryClient } from './appRoutesTestMocks';
+import { resetAppRoutesTestQueryClient } from '@/appRoutesTestMocks';
 
 describe('App', () => {
   beforeEach(() => {
