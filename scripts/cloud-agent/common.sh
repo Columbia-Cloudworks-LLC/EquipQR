@@ -175,20 +175,8 @@ ca_upsert_env_key() {
   chmod 600 "$env_file" 2>/dev/null || true
 }
 
-# Password for later Vite after --skip-vite — not written into app .env.
-VITE_PASSWORD_FILE="${CLOUD_AGENT_VITE_PASSWORD_FILE:-${STATE_DIR}/vite-dev-password.env}"
-
-ca_write_vite_password_file() {
-  local password="${1:-$RESOLVED_QUICK_LOGIN_PASSWORD}"
-  if [[ -z "$password" ]]; then
-    return 1
-  fi
-  ca_ensure_state_dir
-  local quoted
-  quoted="$(VALUE="$password" node -e 'process.stdout.write(JSON.stringify(process.env.VALUE ?? ""))')"
-  printf 'VITE_DEV_TEST_PASSWORD=%s\n' "$quoted" >"$VITE_PASSWORD_FILE"
-  chmod 600 "$VITE_PASSWORD_FILE" 2>/dev/null || true
-}
+# Password stays in-process only (export via ca_resolve_quick_login_password).
+# Never write VITE_DEV_TEST_PASSWORD / Quick Login secrets to disk sidecars.
 
 ca_require_supabase_access_token() {
   if [[ -z "${SUPABASE_ACCESS_TOKEN:-}" ]]; then

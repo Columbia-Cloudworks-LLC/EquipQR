@@ -170,6 +170,24 @@ describe('AuthContext', () => {
     expect(vi.mocked(supabase.auth.getSession)).not.toHaveBeenCalled();
   });
 
+  it('clears loading after bootstrap timeout when INITIAL_SESSION never fires', async () => {
+    vi.mocked(supabase.auth.onAuthStateChange).mockImplementation((callback) => {
+      authStateChangeCallback = callback;
+      // Intentionally omit INITIAL_SESSION to simulate storage/init failure.
+      return { data: { subscription: mockSubscription } };
+    });
+
+    const { result } = renderAuthHook();
+    expect(result.current?.isLoading).toBe(true);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(8_000);
+    });
+
+    expect(result.current?.isLoading).toBe(false);
+    expect(vi.mocked(supabase.auth.getSession)).not.toHaveBeenCalled();
+  });
+
   it('should handle sign-in auth state change', async () => {
     const { result } = renderAuthHook();
 

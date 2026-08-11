@@ -67,11 +67,13 @@ export const CookieConsentProvider: React.FC<{ children: React.ReactNode }> = ({
     setDecision('rejected');
   }, []);
 
+  // Prefer React `decision` as the sole gate — re-reading storage inside the
+  // memo could disagree with state after same-tab clears until focus sync.
   const value = useMemo<CookieConsentContextValue>(
     () => ({
       decision,
       needsConsent: decision === null,
-      canUsePreferences: decision === 'accepted' && isPreferenceStorageAllowed(),
+      canUsePreferences: decision === 'accepted',
       accept,
       reject,
     }),

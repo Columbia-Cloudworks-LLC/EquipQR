@@ -32,7 +32,11 @@ test.describe('PR evidence cookie consent banner @pr-evidence', () => {
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('region', { name: /cookie consent/i })).toHaveCount(0);
     await evidencePause(page, 400);
-    await evidenceScreenshot(page, '02-cookie-consent-hidden-after-accept');
+    const heroCta = page.getByRole('link', { name: /get started free/i }).first();
+    await expect(heroCta).toBeVisible({ timeout: 15_000 });
+    await evidenceScreenshot(page, '02-cookie-consent-hidden-after-accept', {
+      target: heroCta,
+    });
   });
 
   test('Reject dismisses banner and blocks sidebar preference cookie', async ({ page }) => {

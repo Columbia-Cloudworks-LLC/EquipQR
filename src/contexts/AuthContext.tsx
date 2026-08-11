@@ -39,6 +39,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     logger.debug('AuthProvider - Setting up auth listener');
+
+    // Failsafe if INITIAL_SESSION never arrives (storage/init failure).
+    // Keep this after the listener so a normal bootstrap clears it first.
+    const bootstrapTimeoutMs = 8_000;
+    const bootstrapTimeoutId = window.setTimeout(() => {
+      setIsLoading((stillLoading) => {
+        if (stillLoading) {
+          logger.warn('Auth bootstrap timeout — clearing loading without INITIAL_SESSION');
+        }
+        return false;
+      });
+    }, bootstrapTimeoutMs);
     
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -58,6 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
+        window.clearTimeout(bootstrapTimeoutId);
 
         if (
           session?.user &&
@@ -154,7 +167,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Bootstrap from onAuthStateChange only — the SDK emits INITIAL_SESSION
     // after storage init. A parallel getSession() raced that callback and could
     // leave non-deterministic session / isLoading state on cold load.
-    return () => subscription.unsubscribe();
+    return () => {
+      window.clearTimeout(bootstrapTimeoutId);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (

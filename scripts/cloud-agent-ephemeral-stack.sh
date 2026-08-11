@@ -197,8 +197,7 @@ ca_upsert_env_key "${REPO_ROOT}/.env" "VITE_SUPABASE_URL" "$api_url"
 ca_upsert_env_key "${REPO_ROOT}/.env" "VITE_SUPABASE_ANON_KEY" "$anon_key"
 ca_upsert_env_key "${REPO_ROOT}/.env" "SUPABASE_URL" "$api_url"
 ca_upsert_env_key "${REPO_ROOT}/.env" "SUPABASE_ANON_KEY" "$anon_key"
-ca_write_vite_password_file "$RESOLVED_QUICK_LOGIN_PASSWORD"
-ca_ok "Wrote branch VITE_SUPABASE_* into .env (password sidecar: ${VITE_PASSWORD_FILE})"
+ca_ok "Wrote branch VITE_SUPABASE_* into .env (Quick Login password kept in process env only)"
 
 created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 expires_at="$(node -e "const d=new Date(Date.now()+Number(process.argv[1])*3600e3); process.stdout.write(d.toISOString().replace(/\\.\\d{3}Z$/,'Z'))" "$DEFAULT_TTL_HOURS")"
@@ -228,14 +227,10 @@ export VITE_DEV_TEST_PASSWORD="$RESOLVED_QUICK_LOGIN_PASSWORD"
 
 if [[ "$SKIP_VITE" -eq 1 ]]; then
   ca_ok "Skipping Vite (--skip-vite)."
-  ca_log "Later: set -a; source ${VITE_PASSWORD_FILE}; set +a; npm run dev"
+  ca_log "Later: export VITE_DEV_TEST_PASSWORD (or CLOUD_AGENT_QUICK_LOGIN_PASSWORD), then npm run dev"
   exit 0
 fi
 
 ca_log "Starting Vite on :8080..."
-# shellcheck disable=SC1090
-set -a
-# shellcheck source=/dev/null
-source "$VITE_PASSWORD_FILE"
-set +a
+# VITE_DEV_TEST_PASSWORD already exported by ca_resolve_quick_login_password.
 exec npm run dev
