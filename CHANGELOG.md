@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.28.0] - 2026-08-10
+
 ### Added
 
 - **TopBar org logo and team avatar (#1379)** — Dashboard workspace context (`OrganizationSwitcher` topbar variant, `ContextBreadcrumb`, `MobileWorkspaceSwitcher`) shows the organization logo left of the org name and the selected team’s image beside the team label (mobile: side-by-side small avatars). Missing images keep Building/Users icons. Seed mix under `supabase/seed-images/organizations/` and `teams/` (most fixtures have images; Valley, Site Operations, and Customer Service intentionally do not).
@@ -32,7 +34,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Offline queue getCounts() (#1325)** — `OfflineQueueService.getCounts()` returns `{ pending, failed, total }` from one localStorage read; single-count helpers reuse it so callers that need multiple counts avoid triple deserialization.
 - **Memoize unified permissions (#1323)** — Wrap `equipment`, `workOrders`, `teams`, `inventory`, notes helper, and the hook return of `useUnifiedPermissions` in `useMemo` (keyed on session/auth fields) so dashboard consumers keep referential equality across parent re-renders.
 - **Faster component tests (#1314)** — Stabilize `TestProviders` QueryClient across re-renders; mock CSS layout twins and stub heavy ledger tables in the slowest suites; move checklist reorder utils to the unit project; prefer sync `getBy*` / `fireEvent` over async polling and `userEvent` for wiring smokes. Document performance guidance in `.cursor/rules/testing.mdc`. Second pass: speed `InventoryItemDetail`, `EquipmentQRQuickActions`, and `InventoryList` suites (sync assertions, `fireEvent` for dialogs/forms, reserve `userEvent` for Radix Tabs/Select/DropdownMenu).
-- **Feat → preview → main train restored (#1282)** — Day-to-day work merges into git `preview`; production ships via controlled `preview` → `main`. Version bumps and empty `[Unreleased]` are enforced only on promote to `main`; preview PRs accumulate Unreleased notes and must not bump `package.json`. `preview.equipqr.app` tracks the integration branch via normal Vercel deploys (`preview-domain-alias.yml` fast-forward from `main` removed). CI runs on PRs to `preview` and `main`, with split Release Metadata / Preview Release Metadata jobs. Dependabot targets `preview`. Cursor rules, skills, ITIL scripts, and ops docs updated for the train. No perpetual Supabase preview database — ephemeral branches only when testing schema/RLS/migrations.
 
 ### Fixed
 
@@ -52,6 +53,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Auth cold-load race (#1319)** — Remove the parallel `getSession()` call on `AuthProvider` mount so bootstrap relies only on `onAuthStateChange` / `INITIAL_SESSION`, avoiding non-deterministic session and loading flicker when both paths raced `setSession` / `setIsLoading`.
 - **Revert to Accepted refreshes details (#1278)** — After an org admin uses Revert to Accepted on a completed or cancelled work order, the details page invalidates `workOrderKeys.detail` (via `invalidateWorkOrderCaches`) so status, lock warning, and actions update without a hard browser refresh.
 - **Revert PM Completion unlocks edit (#1277)** — Org owners/admins reverting a completed PM on a completed (or cancelled) work order also reopen the work order to accepted in one confirmed action, so the checklist is editable again without a separate Revert to Accepted step. Confirm copy matches PM `pending` status and work-order reopen behavior.
+
+
+## [3.27.0] - 2026-07-17
+
+### Changed
+
+- **Feat → preview → main train restored (#1282)** — Day-to-day work merges into git `preview`; production ships via controlled `preview` → `main`. Version bumps and empty `[Unreleased]` are enforced only on promote to `main`; preview PRs accumulate Unreleased notes and must not bump `package.json`. `preview.equipqr.app` tracks the integration branch via normal Vercel deploys (`preview-domain-alias.yml` fast-forward from `main` removed). CI runs on PRs to `preview` and `main`, with split Release Metadata / Preview Release Metadata jobs. Dependabot targets `preview`. Cursor rules, skills, ITIL scripts, and ops docs updated for the train. No perpetual Supabase preview database — ephemeral branches only when testing schema/RLS/migrations.
+
+### Fixed
+
+- **Preview release-metadata sync** — Post-release PRs from `main` or `chore/release-v*` into `preview` use main-mode metadata validation so the version bump can land; day-to-day preview PRs still require real `[Unreleased]` list bullets (not headings/comments alone).
 
 ## [3.26.1] - 2026-07-16
 
@@ -2632,7 +2644,10 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.26.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.28.0...HEAD
+[3.28.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.27.0...v3.28.0
+[3.27.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.26.1...v3.27.0
+[3.26.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.26.0...v3.26.1
 [3.26.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.25.31...v3.26.0
 [3.18.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.17.0...v3.18.0
 [3.11.3]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.11.2...v3.11.3
