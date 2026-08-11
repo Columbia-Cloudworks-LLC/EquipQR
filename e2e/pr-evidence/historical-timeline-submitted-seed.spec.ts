@@ -33,7 +33,9 @@ test.describe('PR evidence: cursed historical timeline submitted seed @pr-eviden
       timeout: 30_000,
     });
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '01-cursed-legacy-historical-work-order-details');
+    await evidenceScreenshot(page, '01-cursed-legacy-historical-work-order-details', {
+      target: page.getByRole('heading', { name: new RegExp(cursedHistoricalWorkOrders.acceptedFirstStub.title, 'i') }),
+    });
 
     await page.getByRole('button', { name: /edit timeline/i }).click();
     const editDialog = page.getByRole('dialog').filter({ hasText: /timeline editor/i });
@@ -45,12 +47,12 @@ test.describe('PR evidence: cursed historical timeline submitted seed @pr-eviden
     await expect(page.getByRole('option', { name: /^Accepted$/i })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole('option', { name: /^Cancelled$/i })).toBeVisible({ timeout: 15_000 });
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '02-event-two-accepted-available');
+    await evidenceScreenshot(page, '02-event-two-accepted-available', { target: eventTwoStatus });
 
     await page.keyboard.press('Escape');
     await editDialog.getByRole('button', { name: /save timeline/i }).click();
     await expect(editDialog).toBeHidden({ timeout: 15_000 });
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '03-cursed-legacy-timeline-saved');
+    await evidenceScreenshot(page, '03-cursed-legacy-timeline-saved', { target: editDialog });
   });
 });

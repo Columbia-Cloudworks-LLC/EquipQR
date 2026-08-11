@@ -133,19 +133,19 @@ test.describe.serial('Help Center CSP hydration and branding @pr-evidence', () =
       page.getByRole('heading', { name: /equipqr help center/i }).first(),
     ).toBeVisible();
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '03-browse-help-center-navigates');
+    await evidenceScreenshot(page, '03-browse-help-center-navigates', { target: page.getByRole('heading', { name: /equipqr help center/i }).first() });
 
     // force-dark: appearance switch is not offered (Mission Control is dark-only).
     await expect(page.locator('.VPSwitchAppearance')).toHaveCount(0);
     await expect(page.locator('html')).toHaveClass(/dark/);
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '04-force-dark-no-appearance-toggle');
+    await evidenceScreenshot(page, '04-force-dark-no-appearance-toggle', { target: page.locator('html') });
 
     // #1358 — article chrome (sidebar + doc) under Mission Control tokens.
     await page.goto(`${docsServer.baseUrl}/support/start-here/`);
     await expect(page.getByRole('heading', { name: /start here/i }).first()).toBeVisible();
     await expect(page.locator('.VPSidebar')).toBeVisible();
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '05-article-chrome-mission-control');
+    await evidenceScreenshot(page, '05-article-chrome-mission-control', { target: page.locator('.VPSidebar') });
   });
 });
