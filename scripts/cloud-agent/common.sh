@@ -39,11 +39,12 @@ ca_load_supabase_access_token() {
     return 1
   fi
 
-  local token
-  token="$(op read "op://${OP_EQUIPQR_AGENTS_VAULT_ID}/supabase-write/SUPABASE_ACCESS_TOKEN" 2>/dev/null || true)"
+  local token item_name
+  item_name="equipqr-agent-write-$(date -u +%Y-%m)"
+  token="$(op read "op://${OP_EQUIPQR_AGENTS_VAULT_ID}/${item_name}/SUPABASE_ACCESS_TOKEN" 2>/dev/null || true)"
   token="$(printf '%s' "$token" | tr -d '\r\n')"
   if [[ -z "$token" ]]; then
-    ca_fail "Could not read op://${OP_EQUIPQR_AGENTS_VAULT_ID}/supabase-write/SUPABASE_ACCESS_TOKEN"
+    ca_fail "Could not read op://${OP_EQUIPQR_AGENTS_VAULT_ID}/${item_name}/SUPABASE_ACCESS_TOKEN"
     return 1
   fi
 
@@ -183,11 +184,9 @@ ca_write_vite_password_file() {
   if [[ -z "$password" ]]; then
     return 1
   fi
-  ca_ensure_state_dir
-  local quoted
-  quoted="$(VALUE="$password" node -e 'process.stdout.write(JSON.stringify(process.env.VALUE ?? ""))')"
-  printf 'VITE_DEV_TEST_PASSWORD=%s\n' "$quoted" >"$VITE_PASSWORD_FILE"
-  chmod 600 "$VITE_PASSWORD_FILE" 2>/dev/null || true
+  # Keep the password in the process environment; never persist credentials to disk.
+  export VITE_DEV_TEST_PASSWORD="$password"
+  return 0
 }
 
 ca_require_supabase_access_token() {
