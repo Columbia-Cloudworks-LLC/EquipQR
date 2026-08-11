@@ -66,11 +66,44 @@ export async function savePersonaStorageState(
   await page.context().storageState({ path: authStatePath(persona) });
 }
 
+/**
+ * Persist Accept so the fixed cookie banner does not intercept clicks in E2E.
+ * Prefer storing the decision (and dismissing a visible banner) before saving
+ * Playwright storageState so later tests reuse the consent key.
+ */
+export async function ensureCookieConsentAccepted(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    localStorage.setItem('equipqr:cookie-consent', 'accepted');
+  });
+
+  // Same-tab localStorage writes do not re-sync CookieConsentProvider; if the
+  // banner mounts after the seed, click Accept when it appears briefly.
+  const acceptButton = page
+    .locator('section[aria-label="Cookie consent"]')
+    .getByRole('button', { name: /^accept$/i });
+  try {
+    await acceptButton.click({ timeout: 5_000 });
+    await expect(page.locator('section[aria-label="Cookie consent"]')).toBeHidden({
+      timeout: 10_000,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!/Timeout/i.test(message)) {
+      throw error;
+    }
+  }
+}
+
 export async function loginAndPersistStorageState(
   page: Page,
   persona: PersonaKey,
 ): Promise<void> {
+  // Seed consent before auth navigation so CookieConsentProvider mounts accepted.
+  await page.addInitScript(() => {
+    localStorage.setItem('equipqr:cookie-consent', 'accepted');
+  });
   await quickLogin(page, persona);
+  await ensureCookieConsentAccepted(page);
   await savePersonaStorageState(page, persona);
 }
 
@@ -94,25 +127,11 @@ export async function pinContextToOrg(
       }),
     );
 
-    const sessionKey = 'equipqr_session_data';
-    const rawSession = localStorage.getItem(sessionKey);
-    if (rawSession) {
-      try {
-        const session = JSON.parse(rawSession) as {
-          currentOrganizationId?: string | null;
-          userPreference?: { selectedOrgId?: string | null; selectionTimestamp?: string };
-        };
-        session.currentOrganizationId = orgId;
-        session.userPreference = {
-          ...session.userPreference,
-          selectedOrgId: orgId,
-          selectionTimestamp,
-        };
-        localStorage.setItem(sessionKey, JSON.stringify(session));
-      } catch {
-        // Ignore corrupt session cache; org preference keys above still apply.
-      }
-    }
+    // Drop cached session payload. Preferring a pinned org while leaving
+    // stale teamMemberships (often []) causes equipment list RBAC to
+    // short-circuit empty for non-admin personas. Cleared session forces a
+    // fresh fetchSessionData for the preferred org.
+    localStorage.removeItem('equipqr_session_data');
   }, organizationId);
 }
 
@@ -144,6 +163,7 @@ export async function gotoDashboardRoute(page: Page, route: string): Promise<voi
   await expect(page.locator('#main-content, main#main-content, main').first()).toBeVisible({
     timeout: 60_000,
   });
+  await ensureCookieConsentAccepted(page);
 }
 
 export async function expectNoAppErrorBoundary(page: Page): Promise<void> {
