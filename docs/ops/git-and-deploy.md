@@ -57,7 +57,7 @@ Retired: `preview-domain-alias.yml` (fast-forward `preview` from `main` + deploy
 
 - PRs into **`preview`**: `[Unreleased]` notes only; forbid app version bump.
 - PRs into **`main`**: semver bump, versioned CHANGELOG section, empty `[Unreleased]`.
-- **`/release`** opens **`preview` → `main`** (or `chore/release-v*` from curated preview tip).
+- **`/release`** pushes release metadata onto **`preview`**, then opens **`preview` → `main`** (never a non-`preview` head into `main`).
 - `version-tag.yml` tags on push to `main` when `package.json` changes.
 
 ## Retired (do not use)

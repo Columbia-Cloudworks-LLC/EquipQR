@@ -2,16 +2,17 @@
 name: release
 description: >-
   Cut a production release via preview → main: align with origin/preview, run
-  changelog-version-curator (bump only on promote), open a preview→main (or
-  chore/release) PR, babysit until merge-ready (CI green, Qodo openCount=0).
-  Merge triggers Production Release Readiness and vercel promote. Use when the
-  user runs /release or asks to release, bump version, or ship to production.
+  changelog-version-curator (bump only on promote), push release metadata onto
+  preview, open preview→main PR, babysit until merge-ready (CI green, Qodo
+  openCount=0). Merge triggers Production Release Readiness and vercel promote.
+  Use when the user runs /release or asks to release, bump version, or ship to
+  production.
 disable-model-invocation: true
 ---
 
 # Release
 
-End-to-end workflow to cut a **production release** on the feat → preview → main train: align with `origin/preview`, curate release metadata (**version bump only on promote**), verify changed tests locally, open a **`preview` → `main`** PR (or `chore/release-v*` from the curated preview tip), and **babysit until merge-ready**.
+End-to-end workflow to cut a **production release** on the feat → preview → main train: align with `origin/preview`, curate release metadata (**version bump only on promote**), verify changed tests locally, push the metadata commit onto **`preview`**, open a **`preview` → `main`** PR, and **babysit until merge-ready**.
 
 Feature work merges to **`preview`** during normal development and accumulates CHANGELOG `[Unreleased]` **without** bumping `package.json`. `/release` is the **preview → main** promote that empties Unreleased, adds a versioned CHANGELOG section, and bumps package metadata.
 
@@ -21,7 +22,8 @@ Feature work merges to **`preview`** during normal development and accumulates C
 
 - **Windows / PowerShell only.** Use `--body-file` for multiline PR bodies.
 - **Never auto-discard local changes.** Resolve dirty trees per `.cursor/rules/workflow-artifacts.mdc`.
-- **Never force-push to `main` or `preview`.** Release metadata merges via PR when bases are protected.
+- **Promote PR head must be `preview`.** Never open `--base main --head chore/release-*` (or any other non-`preview` head). Version bumps must not land via a PR into `preview` either — Preview Release Metadata forbids package bumps on PRs to `preview`.
+- **Never force-push to `main` or `preview`.**
 - **Never run the full Vitest suite.** Run only updated or added test files from the release diff (since last tag).
 - **PR visual evidence** when the release diff includes user-visible UI changes since the last tag (per `.cursor/rules/pr-visual-evidence.mdc`).
 - **No handoff until merge-ready** per `.cursor/rules/pr-merge-ready-workflow.mdc`.
@@ -33,10 +35,10 @@ Feature work merges to **`preview`** during normal development and accumulates C
 ```text
 - [ ] Step 1: Preflight — fetch, align with origin/preview, resolve dirty tree
 - [ ] Step 2: Run changelog-version-curator subagent (release/main mode)
-- [ ] Step 3: Commit release metadata on chore/release-vX.Y.Z (from preview tip) or on preview
+- [ ] Step 3: Commit release metadata on preview tip and push origin/preview
 - [ ] Step 4: Run scoped Vitest on changed test files only
 - [ ] Step 5: Capture visual evidence if UI changed since last tag
-- [ ] Step 6: Push and open/update preview → main (or chore/release → main) PR
+- [ ] Step 6: Open/update preview → main PR
 - [ ] Step 7: Publish visual evidence comment when captured
 - [ ] Step 8: Babysit until merge-ready
 - [ ] Step 9: Report merge-ready handoff
@@ -56,7 +58,7 @@ git status --porcelain
 
 ### Align with `origin/preview`
 
-- If not on `preview` or `chore/release-v*`, switch after resolving dirty tree.
+- Switch to **`preview`** after resolving dirty tree (release metadata commits on the preview tip).
 - If **behind** `origin/preview`: `git merge --ff-only origin/preview` (clean tree required).
 - If **ahead** with unpushed non-release commits, **stop** and reconcile with the user.
 - If **diverged**, **stop**.
@@ -81,14 +83,19 @@ Validate version consistency before continuing.
 
 ---
 
-## Step 3: Commit release metadata
+## Step 3: Commit release metadata onto `preview`
+
+Do **not** open a PR into `preview` for the version bump (CI Preview Release Metadata rejects package bumps). Commit on the local `preview` tip and push:
 
 ```powershell
-git switch -c chore/release-vX.Y.Z origin/preview   # if not already on release branch / preview tip
+git switch preview
+git merge --ff-only origin/preview
 # stage CHANGELOG.md package.json package-lock.json README badges only
 git commit -m "chore(release): vX.Y.Z" -m "Fallow: exitCode=0, total_issues=0, clone_groups=0"
-git push -u origin HEAD
+git push origin preview
 ```
+
+Optional local scratch branch `chore/release-vX.Y.Z` is fine for isolation **before** fast-forwarding onto `preview`, but the commit that ships must land on `origin/preview` before Step 6. Never use that scratch branch as the promote PR head.
 
 If metadata did not change, **stop** — nothing to release.
 
@@ -116,9 +123,7 @@ If `git diff --name-status "$sinceTag..HEAD"` touches `src/**/*.tsx`, capture pe
 ## Step 6: Open or update release PR
 
 ```powershell
-# Prefer chore/release head when metadata lives on a release branch; otherwise --head preview
-gh pr create --base main --head chore/release-vX.Y.Z --title "Release vX.Y.Z" --body-file "$env:TEMP\equipqr-release-pr-body.md"
-# or: gh pr create --base main --head preview --title "Release vX.Y.Z" --body-file ...
+gh pr create --base main --head preview --title "Release vX.Y.Z" --body-file "$env:TEMP\equipqr-release-pr-body.md"
 # or gh pr edit when updating an existing release PR
 ```
 
@@ -147,7 +152,7 @@ Follow `.cursor/rules/pr-merge-ready-workflow.mdc` and `.cursor/skills/address-p
 | Threads | `Get-PrFeedbackThreads.ps1 -Json` → zero unresolved non-outdated |
 | Mergeable | `gh pr view <num> --json mergeable,mergeStateStatus` |
 
-Fix on the release head branch, push, re-watch CI, re-poll Qodo.
+Fix on **`preview`**, push `origin/preview`, re-watch CI, re-poll Qodo.
 
 ---
 
@@ -158,10 +163,10 @@ Report only when Step 8 passes:
 | Item | Value |
 |------|-------|
 | Release version | `X.Y.Z` |
-| Release PR | URL — merge-ready |
+| Release PR | URL — merge-ready (`preview` → `main`) |
 | CI / Qodo / threads | green / openCount=0 / clear |
 
-Remind: merge to `main` triggers **Production Release Readiness** and automatic **`vercel promote`**. After merge, ensure `preview` stays aligned with the promoted tip (back-merge/rebase if the release head was a `chore/release-v*` branch).
+Remind: merge to `main` triggers **Production Release Readiness** and automatic **`vercel promote`**.
 
 ---
 
@@ -170,7 +175,7 @@ Remind: merge to `main` triggers **Production Release Readiness** and automatic 
 - Unresolved product dirty tree
 - Local branch diverged from `origin/preview`
 - changelog-version-curator validation failure
-- Push failed
+- Push to `origin/preview` failed
 - Scoped Vitest failure
 - Evidence capture failure when required
 - CI red, Qodo open, or unresolved threads after reasonable polling
