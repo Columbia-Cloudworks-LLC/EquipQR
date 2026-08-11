@@ -60,7 +60,7 @@ export class SessionDataService {
 
     if (teamError) {
       logger.warn('Error fetching team memberships:', teamError);
-      throw teamError;
+      return [];
     }
 
     return (teamData || []).map(item => ({
