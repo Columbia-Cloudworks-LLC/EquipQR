@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Radix popover / dialog family alignment (#1294)** — Bump `@radix-ui/react-popover`, `react-dialog`, `react-alert-dialog`, and `react-slot` to the 1.1.23 / 1.3.3 line and pin shared dismissable/focus/portal primitives via `overrides` so Sheet-nested `MultiSelectActionMenu` popovers open again (Dependabot #1298/#1299 superseded). Menus keep `modal={false}` when nested in Sheets.
 - **CodeQL Action 4.37.3 (#1402)** — Bump `github/codeql-action/init` and `analyze` together to `e4fba868…` (v4.37.3) so Security Scan keeps matching init/analyze versions (Dependabot #1399 superseded).
 - **Faster Vitest hotspots (#1314 follow-up)** — Restore native PM/photo stubs in `EquipmentQRQuickActions` (real Radix coverage stays in `QRWorkOrderDialog`); stub Reports column/worksheet pickers and ledger date-range; consolidate Privacy/Terms and InventoryItemDetail renders; lighten InventoryList column manager and InventoryItemForm compatibility editor; prefer `userEvent.setup({ delay: null })` / sync asserts in remaining slow suites.
 - **DSR Cockpit entry points** — Remove DSR Cockpit from the main sidebar Audit section. Owners/admins open it from **Legal → DSR Cockpit** in the footer or **Settings → Privacy**. Docs and RBAC nav coverage updated to match.

@@ -129,7 +129,9 @@ export function MultiSelectActionMenu({
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    // Non-modal: menus open inside Sheets/Dialogs (e.g. Parts Access). Radix
+    // Popover ≥1.1.19 focus-traps by default and blocks nested open otherwise.
+    <Popover open={open} onOpenChange={setOpen} modal={false}>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
       <PopoverContent align={align} className="w-80 p-0">
         <div className="space-y-3 p-4">
