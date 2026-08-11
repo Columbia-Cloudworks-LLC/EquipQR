@@ -9,8 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [3.28.0] - 2026-08-10
-
 ### Added
 
 - **TopBar org logo and team avatar (#1379)** — Dashboard workspace context (`OrganizationSwitcher` topbar variant, `ContextBreadcrumb`, `MobileWorkspaceSwitcher`) shows the organization logo left of the org name and the selected team’s image beside the team label (mobile: side-by-side small avatars). Missing images keep Building/Users icons. Seed mix under `supabase/seed-images/organizations/` and `teams/` (most fixtures have images; Valley, Site Operations, and Customer Service intentionally do not).
