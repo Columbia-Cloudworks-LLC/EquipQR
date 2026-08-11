@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, within } from '@/test/utils/test-utils';
+import { render, screen, fireEvent, within } from '@vitest-harness/utils/test-utils';
 import EquipmentSortHeader from './EquipmentSortHeader';
 import { SortConfig } from '@/features/equipment/hooks/useEquipmentFiltering';
 

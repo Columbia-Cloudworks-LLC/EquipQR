@@ -52,28 +52,23 @@ export class SessionDataService {
     userId: string, 
     organizationId: string
   ): Promise<SessionTeamMembership[]> {
-    try {
-      const { data: teamData, error: teamError } = await supabase
-        .rpc('get_user_team_memberships', {
-          user_uuid: userId,
-          org_id: organizationId
-        });
+    const { data: teamData, error: teamError } = await supabase
+      .rpc('get_user_team_memberships', {
+        user_uuid: userId,
+        org_id: organizationId
+      });
 
-      if (teamError) {
-        logger.warn('Error fetching team memberships:', teamError);
-        return [];
-      }
-
-      return (teamData || []).map(item => ({
-        teamId: item.team_id,
-        teamName: item.team_name,
-        role: item.role as 'manager' | 'technician' | 'requestor' | 'viewer',
-        joinedDate: item.joined_date
-      }));
-    } catch (teamFetchError) {
-      logger.error('Failed to fetch team memberships:', teamFetchError);
-      return [];
+    if (teamError) {
+      logger.warn('Error fetching team memberships:', teamError);
+      throw teamError;
     }
+
+    return (teamData || []).map(item => ({
+      teamId: item.team_id,
+      teamName: item.team_name,
+      role: item.role as 'manager' | 'technician' | 'requestor' | 'viewer',
+      joinedDate: item.joined_date
+    }));
   }
 
   static async fetchSessionData(

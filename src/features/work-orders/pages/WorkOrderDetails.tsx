@@ -454,6 +454,7 @@ const WorkOrderDetails = () => {
               equipmentLocationEdit={equipmentLocationEdit}
               canManagePM={canManagePM}
               onManagePM={() => setShowPMManagementDialog(true)}
+              onPMUpdate={handlePMUpdate}
             />
           ) : (
             <WorkOrderDetailsDesktopContent

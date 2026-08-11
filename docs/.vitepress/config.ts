@@ -181,10 +181,12 @@ function supportSidebar(): DefaultTheme.SidebarItem[] {
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "EquipQR Help Center",
+  title: "EquipQR Docs",
   description:
     "User guides, workflows, and how-tos for EquipQR fleet equipment management — technicians, managers, admins, and equipment owners.",
   lang: "en-US",
+  // Mission Control is dark-only — force dark and hide the ineffective light toggle.
+  appearance: "force-dark",
   lastUpdated: true,
   cleanUrls: true,
   srcDir: ".",
@@ -216,19 +218,20 @@ export default defineConfig({
     ["link", { rel: "icon", href: "/favicon.ico", sizes: "32x32" }],
     ["link", { rel: "icon", href: "/eqr-logo/icon.svg", type: "image/svg+xml" }],
     ["link", { rel: "apple-touch-icon", href: "/eqr-logo/icon.svg" }],
-    ["meta", { name: "theme-color", content: "#5f67ee" }],
+    ["meta", { name: "theme-color", content: "#B79CFF" }],
     [
       "meta",
       {
         name: "keywords",
         content:
-          "EquipQR,help center,support,fleet management,work orders,QR codes,CMMS",
+          "EquipQR,docs,help center,support,fleet management,work orders,QR codes,CMMS",
       },
     ],
   ],
   themeConfig: {
     logo: { src: "/eqr-logo/icon.svg", alt: "EquipQR" },
-    siteTitle: "EquipQR Help",
+    // Primary wordmark; CSS appends a secondary " Docs" label.
+    siteTitle: "EquipQR",
 
     search: {
       provider: "local",
@@ -242,6 +245,8 @@ export default defineConfig({
       {
         text: "Open App",
         link: "https://equipqr.app",
+        target: "_blank",
+        rel: "noopener noreferrer",
       },
     ],
 
@@ -325,7 +330,7 @@ export default defineConfig({
 
     footer: {
       message:
-        "EquipQR Help Center — product app at equipqr.app · status at status.equipqr.app",
+        "EquipQR Docs — product app at equipqr.app · status at status.equipqr.app",
       copyright: "Copyright © Columbia Cloudworks LLC",
     },
   },

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { resolveEffectiveAvatarUrl } from '@/utils/resolveEffectiveAvatarUrl';
 import {
   UserContext,
   type User,
@@ -38,12 +39,15 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error('Failed to fetch user profile:', error.message);
           }
 
-          const avatarRaw = profile?.avatar_url ?? null;
           const user: User = {
             id: authUser.id,
             email: authUser.email || '',
             name: profile?.name || authUser.user_metadata?.name || authUser.email || 'User',
-            avatar_url: avatarRaw,
+            // EquipQR upload wins; otherwise Google Auth metadata photo
+            avatar_url: resolveEffectiveAvatarUrl(
+              profile?.avatar_url,
+              authUser.user_metadata,
+            ),
           };
           setCurrentUser(user);
         } catch (err) {
@@ -54,7 +58,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: authUser.id,
             email: authUser.email || '',
             name: authUser.user_metadata?.name || authUser.email || 'User',
-            avatar_url: null,
+            avatar_url: resolveEffectiveAvatarUrl(null, authUser.user_metadata),
           });
         } finally {
           if (!cancelled) {

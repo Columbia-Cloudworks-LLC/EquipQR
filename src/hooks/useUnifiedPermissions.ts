@@ -20,21 +20,26 @@ export const useUnifiedPermissions = () => {
   const { user } = useAuth();
 
   const currentOrganization = getCurrentOrganization();
+  const organizationId = currentOrganization?.id;
+  const userRole = currentOrganization?.userRole;
+  const organizationMemberCount = currentOrganization?.memberCount;
+  const teamMemberships = sessionData?.teamMemberships;
 
-  // Create user context
+  // Create user context — depend on stable session/auth fields, not the
+  // getCurrentOrganization() object identity (it may allocate each call).
   const userContext: UserContext | null = useMemo(() => {
-    if (!currentOrganization || !user) return null;
+    if (!organizationId || !user || !userRole) return null;
 
     return {
       userId: user.id,
-      organizationId: currentOrganization.id,
-      userRole: currentOrganization.userRole as Role,
-      teamMemberships: (sessionData?.teamMemberships ?? []).map(tm => ({
+      organizationId,
+      userRole: userRole as Role,
+      teamMemberships: (teamMemberships ?? []).map(tm => ({
         teamId: tm.teamId,
         role: tm.role
       }))
     };
-  }, [currentOrganization, user, sessionData]);
+  }, [organizationId, userRole, user, teamMemberships]);
 
   // Helper functions
   const hasPermission = useCallback((permission: string, entityContext?: { teamId?: string; assigneeId?: string; status?: string; createdBy?: string }): boolean => {
@@ -48,31 +53,50 @@ export const useUnifiedPermissions = () => {
     return roleArray.includes(userContext.userRole);
   }, [userContext]);
 
-  const isTeamMember = (teamId: string): boolean => {
+  const isTeamMember = useCallback((teamId: string): boolean => {
     return hasTeamAccess(teamId);
-  };
+  }, [hasTeamAccess]);
 
-  const isTeamManager = (teamId: string): boolean => {
+  const isTeamManager = useCallback((teamId: string): boolean => {
     return canManageTeam(teamId);
-  };
+  }, [canManageTeam]);
+
+  const clearPermissionCache = useCallback((): void => {
+    permissionEngine.clearCache();
+  }, []);
 
   const organization = useMemo(
     () => buildOrganizationPermissions(hasPermission, hasRole),
     [hasPermission, hasRole],
   );
-  const equipment = buildEquipmentPermissions(hasPermission, hasRole, userContext);
-  const workOrders = buildWorkOrderPermissions(hasPermission, hasRole, isTeamMember, isTeamManager, userContext);
-  const teams = buildTeamPermissions(hasPermission, hasRole);
-  const inventory = buildInventoryPermissions(hasRole);
-  const getEquipmentNotesPermissions = buildEquipmentNotesPermissions(
-    currentOrganization,
-    userContext,
-    hasRole,
-    isTeamMember,
-    canManageTeam,
+  const equipment = useMemo(
+    () => buildEquipmentPermissions(hasPermission, hasRole, userContext),
+    [hasPermission, hasRole, userContext],
+  );
+  const workOrders = useMemo(
+    () => buildWorkOrderPermissions(hasPermission, hasRole, isTeamMember, isTeamManager, userContext),
+    [hasPermission, hasRole, isTeamMember, isTeamManager, userContext],
+  );
+  const teams = useMemo(
+    () => buildTeamPermissions(hasPermission, hasRole),
+    [hasPermission, hasRole],
+  );
+  const inventory = useMemo(
+    () => buildInventoryPermissions(hasRole),
+    [hasRole],
+  );
+  const getEquipmentNotesPermissions = useMemo(
+    () => buildEquipmentNotesPermissions(
+      organizationId != null ? { memberCount: organizationMemberCount } : null,
+      userContext,
+      hasRole,
+      isTeamMember,
+      canManageTeam,
+    ),
+    [organizationId, organizationMemberCount, userContext, hasRole, isTeamMember, canManageTeam],
   );
 
-  return {
+  return useMemo(() => ({
     // Context
     context: userContext,
     
@@ -91,6 +115,19 @@ export const useUnifiedPermissions = () => {
     getEquipmentNotesPermissions,
     
     // Cache management
-    clearPermissionCache: () => permissionEngine.clearCache()
-  };
+    clearPermissionCache,
+  }), [
+    userContext,
+    organization,
+    equipment,
+    workOrders,
+    teams,
+    inventory,
+    hasRole,
+    isTeamMember,
+    isTeamManager,
+    hasPermission,
+    getEquipmentNotesPermissions,
+    clearPermissionCache,
+  ]);
 };

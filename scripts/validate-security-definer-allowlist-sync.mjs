@@ -2,7 +2,7 @@
 /**
  * Ensures SECURITY DEFINER RPC allowlists stay aligned across:
  * - scripts/security-definer-rpc-allowlists.json
- * - supabase/migrations/20260602120000_lockdown_security_definer_rpc_grants.sql
+ * - the latest bulk lockdown / re-lockdown migration
  *
  * Usage: node scripts/validate-security-definer-allowlist-sync.mjs
  */
@@ -12,10 +12,31 @@ import path from 'node:path';
 
 const repoRoot = path.resolve(import.meta.dirname, '..');
 const jsonPath = path.join(repoRoot, 'scripts/security-definer-rpc-allowlists.json');
-const migrationPath = path.join(
-  repoRoot,
-  'supabase/migrations/20260602120000_lockdown_security_definer_rpc_grants.sql',
-);
+const migrationsDir = path.join(repoRoot, 'supabase/migrations');
+
+/**
+ * Newest migration that declares the bulk allowlist arrays (lexicographic
+ * timestamp prefix — Supabase migration naming). Scan newest-first and stop.
+ */
+function resolveLockdownMigrationPath() {
+  const marker = 'authenticated_allowlist text[] := ARRAY[';
+  const candidates = fs
+    .readdirSync(migrationsDir)
+    .filter((name) => name.endsWith('.sql'))
+    .sort()
+    .reverse();
+
+  for (const name of candidates) {
+    const content = fs.readFileSync(path.join(migrationsDir, name), 'utf8');
+    if (content.includes(marker)) {
+      return path.join(migrationsDir, name);
+    }
+  }
+
+  throw new Error(
+    `No migration in ${migrationsDir} declares authenticated_allowlist`,
+  );
+}
 
 function extractArray(content, varName) {
   const re = new RegExp(
@@ -31,44 +52,36 @@ function extractArray(content, varName) {
 
 function main() {
   const allowlists = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+  const migrationPath = resolveLockdownMigrationPath();
   const migration = fs.readFileSync(migrationPath, 'utf8');
 
   const migrationAuth = extractArray(migration, 'authenticated_allowlist');
   const migrationAnon = extractArray(migration, 'anon_allowlist');
   const migrationRls = extractArray(migration, 'rls_helper_allowlist');
+  const migrationInvoker = extractArray(migration, 'invoker_client_allowlist');
 
   const jsonAuth = [...allowlists.authenticatedPublicRpc].sort();
   const jsonAnon = [...allowlists.anonPublicRpc].sort();
   const jsonRls = [...allowlists.rlsPredicateHelpers].sort();
+  const jsonInvoker = [...(allowlists.invokerClientRpc ?? [])].sort();
 
   const diffs = [];
-  const warnings = [];
 
-  function compare(label, a, b, options = {}) {
+  function compare(label, a, b) {
     const onlyA = a.filter((x) => !b.includes(x));
     const onlyB = b.filter((x) => !a.includes(x));
-    const shouldFail = onlyA.length > 0 || (!options.allowJsonSuperset && onlyB.length > 0);
-
-    if (shouldFail) {
+    if (onlyA.length > 0 || onlyB.length > 0) {
       diffs.push({ label, onlyA, onlyB });
-    } else if (options.allowJsonSuperset && onlyB.length > 0) {
-      warnings.push({ label, onlyB });
     }
   }
 
-  compare('authenticatedPublicRpc', migrationAuth, jsonAuth, { allowJsonSuperset: true });
+  compare('authenticatedPublicRpc', migrationAuth, jsonAuth);
   compare('anonPublicRpc', migrationAnon, jsonAnon);
   compare('rlsPredicateHelpers', migrationRls, jsonRls);
-
-  if (warnings.length) {
-    console.warn('Allowlist JSON superset (informational):\n');
-    for (const w of warnings) {
-      console.warn(`[${w.label}] only in JSON: ${w.onlyB.join(', ')}`);
-    }
-  }
+  compare('invokerClientRpc', migrationInvoker, jsonInvoker);
 
   if (diffs.length) {
-    console.error('Allowlist drift detected:\n');
+    console.error(`Allowlist drift detected (vs ${path.basename(migrationPath)}):\n`);
     for (const d of diffs) {
       console.error(`[${d.label}]`);
       if (d.onlyA.length) console.error(`  only in migration: ${d.onlyA.join(', ')}`);
@@ -77,7 +90,9 @@ function main() {
     process.exit(1);
   }
 
-  console.log('SECURITY DEFINER allowlists are in sync (migration + JSON).');
+  console.log(
+    `SECURITY DEFINER allowlists are in sync (${path.basename(migrationPath)} + JSON).`,
+  );
 }
 
 main();

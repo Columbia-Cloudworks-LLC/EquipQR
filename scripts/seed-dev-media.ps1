@@ -3,12 +3,15 @@
   Upload local seed images into Supabase Storage and wire DB references after db reset.
 
 .DESCRIPTION
-  Supports three drop zones under supabase/seed-images/:
-    equipment/  — {equipment-uuid}.{jpg|png|webp|gif} sets equipment.image_url (display photo)
-    drop/       — any images; auto-assigned to display slots, equipment notes, and work orders
-    work-orders/ — {work-order-uuid}.{ext} attaches to the WO via a seed note + work_order_images row
+  Supports drop zones under supabase/seed-images/:
+    equipment/     — {equipment-uuid}.{jpg|png|webp|gif} sets equipment.image_url (display photo)
+    drop/          — any images; auto-assigned to display slots, equipment notes, and work orders
+    work-orders/   — {work-order-uuid}.{ext} attaches to the WO via a seed note + work_order_images row
+    organizations/ — {organization-uuid}.{ext} uploads to organization-logos and sets organizations.logo
+    teams/         — {team-uuid}.{ext} uploads to team-images and sets teams.image_url (canonical path)
 
-  Canonical private-bucket paths are stored in Postgres (never public/signed URLs).
+  Equipment / note / WO / team images store canonical private-bucket paths (never signed URLs).
+  Organization logos store the public object URL (matches production uploadOrganizationLogo).
   Runs automatically as step 5b in dev-start.bat -Force.
 #>
 param(
@@ -16,7 +19,8 @@ param(
     [int]$RequestTimeoutSec = 30,
     [int]$StorageReadyTimeoutSec = 120,
     [int]$SupabaseStatusTimeoutSec = 45,
-    [int]$MaxRetries = 3
+    [int]$MaxRetries = 3,
+    [string]$PublicStorageHost = '127.0.0.1'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -36,6 +40,8 @@ $seedRoot = Join-Path $repoRoot 'supabase\seed-images'
 $equipmentDir = Join-Path $seedRoot "equipment"
 $dropDir = Join-Path $seedRoot "drop"
 $workOrdersDir = Join-Path $seedRoot "work-orders"
+$organizationsDir = Join-Path $seedRoot "organizations"
+$teamsDir = Join-Path $seedRoot "teams"
 
 # owner@apex.test — stable uploader for local seed media
 $SeedUploaderId = 'bb0e8400-e29b-41d4-a716-446655440001'
@@ -303,24 +309,30 @@ if (-not (Test-Path $seedRoot)) {
 $allEquipmentImages = Get-ImageFiles $equipmentDir
 $dropImages = Get-ImageFiles $dropDir
 $workOrderImages = Get-ImageFiles $workOrdersDir
+$organizationImages = Get-ImageFiles $organizationsDir
+$teamImages = Get-ImageFiles $teamsDir
 
 $uuidPattern = '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
 $uuidEquipmentImages = @($allEquipmentImages | Where-Object { $_.BaseName -match $uuidPattern })
 $genericEquipmentImages = @($allEquipmentImages | Where-Object { $_.BaseName -notmatch $uuidPattern })
 # Human-readable filenames in equipment/ are display backfill photos.
 $displayBackfillPool = @($genericEquipmentImages + $dropImages)
+$uuidOrganizationImages = @($organizationImages | Where-Object { $_.BaseName -match $uuidPattern })
+$uuidTeamImages = @($teamImages | Where-Object { $_.BaseName -match $uuidPattern })
 
 $uuidCount = $uuidEquipmentImages.Count
 $backfillCount = $displayBackfillPool.Count
 $dropOnlyCount = @($dropImages).Count
 $workOrderCount = @($workOrderImages).Count
+$orgLogoCount = $uuidOrganizationImages.Count
+$teamImageCount = $uuidTeamImages.Count
 
-if ($uuidCount -eq 0 -and $backfillCount -eq 0 -and $workOrderCount -eq 0) {
+if ($uuidCount -eq 0 -and $backfillCount -eq 0 -and $workOrderCount -eq 0 -and $orgLogoCount -eq 0 -and $teamImageCount -eq 0) {
     Write-Host "       No seed images found - skipping dev media seed."
     exit 0
 }
 
-Write-Host "       Seeding dev media ($uuidCount uuid-mapped, $backfillCount display backfill, $dropOnlyCount drop-only, $workOrderCount work-order)..."
+Write-Host "       Seeding dev media ($uuidCount uuid-mapped, $backfillCount display backfill, $dropOnlyCount drop-only, $workOrderCount work-order, $orgLogoCount org logos, $teamImageCount team images)..."
 
 Write-Host "       Resolving local Supabase keys for storage uploads (timeout-bound)..."
 try {
@@ -335,9 +347,13 @@ $stats = @{
     DisplayUpdated = 0
     NoteImages     = 0
     WorkOrderImages = 0
+    OrgLogos       = 0
+    TeamImages     = 0
     Failed         = 0
     SkippedMissingEquipment = 0
     SkippedMissingWorkOrder = 0
+    SkippedMissingOrganization = 0
+    SkippedMissingTeam = 0
 }
 
 Write-Host "       Loading fixture-scoped equipment and work-order IDs..."
@@ -543,6 +559,62 @@ if ($displayBackfillPool.Count -gt 0) {
     }
 }
 
+# ── Phase 6: organization logos (public bucket + organizations.logo URL) ────
+if ($uuidOrganizationImages.Count -gt 0) {
+    Write-Host "       Seeding $($uuidOrganizationImages.Count) organization logo(s)..."
+    foreach ($img in $uuidOrganizationImages) {
+        $orgId = $img.BaseName.ToLower()
+        $exists = (Invoke-PsqlScalar "SELECT EXISTS(SELECT 1 FROM organizations WHERE id = '$orgId')") -eq 't'
+        if (-not $exists) {
+            Write-Host "       WARN: No organization row for logo file $($img.Name); skipping."
+            $stats.SkippedMissingOrganization++
+            continue
+        }
+        try {
+            $ext = $img.Extension.TrimStart('.').ToLower()
+            if ($ext -eq 'jpeg') { $ext = 'jpg' }
+            $objectPath = "$orgId/logo.$ext"
+            Invoke-LocalDevStorageUpload -Bucket 'organization-logos' -ObjectPath $objectPath -FilePath $img.FullName -StorageHeaders $StorageHeaders -ApiPort $ApiPort -RequestTimeoutSec $RequestTimeoutSec
+            $publicUrl = "http://$PublicStorageHost`:$ApiPort/storage/v1/object/public/organization-logos/$objectPath"
+            $publicUrlSql = Escape-SqlLiteral $publicUrl
+            Invoke-PsqlNonQuery -Sql "UPDATE organizations SET logo = '$publicUrlSql', updated_at = NOW() WHERE id = '$orgId'" -Label "update organizations.logo $orgId"
+            $stats.OrgLogos++
+        }
+        catch {
+            Write-Host "       WARN: Organization logo seed failed for $orgId ($($_.Exception.Message))"
+            $stats.Failed++
+        }
+    }
+}
+
+# ── Phase 7: team images (private-path storage + teams.image_url) ────────────
+if ($uuidTeamImages.Count -gt 0) {
+    Write-Host "       Seeding $($uuidTeamImages.Count) team image(s)..."
+    foreach ($img in $uuidTeamImages) {
+        $teamId = $img.BaseName.ToLower()
+        $orgId = (Invoke-PsqlScalar "SELECT organization_id::text FROM teams WHERE id = '$teamId' LIMIT 1")
+        if (-not $orgId) {
+            Write-Host "       WARN: No team row for image file $($img.Name); skipping."
+            $stats.SkippedMissingTeam++
+            continue
+        }
+        try {
+            $ext = $img.Extension.TrimStart('.').ToLower()
+            if ($ext -eq 'jpeg') { $ext = 'jpg' }
+            $objectPath = "$orgId/$teamId/image.$ext"
+            Invoke-LocalDevStorageUpload -Bucket 'team-images' -ObjectPath $objectPath -FilePath $img.FullName -StorageHeaders $StorageHeaders -ApiPort $ApiPort -RequestTimeoutSec $RequestTimeoutSec
+            $objectPathSql = Escape-SqlLiteral $objectPath
+            $orgIdSql = Escape-SqlLiteral $orgId
+            Invoke-PsqlNonQuery -Sql "UPDATE teams SET image_url = '$objectPathSql', updated_at = NOW() WHERE id = '$teamId' AND organization_id = '$orgIdSql'" -Label "update teams.image_url $teamId"
+            $stats.TeamImages++
+        }
+        catch {
+            Write-Host "       WARN: Team image seed failed for $teamId ($($_.Exception.Message))"
+            $stats.Failed++
+        }
+    }
+}
+
 try {
     $withDisplay = [int](Invoke-PsqlScalar @"
 SELECT COUNT(*) FROM equipment
@@ -555,7 +627,7 @@ catch {
     $withDisplay = -1
 }
 
-Write-Host "       Dev media seed: $($stats.DisplayUpdated) display, $($stats.NoteImages) equipment-note, $($stats.WorkOrderImages) work-order images, $($stats.Failed) failed, $($stats.SkippedMissingEquipment) uuid files without matching equipment, $($stats.SkippedMissingWorkOrder) work-order files without in-scope target."
+Write-Host "       Dev media seed: $($stats.DisplayUpdated) display, $($stats.NoteImages) equipment-note, $($stats.WorkOrderImages) work-order, $($stats.OrgLogos) org logos, $($stats.TeamImages) team images, $($stats.Failed) failed, $($stats.SkippedMissingEquipment) uuid files without matching equipment, $($stats.SkippedMissingWorkOrder) work-order files without in-scope target, $($stats.SkippedMissingOrganization) org logos without matching org, $($stats.SkippedMissingTeam) team images without matching team."
 Write-Host "       Verified: $withDisplay equipment row(s) now have image_url set."
 
 if ($stats.Failed -gt 0) { exit 1 }

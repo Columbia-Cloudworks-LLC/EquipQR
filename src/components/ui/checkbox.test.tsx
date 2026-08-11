@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render } from "@/test/utils/test-utils";
+import { render } from "@vitest-harness/utils/test-utils";
 import { screen } from "@testing-library/dom";
 import { Checkbox } from "./checkbox";
 

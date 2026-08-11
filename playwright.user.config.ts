@@ -93,6 +93,9 @@ const vercelAutomationBypassHeaders = resolveVercelAutomationBypassHeaders();
 
 export default defineConfig({
   testDir: 'e2e/user',
+  // Vitest colocated unit tests under e2e/ use *.test.ts; Playwright specs are *.spec.ts.
+  // Without this ignore, Playwright loads Vitest describe() and fails before suite filters run.
+  testIgnore: ['**/*.test.ts'],
   fullyParallel: false,
   workers: 1,
   forbidOnly: !!process.env.CI,

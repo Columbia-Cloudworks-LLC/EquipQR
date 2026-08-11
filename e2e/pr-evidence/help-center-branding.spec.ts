@@ -15,9 +15,13 @@ import { startDocsDistCspServer, type DocsCspServer } from './shared/docs-csp-se
  * (scripts/docs/externalize-docs-inline-scripts.mjs) so the CSP stays a static
  * script-src 'self' that can never drift.
  *
+ * Issue #1358 — VitePress theme mirrors Mission Control tokens from the app,
+ * force-dark appearance (no light toggle), EquipQR (+ Docs) wordmark, and
+ * Open App as a primary CTA so the help center reads as the same product family.
+ *
  * This spec serves the built docs through the exact CSP shipped in
- * docs/vercel.json and proves hydration, navigation, theme toggling, and
- * branding assets all work under that policy.
+ * docs/vercel.json and proves hydration, navigation, branding assets, and
+ * #1358 design-system alignment under that policy.
  */
 test.describe.serial('Help Center CSP hydration and branding @pr-evidence', () => {
   let docsServer: DocsCspServer;
@@ -53,8 +57,49 @@ test.describe.serial('Help Center CSP hydration and branding @pr-evidence', () =
     await expect(navLogo).toHaveAttribute('src', /eqr-logo\/icon\.svg/);
     await expect(page.locator('.VPHero .VPImage')).toBeVisible();
 
+    // #1358 — product wordmark (EquipQR), not "EquipQR Help" as primary title.
+    await expect(page.locator('.VPNavBarTitle .title')).toContainText('EquipQR');
+    await expect(page.locator('.VPHero .name')).toHaveText(/EquipQR/i);
+    await expect(page.locator('html')).toHaveClass(/dark/);
+
+    // Assert the source Mission Control token (stable HSL components).
+    const eqrPrimary = await page.evaluate(() =>
+      getComputedStyle(document.documentElement).getPropertyValue('--eqr-primary').trim(),
+    );
+    expect(eqrPrimary).toBe('258 100% 81%');
+
+    // Brand button resolves --vp-c-brand-1 / --eqr-primary (browser HSL→RGB may vary slightly).
+    const brandColors = await page.locator('.VPButton.brand').first().evaluate((el) => {
+      const actual = getComputedStyle(el).backgroundColor;
+      const primary = getComputedStyle(document.documentElement)
+        .getPropertyValue('--eqr-primary')
+        .trim();
+      const probe = document.createElement('div');
+      probe.style.backgroundColor = `hsl(${primary})`;
+      document.body.appendChild(probe);
+      const expected = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      return { actual, expected };
+    });
+    expect(brandColors.actual).toBe(brandColors.expected);
+
+    // Open App CTA uses primary button treatment (desktop menu or mobile screen).
+    const openAppDesktop = page.locator('.VPNavBarMenuLink[href^="https://equipqr.app"]');
+    const openAppMobile = page.locator('.VPNavScreenMenuLink[href^="https://equipqr.app"]');
+    if (await openAppDesktop.isVisible()) {
+      await expect(openAppDesktop).toHaveCSS('font-weight', /^(600|bold)$/);
+    } else {
+      await page.locator('.VPNavBarHamburger').click();
+      await expect(openAppMobile).toBeVisible();
+      await expect(openAppMobile).toHaveCSS('font-weight', /^(600|bold)$/);
+      // Close the screen so later homepage screenshots stay clean.
+      await page.locator('.VPNavBarHamburger').click();
+    }
+
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '01-homepage-branded-and-hydrated');
+    const brand = page.getByRole('link', { name: /equipqr/i }).first();
+    await expect(brand).toBeVisible();
+    await evidenceScreenshot(page, '01-homepage-branded-and-hydrated', { target: brand });
 
     expect(cspViolations).toEqual([]);
   });
@@ -68,7 +113,7 @@ test.describe.serial('Help Center CSP hydration and branding @pr-evidence', () =
     expect(logo.headers()['content-type']).toContain('image/svg+xml');
   });
 
-  test('feature cards, hero button, and theme toggle work under production CSP', async ({
+  test('feature cards, hero button, and force-dark chrome work under production CSP', async ({
     page,
   }) => {
     await page.goto(`${docsServer.baseUrl}/`);
@@ -79,7 +124,9 @@ test.describe.serial('Help Center CSP hydration and branding @pr-evidence', () =
     await expect(page).toHaveURL(/\/support\/start-here\/$/);
     await expect(page.getByRole('heading', { name: /start here/i }).first()).toBeVisible();
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '02-get-oriented-card-navigates');
+    await evidenceScreenshot(page, '02-get-oriented-card-navigates', {
+      target: page.getByRole('heading', { name: /start here/i }).first(),
+    });
 
     // Hero call-to-action from the homepage.
     await page.goto(`${docsServer.baseUrl}/`);
@@ -89,14 +136,30 @@ test.describe.serial('Help Center CSP hydration and branding @pr-evidence', () =
       page.getByRole('heading', { name: /equipqr help center/i }).first(),
     ).toBeVisible();
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '03-browse-help-center-navigates');
+    await evidenceScreenshot(page, '03-browse-help-center-navigates', {
+      target: page.getByRole('heading', { name: /equipqr help center/i }).first(),
+    });
 
-    // Theme toggle only works when the Vue app is interactive.
-    const html = page.locator('html');
-    const wasDark = await html.evaluate((el) => el.classList.contains('dark'));
-    await page.locator('.VPSwitchAppearance').first().click();
-    await expect(html).toHaveClass(wasDark ? /^((?!dark).)*$/ : /dark/);
+    // force-dark: appearance switch is not offered (Mission Control is dark-only).
+    await expect(page.locator('.VPSwitchAppearance')).toHaveCount(0);
+    await expect(page.locator('html')).toHaveClass(/dark/);
+    const helpCenterHeading = page
+      .getByRole('heading', { name: /equipqr help center/i })
+      .first();
+    await expect(helpCenterHeading).toBeVisible();
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '04-theme-toggle-works');
+    await evidenceScreenshot(page, '04-force-dark-no-appearance-toggle', {
+      target: helpCenterHeading,
+    });
+
+    // #1358 — article chrome (sidebar + doc) under Mission Control tokens.
+    await page.goto(`${docsServer.baseUrl}/support/start-here/`);
+    const startHereHeading = page.getByRole('heading', { name: /start here/i }).first();
+    await expect(startHereHeading).toBeVisible();
+    await expect(page.locator('.VPSidebar')).toBeVisible();
+    await evidencePause(page, 600);
+    await evidenceScreenshot(page, '05-article-chrome-mission-control', {
+      target: startHereHeading,
+    });
   });
 });

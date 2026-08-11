@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useWhenPreferenceStorageAllowed } from '@/contexts/CookieConsentContext';
 import {
   DEFAULT_COLUMN_ORDER,
   DEFAULT_COLUMN_SIZING,
@@ -12,6 +13,7 @@ import type {
   InventoryTableDensity,
   InventoryTablePreferences,
 } from '@/features/inventory/types/inventory';
+import { getPreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
 
 const STORAGE_PREFIX = 'equipqr:inventory-table-preferences:';
 const PREFERENCES_VERSION = 1;
@@ -97,7 +99,7 @@ function sanitizeSavedViews(raw: unknown): InventorySavedView[] {
 
 const readSavedPreferences = (organizationId: string): InventoryTablePreferences | null => {
   try {
-    const raw = localStorage.getItem(buildStorageKey(organizationId));
+    const raw = getPreferenceLocalStorage(buildStorageKey(organizationId));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<InventoryTablePreferences>;
     return {
@@ -120,7 +122,7 @@ const writeSavedPreferences = (
   preferences: InventoryTablePreferences,
 ): void => {
   try {
-    localStorage.setItem(buildStorageKey(organizationId), JSON.stringify(preferences));
+    setPreferenceLocalStorage(buildStorageKey(organizationId), JSON.stringify(preferences));
   } catch {
     // Ignore quota / availability errors.
   }
@@ -186,6 +188,8 @@ export const useInventoryTablePreferences = (
   const [preferences, setPreferences] = useState<InventoryTablePreferences>(
     () => ({ ...DEFAULT_TABLE_PREFERENCES }),
   );
+  const preferencesRef = useRef(preferences);
+  preferencesRef.current = preferences;
 
   useEffect(() => {
     if (!organizationId) {
@@ -195,6 +199,17 @@ export const useInventoryTablePreferences = (
     const saved = readSavedPreferences(organizationId);
     setPreferences(saved ?? { ...DEFAULT_TABLE_PREFERENCES });
   }, [organizationId]);
+
+  const rehydrateOrFlushPreferences = useCallback(() => {
+    if (!organizationId) return;
+    const saved = readSavedPreferences(organizationId);
+    if (saved) {
+      setPreferences(saved);
+      return;
+    }
+    writeSavedPreferences(organizationId, preferencesRef.current);
+  }, [organizationId]);
+  useWhenPreferenceStorageAllowed(rehydrateOrFlushPreferences);
 
   const persist = useCallback(
     (next: InventoryTablePreferences) => {

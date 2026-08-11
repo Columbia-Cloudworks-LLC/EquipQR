@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Settings, HelpCircle, Bug, LogOut, User, BookOpen } from 'lucide-react';
+import { Settings, HelpCircle, Bug, LogOut, BookOpen } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,15 +11,18 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { useUser } from '@/contexts/useUser';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useBugReport } from '@/features/tickets/context/BugReportContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useOrganizationNotifications } from '@/hooks/useOrganizationNotifications';
+import { useResolvedAvatarUrl } from '@/hooks/useResolvedAvatarUrl';
 import NotificationMenuSection from '@/components/notifications/NotificationMenuSection';
 import { cn } from '@/lib/utils';
 import { SUPPORT_DOCS_URL } from '@/lib/documentationUrl';
+import { userDisplayInitials } from '@/utils/userDisplayInitials';
 
 interface UserProfileMenuProps {
   className?: string;
@@ -33,13 +36,15 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ className }) => {
   const isMobile = useIsMobile();
   const { openBugReport } = useBugReport();
   const { notifications, unreadCount } = useOrganizationNotifications(organizationId);
+  const { data: resolvedAvatarUrl } = useResolvedAvatarUrl(currentUser?.avatar_url);
 
   const handleSignOut = async () => {
     await signOut();
   };
 
-  const displayName = currentUser?.name || 'User';
+  const displayName = currentUser?.name?.trim() || 'User';
   const displayEmail = currentUser?.email || '';
+  const initials = userDisplayInitials(displayName);
   const triggerLabel =
     unreadCount > 0
       ? `User menu (${displayName}, ${unreadCount} unread notifications)`
@@ -57,9 +62,14 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ className }) => {
           )}
           aria-label={triggerLabel}
         >
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground">
-            <User className="h-4 w-4" />
-          </div>
+          <Avatar className="h-7 w-7">
+            {resolvedAvatarUrl ? (
+              <AvatarImage src={resolvedAvatarUrl} alt={displayName} />
+            ) : null}
+            <AvatarFallback className="bg-sidebar-primary text-[10px] text-sidebar-primary-foreground">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
           {unreadCount > 0 && (
             <Badge
               variant="destructive"
@@ -77,13 +87,23 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ className }) => {
         sideOffset={8}
       >
         <DropdownMenuLabel className="flex items-center justify-between gap-2 py-2 pr-1">
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <span className="truncate text-sm font-semibold">{displayName}</span>
-            {displayEmail ? (
-              <span className="truncate text-xs font-normal text-muted-foreground">
-                {displayEmail}
-              </span>
-            ) : null}
+          <div className="flex min-w-0 items-center gap-2">
+            <Avatar className="h-8 w-8 shrink-0">
+              {resolvedAvatarUrl ? (
+                <AvatarImage src={resolvedAvatarUrl} alt={displayName} />
+              ) : null}
+              <AvatarFallback className="bg-sidebar-primary text-xs text-sidebar-primary-foreground">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className="truncate text-sm font-semibold">{displayName}</span>
+              {displayEmail ? (
+                <span className="truncate text-xs font-normal text-muted-foreground">
+                  {displayEmail}
+                </span>
+              ) : null}
+            </div>
           </div>
           <Button
             variant="ghost"

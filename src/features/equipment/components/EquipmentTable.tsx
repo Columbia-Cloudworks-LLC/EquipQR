@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   getCoreRowModel,
   useReactTable,
@@ -34,6 +34,8 @@ import {
   type EquipmentTableRow,
 } from '@/features/equipment/utils/equipmentTableRows';
 import { useUserSettings } from '@/hooks/useUserSettings';
+import { useEquipmentCardTransition } from '@/features/equipment/transitions/useEquipmentCardTransition';
+import { getEquipmentViewTransitionStyle } from '@/features/equipment/transitions/equipmentViewTransitionNames';
 import { cn } from '@/lib/utils';
 
 const STATUS_COLUMN_KEY: EquipmentTableColumnKey = 'status';
@@ -63,7 +65,7 @@ const EquipmentTable: React.FC<EquipmentTableProps> = ({
   onSortChange,
   visibleColumns,
 }) => {
-  const navigate = useNavigate();
+  const { beginTransition, activeEquipmentId } = useEquipmentCardTransition();
   const { settings } = useUserSettings();
   const [columnSizing, setColumnSizing] = usePersistedColumnSizing(
     COLUMN_SIZING_STORAGE_KEY,
@@ -131,16 +133,26 @@ const EquipmentTable: React.FC<EquipmentTableProps> = ({
           const item = row.original;
 
           switch (columnKey) {
-            case 'name':
+            case 'name': {
+              const isTransitionActive = activeEquipmentId === item.id;
               return (
                 <button
                   type="button"
                   className="block w-full truncate text-left font-medium hover:text-primary"
-                  onClick={() => navigate(`/dashboard/equipment/${item.id}`)}
+                  data-equipment-id={item.id}
+                  {...(isTransitionActive ? { 'data-equipment-transition-active': '' } : {})}
+                  style={getEquipmentViewTransitionStyle('name', isTransitionActive)}
+                  onClick={() => {
+                    void beginTransition({
+                      equipmentId: item.id,
+                      to: `/dashboard/equipment/${item.id}`,
+                    });
+                  }}
                 >
                   {item.name}
                 </button>
               );
+            }
             case 'status':
               return (
                 <div className="flex items-center justify-center">
@@ -221,9 +233,10 @@ const EquipmentTable: React.FC<EquipmentTableProps> = ({
 
     return [...dataColumns, actionsColumn];
   }, [
+    activeEquipmentId,
+    beginTransition,
     columnSizing,
     handleSortClick,
-    navigate,
     onShowQRCode,
     settings,
     sortConfig?.direction,

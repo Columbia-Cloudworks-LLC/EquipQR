@@ -6,6 +6,7 @@ import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion';
 import { STATE_VECTORS, ALL_STATE_CODES } from './stateVectors';
 import type { StateCode } from './stateVectors';
 import { computeDotPositionsInState, chosenDotIndex, strToSeed } from './dotPositions';
+import { HERO_VERTICAL_LINE } from './heroGeometry';
 
 // Animation phases are dynamically imported so the reduced-motion path
 // never pays the GSAP / MorphSVG bundle cost. AssetDotsPhase MUST stay lazy
@@ -35,8 +36,8 @@ function pickNextState(prev: StateCode | null): StateCode {
 }
 
 /**
- * Reduced-motion / GSAP-load-failure static composite.
- * Shows a state outline + static dots. Zero GSAP bundle cost.
+ * Reduced-motion static composite only — Texas + dots.
+ * Must not be used as the Suspense loading fallback (that caused TX flashes on cold load).
  */
 function StaticHeroComposite() {
   return (
@@ -58,6 +59,30 @@ function StaticHeroComposite() {
         ].map(([cx, cy], i) => (
           <circle key={i} cx={cx} cy={cy} r={2.5} fill="hsl(var(--primary))" opacity={0.8} />
         ))}
+      </svg>
+    </div>
+  );
+}
+
+/**
+ * Neutral Suspense placeholder while lazy phase chunks load.
+ * Matches the morph start path so QR → morph stays continuous on cold load.
+ */
+function HeroPhaseLoadingFallback() {
+  return (
+    <div
+      className="relative w-full h-full flex items-center justify-center"
+      data-testid="hero-phase-loading-fallback"
+    >
+      <svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true">
+        <path
+          d={HERO_VERTICAL_LINE}
+          fill="none"
+          stroke="hsl(var(--primary))"
+          strokeWidth={1.5}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
       </svg>
     </div>
   );
@@ -204,6 +229,17 @@ export default function HeroAnimation() {
     };
   }, []);
 
+  // Warm the first two phase chunks so cold-load Suspense rarely paints the
+  // loading fallback. Reduced-motion visitors never enter this branch, so they
+  // still avoid the GSAP / MorphSVG download.
+  useEffect(() => {
+    if (prefersReducedMotion) return;
+    // Best-effort warm only — chunk failures stay on React.lazy/Suspense, not
+    // as unhandled promise rejections (stale shell / purged chunks).
+    void import('./QRScanPhase').catch(() => undefined);
+    void import('./StateMorphPhase').catch(() => undefined);
+  }, [prefersReducedMotion]);
+
   return (
     <section
       aria-label="EquipQR asset tracking demo"
@@ -266,7 +302,7 @@ export default function HeroAnimation() {
                 transition: 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
               }}
             >
-              <Suspense fallback={<StaticHeroComposite />}>
+              <Suspense fallback={<HeroPhaseLoadingFallback />}>
                 {phase === 'qr' && (
                   <QRScanPhase onPhaseComplete={handleQRComplete} />
                 )}

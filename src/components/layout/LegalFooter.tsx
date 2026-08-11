@@ -1,4 +1,3 @@
-
 import { Link } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import { ExternalLink } from '@/components/ui/external-link';
@@ -10,6 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { SUPPORT_DOCS_URL } from '@/lib/documentationUrl';
 import { APP_VERSION } from '@/lib/version';
+import { useSimpleOrganizationSafe } from '@/hooks/useSimpleOrganization';
 
 const linkClassName =
   'whitespace-nowrap text-muted-foreground hover:text-foreground transition-colors no-underline hover:underline';
@@ -23,6 +23,9 @@ const legalLinks = [
 
 export default function LegalFooter() {
   const currentYear = new Date().getFullYear();
+  const organization = useSimpleOrganizationSafe();
+  const role = organization?.currentOrganization?.userRole;
+  const canManageDsr = role === 'owner' || role === 'admin';
 
   return (
     <footer className="hidden md:block border-t border-border bg-background/50 backdrop-blur-sm mt-auto">
@@ -76,6 +79,13 @@ export default function LegalFooter() {
                     </Link>
                   </DropdownMenuItem>
                 ))}
+                {canManageDsr ? (
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard/dsr" className="cursor-pointer">
+                      DSR Cockpit
+                    </Link>
+                  </DropdownMenuItem>
+                ) : null}
               </DropdownMenuContent>
             </DropdownMenu>
 

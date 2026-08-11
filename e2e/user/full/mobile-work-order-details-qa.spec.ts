@@ -87,7 +87,10 @@ test.describe('mobile work order details field QA @full', () => {
         timeout: 15_000,
       });
 
-      await expect(page.getByText(/review & office details/i)).toBeVisible({ timeout: 30_000 });
+      // Field-first mobile layout: office timeline lives under Events & Times (collapsed by default).
+      const eventsTimes = page.getByRole('button', { name: /events & times/i });
+      await eventsTimes.scrollIntoViewIfNeeded();
+      await expect(eventsTimes).toBeVisible({ timeout: 30_000 });
 
       await expect(page.locator('body')).toHaveJSProperty('clientWidth', MOBILE_VIEWPORT.width);
       await expectReducedMotion(page);

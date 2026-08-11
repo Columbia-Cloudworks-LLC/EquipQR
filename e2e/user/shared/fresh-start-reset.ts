@@ -5,6 +5,7 @@ import {
   freshStartOrgId,
   pendingApexInvitationId,
   pendingInviteeUserId,
+  seedWorkOrders,
 } from './seed-data';
 
 const LOCAL_SUPABASE_URL =
@@ -166,4 +167,51 @@ export async function resetPendingApexInviteFixture(): Promise<void> {
  */
 export async function seedFreshStartOneTeamOnly(): Promise<void> {
   await resetFreshStartOnboardingFixture({ seedOneTeam: true });
+}
+
+/** Reason string passed by WorkOrderDetailsStatusLockWarning → revert_work_order_status. */
+const REVERT_TO_ACCEPTED_EVIDENCE_REASON = 'Reverted to accepted status by admin';
+
+/**
+ * Restores the seeded completed work order so Revert to Accepted evidence is idempotent (#1278).
+ * Also removes status-history rows inserted by prior revert runs so fixture state stays deterministic.
+ */
+export async function resetCompletedWorkOrderForRevertEvidence(): Promise<void> {
+  const admin = createE2EAdminClient();
+  const workOrderId = seedWorkOrders.completed.id;
+
+  const { error: historyDeleteError } = await admin
+    .from('work_order_status_history')
+    .delete()
+    .eq('work_order_id', workOrderId)
+    .eq('reason', REVERT_TO_ACCEPTED_EVIDENCE_REASON)
+    .eq('new_status', 'accepted')
+    .in('old_status', ['completed', 'cancelled']);
+
+  if (historyDeleteError) {
+    throw new Error(
+      `Revert evidence reset: status history delete failed for ${workOrderId}: ${historyDeleteError.message}`,
+    );
+  }
+
+  const { data: updatedRows, error } = await admin
+    .from('work_orders')
+    .update({
+      status: 'completed',
+      completed_date: '2025-12-18',
+      updated_at: '2025-12-18 16:00:00+00',
+    })
+    .eq('id', workOrderId)
+    .eq('organization_id', apexOrgId)
+    .select('id');
+
+  if (error) {
+    throw new Error(`Revert evidence reset failed for ${workOrderId}: ${error.message}`);
+  }
+
+  if (!updatedRows?.length) {
+    throw new Error(
+      `Revert evidence reset: seeded work order ${workOrderId} was not updated (missing from local DB?)`,
+    );
+  }
 }

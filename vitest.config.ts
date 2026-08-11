@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import fs from 'node:fs';
 import path from 'path';
 import { platform } from 'node:os';
 
@@ -7,26 +8,39 @@ const isCI = process.env.CI === 'true';
 const isWindows = platform() === 'win32';
 const isShardRun = process.argv.some((a) => a.startsWith('--shard='));
 
+/** Shard-safe JSON results path so parallel CI jobs do not overwrite one file. */
+function resolveVitestResultsJsonPath(): string {
+  const resultsDir = path.resolve(__dirname, 'artifacts', 'vitest-results');
+  fs.mkdirSync(resultsDir, { recursive: true });
+
+  const shardArg = process.argv.find((a) => a.startsWith('--shard='));
+  if (!shardArg) {
+    return path.join(resultsDir, 'results.json');
+  }
+  const [shardIndex] = shardArg.replace('--shard=', '').split('/');
+  return path.join(resultsDir, `shard-${shardIndex}.json`);
+}
+
 /** Co-located .test.ts files that need jsdom (hooks, browser APIs, RTL renderHook). */
 const JSDOM_TS_TEST_GLOBS = [
   'src/hooks/**/*.test.ts',
   'src/**/hooks/**/*.test.ts',
   'src/utils/**/*.test.ts',
   'src/services/**/*.test.ts',
-  'src/lib/__tests__/**/*.test.ts',
   'src/components/**/*.test.ts',
   'src/contexts/**/*.test.ts',
   'src/pages/**/*.test.ts',
-  'src/tests/quickbooks/quickbooksAuth.test.ts',
-  'src/tests/quickbooks/useQuickBooksAccess.test.ts',
+  // Browser APIs (AudioContext / vibrate) — former lib/__tests__ suites
+  'src/lib/scanFeedback.test.ts',
+  'src/lib/cookieConsent.test.ts',
 ];
 
 const coverageExclude = [
   'node_modules/',
-  'src/test/',
-  'src/tests/',
+  'vitest/',
   'scripts/**',
   'supabase/**',
+  'e2e/**',
   '**/*.d.ts',
   '**/*.config.*',
   '**/dist/**',
@@ -73,13 +87,36 @@ const coverageExclude = [
   '**/__tests__/**',
 ];
 
+const unitInclude = [
+  'src/**/*.test.ts',
+  'src/**/*.spec.ts',
+  'scripts/**/*.test.ts',
+  'scripts/**/*.test.mjs',
+  'e2e/**/*.test.ts',
+  'vitest/**/*.test.ts',
+  'supabase/functions/_shared/**/*.vitest.test.ts',
+];
+
+const componentInclude = [
+  'src/**/*.test.tsx',
+  'src/**/*.spec.tsx',
+  'vitest/**/*.test.tsx',
+  ...JSDOM_TS_TEST_GLOBS,
+];
+
 export default defineConfig({
   plugins: [react()],
   test: {
     globals: true,
     css: true,
     testTimeout: 10000,
-    exclude: ['supabase/**', 'node_modules/**'],
+    // Visibility/flagging only — does not fail the run (see #1349 / #1314).
+    slowTestThreshold: 200,
+    reporters: ['default', 'json'],
+    outputFile: {
+      json: resolveVitestResultsJsonPath(),
+    },
+    exclude: ['**/*.deno.test.ts', 'node_modules/**'],
     pool: 'forks',
     isolate: true,
     fileParallelism: isWindows ? false : isCI ? false : true,
@@ -109,9 +146,9 @@ export default defineConfig({
         test: {
           name: 'unit',
           environment: 'node',
-          include: ['src/**/*.test.ts', 'src/**/*.spec.ts', 'scripts/**/*.test.mjs'],
-          exclude: [...JSDOM_TS_TEST_GLOBS, 'supabase/**', 'node_modules/**'],
-          setupFiles: ['./src/test/setup-shared.ts'],
+          include: unitInclude,
+          exclude: [...JSDOM_TS_TEST_GLOBS, '**/*.deno.test.ts', 'node_modules/**'],
+          setupFiles: ['./vitest/setup-shared.ts'],
         },
       },
       {
@@ -119,8 +156,9 @@ export default defineConfig({
         test: {
           name: 'component',
           environment: 'jsdom',
-          include: ['src/**/*.test.tsx', 'src/**/*.spec.tsx', ...JSDOM_TS_TEST_GLOBS],
-          setupFiles: ['./src/test/setup-shared.ts', './src/test/setup.ts'],
+          include: componentInclude,
+          exclude: ['**/*.deno.test.ts', 'node_modules/**'],
+          setupFiles: ['./vitest/setup-shared.ts', './vitest/setup.ts'],
         },
       },
     ],
@@ -128,6 +166,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@vitest-harness': path.resolve(__dirname, './vitest'),
     },
   },
 });

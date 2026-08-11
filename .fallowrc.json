@@ -7,6 +7,9 @@
     "us-atlas",
     "xlsx"
   ],
+  "ignorePatterns": [
+    "vitest/**"
+  ],
   "ignoreExportsUsedInFile": true,
   "duplicates": {
     "ignore": [
@@ -21,9 +24,13 @@
       "e2e/**/*.ts",
       "src/**/*.test.ts",
       "src/**/*.test.tsx",
-      "src/test/**",
+      "vitest/**",
+      "scripts/**/*.test.ts",
+      "scripts/**/*.test.mjs",
+      "e2e/**/*.test.ts",
       "supabase/functions/**/*.test.ts",
       "supabase/functions/**/*.deno.test.ts",
+      "supabase/functions/**/*.vitest.test.ts",
       ".github/scripts/**/*.test.js"
     ]
   },
@@ -41,7 +48,11 @@
     "scripts/test-ci-sharded.mjs",
     "scripts/test-ci-windows.mjs",
     "scripts/upload-screenshot.ts",
-    "scripts/docs-media/print-storage-path.ts"
+    "scripts/docs-media/print-storage-path.ts",
+    "scripts/run-vitest-local.test.mjs",
+    "scripts/vitest-perf/report-vitest-durations.test.mjs",
+    "scripts/vitest-perf/publish-duration-pr-comment.mjs",
+    "scripts/cloud-agent/seed-quick-login.mjs"
   ],
   "ignoreExports": [
     {
@@ -177,7 +188,7 @@
       "exports": ["*"]
     },
     {
-      "file": "src/test/**",
+      "file": "vitest/**",
       "exports": ["*"]
     }
   ],

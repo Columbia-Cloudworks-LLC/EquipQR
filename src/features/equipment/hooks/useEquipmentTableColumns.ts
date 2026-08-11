@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { useWhenPreferenceStorageAllowed } from '@/contexts/CookieConsentContext';
 import {
   DEFAULT_VISIBLE_COLUMNS,
   EQUIPMENT_TABLE_COLUMN_META,
 } from '@/features/equipment/components/equipmentTableColumns';
+import { getPreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
 
 const STORAGE_PREFIX = 'equipqr:equipment-table-columns:';
 
@@ -17,7 +19,7 @@ const buildStorageKey = (organizationId: string): string =>
  */
 const readSavedVisibility = (organizationId: string): Record<string, boolean> | null => {
   try {
-    const raw = localStorage.getItem(buildStorageKey(organizationId));
+    const raw = getPreferenceLocalStorage(buildStorageKey(organizationId));
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
@@ -43,7 +45,7 @@ const writeSavedVisibility = (
   visibility: Record<string, boolean>,
 ): void => {
   try {
-    localStorage.setItem(buildStorageKey(organizationId), JSON.stringify(visibility));
+    setPreferenceLocalStorage(buildStorageKey(organizationId), JSON.stringify(visibility));
   } catch {
     // Ignore quota / availability errors.
   }
@@ -95,6 +97,8 @@ export const useEquipmentTableColumns = (
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(
     () => ({ ...DEFAULT_VISIBLE_COLUMNS }),
   );
+  const visibleColumnsRef = useRef(visibleColumns);
+  visibleColumnsRef.current = visibleColumns;
 
   // Hydrate from storage whenever the active org changes.
   useEffect(() => {
@@ -105,6 +109,17 @@ export const useEquipmentTableColumns = (
     const saved = readSavedVisibility(organizationId);
     setVisibleColumns(saved ?? { ...DEFAULT_VISIBLE_COLUMNS });
   }, [organizationId]);
+
+  const rehydrateOrFlushColumns = useCallback(() => {
+    if (!organizationId) return;
+    const saved = readSavedVisibility(organizationId);
+    if (saved) {
+      setVisibleColumns(saved);
+      return;
+    }
+    writeSavedVisibility(organizationId, visibleColumnsRef.current);
+  }, [organizationId]);
+  useWhenPreferenceStorageAllowed(rehydrateOrFlushColumns);
 
   const persist = useCallback(
     (next: Record<string, boolean>) => {

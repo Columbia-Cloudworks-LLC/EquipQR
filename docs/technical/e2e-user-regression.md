@@ -1,6 +1,6 @@
 # Playwright User Regression (Local)
 
-Browser end-to-end tests exercise the real local dev stack (Vite + Supabase seeds + Dev Quick Login). They complement Vitest journey tests in `src/tests/journeys/`.
+Browser end-to-end tests exercise the real local dev stack (Vite + Supabase seeds + Dev Quick Login). They complement Vitest component/page tests that use `renderJourney` from `@vitest-harness/journey`.
 
 ## Quick start
 

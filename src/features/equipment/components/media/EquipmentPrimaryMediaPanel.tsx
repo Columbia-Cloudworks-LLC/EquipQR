@@ -12,6 +12,8 @@ interface EquipmentPrimaryMediaPanelProps {
   emptyClassName?: string;
   /** When false, skip the media query (e.g. missing ids). */
   enabled?: boolean;
+  /** Inline style for shared-element view transitions (applied to the media root). */
+  mediaStyle?: React.CSSProperties;
 }
 
 /**
@@ -26,6 +28,7 @@ export function EquipmentPrimaryMediaPanel({
   className,
   emptyClassName,
   enabled = true,
+  mediaStyle,
 }: EquipmentPrimaryMediaPanelProps) {
   const { displayOrderedImages, isLoading } = useEquipmentMediaLibrary({
     equipmentId,
@@ -38,6 +41,7 @@ export function EquipmentPrimaryMediaPanel({
     return (
       <div
         className={cn('animate-pulse rounded-lg bg-muted', emptyClassName ?? 'h-64', className)}
+        style={mediaStyle}
         aria-busy="true"
         aria-label={`Loading photos for ${equipmentName}`}
       />
@@ -45,11 +49,13 @@ export function EquipmentPrimaryMediaPanel({
   }
 
   return (
-    <EquipmentMediaCarousel
-      images={displayOrderedImages}
-      equipmentName={equipmentName}
-      className={className}
-      emptyClassName={emptyClassName}
-    />
+    <div style={mediaStyle}>
+      <EquipmentMediaCarousel
+        images={displayOrderedImages}
+        equipmentName={equipmentName}
+        className={className}
+        emptyClassName={emptyClassName}
+      />
+    </div>
   );
 }

@@ -64,6 +64,16 @@ vi.mock('sonner', () => ({
   Toaster: () => <div data-testid="sonner-toaster" />,
 }));
 
+vi.mock('@/contexts/CookieConsentContext', () => ({
+  CookieConsentProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="cookie-consent-provider">{children}</div>
+  ),
+}));
+
+vi.mock('@/components/privacy/CookieConsentBanner', () => ({
+  CookieConsentBanner: () => <div data-testid="cookie-consent-banner" />,
+}));
+
 describe('AppProviders', () => {
   let AppProviders: typeof AppProvidersComponent;
 

@@ -7,6 +7,10 @@ interface UseBrowserStorageOptions<T> {
   enabled?: boolean;
 }
 
+/**
+ * Draft/backup persistence for in-progress editors (PM checklist, template editor).
+ * Strictly necessary to avoid losing work on refresh — not preference-gated.
+ */
 export const useBrowserStorage = <T>({ key, data, enabled = true }: UseBrowserStorageOptions<T>) => {
   // Save to localStorage
   const saveToStorage = useCallback(() => {

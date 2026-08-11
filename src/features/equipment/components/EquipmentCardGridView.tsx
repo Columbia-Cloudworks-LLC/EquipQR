@@ -15,6 +15,7 @@ import type { EquipmentCardPmReadout } from '@/features/equipment/utils/getEquip
 import { displayableImageSrc } from '@/services/imageUploadService';
 import { getPMComplianceLevel } from '@/features/equipment/hooks/useEquipmentPMStatus';
 import type { EquipmentPMStatus } from '@/features/equipment/hooks/useEquipmentPMStatus';
+import { getEquipmentViewTransitionStyle } from '@/features/equipment/transitions/equipmentViewTransitionNames';
 
 interface EquipmentCardGridViewProps {
   equipment: {
@@ -30,6 +31,7 @@ interface EquipmentCardGridViewProps {
   onQRClick: (e: React.MouseEvent) => void;
   onQuickAction: (e: React.MouseEvent, path: string) => void;
   imageLoading?: 'eager' | 'lazy';
+  isTransitionActive?: boolean;
 }
 
 function getWorkingHoursMetricClass(display: string): string {
@@ -70,6 +72,7 @@ export function EquipmentCardGridView({
   onQRClick,
   onQuickAction,
   imageLoading = 'lazy',
+  isTransitionActive = false,
 }: EquipmentCardGridViewProps) {
   const pmLevel = getPMComplianceLevel(pmStatus);
   const isPmOverdue = pmLevel === 'overdue';
@@ -86,11 +89,18 @@ export function EquipmentCardGridView({
               </p>
             ) : null}
             <div className="flex flex-wrap items-center gap-2">
-              <CardTitle className="text-lg font-semibold leading-tight">{equipment.name}</CardTitle>
+              <CardTitle
+                className="text-lg font-semibold leading-tight"
+                style={getEquipmentViewTransitionStyle('name', isTransitionActive)}
+              >
+                {equipment.name}
+              </CardTitle>
               {isPendingSync ? <PendingSyncBadge className="flex-shrink-0" /> : null}
             </div>
-            <p className="text-sm text-muted-foreground truncate">{display.assetDescriptor}</p>
-            <p className="font-tabular text-xs text-muted-foreground truncate">{display.serialDisplay}</p>
+            <div style={getEquipmentViewTransitionStyle('meta', isTransitionActive)}>
+              <p className="text-sm text-muted-foreground truncate">{display.assetDescriptor}</p>
+              <p className="font-tabular text-xs text-muted-foreground truncate">{display.serialDisplay}</p>
+            </div>
           </div>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -110,7 +120,10 @@ export function EquipmentCardGridView({
       </CardHeader>
 
       <CardContent className="flex flex-1 flex-col space-y-3 pt-0">
-        <div className="relative aspect-[16/10] w-full overflow-hidden rounded-md border border-border/80 bg-muted">
+        <div
+          className="relative aspect-[16/10] w-full overflow-hidden rounded-md border border-border/80 bg-muted"
+          style={getEquipmentViewTransitionStyle('image', isTransitionActive)}
+        >
           {resolvedImageSrc ? (
             <img
               src={resolvedImageSrc}
@@ -136,7 +149,11 @@ export function EquipmentCardGridView({
           )}
         >
           <TelemetryCell label="Location">
-            <p className="text-sm text-foreground truncate" title={display.locationDisplay}>
+            <p
+              className="text-sm text-foreground truncate"
+              title={display.locationDisplay}
+              style={getEquipmentViewTransitionStyle('location', isTransitionActive)}
+            >
               {display.locationDisplay}
             </p>
           </TelemetryCell>
@@ -149,6 +166,7 @@ export function EquipmentCardGridView({
                     'block min-w-0 truncate font-tabular font-bold leading-none tracking-tight text-foreground',
                     getWorkingHoursMetricClass(display.workingHoursDisplay)
                   )}
+                  style={getEquipmentViewTransitionStyle('hours', isTransitionActive)}
                 >
                   {display.workingHoursDisplay}
                 </span>

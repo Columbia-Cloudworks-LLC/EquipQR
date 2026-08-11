@@ -13,7 +13,6 @@ const dashboardRoutes: Array<{ link: RegExp | string; path: RegExp }> = [
   { link: /^organization$/i, path: /\/dashboard\/organization/ },
   { link: /^reports$/i, path: /\/dashboard\/reports/ },
   { link: /pm templates/i, path: /\/dashboard\/pm-templates/ },
-  { link: /dsr cockpit/i, path: /\/dashboard\/dsr/ },
 ];
 
 test.describe('dashboard navigation @critical', () => {

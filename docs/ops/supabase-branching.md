@@ -8,6 +8,7 @@
 |---------|----------|
 | **`preview.equipqr.app`** / **`equipqr.app`** | **Production** Supabase (`https://supabase.equipqr.app`). No perpetual preview DB. |
 | **PR touching `supabase/**`** | **Ephemeral** Supabase branch for schema/RLS validation only; deleted when the PR closes. |
+| **Cursor Cloud Agent sessions** | **Per-session** ephemeral branch + cloud-safe Quick Login seed (not Docker-local Supabase). See [cloud-agent-ephemeral-stack.md](./cloud-agent-ephemeral-stack.md). |
 
 Do not assume `preview.equipqr.app` uses a separate long-lived Supabase project. Ordinary (non-schema) QA on that hostname hits production data APIs; exercise risky OAuth/integration paths on the **local stack** before merge.
 
@@ -103,6 +104,14 @@ If branching causes unexpected behavior (e.g. CI workflows break because of bran
 2. Click **Disable branching**.
 3. No code change needed — the comment block in `supabase/config.toml` and this doc are dormant without branching enabled.
 
+## Cursor Cloud Agents (session branches)
+
+PR branching above is **schema/RLS validation only** (dataless, no Quick Login). Cloud Agents that need Dev Quick Login against an isolated backend use a separate lifecycle:
+
+- Create → seed (Auth Admin API) → point Vite at the branch → delete on teardown/TTL
+- Documented in [cloud-agent-ephemeral-stack.md](./cloud-agent-ephemeral-stack.md) (`scripts/cloud-agent-ephemeral-stack.sh`)
+- Does **not** replace this PR GitHub Integration path and must never seed production
+
 ## References
 
 - Supabase docs: https://supabase.com/docs/guides/deployment/branching
@@ -110,3 +119,4 @@ If branching causes unexpected behavior (e.g. CI workflows break because of bran
 - GitHub integration: https://supabase.com/docs/guides/deployment/branching/github-integration
 - EquipQR Service Request on issue #722: https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/722#issuecomment-4366751122
 - EquipQR Change Record on issue #722: https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/722#issuecomment-4366780373
+- Cloud Agent ephemeral stack (#1249): [cloud-agent-ephemeral-stack.md](./cloud-agent-ephemeral-stack.md)

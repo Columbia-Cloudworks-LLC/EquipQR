@@ -803,14 +803,24 @@ export function extractStoragePath(
   return extractPublicStoragePath(publicUrl, bucket);
 }
 
-function extractPublicStoragePath(url: string, bucket: StorageBucket): string | null {
-  try {
-    const marker = `/storage/v1/object/public/${bucket}/`;
+function pathAfterStorageMarker(url: string, markers: readonly string[]): string | null {
+  for (const marker of markers) {
     const idx = url.indexOf(marker);
-    if (idx === -1) return null;
+    if (idx === -1) continue;
     const pathWithQuery = url.substring(idx + marker.length);
     const qIdx = pathWithQuery.indexOf('?');
     return qIdx === -1 ? pathWithQuery : pathWithQuery.substring(0, qIdx);
+  }
+  return null;
+}
+
+function extractPublicStoragePath(url: string, bucket: StorageBucket): string | null {
+  try {
+    // Absolute `/storage/v1/...` and local relative `/object/...` forms
+    return pathAfterStorageMarker(url, [
+      `/storage/v1/object/public/${bucket}/`,
+      `/object/public/${bucket}/`,
+    ]);
   } catch {
     return null;
   }
@@ -818,13 +828,10 @@ function extractPublicStoragePath(url: string, bucket: StorageBucket): string | 
 
 function extractSignedStoragePath(url: string, bucket: StorageBucket): string | null {
   try {
-    const marker = `/storage/v1/object/sign/${bucket}/`;
-    const idx = url.indexOf(marker);
-    if (idx === -1) return null;
-    let rest = url.substring(idx + marker.length);
-    const qIdx = rest.indexOf('?');
-    if (qIdx !== -1) rest = rest.substring(0, qIdx);
-    return rest;
+    return pathAfterStorageMarker(url, [
+      `/storage/v1/object/sign/${bucket}/`,
+      `/object/sign/${bucket}/`,
+    ]);
   } catch {
     return null;
   }

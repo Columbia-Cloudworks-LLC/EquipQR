@@ -103,12 +103,12 @@ export const useSessionManager = ({ user, authLoading, onSessionUpdate, onError 
       throw new Error(`Organization ${organizationId} not found in user's organizations`);
     }
     
-    // Save user preference immediately
-    saveOrganizationPreference(organizationId);
-    
     try {
-      // Fetch team memberships for the new organization
+      // Fetch team memberships before mutating preference / session so a failed
+      // RPC cannot leave localStorage on the new org while sessionData stays old.
       const teamMemberships = await SessionDataService.fetchTeamMemberships(user.id, organizationId);
+
+      saveOrganizationPreference(organizationId);
 
       const updatedSessionData = createSessionData(
         sessionData.organizations,

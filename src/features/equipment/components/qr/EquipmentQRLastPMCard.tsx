@@ -7,11 +7,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import type { LatestCompletedPMDetails } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import type { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { createSegmentsForSection } from '@/utils/pmChecklistHelpers';
-import { saveOrganizationPreference } from '@/utils/sessionPersistence';
+import { persistDashboardOrganizationSelection } from '@/utils/organizationSelection';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
-
-/** Matches `EquipmentQRScan` / `SimpleOrganizationProvider` dashboard org hint. */
-const DASHBOARD_CURRENT_ORG_STORAGE_KEY = 'equipqr_current_organization';
 
 function parseChecklistData(raw: unknown): PMChecklistItem[] {
   try {
@@ -115,12 +112,7 @@ const EquipmentQRLastPMCard: React.FC<EquipmentQRLastPMCardProps> = ({
     : formatRelative(completedDate);
 
   const persistOrgBeforeDashboard = () => {
-    saveOrganizationPreference(organizationId);
-    try {
-      localStorage.setItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY, organizationId);
-    } catch {
-      /* ignore storage failures */
-    }
+    persistDashboardOrganizationSelection(organizationId);
   };
 
   return (

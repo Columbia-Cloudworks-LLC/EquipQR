@@ -1,0 +1,580 @@
+import React from 'react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { vi, beforeEach, describe, it, expect } from 'vitest';
+import PMTemplates from '@/features/pm-templates/pages/PMTemplates';
+import { TestProviders } from '@vitest-harness/utils/TestProviders';
+import { personas } from '@vitest-harness/fixtures/personas';
+import { organizations, pmTemplates as pmFixtures } from '@vitest-harness/fixtures/entities';
+
+const mockNavigate = vi.fn();
+
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
+
+// Mock hooks with named imports
+import {
+  usePMTemplates,
+  useCreatePMTemplate,
+  useUpdatePMTemplate,
+  useDeletePMTemplate,
+  useClonePMTemplate,
+} from '@/features/pm-templates/hooks/usePMTemplates';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useSimplifiedOrganizationRestrictions } from '@/features/organization/hooks/useSimplifiedOrganizationRestrictions';
+
+vi.mock('@/features/pm-templates/hooks/usePMTemplates', () => ({
+  usePMTemplates: vi.fn(),
+  usePMTemplate: vi.fn(),
+  useCreatePMTemplate: vi.fn(),
+  useUpdatePMTemplate: vi.fn(),
+  useDeletePMTemplate: vi.fn(),
+  useClonePMTemplate: vi.fn(),
+}));
+
+vi.mock('@/contexts/OrganizationContext', () => ({
+  useOrganization: vi.fn(),
+}));
+
+vi.mock('@/hooks/usePermissions', () => ({
+  usePermissions: vi.fn(),
+}));
+
+vi.mock('@/features/organization/hooks/useSimplifiedOrganizationRestrictions', () => ({
+  useSimplifiedOrganizationRestrictions: vi.fn(),
+}));
+
+vi.mock('@/features/pm-templates/components/PMTemplateEquipmentAssignmentMenu', () => ({
+  PMTemplateEquipmentAssignmentMenu: vi.fn(({ templateId }: { templateId: string }) => (
+    <button type="button" data-testid={`assignment-menu-${templateId}`}>
+      Apply to Equipment
+    </button>
+  )),
+}));
+
+const mockTemplates = [
+  {
+    id: pmFixtures.forklift.id,
+    name: pmFixtures.forklift.name,
+    description: pmFixtures.forklift.description,
+    is_protected: pmFixtures.forklift.is_protected,
+    organization_id: pmFixtures.forklift.organization_id,
+    sections: pmFixtures.forklift.sections,
+    itemCount: pmFixtures.forklift.itemCount,
+  },
+  {
+    id: pmFixtures.customOrgTemplate.id,
+    name: pmFixtures.customOrgTemplate.name,
+    description: pmFixtures.customOrgTemplate.description,
+    is_protected: pmFixtures.customOrgTemplate.is_protected,
+    organization_id: pmFixtures.customOrgTemplate.organization_id,
+    sections: pmFixtures.customOrgTemplate.sections,
+    itemCount: pmFixtures.customOrgTemplate.itemCount,
+  },
+];
+
+const mockHooks = {
+  usePMTemplates: {
+    data: mockTemplates,
+    isLoading: false,
+    error: null,
+    isError: false,
+    isPending: false,
+    isSuccess: true,
+    status: 'success' as const,
+    fetchStatus: 'idle' as const,
+    refetch: vi.fn(),
+    isRefetching: false,
+    isLoadingError: false,
+    isRefetchError: false,
+    dataUpdatedAt: Date.now(),
+    errorUpdatedAt: 0,
+    failureCount: 0,
+    failureReason: null,
+    errorUpdateCount: 0,
+    isFetched: true,
+    isFetchedAfterMount: true,
+    isFetching: false,
+    isInitialLoading: false,
+    isPaused: false,
+    isPlaceholderData: false,
+    isStale: false,
+  },
+  useCreatePMTemplate: {
+    mutate: vi.fn(),
+    isPending: false,
+    data: undefined,
+    error: null,
+    isError: false,
+    isSuccess: false,
+    status: 'idle' as const,
+    variables: undefined,
+    mutateAsync: vi.fn(),
+    reset: vi.fn(),
+    isIdle: true,
+    context: undefined,
+    failureCount: 0,
+    failureReason: null,
+    submittedAt: 0,
+    isPaused: false,
+  },
+  useUpdatePMTemplate: {
+    mutate: vi.fn(),
+    isPending: false,
+    data: undefined,
+    error: null,
+    isError: false,
+    isSuccess: false,
+    status: 'idle' as const,
+    variables: undefined,
+    mutateAsync: vi.fn(),
+    reset: vi.fn(),
+    isIdle: true,
+    context: undefined,
+    failureCount: 0,
+    failureReason: null,
+    submittedAt: 0,
+    isPaused: false,
+  },
+  useDeletePMTemplate: {
+    mutate: vi.fn(),
+    isPending: false,
+    data: undefined,
+    error: null,
+    isError: false,
+    isSuccess: false,
+    status: 'idle' as const,
+    variables: undefined,
+    mutateAsync: vi.fn(),
+    reset: vi.fn(),
+    isIdle: true,
+    context: undefined,
+    failureCount: 0,
+    failureReason: null,
+    submittedAt: 0,
+    isPaused: false,
+  },
+  useClonePMTemplate: {
+    mutate: vi.fn(),
+    isPending: false,
+    data: undefined,
+    error: null,
+    isError: false,
+    isSuccess: false,
+    status: 'idle' as const,
+    variables: undefined,
+    mutateAsync: vi.fn(),
+    reset: vi.fn(),
+    isIdle: true,
+    context: undefined,
+    failureCount: 0,
+    failureReason: null,
+    submittedAt: 0,
+    isPaused: false,
+  },
+};
+
+describe('PMTemplates Page', () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+
+    vi.mocked(usePMTemplates).mockReturnValue(
+      mockHooks.usePMTemplates as unknown as ReturnType<typeof usePMTemplates>
+    );
+    vi.mocked(useCreatePMTemplate).mockReturnValue(
+      mockHooks.useCreatePMTemplate as unknown as ReturnType<typeof useCreatePMTemplate>
+    );
+    vi.mocked(useUpdatePMTemplate).mockReturnValue(
+      mockHooks.useUpdatePMTemplate as unknown as ReturnType<typeof useUpdatePMTemplate>
+    );
+    vi.mocked(useDeletePMTemplate).mockReturnValue(
+      mockHooks.useDeletePMTemplate as unknown as ReturnType<typeof useDeletePMTemplate>
+    );
+    vi.mocked(useClonePMTemplate).mockReturnValue(
+      mockHooks.useClonePMTemplate as unknown as ReturnType<typeof useClonePMTemplate>
+    );
+
+    vi.mocked(useOrganization).mockReturnValue({
+      currentOrganization: { id: organizations.acme.id, name: organizations.acme.name },
+      organizations: [],
+      userOrganizations: [],
+      setCurrentOrganization: vi.fn(),
+      isLoading: false,
+      error: null,
+      switchToOrganization: vi.fn(),
+      refreshOrganizations: vi.fn(),
+    } as unknown as ReturnType<typeof useOrganization>);
+
+    vi.mocked(usePermissions).mockReturnValue({
+      isAdmin: true,
+      canManageOrganization: true,
+      hasRole: vi.fn().mockReturnValue(true),
+      canManageTeam: vi.fn().mockReturnValue(true),
+      canViewTeam: vi.fn().mockReturnValue(true),
+      canCreateTeam: vi.fn().mockReturnValue(true),
+      canManageEquipment: vi.fn().mockReturnValue(true),
+      canViewEquipment: vi.fn().mockReturnValue(true),
+      canCreateEquipment: vi.fn().mockReturnValue(true),
+      canManageWorkOrders: vi.fn().mockReturnValue(true),
+      canViewWorkOrders: vi.fn().mockReturnValue(true),
+      canCreateWorkOrders: vi.fn().mockReturnValue(true),
+      canManageReports: vi.fn().mockReturnValue(true),
+      canViewReports: vi.fn().mockReturnValue(true),
+      canManageUsers: vi.fn().mockReturnValue(true),
+      canInviteUsers: vi.fn().mockReturnValue(true),
+      isOwner: true,
+      isMember: false,
+      isTeamManager: vi.fn().mockReturnValue(false),
+    } as unknown as ReturnType<typeof usePermissions>);
+
+    vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
+      restrictions: {
+        canCreateCustomTemplates: true,
+        canCreateCustomPMTemplates: true,
+        hasLicensedUsers: true,
+        upgradeMessage: null,
+      },
+      checkRestriction: vi.fn(),
+      getRestrictionMessage: vi.fn(),
+      isSingleUser: false,
+      canUpgrade: true,
+      isLoading: false,
+    } as unknown as ReturnType<typeof useSimplifiedOrganizationRestrictions>);
+  });
+
+  describe(`as ${personas.owner.name} (owner with full admin access)`, () => {
+    it('renders page title and description', () => {
+      render(
+        <TestProviders>
+          <PMTemplates />
+        </TestProviders>
+      );
+
+      expect(screen.getByText('PM Templates')).toBeInTheDocument();
+      expect(screen.getByText(/Manage PM checklist templates and assign them as the default on equipment in bulk/)).toBeInTheDocument();
+    });
+  });
+
+  describe('when no organization is selected', () => {
+    it('shows no organization message', () => {
+      vi.mocked(useOrganization).mockReturnValue({
+        currentOrganization: null,
+        organizations: [],
+        userOrganizations: [],
+        setCurrentOrganization: vi.fn(),
+        isLoading: false,
+        error: null,
+        switchToOrganization: vi.fn(),
+        refreshOrganizations: vi.fn(),
+      } as unknown as ReturnType<typeof useOrganization>);
+
+      render(
+        <TestProviders>
+          <PMTemplates />
+        </TestProviders>
+      );
+
+      expect(screen.getByText('Please select an organization to manage PM templates.')).toBeInTheDocument();
+    });
+  });
+
+  describe(`as ${personas.technician.name} (non-admin, permission denied)`, () => {
+    it('shows permission denied message', () => {
+      vi.mocked(usePermissions).mockReturnValue({
+        isAdmin: false,
+        canManageOrganization: false,
+        hasRole: vi.fn().mockReturnValue(false),
+        canManageTeam: vi.fn().mockReturnValue(false),
+        canViewTeam: vi.fn().mockReturnValue(false),
+        canCreateTeam: vi.fn().mockReturnValue(false),
+        canManageEquipment: vi.fn().mockReturnValue(false),
+        canViewEquipment: vi.fn().mockReturnValue(false),
+        canCreateEquipment: vi.fn().mockReturnValue(false),
+        canManageWorkOrders: vi.fn().mockReturnValue(false),
+        canViewWorkOrders: vi.fn().mockReturnValue(false),
+        canCreateWorkOrders: vi.fn().mockReturnValue(false),
+        canManageReports: vi.fn().mockReturnValue(false),
+        canViewReports: vi.fn().mockReturnValue(false),
+        canManageUsers: vi.fn().mockReturnValue(false),
+        canInviteUsers: vi.fn().mockReturnValue(false),
+        isOwner: false,
+        isMember: true,
+        isTeamManager: vi.fn().mockReturnValue(false),
+      } as unknown as ReturnType<typeof usePermissions>);
+
+      render(
+        <TestProviders>
+          <PMTemplates />
+        </TestProviders>
+      );
+
+      expect(screen.getByText('You need administrator permissions to access this page.')).toBeInTheDocument();
+    });
+  });
+
+  describe('while templates are loading', () => {
+    it('displays loading skeleton during data fetch', () => {
+      vi.mocked(usePMTemplates).mockReturnValue({
+        ...mockHooks.usePMTemplates,
+        isLoading: true,
+        data: undefined,
+        isSuccess: false,
+        status: 'pending',
+      } as unknown as ReturnType<typeof usePMTemplates>);
+
+      render(
+        <TestProviders>
+          <PMTemplates />
+        </TestProviders>
+      );
+
+      expect(screen.getAllByText('PM Templates')).toHaveLength(1);
+      const animatedElements = document.querySelectorAll('.animate-pulse');
+      expect(animatedElements.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('navigates to details when clicking a template title', () => {
+    render(
+      <TestProviders>
+        <PMTemplates />
+      </TestProviders>
+    );
+
+    const title = screen.getByText(pmFixtures.forklift.name);
+    expect(title).toBeInTheDocument();
+  });
+
+  describe('Template Display', () => {
+    it('renders global templates section', () => {
+      render(
+        <TestProviders>
+          <PMTemplates />
+        </TestProviders>
+      );
+
+      expect(screen.getByText('EquipQR Templates')).toBeInTheDocument();
+      expect(screen.getByText(pmFixtures.forklift.name)).toBeInTheDocument();
+      expect(screen.getByText(pmFixtures.forklift.description)).toBeInTheDocument();
+    });
+
+    it('renders organization templates section for licensed users', () => {
+      render(
+        <TestProviders>
+          <PMTemplates />
+        </TestProviders>
+      );
+
+      expect(screen.getByText('Organization Templates')).toBeInTheDocument();
+      expect(screen.getByText(pmFixtures.customOrgTemplate.name)).toBeInTheDocument();
+    });
+
+    it('shows upgrade message for unlicensed users', () => {
+      vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
+        restrictions: {
+          canCreateCustomTemplates: false,
+          canCreateCustomPMTemplates: false,
+          hasLicensedUsers: false,
+          canManageTeams: false,
+          canAssignEquipmentToTeams: false,
+          canUploadImages: false,
+          canAccessFleetMap: false,
+          upgradeMessage: 'Upgrade required',
+        },
+        checkRestriction: vi.fn(),
+        getRestrictionMessage: vi.fn(),
+        isSingleUser: true,
+        canUpgrade: true,
+        isLoading: false,
+      } as unknown as ReturnType<typeof useSimplifiedOrganizationRestrictions>);
+
+      render(
+        <TestProviders>
+          <PMTemplates />
+        </TestProviders>
+      );
+
+      expect(screen.getByText(/Custom PM templates require user licenses/)).toBeInTheDocument();
+    });
+
+    it('displays template card with correct data', () => {
+      render(
+        <TestProviders>
+          <PMTemplates />
+        </TestProviders>
+      );
+
+      expect(screen.getByText(pmFixtures.forklift.name)).toBeInTheDocument();
+      expect(screen.getByText(pmFixtures.forklift.description)).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          `${pmFixtures.forklift.sections.length} sections · ${pmFixtures.forklift.itemCount} items`,
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByText('EquipQR')).toBeInTheDocument();
+      expect(screen.getByText('Protected')).toBeInTheDocument();
+    });
+  });
+
+  describe('Template Actions', () => {
+    it('renders the equipment assignment menu on every template card', () => {
+      render(
+        <TestProviders>
+          <PMTemplates />
+        </TestProviders>
+      );
+
+      expect(screen.getByTestId(`assignment-menu-${pmFixtures.forklift.id}`)).toBeInTheDocument();
+      expect(
+        screen.getByTestId(`assignment-menu-${pmFixtures.customOrgTemplate.id}`),
+      ).toBeInTheDocument();
+      expect(screen.getByText('Ready to use — assign directly, no clone needed')).toBeInTheDocument();
+    });
+
+    it('handles Clone template button click', async () => {
+      render(
+        <TestProviders>
+          <PMTemplates />
+        </TestProviders>
+      );
+
+      const cloneButtons = screen.getAllByRole('button', { name: 'Clone' });
+      fireEvent.click(cloneButtons[0]);
+
+      await waitFor(() => {
+        const dialog = screen.getByRole('dialog');
+        expect(dialog).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Clone Template' })).toBeInTheDocument();
+      });
+    });
+
+    it('disables Clone for unlicensed users', () => {
+      vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
+        restrictions: {
+          canCreateCustomTemplates: false,
+          canCreateCustomPMTemplates: false,
+          hasLicensedUsers: false,
+          canManageTeams: false,
+          canAssignEquipmentToTeams: false,
+          canUploadImages: false,
+          canAccessFleetMap: false,
+          upgradeMessage: 'Upgrade required',
+        },
+        checkRestriction: vi.fn(),
+        getRestrictionMessage: vi.fn(),
+        isSingleUser: true,
+        canUpgrade: true,
+        isLoading: false,
+      } as unknown as ReturnType<typeof useSimplifiedOrganizationRestrictions>);
+
+      render(
+        <TestProviders>
+          <PMTemplates />
+        </TestProviders>
+      );
+
+      const cloneButtons = screen.getAllByRole('button', { name: 'Clone' });
+      cloneButtons.forEach((button) => {
+        expect(button).toBeDisabled();
+      });
+    });
+
+    it('navigates to edit route for organization templates', async () => {
+      render(
+        <TestProviders>
+          <PMTemplates />
+        </TestProviders>
+      );
+
+      const editButton = screen.getByText('Edit');
+      fireEvent.click(editButton);
+
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith(
+          `/dashboard/pm-templates/${pmFixtures.customOrgTemplate.id}/edit`
+        );
+      });
+    });
+
+    it('handles Delete template with confirmation', async () => {
+      render(
+        <TestProviders>
+          <PMTemplates />
+        </TestProviders>
+      );
+
+      expect(screen.getByText(pmFixtures.customOrgTemplate.name)).toBeInTheDocument();
+    });
+  });
+
+  describe('Template Creation', () => {
+    it('navigates to new template editor route', async () => {
+      render(
+        <TestProviders>
+          <PMTemplates />
+        </TestProviders>
+      );
+
+      const createButton = screen.getByText('New Template');
+      fireEvent.click(createButton);
+
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith('/dashboard/pm-templates/new');
+      });
+    });
+  });
+
+  describe('Clone Dialog', () => {
+    it('handles clone name input and submission', async () => {
+      render(
+        <TestProviders>
+          <PMTemplates />
+        </TestProviders>
+      );
+
+      const cloneButtons = screen.getAllByRole('button', { name: 'Clone' });
+      fireEvent.click(cloneButtons[0]);
+
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      });
+
+      const nameInput = screen.getByPlaceholderText('Enter name for cloned template');
+      fireEvent.change(nameInput, { target: { value: 'New Template Name' } });
+
+      const dialog = screen.getByRole('dialog');
+      const submitButton = within(dialog).getByRole('button', { name: /clone template/i });
+      fireEvent.click(submitButton);
+
+      expect(mockHooks.useClonePMTemplate.mutate).toHaveBeenCalledWith(
+        {
+          sourceId: pmFixtures.forklift.id,
+          newName: 'New Template Name',
+        },
+        expect.any(Object)
+      );
+    });
+  });
+
+  describe('Empty States', () => {
+    it('shows empty state when no templates available', () => {
+      vi.mocked(usePMTemplates).mockReturnValue({
+        ...mockHooks.usePMTemplates,
+        data: [],
+      } as unknown as ReturnType<typeof usePMTemplates>);
+
+      render(
+        <TestProviders>
+          <PMTemplates />
+        </TestProviders>
+      );
+
+      expect(screen.getByText('No Templates Available')).toBeInTheDocument();
+    });
+  });
+});

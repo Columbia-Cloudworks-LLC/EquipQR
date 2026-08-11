@@ -119,17 +119,8 @@ const useCacheManagement = () => {
     cacheManager.clearCache(pattern);
   }, []);
 
-  const preloadRelatedData = useCallback((
-    organizationId: string, 
-    type: 'equipment' | 'workOrder', 
-    id: string
-  ) => {
-    cacheManager.preloadRelatedData(organizationId, type, id);
-  }, []);
-
   return {
     getCacheStats,
-    clearCache,
-    preloadRelatedData
+    clearCache
   };
 };

@@ -123,9 +123,13 @@ This document defines the comprehensive role-based access control (RBAC) system 
 | View Work Orders | ✅ | ✅ | ✅***** | ✅ | ✅***** | ✅***** | ✅***** |
 | Complete Work Orders | ✅ | ✅ | ❌ | ✅ | ✅**** | ❌ | ❌ |
 | Cancel Work Orders | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Revert Work Order to Accepted (completed/cancelled) | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Revert PM Completion | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 ****Only assigned work orders
 *****Limited to relevant work orders (assigned, created by user, or team-related)
+
+**Admin revert notes:** **Revert PM Completion** (completed PM checklist) and **Revert to Accepted** (completed/cancelled work order) are org owner/admin only (`is_org_admin`). On a completed work order with a completed PM, **Revert PM Completion** also reopens the work order to `accepted` in the same action so the checklist becomes editable again. **Revert to Accepted** remains available for work-order-only reopen without changing the PM.
 
 ### Inventory & Internal Costing Visibility
 

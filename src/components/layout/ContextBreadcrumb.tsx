@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Check, ChevronsUpDown, Plus, Users as UsersIcon } from 'lucide-react';
+import { Check, ChevronsUpDown, Plus } from 'lucide-react';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -19,9 +19,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import OrganizationSwitcher from '@/features/organization/components/OrganizationSwitcher';
 import MobileWorkspaceSwitcher from '@/components/layout/MobileWorkspaceSwitcher';
+import WorkspaceAvatar from '@/components/layout/WorkspaceAvatar';
 import CreateTeamDialog from '@/features/teams/components/CreateTeamDialog';
 import { useTeam } from '@/features/teams/hooks/useTeam';
 import { useSelectedTeam } from '@/hooks/useSelectedTeam';
+import { useSelectedTeamImageUrl } from '@/hooks/useSelectedTeamImageUrl';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -51,6 +53,7 @@ const ContextBreadcrumb: React.FC = () => {
   const isMobile = useIsMobile();
   const { teamMemberships } = useTeam();
   const { selectedTeamId, selectedTeam, setSelectedTeamId } = useSelectedTeam();
+  const { data: selectedTeamImageUrl } = useSelectedTeamImageUrl(selectedTeamId);
   const { currentOrganization } = useOrganization();
   const { canCreateTeam } = usePermissions();
   const [showCreateTeamDialog, setShowCreateTeamDialog] = useState(false);
@@ -110,9 +113,14 @@ const ContextBreadcrumb: React.FC = () => {
                       variant="ghost"
                       size="sm"
                       aria-label={`Switch team (current: ${teamLabel})`}
-                      className="inline-flex max-w-full items-center justify-center gap-1 h-8 px-2 sm:max-w-[10rem] text-muted-foreground hover:text-foreground sm:justify-start"
+                      className="inline-flex max-w-full items-center justify-center gap-1.5 h-8 px-2 sm:max-w-[10rem] text-muted-foreground hover:text-foreground sm:justify-start"
                     >
-                      <UsersIcon className="h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
+                      <WorkspaceAvatar
+                        kind="team"
+                        src={selectedTeamImageUrl}
+                        name={teamLabel}
+                        size="sm"
+                      />
                       <span className="text-sm truncate">{teamLabel}</span>
                       <ChevronsUpDown className="h-3.5 w-3.5 opacity-50 flex-shrink-0" />
                     </Button>

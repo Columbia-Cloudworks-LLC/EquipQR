@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { getEquipmentCardDisplayModel } from './getEquipmentCardDisplayModel';
-import { testUserSettingsSydney } from '@/test/utils/TestProviders';
+import { testUserSettingsSydney } from '@vitest-harness/utils/TestProviders';
 import { formatDate } from '@/utils/dateFormatter';
 
 const settings = testUserSettingsSydney;

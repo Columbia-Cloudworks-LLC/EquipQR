@@ -3,7 +3,12 @@ import React, { createContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import { getSafeRedirectPath } from '@/utils/redirectValidation';
+import {
+  buildGoogleOAuthRedirectTo,
+  clearPendingRedirect,
+  getPendingRedirect,
+  toSameOriginPath,
+} from '@/utils/redirectValidation';
 import { schedulePendingTermsAcceptanceFlush } from '@/lib/termsAcceptanceRecording';
 import { clearOfflineBlobsForUser } from '@/services/offlineBlobStore';
 
@@ -17,7 +22,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  signUp: (email: string, password: string, name?: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, name: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -34,6 +39,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     logger.debug('AuthProvider - Setting up auth listener');
+
+    // Failsafe if INITIAL_SESSION never arrives (storage/init failure).
+    // Keep this after the listener so a normal bootstrap clears it first.
+    const bootstrapTimeoutMs = 8_000;
+    const bootstrapTimeoutId = window.setTimeout(() => {
+      setIsLoading((stillLoading) => {
+        if (stillLoading) {
+          logger.warn('Auth bootstrap timeout — clearing loading without INITIAL_SESSION');
+        }
+        return false;
+      });
+    }, bootstrapTimeoutMs);
     
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -53,6 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
+        window.clearTimeout(bootstrapTimeoutId);
 
         if (
           session?.user &&
@@ -63,14 +81,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Handle post-login redirect for QR code scans (only for actual sign-ins)
         if (isSignIn && session?.user) {
-          const pendingRedirect = sessionStorage.getItem('pendingRedirect');
+          const pendingRedirect = getPendingRedirect();
           if (pendingRedirect) {
-            sessionStorage.removeItem('pendingRedirect');
-            // Validate the redirect path to prevent open-redirect attacks
-            const safePath = getSafeRedirectPath(pendingRedirect);
+            clearPendingRedirect();
+            // Validate + rebuild via URL parser before location assignment
+            const safePath = toSameOriginPath(pendingRedirect);
             // Use setTimeout to ensure the redirect happens after state updates
             setTimeout(() => {
-              window.location.href = safePath;
+              window.location.assign(safePath);
             }, 100);
           }
 
@@ -88,6 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // apply_pending_admin_grants_for_user applies grants for the user across ALL
           // organizations they belong to, so organization context isn't needed.
           const adminGrantsCacheKey = `equipqr_admin_grants_${session.user.id}`;
+          // Throttle key is strictly necessary (RPC rate limiting), not a UI preference.
           const lastAppliedStr = localStorage.getItem(adminGrantsCacheKey);
           const lastAppliedAt = lastAppliedStr ? parseInt(lastAppliedStr, 10) : 0;
           const shouldApplyGrants = Date.now() - lastAppliedAt > ADMIN_GRANTS_THROTTLE_MS;
@@ -145,32 +164,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (import.meta.env.DEV) {
-        logger.debug('Initial session check', {
-          user: session?.user?.email || 'none',
-          hasSession: !!session
-        });
-      }
-      setSession(session);
-      setUser(session?.user ?? null);
-      setIsLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    // Bootstrap from onAuthStateChange only — the SDK emits INITIAL_SESSION
+    // after storage init. A parallel getSession() raced that callback and could
+    // leave non-deterministic session / isLoading state on cold load.
+    return () => {
+      window.clearTimeout(bootstrapTimeoutId);
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const signUp = async (email: string, password: string, name?: string) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    name: string,
+  ): Promise<{ error: Error | null }> => {
     const redirectUrl = `${window.location.origin}/`;
-    
+    const trimmedEmail = email.trim();
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
+      return { error: new Error('Full name is required') };
+    }
+
     const { error } = await supabase.auth.signUp({
-      email,
+      email: trimmedEmail,
       password,
       options: {
         emailRedirectTo: redirectUrl,
         data: {
-          name: name || email
+          name: trimmedName
         }
       }
     });
@@ -188,15 +210,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInWithGoogle = async () => {
-    const redirectUrl = `${window.location.origin}/`;
-    
+    const redirectTo = buildGoogleOAuthRedirectTo(
+      window.location.origin,
+      getPendingRedirect(),
+    );
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: redirectUrl
-      }
+        redirectTo,
+      },
     });
-    
+
     return { error };
   };
 
@@ -215,7 +240,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       // Clear application-specific storage
       try {
-        sessionStorage.removeItem('pendingRedirect');
+        clearPendingRedirect();
         // Clear admin grants cache keys from localStorage (they start with equipqr_admin_grants_)
         Object.keys(localStorage)
           .filter(key => key.startsWith('equipqr_admin_grants_'))

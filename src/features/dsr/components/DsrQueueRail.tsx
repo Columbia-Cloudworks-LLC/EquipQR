@@ -22,7 +22,14 @@ export function DsrQueueRail({ requests, selectedRequestId }: DsrQueueRailProps)
       </CardHeader>
       <CardContent className="space-y-2">
         {requests.length === 0 && (
-          <p className="text-sm text-muted-foreground">No active requests.</p>
+          <p className="text-sm text-muted-foreground">
+            <Link
+              to="/do-not-sell-or-share"
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              No active requests.
+            </Link>
+          </p>
         )}
         {requests.map((request) => {
           const isSelected = request.id === selectedRequestId;

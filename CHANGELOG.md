@@ -2,12 +2,57 @@
 
 <!-- markdownlint-disable MD024 -->
 
-All notable changes to EquipQR will be documented in this file.
+All notable changes to EquipQR by Columbia Cloudworks LLC will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [3.28.0] - 2026-08-10
+
+### Added
+
+- **TopBar org logo and team avatar (#1379)** — Dashboard workspace context (`OrganizationSwitcher` topbar variant, `ContextBreadcrumb`, `MobileWorkspaceSwitcher`) shows the organization logo left of the org name and the selected team’s image beside the team label (mobile: side-by-side small avatars). Missing images keep Building/Users icons. Seed mix under `supabase/seed-images/organizations/` and `teams/` (most fixtures have images; Valley, Site Operations, and Customer Service intentionally do not).
+- **Cloud Agent ephemeral Supabase stack (#1249)** — Cursor Cloud Agents create a per-session hosted Database Branch, seed Dev Quick Login personas via Auth Admin API (never production / never Docker-local `supabase start`), rewrite `VITE_SUPABASE_*`, and start Vite. Paired teardown + TTL cleanup protect the 50-branch cap; runbook in `docs/ops/cloud-agent-ephemeral-stack.md`.
+- **Cookie consent banner (#1386)** — First-visit Accept/Reject notice for cookies and browser storage on landing, auth, public QR, and dashboard shells. Persists `equipqr:cookie-consent`; UI preference storage (including `sidebar:state`) writes only after Accept and is cleared on Reject. Organization hints and a sanitized session cache (no address/coordinates) remain strictly necessary. Privacy Policy §5 documents the consent key and Accept/Reject behavior; hCaptcha and Maps remain available as non-advertising functional widgets.
+- **Vitest duration report script (#1349)** — `npm run test:perf:report` aggregates CI/local Vitest JSON results into ranked slow-file and slow-test lists under `tmp/vitest-perf/` for #1314 triage. CI job **Vitest Duration Report** publishes the markdown summary to the Actions job summary and a sticky PR comment listing offenders ≥200ms.
+- **Vitest duration CI artifacts (#1349)** — `slowTestThreshold` of 200ms plus default+JSON reporters write per-shard results under `artifacts/vitest-results/`; CI uploads `vitest-results-shard-N` with `if: always()` so failed shards still yield duration data for #1314 triage.
+- **Cursed historical timeline fixtures (#1279)** — Permanent anonymized seed org `CURSED_HISTORICAL_FIXTURE Timeline Lab` with legacy accepted-first, multi-event, long in-progress, happy-path contrast, and boundary historical work orders. Unit, pgTAP replace-rejection, and PR evidence e2e coverage pin these shapes so timeline editor/RPC regressions fail in CI. Optional production canary SQL under `scripts/sql/canary_legacy_historical_timeline_accepted_first.sql`.
+
+### Changed
+
+- **Radix popover / dialog family alignment (#1294)** — Bump `@radix-ui/react-popover`, `react-dialog`, `react-alert-dialog`, and `react-slot` to the 1.1.23 / 1.3.3 line and pin shared dismissable/focus/portal primitives via `overrides` so Sheet-nested `MultiSelectActionMenu` popovers open again (Dependabot #1298/#1299 superseded). Menus keep `modal={false}` when nested in Sheets.
+- **CodeQL Action 4.37.3 (#1402)** — Bump `github/codeql-action/init` and `analyze` together to `e4fba868…` (v4.37.3) so Security Scan keeps matching init/analyze versions (Dependabot #1399 superseded).
+- **Faster Vitest hotspots (#1314 follow-up)** — Restore native PM/photo stubs in `EquipmentQRQuickActions` (real Radix coverage stays in `QRWorkOrderDialog`); stub Reports column/worksheet pickers and ledger date-range; consolidate Privacy/Terms and InventoryItemDetail renders; lighten InventoryList column manager and InventoryItemForm compatibility editor; prefer `userEvent.setup({ delay: null })` / sync asserts in remaining slow suites.
+- **DSR Cockpit entry points** — Remove DSR Cockpit from the main sidebar Audit section. Owners/admins open it from **Legal → DSR Cockpit** in the footer or **Settings → Privacy**. Docs and RBAC nav coverage updated to match.
+- **Equipment list → details view transitions (#1380, partial)** — Card and table row navigation morph into the equipment details page via the View Transitions API when supported; respects `prefers-reduced-motion`, and details always open scrolled to the top of main content.
+- **equipqr.info branding aligned with equipqr.app (#1358)** — VitePress theme mirrors Mission Control HSL tokens (primary, neutrals, semantic status colors), uses `appearance: force-dark` (no light toggle), EquipQR wordmark with secondary Docs label, styles the Open App nav CTA as a primary button (system fonts; no third-party font CSS), honors `prefers-reduced-motion`, and documents token propagation in `docs/ops/deployment.md`.
+- **Faster Vitest hotspots (#1355)** — Consolidate Privacy/Terms and Reports happy-path renders; sync `lazyPublicPages` / `lazyDashboardPages` stubs in `App.routes`; stub DateTimePicker calendar + ledger date-range picker; collapse duplicate waitFors in EquipmentQRQuickActions; add focused `QRWorkOrderDialog` coverage for Radix PM Select and photo-picker wiring. Reduces the 2026-07-19 duration-report offenders while keeping #1314 as the umbrella maintainability track.
+- **Sibling-colocated Vitest layout (#1333)** — All Vitest suites live next to their subjects as `*.test.*` / `*.spec.*` siblings (no `__tests__/`, no `src/tests/`). Shared harness moves to repo-root `vitest/` (`@vitest-harness/*`). Script/tooling tests colocate under `scripts/`; docs and Vitest config updated for discovery.
+- **Dashboard cache invalidation (#1335)** — `invalidateWorkOrderRelated` skips a redundant `dashboard-optimized` invalidate when `equipmentId` is set, since `invalidateEquipmentRelated` already refreshes that query.
+- **Offline queue getCounts() (#1325)** — `OfflineQueueService.getCounts()` returns `{ pending, failed, total }` from one localStorage read; single-count helpers reuse it so callers that need multiple counts avoid triple deserialization.
+- **Memoize unified permissions (#1323)** — Wrap `equipment`, `workOrders`, `teams`, `inventory`, notes helper, and the hook return of `useUnifiedPermissions` in `useMemo` (keyed on session/auth fields) so dashboard consumers keep referential equality across parent re-renders.
+- **Faster component tests (#1314)** — Stabilize `TestProviders` QueryClient across re-renders; mock CSS layout twins and stub heavy ledger tables in the slowest suites; move checklist reorder utils to the unit project; prefer sync `getBy*` / `fireEvent` over async polling and `userEvent` for wiring smokes. Document performance guidance in `.cursor/rules/testing.mdc`. Second pass: speed `InventoryItemDetail`, `EquipmentQRQuickActions`, and `InventoryList` suites (sync assertions, `fireEvent` for dialogs/forms, reserve `userEvent` for Radix Tabs/Select/DropdownMenu).
+
+### Fixed
+
+- **Playwright user E2E ignores Vitest `*.test.ts`** — After `@playwright/test` 1.61, the user-regression config loaded colocated Vitest files under `e2e/user` (default `*.test.ts` discovery) and crashed on `describe` before `@full`/`@critical` filters. Ignore `**/*.test.ts` so only `*.spec.ts` / setup files run.
+- **E2E auth seeds cookie consent Accept** — Persona `storageState` from auth setup now persists `equipqr:cookie-consent=accepted` (and dismisses a visible banner) so the cookie consent strip cannot intercept Create Equipment, bottom nav, or FAB clicks.
+- **Mobile work-order field QA E2E** — Slow-4G assertion targets the current field-first **Events & Times** control instead of removed “Review & office details” copy.
+- **Multi-org E2E team seeds** — Seed Multi Org User onto Apex Heavy Equipment and Metro Rental Fleet teams so org-scoped equipment (CAT 320 / Bobcat S770) is visible under team-based equipment RBAC.
+- **Session hydrate re-syncs team memberships** — Cache load aligns `currentOrganizationId` with org preference and re-fetches `get_user_team_memberships` before clearing session loading, so a pinned/changed org cannot leave `teamMemberships: []` and empty the equipment list. E2E `pinContextToOrg` drops `equipqr_session_data` so the preferred org reloads cleanly.
+- **Cloud Agent Quick Login password + smoke (#1249 follow-up)** — Ephemeral stack resolves `DEV_LOGIN_PASSWORD` from agent-bootstrap `.env` when `VITE_DEV_TEST_PASSWORD` is absent; Playwright smoke asserts the unique `CAT320GC-CLOUD-AGENT-001` serial so duplicate excavator names do not fail strict mode.
+- **Google avatars in TopBar user menu (#1378)** — Resolve current-user avatar as EquipQR `profiles.avatar_url` first, then Google Auth metadata (`avatar_url` / `picture`); wire `UserProfileMenu` trigger and menu header through `useResolvedAvatarUrl` with initials fallback. Deleting an EquipQR upload restores the Google photo when available.
+- **Supabase Security Advisor warnings (#1310)** — Drop listing `SELECT` policies on public buckets (`docs-media`, `landing-page-images`, `landing-page-videos`, `organization-logos`); pin `datadog.explain_statement` `search_path` when present; re-lock `SECURITY DEFINER` `EXECUTE` grants to the allowlist (all overloads); revoke `PUBLIC`/`anon` from all public functions (INVOKER + DEFINER) so default-privilege drift cannot reopen unauthenticated RPCs; re-grant `authenticated` on non-trigger INVOKER RPCs; follow-up migration re-asserts the three-token anon surface; revoke default `postgres` function privileges for `anon`/`authenticated` so new RPCs stay deny-by-default. Intentional `anon` surface remains the three token/pre-auth resolvers; submit-operator-check-in stays `service_role` (edge) only.
+- **Landing hero Texas flash on cold load (#1364)** — Suspense fallback for lazy GSAP phase chunks is a neutral vertical line (morph start) instead of the Texas static composite; reduced-motion visitors still see Texas + dots; first two phase chunks are warmed on mount for animated visitors only.
+- **Signup empty name fallback (#1332)** — Trim signup display names before storing metadata; AuthContext rejects empty/whitespace-only names (no silent email rename), and the signup form keeps showing “Full name is required”.
+- **Google OAuth preserves QR pending redirect (#1322)** — `signInWithGoogle` now returns to `/auth` with a validated `?next=` when `pendingRedirect` is set, Auth restores that destination after the OAuth round-trip, and SmartLanding honors `pendingRedirect` instead of always sending authenticated users to the dashboard.
+- **Cache batchInvalidate substring false positives (#1321)** — Match query keys by structural prefix arrays instead of `join('-').includes()`, so patterns like equipment/org segments no longer bust unrelated keys such as `work-orders-equipment-…`.
+- **Dead cache preload API (#1320)** — Remove `CacheManager.preloadRelatedData()`, which called React Query `prefetchQuery` without a `queryFn` and was an unused silent no-op.
+- **Auth cold-load race (#1319)** — Remove the parallel `getSession()` call on `AuthProvider` mount so bootstrap relies only on `onAuthStateChange` / `INITIAL_SESSION`, avoiding non-deterministic session and loading flicker when both paths raced `setSession` / `setIsLoading`.
+- **Revert to Accepted refreshes details (#1278)** — After an org admin uses Revert to Accepted on a completed or cancelled work order, the details page invalidates `workOrderKeys.detail` (via `invalidateWorkOrderCaches`) so status, lock warning, and actions update without a hard browser refresh.
+- **Revert PM Completion unlocks edit (#1277)** — Org owners/admins reverting a completed PM on a completed (or cancelled) work order also reopen the work order to accepted in one confirmed action, so the checklist is editable again without a separate Revert to Accepted step. Confirm copy matches PM `pending` status and work-order reopen behavior.
 
 ## [3.27.0] - 2026-07-17
 
@@ -2598,7 +2643,8 @@ _Changelog entries prior to 1.7.2 were not tracked in this file._
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.27.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.28.0...HEAD
+[3.28.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.27.0...v3.28.0
 [3.27.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.26.1...v3.27.0
 [3.26.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.26.0...v3.26.1
 [3.26.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.25.31...v3.26.0

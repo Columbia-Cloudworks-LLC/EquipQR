@@ -313,8 +313,9 @@ EquipQR follows a **journey-first** testing strategy. See [`docs/technical/testi
 # Run tests
 npm run test
 
-# Journey tests only
-npm run test:journeys
+# Unit or component project only
+npm run test:unit
+npm run test:component
 
 # With coverage
 npm run test:coverage
@@ -323,14 +324,15 @@ npm run test:coverage
 npm run test:watch
 ```
 
+
 **Journey test template** (for new features):
 
 ```typescript
 import { describe, it, expect, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { screen, waitFor } from '@testing-library/react';
-import { renderJourney } from '@/test/journey/render-journey';
-import { seedSupabaseMock, resetSupabaseMock } from '@/test/mocks/supabase-scenario';
+import { renderJourney } from '@vitest-harness/journey/render-journey';
+import { seedSupabaseMock, resetSupabaseMock } from '@vitest-harness/mocks/supabase-scenario';
 
 describe('Feature Journey', () => {
   beforeEach(() => {

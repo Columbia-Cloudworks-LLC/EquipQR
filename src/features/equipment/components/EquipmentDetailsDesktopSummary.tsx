@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EquipmentLocationMapPanel } from '@/components/location/EquipmentLocationMapPanel';
 import type { PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
@@ -16,6 +17,7 @@ type EquipmentDetailsDesktopSummaryProps = {
   isEditingLocation?: boolean;
   isSavingLocation?: boolean;
   isPlacesLoaded?: boolean;
+  mediaStyle?: CSSProperties;
   onStartLocationEdit?: () => void;
   onCancelLocationEdit?: () => void;
   onSaveLocation?: (data: PlaceLocationData) => Promise<void>;
@@ -30,6 +32,7 @@ export function EquipmentDetailsDesktopSummary({
   isEditingLocation = false,
   isSavingLocation = false,
   isPlacesLoaded = false,
+  mediaStyle,
   onStartLocationEdit,
   onCancelLocationEdit,
   onSaveLocation,
@@ -44,6 +47,7 @@ export function EquipmentDetailsDesktopSummary({
             equipmentName={equipment.name}
             currentDisplayImage={equipment.image_url}
             emptyClassName="h-64"
+            mediaStyle={mediaStyle}
           />
         </CardContent>
       </Card>

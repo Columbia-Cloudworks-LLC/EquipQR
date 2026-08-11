@@ -20,6 +20,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useUser } from '@/contexts/useUser';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { useResolvedAvatarUrl } from '@/hooks/useResolvedAvatarUrl';
 import Page from '@/components/layout/Page';
 import { AlertTriangle, ExternalLink, Loader2 } from 'lucide-react';
@@ -31,9 +32,13 @@ const SettingsContent = () => {
   const { resetSettings } = useSettings();
   const { user } = useAuth();
   const { currentUser } = useUser();
+  const { currentOrganization } = useOrganization();
   const { data: headerAvatarUrl, isPending: isHeaderAvatarPending } = useResolvedAvatarUrl(currentUser?.avatar_url);
   const appToast = useAppToast();
   const [deleteAccountOpen, setDeleteAccountOpen] = React.useState(false);
+  const canManageDsr =
+    currentOrganization?.userRole === 'owner' ||
+    currentOrganization?.userRole === 'admin';
 
   const { data: profile, refetch: refetchProfile } = useQuery({
     queryKey: ['profile', user?.id],
@@ -160,7 +165,7 @@ const SettingsContent = () => {
                   <p className="text-sm text-muted-foreground">
                     You can exercise your privacy rights or learn more about our data practices.
                   </p>
-                  <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex flex-col sm:flex-row flex-wrap gap-2">
                     <Button variant="outline" size="sm" asChild>
                       <Link to="/privacy-request">Submit Privacy Request</Link>
                     </Button>
@@ -170,6 +175,11 @@ const SettingsContent = () => {
                         View Privacy Policy
                       </Link>
                     </Button>
+                    {canManageDsr ? (
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link to="/dashboard/dsr">DSR Cockpit</Link>
+                      </Button>
+                    ) : null}
                   </div>
                 </div>
               </div>

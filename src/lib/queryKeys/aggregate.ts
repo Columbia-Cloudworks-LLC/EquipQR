@@ -16,7 +16,7 @@ import {
 } from './workOrders';
 import { preventiveMaintenance, pmTemplates, pmTemplateMatching, pmStatus, pmIntervalPolicies } from './pm';
 import { quickBooks, googleWorkspace } from './integrations';
-import { notifications, inventory, tickets } from './misc';
+import { notifications, inventory, tickets, userAvatars } from './misc';
 
 // Legacy query keys for backward compatibility - these should eventually be migrated
 export const queryKeys = {
@@ -28,6 +28,7 @@ export const queryKeys = {
   workOrders,
   preventiveMaintenance,
   notifications,
+  userAvatars,
   pmTemplates,
   pmTemplateMatching,
   inventory,

@@ -18,6 +18,8 @@ import type { MergedEquipment } from '@/features/equipment/hooks/useOfflineMerge
 import { isOfflineEquipmentId } from '@/features/equipment/hooks/useOfflineMergedEquipment';
 import { toast } from 'sonner';
 import { displayableImageSrc } from '@/services/imageUploadService';
+import { getEquipmentViewTransitionStyle } from '@/features/equipment/transitions/equipmentViewTransitionNames';
+import { useEquipmentCardTransition } from '@/features/equipment/transitions/useEquipmentCardTransition';
 
 interface Equipment {
   id: string;
@@ -57,6 +59,7 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
   listIndex = 0,
 }) => {
   const navigate = useNavigate();
+  const { beginTransition, activeEquipmentId } = useEquipmentCardTransition();
   const { settings } = useUserSettings();
   const display = getEquipmentCardDisplayModel(equipment, settings);
   const pmReadout = getEquipmentCardPmReadout(pmStatus);
@@ -65,6 +68,7 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
   const imageLoading =
     listIndex < EQUIPMENT_ABOVE_FOLD_IMAGE_COUNT ? ('eager' as const) : ('lazy' as const);
   const resolvedImageSrc = displayableImageSrc(equipment.image_url);
+  const isTransitionActive = activeEquipmentId === equipment.id;
 
   const handleCardClick = () => {
     if (isOfflineEquipmentId(equipment.id)) {
@@ -73,7 +77,10 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
       });
       return;
     }
-    navigate(`/dashboard/equipment/${equipment.id}`);
+    void beginTransition({
+      equipmentId: equipment.id,
+      to: `/dashboard/equipment/${equipment.id}`,
+    });
   };
 
   const handleQRClick = (e: React.MouseEvent) => {
@@ -107,8 +114,11 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
         statusTintClass,
         viewMode === 'grid' && "flex flex-col md:h-full"
       )}
+      style={getEquipmentViewTransitionStyle('shell', isTransitionActive)}
       role="button"
       tabIndex={0}
+      data-equipment-id={equipment.id}
+      {...(isTransitionActive ? { 'data-equipment-transition-active': '' } : {})}
       onClick={handleCardClick}
       onKeyDown={(e) => {
         if (e.target !== e.currentTarget) return;
@@ -125,7 +135,10 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
       <div className="md:hidden">
         <div className="grid min-w-0 grid-cols-[4.5rem_1fr_auto] gap-x-2.5 gap-y-0.5 p-3">
           <div className="row-span-4 self-center">
-            <div className="relative aspect-[4/5] w-full overflow-hidden rounded-md bg-muted">
+            <div
+              className="relative aspect-[4/5] w-full overflow-hidden rounded-md bg-muted"
+              style={getEquipmentViewTransitionStyle('image', isTransitionActive)}
+            >
               {resolvedImageSrc ? (
                 <img
                   src={resolvedImageSrc}
@@ -146,7 +159,12 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
           </div>
 
           <div className="col-start-2 row-start-1 flex min-w-0 items-center gap-1.5">
-            <span className="truncate text-sm font-semibold leading-tight">{equipment.name}</span>
+            <span
+              className="truncate text-sm font-semibold leading-tight"
+              style={getEquipmentViewTransitionStyle('name', isTransitionActive)}
+            >
+              {equipment.name}
+            </span>
             {(equipment as MergedEquipment)._isPendingSync && (
               <PendingSyncBadge className="flex-shrink-0" />
             )}
@@ -171,13 +189,19 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
 
           <div className="col-start-2 row-start-3 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
             <PMStatusIndicator status={pmStatus} size="sm" />
-            <span className="inline-flex flex-shrink-0 items-center gap-0.5 text-xs text-muted-foreground">
+            <span
+              className="inline-flex flex-shrink-0 items-center gap-0.5 text-xs text-muted-foreground"
+              style={getEquipmentViewTransitionStyle('hours', isTransitionActive)}
+            >
               <Clock className="h-3 w-3" />
               {display.workingHoursShortText}
             </span>
           </div>
 
-          <div className="col-start-2 row-start-4 flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+          <div
+            className="col-start-2 row-start-4 flex min-w-0 items-center gap-1 text-xs text-muted-foreground"
+            style={getEquipmentViewTransitionStyle('location', isTransitionActive)}
+          >
             <MapPin className="h-3 w-3 flex-shrink-0" />
             <span className="truncate">{equipment.location}</span>
           </div>
@@ -204,6 +228,7 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
           onQRClick={handleQRClick}
           onQuickAction={handleQuickAction}
           imageLoading={imageLoading}
+          isTransitionActive={isTransitionActive}
         />
       )}
     </Card>

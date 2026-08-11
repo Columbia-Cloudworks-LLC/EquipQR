@@ -1,9 +1,10 @@
-import { useState, type ReactNode } from 'react';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { ChevronDown, ChevronRight, Gauge, Sparkles, Truck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useWhenPreferenceStorageAllowed } from '@/contexts/CookieConsentContext';
 import { cn } from '@/lib/utils';
 import { OPERATOR_CHECKLIST_STARTER_TEMPLATES } from '@/features/operator-check-ins/data/operatorChecklistStarterTemplates';
 import {
@@ -44,6 +45,18 @@ export function OperatorChecklistStarterCatalog({
   const [expanded, setExpanded] = useState(() =>
     resolveInitialExpanded(organizationId, hasExistingTemplates),
   );
+  const expandedRef = useRef(expanded);
+  expandedRef.current = expanded;
+
+  const rehydrateOrFlushExpanded = useCallback(() => {
+    const stored = getStarterCatalogExpandedPreference(organizationId);
+    if (stored !== null) {
+      setExpanded(stored);
+      return;
+    }
+    setStarterCatalogExpandedPreference(organizationId, expandedRef.current);
+  }, [organizationId]);
+  useWhenPreferenceStorageAllowed(rehydrateOrFlushExpanded);
 
   function handleOpenChange(nextExpanded: boolean) {
     setExpanded(nextExpanded);

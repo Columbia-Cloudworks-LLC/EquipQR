@@ -832,11 +832,12 @@ function Test-PrEvidenceManifestMatchesInvocation {
         return $false
     }
 
-    if (Normalize-PrEvidenceSpecPath -Path ([string]$manifest.spec) -ne (Normalize-PrEvidenceSpecPath -Path $Spec)) {
+    # Parenthesize comparisons: bare `fn -Path $x -ne (fn ...)` binds `-ne` as a param.
+    if ((Normalize-PrEvidenceSpecPath -Path ([string]$manifest.spec)) -ne (Normalize-PrEvidenceSpecPath -Path $Spec)) {
         return $false
     }
 
-    if (Normalize-PrEvidenceBaseUrl -Url ([string]$manifest.baseUrl) -ne (Normalize-PrEvidenceBaseUrl -Url $BaseUrl)) {
+    if ((Normalize-PrEvidenceBaseUrl -Url ([string]$manifest.baseUrl)) -ne (Normalize-PrEvidenceBaseUrl -Url $BaseUrl)) {
         return $false
     }
 

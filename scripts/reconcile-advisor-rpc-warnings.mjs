@@ -19,6 +19,7 @@ const allowlists = JSON.parse(
 
 const expected = new Set([
   ...allowlists.authenticatedPublicRpc,
+  ...allowlists.anonPublicRpc,
   ...allowlists.rlsPredicateHelpers,
 ]);
 
@@ -27,12 +28,19 @@ const rlsOnly = new Set(allowlists.rlsPredicateHelpers);
 function main() {
   const inputPath = process.argv[2];
   if (!inputPath) {
-    console.log('Expected Supabase Advisor authenticated_security_definer rows (intentional):');
+    console.log('Expected Supabase Advisor SECURITY DEFINER grant surface (intentional):');
     console.log(`  authenticated public RPC: ${allowlists.authenticatedPublicRpc.length}`);
+    console.log(`  anon public RPC: ${allowlists.anonPublicRpc.length}`);
     console.log(`  RLS predicate helpers: ${allowlists.rlsPredicateHelpers.length}`);
-    console.log(`  total: ${expected.size}`);
+    console.log(
+      `  unique total (auth + anon + RLS helpers): ${expected.size}`,
+    );
     console.log('\nRLS helpers (advisor noise, not client RPCs):');
     for (const name of [...rlsOnly].sort()) {
+      console.log(`  - ${name}`);
+    }
+    console.log('\nAnon public RPCs (intentional pre-auth / token resolvers):');
+    for (const name of [...allowlists.anonPublicRpc].sort()) {
       console.log(`  - ${name}`);
     }
     return;

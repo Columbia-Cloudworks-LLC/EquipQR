@@ -27,6 +27,7 @@ describe('SmartLanding', () => {
   beforeEach(() => {
     mockNavigate.mockClear();
     mockUseAuth.mockReset();
+    sessionStorage.clear();
   });
 
   it('redirects authenticated users to dashboard', async () => {
@@ -39,6 +40,22 @@ describe('SmartLanding', () => {
 
     await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
+    });
+  });
+
+  it('honors pendingRedirect for authenticated users (#1322)', async () => {
+    const pending = '/qr/equipment/abc-123?qr=true';
+    sessionStorage.setItem('pendingRedirect', pending);
+
+    mockUseAuth.mockReturnValue({
+      user: { id: 'user-123', email: 'test@example.com' },
+      isLoading: false,
+    });
+
+    render(<SmartLanding />);
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(pending, { replace: true });
     });
   });
 

@@ -97,6 +97,7 @@ export interface WorkOrderDetailsMobileContentProps {
   equipmentLocationEdit?: EquipmentLocationEditProps;
   canManagePM?: boolean;
   onManagePM?: () => void;
+  onPMUpdate?: () => void;
 }
 
 export function WorkOrderDetailsMobileContent({
@@ -145,6 +146,7 @@ export function WorkOrderDetailsMobileContent({
   equipmentLocationEdit,
   canManagePM = false,
   onManagePM,
+  onPMUpdate,
 }: WorkOrderDetailsMobileContentProps) {
   const [showStatusSheet, setShowStatusSheet] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -387,9 +389,7 @@ export function WorkOrderDetailsMobileContent({
             {pmData && (
               <PMChecklistComponent
                 pm={pmData}
-                onUpdate={() => {
-                  // Refresh PM data after updates
-                }}
+                onUpdate={onPMUpdate ?? (() => undefined)}
                 readOnly={isWorkOrderLocked || (!permissionLevels.isManager && !permissionLevels.isTechnician)}
                 isAdmin={permissionLevels.isManager}
                 workOrder={workOrder}

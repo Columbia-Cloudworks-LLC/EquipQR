@@ -1,10 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useWhenPreferenceStorageAllowed } from '@/contexts/CookieConsentContext';
 import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/utils/logger';
 import { dashboardPreferences } from '@/lib/queryKeys';
 import { generateDefaultLayout, WIDGET_REGISTRY } from '@/features/dashboard/registry/widgetRegistry';
+import {
+  getPreferenceLocalStorage,
+  isPreferenceStorageAllowed,
+  setPreferenceLocalStorage,
+} from '@/lib/cookieConsent';
 
 /** localStorage key scoped to user + organization */
 function storageKey(userId: string, orgId: string): string {
@@ -21,7 +27,7 @@ interface StoredPreferences {
  */
 function readFromLocalStorage(userId: string, orgId: string): StoredPreferences | null {
   try {
-    const raw = localStorage.getItem(storageKey(userId, orgId));
+    const raw = getPreferenceLocalStorage(storageKey(userId, orgId));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     // Accept both new and legacy shapes — only activeWidgets is required.
@@ -38,7 +44,7 @@ function readFromLocalStorage(userId: string, orgId: string): StoredPreferences 
 /** Write preferences to localStorage */
 function writeToLocalStorage(userId: string, orgId: string, prefs: StoredPreferences): void {
   try {
-    localStorage.setItem(storageKey(userId, orgId), JSON.stringify(prefs));
+    setPreferenceLocalStorage(storageKey(userId, orgId), JSON.stringify(prefs));
   } catch {
     logger.error('Failed to write dashboard preferences to localStorage');
   }
@@ -69,6 +75,8 @@ export function useDashboardLayout(organizationId: string | undefined): UseDashb
 
   const [activeWidgets, setActiveWidgets] = useState<string[]>([]);
   const [initialized, setInitialized] = useState(false);
+  const activeWidgetsRef = useRef(activeWidgets);
+  activeWidgetsRef.current = activeWidgets;
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -93,6 +101,32 @@ export function useDashboardLayout(organizationId: string | undefined): UseDashb
     }
     setInitialized(true);
   }, [userId, organizationId]);
+
+  const rehydrateOrFlushLocalLayout = useCallback(() => {
+    if (!userId || !organizationId || !initialized) return;
+    const stored = readFromLocalStorage(userId, organizationId);
+    if (stored) {
+      setActiveWidgets(stored.activeWidgets);
+      return;
+    }
+    // Persist current layout including an intentional empty widget list.
+    writeToLocalStorage(userId, organizationId, {
+      activeWidgets: activeWidgetsRef.current,
+      updatedAt: new Date().toISOString(),
+    });
+  }, [userId, organizationId, initialized]);
+  useWhenPreferenceStorageAllowed(rehydrateOrFlushLocalLayout);
+
+  // Accept can fire before org/user init finishes; flush once initialized.
+  useEffect(() => {
+    if (!initialized || !userId || !organizationId) return;
+    if (!isPreferenceStorageAllowed()) return;
+    if (readFromLocalStorage(userId, organizationId)) return;
+    writeToLocalStorage(userId, organizationId, {
+      activeWidgets: activeWidgetsRef.current,
+      updatedAt: new Date().toISOString(),
+    });
+  }, [initialized, userId, organizationId]);
 
   // Background fetch from Supabase to sync across devices
   const { data: supabasePrefs } = useQuery({

@@ -96,9 +96,13 @@ export const useEquipmentFiltering = (
   // see equipment on their teams (mirrors the app-layer gate in the non-
   // paginated path). isOrgAdmin = true skips the team filter entirely.
   const { canManageOrganization } = usePermissions();
-  const { getUserTeamIds } = useTeamMembership();
+  const { getUserTeamIds, isLoading: teamMembershipsLoading } = useTeamMembership();
   const isOrgAdmin = canManageOrganization();
   const rbacUserTeamIds = isOrgAdmin ? undefined : getUserTeamIds();
+  // Avoid the empty-team short-circuit while session teams are still loading
+  // (cache hydrate may temporarily expose teamMemberships: []).
+  const rbacReady = isOrgAdmin || !teamMembershipsLoading;
+
 
   // Server-side filtered + paginated rows. Filter shape is normalized so
   // the service can map `'all'` / `'unassigned'` sentinels and synthetic
@@ -130,7 +134,7 @@ export const useEquipmentFiltering = (
     pageSize,
     sortField: sortConfig.field,
     sortDirection: sortConfig.direction,
-  });
+  }, { enabled: rbacReady });
 
   // Lightweight org-wide summary used for filter dropdown options and
   // "X of N" totals. The query is cheap enough to keep separate from the
@@ -138,6 +142,7 @@ export const useEquipmentFiltering = (
   const summariesQuery = useEquipmentSummaries(organizationId, {
     userTeamIds: rbacUserTeamIds,
     isOrgAdmin,
+    enabled: rbacReady,
   });
 
   const equipment = useMemo(
@@ -150,6 +155,7 @@ export const useEquipmentFiltering = (
   );
   const totalFilteredCount = listQuery.data?.count ?? 0;
   const isLoading =
+    !rbacReady ||
     listQuery.isLoading ||
     (summariesQuery.isLoading && !summariesQuery.data);
 

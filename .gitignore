@@ -59,6 +59,9 @@ supabase/snippets/Untitled*.sql
 # Coverage Files
 coverage/*
 
+# Vitest JSON test-results (durations / slow-test capture — see #1349)
+artifacts/
+
 # Github Rulesets (for debugging)
 github.ruleset*.json
 deno.lock

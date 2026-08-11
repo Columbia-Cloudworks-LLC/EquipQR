@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { flexRender, type Cell, type ColumnSizingState, type Header, type Table as TanStackTable } from '@tanstack/react-table';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,7 +11,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { useWhenPreferenceStorageAllowed } from '@/contexts/CookieConsentContext';
 import { measureColumnAutoFitWidth } from '@/features/inventory/utils/tableColumnAutoFit';
+import { getPreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
 import { cn } from '@/lib/utils';
 
 export type ResizableColumnMeta = {
@@ -296,7 +298,7 @@ export function loadPersistedColumnSizing(
   }
 
   try {
-    const raw = window.localStorage.getItem(storageKey);
+    const raw = getPreferenceLocalStorage(storageKey);
     if (!raw) {
       return defaults;
     }
@@ -315,10 +317,23 @@ export function usePersistedColumnSizing(storageKey: string, defaults: ColumnSiz
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(() =>
     loadPersistedColumnSizing(storageKey, defaults),
   );
+  const columnSizingRef = useRef(columnSizing);
+  columnSizingRef.current = columnSizing;
+
+  const rehydrateOrFlush = useCallback(() => {
+    const raw = getPreferenceLocalStorage(storageKey);
+    if (raw) {
+      setColumnSizing(loadPersistedColumnSizing(storageKey, defaults));
+      return;
+    }
+    // Flush in-memory sizing chosen before Accept (prior writes were no-ops).
+    setPreferenceLocalStorage(storageKey, JSON.stringify(columnSizingRef.current));
+  }, [defaults, storageKey]);
+  useWhenPreferenceStorageAllowed(rehydrateOrFlush);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    window.localStorage.setItem(storageKey, JSON.stringify(columnSizing));
+    setPreferenceLocalStorage(storageKey, JSON.stringify(columnSizing));
   }, [columnSizing, storageKey]);
 
   return [columnSizing, setColumnSizing] as const;
