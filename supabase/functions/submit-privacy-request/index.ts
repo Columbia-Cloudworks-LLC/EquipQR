@@ -20,6 +20,7 @@ import {
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
 import { optionalSecret } from "../_shared/require-secret.ts";
+import { privacyRequestSizeError } from "../_shared/privacy-request-validation.ts";
 
 const VALID_TYPES = ["access", "deletion", "correction", "opt_out", "limit_use"] as const;
 
@@ -143,6 +144,11 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       !VALID_TYPES.includes(requestType as typeof VALID_TYPES[number])
     ) {
       return createErrorResponse("Invalid request type", 400);
+    }
+
+    const sizeError = privacyRequestSizeError(name, details);
+    if (sizeError) {
+      return createErrorResponse(sizeError, 400);
     }
 
     const hcaptchaConfigured = Boolean(optionalSecret("HCAPTCHA_SECRET_KEY"));
