@@ -12,10 +12,12 @@ import {
   extractOperatorCheckinTokenFromQrDialog,
   fillOdometerLogPublicForm,
   getYourTemplateCard,
+  getYourTemplateCards,
   navigateToEquipmentDetails,
   openEquipmentCheckinQrDialog,
   passRemainingPublicChecklistItems,
   renameTemplate,
+  removeAssignedChecklistsNamed,
   STARTER_TEMPLATE_NAME,
   submitPublicCheckin,
 } from './shared/operator-checkin-evidence-helpers';
@@ -169,8 +171,8 @@ test.describe('Red-team findings user-visible fixes @pr-evidence', () => {
     await gotoDashboard('/operator-check-ins');
     await assertHealthyShell();
 
-    const leftover = getYourTemplateCard(page, CHECKIN_TEMPLATE_NAME);
-    if ((await leftover.count()) > 0) {
+    const leftover = getYourTemplateCards(page, CHECKIN_TEMPLATE_NAME);
+    for (let i = 0; i < 4 && (await leftover.count()) > 0; i += 1) {
       await deleteTemplateFromConsole(page, CHECKIN_TEMPLATE_NAME);
     }
 
@@ -184,6 +186,7 @@ test.describe('Red-team findings user-visible fixes @pr-evidence', () => {
       seedEquipment.cat320.name,
       seedEquipment.cat320.serialNumber,
     );
+    await removeAssignedChecklistsNamed(page, CHECKIN_TEMPLATE_NAME);
     await assignTemplateOnEquipmentDetails(page, CHECKIN_TEMPLATE_NAME);
     await openEquipmentCheckinQrDialog(page, CHECKIN_TEMPLATE_NAME);
     const publicToken = await extractOperatorCheckinTokenFromQrDialog(page);
