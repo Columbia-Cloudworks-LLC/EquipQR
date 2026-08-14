@@ -16,6 +16,7 @@ import { useAppToast } from '@/hooks/useAppToast';
 import { createScopedQueryPersister } from '@/lib/queryPersistence';
 import { equipment as equipmentKeys } from '@/lib/queryKeys';
 import { getScanFollowUpEventsByEquipmentId } from '@/features/equipment/services/scanFollowUpEventService';
+import { teamAccessQueryScope } from '@/features/teams/utils/teamAccessScope';
 
 /**
  * Stable references for the empty default arguments used by `useEquipment`.
@@ -177,7 +178,10 @@ export const useEquipmentById = (
   const query = useQuery({
     queryKey:
       organizationId && equipmentId
-        ? equipmentKeys.byId(organizationId, equipmentId)
+        ? [
+            ...equipmentKeys.byId(organizationId, equipmentId),
+            teamAccessQueryScope(options?.isOrgAdmin, options?.userTeamIds),
+          ]
         : ['equipment', organizationId, equipmentId],
     queryFn: async () => {
       if (!organizationId || !equipmentId) return undefined;

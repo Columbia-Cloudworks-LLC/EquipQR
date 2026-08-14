@@ -32,7 +32,7 @@ vi.mock('@/components/ui/HCaptcha', () => ({
   }: {
     onSuccess?: (token: string) => void;
   }) => (
-    <button type="button" data-testid="hcaptcha-success" onClick={() => onSuccess?.('mock-captcha-token')}>
+    <button type="button" onClick={() => onSuccess?.('mock-captcha-token')}>
       Verify Captcha
     </button>
   ),
@@ -126,7 +126,7 @@ describe('OperatorCheckInPublicPage', () => {
   });
 
   it('shows reset form after progress and clears answers and operator inputs', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderPublicPage();
 
     await screen.findByRole('heading', { name: /evidence daily safety walkaround/i });
@@ -145,7 +145,7 @@ describe('OperatorCheckInPublicPage', () => {
   });
 
   it('supports accessible Pass/Fail controls and submits checklist answers', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderPublicPage();
 
     await screen.findByRole('heading', { name: /evidence daily safety walkaround/i });
@@ -178,7 +178,7 @@ describe('OperatorCheckInPublicPage', () => {
       ...mockFormResponse,
       captchaRequired: true,
     });
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderPublicPage();
 
     await screen.findByRole('heading', { name: /evidence daily safety walkaround/i });
@@ -189,7 +189,7 @@ describe('OperatorCheckInPublicPage', () => {
     const submit = screen.getByRole('button', { name: /submit daily check-in/i });
     expect(submit).toBeDisabled();
 
-    await user.click(screen.getByTestId('hcaptcha-success'));
+    await user.click(screen.getByRole('button', { name: /verify captcha/i }));
     expect(submit).toBeEnabled();
 
     await user.click(submit);

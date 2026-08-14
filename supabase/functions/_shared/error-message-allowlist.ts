@@ -196,6 +196,8 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   /^Missing action or token$/,
   /^Unsupported action$/,
   /^Too many check-ins\. Please try again later\.$/,
+  /^This check-in was already submitted today\.$/,
+  /^Check-in already submitted today\.$/,
   /^Unable to save check-in$/,
   /^Checklist incomplete$/,
   /^Required fields missing$/,

@@ -8,6 +8,7 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import { WorkOrderService, WorkOrderFilters, WorkOrder } from '@/features/work-orders/services/workOrderService';
 import { createScopedQueryPersister } from '@/lib/queryPersistence';
+import { teamAccessQueryScope } from '@/features/teams/utils/teamAccessScope';
 
 // Re-export types for convenience
 export type { WorkOrderFilters, WorkOrder } from '@/features/work-orders/services/workOrderService';
@@ -243,7 +244,10 @@ export const useWorkOrderById = (
   },
 ): UseQueryResult<WorkOrder | null, Error> => {
   return useQuery({
-    queryKey: workOrderKeys.detail(organizationId, workOrderId),
+    queryKey: [
+      ...workOrderKeys.detail(organizationId, workOrderId),
+      teamAccessQueryScope(options?.isOrgAdmin, options?.userTeamIds),
+    ],
     queryFn: async (): Promise<WorkOrder | null> => {
       if (!organizationId || !workOrderId) return null;
       

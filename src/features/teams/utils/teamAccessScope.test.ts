@@ -3,6 +3,7 @@ import {
   areRecordsOnAccessibleTeam,
   isOrgAdminRole,
   isRecordOnAccessibleTeam,
+  teamAccessQueryScope,
 } from './teamAccessScope';
 
 describe('isRecordOnAccessibleTeam', () => {
@@ -39,5 +40,14 @@ describe('isOrgAdminRole', () => {
     expect(isOrgAdminRole('admin')).toBe(true);
     expect(isOrgAdminRole('member')).toBe(false);
     expect(isOrgAdminRole(undefined)).toBe(false);
+  });
+});
+
+describe('teamAccessQueryScope', () => {
+  it('separates admin, unscoped, empty, and sorted membership keys', () => {
+    expect(teamAccessQueryScope(true, ['team-b'])).toBe('admin');
+    expect(teamAccessQueryScope(false, undefined)).toBe('unscoped');
+    expect(teamAccessQueryScope(false, [])).toBe('none');
+    expect(teamAccessQueryScope(false, ['team-b', 'team-a'])).toBe('team-a,team-b');
   });
 });

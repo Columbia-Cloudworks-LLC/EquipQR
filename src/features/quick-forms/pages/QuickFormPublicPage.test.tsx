@@ -31,7 +31,7 @@ vi.mock('@/components/ui/HCaptcha', () => ({
   }: {
     onSuccess?: (token: string) => void;
   }) => (
-    <button type="button" data-testid="hcaptcha-success" onClick={() => onSuccess?.('mock-captcha-token')}>
+    <button type="button" onClick={() => onSuccess?.('mock-captcha-token')}>
       Verify Captcha
     </button>
   ),
@@ -65,7 +65,7 @@ describe('QuickFormPublicPage captcha wiring', () => {
   });
 
   it('keeps submit disabled until captcha onSuccess provides a token', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<QuickFormPublicPage />);
 
     await screen.findByRole('heading', { name: /rt-03 throttle guard/i });
@@ -74,7 +74,7 @@ describe('QuickFormPublicPage captcha wiring', () => {
     const submit = screen.getByRole('button', { name: /^submit$/i });
     expect(submit).toBeDisabled();
 
-    await user.click(screen.getByTestId('hcaptcha-success'));
+    await user.click(screen.getByRole('button', { name: /verify captcha/i }));
     expect(submit).toBeEnabled();
 
     await user.click(submit);
@@ -91,12 +91,12 @@ describe('QuickFormPublicPage captcha wiring', () => {
     mockSubmitQuickForm.mockRejectedValue(
       new Error('Too many submissions. Please try again later.'),
     );
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     render(<QuickFormPublicPage />);
 
     await screen.findByRole('heading', { name: /rt-03 throttle guard/i });
     await user.type(screen.getByLabelText(/site note/i), 'Second submit');
-    await user.click(screen.getByTestId('hcaptcha-success'));
+    await user.click(screen.getByRole('button', { name: /verify captcha/i }));
     await user.click(screen.getByRole('button', { name: /^submit$/i }));
 
     expect(

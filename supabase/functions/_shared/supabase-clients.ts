@@ -517,6 +517,8 @@ const EXACT_SAFE_ERROR_MESSAGE_BY_INPUT = new Map<string, string>([
   ["Missing action or token", "Missing action or token"],
   ["Unsupported action", "Unsupported action"],
   ["Too many check-ins. Please try again later.", "Too many check-ins. Please try again later."],
+  ["This check-in was already submitted today.", "This check-in was already submitted today."],
+  ["Check-in already submitted today.", "Check-in already submitted today."],
   ["Unable to save check-in", "Unable to save check-in"],
   ["Checklist incomplete", "Checklist incomplete"],
   ["Required fields missing", "Required fields missing"],

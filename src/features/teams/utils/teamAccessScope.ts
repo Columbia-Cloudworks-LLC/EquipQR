@@ -28,3 +28,14 @@ export function areRecordsOnAccessibleTeam(
 export function isOrgAdminRole(role: string | null | undefined): boolean {
   return role === 'owner' || role === 'admin';
 }
+
+/** Stable TanStack Query key segment so persisted by-id caches do not leak across RBAC. */
+export function teamAccessQueryScope(
+  isOrgAdmin?: boolean,
+  userTeamIds?: readonly string[],
+): string {
+  if (isOrgAdmin) return 'admin';
+  if (userTeamIds === undefined) return 'unscoped';
+  if (userTeamIds.length === 0) return 'none';
+  return [...userTeamIds].sort().join(',');
+}

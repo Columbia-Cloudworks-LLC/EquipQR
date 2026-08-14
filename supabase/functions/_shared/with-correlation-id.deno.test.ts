@@ -313,6 +313,8 @@ Deno.test("createErrorResponse preserves important canonical allowlisted message
     ["Work order not found", "Work order not found"],
     ["Too many submissions. Please try again later.", "Too many submissions. Please try again later."],
     ["Form is not available", "Form is not available"],
+    ["This check-in was already submitted today.", "This check-in was already submitted today."],
+    ["Check-in already submitted today.", "Check-in already submitted today."],
   ];
 
   for (const [input, expected] of cases) {

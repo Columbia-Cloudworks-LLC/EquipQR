@@ -9,7 +9,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAccessSnapshot } from '@/hooks/useAccessSnapshot';
 import { useSession } from '@/hooks/useSession';
 import { useTeam as useTeamContext } from '@/features/teams/hooks/useTeam';
-import { team } from '@/lib/queryKeys';
+import { team, teams } from '@/lib/queryKeys';
 import { logger } from '@/utils/logger';
 
 /**
@@ -86,7 +86,7 @@ export const useTeamMutations = () => {
     mutationFn: ({ teamData, creatorId }: { teamData: Parameters<typeof TeamRepository.createTeamWithCreator>[0]; creatorId: string }) =>
       TeamRepository.createTeamWithCreator(teamData, creatorId),
     onSuccess: async (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['teams', variables.teamData.organization_id] });
+      queryClient.invalidateQueries({ queryKey: teams(variables.teamData.organization_id).root });
       // Force-refresh the session so the new team membership (creator becomes
       // manager) shows up in TopBar/ContextBreadcrumb without requiring
       // logout/login. Guard the refresh: a transient session-refresh error
@@ -120,8 +120,8 @@ export const useTeamMutations = () => {
     mutationFn: ({ teamId, organizationId }: { teamId: string; organizationId: string }) =>
       TeamRepository.deleteTeam(teamId, organizationId),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['teams'] });
-      queryClient.removeQueries({ queryKey: ['team', variables.teamId] });
+      queryClient.invalidateQueries({ queryKey: teams(variables.organizationId).root });
+      queryClient.removeQueries({ queryKey: team(variables.teamId).byOrg(variables.organizationId) });
       toast({
         title: "Success",
         description: "Team deleted successfully",
