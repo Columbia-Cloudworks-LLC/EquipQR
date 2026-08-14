@@ -11,7 +11,6 @@ import {
   expandStarterCatalogIfNeeded,
   extractOperatorCheckinTokenFromQrDialog,
   fillOdometerLogPublicForm,
-  getYourTemplateCard,
   getYourTemplateCards,
   navigateToEquipmentDetails,
   openEquipmentCheckinQrDialog,

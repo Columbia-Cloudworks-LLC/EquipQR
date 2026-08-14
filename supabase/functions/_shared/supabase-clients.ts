@@ -785,18 +785,18 @@ export function createJsonResponse<T>(
  * Handle CORS preflight requests.
  * Returns a preflight response when applicable, otherwise null.
  *
- * When `opts.useValidatedOrigin` is true, the preflight response uses
- * `getCorsHeaders(req)` so the `Access-Control-Allow-Origin` header
- * reflects the validated request origin instead of a static fallback.
+ * When `opts.useValidatedOrigin` is false, the preflight response uses
+ * the static production-origin fallback. Otherwise (default) it uses
+ * `getCorsHeaders(req)` so preview, Vercel, and local origins work.
  */
 export function handleCorsPreflightIfNeeded(
   req: Request,
   opts?: { useValidatedOrigin?: boolean },
 ): Response | null {
   if (req.method === "OPTIONS") {
-    const headers = opts?.useValidatedOrigin
-      ? getCorsHeaders(req)
-      : corsHeaders;
+    const headers = opts?.useValidatedOrigin === false
+      ? corsHeaders
+      : getCorsHeaders(req);
     return new Response(null, { headers });
   }
   return null;

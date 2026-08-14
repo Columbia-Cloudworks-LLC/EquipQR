@@ -120,7 +120,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
   if (corsResponse) return corsResponse;
 
   if (req.method !== "POST") {
-    return createErrorResponse("Method not allowed", 405);
+    return createErrorResponse("Method not allowed", 405, { req });
   }
 
   try {
@@ -134,31 +134,31 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     };
 
     if (!name || typeof name !== "string" || name.trim().length === 0) {
-      return createErrorResponse("Name is required", 400);
+      return createErrorResponse("Name is required", 400, { req });
     }
     if (!email || typeof email !== "string" || !EMAIL_RE.test(email)) {
-      return createErrorResponse("A valid email address is required", 400);
+      return createErrorResponse("A valid email address is required", 400, { req });
     }
     if (
       !requestType ||
       !VALID_TYPES.includes(requestType as typeof VALID_TYPES[number])
     ) {
-      return createErrorResponse("Invalid request type", 400);
+      return createErrorResponse("Invalid request type", 400, { req });
     }
 
     const sizeError = privacyRequestSizeError(name, details);
     if (sizeError) {
-      return createErrorResponse(sizeError, 400);
+      return createErrorResponse(sizeError, 400, { req });
     }
 
     const hcaptchaConfigured = Boolean(optionalSecret("HCAPTCHA_SECRET_KEY"));
     if (hcaptchaConfigured) {
       if (!captchaToken || typeof captchaToken !== "string") {
-        return createErrorResponse("CAPTCHA verification is required", 400);
+        return createErrorResponse("CAPTCHA verification is required", 400, { req });
       }
       const captchaValid = await verifyCaptcha(captchaToken);
       if (!captchaValid) {
-        return createErrorResponse("CAPTCHA verification failed", 400);
+        return createErrorResponse("CAPTCHA verification failed", 400, { req });
       }
     }
 
@@ -188,6 +188,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       return createErrorResponse(
         `Rate limit exceeded. Maximum ${RATE_LIMIT_MAX_REQUESTS} privacy requests per ${RATE_LIMIT_WINDOW_HOURS} hours`,
         429,
+        { req },
       );
     }
 
@@ -196,6 +197,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       return createErrorResponse(
         "A similar request was already submitted recently. Please wait before submitting again",
         429,
+        { req },
       );
     }
 
@@ -219,7 +221,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
 
     if (error) {
       console.error("[PRIVACY-REQUEST] Insert failed:", error.message);
-      return createErrorResponse("Failed to submit privacy request", 500);
+      return createErrorResponse("Failed to submit privacy request", 500, { req });
     }
 
     return createJsonResponse({
@@ -227,9 +229,9 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       requestId: data.id,
       dueDate: data.due_at,
       message: "Your privacy request has been received. We will respond within 45 calendar days.",
-    });
+    }, 200, { req });
   } catch (err) {
     console.error("[PRIVACY-REQUEST] Unexpected error:", err);
-    return createErrorResponse("Failed to submit privacy request", 500);
+    return createErrorResponse("Failed to submit privacy request", 500, { req });
   }
 }));

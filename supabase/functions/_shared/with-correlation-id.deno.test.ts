@@ -2,6 +2,7 @@ import { assert, assertEquals } from "jsr:@std/assert@1";
 import {
   createErrorResponse,
   createJsonResponse,
+  handleCorsPreflightIfNeeded,
   requireAuthenticatedPost,
   withCorrelationId,
 } from "./supabase-clients.ts";
@@ -379,4 +380,24 @@ Deno.test("requireAuthenticatedPost rejects non-POST methods", async () => {
   assert(response instanceof Response);
   assertEquals(response.status, 405);
   assertEquals(await readErrorMessage(response), "Method not allowed");
+});
+
+Deno.test("handleCorsPreflightIfNeeded uses validated origin by default", () => {
+  const req = new Request("http://localhost:8080/functions/v1/x", {
+    method: "OPTIONS",
+    headers: { Origin: "http://localhost:8080" },
+  });
+  const response = handleCorsPreflightIfNeeded(req);
+  assert(response instanceof Response);
+  assertEquals(response.headers.get("Access-Control-Allow-Origin"), "http://localhost:8080");
+});
+
+Deno.test("handleCorsPreflightIfNeeded can opt into static production origin", () => {
+  const req = new Request("http://localhost:8080/functions/v1/x", {
+    method: "OPTIONS",
+    headers: { Origin: "http://localhost:8080" },
+  });
+  const response = handleCorsPreflightIfNeeded(req, { useValidatedOrigin: false });
+  assert(response instanceof Response);
+  assertEquals(response.headers.get("Access-Control-Allow-Origin") === "http://localhost:8080", false);
 });

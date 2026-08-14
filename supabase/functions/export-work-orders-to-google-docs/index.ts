@@ -74,15 +74,15 @@ Deno.serve(async (req) => {
     try {
       body = await req.json();
     } catch {
-      return createErrorResponse("Invalid JSON body", 400);
+      return createErrorResponse("Invalid JSON body", 400, { req });
     }
 
     const { organizationId, filters } = body;
     if (!organizationId) {
-      return createErrorResponse("Missing required field: organizationId", 400);
+      return createErrorResponse("Missing required field: organizationId", 400, { req });
     }
     if (!filters || typeof filters !== "object") {
-      return createErrorResponse("Missing required field: filters", 400);
+      return createErrorResponse("Missing required field: filters", 400, { req });
     }
 
     const validationError = validateDocsExportRequest(body);
@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
 
     const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
     if (!isAdmin) {
-      return createErrorResponse("Forbidden: Only owners and admins can export reports", 403);
+      return createErrorResponse("Forbidden: Only owners and admins can export reports", 403, { req });
     }
 
     let rateLimitOk: boolean;
@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
       rateLimitOk = await checkRateLimit(supabase, user.id, organizationId);
     } catch (rateLimitError) {
       console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Rate limit check error:", rateLimitError);
-      return createErrorResponse("An internal error occurred", 500);
+      return createErrorResponse("An internal error occurred", 500, { req });
     }
     if (!rateLimitOk) {
       return createWorkOrderExportRateLimitResponse(corsHeaders);
@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
 
     if (destinationError) {
       console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Failed to load destination:", destinationError);
-      return createErrorResponse("An internal error occurred", 500);
+      return createErrorResponse("An internal error occurred", 500, { req });
     }
 
     if (!destination?.parent_id) {
@@ -355,7 +355,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : String(error);
     console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Outer error:", errMsg);
-    return createErrorResponse("An unexpected error occurred", 500);
+    return createErrorResponse("An unexpected error occurred", 500, { req });
   }
 });
 
