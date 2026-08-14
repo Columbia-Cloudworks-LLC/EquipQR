@@ -9,7 +9,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { useOrganizationMembers } from '@/features/organization/hooks/useOrganizationMembers';
 import { useOrganizationAdmins } from '@/features/organization/hooks/useOrganizationAdmins';
 import { useTeams } from '@/features/teams/hooks/useTeamManagement';
+import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
+import { isOrgAdminRole } from '@/features/teams/utils/teamAccessScope';
 import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
 
 import { WorkOrderLike } from '@/features/work-orders/utils/workOrderTypeConversion';
@@ -45,7 +48,19 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
   const { data: organizationMembers = [] } = useOrganizationMembers(organizationId);
   const { data: organizationAdmins = [] } = useOrganizationAdmins(organizationId);
   const { data: teams = [] } = useTeams(organizationId);
-  const { data: equipment } = useEquipmentById(organizationId, workOrder?.equipment_id || workOrder?.equipmentId);
+  const { currentOrganization } = useOrganization();
+  const { getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
+  const isOrgAdmin = isOrgAdminRole(currentOrganization?.userRole);
+  const teamsReady = isOrgAdmin || !teamsLoading;
+  const { data: equipment } = useEquipmentById(
+    organizationId,
+    workOrder?.equipment_id || workOrder?.equipmentId,
+    {
+      userTeamIds: isOrgAdmin ? undefined : getUserTeamIds(),
+      isOrgAdmin,
+      enabled: teamsReady,
+    },
+  );
 
   // Get current user info
   const isSingleUserOrg = organizationMembers.length === 1;

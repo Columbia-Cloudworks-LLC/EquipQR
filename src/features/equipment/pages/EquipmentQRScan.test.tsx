@@ -14,6 +14,13 @@ vi.mock('@/hooks/useSession', () => ({
   useSession: vi.fn(() => ({ sessionData: null })),
 }));
 
+vi.mock('@/features/teams/hooks/useTeamMembership', () => ({
+  useTeamMembership: vi.fn(() => ({
+    getUserTeamIds: () => [],
+    isLoading: false,
+  })),
+}));
+
 vi.mock('@/hooks/useBrowserOnline', () => ({
   useBrowserOnline: vi.fn(() => true),
 }));

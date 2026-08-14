@@ -1,5 +1,7 @@
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentSummaries, useEquipmentById } from '@/features/equipment/hooks/useEquipment';
+import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
+import { isOrgAdminRole } from '@/features/teams/utils/teamAccessScope';
 import type { WorkOrder as EnhancedWorkOrder } from '@/features/work-orders/types/workOrder';
 
 interface UseEquipmentSelectionProps {
@@ -17,11 +19,19 @@ interface UseEquipmentSelectionProps {
  */
 export const useEquipmentSelection = ({ equipmentId, workOrder }: UseEquipmentSelectionProps) => {
   const { currentOrganization } = useOrganization();
+  const { getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
+  const isOrgAdmin = isOrgAdminRole(currentOrganization?.userRole);
+  const teamsReady = isOrgAdmin || !teamsLoading;
 
   const { data: allEquipment = [] } = useEquipmentSummaries(currentOrganization?.id);
   const { data: preSelectedEquipment } = useEquipmentById(
     currentOrganization?.id,
-    equipmentId || workOrder?.equipment_id
+    equipmentId || workOrder?.equipment_id,
+    {
+      userTeamIds: isOrgAdmin ? undefined : getUserTeamIds(),
+      isOrgAdmin,
+      enabled: teamsReady,
+    },
   );
 
   const isEquipmentPreSelected = !!preSelectedEquipment || !!workOrder;

@@ -29,13 +29,35 @@ export function isOrgAdminRole(role: string | null | undefined): boolean {
   return role === 'owner' || role === 'admin';
 }
 
+export type TeamReadScope = {
+  isOrgAdmin: boolean;
+  userTeamIds?: string[];
+};
+
+/**
+ * Missing RBAC inputs fail closed for non-admins (empty team list, no org-wide read).
+ * Org admins omit `userTeamIds` so the service does not apply a team filter.
+ */
+export function resolveTeamReadScope(options?: {
+  isOrgAdmin?: boolean;
+  userTeamIds?: readonly string[];
+}): TeamReadScope {
+  if (options?.isOrgAdmin) {
+    return { isOrgAdmin: true };
+  }
+  return {
+    isOrgAdmin: false,
+    userTeamIds: options?.userTeamIds ? [...options.userTeamIds] : [],
+  };
+}
+
 /** Stable TanStack Query key segment so persisted by-id caches do not leak across RBAC. */
 export function teamAccessQueryScope(
   isOrgAdmin?: boolean,
   userTeamIds?: readonly string[],
 ): string {
-  if (isOrgAdmin) return 'admin';
-  if (userTeamIds === undefined) return 'unscoped';
-  if (userTeamIds.length === 0) return 'none';
-  return [...userTeamIds].sort().join(',');
+  const scope = resolveTeamReadScope({ isOrgAdmin, userTeamIds });
+  if (scope.isOrgAdmin) return 'admin';
+  if (!scope.userTeamIds || scope.userTeamIds.length === 0) return 'none';
+  return [...scope.userTeamIds].sort().join(',');
 }

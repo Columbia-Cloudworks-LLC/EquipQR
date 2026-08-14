@@ -8,7 +8,7 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import { WorkOrderService, WorkOrderFilters, WorkOrder } from '@/features/work-orders/services/workOrderService';
 import { createScopedQueryPersister } from '@/lib/queryPersistence';
-import { teamAccessQueryScope } from '@/features/teams/utils/teamAccessScope';
+import { teamAccessQueryScope, resolveTeamReadScope } from '@/features/teams/utils/teamAccessScope';
 
 // Re-export types for convenience
 export type { WorkOrderFilters, WorkOrder } from '@/features/work-orders/services/workOrderService';
@@ -243,18 +243,19 @@ export const useWorkOrderById = (
     enabled?: boolean;
   },
 ): UseQueryResult<WorkOrder | null, Error> => {
+  const teamScope = resolveTeamReadScope(options);
   return useQuery({
     queryKey: [
       ...workOrderKeys.detail(organizationId, workOrderId),
-      teamAccessQueryScope(options?.isOrgAdmin, options?.userTeamIds),
+      teamAccessQueryScope(teamScope.isOrgAdmin, teamScope.userTeamIds),
     ],
     queryFn: async (): Promise<WorkOrder | null> => {
       if (!organizationId || !workOrderId) return null;
       
       const service = new WorkOrderService(organizationId);
       const result = await service.getById(workOrderId, {
-        userTeamIds: options?.userTeamIds,
-        isOrgAdmin: options?.isOrgAdmin,
+        userTeamIds: teamScope.userTeamIds,
+        isOrgAdmin: teamScope.isOrgAdmin,
       });
       
       if (result.success && result.data) {

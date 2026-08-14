@@ -30,6 +30,8 @@ import { useLatestCompletedPMDetails } from '@/features/pm-templates/hooks/usePM
 import EquipmentQRLastPMCard from '@/features/equipment/components/qr/EquipmentQRLastPMCard';
 import { useBrowserOnline } from '@/hooks/useBrowserOnline';
 import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
+import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
+import { isOrgAdminRole } from '@/features/teams/utils/teamAccessScope';
 
 type EquipmentStatus = Database['public']['Enums']['equipment_status'];
 
@@ -65,6 +67,9 @@ const EquipmentQRScan = () => {
   const organizationId = orgContext?.organizationId ?? null;
   const organizations = orgContext?.organizations ?? [];
   const { sessionData } = useSession();
+  const { getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
+  const isOrgAdmin = isOrgAdminRole(currentOrganization?.userRole);
+  const teamsReady = isOrgAdmin || !teamsLoading;
   const isOnline = useBrowserOnline();
   const allowedOrgIds = mergeAllowedOrganizationIds(
     organizations.map((org) => org.id),
@@ -76,7 +81,11 @@ const EquipmentQRScan = () => {
     persistedOrganizationId: organizationId,
     allowedOrganizationIds: allowedOrgIds,
   });
-  const { data: cachedEquipment } = useEquipmentById(cacheOrgId, equipmentId);
+  const { data: cachedEquipment } = useEquipmentById(cacheOrgId, equipmentId, {
+    userTeamIds: isOrgAdmin ? undefined : getUserTeamIds(),
+    isOrgAdmin,
+    enabled: teamsReady,
+  });
   const [payload, setPayload] = useState<EquipmentQRPayload | null>(null);
   const latestPmQuery = useLatestCompletedPMDetails(
     payload?.equipment.id,

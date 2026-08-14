@@ -3,6 +3,7 @@ import {
   areRecordsOnAccessibleTeam,
   isOrgAdminRole,
   isRecordOnAccessibleTeam,
+  resolveTeamReadScope,
   teamAccessQueryScope,
 } from './teamAccessScope';
 
@@ -44,10 +45,25 @@ describe('isOrgAdminRole', () => {
 });
 
 describe('teamAccessQueryScope', () => {
-  it('separates admin, unscoped, empty, and sorted membership keys', () => {
+  it('separates admin, empty, and sorted membership keys', () => {
     expect(teamAccessQueryScope(true, ['team-b'])).toBe('admin');
-    expect(teamAccessQueryScope(false, undefined)).toBe('unscoped');
+    expect(teamAccessQueryScope(false, undefined)).toBe('none');
     expect(teamAccessQueryScope(false, [])).toBe('none');
     expect(teamAccessQueryScope(false, ['team-b', 'team-a'])).toBe('team-a,team-b');
+  });
+});
+
+describe('resolveTeamReadScope', () => {
+  it('fails closed when non-admin team ids are omitted', () => {
+    expect(resolveTeamReadScope()).toEqual({ isOrgAdmin: false, userTeamIds: [] });
+    expect(resolveTeamReadScope({ isOrgAdmin: false })).toEqual({
+      isOrgAdmin: false,
+      userTeamIds: [],
+    });
+    expect(resolveTeamReadScope({ isOrgAdmin: true })).toEqual({ isOrgAdmin: true });
+    expect(resolveTeamReadScope({ isOrgAdmin: false, userTeamIds: ['team-cs'] })).toEqual({
+      isOrgAdmin: false,
+      userTeamIds: ['team-cs'],
+    });
   });
 });

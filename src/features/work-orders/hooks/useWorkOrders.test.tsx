@@ -340,8 +340,8 @@ describe('useWorkOrders', () => {
       });
 
       expect(mockService.getById).toHaveBeenCalledWith(workOrders.submitted.id, {
-        userTeamIds: undefined,
-        isOrgAdmin: undefined,
+        userTeamIds: [],
+        isOrgAdmin: false,
       });
       expect(result.current.data?.id).toBe(workOrders.submitted.id);
     });

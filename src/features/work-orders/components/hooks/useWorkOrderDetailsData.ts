@@ -55,7 +55,12 @@ export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId
 
   const { data: freshEquipment } = useEquipmentById(
     currentOrganization?.id,
-    workOrder?.equipment_id
+    workOrder?.equipment_id,
+    {
+      userTeamIds: isOrgAdmin ? undefined : getUserTeamIds(),
+      isOrgAdmin,
+      enabled: teamsReady,
+    },
   );
   const equipment = freshEquipment ?? workOrder?.equipment ?? undefined;
 

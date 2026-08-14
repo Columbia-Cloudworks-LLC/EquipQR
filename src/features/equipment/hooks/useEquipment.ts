@@ -16,7 +16,7 @@ import { useAppToast } from '@/hooks/useAppToast';
 import { createScopedQueryPersister } from '@/lib/queryPersistence';
 import { equipment as equipmentKeys } from '@/lib/queryKeys';
 import { getScanFollowUpEventsByEquipmentId } from '@/features/equipment/services/scanFollowUpEventService';
-import { teamAccessQueryScope } from '@/features/teams/utils/teamAccessScope';
+import { teamAccessQueryScope, resolveTeamReadScope } from '@/features/teams/utils/teamAccessScope';
 
 /**
  * Stable references for the empty default arguments used by `useEquipment`.
@@ -174,20 +174,21 @@ export const useEquipmentById = (
   }
 ) => {
   const { enableSync, staleTime } = resolveEquipmentQuerySyncOptions(options);
+  const teamScope = resolveTeamReadScope(options);
 
   const query = useQuery({
     queryKey:
       organizationId && equipmentId
         ? [
             ...equipmentKeys.byId(organizationId, equipmentId),
-            teamAccessQueryScope(options?.isOrgAdmin, options?.userTeamIds),
+            teamAccessQueryScope(teamScope.isOrgAdmin, teamScope.userTeamIds),
           ]
         : ['equipment', organizationId, equipmentId],
     queryFn: async () => {
       if (!organizationId || !equipmentId) return undefined;
       const result = await EquipmentService.getById(organizationId, equipmentId, {
-        userTeamIds: options?.userTeamIds,
-        isOrgAdmin: options?.isOrgAdmin,
+        userTeamIds: teamScope.userTeamIds,
+        isOrgAdmin: teamScope.isOrgAdmin,
       });
       if (result.success && result.data) {
         return result.data;
