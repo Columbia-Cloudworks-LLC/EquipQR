@@ -129,7 +129,7 @@ export default function QuickFormPublicPage() {
           Your <strong className="text-foreground">{formName}</strong> submission was saved
           {submittedAt ? ` at ${formatPublicSubmittedAt(submittedAt)}` : ''}.
         </p>
-        <p className="text-xs">You can close this page, or submit again with the same QR code.</p>
+        <p className="text-xs">You can close this page. Please wait before submitting again.</p>
       </PublicFormSuccessCard>
     );
   }

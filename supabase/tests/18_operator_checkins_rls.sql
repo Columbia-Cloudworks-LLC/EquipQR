@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(35);
+SELECT plan(38);
 
 -- ============================================
 -- Test: operator check-in domain RLS (#1091)
@@ -355,6 +355,27 @@ SELECT throws_ok(
 
 RESET role;
 
+INSERT INTO public.operator_checklist_templates (
+  id, organization_id, name, template_data, created_by
+) VALUES (
+  '31000000-cccc-0000-0000-000000000005'::uuid,
+  '31000000-aaaa-0000-0000-000000000001'::uuid,
+  'Same-Day Guard',
+  '{"checklistItems":[],"dataFields":[]}'::jsonb,
+  '31000000-0000-0000-0000-000000000001'::uuid
+);
+
+INSERT INTO public.equipment_operator_checkin_settings (
+  id, organization_id, equipment_id, template_id, enabled, public_token_hash
+) VALUES (
+  '31000000-dddd-0000-0000-000000000005'::uuid,
+  '31000000-aaaa-0000-0000-000000000001'::uuid,
+  '31000000-bbbb-0000-0000-000000000001'::uuid,
+  '31000000-cccc-0000-0000-000000000005'::uuid,
+  true,
+  encode(digest('test-token-e', 'sha256'), 'hex')
+);
+
 SELECT ok(
   EXISTS (
     SELECT 1
@@ -392,6 +413,51 @@ SELECT ok(
       AND c.conname = 'operator_checkin_submissions_template_organization_fkey'
   ),
   'operator_checkin_submissions has composite template/org foreign key'
+);
+
+SELECT ok(
+  (public.submit_operator_checkin_public(
+    encode(digest('test-token-e', 'sha256'), 'hex'),
+    '[]'::jsonb,
+    '[]'::jsonb,
+    '[]'::jsonb,
+    '[]'::jsonb,
+    '{}'::jsonb,
+    true,
+    0,
+    0,
+    NULL
+  ) ->> 'id') IS NOT NULL,
+  'first operator check-in of the UTC day succeeds'
+);
+
+SELECT throws_ok(
+  $$ SELECT public.submit_operator_checkin_public(
+       encode(digest('test-token-e', 'sha256'), 'hex'),
+       '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '{}'::jsonb,
+       true, 0, 0, NULL) $$,
+  'Check-in already submitted today.',
+  'second same-day operator check-in is rejected'
+);
+
+UPDATE public.operator_checkin_submissions
+SET submitted_at = submitted_at - interval '1 day'
+WHERE settings_id = '31000000-dddd-0000-0000-000000000005'::uuid;
+
+SELECT ok(
+  (public.submit_operator_checkin_public(
+    encode(digest('test-token-e', 'sha256'), 'hex'),
+    '[]'::jsonb,
+    '[]'::jsonb,
+    '[]'::jsonb,
+    '[]'::jsonb,
+    '{}'::jsonb,
+    true,
+    0,
+    0,
+    NULL
+  ) ->> 'id') IS NOT NULL,
+  'operator check-in is allowed again the next UTC day'
 );
 
 SELECT * FROM finish();

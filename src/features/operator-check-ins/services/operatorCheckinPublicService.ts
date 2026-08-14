@@ -18,6 +18,8 @@ export interface OperatorCheckinLoadResponse {
   locationCollectionEnabled: boolean;
   captchaRequired: boolean;
   complianceNotice: string;
+  alreadySubmittedToday?: boolean;
+  lastSubmittedAt?: string | null;
 }
 
 function getInvokeErrorMessage(data: unknown, fallback: string): string {

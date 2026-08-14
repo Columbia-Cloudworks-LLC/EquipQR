@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(27);
+SELECT plan(28);
 
 -- ============================================
 -- Test: quick forms domain RLS (#1184)
@@ -257,6 +257,14 @@ SELECT ok(
     NULL
   ) ->> 'id') IS NOT NULL,
   'submit_quick_form_public inserts a submission for an active form'
+);
+
+SELECT throws_ok(
+  $$ SELECT public.submit_quick_form_public(
+       encode(digest('qf-token-b', 'sha256'), 'hex'),
+       '[]'::jsonb, '{}'::jsonb, '{}'::jsonb, NULL) $$,
+  'Please wait before submitting again.',
+  'quick form cooldown rejects a second submit'
 );
 
 UPDATE public.quick_forms

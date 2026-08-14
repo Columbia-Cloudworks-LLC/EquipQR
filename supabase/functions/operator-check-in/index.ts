@@ -17,6 +17,7 @@ import {
 } from "../_shared/supabase-clients.ts";
 import { optionalSecret } from "../_shared/require-secret.ts";
 import { requireOperatorCheckinAssignmentToken } from "../_shared/operator-checkin-public-auth.ts";
+import { isCaptchaEnforced } from "../_shared/hcaptcha-gate.ts";
 import {
   normalizeTextValue,
   parseTemplateData,
@@ -52,17 +53,13 @@ interface SubmitRequest {
 
 type OperatorCheckInRequest = LoadRequest | SubmitRequest;
 
-function getHcaptchaSiteKey(): string | null {
-  return optionalSecret("HCAPTCHA_SITE_KEY", { legacyAliases: ["VITE_HCAPTCHA_SITEKEY"] });
-}
-
-/** CAPTCHA is enforced only when both secret and site key are configured. */
-function isCaptchaFullyConfigured(): boolean {
-  return Boolean(optionalSecret("HCAPTCHA_SECRET_KEY") && getHcaptchaSiteKey());
+/** CAPTCHA is required when the secret exists (preview/prod fail-closed). */
+function isCaptchaRequired(): boolean {
+  return isCaptchaEnforced(optionalSecret("HCAPTCHA_SECRET_KEY"));
 }
 
 async function verifyCaptcha(token: string | undefined): Promise<boolean> {
-  if (!isCaptchaFullyConfigured()) return true;
+  if (!isCaptchaRequired()) return true;
   const secret = optionalSecret("HCAPTCHA_SECRET_KEY");
   if (!secret || !token) return false;
 
@@ -212,7 +209,26 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
   );
 
   if (body.action === "load") {
-    const captchaRequired = isCaptchaFullyConfigured();
+    const captchaRequired = isCaptchaRequired();
+    const settingsId = typeof settings.id === "string" ? settings.id : null;
+    let alreadySubmittedToday = false;
+    let lastSubmittedAt: string | null = null;
+    if (settingsId) {
+      const dayStart = new Date();
+      dayStart.setUTCHours(0, 0, 0, 0);
+      const { data: existing } = await createAdminSupabaseClient()
+        .from("operator_checkin_submissions")
+        .select("submitted_at")
+        .eq("settings_id", settingsId)
+        .gte("submitted_at", dayStart.toISOString())
+        .order("submitted_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (existing && typeof existing.submitted_at === "string") {
+        alreadySubmittedToday = true;
+        lastSubmittedAt = existing.submitted_at;
+      }
+    }
     return createJsonResponse({
       template: {
         id: template.id,
@@ -224,6 +240,8 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       equipmentPreviewFields: equipment ? buildEquipmentPreviewFields(templateData.dataFields, equipment) : [],
       locationCollectionEnabled: locationEnabled && gpsFieldSelected,
       captchaRequired,
+      alreadySubmittedToday,
+      lastSubmittedAt,
       complianceNotice:
         "This record supports safety and audit documentation. It does not certify legal or regulatory compliance.",
     }, 200, { req });
@@ -306,6 +324,9 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     console.error("[OPERATOR-CHECKIN] insert failed:", insertError.message);
     if (insertError.message.includes("Too many check-ins")) {
       return createErrorResponse("Too many check-ins. Please try again later.", 429, { req });
+    }
+    if (insertError.message.includes("already submitted today")) {
+      return createErrorResponse("This check-in was already submitted today.", 409, { req });
     }
     if (insertError.message.includes("not available")) {
       return createErrorResponse("Check-in is not available", 404, { req });

@@ -163,4 +163,17 @@ describe('OperatorCheckInPublicPage', () => {
 
     expect(screen.getByText(/check-in complete/i)).toBeInTheDocument();
   });
+
+  it('shows the already-submitted state when load reports a same-day check-in (RT-02)', async () => {
+    mockLoadOperatorCheckinForm.mockResolvedValue({
+      ...mockFormResponse,
+      alreadySubmittedToday: true,
+      lastSubmittedAt: '2026-08-14T14:21:00.000Z',
+    });
+
+    renderPublicPage();
+
+    expect(await screen.findByText(/check-in complete/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /submit daily check-in/i })).not.toBeInTheDocument();
+  });
 });
