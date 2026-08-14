@@ -140,7 +140,9 @@ test.describe('Red-team findings user-visible fixes @pr-evidence', () => {
     const secondSubmit = publicPage.getByRole('button', { name: /^submit$/i });
     await expect(secondSubmit).toBeEnabled({ timeout: 15_000 });
     await secondSubmit.click();
-    await expect(publicPage.getByText(/try again later|please wait/i).first()).toBeVisible({
+    await expect(
+      publicPage.getByText(/too many submissions|try again later|please wait before submitting/i).first(),
+    ).toBeVisible({
       timeout: 15_000,
     });
     await evidencePause(publicPage, 600);

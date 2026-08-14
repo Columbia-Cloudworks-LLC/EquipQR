@@ -520,6 +520,9 @@ const EXACT_SAFE_ERROR_MESSAGE_BY_INPUT = new Map<string, string>([
   ["Unable to save check-in", "Unable to save check-in"],
   ["Checklist incomplete", "Checklist incomplete"],
   ["Required fields missing", "Required fields missing"],
+  ["Form is not available", "Form is not available"],
+  ["Too many submissions. Please try again later.", "Too many submissions. Please try again later."],
+  ["Unable to save submission", "Unable to save submission"],
   [
     "A similar request was already submitted recently. Please wait before submitting again",
     "A similar request was already submitted recently. Please wait before submitting again",

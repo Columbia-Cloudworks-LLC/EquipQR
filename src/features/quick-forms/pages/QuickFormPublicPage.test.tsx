@@ -86,4 +86,23 @@ describe('QuickFormPublicPage captcha wiring', () => {
     expect(screen.getByText(/submission received/i)).toBeInTheDocument();
     expect(screen.getByText(/please wait before submitting again/i)).toBeInTheDocument();
   });
+
+  it('shows throttle rejection inline instead of inviting another submit', async () => {
+    mockSubmitQuickForm.mockRejectedValue(
+      new Error('Too many submissions. Please try again later.'),
+    );
+    const user = userEvent.setup();
+    render(<QuickFormPublicPage />);
+
+    await screen.findByRole('heading', { name: /rt-03 throttle guard/i });
+    await user.type(screen.getByLabelText(/site note/i), 'Second submit');
+    await user.click(screen.getByTestId('hcaptcha-success'));
+    await user.click(screen.getByRole('button', { name: /^submit$/i }));
+
+    expect(
+      await screen.findByText(/too many submissions\. please try again later/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/submission received/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/submit again with the same qr code/i)).not.toBeInTheDocument();
+  });
 });

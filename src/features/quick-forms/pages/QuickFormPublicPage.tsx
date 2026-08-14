@@ -36,6 +36,7 @@ export default function QuickFormPublicPage() {
   const [collectLocation, setCollectLocation] = useState(false);
   const [captchaRequired, setCaptchaRequired] = useState(false);
   const [values, setValues] = useState<Record<string, unknown>>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
     submitting,
@@ -91,6 +92,7 @@ export default function QuickFormPublicPage() {
   async function handleSubmit() {
     if (!canSubmit || submitting) return;
     setSubmitting(true);
+    setSubmitError(null);
     try {
       const result = await submitQuickForm({
         token,
@@ -104,6 +106,7 @@ export default function QuickFormPublicPage() {
       setSubmitted(true);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to submit the form.';
+      setSubmitError(message);
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -206,6 +209,12 @@ export default function QuickFormPublicPage() {
 
         {captchaRequired && !hcaptchaToken && !captchaMisconfigured && (
           <p className="text-xs text-muted-foreground text-center">Complete the CAPTCHA below to submit.</p>
+        )}
+
+        {submitError && (
+          <Alert variant="destructive">
+            <AlertDescription>{submitError}</AlertDescription>
+          </Alert>
         )}
 
         <Button className="w-full" size="lg" disabled={!canSubmit || submitting} onClick={() => void handleSubmit()}>

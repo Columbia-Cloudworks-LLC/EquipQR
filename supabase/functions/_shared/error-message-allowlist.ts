@@ -202,6 +202,11 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   /^Required item ".+" must be answered\.$/,
   /^".+" is required\.$/,
   /^Unknown checklist item: .+$/,
+
+  // Public Quick Forms
+  /^Form is not available$/,
+  /^Too many submissions\. Please try again later\.$/,
+  /^Unable to save submission$/,
 ];
 
 /**
