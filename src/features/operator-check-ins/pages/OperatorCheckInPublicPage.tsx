@@ -301,7 +301,10 @@ export default function OperatorCheckInPublicPage() {
         ))}
 
         {showCaptcha && (
-          <HCaptchaComponent onVerify={setHcaptchaToken} onExpire={() => setHcaptchaToken(null)} />
+          <HCaptchaComponent
+            onSuccess={(token) => setHcaptchaToken(token)}
+            onExpire={() => setHcaptchaToken(null)}
+          />
         )}
 
         {validationMessages.length > 0 && (

@@ -122,8 +122,10 @@ test.describe('Red-team findings user-visible fixes @pr-evidence', () => {
       timeout: 30_000,
     });
     await publicPage.getByLabel(/site note/i).fill('First submit');
-    await solveHcaptchaIfPresent(publicPage);
-    await publicPage.getByRole('button', { name: /^submit$/i }).click();
+    expect(await solveHcaptchaIfPresent(publicPage)).toBe('solved');
+    const firstSubmit = publicPage.getByRole('button', { name: /^submit$/i });
+    await expect(firstSubmit).toBeEnabled({ timeout: 15_000 });
+    await firstSubmit.click();
     await expect(publicPage.getByText(/submission received/i)).toBeVisible({ timeout: 30_000 });
     await expect(publicPage.getByText(/submit again with the same qr code/i)).toHaveCount(0);
     await evidencePause(publicPage, 600);
@@ -134,8 +136,10 @@ test.describe('Red-team findings user-visible fixes @pr-evidence', () => {
       timeout: 30_000,
     });
     await publicPage.getByLabel(/site note/i).fill('Second submit');
-    await solveHcaptchaIfPresent(publicPage);
-    await publicPage.getByRole('button', { name: /^submit$/i }).click();
+    expect(await solveHcaptchaIfPresent(publicPage)).toBe('solved');
+    const secondSubmit = publicPage.getByRole('button', { name: /^submit$/i });
+    await expect(secondSubmit).toBeEnabled({ timeout: 15_000 });
+    await secondSubmit.click();
     await expect(publicPage.getByText(/try again later|please wait/i).first()).toBeVisible({
       timeout: 15_000,
     });
@@ -195,7 +199,7 @@ test.describe('Red-team findings user-visible fixes @pr-evidence', () => {
       });
       await fillOdometerLogPublicForm(publicPage);
       await passRemainingPublicChecklistItems(publicPage);
-      await solveHcaptchaIfPresent(publicPage);
+      expect(await solveHcaptchaIfPresent(publicPage)).toBe('solved');
       await submitPublicCheckin(publicPage);
       await evidencePause(publicPage, 600);
       await evidenceScreenshot(publicPage, '07-checkin-first-submit-complete');

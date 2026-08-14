@@ -186,7 +186,10 @@ export default function QuickFormPublicPage() {
         </Card>
 
         {showCaptcha && (
-          <HCaptchaComponent onVerify={setHcaptchaToken} onExpire={() => setHcaptchaToken(null)} />
+          <HCaptchaComponent
+            onSuccess={(token) => setHcaptchaToken(token)}
+            onExpire={() => setHcaptchaToken(null)}
+          />
         )}
 
         {validation.errors.length > 0 && (
