@@ -46,7 +46,7 @@ describe('isOrgAdminRole', () => {
 
 describe('teamAccessQueryScope', () => {
   it('separates admin, empty, and sorted membership keys', () => {
-    expect(teamAccessQueryScope(true, ['team-b'])).toBe('admin');
+    expect(teamAccessQueryScope(true, ['team-b'])).toBe('org-admin');
     expect(teamAccessQueryScope(false, undefined)).toBe('none');
     expect(teamAccessQueryScope(false, [])).toBe('none');
     expect(teamAccessQueryScope(false, ['team-b', 'team-a'])).toBe('team-a,team-b');

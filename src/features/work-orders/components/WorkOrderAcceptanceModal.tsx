@@ -16,7 +16,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
 
 import { WorkOrderLike } from '@/features/work-orders/utils/workOrderTypeConversion';
-import { isWorkOrderAcceptanceAssigneeScopeReady } from '@/features/work-orders/utils/workOrderAcceptanceAssigneeScope';
+import { resolveWorkOrderAcceptanceAssigneeGate } from '@/features/work-orders/utils/workOrderAcceptanceAssigneeScope';
 
 interface WorkOrderAcceptanceModalProps {
   open: boolean;
@@ -54,7 +54,7 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
   const isOrgAdmin = isOrgAdminRole(currentOrganization?.userRole);
   const teamsReady = isOrgAdmin || !teamsLoading;
   const equipmentId = workOrder?.equipment_id || workOrder?.equipmentId;
-  const { data: equipment, isSuccess: equipmentSuccess, isPending: equipmentPending } = useEquipmentById(
+  const { data: equipment, isSuccess: equipmentSuccess, isPending: equipmentPending, isError: equipmentError } = useEquipmentById(
     organizationId,
     equipmentId,
     {
@@ -63,11 +63,12 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
       enabled: teamsReady,
     },
   );
-  const assigneeScopeReady = isWorkOrderAcceptanceAssigneeScopeReady({
+  const { showScopedAssigneeList, canSubmit: canSubmitAssignee } = resolveWorkOrderAcceptanceAssigneeGate({
     teamsReady,
     equipmentId,
     isSuccess: equipmentSuccess,
     isPending: equipmentPending,
+    isError: equipmentError,
   });
 
   // Get current user info
@@ -88,7 +89,7 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
       });
     }
 
-    if (!assigneeScopeReady) {
+    if (!showScopedAssigneeList) {
       return options;
     }
 
@@ -201,10 +202,10 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
               <Select
                 value={selectedAssignee}
                 onValueChange={setSelectedAssignee}
-                disabled={!assigneeScopeReady}
+                disabled={!canSubmitAssignee}
               >
                 <SelectTrigger id={assigneeSelectId} className="min-h-11">
-                  <SelectValue placeholder={assigneeScopeReady ? 'Select assignee...' : 'Loading assignees...'} />
+                  <SelectValue placeholder={canSubmitAssignee ? 'Select assignee...' : 'Loading assignees...'} />
                 </SelectTrigger>
                 <SelectContent>
                   {assigneeOptions.map((option) => (
@@ -242,7 +243,7 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
             </Button>
             <Button
               onClick={handleAccept}
-              disabled={isSubmitting || (!isSingleUserOrg && (!selectedAssignee || !assigneeScopeReady))}
+              disabled={isSubmitting || (!isSingleUserOrg && (!selectedAssignee || !canSubmitAssignee))}
               className="flex-1 min-h-11"
             >
               {isSubmitting ? 'Accepting...' : 'Accept & Assign'}

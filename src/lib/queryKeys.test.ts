@@ -62,8 +62,8 @@ describe('queryKeys', () => {
     });
 
     it('should create equipment byIdScoped key', () => {
-      const key = equipment.byIdScoped('org-123', 'equipment-456', 'admin');
-      expect(key).toEqual(['equipment', 'org-123', 'equipment-456', 'admin']);
+      const key = equipment.byIdScoped('org-123', 'equipment-456', 'org-admin');
+      expect(key).toEqual(['equipment', 'org-123', 'equipment-456', 'org-admin']);
     });
 
     it('should create equipment notes key without orgId', () => {

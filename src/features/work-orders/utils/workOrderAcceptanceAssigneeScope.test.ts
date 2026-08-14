@@ -1,48 +1,64 @@
 import { describe, expect, it } from 'vitest';
-import { isWorkOrderAcceptanceAssigneeScopeReady } from './workOrderAcceptanceAssigneeScope';
+import { resolveWorkOrderAcceptanceAssigneeGate } from './workOrderAcceptanceAssigneeScope';
 
-describe('isWorkOrderAcceptanceAssigneeScopeReady', () => {
-  it('is not ready while team membership is loading', () => {
+describe('resolveWorkOrderAcceptanceAssigneeGate', () => {
+  it('blocks submit and scoped lists while team membership is loading', () => {
     expect(
-      isWorkOrderAcceptanceAssigneeScopeReady({
+      resolveWorkOrderAcceptanceAssigneeGate({
         teamsReady: false,
         equipmentId: 'eq-1',
         isSuccess: false,
         isPending: true,
+        isError: false,
       }),
-    ).toBe(false);
+    ).toEqual({ showScopedAssigneeList: false, canSubmit: false });
   });
 
-  it('is ready with no equipment id once teams are ready', () => {
+  it('allows scoped lists with no equipment id once teams are ready', () => {
     expect(
-      isWorkOrderAcceptanceAssigneeScopeReady({
+      resolveWorkOrderAcceptanceAssigneeGate({
         teamsReady: true,
         equipmentId: undefined,
         isSuccess: false,
         isPending: true,
+        isError: false,
       }),
-    ).toBe(true);
+    ).toEqual({ showScopedAssigneeList: true, canSubmit: true });
   });
 
-  it('is not ready while the equipment query is pending', () => {
+  it('blocks submit while the equipment query is pending', () => {
     expect(
-      isWorkOrderAcceptanceAssigneeScopeReady({
+      resolveWorkOrderAcceptanceAssigneeGate({
         teamsReady: true,
         equipmentId: 'eq-1',
         isSuccess: false,
         isPending: true,
+        isError: false,
       }),
-    ).toBe(false);
+    ).toEqual({ showScopedAssigneeList: false, canSubmit: false });
   });
 
-  it('is ready after a successful equipment fetch', () => {
+  it('allows scoped lists after a successful equipment fetch', () => {
     expect(
-      isWorkOrderAcceptanceAssigneeScopeReady({
+      resolveWorkOrderAcceptanceAssigneeGate({
         teamsReady: true,
         equipmentId: 'eq-1',
         isSuccess: true,
         isPending: false,
+        isError: false,
       }),
-    ).toBe(true);
+    ).toEqual({ showScopedAssigneeList: true, canSubmit: true });
+  });
+
+  it('allows submit with the safe subset when equipment fetch errors', () => {
+    expect(
+      resolveWorkOrderAcceptanceAssigneeGate({
+        teamsReady: true,
+        equipmentId: 'eq-1',
+        isSuccess: false,
+        isPending: false,
+        isError: true,
+      }),
+    ).toEqual({ showScopedAssigneeList: false, canSubmit: true });
   });
 });

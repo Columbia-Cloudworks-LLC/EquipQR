@@ -51,13 +51,14 @@ export function resolveTeamReadScope(options?: {
   };
 }
 
-/** Stable TanStack Query key segment so persisted by-id caches do not leak across RBAC. */
+/** Stable TanStack Query key segment so persisted by-id caches do not leak across RBAC.
+ *  Uses `org-admin` (not `admin`) so query persistence does not drop the key. */
 export function teamAccessQueryScope(
   isOrgAdmin?: boolean,
   userTeamIds?: readonly string[],
 ): string {
   const scope = resolveTeamReadScope({ isOrgAdmin, userTeamIds });
-  if (scope.isOrgAdmin) return 'admin';
+  if (scope.isOrgAdmin) return 'org-admin';
   if (!scope.userTeamIds || scope.userTeamIds.length === 0) return 'none';
   return [...scope.userTeamIds].sort().join(',');
 }
