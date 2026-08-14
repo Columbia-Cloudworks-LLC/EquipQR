@@ -9,6 +9,7 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAccessSnapshot } from '@/hooks/useAccessSnapshot';
 import { useSession } from '@/hooks/useSession';
 import { useTeam as useTeamContext } from '@/features/teams/hooks/useTeam';
+import { team } from '@/lib/queryKeys';
 import { logger } from '@/utils/logger';
 
 /**
@@ -62,12 +63,15 @@ export const useTeams = (
   };
 };
 
-// Hook for managing a single team
+// Hook for managing a single team (scoped to the current organization)
 export const useTeam = (teamId: string | undefined) => {
+  const { currentOrganization } = useOrganization();
+  const orgId = currentOrganization?.id;
+
   return useQuery({
-    queryKey: ['team', teamId],
-    queryFn: () => TeamRepository.getTeamById(teamId!),
-    enabled: !!teamId,
+    queryKey: team(teamId ?? '').byOrg(orgId ?? ''),
+    queryFn: () => TeamRepository.getTeamById(teamId!, orgId!),
+    enabled: !!teamId && !!orgId,
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
 };
@@ -113,10 +117,11 @@ export const useTeamMutations = () => {
   });
 
   const deleteTeamMutation = useMutation({
-    mutationFn: TeamRepository.deleteTeam,
-    onSuccess: (_, teamId) => {
+    mutationFn: ({ teamId, organizationId }: { teamId: string; organizationId: string }) =>
+      TeamRepository.deleteTeam(teamId, organizationId),
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['teams'] });
-      queryClient.removeQueries({ queryKey: ['team', teamId] });
+      queryClient.removeQueries({ queryKey: ['team', variables.teamId] });
       toast({
         title: "Success",
         description: "Team deleted successfully",

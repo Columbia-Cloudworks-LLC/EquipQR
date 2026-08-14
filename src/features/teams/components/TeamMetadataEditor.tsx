@@ -155,7 +155,7 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
 
     setIsLoading(true);
     try {
-      await updateTeam(team.id, updates);
+      await updateTeam(team.id, updates, team.organization_id);
 
       queryClient.invalidateQueries({ queryKey: ['team', team.id] });
       queryClient.invalidateQueries({ queryKey: ['teams', team.organization_id] });

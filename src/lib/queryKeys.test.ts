@@ -20,6 +20,7 @@ describe('queryKeys', () => {
     it('should create team keys', () => {
       const teamKeys = team('team-123');
       expect(teamKeys.root).toEqual(['team', 'team-123']);
+      expect(teamKeys.byOrg('org-1')).toEqual(['team', 'team-123', 'org', 'org-1']);
       expect(teamKeys.members()).toEqual(['team', 'team-123', 'members']);
       expect(teamKeys.managerCheck('user-456')).toEqual(['team', 'team-123', 'manager', 'user-456']);
     });
