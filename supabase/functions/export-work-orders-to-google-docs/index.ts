@@ -5,7 +5,7 @@ import {
   createErrorResponse,
   handleCorsPreflightIfNeeded,
 } from "../_shared/supabase-clients.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import {
   getGoogleWorkspaceAccessToken,
   GoogleWorkspaceTokenError,
@@ -61,6 +61,7 @@ function hasRequiredDocsExportScopes(scopes: string | null | undefined): boolean
 Deno.serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     const authContext = await requireAuthenticatedPost(req);

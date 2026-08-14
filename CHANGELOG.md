@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Cross-org team IDOR (RT-13)** — Team fetch, update, and delete are scoped to the current organization. A foreign team UUID renders Team not found with no members or Edit Team.
+- **Same-org team isolation (RT-19)** — For non-owner/admin users, dashboard widgets, equipment/work-order lists, and direct work-order/equipment UUID routes use membership teams only. Org role (not a stale work-order manager flag) decides All teams scope.
+- **Public Quick Form flood (RT-03)** — Fail-closed hCaptcha when the secret is configured; 10-minute cooldown and hourly cap of 5 per token; success copy no longer invites an immediate resubmit.
+- **Operator check-in same-day reuse (RT-02)** — `submit_operator_checkin_public` rejects a second submit on the same UTC day; load returns the already-submitted state so refresh is not a blank form.
+- **Privacy request length (RT-06)** — Client `maxLength` plus matching server caps on name (200) and details (4000), checked before captcha.
+- **Wildcard CORS leftovers** — `list-organizations-admin`, `export-work-orders-to-google-docs`, and `upload-to-google-drive` use origin-validated CORS; the static header is production origin, not `*`.
+- **CSP `frame-ancestors`** — Production CSP includes `frame-ancestors 'self'` so clickjacking is not XFO-only.
+
 ## [3.28.0] - 2026-08-10
 
 ### Added

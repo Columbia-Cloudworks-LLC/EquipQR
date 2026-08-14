@@ -14,6 +14,7 @@ import {
   createErrorResponse,
   handleCorsPreflightIfNeeded,
 } from "../_shared/supabase-clients.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { GoogleWorkspaceTokenError } from "../_shared/google-workspace-token.ts";
 import { trackGoogleDriveExportArtifact } from "../_shared/record-export-artifacts.ts";
 import {
@@ -38,6 +39,7 @@ const PDF_ARTIFACT_KIND = "service_report_pdf";
 Deno.serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     if (req.method !== "POST") {
@@ -143,7 +145,7 @@ Deno.serve(async (req) => {
       );
     } catch (uploadError) {
       if (uploadError instanceof GoogleWorkspaceTokenError) {
-        return tokenErrorResponse(uploadError);
+        return tokenErrorResponse(uploadError, corsHeaders);
       }
       throw uploadError;
     }
@@ -173,6 +175,7 @@ Deno.serve(async (req) => {
     logStep("Upload complete", { fileId: driveFile.id, webViewLink, replacedPrevious });
     return driveUploadSuccessResponse(
       { ...driveFile, webViewLink },
+      corsHeaders,
       { replacedPrevious, warnings: warnings.length > 0 ? warnings : undefined },
     );
   } catch (error) {

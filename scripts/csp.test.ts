@@ -48,4 +48,8 @@ describe('csp', () => {
     expect(productionCsp).toContain('https://api.pwnedpasswords.com');
     expect(devCsp).toContain('https://api.pwnedpasswords.com');
   });
+
+  it('production CSP sets frame-ancestors self', () => {
+    expect(buildCsp()).toContain("frame-ancestors 'self'");
+  });
 });

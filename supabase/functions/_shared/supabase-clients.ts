@@ -29,8 +29,8 @@ const SUPABASE_CLIENTS_FUNCTION_TAG = "_shared/supabase-clients";
 /**
  * Options for `createErrorResponse` / `createJsonResponse`. When `req` is
  * provided the response uses origin-validated CORS headers via
- * `getCorsHeaders(req)`; otherwise it falls back to the static `corsHeaders`
- * (wildcard origin) for backward compatibility.
+ * `getCorsHeaders(req)`; otherwise it falls back to production origin
+ * (never wildcard).
  */
 export interface ResponseOptions {
   req?: Request;
@@ -784,7 +784,7 @@ export function createJsonResponse<T>(
  *
  * When `opts.useValidatedOrigin` is true, the preflight response uses
  * `getCorsHeaders(req)` so the `Access-Control-Allow-Origin` header
- * reflects the validated request origin instead of `*`.
+ * reflects the validated request origin instead of a static fallback.
  */
 export function handleCorsPreflightIfNeeded(
   req: Request,

@@ -17,14 +17,19 @@ export function getCorsHeaders(req: Request): Record<string, string> {
   };
 }
 
+/** Origin-validated fallback when a Request is not available. Never wildcard. */
+export function getFallbackCorsHeaders(): Record<string, string> {
+  return {
+    "Access-Control-Allow-Origin": PRODUCTION_ORIGIN,
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Max-Age": "86400",
+  };
+}
+
 /**
- * Static CORS headers with wildcard origin.
+ * Static CORS headers with a production origin (not wildcard).
  * @deprecated Prefer `getCorsHeaders(req)` for origin-validated responses.
- * Kept for backward compatibility during incremental migration.
  */
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Max-Age': '86400',
-};
+export const corsHeaders = getFallbackCorsHeaders();

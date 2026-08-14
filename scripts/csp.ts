@@ -27,6 +27,7 @@ export const CSP_DIRECTIVES: readonly string[] = [
   "media-src 'self' blob: https://*.supabase.co https://*.equipqr.app",
   "font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com",
   "worker-src 'self' blob:",
+  "frame-ancestors 'self'",
 ] as const;
 
 /** Extra sources appended to matching directives in Vite dev mode only. */
