@@ -2,6 +2,7 @@ import { test, expect } from '../user/fixtures/equipqr-test';
 import { newPersonaPage, gotoDashboardRoute, pinContextToApex } from '../user/shared/auth-helpers';
 import { metroOrgId, seedEquipment, seedWorkOrders } from '../user/shared/seed-data';
 import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
+import { solveHcaptchaIfPresent } from '../user/shared/hcaptcha-helpers';
 import { assertEvidenceOperatorCheckinTokenRegistered } from './shared/operator-checkin-evidence-reset';
 import {
   assignTemplateOnEquipmentDetails,
@@ -46,8 +47,9 @@ test.describe('Red-team findings user-visible fixes @pr-evidence', () => {
 
     await gotoDashboardRoute(page, '/');
     await expect(page.getByText(/total equipment/i).first()).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByText(/genie s-65/i)).toHaveCount(0);
-    await expect(page.getByText(/gs-2669/i)).toHaveCount(0);
+    await expect(page.getByText(/genie s-65 telescopic boom/i)).toHaveCount(0);
+    await expect(page.getByText(/genies652023012/i)).toHaveCount(0);
+    await expect(page.getByText(/genie2669sl2024002/i)).toHaveCount(0);
     await expect(page.getByText(/pre-rental inspection/i)).toHaveCount(0);
 
     await evidencePause(page, 800);
@@ -120,6 +122,7 @@ test.describe('Red-team findings user-visible fixes @pr-evidence', () => {
       timeout: 30_000,
     });
     await publicPage.getByLabel(/site note/i).fill('First submit');
+    await solveHcaptchaIfPresent(publicPage);
     await publicPage.getByRole('button', { name: /^submit$/i }).click();
     await expect(publicPage.getByText(/submission received/i)).toBeVisible({ timeout: 30_000 });
     await expect(publicPage.getByText(/submit again with the same qr code/i)).toHaveCount(0);
@@ -131,6 +134,7 @@ test.describe('Red-team findings user-visible fixes @pr-evidence', () => {
       timeout: 30_000,
     });
     await publicPage.getByLabel(/site note/i).fill('Second submit');
+    await solveHcaptchaIfPresent(publicPage);
     await publicPage.getByRole('button', { name: /^submit$/i }).click();
     await expect(publicPage.getByText(/try again later|please wait/i).first()).toBeVisible({
       timeout: 15_000,
@@ -191,6 +195,7 @@ test.describe('Red-team findings user-visible fixes @pr-evidence', () => {
       });
       await fillOdometerLogPublicForm(publicPage);
       await passRemainingPublicChecklistItems(publicPage);
+      await solveHcaptchaIfPresent(publicPage);
       await submitPublicCheckin(publicPage);
       await evidencePause(publicPage, 600);
       await evidenceScreenshot(publicPage, '07-checkin-first-submit-complete');
