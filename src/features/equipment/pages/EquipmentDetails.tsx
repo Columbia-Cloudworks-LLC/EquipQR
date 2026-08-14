@@ -14,6 +14,8 @@ import type { EquipmentTeamSummary } from '@/features/equipment/services/Equipme
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { useInventoryAccess } from '@/features/inventory/hooks/useInventoryAccess';
+import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
+import { isOrgAdminRole, isRecordOnAccessibleTeam } from '@/features/teams/utils/teamAccessScope';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import Page from '@/components/layout/Page';
@@ -73,6 +75,8 @@ const EquipmentDetails = () => {
     currentOrganization?.id || '',
     equipmentId,
   );
+  const { getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
+  const isOrgAdmin = isOrgAdminRole(currentOrganization?.userRole);
   const isMobile = useIsMobile();
   const isQRScan = searchParams.get('qr') === 'true';
   const { canView: canViewInventory, isLoading: inventoryAccessLoading } = useInventoryAccess();
@@ -153,7 +157,7 @@ const EquipmentDetails = () => {
   const { isLoaded: isPlacesLoadedForSummary } = useGoogleMapsLoader({
     enabled: isEditingSummaryLocation,
   });
-  const isLoading = orgLoading || equipmentLoading;
+  const isLoading = orgLoading || equipmentLoading || (!isOrgAdmin && teamsLoading);
   const isAdmin =
     currentOrganization?.userRole === 'owner' || currentOrganization?.userRole === 'admin';
 
@@ -209,7 +213,10 @@ const EquipmentDetails = () => {
     );
   }
 
-  if (!equipment) {
+  if (
+    !equipment ||
+    !isRecordOnAccessibleTeam(isOrgAdmin, getUserTeamIds(), equipment.team_id)
+  ) {
     return (
       <Page maxWidth="7xl" padding="responsive">
         <PageHeader title="Equipment Details" description="Equipment not found" />

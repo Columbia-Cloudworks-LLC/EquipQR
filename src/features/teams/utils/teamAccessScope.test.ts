@@ -1,0 +1,28 @@
+import { describe, expect, it } from 'vitest';
+import { isOrgAdminRole, isRecordOnAccessibleTeam } from './teamAccessScope';
+
+describe('isRecordOnAccessibleTeam', () => {
+  it('allows org admins to see any team including unassigned', () => {
+    expect(isRecordOnAccessibleTeam(true, [], 'team-b')).toBe(true);
+    expect(isRecordOnAccessibleTeam(true, ['team-a'], null)).toBe(true);
+  });
+
+  it('scopes non-admins to teams they belong to', () => {
+    expect(isRecordOnAccessibleTeam(false, ['team-a'], 'team-a')).toBe(true);
+    expect(isRecordOnAccessibleTeam(false, ['team-a'], 'team-b')).toBe(false);
+  });
+
+  it('hides unassigned records from non-admins', () => {
+    expect(isRecordOnAccessibleTeam(false, ['team-a'], null)).toBe(false);
+    expect(isRecordOnAccessibleTeam(false, ['team-a'], undefined)).toBe(false);
+  });
+});
+
+describe('isOrgAdminRole', () => {
+  it('treats owner and admin as org admins', () => {
+    expect(isOrgAdminRole('owner')).toBe(true);
+    expect(isOrgAdminRole('admin')).toBe(true);
+    expect(isOrgAdminRole('member')).toBe(false);
+    expect(isOrgAdminRole(undefined)).toBe(false);
+  });
+});

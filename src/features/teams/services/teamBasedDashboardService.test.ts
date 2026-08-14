@@ -74,4 +74,15 @@ describe('dashboard team scope (#1075)', () => {
     expect(equipmentChain.eq).toHaveBeenCalledWith('team_id', 'team-a');
     expect(teamChain.eq).toHaveBeenCalledWith('id', 'team-a');
   });
+
+  it('getTeamBasedDashboardStats scopes All teams to memberships for non-admins (RT-19)', async () => {
+    equipmentChain = createQueryChain({ data: [{ id: 'eq-cs', status: 'active' }], error: null });
+    workOrderChain = createQueryChain({ data: [{ status: 'submitted', due_date: null }], error: null });
+    teamChain = createQueryChain({ data: [{ id: 'team-cs' }], error: null });
+
+    await getTeamBasedDashboardStats('org-1', ['team-cs'], false, null);
+
+    expect(equipmentChain.in).toHaveBeenCalledWith('team_id', ['team-cs']);
+    expect(teamChain.in).toHaveBeenCalledWith('id', ['team-cs']);
+  });
 });
