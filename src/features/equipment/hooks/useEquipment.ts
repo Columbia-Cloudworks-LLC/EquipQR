@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, UseQueryResult } from '@tanstack/react-query';
 import {
   EquipmentService,
   EquipmentFilters,
@@ -6,6 +6,7 @@ import {
   EquipmentSummary,
   EquipmentListFilters,
   EquipmentListResult,
+  EquipmentWithTeam,
 } from '@/features/equipment/services/EquipmentService';
 import { PaginationParams } from '@/services/base/BaseService';
 import {
@@ -172,17 +173,18 @@ export const useEquipmentById = (
     userTeamIds?: string[];
     isOrgAdmin?: boolean;
   }
-) => {
+): UseQueryResult<EquipmentWithTeam | undefined, Error> => {
   const { enableSync, staleTime } = resolveEquipmentQuerySyncOptions(options);
   const teamScope = resolveTeamReadScope(options);
 
   const query = useQuery({
     queryKey:
       organizationId && equipmentId
-        ? [
-            ...equipmentKeys.byId(organizationId, equipmentId),
+        ? equipmentKeys.byIdScoped(
+            organizationId,
+            equipmentId,
             teamAccessQueryScope(teamScope.isOrgAdmin, teamScope.userTeamIds),
-          ]
+          )
         : ['equipment', organizationId, equipmentId],
     queryFn: async () => {
       if (!organizationId || !equipmentId) return undefined;

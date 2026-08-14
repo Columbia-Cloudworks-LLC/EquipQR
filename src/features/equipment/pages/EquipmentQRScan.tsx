@@ -57,7 +57,7 @@ function getStatusLabel(status: EquipmentStatus): string {
   return status.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
 }
 
-const EquipmentQRScan = () => {
+const EquipmentQRScan = (): React.JSX.Element => {
   const { equipmentId } = useParams<{ equipmentId: string }>();
   const [searchParams] = useSearchParams();
   const orgIdFromUrl = searchParams.get('org') ?? undefined;

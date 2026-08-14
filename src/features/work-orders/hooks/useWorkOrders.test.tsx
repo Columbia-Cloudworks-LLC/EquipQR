@@ -19,6 +19,7 @@ import {
   useFilteredWorkOrders,
   workOrderKeys
 } from './useWorkOrders';
+import { workOrders as workOrderLibKeys } from '@/lib/queryKeys';
 import { workOrders, organizations, teams, equipment } from '@vitest-harness/fixtures/entities';
 import { personas } from '@vitest-harness/fixtures/personas';
 
@@ -421,6 +422,11 @@ describe('useWorkOrders', () => {
     it('generates correct detail key', () => {
       const key = workOrderKeys.detail(organizations.acme.id, 'wo-1');
       expect(key).toEqual(['work-orders', 'detail', organizations.acme.id, 'wo-1']);
+    });
+
+    it('detailScoped factory prefixes the detail key', () => {
+      const key = workOrderLibKeys.detailScoped(organizations.acme.id, 'wo-1', 'none');
+      expect(key).toEqual([...workOrderKeys.detail(organizations.acme.id, 'wo-1'), 'none']);
     });
 
     it('generates correct myWorkOrders key', () => {

@@ -1,5 +1,6 @@
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentSummaries, useEquipmentById } from '@/features/equipment/hooks/useEquipment';
+import type { EquipmentSummary, EquipmentWithTeam } from '@/features/equipment/services/EquipmentService';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
 import { isOrgAdminRole } from '@/features/teams/utils/teamAccessScope';
 import type { WorkOrder as EnhancedWorkOrder } from '@/features/work-orders/types/workOrder';
@@ -7,6 +8,12 @@ import type { WorkOrder as EnhancedWorkOrder } from '@/features/work-orders/type
 interface UseEquipmentSelectionProps {
   equipmentId?: string;
   workOrder?: EnhancedWorkOrder;
+}
+
+export interface UseEquipmentSelectionResult {
+  allEquipment: EquipmentSummary[];
+  preSelectedEquipment: EquipmentWithTeam | undefined;
+  isEquipmentPreSelected: boolean;
 }
 
 /**
@@ -17,7 +24,10 @@ interface UseEquipmentSelectionProps {
  * loaded as a full record because `useEquipmentById` is what the form's
  * read-only display actually consumes.
  */
-export const useEquipmentSelection = ({ equipmentId, workOrder }: UseEquipmentSelectionProps) => {
+export const useEquipmentSelection = ({
+  equipmentId,
+  workOrder,
+}: UseEquipmentSelectionProps): UseEquipmentSelectionResult => {
   const { currentOrganization } = useOrganization();
   const { getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
   const isOrgAdmin = isOrgAdminRole(currentOrganization?.userRole);
