@@ -33,9 +33,15 @@ export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId
   const viewingOfflinePlaceholder = isOfflineId(workOrderId || '');
   const isOrgAdmin = isOrgAdminRole(currentOrganization?.userRole);
 
+  const teamsReady = isOrgAdmin || !teamsLoading;
   const { data: serverWorkOrder, isLoading: workOrderLoading } = useWorkOrderById(
     currentOrganization?.id || '',
     viewingOfflinePlaceholder ? '' : workOrderId || '',
+    {
+      userTeamIds: isOrgAdmin ? undefined : getUserTeamIds(),
+      isOrgAdmin,
+      enabled: teamsReady,
+    },
   );
   const offlineWorkOrder = useOfflineQueuedWorkOrder(workOrderId);
   const fetchedWorkOrder = serverWorkOrder ?? offlineWorkOrder ?? undefined;

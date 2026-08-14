@@ -22,6 +22,7 @@ import {
   buildWorkOrderListSelect,
   requiresEquipmentInnerJoin,
   resolveWorkOrderTeamScope,
+  withWorkOrderEquipmentInnerJoin,
 } from '@/features/work-orders/services/workOrderListQueryHelpers';
 
 // Re-export types for backward compatibility
@@ -111,14 +112,33 @@ export class WorkOrderService extends BaseService {
    * Get work order by ID with organization validation
    * Uses optimized query with joins
    */
-  async getById(id: string): Promise<ApiResponse<WorkOrder>> {
+  async getById(
+    id: string,
+    filters: { userTeamIds?: string[]; isOrgAdmin?: boolean } = {},
+  ): Promise<ApiResponse<WorkOrder>> {
     try {
-      const { data, error } = await supabase
+      const teamScope = resolveWorkOrderTeamScope(filters);
+
+      if (teamScope.userTeams !== undefined && teamScope.userTeams.length === 0) {
+        return this.handleError(new Error('Work order not found'));
+      }
+
+      const needsEquipmentInnerJoin = requiresEquipmentInnerJoin(teamScope);
+      let query = supabase
         .from('work_orders')
-        .select(WORK_ORDER_SELECT)
+        .select(
+          needsEquipmentInnerJoin
+            ? withWorkOrderEquipmentInnerJoin(WORK_ORDER_SELECT)
+            : WORK_ORDER_SELECT,
+        )
         .eq('id', id)
-        .eq('organization_id', this.organizationId)
-        .single();
+        .eq('organization_id', this.organizationId);
+
+      if (teamScope.userTeams && teamScope.userTeams.length > 0) {
+        query = query.in('equipment.team_id', teamScope.userTeams);
+      }
+
+      const { data, error } = await query.single();
 
       if (error) {
         logger.error('Error fetching work order by ID:', error);

@@ -339,8 +339,26 @@ describe('useWorkOrders', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(mockService.getById).toHaveBeenCalledWith(workOrders.submitted.id);
+      expect(mockService.getById).toHaveBeenCalledWith(workOrders.submitted.id, {
+        userTeamIds: undefined,
+        isOrgAdmin: undefined,
+      });
       expect(result.current.data?.id).toBe(workOrders.submitted.id);
+    });
+
+    it('does not fetch until enabled after team membership resolves', () => {
+      const { result } = renderHook(
+        () =>
+          useWorkOrderById(organizations.acme.id, workOrders.submitted.id, {
+            userTeamIds: ['team-cs'],
+            isOrgAdmin: false,
+            enabled: false,
+          }),
+        { wrapper: createWrapper() },
+      );
+
+      expect(result.current.fetchStatus).toBe('idle');
+      expect(mockService.getById).not.toHaveBeenCalled();
     });
 
     it('returns null for non-existent work order', async () => {

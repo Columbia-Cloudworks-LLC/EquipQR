@@ -5,6 +5,14 @@ export type WorkOrderTeamScope = {
   teamFilter?: string;
 };
 
+const EQUIPMENT_JOIN = 'equipment:equipment!work_orders_equipment_id_fkey (';
+const EQUIPMENT_INNER_JOIN = 'equipment:equipment!work_orders_equipment_id_fkey!inner (';
+
+/** Inner-join equipment so PostgREST can filter on `equipment.team_id`. */
+export function withWorkOrderEquipmentInnerJoin(select: string): string {
+  return select.replace(EQUIPMENT_JOIN, EQUIPMENT_INNER_JOIN);
+}
+
 /**
  * Builds the work-order list select string, optionally requiring an inner join
  * on equipment so team filters can be applied in the same query.
@@ -14,10 +22,7 @@ export function buildWorkOrderListSelect(requireEquipmentInnerJoin: boolean): st
     return WORK_ORDER_LIST_SELECT;
   }
 
-  return WORK_ORDER_LIST_SELECT.replace(
-    'equipment:equipment!work_orders_equipment_id_fkey (',
-    'equipment:equipment!work_orders_equipment_id_fkey!inner (',
-  );
+  return withWorkOrderEquipmentInnerJoin(WORK_ORDER_LIST_SELECT);
 }
 
 export function resolveWorkOrderTeamScope(

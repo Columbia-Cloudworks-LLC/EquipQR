@@ -235,7 +235,12 @@ export const useWorkOrdersDueToday = (
  */
 export const useWorkOrderById = (
   organizationId: string,
-  workOrderId: string
+  workOrderId: string,
+  options?: {
+    userTeamIds?: string[];
+    isOrgAdmin?: boolean;
+    enabled?: boolean;
+  },
 ): UseQueryResult<WorkOrder | null, Error> => {
   return useQuery({
     queryKey: workOrderKeys.detail(organizationId, workOrderId),
@@ -243,7 +248,10 @@ export const useWorkOrderById = (
       if (!organizationId || !workOrderId) return null;
       
       const service = new WorkOrderService(organizationId);
-      const result = await service.getById(workOrderId);
+      const result = await service.getById(workOrderId, {
+        userTeamIds: options?.userTeamIds,
+        isOrgAdmin: options?.isOrgAdmin,
+      });
       
       if (result.success && result.data) {
         return result.data;
@@ -256,7 +264,7 @@ export const useWorkOrderById = (
       
       throw new Error(result.error || 'Failed to fetch work order');
     },
-    enabled: !!organizationId && !!workOrderId,
+    enabled: !!organizationId && !!workOrderId && (options?.enabled ?? true),
     staleTime: DEFAULT_STALE_TIME,
     persister: fieldReadPersister(),
   });

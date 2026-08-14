@@ -167,6 +167,9 @@ export const useEquipmentById = (
   options?: {
     enableBackgroundSync?: boolean;
     staleTime?: number;
+    enabled?: boolean;
+    userTeamIds?: string[];
+    isOrgAdmin?: boolean;
   }
 ) => {
   const { enableSync, staleTime } = resolveEquipmentQuerySyncOptions(options);
@@ -178,13 +181,16 @@ export const useEquipmentById = (
         : ['equipment', organizationId, equipmentId],
     queryFn: async () => {
       if (!organizationId || !equipmentId) return undefined;
-      const result = await EquipmentService.getById(organizationId, equipmentId);
+      const result = await EquipmentService.getById(organizationId, equipmentId, {
+        userTeamIds: options?.userTeamIds,
+        isOrgAdmin: options?.isOrgAdmin,
+      });
       if (result.success && result.data) {
         return result.data;
       }
       throw new Error(result.error || 'Equipment not found');
     },
-    enabled: !!organizationId && !!equipmentId,
+    enabled: !!organizationId && !!equipmentId && (options?.enabled ?? true),
     staleTime,
     persister: fieldReadPersister(),
   });

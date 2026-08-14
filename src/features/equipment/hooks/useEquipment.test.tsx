@@ -183,9 +183,25 @@ describe('useEquipment', () => {
 
       expect(EquipmentService.getById).toHaveBeenCalledWith(
         organizations.acme.id,
-        equipment.forklift1.id
+        equipment.forklift1.id,
+        { userTeamIds: undefined, isOrgAdmin: undefined },
       );
       expect(result.current.data?.id).toBe(equipment.forklift1.id);
+    });
+
+    it('does not fetch until enabled after team membership resolves', () => {
+      const { result } = renderHook(
+        () =>
+          useEquipmentById(organizations.acme.id, equipment.forklift1.id, {
+            userTeamIds: ['team-cs'],
+            isOrgAdmin: false,
+            enabled: false,
+          }),
+        { wrapper: createWrapper() },
+      );
+
+      expect(result.current.fetchStatus).toBe('idle');
+      expect(EquipmentService.getById).not.toHaveBeenCalled();
     });
 
     it('is disabled without equipmentId', () => {
@@ -488,7 +504,8 @@ describe('useEquipment', () => {
 
       expect(EquipmentService.getById).toHaveBeenCalledWith(
         organizations.acme.id,
-        equipment.forklift1.id
+        equipment.forklift1.id,
+        { userTeamIds: undefined, isOrgAdmin: undefined },
       );
     });
   });

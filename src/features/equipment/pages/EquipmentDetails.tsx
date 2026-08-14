@@ -71,12 +71,18 @@ const EquipmentDetails = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { currentOrganization, isLoading: orgLoading } = useOrganization();
+  const { getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
+  const isOrgAdmin = isOrgAdminRole(currentOrganization?.userRole);
+  const teamsReady = isOrgAdmin || !teamsLoading;
   const { data: equipment, isLoading: equipmentLoading } = useEquipmentById(
     currentOrganization?.id || '',
     equipmentId,
+    {
+      userTeamIds: isOrgAdmin ? undefined : getUserTeamIds(),
+      isOrgAdmin,
+      enabled: teamsReady,
+    },
   );
-  const { getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
-  const isOrgAdmin = isOrgAdminRole(currentOrganization?.userRole);
   const isMobile = useIsMobile();
   const isQRScan = searchParams.get('qr') === 'true';
   const { canView: canViewInventory, isLoading: inventoryAccessLoading } = useInventoryAccess();
