@@ -113,6 +113,7 @@ describe('TeamLocationEditorDialog', () => {
           location_lat: 32.77,
           location_lng: -96.79,
         }),
+        'org-1',
       );
     });
   });

@@ -113,9 +113,13 @@ describe('TeamMetadataEditor', () => {
     await user.click(screen.getByRole('button', { name: 'Save Changes' }));
 
     await waitFor(() => {
-      expect(mockUpdateTeam).toHaveBeenCalledWith('team-1', expect.objectContaining({
-        name: 'Maintenance Team',
-      }));
+      expect(mockUpdateTeam).toHaveBeenCalledWith(
+        'team-1',
+        expect.objectContaining({
+          name: 'Maintenance Team',
+        }),
+        'org-1',
+      );
     });
 
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['team', 'team-1'] });
@@ -140,9 +144,13 @@ describe('TeamMetadataEditor', () => {
     await user.click(screen.getByRole('button', { name: 'Save Changes' }));
 
     await waitFor(() => {
-      expect(mockUpdateTeam).toHaveBeenCalledWith('team-1', expect.objectContaining({
-        name: 'Maintenance Team',
-      }));
+      expect(mockUpdateTeam).toHaveBeenCalledWith(
+        'team-1',
+        expect.objectContaining({
+          name: 'Maintenance Team',
+        }),
+        'org-1',
+      );
     });
 
     expect(mockUpsertPolicy).not.toHaveBeenCalled();
