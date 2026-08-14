@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { isOrgAdminRole, isRecordOnAccessibleTeam } from './teamAccessScope';
+import {
+  areRecordsOnAccessibleTeam,
+  isOrgAdminRole,
+  isRecordOnAccessibleTeam,
+} from './teamAccessScope';
 
 describe('isRecordOnAccessibleTeam', () => {
   it('allows org admins to see any team including unassigned', () => {
@@ -15,6 +19,17 @@ describe('isRecordOnAccessibleTeam', () => {
   it('hides unassigned records from non-admins', () => {
     expect(isRecordOnAccessibleTeam(false, ['team-a'], null)).toBe(false);
     expect(isRecordOnAccessibleTeam(false, ['team-a'], undefined)).toBe(false);
+  });
+});
+
+describe('areRecordsOnAccessibleTeam', () => {
+  it('rejects a work order whose equipment team is outside membership', () => {
+    expect(areRecordsOnAccessibleTeam(false, ['team-cs'], 'team-cs', 'team-fleet')).toBe(false);
+    expect(areRecordsOnAccessibleTeam(false, ['team-cs'], 'team-cs', 'team-cs')).toBe(true);
+  });
+
+  it('rejects when every team id is missing', () => {
+    expect(areRecordsOnAccessibleTeam(false, ['team-cs'], null, undefined)).toBe(false);
   });
 });
 

@@ -8,7 +8,7 @@ import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
 import { usePMByWorkOrderAndEquipment } from '@/features/pm-templates/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
-import { isOrgAdminRole, isRecordOnAccessibleTeam } from '@/features/teams/utils/teamAccessScope';
+import { areRecordsOnAccessibleTeam, isOrgAdminRole } from '@/features/teams/utils/teamAccessScope';
 import {
   canAddWorkOrderNotes,
   canUsePrivateWorkOrderNotes,
@@ -39,10 +39,11 @@ export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId
   );
   const offlineWorkOrder = useOfflineQueuedWorkOrder(workOrderId);
   const fetchedWorkOrder = serverWorkOrder ?? offlineWorkOrder ?? undefined;
-  const workOrderAccessible = isRecordOnAccessibleTeam(
+  const workOrderAccessible = areRecordsOnAccessibleTeam(
     isOrgAdmin,
     getUserTeamIds(),
     fetchedWorkOrder?.team_id,
+    fetchedWorkOrder?.equipmentTeamId,
   );
   const workOrder = workOrderAccessible ? fetchedWorkOrder : undefined;
 
