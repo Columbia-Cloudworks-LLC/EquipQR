@@ -66,8 +66,8 @@ class TeamRepository {
   /**
    * Get team by ID with members
    */
-  static async getTeamById(teamId: string): Promise<TeamWithMembers | null> {
-    const team = await getTeamByIdOptimized(teamId);
+  static async getTeamById(teamId: string, organizationId: string): Promise<TeamWithMembers | null> {
+    const team = await getTeamByIdOptimized(teamId, organizationId);
     if (!team) return null;
 
     const members = await getTeamMembersOptimized(teamId);
@@ -133,15 +133,15 @@ class TeamRepository {
   /**
    * Delete a team
    */
-  static async deleteTeam(teamId: string): Promise<void> {
-    return deleteTeamService(teamId);
+  static async deleteTeam(teamId: string, organizationId: string): Promise<void> {
+    return deleteTeamService(teamId, organizationId);
   }
 
   /**
    * Update team information
    */
-  static async updateTeam(teamId: string, updates: TeamUpdate) {
-    return updateTeamService(teamId, updates);
+  static async updateTeam(teamId: string, updates: TeamUpdate, organizationId: string) {
+    return updateTeamService(teamId, updates, organizationId);
   }
 }
 

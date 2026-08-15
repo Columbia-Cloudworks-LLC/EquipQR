@@ -17,6 +17,10 @@ import { CcpaRightsList } from '@/components/legal/CcpaRightsList';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  PRIVACY_REQUEST_DETAILS_MAX_LENGTH,
+  PRIVACY_REQUEST_NAME_MAX_LENGTH,
+} from '@/features/legal/privacyRequestLimits';
 import HCaptchaComponent from '@/components/ui/HCaptcha';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -167,6 +171,7 @@ export default function PrivacyRequest() {
                       id="fullName"
                       type="text"
                       required
+                      maxLength={PRIVACY_REQUEST_NAME_MAX_LENGTH}
                       placeholder="Jane Doe"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
@@ -212,6 +217,7 @@ export default function PrivacyRequest() {
                     id="details"
                     placeholder="Provide any additional context that may help us process your request (optional)."
                     rows={4}
+                    maxLength={PRIVACY_REQUEST_DETAILS_MAX_LENGTH}
                     value={details}
                     onChange={(e) => setDetails(e.target.value)}
                   />

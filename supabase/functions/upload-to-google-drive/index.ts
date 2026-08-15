@@ -14,6 +14,7 @@ import {
   createErrorResponse,
   handleCorsPreflightIfNeeded,
 } from "../_shared/supabase-clients.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { GoogleWorkspaceTokenError } from "../_shared/google-workspace-token.ts";
 import { trackGoogleDriveExportArtifact } from "../_shared/record-export-artifacts.ts";
 import {
@@ -38,15 +39,16 @@ const PDF_ARTIFACT_KIND = "service_report_pdf";
 Deno.serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     if (req.method !== "POST") {
-      return createErrorResponse("Method not allowed", 405);
+      return createErrorResponse("Method not allowed", 405, { req });
     }
 
     const contentLength = req.headers.get("Content-Length");
     if (contentLength && parseInt(contentLength, 10) >= MAX_FILE_SIZE_BYTES * 1.4) {
-      return createErrorResponse("File too large. File must be less than 15 MB.", 413);
+      return createErrorResponse("File too large. File must be less than 15 MB.", 413, { req });
     }
 
     const supabase = createUserSupabaseClient(req);
@@ -55,7 +57,7 @@ Deno.serve(async (req) => {
     try {
       body = await req.json();
     } catch {
-      return createErrorResponse("Invalid JSON body", 400);
+      return createErrorResponse("Invalid JSON body", 400, { req });
     }
 
     const {
@@ -71,6 +73,7 @@ Deno.serve(async (req) => {
       return createErrorResponse(
         `Unsupported format. Allowed types: ${ALLOWED_MIME_TYPES.join(", ")}`,
         400,
+        { req },
       );
     }
 
@@ -82,14 +85,14 @@ Deno.serve(async (req) => {
     const { destination, accessToken, userId } = authResult;
 
     if (!filename) {
-      return createErrorResponse("Missing required field: filename", 400);
+      return createErrorResponse("Missing required field: filename", 400, { req });
     }
     if (!contentBase64) {
-      return createErrorResponse("Missing required field: contentBase64", 400);
+      return createErrorResponse("Missing required field: contentBase64", 400, { req });
     }
 
     if (!isDecodedSizeAllowed(contentBase64)) {
-      return createErrorResponse("File too large. File must be less than 15 MB.", 413);
+      return createErrorResponse("File too large. File must be less than 15 MB.", 413, { req });
     }
 
     const sanitizedFilename = sanitizeFilename(filename);
@@ -109,6 +112,7 @@ Deno.serve(async (req) => {
       return createErrorResponse(
         "Invalid base64 content. The file data may be corrupted or incorrectly encoded.",
         400,
+        { req },
       );
     }
 
@@ -143,7 +147,7 @@ Deno.serve(async (req) => {
       );
     } catch (uploadError) {
       if (uploadError instanceof GoogleWorkspaceTokenError) {
-        return tokenErrorResponse(uploadError);
+        return tokenErrorResponse(uploadError, corsHeaders);
       }
       throw uploadError;
     }
@@ -173,11 +177,12 @@ Deno.serve(async (req) => {
     logStep("Upload complete", { fileId: driveFile.id, webViewLink, replacedPrevious });
     return driveUploadSuccessResponse(
       { ...driveFile, webViewLink },
+      corsHeaders,
       { replacedPrevious, warnings: warnings.length > 0 ? warnings : undefined },
     );
   } catch (error) {
     console.error("[UPLOAD-TO-GOOGLE-DRIVE] Upload error:", error);
     const message = error instanceof Error ? error.message : String(error);
-    return createErrorResponse(message || "An unexpected error occurred", 500);
+    return createErrorResponse(message || "An unexpected error occurred", 500, { req });
   }
 });

@@ -3,6 +3,7 @@ import {
   buildWorkOrderListSelect,
   requiresEquipmentInnerJoin,
   resolveWorkOrderTeamScope,
+  withWorkOrderEquipmentInnerJoin,
 } from './workOrderListQueryHelpers';
 import { WORK_ORDER_LIST_SELECT } from './workOrderRowMapper';
 
@@ -18,6 +19,7 @@ describe('workOrderListQueryHelpers', () => {
     expect(select).toContain('equipment!work_orders_equipment_id_fkey!inner');
     expect(requiresEquipmentInnerJoin({ userTeams: ['team-1'] })).toBe(true);
     expect(requiresEquipmentInnerJoin({ teamFilter: 'team-1' })).toBe(true);
+    expect(withWorkOrderEquipmentInnerJoin(WORK_ORDER_LIST_SELECT)).toBe(select);
   });
 
   it('resolves team scope from filters', () => {

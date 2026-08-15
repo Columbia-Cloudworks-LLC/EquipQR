@@ -69,7 +69,7 @@ export function TeamLocationEditorDialog({
         updates.location_lng = editor.pendingPlace.lng ?? null;
       }
 
-      await updateTeam(team.id, updates);
+      await updateTeam(team.id, updates, team.organization_id);
       await queryClient.invalidateQueries({ queryKey: ['team', team.id] });
       await queryClient.invalidateQueries({ queryKey: ['teams'] });
 
@@ -87,7 +87,7 @@ export function TeamLocationEditorDialog({
     } finally {
       setIsSaving(false);
     }
-  }, [editor.isCleared, editor.pendingPlace, onOpenChange, queryClient, team.id, toast]);
+  }, [editor.isCleared, editor.pendingPlace, onOpenChange, queryClient, team.id, team.organization_id, toast]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

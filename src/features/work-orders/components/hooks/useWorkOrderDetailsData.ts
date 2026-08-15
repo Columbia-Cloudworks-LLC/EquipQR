@@ -8,6 +8,7 @@ import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
 import { usePMByWorkOrderAndEquipment } from '@/features/pm-templates/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
+import { areRecordsOnAccessibleTeam, isOrgAdminRole } from '@/features/teams/utils/teamAccessScope';
 import {
   canAddWorkOrderNotes,
   canUsePrivateWorkOrderNotes,
@@ -28,19 +29,38 @@ import type { Tables } from '@/integrations/supabase/types';
 export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId?: string) => {
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
-  const { teamMemberships } = useTeamMembership();
+  const { teamMemberships, getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
   const viewingOfflinePlaceholder = isOfflineId(workOrderId || '');
+  const isOrgAdmin = isOrgAdminRole(currentOrganization?.userRole);
 
+  const teamsReady = isOrgAdmin || !teamsLoading;
   const { data: serverWorkOrder, isLoading: workOrderLoading } = useWorkOrderById(
     currentOrganization?.id || '',
     viewingOfflinePlaceholder ? '' : workOrderId || '',
+    {
+      userTeamIds: isOrgAdmin ? undefined : getUserTeamIds(),
+      isOrgAdmin,
+      enabled: teamsReady,
+    },
   );
   const offlineWorkOrder = useOfflineQueuedWorkOrder(workOrderId);
-  const workOrder = serverWorkOrder ?? offlineWorkOrder ?? undefined;
+  const fetchedWorkOrder = serverWorkOrder ?? offlineWorkOrder ?? undefined;
+  const workOrderAccessible = areRecordsOnAccessibleTeam(
+    isOrgAdmin,
+    getUserTeamIds(),
+    fetchedWorkOrder?.team_id,
+    fetchedWorkOrder?.equipmentTeamId,
+  );
+  const workOrder = workOrderAccessible ? fetchedWorkOrder : undefined;
 
   const { data: freshEquipment } = useEquipmentById(
     currentOrganization?.id,
-    workOrder?.equipment_id
+    workOrder?.equipment_id,
+    {
+      userTeamIds: isOrgAdmin ? undefined : getUserTeamIds(),
+      isOrgAdmin,
+      enabled: teamsReady,
+    },
   );
   const equipment = freshEquipment ?? workOrder?.equipment ?? undefined;
 
@@ -92,7 +112,7 @@ export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId
     workOrder,
     equipment,
     pmData,
-    workOrderLoading,
+    workOrderLoading: workOrderLoading || (!isOrgAdmin && teamsLoading),
     pmLoading,
     pmError, // Expose PM query error state
     permissionLevels,

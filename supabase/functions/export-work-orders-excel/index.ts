@@ -14,7 +14,7 @@ import {
   handleCorsPreflightIfNeeded,
   requireAuthenticatedPost,
 } from "../_shared/supabase-clients.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import {
   fetchWorkOrdersWithData,
   buildAllRows,
@@ -151,6 +151,7 @@ function generateWorkbook(
 Deno.serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     const authContext = await requireAuthenticatedPost(req);
@@ -164,29 +165,29 @@ Deno.serve(async (req) => {
     try {
       parsedBody = await req.json();
     } catch {
-      return createErrorResponse('Invalid JSON body', 400);
+      return createErrorResponse('Invalid JSON body', 400, { req });
     }
 
     if (parsedBody == null || typeof parsedBody !== 'object' || Array.isArray(parsedBody)) {
-      return createErrorResponse('Invalid request body', 400);
+      return createErrorResponse('Invalid request body', 400, { req });
     }
 
     const body = parsedBody as ExportRequest;
     const { organizationId, filters: requestFilters } = body;
 
     if (requestFilters != null && (typeof requestFilters !== 'object' || Array.isArray(requestFilters))) {
-      return createErrorResponse('Invalid filters', 400);
+      return createErrorResponse('Invalid filters', 400, { req });
     }
 
     const filters = requestFilters ?? { dateField: 'created_date' as const };
 
     if (!organizationId) {
-      return createErrorResponse('Missing required field: organizationId', 400);
+      return createErrorResponse('Missing required field: organizationId', 400, { req });
     }
 
     const worksheetSelection = parseWorksheetSelection(filters.worksheets);
     if (!worksheetSelection.ok) {
-      return createErrorResponse('Invalid worksheets selection', 400);
+      return createErrorResponse('Invalid worksheets selection', 400, { req });
     }
 
     const normalizedFilters = {
@@ -196,7 +197,7 @@ Deno.serve(async (req) => {
 
     const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
     if (!isAdmin) {
-      return createErrorResponse('Forbidden: Only owners and admins can export reports', 403);
+      return createErrorResponse('Forbidden: Only owners and admins can export reports', 403, { req });
     }
 
     let rateLimitOk: boolean;
@@ -204,7 +205,7 @@ Deno.serve(async (req) => {
       rateLimitOk = await checkRateLimit(supabase, user.id, organizationId);
     } catch (rateLimitError) {
       console.error('[EXPORT-WORK-ORDERS-EXCEL] Rate limit check error:', rateLimitError);
-      return createErrorResponse('An internal error occurred', 500);
+      return createErrorResponse('An internal error occurred', 500, { req });
     }
     if (!rateLimitOk) {
       return createWorkOrderExportRateLimitResponse(corsHeaders);
@@ -273,6 +274,6 @@ Deno.serve(async (req) => {
     }
   } catch (error) {
     console.error('[EXPORT-WORK-ORDERS-EXCEL] Export error:', error);
-    return createErrorResponse("An unexpected error occurred", 500);
+    return createErrorResponse("An unexpected error occurred", 500, { req });
   }
 });

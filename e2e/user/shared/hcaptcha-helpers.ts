@@ -12,8 +12,6 @@ export type HcaptchaState = 'absent' | 'solved' | 'manual';
  * fully exercised in E2E. Real sitekeys cannot be automated ('manual').
  */
 export async function solveHcaptchaIfPresent(page: Page): Promise<HcaptchaState> {
-  // hCaptcha renders two iframes (checkbox widget + challenge); the sitekey
-  // is carried in the iframe fragment/query. Inspect all of them.
   const frames = page.locator('iframe[src*="hcaptcha"]');
   const frameCount = await frames.count();
   if (frameCount === 0) return 'absent';
@@ -23,10 +21,13 @@ export async function solveHcaptchaIfPresent(page: Page): Promise<HcaptchaState>
     const src = (await frames.nth(i).getAttribute('src')) ?? '';
     if (src.includes(HCAPTCHA_TEST_SITEKEY)) sawTestSitekey = true;
   }
-  if (!sawTestSitekey) return 'manual';
+  const testingOnlyBanner = await page.getByText(/this captcha is for testing only/i).count();
+  if (!sawTestSitekey && testingOnlyBanner === 0) return 'manual';
 
-  const checkboxWidget = 'iframe[src*="hcaptcha"][title*="checkbox" i]';
-  const checkbox = page.frameLocator(checkboxWidget).locator('#checkbox');
+  const titledCheckboxFrame = page.locator('iframe[src*="hcaptcha"][title*="checkbox" i]');
+  const checkboxFrame =
+    (await titledCheckboxFrame.count()) > 0 ? titledCheckboxFrame.first() : frames.first();
+  const checkbox = checkboxFrame.contentFrame().locator('#checkbox');
   await expect(checkbox).toBeVisible({ timeout: 15_000 });
   await checkbox.click();
   await expect(checkbox).toHaveAttribute('aria-checked', 'true', { timeout: 15_000 });

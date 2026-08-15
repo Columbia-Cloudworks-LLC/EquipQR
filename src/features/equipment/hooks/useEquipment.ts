@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, UseQueryResult } from '@tanstack/react-query';
 import {
   EquipmentService,
   EquipmentFilters,
@@ -6,6 +6,7 @@ import {
   EquipmentSummary,
   EquipmentListFilters,
   EquipmentListResult,
+  EquipmentWithTeam,
 } from '@/features/equipment/services/EquipmentService';
 import { PaginationParams } from '@/services/base/BaseService';
 import {
@@ -16,6 +17,7 @@ import { useAppToast } from '@/hooks/useAppToast';
 import { createScopedQueryPersister } from '@/lib/queryPersistence';
 import { equipment as equipmentKeys } from '@/lib/queryKeys';
 import { getScanFollowUpEventsByEquipmentId } from '@/features/equipment/services/scanFollowUpEventService';
+import { teamAccessQueryScope, resolveTeamReadScope } from '@/features/teams/utils/teamAccessScope';
 
 /**
  * Stable references for the empty default arguments used by `useEquipment`.
@@ -167,24 +169,35 @@ export const useEquipmentById = (
   options?: {
     enableBackgroundSync?: boolean;
     staleTime?: number;
+    enabled?: boolean;
+    userTeamIds?: string[];
+    isOrgAdmin?: boolean;
   }
-) => {
+): UseQueryResult<EquipmentWithTeam | undefined, Error> => {
   const { enableSync, staleTime } = resolveEquipmentQuerySyncOptions(options);
+  const teamScope = resolveTeamReadScope(options);
 
   const query = useQuery({
     queryKey:
       organizationId && equipmentId
-        ? equipmentKeys.byId(organizationId, equipmentId)
+        ? equipmentKeys.byIdScoped(
+            organizationId,
+            equipmentId,
+            teamAccessQueryScope(teamScope.isOrgAdmin, teamScope.userTeamIds),
+          )
         : ['equipment', organizationId, equipmentId],
     queryFn: async () => {
       if (!organizationId || !equipmentId) return undefined;
-      const result = await EquipmentService.getById(organizationId, equipmentId);
+      const result = await EquipmentService.getById(organizationId, equipmentId, {
+        userTeamIds: teamScope.userTeamIds,
+        isOrgAdmin: teamScope.isOrgAdmin,
+      });
       if (result.success && result.data) {
         return result.data;
       }
       throw new Error(result.error || 'Equipment not found');
     },
-    enabled: !!organizationId && !!equipmentId,
+    enabled: !!organizationId && !!equipmentId && (options?.enabled ?? true),
     staleTime,
     persister: fieldReadPersister(),
   });

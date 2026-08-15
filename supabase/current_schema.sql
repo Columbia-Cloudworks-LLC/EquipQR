@@ -14129,6 +14129,7 @@ DECLARE
   v_submission_id uuid;
   v_submitted_at timestamptz := now();
   v_recent_count integer;
+  v_day_start timestamptz := date_trunc('day', timezone('utc', now())) AT TIME ZONE 'utc';
 BEGIN
   SELECT s.id, s.organization_id, s.equipment_id, s.template_id, s.enabled, tpl.is_active
   INTO v_settings
@@ -14143,13 +14144,26 @@ BEGIN
     RAISE EXCEPTION 'Check-in is not available';
   END IF;
 
+  PERFORM pg_advisory_xact_lock(hashtext('operator_checkin:' || v_settings.id::text));
+
+  IF EXISTS (
+    SELECT 1
+    FROM public.operator_checkin_submissions sub
+    WHERE sub.settings_id = v_settings.id
+      AND sub.organization_id = v_settings.organization_id
+      AND sub.submitted_at >= v_day_start
+      AND sub.submitted_at < v_day_start + interval '1 day'
+  ) THEN
+    RAISE EXCEPTION 'Check-in already submitted today.';
+  END IF;
+
   SELECT count(*)::integer INTO v_recent_count
   FROM public.operator_checkin_submissions sub
   WHERE sub.settings_id = v_settings.id
     AND sub.organization_id = v_settings.organization_id
     AND sub.submitted_at >= (now() - interval '1 hour');
 
-  IF v_recent_count >= 20 THEN
+  IF v_recent_count >= 8 THEN
     RAISE EXCEPTION 'Too many check-ins. Please try again later.';
   END IF;
 
@@ -14206,6 +14220,8 @@ DECLARE
   v_submission_id uuid;
   v_submitted_at timestamptz := now();
   v_recent_count integer;
+  v_last_submitted_at timestamptz;
+  v_fingerprint text := left(COALESCE(p_request_fingerprint, ''), 128);
 BEGIN
   SELECT f.id, f.organization_id, f.is_active
   INTO v_form
@@ -14217,13 +14233,36 @@ BEGIN
     RAISE EXCEPTION 'Form is not available';
   END IF;
 
+  PERFORM pg_advisory_xact_lock(hashtext('quick_form:' || v_form.id::text));
+
+  SELECT max(sub.submitted_at) INTO v_last_submitted_at
+  FROM public.quick_form_submissions sub
+  WHERE sub.quick_form_id = v_form.id;
+
+  IF v_last_submitted_at IS NOT NULL
+     AND v_last_submitted_at > (now() - interval '10 minutes') THEN
+    RAISE EXCEPTION 'Please wait before submitting again.';
+  END IF;
+
   SELECT count(*)::integer INTO v_recent_count
   FROM public.quick_form_submissions sub
   WHERE sub.quick_form_id = v_form.id
     AND sub.submitted_at >= (now() - interval '1 hour');
 
-  IF v_recent_count >= 60 THEN
+  IF v_recent_count >= 5 THEN
     RAISE EXCEPTION 'Too many submissions. Please try again later.';
+  END IF;
+
+  IF length(v_fingerprint) > 0 THEN
+    SELECT count(*)::integer INTO v_recent_count
+    FROM public.quick_form_submissions sub
+    WHERE sub.quick_form_id = v_form.id
+      AND sub.request_fingerprint = v_fingerprint
+      AND sub.submitted_at >= (now() - interval '1 hour');
+
+    IF v_recent_count >= 3 THEN
+      RAISE EXCEPTION 'Too many submissions. Please try again later.';
+    END IF;
   END IF;
 
   INSERT INTO public.quick_form_submissions (
@@ -14241,7 +14280,7 @@ BEGIN
     COALESCE(p_form_snapshot, '{}'::jsonb),
     COALESCE(p_field_values, '[]'::jsonb),
     COALESCE(p_client_context, '{}'::jsonb),
-    left(COALESCE(p_request_fingerprint, ''), 128)
+    v_fingerprint
   )
   RETURNING id INTO v_submission_id;
 
@@ -22283,6 +22322,10 @@ ALTER TABLE "public"."workspace_personal_org_merge_requests" ENABLE ROW LEVEL SE
 
 
 ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
+
+
+
+
 
 
 ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."organization_members";

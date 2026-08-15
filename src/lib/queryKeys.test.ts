@@ -20,6 +20,7 @@ describe('queryKeys', () => {
     it('should create team keys', () => {
       const teamKeys = team('team-123');
       expect(teamKeys.root).toEqual(['team', 'team-123']);
+      expect(teamKeys.byOrg('org-1')).toEqual(['team', 'team-123', 'org', 'org-1']);
       expect(teamKeys.members()).toEqual(['team', 'team-123', 'members']);
       expect(teamKeys.managerCheck('user-456')).toEqual(['team', 'team-123', 'manager', 'user-456']);
     });
@@ -58,6 +59,11 @@ describe('queryKeys', () => {
     it('should create equipment byId key', () => {
       const key = equipment.byId('org-123', 'equipment-456');
       expect(key).toEqual(['equipment', 'org-123', 'equipment-456']);
+    });
+
+    it('should create equipment byIdScoped key', () => {
+      const key = equipment.byIdScoped('org-123', 'equipment-456', 'org-admin');
+      expect(key).toEqual(['equipment', 'org-123', 'equipment-456', 'org-admin']);
     });
 
     it('should create equipment notes key without orgId', () => {
@@ -120,6 +126,11 @@ describe('queryKeys', () => {
     it('should create workOrders byId key', () => {
       const key = workOrders.byId('org-123', 'workorder-456');
       expect(key).toEqual(['work-orders', 'org-123', 'workorder-456']);
+    });
+
+    it('should create workOrders detailScoped key', () => {
+      const key = workOrders.detailScoped('org-123', 'workorder-456', 'none');
+      expect(key).toEqual(['work-orders', 'detail', 'org-123', 'workorder-456', 'none']);
     });
 
     it('should create workOrders teamBased key without filters', () => {

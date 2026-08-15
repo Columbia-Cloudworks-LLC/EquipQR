@@ -227,6 +227,47 @@ describe('WorkOrderService', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
     });
+
+    it('does not query when the caller has no accessible teams', async () => {
+      const result = await service.getById('wo-1', { userTeamIds: [], isOrgAdmin: false });
+
+      expect(supabase.from).not.toHaveBeenCalled();
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/not found/i);
+    });
+
+    it('scopes the fetch to equipment on the caller accessible teams', async () => {
+      const mockWorkOrder = {
+        id: 'wo-1',
+        title: 'Work Order 1',
+        status: 'submitted',
+        priority: 'medium',
+        organization_id: 'test-org',
+        equipment: { id: 'eq-1', team_id: 'team-cs' },
+        assignee: null,
+        creator: null,
+      };
+
+      const mockQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        in: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: mockWorkOrder, error: null }),
+      };
+
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
+
+      const result = await service.getById('wo-1', {
+        userTeamIds: ['team-cs'],
+        isOrgAdmin: false,
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockQuery.in).toHaveBeenCalledWith('equipment.team_id', ['team-cs']);
+      expect(mockQuery.select.mock.calls[0][0]).toContain(
+        'equipment!work_orders_equipment_id_fkey!inner',
+      );
+    });
   });
 
   describe('create', () => {

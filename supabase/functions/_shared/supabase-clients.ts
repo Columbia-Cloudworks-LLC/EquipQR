@@ -29,8 +29,8 @@ const SUPABASE_CLIENTS_FUNCTION_TAG = "_shared/supabase-clients";
 /**
  * Options for `createErrorResponse` / `createJsonResponse`. When `req` is
  * provided the response uses origin-validated CORS headers via
- * `getCorsHeaders(req)`; otherwise it falls back to the static `corsHeaders`
- * (wildcard origin) for backward compatibility.
+ * `getCorsHeaders(req)`; otherwise it falls back to production origin
+ * (never wildcard).
  */
 export interface ResponseOptions {
   req?: Request;
@@ -517,9 +517,14 @@ const EXACT_SAFE_ERROR_MESSAGE_BY_INPUT = new Map<string, string>([
   ["Missing action or token", "Missing action or token"],
   ["Unsupported action", "Unsupported action"],
   ["Too many check-ins. Please try again later.", "Too many check-ins. Please try again later."],
+  ["This check-in was already submitted today.", "This check-in was already submitted today."],
+  ["Check-in already submitted today.", "Check-in already submitted today."],
   ["Unable to save check-in", "Unable to save check-in"],
   ["Checklist incomplete", "Checklist incomplete"],
   ["Required fields missing", "Required fields missing"],
+  ["Form is not available", "Form is not available"],
+  ["Too many submissions. Please try again later.", "Too many submissions. Please try again later."],
+  ["Unable to save submission", "Unable to save submission"],
   [
     "A similar request was already submitted recently. Please wait before submitting again",
     "A similar request was already submitted recently. Please wait before submitting again",
@@ -782,18 +787,18 @@ export function createJsonResponse<T>(
  * Handle CORS preflight requests.
  * Returns a preflight response when applicable, otherwise null.
  *
- * When `opts.useValidatedOrigin` is true, the preflight response uses
- * `getCorsHeaders(req)` so the `Access-Control-Allow-Origin` header
- * reflects the validated request origin instead of `*`.
+ * When `opts.useValidatedOrigin` is false, the preflight response uses
+ * the static production-origin fallback. Otherwise (default) it uses
+ * `getCorsHeaders(req)` so preview, Vercel, and local origins work.
  */
 export function handleCorsPreflightIfNeeded(
   req: Request,
   opts?: { useValidatedOrigin?: boolean },
 ): Response | null {
   if (req.method === "OPTIONS") {
-    const headers = opts?.useValidatedOrigin
-      ? getCorsHeaders(req)
-      : corsHeaders;
+    const headers = opts?.useValidatedOrigin === false
+      ? corsHeaders
+      : getCorsHeaders(req);
     return new Response(null, { headers });
   }
   return null;

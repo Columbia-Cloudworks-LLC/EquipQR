@@ -93,6 +93,10 @@ export default function OperatorCheckInPublicPage() {
         setLocationCollectionEnabled(data.locationCollectionEnabled);
         setCaptchaRequired(data.captchaRequired);
         setComplianceNotice(data.complianceNotice);
+        if (data.alreadySubmittedToday) {
+          setSubmitted(true);
+          setSubmittedAt(data.lastSubmittedAt ?? null);
+        }
       } catch {
         if (!cancelled) setLoadError('This check-in link is not available.');
       } finally {
@@ -297,7 +301,10 @@ export default function OperatorCheckInPublicPage() {
         ))}
 
         {showCaptcha && (
-          <HCaptchaComponent onVerify={setHcaptchaToken} onExpire={() => setHcaptchaToken(null)} />
+          <HCaptchaComponent
+            onSuccess={(token) => setHcaptchaToken(token)}
+            onExpire={() => setHcaptchaToken(null)}
+          />
         )}
 
         {validationMessages.length > 0 && (

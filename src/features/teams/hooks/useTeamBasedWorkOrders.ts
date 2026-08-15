@@ -3,12 +3,12 @@ import { useQuery } from '@tanstack/react-query';
 import { getTeamBasedWorkOrders, type TeamBasedWorkOrderFilters } from '@/features/teams/services/teamBasedWorkOrderService';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
+import { isOrgAdminRole } from '@/features/teams/utils/teamAccessScope';
 
 export const useTeamBasedWorkOrders = (filters: TeamBasedWorkOrderFilters = {}) => {
   const { currentOrganization } = useOrganization();
   const { getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
-  const { isManager } = useWorkOrderPermissionLevels();
+  const isManager = isOrgAdminRole(currentOrganization?.userRole);
 
   const userTeamIds = getUserTeamIds();
 
@@ -33,8 +33,9 @@ export const useTeamBasedWorkOrders = (filters: TeamBasedWorkOrderFilters = {}) 
 
 // Hook for checking if user has team-based access
 export const useTeamBasedAccess = () => {
+  const { currentOrganization } = useOrganization();
   const { getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
-  const { isManager } = useWorkOrderPermissionLevels();
+  const isManager = isOrgAdminRole(currentOrganization?.userRole);
   const userTeamIds = getUserTeamIds();
 
   return {

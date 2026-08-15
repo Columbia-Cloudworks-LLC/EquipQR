@@ -16,8 +16,8 @@ vi.mock('@/features/teams/hooks/useTeamManagement', () => ({
   useTeams: vi.fn(() => ({ teams: [], managedTeams: [], isLoading: false, error: null })),
 }));
 
-vi.mock('@/hooks/usePermissions', () => ({
-  usePermissions: () => ({ canManageOrganization: () => true }),
+vi.mock('@/contexts/OrganizationContext', () => ({
+  useOrganization: () => ({ currentOrganization: { id: 'org-1', userRole: 'owner' } }),
 }));
 
 vi.mock('@/features/teams/hooks/useTeamMembership', () => ({

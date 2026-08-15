@@ -2,8 +2,8 @@
 import { useMemo } from 'react';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
-import { useOrganizationMembers } from '@/features/organization/hooks/useOrganizationMembers';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
+import { isOrgAdminRole } from '@/features/teams/utils/teamAccessScope';
 import { Tables } from '@/integrations/supabase/types';
 import { resolveWorkOrderExportAudience } from '@/features/work-orders/utils/workOrderExportAccess';
 
@@ -24,14 +24,12 @@ export interface WorkOrderPermissionLevels {
 export const useWorkOrderPermissionLevels = (): WorkOrderPermissionLevels => {
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
-  const { data: members = [] } = useOrganizationMembers(currentOrganization?.id || '');
   const { teamMemberships } = useTeamMembership();
+  const isOrgAdmin = isOrgAdminRole(currentOrganization?.userRole);
 
   // Memoize permission calculations to prevent unnecessary re-renders
   const permissions = useMemo(() => {
-    // Determine user role in organization
-    const currentMember = members.find(m => m.id === user?.id);
-    const isManager = currentMember?.role === 'owner' || currentMember?.role === 'admin';
+    const isManager = isOrgAdmin;
     const exportAudience = resolveWorkOrderExportAudience(isManager, teamMemberships);
     
     // Check if user is a technician in any team
@@ -72,7 +70,7 @@ export const useWorkOrderPermissionLevels = (): WorkOrderPermissionLevels => {
       exportAudience,
       getFormMode
     };
-  }, [user?.id, members, teamMemberships]);
+  }, [user?.id, isOrgAdmin, teamMemberships]);
 
   return permissions;
 };

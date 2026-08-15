@@ -85,24 +85,33 @@ export const createTeamWithCreator = async (
 };
 
 // Update an existing team
-export const updateTeam = async (id: string, updates: TeamUpdate): Promise<Team> => {
+export const updateTeam = async (
+  id: string,
+  updates: TeamUpdate,
+  organizationId: string,
+): Promise<Team> => {
   const { data, error } = await supabase
     .from('teams')
     .update(updates)
     .eq('id', id)
+    .eq('organization_id', organizationId)
     .select()
-    .single();
+    .maybeSingle();
 
-  if (error) throw error;
+  if (error && error.code !== 'PGRST116') throw error;
+  if (!data) {
+    throw new Error('Team could not be updated. You may not have permission to edit this team.');
+  }
   return data;
 };
 
 // Delete a team
-export const deleteTeam = async (id: string): Promise<void> => {
+export const deleteTeam = async (id: string, organizationId: string): Promise<void> => {
   const { error, count } = await supabase
     .from('teams')
     .delete({ count: 'exact' })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('organization_id', organizationId);
 
   if (error) throw error;
   
@@ -357,9 +366,14 @@ export const getOrganizationTeamsOptimized = async (organizationId: string): Pro
 };
 
 /**
- * Get a single team by ID with member count and customer data using optimized query
+ * Get a single team by ID with member count and customer data using optimized query.
+ * Always scoped to the caller's current organization so dual-org members cannot
+ * open another org's team UUID in the current workspace (RT-13).
  */
-export const getTeamByIdOptimized = async (teamId: string): Promise<Team | null> => {
+export const getTeamByIdOptimized = async (
+  teamId: string,
+  organizationId: string,
+): Promise<Team | null> => {
   try {
     const { data, error } = await supabase
       .from('teams')
@@ -369,12 +383,14 @@ export const getTeamByIdOptimized = async (teamId: string): Promise<Team | null>
         customers(id, name, status, quickbooks_synced_at)
       `)
       .eq('id', teamId)
-      .single();
+      .eq('organization_id', organizationId)
+      .maybeSingle();
 
     if (error) {
       if (error.code === 'PGRST116') return null;
       throw error;
     }
+    if (!data) return null;
 
     const customer = (data as Record<string, unknown>).customers as
       { id: string; name: string; status: string; quickbooks_synced_at: string | null } | null;

@@ -9,10 +9,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { useOrganizationMembers } from '@/features/organization/hooks/useOrganizationMembers';
 import { useOrganizationAdmins } from '@/features/organization/hooks/useOrganizationAdmins';
 import { useTeams } from '@/features/teams/hooks/useTeamManagement';
+import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
+import { isOrgAdminRole } from '@/features/teams/utils/teamAccessScope';
 import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
+import { useOrganization } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
 
 import { WorkOrderLike } from '@/features/work-orders/utils/workOrderTypeConversion';
+import { resolveWorkOrderAcceptanceAssigneeGate } from '@/features/work-orders/utils/workOrderAcceptanceAssigneeScope';
 
 interface WorkOrderAcceptanceModalProps {
   open: boolean;
@@ -45,7 +49,27 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
   const { data: organizationMembers = [] } = useOrganizationMembers(organizationId);
   const { data: organizationAdmins = [] } = useOrganizationAdmins(organizationId);
   const { data: teams = [] } = useTeams(organizationId);
-  const { data: equipment } = useEquipmentById(organizationId, workOrder?.equipment_id || workOrder?.equipmentId);
+  const { currentOrganization } = useOrganization();
+  const { getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
+  const isOrgAdmin = isOrgAdminRole(currentOrganization?.userRole);
+  const teamsReady = isOrgAdmin || !teamsLoading;
+  const equipmentId = workOrder?.equipment_id || workOrder?.equipmentId;
+  const { data: equipment, isSuccess: equipmentSuccess, isPending: equipmentPending, isError: equipmentError } = useEquipmentById(
+    organizationId,
+    equipmentId,
+    {
+      userTeamIds: isOrgAdmin ? undefined : getUserTeamIds(),
+      isOrgAdmin,
+      enabled: teamsReady,
+    },
+  );
+  const { showScopedAssigneeList, canSubmit: canSubmitAssignee } = resolveWorkOrderAcceptanceAssigneeGate({
+    teamsReady,
+    equipmentId,
+    isSuccess: equipmentSuccess,
+    isPending: equipmentPending,
+    isError: equipmentError,
+  });
 
   // Get current user info
   const isSingleUserOrg = organizationMembers.length === 1;
@@ -63,6 +87,10 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
         name: 'Me',
         type: 'user'
       });
+    }
+
+    if (!showScopedAssigneeList) {
+      return options;
     }
 
     if (equipment?.team_id) {
@@ -171,9 +199,13 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
           ) : (
             <div className="space-y-2">
               <label htmlFor={assigneeSelectId} className="text-sm font-medium">Assign To</label>
-              <Select value={selectedAssignee} onValueChange={setSelectedAssignee}>
+              <Select
+                value={selectedAssignee}
+                onValueChange={setSelectedAssignee}
+                disabled={!canSubmitAssignee}
+              >
                 <SelectTrigger id={assigneeSelectId} className="min-h-11">
-                  <SelectValue placeholder="Select assignee..." />
+                  <SelectValue placeholder={canSubmitAssignee ? 'Select assignee...' : 'Loading assignees...'} />
                 </SelectTrigger>
                 <SelectContent>
                   {assigneeOptions.map((option) => (
@@ -211,7 +243,7 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
             </Button>
             <Button
               onClick={handleAccept}
-              disabled={isSubmitting || (!isSingleUserOrg && !selectedAssignee)}
+              disabled={isSubmitting || (!isSingleUserOrg && (!selectedAssignee || !canSubmitAssignee))}
               className="flex-1 min-h-11"
             >
               {isSubmitting ? 'Accepting...' : 'Accept & Assign'}

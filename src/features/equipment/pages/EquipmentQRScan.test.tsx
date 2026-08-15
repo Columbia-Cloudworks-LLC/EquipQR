@@ -11,7 +11,16 @@ vi.mock('@/hooks/useAuth', () => ({
 }));
 
 vi.mock('@/hooks/useSession', () => ({
-  useSession: vi.fn(() => ({ sessionData: null })),
+  useSession: vi.fn(() => ({
+    sessionData: null,
+    isLoading: false,
+    error: null,
+    hasTeamRole: () => false,
+    hasTeamAccess: () => false,
+    canManageTeam: () => false,
+    getUserTeamIds: () => [],
+    refreshSession: vi.fn(),
+  })),
 }));
 
 vi.mock('@/hooks/useBrowserOnline', () => ({
