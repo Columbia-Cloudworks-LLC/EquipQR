@@ -27,7 +27,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsx --tsconfig tsconfig.app.json scripts/generate-sitemap.ts && vite build",
+    "build": "tsx scripts/generate-sitemap.ts && vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "lint:md": "markdownlint-cli2 \".cursor/**/*.{md,mdc}\" \"AGENTS.md\"",

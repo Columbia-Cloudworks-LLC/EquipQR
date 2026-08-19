@@ -2,10 +2,14 @@
  * Single source of truth for public marketing URLs that are indexable (sitemap + prerender).
  * Keep in sync with `src/App.tsx` public routes.
  * Feature `/features/*` rows are derived from FEATURE_SEO_BY_PATH.
+ *
+ * Relative imports are required: Vite loads this graph from `vite.config.ts` via Node ESM
+ * (`scripts/generate-marketing-html.ts`), and `tsx scripts/generate-sitemap.ts` does the same.
+ * `@/` aliases are Vite/tsconfig.app paths only and fail as `ERR_MODULE_NOT_FOUND` / `UNRESOLVED_IMPORT`.
  */
 
-import { deriveFeatureMarketingRoute } from '@/lib/featureMarketingDerivation';
-import type { MarketingRoute } from '@/lib/marketingRouteTypes';
+import { deriveFeatureMarketingRoute } from './featureMarketingDerivation';
+import type { MarketingRoute } from './marketingRouteTypes';
 
 export type { MarketingRoute };
 

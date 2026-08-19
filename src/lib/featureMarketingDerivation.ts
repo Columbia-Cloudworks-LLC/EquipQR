@@ -1,6 +1,10 @@
-import type { FeatureSeoEntry } from '@/lib/featureSeoContent';
-import { FEATURE_SEO_BY_PATH } from '@/lib/featureSeoContent';
-import type { MarketingRoute } from '@/lib/marketingRouteTypes';
+/**
+ * Derive `/features/*` sitemap and prerender rows from FEATURE_SEO_BY_PATH.
+ * Relative imports only: this module is loaded by Node via `src/lib/marketingRoutes.ts`.
+ */
+import type { FeatureSeoEntry } from './featureSeoContent';
+import { FEATURE_SEO_BY_PATH } from './featureSeoContent';
+import type { MarketingRoute } from './marketingRouteTypes';
 
 export type FeatureMarketingRouteShell = {
   path: string;
