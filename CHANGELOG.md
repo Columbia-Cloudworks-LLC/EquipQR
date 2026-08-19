@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Marketing footer link underlines** — Landing footer internal and external links now share the same rest/hover underline treatment so Connect and Columbia Cloudworks no longer look like a different link style than Product, Company, and Legal.
 - **Cross-org team IDOR (RT-13)** — Team fetch, update, and delete are scoped to the current organization. A foreign team UUID renders Team not found with no members or Edit Team.
 - **Same-org team isolation (RT-19)** — For non-owner/admin users, dashboard widgets, equipment/work-order lists, and direct work-order/equipment UUID routes use membership teams only. Org role (not a stale work-order manager flag) decides All teams scope.
 - **Public Quick Form flood (RT-03)** — Fail-closed hCaptcha when the secret is configured; 10-minute cooldown and hourly cap of 5 per token; success copy no longer invites an immediate resubmit. Public Quick Form and operator check-in pages pass the widget token through `onSuccess` so Submit enables after CAPTCHA. Cooldown 429 copy is allowlisted and shown inline on the form.
