@@ -8,7 +8,8 @@
     "xlsx"
   ],
   "ignorePatterns": [
-    "vitest/**"
+    "vitest/**",
+    "tmp/**"
   ],
   "ignoreExportsUsedInFile": true,
   "duplicates": {

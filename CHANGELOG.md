@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Homepage pricing collage.** Four vertical equipment photo strips scroll behind the pricing card on `/`. Reduced motion freezes the first frame.
+
 ### Changed
 
 - **Rental card bulldozer icon** — The Equipment rental agencies card on the homepage About section uses a construction-yellow bulldozer so the glyph reads on the dark card.

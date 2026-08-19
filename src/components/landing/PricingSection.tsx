@@ -2,14 +2,16 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Calendar, ArrowRight } from 'lucide-react';
+import { PricingCollageBackground } from '@/components/landing/pricing-collage/PricingCollageBackground';
 
 const DEMO_CALENDLY_URL = 'https://calendly.com/nicholas-king-columbiacloudworks/30min';
 const CONTACT_EMAIL = 'mailto:nicholas.king@columbiacloudworks.com';
 
 const PricingSection = () => {
   return (
-    <section id="pricing" className="scroll-mt-20 py-24 bg-muted/40">
-      <div className="container px-4 mx-auto">
+    <section id="pricing" className="relative scroll-mt-20 overflow-hidden py-24">
+      <PricingCollageBackground />
+      <div className="relative z-10 container px-4 mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
             Unlimited seats. 5 GB of photos.
