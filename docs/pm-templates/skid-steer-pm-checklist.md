@@ -4,7 +4,7 @@
 **Total Items:** 80  
 **Sections:** 10
 
-This document contains the complete skid steer preventative maintenance checklist with all sections, items, and descriptions.
+80 items. Default EquipQR template for skid steers.
 
 ---
 

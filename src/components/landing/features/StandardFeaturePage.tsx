@@ -9,7 +9,7 @@ import { StepList } from '@/components/landing/features/StepList';
 import { FeatureShowcaseList } from '@/components/landing/features/FeatureShowcaseList';
 import { FeatureCTA } from '@/components/landing/features/FeatureCTA';
 import { CapabilitiesGrid } from '@/components/landing/features/CapabilitiesGrid';
-import { getFeatureSeoByPath } from '@/pages/features/data/featureSeoContent';
+import { getFeatureSeoByPath } from '@/lib/featureSeoContent';
 import type {
   Benefit,
   Capability,
@@ -27,7 +27,6 @@ export interface StandardFeaturePageProps {
   steps: Step[];
   showcases: ShowcaseItem[];
   heroIcon: LucideIcon;
-  primaryCtaText?: string;
   capabilities?: Capability[];
   afterBenefits?: ReactNode;
   afterSteps?: ReactNode;
@@ -40,7 +39,6 @@ export const StandardFeaturePage = ({
   steps,
   showcases,
   heroIcon,
-  primaryCtaText = DEFAULT_PRIMARY_CTA,
   capabilities,
   afterBenefits,
   afterSteps,
@@ -50,15 +48,17 @@ export const StandardFeaturePage = ({
     throw new Error(`Missing feature SEO config for path: ${seoPath}`);
   }
 
+  const primaryCta = content.ctaPrimaryText ?? DEFAULT_PRIMARY_CTA;
+
   return (
     <>
       <PageSEO title={seo.pageTitle} description={seo.description} path={seo.path} />
-      <FeaturePageLayout>
+      <FeaturePageLayout howToSteps={steps}>
         <FeatureHero
           icon={heroIcon}
           title={seo.heroTitle}
           description={seo.heroDescription}
-          ctaText={content.ctaPrimaryText ?? primaryCtaText}
+          ctaText={primaryCta}
         />
 
         <FeatureSection
@@ -105,7 +105,7 @@ export const StandardFeaturePage = ({
         <FeatureCTA
           title={content.ctaTitle}
           description={content.ctaDescription}
-          primaryCtaText={primaryCtaText}
+          primaryCtaText={primaryCta}
           className={content.ctaClassName}
         />
       </FeaturePageLayout>

@@ -4,7 +4,7 @@
 **Total Items:** 53  
 **Sections:** 8
 
-This document contains the complete portable compressor preventative maintenance checklist with all sections, items, and descriptions.
+53 items. Default EquipQR template for portable compressors.
 
 ---
 

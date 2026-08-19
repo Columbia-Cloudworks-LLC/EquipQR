@@ -4,8 +4,6 @@
 
 <a href="https://equipqr.app"><img src="public/icons/EquipQR-Icon-Purple-Medium.png" alt="EquipQR™ Logo" width="150" /></a>
 
-## 🚜 Fleet Equipment Management Platform 🚧
-
 ![Version](https://img.shields.io/badge/version-3.28.0-blue?style=for-the-badge)
 
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
@@ -21,31 +19,31 @@
 
 ---
 
-## 🚀 Overview
+## Overview
 
-**EquipQR™** is a comprehensive fleet equipment management platform built for speed and reliability. It features QR code integration for instant equipment access, robust work order management, and real-time fleet visualization.
+EquipQR is a QR-first work order app for heavy equipment repair shops, built with React and Supabase.
 
-## ✨ Key Features
+## Key features
 
-* **📱 Equipment Tracking**: Instant access via QR codes.
-* **📋 Work Orders**: Create, assign, and track maintenance tasks.
-* **🗺️ Fleet Map**: Interactive location tracking with Google Maps.
-* **👥 Team Management**: Role-based access and team organization.
-* **⚡ Real-time**: Live updates via Supabase Realtime.
-* **🛡️ Privacy Requests (CCPA/CPRA)**: Public `/privacy-request` intake, DSR case workflow, and retention-safe evidence tracking.
-* **🔒 Sensitive PI Controls**: User-level "Limit sensitive personal information" setting respected in scan/location flows.
+* QR codes open equipment records.
+* Create, assign, and track work orders.
+* Fleet Map shows locations on Google Maps.
+* Organization and team roles control who can see and change what.
+* Supabase Realtime pushes live updates.
+* Public `/privacy-request` intake plus a DSR case workflow.
+* Scan and location flows honor the user-level "Limit sensitive personal information" setting.
 
-## 📚 Documentation
+## Documentation
 
 Detailed documentation is located in the [`/docs`](./docs/README.md) directory:
 
-* **🚀 Getting Started**: [Setup Guide](./docs/technical/setup.md) & [Developer Onboarding](./docs/getting-started/developer-onboarding.md)
-* **🏗️ Architecture**: [System Architecture](./docs/technical/architecture.md) & [Database Schema](./docs/technical/architecture.md#database-schema)
-* **📘 Guides**: [Workflows](./docs/guides/workflows.md) & [Permissions](./docs/guides/permissions.md)
-* **⚙️ Operations**: [Deployment](./docs/ops/deployment.md), [Migrations](./docs/ops/migrations.md), [Local Supabase Development](./docs/ops/local-supabase-development.md), [DSR Compliance Runbook](./docs/ops/dsr-compliance-runbook.md) & [Disaster Recovery](./docs/ops/disaster-recovery.md)
-* **🎥 Demo Operations**: [Demo Recording Baseline](./scripts/DEMO-RECORDING.md) & [Demo System v2 Runbook](./scripts/DEMO-SYSTEM-V2.md)
+* **Getting started.** [Setup Guide](./docs/technical/setup.md) and [Developer Onboarding](./docs/getting-started/developer-onboarding.md)
+* **Architecture.** [System Architecture](./docs/technical/architecture.md) and [Database Schema](./docs/technical/architecture.md#database-schema)
+* **Guides.** [Workflows](./docs/guides/workflows.md) and [Permissions](./docs/guides/permissions.md)
+* **Operations.** [Deployment](./docs/ops/deployment.md), [Migrations](./docs/ops/migrations.md), [Local Supabase Development](./docs/ops/local-supabase-development.md), [QuickBooks OAuth](./docs/ops/quickbooks-oauth.md), [DSR Compliance Runbook](./docs/ops/dsr-compliance-runbook.md), and [Disaster Recovery](./docs/ops/disaster-recovery.md)
+* **Demo operations.** [Demo Recording Baseline](./scripts/DEMO-RECORDING.md) and [Demo System v2 Runbook](./scripts/DEMO-SYSTEM-V2.md)
 
-## ✅ Prerequisites (Accounts & Services)
+## Prerequisites (accounts and services)
 
 EquipQR uses external services. For exact environment variables and where they’re used, see [`.env.example`](./.env.example) (source of truth) and the [Setup Guide](./docs/technical/setup.md).
 
@@ -67,7 +65,7 @@ EquipQR uses external services. For exact environment variables and where they�
 * **hCaptcha (privacy requests)**: Bot protection for `/privacy-request` when `VITE_HCAPTCHA_SITEKEY` and `HCAPTCHA_SECRET_KEY` are configured.
 * **Web Push**: VAPID keys for push notifications.
 
-## 🛠️ Quick Start
+## Quick start
 
 1. **Clone & Install**
 
@@ -111,7 +109,7 @@ When working from a git worktree, copy env files from your canonical checkout:
 
 Add `-InstallDependencies` to run `npm ci` as part of bootstrap.
 
-## 🧪 Testing
+## Testing
 
 ```bash
 npm run test          # Run unit tests
@@ -119,6 +117,6 @@ npm run test:coverage # Run with coverage report
 
 ```
 
-## 📄 License
+## License
 
 Copyright © 2025 <a href="https://columbiacloudworks.com">Columbia Cloudworks LLC</a>. All rights reserved.

@@ -45,7 +45,7 @@ const ContactSection: React.FC<ContactSectionProps> = ({
         Get Help
       </CardTitle>
       <CardDescription>
-        Need assistance? We&apos;re here to help you get the most out of EquipQR.
+        Email us. We answer within 24 hours.
       </CardDescription>
     </CardHeader>
     <CardContent>
@@ -57,7 +57,7 @@ const ContactSection: React.FC<ContactSectionProps> = ({
             <ExternalLink href="https://status.equipqr.app" className="text-primary">
               system status page
             </ExternalLink>
-            <span> for real-time service availability</span>
+            <span> to see if the app is up</span>
           </div>
           <div className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
@@ -77,9 +77,8 @@ const ContactSection: React.FC<ContactSectionProps> = ({
         {withBugReport && onReportIssue ? (
           <div className="pt-2 border-t">
             <p className="text-sm text-muted-foreground mb-3">
-              Found a bug or something not working as expected? Let us know
-              directly — session diagnostics attach automatically, no personal
-              data included.
+              Something broken? Report it. Session diagnostics attach
+              automatically. No personal data in the dump.
             </p>
             <Button variant="outline" onClick={onReportIssue}>
               <Bug className="mr-2 h-4 w-4" />
@@ -100,8 +99,8 @@ const HelpCenterCard: React.FC = () => (
         EquipQR Help Center
       </CardTitle>
       <CardDescription>
-        Step-by-step guides for technicians, managers, admins, and equipment
-        owners — organized by role and workflow.
+        Guides for techs, managers, admins, and equipment owners, grouped by
+        the job you are doing.
       </CardDescription>
     </CardHeader>
     <CardContent>
@@ -168,14 +167,13 @@ const Support: React.FC = () => {
 
           <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
             <CardContent className="p-6 text-center">
-              <h3 className="text-xl font-semibold mb-2">Ready to get started?</h3>
+              <h3 className="text-xl font-semibold mb-2">Create a free account</h3>
               <p className="text-muted-foreground mb-4">
-                Create a free EquipQR account and start tracking your
-                equipment, work orders, and teams in minutes.
+                Print a QR, stick it, scan the first machine.
               </p>
               <Button asChild>
-                <a href="/auth" className="inline-flex items-center gap-2">
-                  Get Started
+                <a href="/auth?tab=signup" className="inline-flex items-center gap-2">
+                  Create a free account
                   <ArrowRight className="h-4 w-4" />
                 </a>
               </Button>

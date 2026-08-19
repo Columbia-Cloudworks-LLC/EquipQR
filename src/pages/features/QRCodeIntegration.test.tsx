@@ -3,10 +3,14 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import QRCodeIntegration from './QRCodeIntegration';
 import { TestProviders } from '@vitest-harness/utils/TestProviders';
-import { benefits, showcases, steps } from './data/qrCodeIntegrationData';
-import { getFeatureSeoByPath } from './data/featureSeoContent';
+import { benefits, content, showcases, steps } from './data/qrCodeIntegrationData';
+import { getFeatureSeoByPath } from '@/lib/featureSeoContent';
 
 const qrSeo = getFeatureSeoByPath('/features/qr-code-integration')!;
+const qrPrimaryCta = content.ctaPrimaryText;
+if (!qrPrimaryCta) {
+  throw new Error('QR feature page must define ctaPrimaryText');
+}
 
 // Mock the feature page components to focus on QRCodeIntegration logic
 vi.mock('@/components/landing/features/FeaturePageLayout', () => ({
@@ -17,10 +21,10 @@ vi.mock('@/components/landing/features/FeaturePageLayout', () => ({
 
 vi.mock('@/components/landing/features/FeatureHero', () => ({
   FeatureHero: ({ title, description, ctaText }: { title: string; description: string; ctaText: string }) => (
-    <div data-testid="feature-hero">
+    <div>
       <h1>{title}</h1>
       <p>{description}</p>
-      <button>{ctaText}</button>
+      <a href="/auth?tab=signup">{ctaText}</a>
     </div>
   ),
 }));
@@ -91,10 +95,10 @@ vi.mock('@/components/landing/features/ScreenshotBlock', () => ({
 
 vi.mock('@/components/landing/features/FeatureCTA', () => ({
   FeatureCTA: ({ title, description, primaryCtaText }: { title: string; description: string; primaryCtaText: string }) => (
-    <div data-testid="feature-cta">
+    <div>
       <h2>{title}</h2>
       <p>{description}</p>
-      <button>{primaryCtaText}</button>
+      <a href="/auth?tab=signup">{primaryCtaText}</a>
     </div>
   ),
 }));
@@ -120,7 +124,8 @@ describe('QRCodeIntegration Feature Page', () => {
 
       expect(screen.getByText(qrSeo.heroTitle)).toBeInTheDocument();
       expect(screen.getByText(qrSeo.heroDescription)).toBeInTheDocument();
-      expect(screen.getByText('Start Using QR Codes Free')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1, name: qrSeo.heroTitle })).toBeInTheDocument();
+      expect(screen.getAllByRole('link', { name: qrPrimaryCta })).toHaveLength(2);
     });
   });
 
@@ -133,8 +138,8 @@ describe('QRCodeIntegration Feature Page', () => {
       );
 
       // Check section title
-      expect(screen.getByText('Why Use QR Code Integration?')).toBeInTheDocument();
-      expect(screen.getByText(/Eliminate manual lookup and data entry/)).toBeInTheDocument();
+      expect(screen.getByText(content.benefitsTitle)).toBeInTheDocument();
+      expect(screen.getByText(content.benefitsDescription)).toBeInTheDocument();
 
       // Check all benefits are rendered
       const benefitCards = screen.getAllByTestId('benefit-card');
@@ -160,9 +165,9 @@ describe('QRCodeIntegration Feature Page', () => {
         </TestProviders>
       );
 
-      expect(screen.getByText('Instant Equipment Access')).toBeInTheDocument();
-      expect(screen.getByText('Automated Tracking')).toBeInTheDocument();
-      expect(screen.getByText('Generate Labels')).toBeInTheDocument();
+      expect(screen.getByText('Scan the sticker')).toBeInTheDocument();
+      expect(screen.getByText('Every scan is logged')).toBeInTheDocument();
+      expect(screen.getByText('Print labels')).toBeInTheDocument();
     });
   });
 
@@ -174,8 +179,8 @@ describe('QRCodeIntegration Feature Page', () => {
         </TestProviders>
       );
 
-      expect(screen.getByText('How It Works')).toBeInTheDocument();
-      expect(screen.getByText(/QR codes connect your physical assets to EquipQR™ in seconds/)).toBeInTheDocument();
+      expect(screen.getByText(content.stepsTitle)).toBeInTheDocument();
+      expect(screen.getByText(content.stepsDescription)).toBeInTheDocument();
     });
 
     it('renders all steps with correct data', () => {
@@ -206,7 +211,7 @@ describe('QRCodeIntegration Feature Page', () => {
       expect(screen.getByText('Generate QR Labels')).toBeInTheDocument();
       expect(screen.getByText('Scan in the Field')).toBeInTheDocument();
       expect(screen.getByText('View Details & History')).toBeInTheDocument();
-      expect(screen.getByText('Streamline Operations')).toBeInTheDocument();
+      expect(screen.queryByText('Streamline Operations')).not.toBeInTheDocument();
     });
   });
 
@@ -218,8 +223,8 @@ describe('QRCodeIntegration Feature Page', () => {
         </TestProviders>
       );
 
-      expect(screen.getByText('See QR Code Integration in Action')).toBeInTheDocument();
-      expect(screen.getByText(/Here's what QR scanning and label generation look like in the EquipQR™ app/)).toBeInTheDocument();
+      expect(screen.getByText(content.showcaseTitle)).toBeInTheDocument();
+      expect(screen.getByText(content.showcaseDescription)).toBeInTheDocument();
     });
 
     it('renders all screenshot blocks with correct data', () => {
@@ -259,9 +264,9 @@ describe('QRCodeIntegration Feature Page', () => {
         </TestProviders>
       );
 
-      expect(screen.getByText('Ready to Speed Up Field Operations?')).toBeInTheDocument();
-      expect(screen.getByText(/Start using QR Code Integration today—completely free/)).toBeInTheDocument();
-      expect(screen.getByText('Create Free Account')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 2, name: content.ctaTitle })).toBeInTheDocument();
+      expect(screen.getByText(content.ctaDescription)).toBeInTheDocument();
+      expect(screen.getAllByRole('link', { name: qrPrimaryCta })).toHaveLength(2);
     });
   });
 
@@ -275,7 +280,7 @@ describe('QRCodeIntegration Feature Page', () => {
 
       // Verify the data structure matches what's expected
       expect(benefits).toHaveLength(3);
-      expect(steps).toHaveLength(4);
+      expect(steps).toHaveLength(3);
       expect(showcases).toHaveLength(2);
 
       // Verify benefits have required properties
@@ -318,14 +323,14 @@ describe('QRCodeIntegration Feature Page', () => {
 
       // Section titles should be h2
       const sectionTitles = [
-        'Why Use QR Code Integration?',
-        'How It Works',
-        'See QR Code Integration in Action',
-        'Ready to Speed Up Field Operations?',
+        content.benefitsTitle,
+        content.stepsTitle,
+        content.showcaseTitle,
+        content.ctaTitle,
       ];
 
       sectionTitles.forEach((title) => {
-        const element = screen.getByText(title);
+        const element = screen.getByRole('heading', { level: 2, name: title });
         expect(element.tagName).toBe('H2');
       });
     });
@@ -337,13 +342,9 @@ describe('QRCodeIntegration Feature Page', () => {
         </TestProviders>
       );
 
-      const ctaButton = screen.getByText('Start Using QR Codes Free');
-      expect(ctaButton).toBeInTheDocument();
-      expect(ctaButton.tagName).toBe('BUTTON');
-
-      const finalCtaButton = screen.getByText('Create Free Account');
-      expect(finalCtaButton).toBeInTheDocument();
-      expect(finalCtaButton.tagName).toBe('BUTTON');
+      const ctaLinks = screen.getAllByRole('link', { name: qrPrimaryCta });
+      expect(ctaLinks).toHaveLength(2);
+      expect(ctaLinks[0].textContent).toBe(ctaLinks[1].textContent);
     });
   });
 });

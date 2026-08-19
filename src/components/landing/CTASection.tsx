@@ -11,11 +11,11 @@ const CTASection = () => {
       <div className="container px-4 mx-auto">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6">
-            Ready to Streamline Your Heavy Equipment Operations?
+            Stick a QR on the first machine this afternoon
           </h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Join repair shops and rental operations using EquipQR™ to track equipment, manage inventory and parts, and handle maintenance workflows.
-            Built for teams of any size.
+            Print a label and stick it. Your tech scans it and the service record is on the phone.
+            Hours stay on the work order so you are not retyping them tonight.
           </p>
 
           <div className="flex flex-col items-center gap-4 mb-6">

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide provides step-by-step instructions for technicians on how to upload images to equipment records in EquipQR™. Images are uploaded through work orders, which allows for proper documentation of maintenance work, damage assessment, and repair progress.
+Photos live on work-order notes. They also show on the equipment Images tab.
 
 ## Prerequisites
 
@@ -66,7 +66,7 @@ This guide provides step-by-step instructions for technicians on how to upload i
 
 1. When creating a work order, check the **"Include PM Checklist"** option
 2. Select a PM template (e.g., "Forklift PM Checklist")
-3. The work order will include a comprehensive maintenance checklist
+3. The work order will include a maintenance checklist
 
 > **Figure 5:** Creating a work order with PM checklist.
 > *(Screenshot path: `screenshots/04-work-order-form-with-pm-checklist.png` — optional asset.)*
@@ -178,13 +178,4 @@ If you're having trouble uploading images:
 
 ## Support
 
-If you need help with image uploads or any other EquipQR™ features:
-
-- Check this guide first
-- Contact your team lead or administrator
-- Submit a support ticket through the app
-- Review the full EquipQR™ documentation
-
----
-
-*This guide is designed for technicians with basic computer skills. If you need additional assistance, don't hesitate to ask for help.*
+Field walkthroughs live in the Help Center. Start with [Add notes and photos](/support/technician-field-work/add-notes-and-photos). Signed-in users can open tickets at [equipqr.app/dashboard/support](https://equipqr.app/dashboard/support).

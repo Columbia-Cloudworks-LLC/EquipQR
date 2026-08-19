@@ -1,6 +1,6 @@
 # Contributing to EquipQR
 
-Thank you for your interest in contributing to EquipQR! This document provides guidelines and information for contributing to the project.
+This file covers branching, reviews, and how to land a change.
 
 ## Table of Contents
 
@@ -14,9 +14,9 @@ Thank you for your interest in contributing to EquipQR! This document provides g
 - [Coding Guidelines](#coding-guidelines)
 - [Pull Request Guidelines](#pull-request-guidelines)
 
-## Project Overview
+## Project overview
 
-EquipQR is a comprehensive fleet equipment management platform built with React, TypeScript, and Supabase. The application helps organizations track equipment, manage work orders, and coordinate maintenance teams.
+EquipQR is a QR-first work order app for heavy equipment repair shops, built with React, TypeScript, and Supabase.
 
 **Key Technologies:**
 - Frontend: React 18, TypeScript, Vite
@@ -476,5 +476,5 @@ If you have questions about contributing, feel free to:
 - Create an issue tagged `question`
 - Email [nicholas.king@columbiacloudworks.com](mailto:nicholas.king@columbiacloudworks.com)
 
-Thank you for contributing to EquipQR! 🎉
+Thank you for contributing to EquipQR.
 
