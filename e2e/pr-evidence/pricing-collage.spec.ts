@@ -1,5 +1,5 @@
 import { test, expect } from '../user/fixtures/equipqr-test';
-import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
+import { evidenceScreenshot, evidencePause, assertEvidenceFrameReady } from './shared/evidence-helpers';
 import type { Page } from '@playwright/test';
 
 // Unauthenticated — default owner storage would redirect `/` to the dashboard.
@@ -59,6 +59,13 @@ test.describe('PR evidence homepage pricing collage @pr-evidence', () => {
     const card = section.locator('.rounded-xl').first();
     await expect(card.getByRole('link', { name: /get started free/i })).toBeVisible();
     await evidencePause(page, 800);
+    await expect
+      .poll(async () => card.evaluate((el) => el.scrollWidth <= el.clientWidth))
+      .toBe(true);
+    await expect
+      .poll(async () => section.evaluate((el) => el.scrollWidth <= el.clientWidth))
+      .toBe(true);
+    await assertEvidenceFrameReady(page, card);
     await evidenceScreenshot({ page, label: '02-pricing-collage-mobile', target: card });
   });
 });

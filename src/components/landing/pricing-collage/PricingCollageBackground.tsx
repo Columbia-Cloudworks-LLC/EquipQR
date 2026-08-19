@@ -1,7 +1,17 @@
 import React from 'react';
 import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion';
-import { PRICING_COLLAGE_MANIFEST } from '@/components/landing/pricing-collage/collageManifest';
+import {
+  PRICING_COLLAGE_MANIFEST,
+  type CollageStripId,
+} from '@/components/landing/pricing-collage/collageManifest';
 import { resolvePricingCollage } from '@/components/landing/pricing-collage/resolvePricingCollage';
+
+const TRACK_DURATION_CLASS: Record<CollageStripId, string> = {
+  col0: 'pricing-collage-track-col0',
+  col1: 'pricing-collage-track-col1',
+  col2: 'pricing-collage-track-col2',
+  col3: 'pricing-collage-track-col3',
+};
 
 export function PricingCollageBackground(): React.JSX.Element {
   const prefersReducedMotion = usePrefersReducedMotion();
@@ -15,13 +25,8 @@ export function PricingCollageBackground(): React.JSX.Element {
             <div
               className={
                 prefersReducedMotion
-                  ? 'h-[200%]'
-                  : 'pricing-collage-track-animated h-[200%]'
-              }
-              style={
-                {
-                  '--pricing-collage-duration': strip.durationCss,
-                } as React.CSSProperties
+                  ? `h-[200%] ${TRACK_DURATION_CLASS[strip.id]}`
+                  : `pricing-collage-track-animated h-[200%] ${TRACK_DURATION_CLASS[strip.id]}`
               }
             >
               <img

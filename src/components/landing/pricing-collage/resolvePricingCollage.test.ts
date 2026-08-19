@@ -33,7 +33,7 @@ describe('resolvePricingCollage', () => {
     vi.unstubAllEnvs();
   });
 
-  it('is the landingImage boundary and returns urls plus CSS durations', () => {
+  it('is the landingImage boundary and returns urls for each strip', () => {
     vi.stubEnv('VITE_SUPABASE_URL', SUPABASE_URL);
 
     const resolved = resolvePricingCollage(manifest());
@@ -42,11 +42,10 @@ describe('resolvePricingCollage', () => {
     expect(resolved[0]).toEqual({
       id: 'col0',
       url: `${SUPABASE_URL}/storage/v1/object/public/landing-page-images/homepage-collage/col-0.webp`,
-      durationCss: '48s',
     });
-    expect(resolved[1].durationCss).toBe('56s');
+    expect(resolved[1].id).toBe('col1');
     expect(resolved[2].url).toContain('homepage-collage/col-2.webp');
-    expect(resolved[3].durationCss).toBe('64s');
+    expect(resolved[3].id).toBe('col3');
   });
 
   it('rejects a non-positive duration at the boundary', () => {

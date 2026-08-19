@@ -55,6 +55,10 @@ describe('PricingCollageBackground', () => {
     const { container } = render(<PricingCollageBackground />);
 
     expect(container.querySelectorAll('.pricing-collage-track-animated')).toHaveLength(4);
+    expect(container.querySelectorAll('.pricing-collage-track-col0')).toHaveLength(1);
+    expect(container.querySelectorAll('.pricing-collage-track-col1')).toHaveLength(1);
+    expect(container.querySelectorAll('.pricing-collage-track-col2')).toHaveLength(1);
+    expect(container.querySelectorAll('.pricing-collage-track-col3')).toHaveLength(1);
   });
 
   it('omits the animation class when reduced motion is on', () => {

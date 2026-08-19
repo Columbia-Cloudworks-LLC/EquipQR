@@ -11,7 +11,6 @@ const HOMEPAGE_COLLAGE_KEY = /^homepage-collage\/.+\.webp$/;
 interface ResolvedCollageStrip {
   readonly id: CollageStripId;
   readonly url: string;
-  readonly durationCss: `${number}s`;
 }
 
 type ResolvedPricingCollage = readonly [
@@ -40,7 +39,6 @@ function resolveStrip(strip: CollageStripRecord): ResolvedCollageStrip {
   return {
     id: strip.id,
     url: landingImage(strip.objectKey),
-    durationCss: `${strip.durationMs / 1000}s`,
   };
 }
 
