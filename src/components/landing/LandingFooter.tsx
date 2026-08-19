@@ -85,7 +85,7 @@ const footerSections: FooterSection[] = [
 ];
 
 const footerLinkDecorationClassName =
-  'text-muted-foreground no-underline hover:text-foreground hover:underline';
+  'text-muted-foreground no-underline transition-colors hover:text-foreground hover:underline motion-reduce:transition-none';
 
 function renderFooterLink(item: FooterLinkItem, className: string) {
   if (item.type === 'route') {
@@ -118,7 +118,7 @@ function renderFooterLink(item: FooterLinkItem, className: string) {
 const LandingFooter = () => {
   const currentYear = new Date().getFullYear();
   const footerLinkClassName =
-    `flex items-center min-h-[44px] py-3 text-sm transition-colors motion-reduce:transition-none ${footerLinkDecorationClassName}`;
+    `flex items-center min-h-[44px] py-3 text-sm ${footerLinkDecorationClassName}`;
 
   return (
     <footer className="border-t border-border bg-background/50 backdrop-blur-sm mt-auto">
@@ -160,10 +160,7 @@ const LandingFooter = () => {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 {section.links.map((item) => (
                   <li key={`${section.title}-${item.label}`}>
-                    {renderFooterLink(
-                      item,
-                      `hover:text-foreground transition-colors motion-reduce:transition-none ${footerLinkDecorationClassName}`,
-                    )}
+                    {renderFooterLink(item, footerLinkDecorationClassName)}
                   </li>
                 ))}
               </ul>
@@ -175,7 +172,7 @@ const LandingFooter = () => {
           <span>© {currentYear} EquipQR™</span>
           <ExternalLink
             href={COLUMBIA_CLOUDWORKS_URL}
-            className={`hover:text-foreground transition-colors motion-reduce:transition-none flex items-center gap-1.5 ${footerLinkDecorationClassName}`}
+            className={`flex items-center gap-1.5 ${footerLinkDecorationClassName}`}
             showIcon={false}
           >
             <img
