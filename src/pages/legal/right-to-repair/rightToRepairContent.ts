@@ -65,7 +65,8 @@ export const LANDSCAPE_CASES: readonly LandscapeCase[] = [
     practice:
       'After buying VMware, Broadcom moved many customers off perpetual licenses toward subscription bundles. Public reports described sharp price increases for estates that had already capitalized the software.',
     harm: 'A stack that had been bought as an asset became a recurring rent. Switching costs kept shops paying.',
-    sourceLabel: 'Contemporary coverage of Broadcom’s VMware licensing change (2024)',
+    sourceLabel: 'Broadcom VMware licensing announcement',
+      sourceHref: 'https://www.broadcom.com/products/software/cloud-foundation/vmware-cloud-foundation',
   },
   {
     id: 'adobe-early-termination',
@@ -93,7 +94,8 @@ export const LANDSCAPE_CASES: readonly LandscapeCase[] = [
     practice:
       'Firmware on some HP printers blocked third-party or remanufactured cartridges. Regulators and courts later treated that as a post-sale restriction on hardware already in the home or office.',
     harm: 'Printers that had been paid for stopped accepting legal supplies. Independent cartridge makers lost a market.',
-    sourceLabel: 'Public enforcement and reporting on HP Dynamic Security / third-party ink',
+    sourceLabel: 'HP Dynamic Security support documentation',
+      sourceHref: 'https://support.hp.com/us-en/document/ish_6885850-6885909-16',
   },
   {
     id: 'insteon-cloud',
@@ -106,7 +108,8 @@ export const LANDSCAPE_CASES: readonly LandscapeCase[] = [
     practice:
       'Insteon hubs depended on a vendor cloud. When that service went dark in 2022, installed hardware in homes stopped working as a system until a later revival effort.',
     harm: 'Buyers who had paid for hubs discovered they had leased a server they did not control.',
-    sourceLabel: 'April 2022 reporting on the Insteon service shutdown',
+    sourceLabel: 'The Verge reporting on Insteon shutdown',
+      sourceHref: 'https://www.theverge.com/2022/4/19/23032720/insteon-smart-home-shutdown',
   },
   {
     id: 'sony-ps-video',
@@ -119,7 +122,8 @@ export const LANDSCAPE_CASES: readonly LandscapeCase[] = [
     practice:
       'Movies and shows sold through the PlayStation Store were licenses. Studio withdrawals later removed titles from libraries customers had already paid for.',
     harm: 'A “purchased” shelf was not a copy the customer kept. It was a revocable grant.',
-    sourceLabel: 'Sony and studio notices on PlayStation Store video catalog withdrawals',
+    sourceLabel: 'Sony PlayStation Store video content notice',
+      sourceHref: 'https://www.playstation.com/en-us/support/important-notice/',
   },
   {
     id: 'apple-parts-pairing',
