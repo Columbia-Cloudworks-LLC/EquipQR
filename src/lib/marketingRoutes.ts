@@ -4,8 +4,8 @@
  * Feature `/features/*` rows are derived from FEATURE_SEO_BY_PATH.
  */
 
-import { deriveFeatureMarketingRoute } from './featureMarketingDerivation';
-import type { MarketingRoute } from './marketingRouteTypes';
+import { deriveFeatureMarketingRoute } from '@/lib/featureMarketingDerivation';
+import type { MarketingRoute } from '@/lib/marketingRouteTypes';
 
 export type { MarketingRoute };
 
@@ -144,7 +144,7 @@ export const MARKETING_ROUTES: readonly MarketingRoute[] = [
     changefreq: 'monthly',
     navLabel: 'Teams',
     extraBodyParagraphs: [
-      'Each crew sees its own machines and work orders. Requestors, technicians, and managers get different views of the same shop.',
+      'Each crew sees its own machines and work orders. Manager, Technician, Requestor, and Viewer get different views of the same shop.',
     ],
   }),
   deriveFeatureMarketingRoute({
