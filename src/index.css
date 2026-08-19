@@ -498,21 +498,20 @@
     will-change: transform;
   }
 
-  /* Durations must stay aligned with PRICING_COLLAGE_MANIFEST durationMs. */
-  .pricing-collage-track-col0 {
-    animation-duration: 48s;
+  .pricing-collage-duration-48000 {
+    animation-duration: 48000ms;
   }
 
-  .pricing-collage-track-col1 {
-    animation-duration: 56s;
+  .pricing-collage-duration-56000 {
+    animation-duration: 56000ms;
   }
 
-  .pricing-collage-track-col2 {
-    animation-duration: 52s;
+  .pricing-collage-duration-52000 {
+    animation-duration: 52000ms;
   }
 
-  .pricing-collage-track-col3 {
-    animation-duration: 64s;
+  .pricing-collage-duration-64000 {
+    animation-duration: 64000ms;
   }
 
   /* Respect reduced motion preference */
