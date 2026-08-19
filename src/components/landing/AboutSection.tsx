@@ -78,7 +78,7 @@ const AboutSection = ({ id }: { id?: string }) => {
                   <CardHeader className="pb-2 flex-shrink-0">
                     <div className="mb-3 flex">
                       <span
-                        className={`rounded-2xl bg-primary/10 p-3 ${ICON_COLORS[index]}`}
+                        className={`rounded-2xl bg-primary/10 p-3 ${ICON_COLORS[index % ICON_COLORS.length]}`}
                         aria-hidden
                       >
                         <useCase.icon className="h-10 w-10 sm:h-11 sm:w-11" />

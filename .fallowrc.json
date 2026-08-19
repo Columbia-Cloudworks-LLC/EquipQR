@@ -68,11 +68,6 @@
       "exports": ["*"]
     },
     {
-      "file": "src/pages/features/data/inventoryManagementData.ts",
-      "exports": ["*"]
-    },
-
-    {
       "file": "src/services/supabaseDataService.ts",
       "exports": ["*"]
     },
