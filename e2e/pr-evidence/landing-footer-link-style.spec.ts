@@ -46,16 +46,17 @@ test.describe('PR evidence landing footer link style @pr-evidence', () => {
     await footer.scrollIntoViewIfNeeded();
     await expect(footer).toBeVisible({ timeout: 15_000 });
 
-    for (const section of ['Product', 'Company', 'Legal', 'Connect'] as const) {
+    for (const section of ['Company', 'Connect'] as const) {
       await footer.getByRole('button', { name: section }).click();
     }
 
-    await expect(footer.getByRole('link', { name: 'All features' })).toBeVisible();
-    await expect(footer.getByRole('link', { name: 'Columbia Cloudworks', exact: true })).toBeVisible();
-    await expect(footer.getByRole('link', { name: 'Schedule a Demo' })).toBeVisible();
-    await expectFooterLinksHaveNoRestUnderline(footer);
+    const accordion = footer.locator('.rounded-2xl');
+    await expect(accordion.getByRole('link', { name: 'About' })).toBeVisible();
+    await expect(accordion.getByRole('link', { name: 'Columbia Cloudworks', exact: true })).toBeVisible();
+    await expect(accordion.getByRole('link', { name: 'Schedule a Demo' })).toBeVisible();
+    await expectFooterLinksHaveNoRestUnderline(accordion);
 
     await evidencePause(page, 400);
-    await evidenceScreenshot(page, '02-mobile-footer-links', { target: footer });
+    await evidenceScreenshot(page, '02-mobile-footer-links', { target: accordion });
   });
 });

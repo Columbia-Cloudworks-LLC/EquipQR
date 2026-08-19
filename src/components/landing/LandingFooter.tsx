@@ -84,7 +84,8 @@ const footerSections: FooterSection[] = [
   },
 ];
 
-const footerLinkDecorationClassName = 'no-underline hover:underline';
+const footerLinkDecorationClassName =
+  'text-muted-foreground no-underline hover:text-foreground hover:underline';
 
 function renderFooterLink(item: FooterLinkItem, className: string) {
   if (item.type === 'route') {

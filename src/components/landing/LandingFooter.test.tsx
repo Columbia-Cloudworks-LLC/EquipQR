@@ -18,6 +18,7 @@ describe('LandingFooter', () => {
 
     for (const link of links) {
       expect(link).toHaveClass('no-underline');
+      expect(link).toHaveClass('text-muted-foreground');
       expect(link).not.toHaveClass('underline');
     }
   });
