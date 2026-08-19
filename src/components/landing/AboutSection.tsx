@@ -1,20 +1,23 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Wrench, 
-  Server, 
-  Hammer, 
-  Building, 
-  Package
+import {
+  Wrench,
+  Server,
+  Hammer,
+  Building,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import type { ComponentType } from 'react';
+import { cn } from '@/lib/utils';
+import { BulldozerIcon } from './BulldozerIcon';
 import LandingReveal from './LandingReveal';
 
 interface UseCase {
-  icon: LucideIcon;
+  icon: ComponentType<{ className?: string }>;
   title: string;
   description: string;
   win: string;
+  /** Overrides the default primary-tint well + ICON_COLORS tone. */
+  iconWellClassName?: string;
 }
 
 const useCases: UseCase[] = [
@@ -43,14 +46,16 @@ const useCases: UseCase[] = [
     win: 'The inspector asks for the log. You have it.',
   },
   {
-    icon: Package,
+    icon: BulldozerIcon,
     title: 'Equipment rental agencies',
     description: 'Scan the return. Log damage, flag it for cleaning, or mark it ready to rent.',
     win: 'Catch the ding at the gate, not on the next customer\'s job.',
+    // text-secondary (~#1f1f23) vanishes on the dark card; construction yellow does not.
+    iconWellClassName: 'bg-warning/20 text-warning',
   },
 ];
 
-const ICON_COLORS = ['text-primary', 'text-info', 'text-success', 'text-warning', 'text-secondary'];
+const ICON_COLORS = ['text-primary', 'text-info', 'text-success', 'text-warning'];
 
 const AboutSection = ({ id }: { id?: string }) => {
   return (
@@ -78,7 +83,11 @@ const AboutSection = ({ id }: { id?: string }) => {
                   <CardHeader className="pb-2 flex-shrink-0">
                     <div className="mb-3 flex">
                       <span
-                        className={`rounded-2xl bg-primary/10 p-3 ${ICON_COLORS[index % ICON_COLORS.length]}`}
+                        className={cn(
+                          'rounded-2xl p-3',
+                          useCase.iconWellClassName
+                            ?? `bg-primary/10 ${ICON_COLORS[index % ICON_COLORS.length]}`,
+                        )}
                         aria-hidden
                       >
                         <useCase.icon className="h-10 w-10 sm:h-11 sm:w-11" />
