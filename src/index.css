@@ -484,14 +484,28 @@
       transform: scale(1);
     }
   }
-  
+
+  @keyframes pricing-collage-scroll {
+    to {
+      transform: translate3d(0, -50%, 0);
+    }
+  }
+
+  .pricing-collage-track-animated {
+    animation-name: pricing-collage-scroll;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    will-change: transform;
+  }
+
   /* Respect reduced motion preference */
   @media (prefers-reduced-motion: reduce) {
     .animate-stagger-in,
     .animate-empty-state-in,
     .card-lift,
     .btn-press-feedback,
-    .pm-collapsible-animate {
+    .pm-collapsible-animate,
+    .pricing-collage-track-animated {
       animation: none !important;
       transform: none !important;
       transition: none !important;
