@@ -32,7 +32,7 @@ test.describe('PR evidence shop-voice marketing @pr-evidence', () => {
     const closerCta = page.getByRole('link', { name: /get started free/i }).last();
     await expect(closerCta).toBeVisible();
     await evidencePause(page, 400);
-    await evidenceScreenshot(page, '01-homepage-closer', { target: closer });
+    await evidenceScreenshot({ page, label: '01-homepage-closer', target: closer });
 
     await page.goto('/solutions/repair-shops', { waitUntil: 'domcontentloaded' });
     await acceptCookieBannerIfPresent(page);
@@ -48,14 +48,14 @@ test.describe('PR evidence shop-voice marketing @pr-evidence', () => {
     await expect(page.getByText('QuickBooks invoicing')).toBeVisible();
     const fourJobsSection = page.locator('section').filter({ has: fourJobs });
     await evidencePause(page, 400);
-    await evidenceScreenshot(page, '02-repair-shops-four-jobs', { target: fourJobsSection });
+    await evidenceScreenshot({ page, label: '02-repair-shops-four-jobs', target: fourJobsSection });
 
     await page.goto('/features/qr-code-integration', { waitUntil: 'domcontentloaded' });
     await acceptCookieBannerIfPresent(page);
     const qrHeroCta = page.getByRole('link', { name: /print the first labels/i }).first();
     await expect(qrHeroCta).toBeVisible({ timeout: 15_000 });
     await evidencePause(page, 400);
-    await evidenceScreenshot(page, '03-qr-hero-print-labels', { target: qrHeroCta });
+    await evidenceScreenshot({ page, label: '03-qr-hero-print-labels', target: qrHeroCta });
 
     const qrFooterHeading = page.getByRole('heading', {
       level: 2,
@@ -66,7 +66,7 @@ test.describe('PR evidence shop-voice marketing @pr-evidence', () => {
     const qrFooterCta = page.getByRole('link', { name: /print the first labels/i }).last();
     await expect(qrFooterCta).toBeVisible();
     await evidencePause(page, 400);
-    await evidenceScreenshot(page, '04-qr-footer-print-labels', { target: qrFooterHeading });
+    await evidenceScreenshot({ page, label: '04-qr-footer-print-labels', target: qrFooterHeading });
   });
 
   test('mobile stacking for homepage closer and QR footer CTA', async ({ page }) => {
@@ -84,7 +84,7 @@ test.describe('PR evidence shop-voice marketing @pr-evidence', () => {
     const closerCta = page.getByRole('link', { name: /get started free/i }).last();
     await expect(closerCta).toBeVisible();
     await evidencePause(page, 400);
-    await evidenceScreenshot(page, '05-homepage-closer-mobile', { target: closerCta });
+    await evidenceScreenshot({ page, label: '05-homepage-closer-mobile', target: closerCta });
 
     await page.goto('/features/qr-code-integration', { waitUntil: 'domcontentloaded' });
     await acceptCookieBannerIfPresent(page);
@@ -97,6 +97,6 @@ test.describe('PR evidence shop-voice marketing @pr-evidence', () => {
     const qrFooterCta = page.getByRole('link', { name: /print the first labels/i }).last();
     await expect(qrFooterCta).toBeVisible();
     await evidencePause(page, 400);
-    await evidenceScreenshot(page, '06-qr-footer-print-labels-mobile', { target: qrFooterCta });
+    await evidenceScreenshot({ page, label: '06-qr-footer-print-labels-mobile', target: qrFooterCta });
   });
 });

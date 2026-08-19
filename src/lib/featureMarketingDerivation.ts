@@ -1,5 +1,5 @@
-import type { FeatureSeoEntry } from '../pages/features/data/featureSeoContent';
-import { FEATURE_SEO_BY_PATH } from '../pages/features/data/featureSeoContent';
+import type { FeatureSeoEntry } from './featureSeoContent';
+import { FEATURE_SEO_BY_PATH } from './featureSeoContent';
 import type { MarketingRoute } from './marketingRouteTypes';
 
 export type FeatureMarketingRouteShell = {

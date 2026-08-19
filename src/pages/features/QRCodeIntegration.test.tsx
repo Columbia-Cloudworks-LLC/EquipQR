@@ -4,9 +4,13 @@ import { describe, it, expect, vi } from 'vitest';
 import QRCodeIntegration from './QRCodeIntegration';
 import { TestProviders } from '@vitest-harness/utils/TestProviders';
 import { benefits, content, showcases, steps } from './data/qrCodeIntegrationData';
-import { getFeatureSeoByPath } from './data/featureSeoContent';
+import { getFeatureSeoByPath } from '@/lib/featureSeoContent';
 
 const qrSeo = getFeatureSeoByPath('/features/qr-code-integration')!;
+const qrPrimaryCta = content.ctaPrimaryText;
+if (!qrPrimaryCta) {
+  throw new Error('QR feature page must define ctaPrimaryText');
+}
 
 // Mock the feature page components to focus on QRCodeIntegration logic
 vi.mock('@/components/landing/features/FeaturePageLayout', () => ({
@@ -120,7 +124,8 @@ describe('QRCodeIntegration Feature Page', () => {
 
       expect(screen.getByText(qrSeo.heroTitle)).toBeInTheDocument();
       expect(screen.getByText(qrSeo.heroDescription)).toBeInTheDocument();
-      expect(screen.getByTestId('feature-hero')).toHaveTextContent(content.ctaPrimaryText!);
+      expect(screen.getByRole('heading', { level: 1, name: qrSeo.heroTitle })).toBeInTheDocument();
+      expect(screen.getAllByRole('button', { name: qrPrimaryCta })).toHaveLength(2);
     });
   });
 
@@ -259,12 +264,9 @@ describe('QRCodeIntegration Feature Page', () => {
         </TestProviders>
       );
 
-      const footer = screen.getByTestId('feature-cta');
-      const hero = screen.getByTestId('feature-hero');
-      expect(footer).toHaveTextContent(content.ctaTitle);
-      expect(footer).toHaveTextContent(content.ctaDescription);
-      expect(hero).toHaveTextContent(content.ctaPrimaryText!);
-      expect(footer).toHaveTextContent(content.ctaPrimaryText!);
+      expect(screen.getByRole('heading', { level: 2, name: content.ctaTitle })).toBeInTheDocument();
+      expect(screen.getByText(content.ctaDescription)).toBeInTheDocument();
+      expect(screen.getAllByRole('button', { name: qrPrimaryCta })).toHaveLength(2);
     });
   });
 
@@ -340,7 +342,7 @@ describe('QRCodeIntegration Feature Page', () => {
         </TestProviders>
       );
 
-      const ctaButtons = screen.getAllByRole('button', { name: content.ctaPrimaryText });
+      const ctaButtons = screen.getAllByRole('button', { name: qrPrimaryCta });
       expect(ctaButtons).toHaveLength(2);
       expect(ctaButtons[0].textContent).toBe(ctaButtons[1].textContent);
     });

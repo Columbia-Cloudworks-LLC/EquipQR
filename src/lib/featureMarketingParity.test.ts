@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FEATURE_SEO_BY_PATH } from '@/pages/features/data/featureSeoContent';
+import { FEATURE_SEO_BY_PATH } from '@/lib/featureSeoContent';
 import { steps as customerCrmSteps } from '@/pages/features/data/customerCrmData';
 import { steps as fleetVisualizationSteps } from '@/pages/features/data/fleetVisualizationData';
 import { steps as googleWorkspaceSteps } from '@/pages/features/data/googleWorkspaceData';

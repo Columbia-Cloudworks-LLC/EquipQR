@@ -10,7 +10,7 @@ import {
   buildHowToSchema,
 } from '@/lib/structuredData';
 import { mapVisibleStepsToHowTo, type VisibleHowToStep } from '@/lib/featureMarketingDerivation';
-import { getFeatureSeoByPath } from '@/pages/features/data/featureSeoContent';
+import { getFeatureSeoByPath } from '@/lib/featureSeoContent';
 import {
   Accordion,
   AccordionContent,

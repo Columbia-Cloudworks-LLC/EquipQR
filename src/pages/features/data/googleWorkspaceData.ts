@@ -35,7 +35,7 @@ export const benefits: Benefit[] = [
     title: 'Import Members',
     subtitle: 'Select who joins your org',
     description:
-      "After syncing, choose which directory users to add as organization members. Select individuals or bulk-add. Pending users appear until they sign in with Google, then they're added.",
+      "After syncing, choose which directory users to add as organization members. Select individuals or bulk-add. Pending users appear until they sign in with Google, then they are added.",
     benefits: ['Pick users from directory', 'Pending until sign-in', 'Assign roles on add'],
     benefitColor: 'info',
   },

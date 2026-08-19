@@ -12,11 +12,11 @@ Step-by-step walkthroughs live in the Help Center:
 
 ## Connect
 
-From the sidebar, open **Integrations** (or Organization → Integrations). Click **Connect to QuickBooks Online**, sign in to the QuickBooks company, and grant the requested scopes. EquipQR only reads customers and writes invoices. It does not touch payroll, banking, or other transactions.
+From the sidebar, open **Integrations** (or Organization → Integrations). Click **Connect to QuickBooks Online**, sign in to the QuickBooks company, and grant the requested scopes. EquipQR reads customers, items, invoices, and payments. It writes draft invoices and can create missing product/service items used on those drafts. It does not touch payroll or banking.
 
 You land back on the Integrations tab with a **Connected** badge. The card also offers **Disconnect**.
 
-QuickBooks access tokens expire every 100 days. EquipQR refreshes the connection in the background. If the connection health indicator in the top bar turns red, reconnect from this page.
+QuickBooks refresh tokens last about 100 days. EquipQR refreshes short-lived access tokens in the background. If the connection health indicator in the top bar turns red, reconnect from this page.
 
 ## Map teams to customers
 
@@ -26,7 +26,7 @@ Invoice export needs a QuickBooks customer on the team. Open the customer team, 
 
 On a **completed** work order, use **Export → QuickBooks**. Requirements:
 
-- The work order is assigned to a team
+- The work order's equipment belongs to a team
 - That team has a QuickBooks customer mapping
 - You can manage QuickBooks (owner, admin, or a member granted access)
 

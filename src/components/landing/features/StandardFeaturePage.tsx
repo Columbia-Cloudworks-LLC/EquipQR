@@ -9,7 +9,7 @@ import { StepList } from '@/components/landing/features/StepList';
 import { FeatureShowcaseList } from '@/components/landing/features/FeatureShowcaseList';
 import { FeatureCTA } from '@/components/landing/features/FeatureCTA';
 import { CapabilitiesGrid } from '@/components/landing/features/CapabilitiesGrid';
-import { getFeatureSeoByPath } from '@/pages/features/data/featureSeoContent';
+import { getFeatureSeoByPath } from '@/lib/featureSeoContent';
 import type {
   Benefit,
   Capability,

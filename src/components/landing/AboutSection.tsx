@@ -69,7 +69,7 @@ const AboutSection = ({ id }: { id?: string }) => {
           {useCases.map((useCase, index) => (
               <LandingReveal key={useCase.title} delayMs={index * 60} className="h-full">
                 <Card
-                  className="relative flex h-full flex-col overflow-hidden border-border bg-card/50 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 hover:bg-card hover:shadow-lg"
+                  className="relative flex h-full flex-col overflow-hidden border-border bg-card/50 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 hover:bg-card hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0"
                 >
                   <div
                     className="h-1 w-full bg-gradient-to-r from-primary/20 via-primary/10 to-transparent"

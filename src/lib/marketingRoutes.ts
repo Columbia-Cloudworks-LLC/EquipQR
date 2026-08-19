@@ -144,7 +144,7 @@ export const MARKETING_ROUTES: readonly MarketingRoute[] = [
     changefreq: 'monthly',
     navLabel: 'Teams',
     extraBodyParagraphs: [
-      'Each crew sees its own machines and work orders. Requestors, technicians, and managers get different views of the same shop.',
+      'Each crew sees its own machines and work orders. Manager, Technician, Requestor, and Viewer roles get different views of the same shop.',
     ],
   }),
   deriveFeatureMarketingRoute({
