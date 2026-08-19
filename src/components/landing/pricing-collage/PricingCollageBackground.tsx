@@ -1,8 +1,9 @@
 import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion';
-import { PRICING_COLLAGE_MANIFEST } from './collageManifest';
-import { resolvePricingCollage } from './resolvePricingCollage';
+import { PRICING_COLLAGE_MANIFEST } from '@/components/landing/pricing-collage/collageManifest';
+import { resolvePricingCollage } from '@/components/landing/pricing-collage/resolvePricingCollage';
+import type React from 'react';
 
-export default function PricingCollageBackground() {
+export function PricingCollageBackground(): React.JSX.Element {
   const prefersReducedMotion = usePrefersReducedMotion();
   const strips = resolvePricingCollage(PRICING_COLLAGE_MANIFEST);
 
@@ -15,8 +16,8 @@ export default function PricingCollageBackground() {
               className={prefersReducedMotion ? undefined : 'pricing-collage-track-animated'}
               style={{ animationDuration: strip.durationCss }}
             >
-              <img src={strip.url} alt="" decoding="async" loading="lazy" className="block w-full" />
-              <img src={strip.url} alt="" decoding="async" loading="lazy" className="block w-full" />
+              <img src={strip.url} alt="" decoding="async" loading="lazy" className="block h-1/2 w-full object-cover" />
+              <img src={strip.url} alt="" decoding="async" loading="lazy" className="block h-1/2 w-full object-cover" />
             </div>
           </div>
         ))}

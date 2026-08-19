@@ -492,6 +492,7 @@
   }
 
   .pricing-collage-track-animated {
+    height: 200%;
     animation-name: pricing-collage-scroll;
     animation-timing-function: linear;
     animation-iteration-count: infinite;
