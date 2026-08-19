@@ -13,7 +13,7 @@ async function dismissCookieBannerIfPresent(page: Page): Promise<void> {
   }
 }
 
-async function expectFooterLinksHaveNoRestUnderline(footer: Locator) {
+async function expectFooterLinksHaveNoRestUnderline(footer: Locator): Promise<void> {
   const decorations = await footer.getByRole('link').evaluateAll((links) =>
     links.map((link) => getComputedStyle(link).textDecorationLine),
   );

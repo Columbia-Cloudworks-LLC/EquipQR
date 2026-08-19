@@ -118,7 +118,7 @@ function renderFooterLink(item: FooterLinkItem, className: string) {
 const LandingFooter = () => {
   const currentYear = new Date().getFullYear();
   const footerLinkClassName =
-    `flex items-center min-h-[44px] py-3 text-sm transition-colors ${footerLinkDecorationClassName}`;
+    `flex items-center min-h-[44px] py-3 text-sm transition-colors motion-reduce:transition-none ${footerLinkDecorationClassName}`;
 
   return (
     <footer className="border-t border-border bg-background/50 backdrop-blur-sm mt-auto">
@@ -162,7 +162,7 @@ const LandingFooter = () => {
                   <li key={`${section.title}-${item.label}`}>
                     {renderFooterLink(
                       item,
-                      `hover:text-foreground transition-colors ${footerLinkDecorationClassName}`,
+                      `hover:text-foreground transition-colors motion-reduce:transition-none ${footerLinkDecorationClassName}`,
                     )}
                   </li>
                 ))}
@@ -175,7 +175,7 @@ const LandingFooter = () => {
           <span>© {currentYear} EquipQR™</span>
           <ExternalLink
             href={COLUMBIA_CLOUDWORKS_URL}
-            className={`hover:text-foreground transition-colors flex items-center gap-1.5 ${footerLinkDecorationClassName}`}
+            className={`hover:text-foreground transition-colors motion-reduce:transition-none flex items-center gap-1.5 ${footerLinkDecorationClassName}`}
             showIcon={false}
           >
             <img
