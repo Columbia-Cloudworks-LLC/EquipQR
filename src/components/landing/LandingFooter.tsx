@@ -118,7 +118,7 @@ function renderFooterLink(item: FooterLinkItem, className: string) {
 const LandingFooter = () => {
   const currentYear = new Date().getFullYear();
   const footerLinkClassName =
-    `block min-h-[44px] py-3 text-sm text-muted-foreground transition-colors hover:text-foreground ${footerLinkDecorationClassName}`;
+    `flex items-center min-h-[44px] py-3 text-sm transition-colors ${footerLinkDecorationClassName}`;
 
   return (
     <footer className="border-t border-border bg-background/50 backdrop-blur-sm mt-auto">
