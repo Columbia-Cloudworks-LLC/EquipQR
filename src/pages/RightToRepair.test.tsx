@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { render, screen, within } from '@vitest-harness/utils/test-utils';
-import RightToRepair from './RightToRepair';
+import { RightToRepair } from './RightToRepair';
 
 vi.mock('react-router-dom', async () => {
   const { createReactRouterDomTestMock } = await import(
@@ -27,6 +27,7 @@ describe('RightToRepair', () => {
     render(<RightToRepair />);
 
     expect(screen.getByRole('heading', { name: 'Right to Repair', level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument();
     expect(screen.getByText(/we will not hold your data hostage/i)).toBeInTheDocument();
     expect(screen.getByText(/this page is a statement of principles/i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute(

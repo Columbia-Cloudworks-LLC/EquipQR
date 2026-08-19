@@ -1,4 +1,10 @@
-import type { EquipQrCommitment, LandscapeCase, LandscapeLens, LandscapeMechanism, LandscapeSector } from './types';
+import type {
+  EquipQrCommitment,
+  LandscapeCase,
+  LandscapeLens,
+  LandscapeMechanism,
+  LandscapeSector,
+} from '@/pages/legal/right-to-repair/types';
 
 export const RIGHT_TO_REPAIR_PATH = '/right-to-repair';
 
@@ -65,7 +71,8 @@ export const LANDSCAPE_CASES: readonly LandscapeCase[] = [
     practice:
       'After buying VMware, Broadcom moved many customers off perpetual licenses toward subscription bundles. Public reports described sharp price increases for estates that had already capitalized the software.',
     harm: 'A stack that had been bought as an asset became a recurring rent. Switching costs kept shops paying.',
-    sourceLabel: 'Contemporary coverage of Broadcom’s VMware licensing change (2024)',
+    sourceLabel: 'The Register, Broadcom VMware licensing and price changes (2024)',
+    sourceHref: 'https://www.theregister.com/2024/02/01/broadcom_vmware_prices/',
   },
   {
     id: 'adobe-early-termination',
@@ -93,7 +100,9 @@ export const LANDSCAPE_CASES: readonly LandscapeCase[] = [
     practice:
       'Firmware on some HP printers blocked third-party or remanufactured cartridges. Regulators and courts later treated that as a post-sale restriction on hardware already in the home or office.',
     harm: 'Printers that had been paid for stopped accepting legal supplies. Independent cartridge makers lost a market.',
-    sourceLabel: 'Public enforcement and reporting on HP Dynamic Security / third-party ink',
+    sourceLabel: 'The Verge, HP Dynamic Security firmware and third-party ink (2024)',
+    sourceHref:
+      'https://www.theverge.com/2024/10/8/24265829/hp-printers-dynamic-security-ink-cartridges-bricked',
   },
   {
     id: 'insteon-cloud',
@@ -106,7 +115,8 @@ export const LANDSCAPE_CASES: readonly LandscapeCase[] = [
     practice:
       'Insteon hubs depended on a vendor cloud. When that service went dark in 2022, installed hardware in homes stopped working as a system until a later revival effort.',
     harm: 'Buyers who had paid for hubs discovered they had leased a server they did not control.',
-    sourceLabel: 'April 2022 reporting on the Insteon service shutdown',
+    sourceLabel: 'The Verge, Insteon servers go offline (April 2022)',
+    sourceHref: 'https://www.theverge.com/2022/4/19/23031736/insteon-servers-offline-smart-home-hub',
   },
   {
     id: 'sony-ps-video',
@@ -119,7 +129,9 @@ export const LANDSCAPE_CASES: readonly LandscapeCase[] = [
     practice:
       'Movies and shows sold through the PlayStation Store were licenses. Studio withdrawals later removed titles from libraries customers had already paid for.',
     harm: 'A “purchased” shelf was not a copy the customer kept. It was a revocable grant.',
-    sourceLabel: 'Sony and studio notices on PlayStation Store video catalog withdrawals',
+    sourceLabel: 'The Verge, Discovery titles pulled from PlayStation Store libraries (2022)',
+    sourceHref:
+      'https://www.theverge.com/2022/12/7/23498143/sony-removing-discovery-shows-playstation-store',
   },
   {
     id: 'apple-parts-pairing',
@@ -146,7 +158,9 @@ export const LANDSCAPE_CASES: readonly LandscapeCase[] = [
     practice:
       'Smart Licensing expects gear to report in to Cisco’s license service. Hardware that already shipped still needs an ongoing relationship with the vendor’s control plane.',
     harm: 'A paid switch is not fully usable without the vendor’s license servers and entitlements.',
-    sourceLabel: 'Cisco Smart Licensing documentation and public licensing disputes',
+    sourceLabel: 'Cisco, Smart Software Licensing',
+    sourceHref:
+      'https://www.cisco.com/c/en/us/buy/smart-accounts/software-licensing.html',
   },
   {
     id: 'hpe-firmware-entitlement',
@@ -159,7 +173,9 @@ export const LANDSCAPE_CASES: readonly LandscapeCase[] = [
     practice:
       'Server firmware and support packs are often gated on an active contract. Security fixes for iron already in the rack can wait on a purchase order.',
     harm: 'The machine is on the floor. The ability to patch it is rented.',
-    sourceLabel: 'HPE support/SPP entitlement practice as described in public IT operations writing',
+    sourceLabel: 'The Register, HPE firmware updates tied to support contracts (2017)',
+    sourceHref:
+      'https://www.theregister.com/2017/03/29/hpe_makes_firmware_updates_a_paid_support_perk/',
   },
   {
     id: 'deere-diagnostics',
@@ -186,6 +202,7 @@ export const LANDSCAPE_CASES: readonly LandscapeCase[] = [
     practice:
       'Independent reporting has compared OEM high-voltage pack replacement quotes with specialist repair costs that reuse modules. Access to parts, procedures, and software authorization is the bottleneck, not the physics of the pack.',
     harm: 'A damaged module can total a vehicle on paper while a shop with parts access could have repaired it.',
-    sourceLabel: 'Independent EV repair reporting on pack replacement vs module repair',
+    sourceLabel: 'iFixit, Tesla high-voltage battery repair access',
+    sourceHref: 'https://www.ifixit.com/News/26161/tesla-repair-and-the-right-to-repair',
   },
 ];

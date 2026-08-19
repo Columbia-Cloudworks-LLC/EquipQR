@@ -85,7 +85,7 @@ vi.mock('@/pages/DoNotSellOrShare', () => ({
 }));
 vi.mock('@/pages/Security', () => ({ default: () => <div data-testid="security-page">Security</div> }));
 vi.mock('@/pages/RightToRepair', () => ({
-  default: () => <div data-testid="right-to-repair-page">Right To Repair</div>,
+  RightToRepair: () => <div data-testid="right-to-repair-page">Right To Repair</div>,
 }));
 vi.mock('@/pages/dsr/CockpitPage', () => ({ default: () => <div data-testid="dsr-cockpit-page">DSR Cockpit</div> }));
 vi.mock('@/pages/dsr/CasePage', () => ({ default: () => <div data-testid="dsr-case-page">DSR Case</div> }));

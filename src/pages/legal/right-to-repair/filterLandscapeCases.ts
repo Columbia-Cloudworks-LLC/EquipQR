@@ -1,4 +1,4 @@
-import type { LandscapeCase, LandscapeFilters } from './types';
+import type { LandscapeCase, LandscapeFilters } from '@/pages/legal/right-to-repair/types';
 
 export const EMPTY_LANDSCAPE_FILTERS: LandscapeFilters = {
   lens: 'all',

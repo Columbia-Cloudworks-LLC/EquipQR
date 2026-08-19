@@ -3,6 +3,7 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import EmptyState from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import {
   Sheet,
@@ -12,14 +13,23 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { EMPTY_LANDSCAPE_FILTERS, filterLandscapeCases } from './filterLandscapeCases';
+import {
+  EMPTY_LANDSCAPE_FILTERS,
+  filterLandscapeCases,
+} from '@/pages/legal/right-to-repair/filterLandscapeCases';
 import {
   LANDSCAPE_CASES,
   LENS_LABELS,
   MECHANISM_LABELS,
   SECTOR_LABELS,
-} from './rightToRepairContent';
-import type { LandscapeCase, LandscapeFilters, LandscapeLens, LandscapeMechanism, LandscapeSector } from './types';
+} from '@/pages/legal/right-to-repair/rightToRepairContent';
+import type {
+  LandscapeCase,
+  LandscapeFilters,
+  LandscapeLens,
+  LandscapeMechanism,
+  LandscapeSector,
+} from '@/pages/legal/right-to-repair/types';
 
 const LENS_OPTIONS: Array<LandscapeLens | 'all'> = ['all', 'software', 'hardware', 'physical'];
 const SECTOR_OPTIONS: Array<LandscapeSector | 'all'> = [
@@ -50,7 +60,7 @@ function FilterRow<T extends string>({
   options: readonly T[];
   labels: Record<T, string>;
   onChange: (value: T) => void;
-}) {
+}): JSX.Element {
   return (
     <fieldset className="space-y-2">
       <legend className="text-sm font-medium text-foreground">{legend}</legend>
@@ -74,7 +84,13 @@ function FilterRow<T extends string>({
   );
 }
 
-function CaseCard({ item, onOpen }: { item: LandscapeCase; onOpen: (item: LandscapeCase) => void }) {
+function CaseCard({
+  item,
+  onOpen,
+}: {
+  item: LandscapeCase;
+  onOpen: (item: LandscapeCase) => void;
+}): JSX.Element {
   return (
     <Card className="flex h-full flex-col">
       <CardHeader>
@@ -104,7 +120,7 @@ function CaseCard({ item, onOpen }: { item: LandscapeCase; onOpen: (item: Landsc
   );
 }
 
-export function RightToRepairLandscape() {
+export function RightToRepairLandscape(): JSX.Element {
   const [filters, setFilters] = useState<LandscapeFilters>(EMPTY_LANDSCAPE_FILTERS);
   const [openCase, setOpenCase] = useState<LandscapeCase | null>(null);
 
@@ -169,7 +185,19 @@ export function RightToRepairLandscape() {
       </p>
 
       {visibleCases.length === 0 ? (
-        <p className="text-muted-foreground">No cases match those filters. Clear a chip or the search.</p>
+        <EmptyState
+          title="No cases match those filters"
+          description="Switch a layer, sector, or mechanism back to All, or clear the search."
+          action={
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setFilters(EMPTY_LANDSCAPE_FILTERS)}
+            >
+              Reset filters
+            </Button>
+          }
+        />
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {visibleCases.map((item) => (
@@ -212,11 +240,7 @@ export function RightToRepairLandscape() {
                   ))}
                 </div>
                 <p>
-                  {openCase.sourceHref ? (
-                    <ExternalLink href={openCase.sourceHref}>{openCase.sourceLabel}</ExternalLink>
-                  ) : (
-                    <span className="text-muted-foreground">{openCase.sourceLabel}</span>
-                  )}
+                  <ExternalLink href={openCase.sourceHref}>{openCase.sourceLabel}</ExternalLink>
                 </p>
               </div>
             </>

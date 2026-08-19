@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
+import type { LucideIcon } from 'lucide-react';
 import { Download, Unlock, Wrench } from 'lucide-react';
 import LandingHeader from '@/components/landing/LandingHeader';
+import { PageBackButton } from '@/components/layout/PageBackButton';
 import LegalFooter from '@/components/layout/LegalFooter';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,14 +12,15 @@ import {
   RIGHT_TO_REPAIR_REVIEWED_ON,
   RIGHT_TO_REPAIR_SEO,
 } from '@/pages/legal/right-to-repair/rightToRepairContent';
+import type { EquipQrCommitmentId } from '@/pages/legal/right-to-repair/types';
 
-const COMMITMENT_ICONS = {
+const COMMITMENT_ICONS: Record<EquipQrCommitmentId, LucideIcon> = {
   export: Download,
   'no-hostage': Unlock,
   'no-pairing': Wrench,
-} as const;
+};
 
-export default function RightToRepair() {
+export function RightToRepair(): JSX.Element {
   return (
     <>
       <PageSEO
@@ -34,33 +37,36 @@ export default function RightToRepair() {
         >
           <section className="relative bg-gradient-to-br from-background via-background to-primary/5 pb-16 pt-32">
             <div className="container mx-auto px-4">
-              <div className="mx-auto max-w-3xl text-center">
-                <p className="text-sm font-medium uppercase tracking-wide text-primary">
-                  Public stance
-                </p>
-                <h1
-                  data-route-heading="true"
-                  tabIndex={-1}
-                  className="mt-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl"
-                >
-                  Right to Repair
-                </h1>
-                <p className="mt-6 text-lg text-muted-foreground sm:text-xl">
-                  If you bought the machine, you should be able to keep it running. If you logged
-                  the work in EquipQR, that history is yours. We will not hold your data hostage.
-                </p>
-                <p className="mt-4 text-sm text-muted-foreground">
-                  Last reviewed {RIGHT_TO_REPAIR_REVIEWED_ON}. This page is a statement of
-                  principles. It is not a contract and does not change the{' '}
-                  <Link to="/terms-of-service" className="underline hover:text-foreground">
-                    Terms of Service
-                  </Link>{' '}
-                  or{' '}
-                  <Link to="/privacy-policy" className="underline hover:text-foreground">
-                    Privacy Policy
-                  </Link>
-                  .
-                </p>
+              <div className="mx-auto max-w-3xl">
+                <PageBackButton className="mb-6" />
+                <div className="text-center">
+                  <p className="text-sm font-medium uppercase tracking-wide text-primary">
+                    Public stance
+                  </p>
+                  <h1
+                    data-route-heading="true"
+                    tabIndex={-1}
+                    className="mt-3 text-4xl font-bold tracking-tight text-foreground sm:text-5xl"
+                  >
+                    Right to Repair
+                  </h1>
+                  <p className="mt-6 text-lg text-muted-foreground sm:text-xl">
+                    If you bought the machine, you should be able to keep it running. If you logged
+                    the work in EquipQR, that history is yours. We will not hold your data hostage.
+                  </p>
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    Last reviewed {RIGHT_TO_REPAIR_REVIEWED_ON}. This page is a statement of
+                    principles. It is not a contract and does not change the{' '}
+                    <Link to="/terms-of-service" className="underline hover:text-foreground">
+                      Terms of Service
+                    </Link>{' '}
+                    or{' '}
+                    <Link to="/privacy-policy" className="underline hover:text-foreground">
+                      Privacy Policy
+                    </Link>
+                    .
+                  </p>
+                </div>
               </div>
             </div>
           </section>

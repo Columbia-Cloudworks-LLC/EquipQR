@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { EMPTY_LANDSCAPE_FILTERS, filterLandscapeCases } from './filterLandscapeCases';
-import type { LandscapeCase, LandscapeFilters } from './types';
+import { EMPTY_LANDSCAPE_FILTERS, filterLandscapeCases } from '@/pages/legal/right-to-repair/filterLandscapeCases';
+import { LANDSCAPE_CASES } from '@/pages/legal/right-to-repair/rightToRepairContent';
+import type { LandscapeCase, LandscapeFilters } from '@/pages/legal/right-to-repair/types';
 
 const cases: LandscapeCase[] = [
   {
@@ -14,6 +15,7 @@ const cases: LandscapeCase[] = [
     practice: 'The vendor cloud went offline.',
     harm: 'Installed hubs stopped responding.',
     sourceLabel: 'test',
+    sourceHref: 'https://example.com/cloud-hub',
   },
   {
     id: 'tractor-tools',
@@ -26,6 +28,7 @@ const cases: LandscapeCase[] = [
     practice: 'Repair tools stayed behind dealer software.',
     harm: 'Independent shops could not complete work.',
     sourceLabel: 'test',
+    sourceHref: 'https://example.com/tractor-tools',
   },
   {
     id: 'parts-pair',
@@ -38,6 +41,7 @@ const cases: LandscapeCase[] = [
     practice: 'Replacement parts must cryptographically pair.',
     harm: 'Independent repair is degraded.',
     sourceLabel: 'test',
+    sourceHref: 'https://example.com/parts-pair',
   },
 ];
 
@@ -80,5 +84,13 @@ describe('filterLandscapeCases', () => {
     expect(
       filterLandscapeCases(cases, filters({ sector: 'enterprise', mechanism: 'cloud-tether' })),
     ).toEqual([]);
+  });
+});
+
+describe('LANDSCAPE_CASES', () => {
+  it('gives every published case a public https source', () => {
+    for (const item of LANDSCAPE_CASES) {
+      expect(item.sourceHref, item.id).toMatch(/^https:\/\//);
+    }
   });
 });

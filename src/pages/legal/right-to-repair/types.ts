@@ -21,7 +21,7 @@ export type LandscapeCase = {
   practice: string;
   harm: string;
   sourceLabel: string;
-  sourceHref?: string;
+  sourceHref: string;
 };
 
 export type LandscapeFilters = {
@@ -31,8 +31,10 @@ export type LandscapeFilters = {
   query: string;
 };
 
+export type EquipQrCommitmentId = 'export' | 'no-hostage' | 'no-pairing';
+
 export type EquipQrCommitment = {
-  id: string;
+  id: EquipQrCommitmentId;
   title: string;
   body: string;
 };
