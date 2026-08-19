@@ -31,6 +31,7 @@ export async function ensureEvidenceDirs(): Promise<{ screenshotsDir: string; ar
 }
 
 export interface EvidenceScreenshotOptions {
+  label: string;
   /** When set, scrolls the control into frame and asserts it is fully visible before capture. */
   target?: Locator;
 }
@@ -41,9 +42,20 @@ export interface EvidenceScreenshotOptions {
  */
 export async function evidenceScreenshot(
   page: Page,
+  options: EvidenceScreenshotOptions,
+): Promise<string>;
+export async function evidenceScreenshot(
+  page: Page,
   label: string,
-  options?: EvidenceScreenshotOptions,
+  options?: Omit<EvidenceScreenshotOptions, 'label'>,
+): Promise<string>;
+export async function evidenceScreenshot(
+  page: Page,
+  labelOrOptions: string | EvidenceScreenshotOptions,
+  legacyOptions?: Omit<EvidenceScreenshotOptions, 'label'>,
 ): Promise<string> {
+  const label = typeof labelOrOptions === 'string' ? labelOrOptions : labelOrOptions.label;
+  const options = typeof labelOrOptions === 'string' ? legacyOptions : labelOrOptions;
   if (options?.target) {
     return evidenceScreenshotTarget(page, options.target, label, captureEvidenceScreenshot);
   }
