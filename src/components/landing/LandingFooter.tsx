@@ -63,6 +63,7 @@ const footerSections: FooterSection[] = [
       { href: '/terms-of-service', label: 'Terms', type: 'route' },
       { href: '/privacy-policy', label: 'Privacy', type: 'route' },
       { href: '/do-not-sell-or-share', label: 'Do Not Sell or Share', type: 'route' },
+      { href: '/right-to-repair', label: 'Right to Repair', type: 'route' },
     ],
   },
   {

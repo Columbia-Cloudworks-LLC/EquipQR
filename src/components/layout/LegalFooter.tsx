@@ -17,6 +17,7 @@ const linkClassName =
 const legalLinks = [
   { to: '/terms-of-service', label: 'Terms of Service' },
   { to: '/security', label: 'Security' },
+  { to: '/right-to-repair', label: 'Right to Repair' },
   { to: '/privacy-policy', label: 'Privacy Policy' },
   { to: '/do-not-sell-or-share', label: 'Do Not Sell or Share' },
 ] as const;

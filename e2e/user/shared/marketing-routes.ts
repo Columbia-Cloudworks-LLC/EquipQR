@@ -16,4 +16,5 @@ export const PUBLIC_MARKETING_PATHS = [
   '/features/mobile-first-design',
   '/terms-of-service',
   '/privacy-policy',
+  '/right-to-repair',
 ] as const;

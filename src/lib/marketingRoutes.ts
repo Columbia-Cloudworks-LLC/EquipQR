@@ -204,6 +204,20 @@ export const MARKETING_ROUTES: readonly MarketingRoute[] = [
       'Read the live policy in the app for the full detail, sections, and tables referenced by compliance workflows.',
     ],
   },
+  {
+    path: '/right-to-repair',
+    priority: '0.3',
+    changefreq: 'yearly',
+    title: 'Right to Repair',
+    description:
+      'EquipQR supports your right to repair equipment you already own. We will not hold your records hostage. This page is a public stance, not a contract.',
+    heading: 'Right to Repair',
+    navLabel: 'Right to Repair',
+    bodyParagraphs: [
+      'EquipQR supports independent repair and will not hold your operational records hostage. This page is a public stance, not a contract.',
+      'It explains common post-sale lock-in patterns in software, hardware, and physical repair, and states what EquipQR will and will not do with customer data and equipment control.',
+    ],
+  },
 ];
 
-export const EXPECTED_MARKETING_ROUTE_COUNT = 16;
+export const EXPECTED_MARKETING_ROUTE_COUNT = 17;

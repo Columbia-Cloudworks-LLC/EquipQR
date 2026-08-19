@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Homepage pricing collage.** Four vertical equipment photo strips scroll behind the pricing card on `/`. Reduced motion freezes the first frame.
+- **Right to Repair stance.** Public `/right-to-repair` (Legal footer) states that EquipQR supports independent repair and will not hold customer records hostage. The page includes a filterable case atlas of documented post-sale lock-in patterns. It is a public stance, not a contract.
 
 ### Changed
 
