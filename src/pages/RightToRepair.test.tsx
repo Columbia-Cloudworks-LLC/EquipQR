@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { render, screen, within } from '@vitest-harness/utils/test-utils';
-import RightToRepair from './RightToRepair';
+import { RightToRepair } from '@/pages/RightToRepair';
 
 vi.mock('react-router-dom', async () => {
   const { createReactRouterDomTestMock } = await import(

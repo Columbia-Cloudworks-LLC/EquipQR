@@ -12,14 +12,15 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { EMPTY_LANDSCAPE_FILTERS, filterLandscapeCases } from './filterLandscapeCases';
+import EmptyState from '@/components/ui/empty-state';
+import { EMPTY_LANDSCAPE_FILTERS, filterLandscapeCases } from '@/pages/legal/right-to-repair/filterLandscapeCases';
 import {
   LANDSCAPE_CASES,
   LENS_LABELS,
   MECHANISM_LABELS,
   SECTOR_LABELS,
-} from './rightToRepairContent';
-import type { LandscapeCase, LandscapeFilters, LandscapeLens, LandscapeMechanism, LandscapeSector } from './types';
+} from '@/pages/legal/right-to-repair/rightToRepairContent';
+import type { LandscapeCase, LandscapeFilters, LandscapeLens, LandscapeMechanism, LandscapeSector } from '@/pages/legal/right-to-repair/types';
 
 const LENS_OPTIONS: Array<LandscapeLens | 'all'> = ['all', 'software', 'hardware', 'physical'];
 const SECTOR_OPTIONS: Array<LandscapeSector | 'all'> = [
@@ -104,7 +105,7 @@ function CaseCard({ item, onOpen }: { item: LandscapeCase; onOpen: (item: Landsc
   );
 }
 
-export function RightToRepairLandscape() {
+export function RightToRepairLandscape(): JSX.Element {
   const [filters, setFilters] = useState<LandscapeFilters>(EMPTY_LANDSCAPE_FILTERS);
   const [openCase, setOpenCase] = useState<LandscapeCase | null>(null);
 
@@ -169,7 +170,7 @@ export function RightToRepairLandscape() {
       </p>
 
       {visibleCases.length === 0 ? (
-        <p className="text-muted-foreground">No cases match those filters. Clear a chip or the search.</p>
+        <EmptyState title="No cases match those filters" description="Clear a chip or the search." />
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {visibleCases.map((item) => (

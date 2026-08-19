@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Download, Unlock, Wrench } from 'lucide-react';
 import LandingHeader from '@/components/landing/LandingHeader';
 import LegalFooter from '@/components/layout/LegalFooter';
+import { PageBackButton } from '@/components/layout/PageBackButton';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RightToRepairLandscape } from '@/pages/legal/right-to-repair/RightToRepairLandscape';
@@ -17,7 +18,7 @@ const COMMITMENT_ICONS = {
   'no-pairing': Wrench,
 } as const;
 
-export default function RightToRepair() {
+export function RightToRepair(): JSX.Element {
   return (
     <>
       <PageSEO
@@ -27,6 +28,7 @@ export default function RightToRepair() {
       />
       <div className="flex min-h-screen flex-col bg-background">
         <LandingHeader />
+          <PageBackButton />
         <main
           id="main-content"
           tabIndex={-1}
