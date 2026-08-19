@@ -51,7 +51,7 @@ test.describe('PR evidence landing footer link style @pr-evidence', () => {
     }
 
     await expect(footer.getByRole('link', { name: 'All features' })).toBeVisible();
-    await expect(footer.getByRole('link', { name: 'Columbia Cloudworks' })).toBeVisible();
+    await expect(footer.getByRole('link', { name: 'Columbia Cloudworks', exact: true })).toBeVisible();
     await expect(footer.getByRole('link', { name: 'Schedule a Demo' })).toBeVisible();
     await expectFooterLinksHaveNoRestUnderline(footer);
 
