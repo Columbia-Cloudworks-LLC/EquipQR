@@ -12,7 +12,7 @@ Step-by-step walkthroughs live in the Help Center:
 
 ## Connect
 
-From the sidebar, open **Integrations** (or Organization → Integrations). Click **Connect to QuickBooks Online**, sign in to the QuickBooks company, and grant the requested scopes. EquipQR only reads customers and writes invoices. It does not touch payroll, banking, or other transactions.
+From the sidebar, open **Integrations** (or Organization → Integrations). Click **Connect to QuickBooks Online**, sign in to the QuickBooks company, and grant the requested scopes. EquipQR reads customers, invoices, payments, and product/service items. It can create product/service items when needed for invoice export and writes draft invoices. It does not touch payroll, banking, or other transactions.
 
 You land back on the Integrations tab with a **Connected** badge. The card also offers **Disconnect**.
 
@@ -26,7 +26,7 @@ Invoice export needs a QuickBooks customer on the team. Open the customer team, 
 
 On a **completed** work order, use **Export → QuickBooks**. Requirements:
 
-- The work order is assigned to a team
+- The work order's equipment belongs to a team
 - That team has a QuickBooks customer mapping
 - You can manage QuickBooks (owner, admin, or a member granted access)
 
