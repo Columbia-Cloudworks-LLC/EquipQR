@@ -162,13 +162,11 @@ point them to the [Help Center](https://equipqr.info/support/) or the status
 page (`status.equipqr.app`). Signed-in users can report issues at
 `https://equipqr.app/dashboard/support`.
 
-## Related Documentation
+## Related documentation
 
-- [Permissions](./permissions.md) — full RBAC matrix and RLS policy guidance.
-- [Image Upload Technician Guide](../how-to/image-upload/technician-image-upload-guide.md)
-  — numbered-step guide with screenshots.
-- [QuickBooks Integration](../integrations/quickbooks.md) — integration
-  reference for developers setting up or debugging QuickBooks.
+- [Permissions](./permissions.md). Full RBAC matrix.
+- [Image Upload Technician Guide](../how-to/image-upload/technician-image-upload-guide.md). Numbered-step guide with screenshots.
+- [QuickBooks Online](../integrations/quickbooks.md). Connect, map teams, export draft invoices.
 
 ---
 

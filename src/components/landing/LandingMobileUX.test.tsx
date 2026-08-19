@@ -116,7 +116,7 @@ describe('Landing mobile UX pass', () => {
   it('renders each use-case outcome as a labeled chip', () => {
     renderWithRouter(<AboutSection />);
 
-    expect(screen.getAllByLabelText('The Win')).toHaveLength(6);
+    expect(screen.getAllByLabelText('The Win')).toHaveLength(5);
   });
 
   it('renders footer navigation as accordion triggers on mobile', () => {

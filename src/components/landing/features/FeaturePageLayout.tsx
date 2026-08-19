@@ -9,6 +9,7 @@ import {
   buildFaqPageSchema,
   buildHowToSchema,
 } from '@/lib/structuredData';
+import { mapVisibleStepsToHowTo, type VisibleHowToStep } from '@/lib/featureMarketingDerivation';
 import { getFeatureSeoByPath } from '@/pages/features/data/featureSeoContent';
 import {
   Accordion,
@@ -22,9 +23,10 @@ const MAIN_FOCUS_RING =
 
 interface FeaturePageLayoutProps {
   children: ReactNode;
+  howToSteps?: readonly VisibleHowToStep[];
 }
 
-export const FeaturePageLayout = ({ children }: FeaturePageLayoutProps) => {
+export const FeaturePageLayout = ({ children, howToSteps }: FeaturePageLayoutProps) => {
   const { pathname } = useLocation();
   const seo = getFeatureSeoByPath(pathname);
   const slug =
@@ -118,13 +120,13 @@ export const FeaturePageLayout = ({ children }: FeaturePageLayoutProps) => {
           </section>
         ) : null}
 
-        {seo?.howTo ? (
+        {seo?.howTo && howToSteps?.length ? (
           <JsonLd
             id={`howto-${slug}`}
             data={buildHowToSchema(
               seo.howTo.name,
               seo.howTo.description,
-              seo.howTo.steps
+              mapVisibleStepsToHowTo(howToSteps)
             )}
           />
         ) : null}

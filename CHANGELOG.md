@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Marketing and public docs in shop voice** — Landing, Repair Shops, feature pages, README, and public docs now match the homepage hero. Feature prerender SEO comes from `FEATURE_SEO_BY_PATH`. HowTo JSON-LD steps come from the visible page steps.
+
 ### Fixed
 
 - **Cross-org team IDOR (RT-13)** — Team fetch, update, and delete are scoped to the current organization. A foreign team UUID renders Team not found with no members or Edit Team.

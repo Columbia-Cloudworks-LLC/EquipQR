@@ -11,18 +11,18 @@ import type { BuiltInTemplate } from '@/components/landing/features/PmBuiltInTem
 import type { Benefit, FeaturePageContent, ShowcaseItem, Step } from './featurePageTypes';
 
 export const content: FeaturePageContent = {
-  benefitsTitle: 'Why Use PM Templates?',
+  benefitsTitle: 'Same checklist on every machine',
   benefitsDescription:
-    'Preventative maintenance templates ensure consistent inspections, reduce missed items, and create a permanent maintenance record for every piece of equipment.',
-  stepsTitle: 'How It Works',
-  stepsDescription: 'PM Templates integrate seamlessly with work orders for a streamlined maintenance workflow.',
+    'Attach a PM template to the work order. Every tech works the same items. The finished checklist stays on that machine.',
+  stepsTitle: 'How it works',
+  stepsDescription: 'Pick a template, work the checklist, keep the record on the closed job.',
   stepsClassName: 'bg-muted/30',
-  showcaseTitle: 'See PM Templates in Action',
-  showcaseDescription: "Here's what PM Templates look like in the EquipQR™ app.",
-  ctaTitle: 'Ready to Standardize Your Maintenance?',
+  showcaseTitle: 'PM templates',
+  showcaseDescription: 'Built-in checklists for common machines, or clone one and edit the items.',
+  ctaTitle: 'Attach a PM template',
   ctaDescription:
-    'Start using PM Templates today—completely free. Create your account and access all built-in templates immediately.',
-  ctaPrimaryText: 'Start Using PM Templates Free',
+    'Create a free account and attach a built-in checklist to the next work order.',
+  ctaPrimaryText: 'Attach a PM template',
   ctaClassName: 'bg-muted/30',
 };
 
@@ -30,11 +30,11 @@ export const benefits: Benefit[] = [
   {
     icon: CheckCircle2,
     iconColor: 'success',
-    title: 'Consistent Inspections',
-    subtitle: 'Never miss a check item',
+    title: 'Same items every time',
+    subtitle: 'No forgotten checkboxes',
     description:
-      'Every technician follows the same comprehensive checklist, ensuring consistent quality across all inspections. No more guesswork or forgotten items—just thorough, standardized maintenance every time.',
-    benefits: ['Standardized procedures', 'Training simplified', 'Quality assurance'],
+      'Every technician follows the same checklist. No guesswork, no forgotten items. The inspection looks the same on every machine.',
+    benefits: ['Standardized procedures', 'Training simplified'],
     benefitColor: 'success',
   },
   {
@@ -43,17 +43,17 @@ export const benefits: Benefit[] = [
     title: 'Complete Records',
     subtitle: 'Permanent maintenance history',
     description:
-      'Every completed checklist is saved as a permanent record attached to the work order. Track what was inspected, who did it, and when—perfect for compliance, audits, and warranty documentation.',
+      'Every completed checklist is saved on the work order. Track what was inspected, who did it, and when. Use it for compliance, audits, and warranty documentation.',
     benefits: ['Audit-ready records', 'Warranty protection', 'Compliance tracking'],
     benefitColor: 'info',
   },
   {
     icon: Settings2,
     iconColor: 'warning',
-    title: 'Fully Customizable',
-    subtitle: 'Build your own templates',
+    title: 'Clone and edit items',
+    subtitle: 'Built-ins stay as-is until you clone',
     description:
-      'Start with our built-in templates and customize them to match your specific requirements, or create entirely new templates from scratch. Add sections, items, and descriptions that fit your workflow.',
+      'Start with built-in templates and edit them, or create new ones from scratch. Add sections, items, and descriptions that match how your shop inspects.',
     benefits: ['Custom templates', 'Flexible sections', 'Equipment-specific'],
     benefitColor: 'warning',
   },
@@ -73,7 +73,7 @@ export const builtInTemplates: BuiltInTemplate[] = [
     items: 84,
     sections: 10,
     description:
-      'Comprehensive checklist for track-type excavators including undercarriage, boom, and bucket inspection.',
+      'Checklist for track-type excavators including undercarriage, boom, and bucket inspection.',
     icon: Wrench,
   },
   {
@@ -141,7 +141,7 @@ export const showcases: ShowcaseItem[] = [
     alt: 'Animated mobile demo showing a technician creating a preventative maintenance checklist in EquipQR',
     title: 'Create a PM Checklist from a Phone',
     description:
-      'Build a preventative maintenance checklist on a phone from the field. Pick a template, attach it to a work order, and start ticking off items with large touch-friendly controls — no laptop required.',
+      'Build a preventative maintenance checklist on a phone from the field. Pick a template, attach it to a work order, and start ticking off items with large touch-friendly controls. No laptop required.',
   },
   {
     kind: 'image',

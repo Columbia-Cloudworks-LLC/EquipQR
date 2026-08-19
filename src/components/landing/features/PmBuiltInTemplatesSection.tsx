@@ -16,8 +16,8 @@ interface PmBuiltInTemplatesSectionProps {
 
 export const PmBuiltInTemplatesSection = ({ templates }: PmBuiltInTemplatesSectionProps) => (
   <FeatureSection
-    title="Built-in Templates"
-    description="Get started immediately with professionally designed checklists for common equipment types. Each template includes comprehensive inspection items organized by category."
+    title="Built-in templates"
+    description="Forklift PM is 103 items across 12 sections. Excavator is 84 across 10. Assign one as-is. Clone it only if you need to change the list."
   >
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
       {templates.map((template) => (

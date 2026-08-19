@@ -50,11 +50,15 @@ describe('prerenderMarketingHtmlTemplate', () => {
 
     const html = prerenderMarketingHtmlTemplate(MINIMAL_DIST_TEMPLATE, route);
 
-    expect(html).toContain('<title>Work Order Management | EquipQR</title>');
+    expect(html).toContain(
+      '<title>Work Order Management Software for Heavy Equipment Repair | EquipQR</title>'
+    );
     expect(html).toContain(
       '<link rel="canonical" href="https://equipqr.app/features/work-order-management" />'
     );
-    expect(html).toContain('Create, assign, and track work orders with intelligent workflows');
+    expect(html).toContain(
+      'Create, assign, and complete repair-shop work orders with PM templates, parts, photos, and statuses built for field crews.'
+    );
     expect(html).toContain('data-prerendered-marketing-route="/features/work-order-management"');
     expect(html).toContain('aria-label="Public marketing pages"');
     expect(html).toContain('Public marketing pages');

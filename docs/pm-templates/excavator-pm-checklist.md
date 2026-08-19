@@ -4,7 +4,7 @@
 **Total Items:** 84  
 **Sections:** 11
 
-This document contains the complete excavator preventative maintenance checklist with all sections, items, and descriptions.
+84 items. Default EquipQR template for excavators.
 
 ---
 
