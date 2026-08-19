@@ -64,6 +64,9 @@ export async function evidenceScreenshot(
   options?: EvidenceScreenshotOptions,
 ): Promise<string> {
   if (isEvidenceScreenshotArgs(pageOrArgs)) {
+    if (!pageOrArgs.label) {
+      throw new Error('evidenceScreenshot requires a label');
+    }
     return captureFramedEvidenceScreenshot(pageOrArgs.page, pageOrArgs.label, pageOrArgs);
   }
 

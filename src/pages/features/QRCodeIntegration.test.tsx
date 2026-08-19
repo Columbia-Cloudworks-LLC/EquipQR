@@ -21,10 +21,10 @@ vi.mock('@/components/landing/features/FeaturePageLayout', () => ({
 
 vi.mock('@/components/landing/features/FeatureHero', () => ({
   FeatureHero: ({ title, description, ctaText }: { title: string; description: string; ctaText: string }) => (
-    <div data-testid="feature-hero">
+    <div>
       <h1>{title}</h1>
       <p>{description}</p>
-      <button>{ctaText}</button>
+      <a href="/auth?tab=signup">{ctaText}</a>
     </div>
   ),
 }));
@@ -95,10 +95,10 @@ vi.mock('@/components/landing/features/ScreenshotBlock', () => ({
 
 vi.mock('@/components/landing/features/FeatureCTA', () => ({
   FeatureCTA: ({ title, description, primaryCtaText }: { title: string; description: string; primaryCtaText: string }) => (
-    <div data-testid="feature-cta">
+    <div>
       <h2>{title}</h2>
       <p>{description}</p>
-      <button>{primaryCtaText}</button>
+      <a href="/auth?tab=signup">{primaryCtaText}</a>
     </div>
   ),
 }));
@@ -125,7 +125,7 @@ describe('QRCodeIntegration Feature Page', () => {
       expect(screen.getByText(qrSeo.heroTitle)).toBeInTheDocument();
       expect(screen.getByText(qrSeo.heroDescription)).toBeInTheDocument();
       expect(screen.getByRole('heading', { level: 1, name: qrSeo.heroTitle })).toBeInTheDocument();
-      expect(screen.getAllByRole('button', { name: qrPrimaryCta })).toHaveLength(2);
+      expect(screen.getAllByRole('link', { name: qrPrimaryCta })).toHaveLength(2);
     });
   });
 
@@ -266,7 +266,7 @@ describe('QRCodeIntegration Feature Page', () => {
 
       expect(screen.getByRole('heading', { level: 2, name: content.ctaTitle })).toBeInTheDocument();
       expect(screen.getByText(content.ctaDescription)).toBeInTheDocument();
-      expect(screen.getAllByRole('button', { name: qrPrimaryCta })).toHaveLength(2);
+      expect(screen.getAllByRole('link', { name: qrPrimaryCta })).toHaveLength(2);
     });
   });
 
@@ -342,9 +342,9 @@ describe('QRCodeIntegration Feature Page', () => {
         </TestProviders>
       );
 
-      const ctaButtons = screen.getAllByRole('button', { name: qrPrimaryCta });
-      expect(ctaButtons).toHaveLength(2);
-      expect(ctaButtons[0].textContent).toBe(ctaButtons[1].textContent);
+      const ctaLinks = screen.getAllByRole('link', { name: qrPrimaryCta });
+      expect(ctaLinks).toHaveLength(2);
+      expect(ctaLinks[0].textContent).toBe(ctaLinks[1].textContent);
     });
   });
 });

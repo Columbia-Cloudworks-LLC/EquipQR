@@ -4,8 +4,8 @@
  * Feature `/features/*` rows are derived from FEATURE_SEO_BY_PATH.
  */
 
-import { deriveFeatureMarketingRoute } from './featureMarketingDerivation';
-import type { MarketingRoute } from './marketingRouteTypes';
+import { deriveFeatureMarketingRoute } from '@/lib/featureMarketingDerivation';
+import type { MarketingRoute } from '@/lib/marketingRouteTypes';
 
 export type { MarketingRoute };
 
