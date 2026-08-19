@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { resolvePricingCollage } from './resolvePricingCollage';
-import type { HomepageCollageObjectKey, PositiveMillis, PricingCollageManifest } from './collageManifest';
+import { resolvePricingCollage } from '@/components/landing/pricing-collage/resolvePricingCollage';
+import type { HomepageCollageObjectKey, PositiveMillis, PricingCollageManifest } from '@/components/landing/pricing-collage/collageManifest';
 
 const SUPABASE_URL = 'https://custom-supabase.example.test';
 

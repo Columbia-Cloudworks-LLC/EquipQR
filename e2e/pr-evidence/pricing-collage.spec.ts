@@ -55,8 +55,9 @@ test.describe('PR evidence homepage pricing collage @pr-evidence', () => {
   test('mobile pricing block stacks CTAs over the collage', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openPricingSection(page);
-    const section = page.locator('#pricing');
+    const card = section.locator('.rounded-xl').first();
+    await expect(card.getByRole('link', { name: /get started free/i })).toBeVisible();
     await evidencePause(page, 800);
-    await evidenceScreenshot({ page, label: '02-pricing-collage-mobile', target: section });
+    await evidenceScreenshot({ page, label: '02-pricing-collage-mobile', target: card });
   });
 });

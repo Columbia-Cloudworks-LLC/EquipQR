@@ -493,6 +493,7 @@
 
   .pricing-collage-track-animated {
     animation-name: pricing-collage-scroll;
+    animation-duration: var(--pricing-collage-duration);
     animation-timing-function: linear;
     animation-iteration-count: infinite;
     will-change: transform;

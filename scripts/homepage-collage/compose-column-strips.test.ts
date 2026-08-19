@@ -60,8 +60,16 @@ describe('compose-column-strips validation', () => {
     ]);
     expect(commands).toHaveLength(4);
     expect(commands[0]).toBe(
-      'npx tsx scripts/upload-screenshot.ts /tmp/out/col-0.webp homepage-collage/col-0.webp landing-page-images',
+      'npx tsx scripts/upload-screenshot.ts "/tmp/out/col-0.webp" homepage-collage/col-0.webp landing-page-images',
     );
     expect(commands[3]).toContain('homepage-collage/col-3.webp');
+  });
+
+  it('quotes local paths that contain spaces', () => {
+    const commands = formatUploadCommands('C:/Users/viral/My Strips');
+
+    expect(commands[1]).toBe(
+      'npx tsx scripts/upload-screenshot.ts "C:/Users/viral/My Strips/col-1.webp" homepage-collage/col-1.webp landing-page-images',
+    );
   });
 });

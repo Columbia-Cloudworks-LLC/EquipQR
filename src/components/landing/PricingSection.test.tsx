@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import PricingSection from './PricingSection';
+import PricingSection from '@/components/landing/PricingSection';
 
 const SUPABASE_URL = 'https://custom-supabase.example.test';
 

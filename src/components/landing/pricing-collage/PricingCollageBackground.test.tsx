@@ -1,21 +1,32 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
-
-const mockUsePrefersReducedMotion = vi.fn<() => boolean>();
-vi.mock('@/hooks/use-prefers-reduced-motion', () => ({
-  usePrefersReducedMotion: () => mockUsePrefersReducedMotion(),
-}));
-
-import PricingCollageBackground from './PricingCollageBackground';
+import { PricingCollageBackground } from '@/components/landing/pricing-collage/PricingCollageBackground';
 
 const SUPABASE_URL = 'https://custom-supabase.example.test';
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+
+function stubMatchMedia(reduced: boolean): void {
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: (query: string) => ({
+      matches: reduced && query === REDUCED_MOTION_QUERY,
+      media: query,
+      onchange: null,
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+      dispatchEvent: () => false,
+    }),
+  });
+}
 
 describe('PricingCollageBackground', () => {
   beforeEach(() => {
     cleanup();
     vi.stubEnv('VITE_SUPABASE_URL', SUPABASE_URL);
-    mockUsePrefersReducedMotion.mockReset();
-    mockUsePrefersReducedMotion.mockReturnValue(false);
+    stubMatchMedia(false);
   });
 
   afterEach(() => {
@@ -35,6 +46,7 @@ describe('PricingCollageBackground', () => {
       expect(image).toHaveAttribute('alt', '');
       expect(image).toHaveAttribute('decoding', 'async');
       expect(image).toHaveAttribute('loading', 'lazy');
+      expect(image).toHaveClass('h-1/2', 'w-full', 'object-cover');
       expect(image.className).not.toMatch(/cv-auto/);
     }
   });
@@ -46,7 +58,7 @@ describe('PricingCollageBackground', () => {
   });
 
   it('omits the animation class when reduced motion is on', () => {
-    mockUsePrefersReducedMotion.mockReturnValue(true);
+    stubMatchMedia(true);
 
     const { container } = render(<PricingCollageBackground />);
 

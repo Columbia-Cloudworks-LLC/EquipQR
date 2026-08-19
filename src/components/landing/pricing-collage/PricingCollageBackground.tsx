@@ -1,8 +1,9 @@
+import React from 'react';
 import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion';
-import { PRICING_COLLAGE_MANIFEST } from './collageManifest';
-import { resolvePricingCollage } from './resolvePricingCollage';
+import { PRICING_COLLAGE_MANIFEST } from '@/components/landing/pricing-collage/collageManifest';
+import { resolvePricingCollage } from '@/components/landing/pricing-collage/resolvePricingCollage';
 
-export default function PricingCollageBackground() {
+export function PricingCollageBackground(): React.JSX.Element {
   const prefersReducedMotion = usePrefersReducedMotion();
   const strips = resolvePricingCollage(PRICING_COLLAGE_MANIFEST);
 
@@ -12,11 +13,31 @@ export default function PricingCollageBackground() {
         {strips.map((strip) => (
           <div key={strip.id} className="relative h-full min-w-0 flex-1 overflow-hidden">
             <div
-              className={prefersReducedMotion ? undefined : 'pricing-collage-track-animated'}
-              style={{ animationDuration: strip.durationCss }}
+              className={
+                prefersReducedMotion
+                  ? 'h-[200%]'
+                  : 'pricing-collage-track-animated h-[200%]'
+              }
+              style={
+                {
+                  '--pricing-collage-duration': strip.durationCss,
+                } as React.CSSProperties
+              }
             >
-              <img src={strip.url} alt="" decoding="async" loading="lazy" className="block w-full" />
-              <img src={strip.url} alt="" decoding="async" loading="lazy" className="block w-full" />
+              <img
+                src={strip.url}
+                alt=""
+                decoding="async"
+                loading="lazy"
+                className="block h-1/2 w-full object-cover object-center"
+              />
+              <img
+                src={strip.url}
+                alt=""
+                decoding="async"
+                loading="lazy"
+                className="block h-1/2 w-full object-cover object-center"
+              />
             </div>
           </div>
         ))}

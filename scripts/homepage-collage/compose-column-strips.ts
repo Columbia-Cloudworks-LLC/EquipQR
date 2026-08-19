@@ -61,20 +61,21 @@ export function formatUploadCommands(outputDir: string): string[] {
   const root = outputDir.replace(/[\\/]+$/, '');
   return HOMEPAGE_COLLAGE_OBJECT_KEYS.map((key) => {
     const fileName = key.slice('homepage-collage/'.length);
-    return `npx tsx scripts/upload-screenshot.ts ${root}/${fileName} ${key} landing-page-images`;
+    const localPath = `${root}/${fileName}`;
+    return `npx tsx scripts/upload-screenshot.ts ${JSON.stringify(localPath)} ${key} landing-page-images`;
   });
 }
 
 async function main(): Promise<void> {
   const sourceDir = process.argv[2];
   console.log(
-    'Pixel packing of stacked column WebPs is a later photo pass. This script validates a tray and prints upload-screenshot commands.',
+    'Prints quoted upload-screenshot commands for homepage-collage/col-0.webp through col-3.webp. Pixel packing is a separate photo pass.',
   );
 
   if (sourceDir) {
     const entries = await readdir(sourceDir, { withFileTypes: true });
     const files = entries.filter((entry) => entry.isFile()).map((entry) => entry.name);
-    console.log(`Source dir ${path.resolve(sourceDir)} has ${files.length} file(s). Dimension checks need a packed pass.`);
+    console.log(`Source dir ${path.resolve(sourceDir)} has ${files.length} file(s).`);
   }
 
   for (const command of formatUploadCommands(sourceDir ?? 'tmp/homepage-collage')) {

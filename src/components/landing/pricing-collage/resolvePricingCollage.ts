@@ -4,7 +4,7 @@ import type {
   CollageStripRecord,
   HomepageCollageObjectKey,
   PricingCollageManifest,
-} from './collageManifest';
+} from '@/components/landing/pricing-collage/collageManifest';
 
 const HOMEPAGE_COLLAGE_KEY = /^homepage-collage\/.+\.webp$/;
 
