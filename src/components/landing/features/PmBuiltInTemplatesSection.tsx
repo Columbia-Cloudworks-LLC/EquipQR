@@ -20,7 +20,7 @@ function builtInTemplatesSectionDescription(templates: BuiltInTemplate[]): strin
     return 'Assign one as-is. Clone it only if you need to change the list.';
   }
 
-  return `${first.name} is ${first.items} items across ${first.sections} sections. ${second.name} is ${second.items} across ${second.sections}. Assign one as-is. Clone it only if you need to change the list.`;
+  return `${first.name} is ${first.items} items across ${first.sections} sections. ${second.name} is ${second.items} items across ${second.sections} sections. Assign one as-is. Clone it only if you need to change the list.`;
 }
 
 export const PmBuiltInTemplatesSection = ({ templates }: PmBuiltInTemplatesSectionProps) => (
