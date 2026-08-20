@@ -1,12 +1,14 @@
-import React, { useState, useRef, useId, useEffect, useMemo } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
-import { useAppToast } from '@/hooks/useAppToast';
-import { finishDragDrop, handleDragActiveState } from '@/components/common/drag-active-handlers';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Image as ImageIcon, Loader2, Upload, X } from 'lucide-react';
 import { SingleImagePreviewActions } from '@/components/common/SingleImagePreviewActions';
-import { sanitizeBlobUrl } from '@/utils/sanitizeBlobUrl';
+import {
+  sessionImageSrc,
+  type ImageUploadSession,
+} from '@/components/common/singleImageUploadSession';
+import { useSingleImageUpload } from '@/components/common/useSingleImageUpload';
 
 interface SingleImageUploadProps {
   /** Current image URL (if any) */
@@ -33,6 +35,390 @@ interface SingleImageUploadProps {
   avatarFallback?: string;
 }
 
+type UploadLayoutProps = {
+  session: ImageUploadSession;
+  inputId: string;
+  disabled: boolean;
+  isUploading: boolean;
+  isDeleting: boolean;
+  isProcessing: boolean;
+  dragActive: boolean;
+  formatLabel: string;
+  maxSizeMB: number;
+  label?: string;
+  previewClassName: string;
+  avatarFallback?: string;
+  onDrag: (event: React.DragEvent) => void;
+  onDrop: (event: React.DragEvent) => void;
+  onPickFile: () => void;
+  onUpload: () => void;
+  onCancelPreview: () => void;
+  onDelete?: () => void;
+  onImageError: () => void;
+};
+
+function ImageDropZone({
+  inputId,
+  disabled,
+  isProcessing,
+  dragActive,
+  onDrag,
+  onDrop,
+  formatLabel,
+  maxSizeMB,
+  compact,
+}: Pick<
+  UploadLayoutProps,
+  | 'inputId'
+  | 'disabled'
+  | 'isProcessing'
+  | 'dragActive'
+  | 'onDrag'
+  | 'onDrop'
+  | 'formatLabel'
+  | 'maxSizeMB'
+> & { compact: boolean }) {
+  const busy = disabled || isProcessing;
+  const activeClass = dragActive
+    ? 'border-primary bg-primary/5'
+    : 'border-muted-foreground/25 hover:border-muted-foreground/50';
+
+  if (compact) {
+    return (
+      <label
+        htmlFor={inputId}
+        className={`flex h-24 w-24 flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors ${
+          busy ? 'opacity-50' : 'cursor-pointer'
+        } ${activeClass}`}
+        aria-disabled={busy || undefined}
+        onDragEnter={onDrag}
+        onDragLeave={onDrag}
+        onDragOver={onDrag}
+        onDrop={onDrop}
+      >
+        <Upload className="mb-1 h-5 w-5 text-muted-foreground" />
+        <span className="text-xs text-muted-foreground">Upload</span>
+      </label>
+    );
+  }
+
+  return (
+    <label
+      htmlFor={inputId}
+      className={`block rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
+        busy ? 'opacity-50' : 'cursor-pointer'
+      } ${activeClass}`}
+      aria-disabled={busy || undefined}
+      onDragEnter={onDrag}
+      onDragLeave={onDrag}
+      onDragOver={onDrag}
+      onDrop={onDrop}
+    >
+      <ImageIcon className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+      <div className="space-y-2">
+        <p className="text-sm font-medium">Drop an image here, or click to browse</p>
+        <p className="text-xs text-muted-foreground">
+          {formatLabel} up to {maxSizeMB} MB
+        </p>
+        <span className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-primary">
+          <Upload className="h-4 w-4" />
+          Choose File
+        </span>
+      </div>
+    </label>
+  );
+}
+
+function AvatarFace({
+  session,
+  label,
+  avatarFallback,
+  onImageError,
+}: Pick<UploadLayoutProps, 'session' | 'label' | 'avatarFallback' | 'onImageError'>) {
+  const preview = session.kind === 'pending' ? session.src : null;
+  const current = session.kind === 'current' ? session.src : null;
+
+  return (
+    <Avatar className="h-16 w-16 shrink-0">
+      {preview ? (
+        <AvatarImage src={preview} alt="Preview" />
+      ) : current ? (
+        <AvatarImage
+          src={current}
+          alt={label || 'Avatar'}
+          onLoadingStatusChange={(status) => {
+            if (status === 'error') onImageError();
+          }}
+        />
+      ) : null}
+      <AvatarFallback className="text-lg">{avatarFallback || '?'}</AvatarFallback>
+    </Avatar>
+  );
+}
+
+function AvatarIdleActions({
+  hasCurrentImage,
+  disabled,
+  isProcessing,
+  isDeleting,
+  onPickFile,
+  onDelete,
+}: {
+  hasCurrentImage: boolean;
+  disabled: boolean;
+  isProcessing: boolean;
+  isDeleting: boolean;
+  onPickFile: () => void;
+  onDelete?: () => void;
+}) {
+  return (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={disabled || isProcessing}
+        onClick={onPickFile}
+      >
+        <Upload className="mr-1.5 h-3.5 w-3.5" />
+        {hasCurrentImage ? 'Replace' : 'Upload photo'}
+      </Button>
+      {hasCurrentImage && onDelete && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={disabled || isProcessing}
+          onClick={onDelete}
+          className="text-destructive hover:text-destructive"
+        >
+          {isDeleting ? (
+            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <X className="mr-1.5 h-3.5 w-3.5" />
+          )}
+          Remove
+        </Button>
+      )}
+    </>
+  );
+}
+
+function AvatarUploadLayout({
+  session,
+  disabled,
+  isUploading,
+  isDeleting,
+  isProcessing,
+  formatLabel,
+  maxSizeMB,
+  label,
+  avatarFallback,
+  onPickFile,
+  onUpload,
+  onCancelPreview,
+  onDelete,
+  onImageError,
+}: UploadLayoutProps) {
+  return (
+    <div className="flex items-center gap-4">
+      <AvatarFace
+        session={session}
+        label={label}
+        avatarFallback={avatarFallback}
+        onImageError={onImageError}
+      />
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {session.kind === 'pending' ? (
+            <SingleImagePreviewActions
+              disabled={disabled}
+              isProcessing={isProcessing}
+              isUploading={isUploading}
+              onUpload={onUpload}
+              onCancel={onCancelPreview}
+            />
+          ) : (
+            <AvatarIdleActions
+              hasCurrentImage={session.kind === 'current'}
+              disabled={disabled}
+              isProcessing={isProcessing}
+              isDeleting={isDeleting}
+              onPickFile={onPickFile}
+              onDelete={onDelete}
+            />
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {formatLabel} up to {maxSizeMB} MB
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function CompactUploadLayout(props: UploadLayoutProps) {
+  const {
+    session,
+    disabled,
+    isUploading,
+    isDeleting,
+    isProcessing,
+    label,
+    onPickFile,
+    onUpload,
+    onCancelPreview,
+    onDelete,
+    onImageError,
+  } = props;
+  const thumbnailSrc = sessionImageSrc(session);
+
+  return (
+    <>
+      {thumbnailSrc && (
+        <div className="space-y-1.5">
+          <div className="group relative h-24 w-24 overflow-hidden rounded-lg border bg-muted/50">
+            <img
+              src={thumbnailSrc}
+              alt={session.kind === 'pending' ? 'Preview' : label || 'Current image'}
+              className="h-full w-full object-contain"
+              onError={session.kind === 'current' ? onImageError : undefined}
+            />
+            {session.kind === 'current' && (
+              <button
+                type="button"
+                className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                disabled={disabled || isProcessing}
+                onClick={onPickFile}
+              >
+                <span className="text-xs font-medium text-white">Replace</span>
+              </button>
+            )}
+          </div>
+          {session.kind === 'pending' ? (
+            <div className="flex items-center gap-2">
+              <SingleImagePreviewActions
+                disabled={disabled}
+                isProcessing={isProcessing}
+                isUploading={isUploading}
+                onUpload={onUpload}
+                onCancel={onCancelPreview}
+              />
+            </div>
+          ) : onDelete ? (
+            <button
+              type="button"
+              className="text-xs text-destructive hover:underline disabled:opacity-50"
+              disabled={disabled || isProcessing}
+              onClick={onDelete}
+            >
+              {isDeleting ? 'Removing...' : 'Remove'}
+            </button>
+          ) : null}
+        </div>
+      )}
+      {session.kind === 'empty' && <ImageDropZone {...props} compact />}
+    </>
+  );
+}
+
+function DefaultUploadLayout(props: UploadLayoutProps) {
+  const {
+    session,
+    disabled,
+    isUploading,
+    isProcessing,
+    isDeleting,
+    label,
+    previewClassName,
+    onPickFile,
+    onUpload,
+    onCancelPreview,
+    onDelete,
+    onImageError,
+  } = props;
+
+  return (
+    <>
+      {session.kind === 'current' && (
+        <div className="space-y-2">
+          <div className="border rounded-lg p-4 bg-muted/50 flex items-center justify-center min-h-[80px]">
+            <img
+              src={session.src}
+              alt={label || 'Current image'}
+              className={previewClassName}
+              onError={onImageError}
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={disabled || isProcessing}
+              onClick={onPickFile}
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Replace
+            </Button>
+            {onDelete && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={disabled || isProcessing}
+                onClick={onDelete}
+              >
+                {isDeleting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <X className="mr-2 h-4 w-4" />
+                )}
+                Remove
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {session.kind === 'pending' && session.src && (
+        <div className="space-y-2">
+          <div className="border rounded-lg p-4 bg-muted/50 flex items-center justify-center min-h-[80px]">
+            <img src={session.src} alt="Preview" className={previewClassName} />
+          </div>
+          <p className="truncate text-xs text-muted-foreground">{session.file.name}</p>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              disabled={disabled || isProcessing}
+              onClick={onUpload}
+            >
+              {isUploading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="mr-2 h-4 w-4" />
+              )}
+              {isUploading ? 'Uploading...' : 'Upload'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isProcessing}
+              onClick={onCancelPreview}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {session.kind === 'empty' && <ImageDropZone {...props} compact={false} />}
+    </>
+  );
+}
+
 const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
   currentImageUrl,
   onUpload,
@@ -46,379 +432,65 @@ const SingleImageUpload: React.FC<SingleImageUploadProps> = ({
   variant = 'default',
   avatarFallback,
 }) => {
-  const appToast = useAppToast();
-  const [isUploading, setIsUploading] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
-  const [previewFile, setPreviewFile] = useState<File | null>(null);
-  const [imageError, setImageError] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const inputId = useId();
+  const upload = useSingleImageUpload({
+    currentImageUrl,
+    onUpload,
+    onDelete,
+    maxSizeMB,
+    acceptedTypes,
+    disabled,
+  });
 
-  const isProcessing = isUploading || isDeleting;
-
-  // Manage object URL lifecycle to prevent memory leaks (revoke on change/unmount)
-  const [rawPreviewUrl, setRawPreviewUrl] = useState<string | null>(null);
-  useEffect(() => {
-    if (!previewFile) {
-      setRawPreviewUrl(null);
-      return;
-    }
-    const url = URL.createObjectURL(previewFile);
-    setRawPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [previewFile]);
-
-  const previewUrl = useMemo(() => sanitizeBlobUrl(rawPreviewUrl), [rawPreviewUrl]);
-
-  // Build a human-readable label from the configured accepted MIME types
-  const formatLabel = useMemo(
-    () => acceptedTypes.map((t) => t.replace('image/', '').toUpperCase()).join(', '),
-    [acceptedTypes],
-  );
-
-  const validateFile = (file: File): boolean => {
-    if (!acceptedTypes.includes(file.type)) {
-      appToast.error({ description: `Unsupported format: ${file.name}. Use ${formatLabel}.` });
-      return false;
-    }
-    if (file.size > maxSizeMB * 1024 * 1024) {
-      appToast.error({ description: `File too large: ${file.name}. Maximum size is ${maxSizeMB} MB.` });
-      return false;
-    }
-    return true;
+  const layoutProps: UploadLayoutProps = {
+    session: upload.session,
+    inputId: upload.inputId,
+    disabled,
+    isUploading: upload.isUploading,
+    isDeleting: upload.isDeleting,
+    isProcessing: upload.isProcessing,
+    dragActive: upload.dragActive,
+    formatLabel: upload.formatLabel,
+    maxSizeMB,
+    label,
+    previewClassName,
+    avatarFallback,
+    onDrag: upload.handleDrag,
+    onDrop: upload.handleDrop,
+    onPickFile: upload.handlePickFile,
+    onUpload: upload.handleUpload,
+    onCancelPreview: upload.handleCancelPreview,
+    onDelete: upload.handleDelete,
+    onImageError: upload.handleImageError,
   };
-
-  const handleFileSelect = (file: File) => {
-    if (!validateFile(file)) return;
-    setPreviewFile(file);
-    setImageError(false);
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) handleFileSelect(file);
-    // Reset input so same file can be re-selected
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const handleDrag = (e: React.DragEvent) => {
-    handleDragActiveState(e, setDragActive);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    finishDragDrop(e, setDragActive);
-    if (disabled || isProcessing) return;
-    const file = e.dataTransfer.files[0];
-    if (file) handleFileSelect(file);
-  };
-
-  const handleUpload = async () => {
-    if (!previewFile) return;
-    setIsUploading(true);
-    try {
-      await onUpload(previewFile);
-      setPreviewFile(null);
-      appToast.success({ description: 'Image uploaded successfully' });
-    } catch (error) {
-      appToast.error({
-        description: `Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!onDelete) return;
-    setIsDeleting(true);
-    try {
-      await onDelete();
-      appToast.success({ description: 'Image removed' });
-    } catch (error) {
-      appToast.error({
-        description: `Failed to remove image: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      });
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const handleCancelPreview = () => {
-    setPreviewFile(null);
-    setImageError(false);
-  };
-
-  const hasCurrentImage = currentImageUrl && !imageError;
-  const showDropZone = !hasCurrentImage && !previewFile;
 
   return (
     <div className="space-y-2">
       {label && (
-        <Label htmlFor={inputId} className="flex items-center gap-2">
+        <Label htmlFor={upload.inputId} className="flex items-center gap-2">
           <ImageIcon className="h-4 w-4" />
           {label}
         </Label>
       )}
 
       {variant === 'avatar' ? (
-        <div className="flex items-center gap-4">
-          <Avatar className="h-16 w-16 shrink-0">
-            {(previewFile && previewUrl) ? (
-              <AvatarImage src={previewUrl} alt="Preview" />
-            ) : hasCurrentImage ? (
-              <AvatarImage
-                src={currentImageUrl}
-                alt={label || 'Avatar'}
-                onLoadingStatusChange={(status) => {
-                  if (status === 'error') setImageError(true);
-                }}
-              />
-            ) : null}
-            <AvatarFallback className="text-lg">{avatarFallback || '?'}</AvatarFallback>
-          </Avatar>
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              {previewFile ? (
-                <SingleImagePreviewActions
-                  disabled={disabled}
-                  isProcessing={isProcessing}
-                  isUploading={isUploading}
-                  onUpload={handleUpload}
-                  onCancel={handleCancelPreview}
-                />
-              ) : (
-                <>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={disabled || isProcessing}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload className="h-3.5 w-3.5 mr-1.5" />
-                    {hasCurrentImage ? 'Replace' : 'Upload photo'}
-                  </Button>
-                  {hasCurrentImage && onDelete && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      disabled={disabled || isProcessing}
-                      onClick={handleDelete}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      {isDeleting ? (
-                        <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                      ) : (
-                        <X className="h-3.5 w-3.5 mr-1.5" />
-                      )}
-                      Remove
-                    </Button>
-                  )}
-                </>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {formatLabel} up to {maxSizeMB} MB
-            </p>
-          </div>
-        </div>
+        <AvatarUploadLayout {...layoutProps} />
       ) : variant === 'compact' ? (
-        <>
-          {/* Compact: square thumbnail with hover overlay */}
-          {(hasCurrentImage || (previewFile && previewUrl)) && (
-            <div className="space-y-1.5">
-              <div className="group relative w-24 h-24 rounded-lg border bg-muted/50 overflow-hidden">
-                <img
-                  src={previewFile && previewUrl ? previewUrl : currentImageUrl!}
-                  alt={previewFile ? 'Preview' : (label || 'Current image')}
-                  className="w-full h-full object-contain"
-                  onError={!previewFile ? () => setImageError(true) : undefined}
-                />
-                {!previewFile && (
-                  <button
-                    type="button"
-                    className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 focus:opacity-100 group-focus-within:opacity-100 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    disabled={disabled || isProcessing}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <span className="text-xs font-medium text-white">Replace</span>
-                  </button>
-                )}
-              </div>
-              {previewFile ? (
-                <div className="flex items-center gap-2">
-                  <SingleImagePreviewActions
-                    disabled={disabled}
-                    isProcessing={isProcessing}
-                    isUploading={isUploading}
-                    onUpload={handleUpload}
-                    onCancel={handleCancelPreview}
-                  />
-                </div>
-              ) : onDelete ? (
-                <button
-                  type="button"
-                  className="text-xs text-destructive hover:underline disabled:opacity-50"
-                  disabled={disabled || isProcessing}
-                  onClick={handleDelete}
-                >
-                  {isDeleting ? 'Removing...' : 'Remove'}
-                </button>
-              ) : null}
-            </div>
-          )}
-          {/* Compact drop zone */}
-          {showDropZone && (
-            <label
-              htmlFor={inputId}
-              className={`w-24 h-24 rounded-lg border-2 border-dashed flex flex-col items-center justify-center transition-colors ${
-                disabled || isProcessing ? 'opacity-50' : 'cursor-pointer'
-              } ${
-                dragActive
-                  ? 'border-primary bg-primary/5'
-                  : 'border-muted-foreground/25 hover:border-muted-foreground/50'
-              }`}
-              aria-disabled={disabled || isProcessing || undefined}
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-            >
-              <Upload className="h-5 w-5 text-muted-foreground mb-1" />
-              <span className="text-xs text-muted-foreground">Upload</span>
-            </label>
-          )}
-        </>
+        <CompactUploadLayout {...layoutProps} />
       ) : (
-        <>
-          {/* Default: full-width layout */}
-          {hasCurrentImage && !previewFile && (
-            <div className="space-y-2">
-              <div className="border rounded-lg p-4 bg-muted/50 flex items-center justify-center min-h-[80px]">
-                <img
-                  src={currentImageUrl}
-                  alt={label || 'Current image'}
-                  className={previewClassName}
-                  onError={() => setImageError(true)}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={disabled || isProcessing}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Replace
-                </Button>
-                {onDelete && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    disabled={disabled || isProcessing}
-                    onClick={handleDelete}
-                  >
-                    {isDeleting ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <X className="h-4 w-4 mr-2" />
-                    )}
-                    Remove
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {previewFile && previewUrl && (
-            <div className="space-y-2">
-              <div className="border rounded-lg p-4 bg-muted/50 flex items-center justify-center min-h-[80px]">
-                <img
-                  src={previewUrl}
-                  alt="Preview"
-                  className={previewClassName}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground truncate">{previewFile.name}</p>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={disabled || isProcessing}
-                  onClick={handleUpload}
-                >
-                  {isUploading ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <Upload className="h-4 w-4 mr-2" />
-                  )}
-                  {isUploading ? 'Uploading...' : 'Upload'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={isProcessing}
-                  onClick={handleCancelPreview}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {showDropZone && (
-            <label
-              htmlFor={inputId}
-              className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors block ${
-                disabled || isProcessing ? 'opacity-50' : 'cursor-pointer'
-              } ${
-                dragActive
-                  ? 'border-primary bg-primary/5'
-                  : 'border-muted-foreground/25 hover:border-muted-foreground/50'
-              }`}
-              aria-disabled={disabled || isProcessing || undefined}
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-            >
-              <ImageIcon className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Drop an image here or click to browse</p>
-                <p className="text-xs text-muted-foreground">
-                  {formatLabel} up to {maxSizeMB} MB
-                </p>
-                <span className="inline-flex items-center gap-2 mt-2 text-sm text-primary font-medium">
-                  <Upload className="h-4 w-4" />
-                  Choose File
-                </span>
-              </div>
-            </label>
-          )}
-        </>
+        <DefaultUploadLayout {...layoutProps} />
       )}
 
-      {/* Visually-hidden file input — sr-only keeps it in the tab order so
-          keyboard users can focus and activate it via Enter / Space. */}
       <input
-        ref={fileInputRef}
-        id={inputId}
+        ref={upload.fileInputRef}
+        id={upload.inputId}
         type="file"
         accept={acceptedTypes.join(',')}
-        onChange={handleInputChange}
-        disabled={disabled || isProcessing}
+        onChange={upload.handleInputChange}
+        disabled={disabled || upload.isProcessing}
         className="sr-only"
       />
 
-      {helpText && (
-        <p className="text-xs text-muted-foreground">{helpText}</p>
-      )}
+      {helpText && <p className="text-xs text-muted-foreground">{helpText}</p>}
     </div>
   );
 };
