@@ -38,7 +38,7 @@ describe('AppSidebar', () => {
       isPartsManager: false,
       isPartsConsumer: false,
       isLoading: false,
-      currentOrganization: undefined,
+      currentOrganization: null,
     });
   });
 
@@ -80,7 +80,7 @@ describe('AppSidebar', () => {
       isPartsManager: false,
       isPartsConsumer: false,
       isLoading: false,
-      currentOrganization: undefined,
+      currentOrganization: null,
     });
 
     renderAsPersona(<AppSidebar />, 'technician');

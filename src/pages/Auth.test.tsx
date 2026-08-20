@@ -1,8 +1,18 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@vitest-harness/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { User } from '@supabase/supabase-js';
 import Auth from './Auth';
 import * as useAuthModule from '@/hooks/useAuth';
+
+const mockAuthenticatedUser: User = {
+  id: 'user-1',
+  email: 'test@test.com',
+  aud: 'authenticated',
+  created_at: '2024-01-01T00:00:00Z',
+  app_metadata: {},
+  user_metadata: {},
+};
 
 const mockErrorToast = vi.hoisted(() => vi.fn());
 const mockSuccessToast = vi.hoisted(() => vi.fn());
@@ -228,14 +238,14 @@ describe('Auth Page', () => {
   describe('Authenticated User Redirect', () => {
     it('navigates to home when user is already authenticated', async () => {
       vi.mocked(useAuthModule.useAuth).mockReturnValue({
-        user: { id: 'user-1', email: 'test@test.com' },
+        user: mockAuthenticatedUser,
         signInWithGoogle: vi.fn(),
         isLoading: false,
-        session: { user: { id: 'user-1' } },
+        session: null,
         signUp: vi.fn(),
         signIn: vi.fn(),
         signOut: vi.fn()
-      } as ReturnType<typeof useAuthModule.useAuth>);
+      });
 
       render(<Auth />);
 
@@ -320,7 +330,9 @@ describe('Auth Page', () => {
     });
 
     it('displays error when Google sign in fails', async () => {
-      const mockSignInWithGoogle = vi.fn(() => Promise.resolve({ error: { message: 'Google auth failed' } }));
+      const mockSignInWithGoogle = vi.fn(() =>
+        Promise.resolve({ error: new Error('Google auth failed') }),
+      );
       vi.mocked(useAuthModule.useAuth).mockReturnValue({
         user: null,
         signInWithGoogle: mockSignInWithGoogle,
