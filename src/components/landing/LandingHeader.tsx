@@ -127,7 +127,7 @@ const LandingHeader = () => {
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+              <SheetContent side="right" className="w-75 sm:w-100">
                 <SheetHeader className="sr-only">
                   <SheetTitle>Site navigation</SheetTitle>
                   <SheetDescription>

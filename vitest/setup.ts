@@ -5,8 +5,8 @@ import { cleanup } from '@testing-library/react';
 import { clearRegisteredTestQueryClients } from './query-client-registry';
 
 declare global {
-  let startA11yChecks: () => void;
-  let stopA11yChecks: () => void;
+  var startA11yChecks: (() => void) | undefined;
+  var stopA11yChecks: (() => void) | undefined;
 }
 
 afterEach(() => {
@@ -189,18 +189,11 @@ beforeAll(() => {
 
   let a11yCheckInterval: ReturnType<typeof setInterval>;
 
-  type A11yGlobal = typeof globalThis & {
-    startA11yChecks?: () => void;
-    stopA11yChecks?: () => void;
-  };
-
-  const globalWithA11y = globalThis as A11yGlobal;
-
-  globalWithA11y.startA11yChecks = () => {
+  globalThis.startA11yChecks = () => {
     a11yCheckInterval = setInterval(checkDialogA11y, 100);
   };
 
-  globalWithA11y.stopA11yChecks = () => {
+  globalThis.stopA11yChecks = () => {
     if (a11yCheckInterval) {
       clearInterval(a11yCheckInterval);
     }

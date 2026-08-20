@@ -124,7 +124,7 @@ function readPersistedState(widgets: AuditDashboardWidgetDef[]): PersistedGridSt
 
     const collapsed: Record<string, boolean> = {};
     const expandedH: Record<string, number> = {};
-    const layout: Layout = [];
+    const layout: LayoutItem[] = [];
 
     for (const defaultItem of defaultLayoutFor(widgets)) {
       const widgetId = defaultItem.i;
@@ -590,7 +590,7 @@ export function AuditDashboardGrid({ widgets }: AuditDashboardGridProps) {
         computeInsertBeforeIndex(sorted, session.widgetId, clientY, gridEl)
       );
     },
-    []
+    [containerRef]
   );
 
   const moveFloatingClone = useCallback(
@@ -628,7 +628,7 @@ export function AuditDashboardGrid({ widgets }: AuditDashboardGridProps) {
         return { ...prev, layout: nextLayout };
       });
     },
-    []
+    [containerRef]
   );
 
   const endWidgetDrag = useCallback(

@@ -37,7 +37,7 @@ export function PricingCollageBackground(): React.JSX.Element {
           </div>
         ))}
       </div>
-      <div className="absolute inset-0 bg-background/80 bg-gradient-to-b from-background/90 via-background/70 to-background/85" />
+      <div className="absolute inset-0 bg-background/80 bg-linear-to-b from-background/90 via-background/70 to-background/85" />
     </div>
   );
 }

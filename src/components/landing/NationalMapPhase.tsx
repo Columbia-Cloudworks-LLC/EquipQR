@@ -228,7 +228,7 @@ export default function NationalMapPhase({
               >
                 <div className="flex items-start gap-2">
                   <card.icon
-                    className="w-3.5 h-3.5 text-primary flex-shrink-0 mt-0.5"
+                    className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5"
                     aria-hidden
                   />
                   <div className="min-w-0 flex-1">

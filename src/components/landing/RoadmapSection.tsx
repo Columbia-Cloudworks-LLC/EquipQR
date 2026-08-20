@@ -20,9 +20,9 @@ const RoadmapSection = () => {
           {roadmapItems.map(({ icon: Icon, title, description }) => (
             <div
               key={title}
-              className="flex items-start gap-3 rounded-lg border border-border bg-card/50 px-4 py-3 min-w-[200px] max-w-md"
+              className="flex items-start gap-3 rounded-lg border border-border bg-card/50 px-4 py-3 min-w-50 max-w-md"
             >
-              <Icon className="h-6 w-6 text-muted-foreground flex-shrink-0 mt-0.5" aria-hidden />
+              <Icon className="h-6 w-6 text-muted-foreground shrink-0 mt-0.5" aria-hidden />
               <div>
                 <p className="font-medium text-foreground">{title}</p>
                 <p className="text-sm text-muted-foreground mt-0.5">{description}</p>

@@ -342,7 +342,7 @@ function DefaultUploadLayout(props: UploadLayoutProps) {
     <>
       {session.kind === 'current' && (
         <div className="space-y-2">
-          <div className="border rounded-lg p-4 bg-muted/50 flex items-center justify-center min-h-[80px]">
+          <div className="border rounded-lg p-4 bg-muted/50 flex items-center justify-center min-h-20">
             <img
               src={session.src}
               alt={label || 'Current image'}
@@ -383,7 +383,7 @@ function DefaultUploadLayout(props: UploadLayoutProps) {
 
       {session.kind === 'pending' && session.src && (
         <div className="space-y-2">
-          <div className="border rounded-lg p-4 bg-muted/50 flex items-center justify-center min-h-[80px]">
+          <div className="border rounded-lg p-4 bg-muted/50 flex items-center justify-center min-h-20">
             <img src={session.src} alt="Preview" className={previewClassName} />
           </div>
           <p className="truncate text-xs text-muted-foreground">{session.file.name}</p>

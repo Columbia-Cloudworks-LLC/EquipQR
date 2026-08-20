@@ -11,12 +11,14 @@ import { Button } from '@/components/ui/button';
 import {
   DataTableEmptyState,
   ResizableFixedDataTable,
+} from '@/components/common/dataTableShared';
+import {
   applyAutoFitColumnWidth,
   createResizableSortableColumnBase,
   getDataTableAlignClass,
   getResizableTableWidth,
   usePersistedColumnSizing,
-} from '@/components/common/dataTableShared';
+} from '@/components/common/dataTableSharedUtils';
 import { DotStatus } from '@/components/ui/dot-status';
 import {
   EQUIPMENT_TABLE_ACTIONS_COLUMN_KEY,

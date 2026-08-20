@@ -16,7 +16,7 @@ vi.mock('@/components/seo/PageSEO', () => ({
 
 // Mock useAuth — each test overrides the return value as needed
 vi.mock('@/hooks/useAuth', () => ({
-  useAuth: vi.fn(() => ({ user: null, isLoading: false })),
+  useAuth: vi.fn(() => ({ user: null, session: null, isLoading: false })),
 }));
 
 // Mock react-router-dom — same pattern as src/pages/__tests__/Auth.test.tsx
@@ -41,6 +41,7 @@ const mockUser: User = {
 };
 
 const baseAuth = {
+  session: null,
   signUp: vi.fn(),
   signIn: vi.fn(),
   signInWithGoogle: vi.fn(),

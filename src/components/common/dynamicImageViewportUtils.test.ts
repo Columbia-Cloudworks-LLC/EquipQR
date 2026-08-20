@@ -218,4 +218,15 @@ describe('noteCardPermissions', () => {
     expect(perms.canEdit).toBe(false);
     expect(perms.canDelete).toBe(true);
   });
+
+  it('does not treat a missing author as the current user', () => {
+    const perms = resolveNoteActionPermissions({
+      note: { id: 'note-2', created_at: new Date().toISOString() },
+      isOrgAdmin: false,
+      isTeamManager: false,
+      isViewerOrRequestor: false,
+    });
+    expect(perms.canEdit).toBe(false);
+    expect(perms.canDelete).toBe(false);
+  });
 });

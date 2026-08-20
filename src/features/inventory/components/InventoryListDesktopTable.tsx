@@ -14,9 +14,11 @@ import {
   DataTableSortableHeaderButton,
   DataTableStaticHeaderLabel,
   ResizableTableSurface,
+} from '@/components/common/dataTableShared';
+import {
   getDataTableAlignClass,
   getResizableTableWidth,
-} from '@/components/common/dataTableShared';
+} from '@/components/common/dataTableSharedUtils';
 import { InventoryQuantityValue } from '@/features/inventory/components/InventoryQuantityValue';
 import { InventoryStockBar } from '@/features/inventory/components/InventoryStockBar';
 import {

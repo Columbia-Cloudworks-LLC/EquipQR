@@ -54,7 +54,7 @@ export default function WhyDifferentSection() {
                     <h3 className="text-base font-semibold text-foreground sm:text-lg">
                       {title}
                     </h3>
-                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground break-words sm:text-base">
+                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground wrap-break-word sm:text-base">
                       {text}
                     </p>
                   </div>

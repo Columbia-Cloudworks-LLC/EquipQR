@@ -186,7 +186,7 @@ const DynamicImageViewport: React.FC<DynamicImageViewportProps> = ({
       {showControls ? (
         <div
           className={cn(
-            'pointer-events-none absolute right-1.5 top-1.5 z-[2] flex gap-1 transition-opacity',
+            'pointer-events-none absolute right-1.5 top-1.5 z-2 flex gap-1 transition-opacity',
             controlsAlwaysVisible
               ? 'opacity-100'
               : 'opacity-0 group-hover/viewport:opacity-100 group-focus-within/viewport:opacity-100',

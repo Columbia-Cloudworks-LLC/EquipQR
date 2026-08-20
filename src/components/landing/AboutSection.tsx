@@ -77,10 +77,10 @@ const AboutSection = ({ id }: { id?: string }) => {
                   className="relative flex h-full flex-col overflow-hidden border-border bg-card/50 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 hover:bg-card hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0"
                 >
                   <div
-                    className="h-1 w-full bg-gradient-to-r from-primary/20 via-primary/10 to-transparent"
+                    className="h-1 w-full bg-linear-to-r from-primary/20 via-primary/10 to-transparent"
                     aria-hidden
                   />
-                  <CardHeader className="pb-2 flex-shrink-0">
+                  <CardHeader className="pb-2 shrink-0">
                     <div className="mb-3 flex">
                       <span
                         className={cn(
@@ -105,7 +105,7 @@ const AboutSection = ({ id }: { id?: string }) => {
                       <p className="mt-2 text-sm font-medium text-foreground">{useCase.win}</p>
                     </div>
                   </CardHeader>
-                  <CardContent className="flex flex-col flex-grow pb-6 pt-0">
+                  <CardContent className="flex flex-col grow pb-6 pt-0">
                     <CardDescription className="text-sm leading-relaxed">
                       {useCase.description}
                     </CardDescription>

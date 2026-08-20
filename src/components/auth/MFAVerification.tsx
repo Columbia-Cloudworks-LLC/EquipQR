@@ -97,7 +97,7 @@ const MFAVerification: React.FC<MFAVerificationProps> = ({ onSuccess, onError })
       <Button
         onClick={() => handleVerify(code)}
         disabled={isLoading || code.length !== 6}
-        className="w-full max-w-[260px]"
+        className="w-full max-w-65"
       >
         {isLoading ? (
           <div role="status" aria-label="Verifying code">

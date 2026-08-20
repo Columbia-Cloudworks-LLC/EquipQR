@@ -136,7 +136,7 @@ const LandingFooter = () => {
           >
             {footerSections.map((section) => (
               <AccordionItem key={section.title} value={section.title}>
-                <AccordionTrigger className="min-h-[52px] py-4 text-sm font-semibold text-foreground hover:no-underline">
+                <AccordionTrigger className="min-h-13 py-4 text-sm font-semibold text-foreground hover:no-underline">
                   {section.title}
                 </AccordionTrigger>
                 <AccordionContent>

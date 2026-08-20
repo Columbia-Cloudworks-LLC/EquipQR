@@ -18,10 +18,6 @@ export const defaultSignUpFormProps = {
 
 export const withRouter = (ui: React.ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
 
-export const RouterWrapper = ({ children }: { children: React.ReactNode }) => (
-  <MemoryRouter>{children}</MemoryRouter>
-);
-
 export interface SignUpFormData {
   name?: string;
   email?: string;

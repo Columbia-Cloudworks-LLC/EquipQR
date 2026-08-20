@@ -8,12 +8,14 @@ import {
 import {
   DataTableEmptyState,
   ResizableFixedDataTable,
+} from '@/components/common/dataTableShared';
+import {
   applyAutoFitColumnWidth,
   createResizableSortableColumnBase,
   getDataTableAlignClass,
   getResizableTableWidth,
   usePersistedColumnSizing,
-} from '@/components/common/dataTableShared';
+} from '@/components/common/dataTableSharedUtils';
 import { AlternateGroupStatusDot } from '@/features/inventory/components/AlternateGroupStatusDot';
 import {
   ALTERNATE_GROUP_TABLE_COLUMN_ORDER,

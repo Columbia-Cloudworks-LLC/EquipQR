@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 
 // Mock the reduced-motion hook so each test can flip its return value.
-const mockUsePrefersReducedMotion = vi.fn<[], boolean>();
+const mockUsePrefersReducedMotion = vi.fn<() => boolean>();
 vi.mock('@/hooks/use-prefers-reduced-motion', () => ({
   usePrefersReducedMotion: () => mockUsePrefersReducedMotion(),
 }));

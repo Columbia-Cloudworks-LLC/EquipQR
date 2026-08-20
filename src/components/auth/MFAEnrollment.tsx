@@ -176,7 +176,7 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
             </div>
           </div>
 
-          <Button onClick={() => setStep('verify')} className="w-full max-w-[260px]">
+          <Button onClick={() => setStep('verify')} className="w-full max-w-65">
             I&apos;ve Scanned the Code
           </Button>
         </>
@@ -221,7 +221,7 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
             ) : null}
           </div>
 
-          <div className="flex gap-2 w-full max-w-[260px]">
+          <div className="flex gap-2 w-full max-w-65">
             <Button
               variant="outline"
               onClick={() => {

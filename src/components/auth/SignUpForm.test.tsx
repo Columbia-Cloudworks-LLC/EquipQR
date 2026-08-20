@@ -2,6 +2,7 @@ import './signUpFormTestSetup';
 
 import React from 'react';
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SignUpForm from './SignUpForm';
 import { PRIVACY_VERSION_HASH, TERMS_VERSION_HASH } from '@/lib/legalPolicyVersions';
@@ -10,12 +11,15 @@ import {
   defaultSignUpFormProps,
   fillSignUpFormFast,
   mockSignUpWithEmail,
-  RouterWrapper,
   setupFastUser,
   setupSignUpFormBeforeEach,
   setupSignUpPasswordFields,
   withRouter,
 } from './signUpFormTestHelpers';
+
+const RouterWrapper = ({ children }: { children: React.ReactNode }) => (
+  <MemoryRouter>{children}</MemoryRouter>
+);
 
 describe('SignUpForm', () => {
   beforeEach(() => {

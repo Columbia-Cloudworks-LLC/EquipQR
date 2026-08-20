@@ -27,7 +27,7 @@ const ImageThumbnail: React.FC<{
   if (!previewUrl) return null;
 
   return (
-    <div className="relative flex-shrink-0 group">
+    <div className="relative shrink-0 group">
       <div className="relative w-16 h-16 rounded-md overflow-hidden border border-input bg-muted">
         <img
           src={previewUrl}
@@ -302,7 +302,7 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
           placeholder={placeholder}
           disabled={disabled || isSubmitting}
           rows={3}
-          className="min-h-[80px] resize-none border-0 focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 pb-12"
+          className="min-h-20 resize-none border-0 focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 pb-12"
           aria-label="Note content"
         />
         <VoiceInterimTranscript

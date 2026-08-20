@@ -95,8 +95,8 @@ export const DemoVideo: React.FC<DemoVideoProps> = ({
   return (
     <div
       className={cn(
-        'mx-auto w-full max-w-xs overflow-hidden rounded-[2rem] border border-border bg-black shadow-lg',
-        'aspect-[1080/2340]',
+        'mx-auto w-full max-w-xs overflow-hidden rounded-4xl border border-border bg-black shadow-lg',
+        'aspect-1080/2340',
         className,
       )}
     >
