@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Single image upload split.** Logo and avatar upload now uses a session model plus variant layouts so the shared control stays easier to change without altering upload, replace, or remove behavior.
 - **Rental card bulldozer icon** — The Equipment rental agencies card on the homepage About section uses a construction-yellow bulldozer so the glyph reads on the dark card.
 - **Marketing and public docs in shop voice** — Landing, Repair Shops, feature pages, README, and public docs now match the homepage hero. Feature prerender SEO comes from `FEATURE_SEO_BY_PATH`. HowTo JSON-LD steps come from the visible page steps.
 
