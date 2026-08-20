@@ -1,6 +1,9 @@
 import { vi } from 'vitest';
 
-import type { SimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import type {
+  SimpleOrganization,
+  SimpleOrganizationContextType,
+} from '@/contexts/SimpleOrganizationContext';
 import type { UserPersona } from '@vitest-harness/fixtures/personas';
 import { organizations } from '@vitest-harness/fixtures/entities';
 
@@ -219,44 +222,35 @@ export type SimpleOrgOverrides = Partial<{
   userRole: 'owner' | 'admin' | 'member';
 }>;
 
-export const createMockSimpleOrgValue = (
-  overrides: SimpleOrgOverrides = {}
-) => ({
-  organizations: overrides?.organizations || [{
-    id: 'org-1',
-    name: 'Test Org',
-    plan: 'free' as const,
-    memberCount: 1,
-    maxMembers: 10,
-    features: [],
-    userRole: overrides?.userRole || 'admin',
-    userStatus: 'active' as const,
-  }],
-  userOrganizations: overrides?.organizations || [{
-    id: 'org-1',
-    name: 'Test Org',
-    plan: 'free' as const,
-    memberCount: 1,
-    maxMembers: 10,
-    features: [],
-    userRole: overrides?.userRole || 'admin',
-    userStatus: 'active' as const,
-  }],
-  currentOrganization: overrides?.currentOrganization || {
-    id: 'org-1',
-    name: 'Test Org',
-    plan: 'free' as const,
-    memberCount: 1,
-    maxMembers: 10,
-    features: [],
-    userRole: overrides?.userRole || 'admin',
-    userStatus: 'active' as const,
-  },
-  organizationId: overrides?.organizationId || 'org-1',
-  setCurrentOrganization: vi.fn(),
-  switchOrganization: vi.fn(),
-  isLoading: false,
-  error: null,
-  refetch: vi.fn().mockResolvedValue(undefined),
+const createDefaultSimpleOrg = (
+  userRole: SimpleOrganization['userRole'] = 'admin',
+): SimpleOrganization => ({
+  id: 'org-1',
+  name: 'Test Org',
+  plan: 'free',
+  memberCount: 1,
+  maxMembers: 10,
+  features: [],
+  scanLocationCollectionEnabled: true,
+  userRole,
+  userStatus: 'active',
 });
+
+export const createMockSimpleOrgValue = (
+  overrides: SimpleOrgOverrides = {},
+): SimpleOrganizationContextType => {
+  const defaultOrg = createDefaultSimpleOrg(overrides.userRole);
+
+  return {
+    organizations: overrides.organizations || [defaultOrg],
+    userOrganizations: overrides.organizations || [defaultOrg],
+    currentOrganization: overrides.currentOrganization || defaultOrg,
+    organizationId: overrides.organizationId || 'org-1',
+    setCurrentOrganization: vi.fn(),
+    switchOrganization: vi.fn(),
+    isLoading: false,
+    error: null,
+    refetch: vi.fn().mockResolvedValue(undefined),
+  };
+};
 

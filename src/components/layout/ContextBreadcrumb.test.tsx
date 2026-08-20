@@ -11,7 +11,10 @@ import {
   UNASSIGNED_TEAM_ID,
   type SelectedTeamId,
 } from '@/contexts/selected-team-context';
-import { SimpleOrganizationContext } from '@/contexts/SimpleOrganizationContext';
+import {
+  SimpleOrganizationContext,
+  type SimpleOrganization,
+} from '@/contexts/SimpleOrganizationContext';
 import { createMockSimpleOrgValue } from '@vitest-harness/utils/mock-provider-values';
 import ContextBreadcrumb from './ContextBreadcrumb';
 
@@ -59,6 +62,19 @@ vi.mock('@/features/teams/components/CreateTeamDialog', () => ({
       </div>
     ) : null,
 }));
+
+const apexOrgWithLogo: SimpleOrganization = {
+  id: 'org-1',
+  name: 'Apex Construction Company',
+  plan: 'premium',
+  memberCount: 5,
+  maxMembers: 50,
+  features: [],
+  logo: 'https://example.com/org-logo.png',
+  userRole: 'owner',
+  userStatus: 'active',
+  scanLocationCollectionEnabled: true,
+};
 
 const renderWithTeamContext = (
   options: {
@@ -178,17 +194,7 @@ describe('ContextBreadcrumb', () => {
       selectedTeamId: 't1',
       initialEntries: ['/dashboard'],
       orgValue: createMockSimpleOrgValue({
-        currentOrganization: {
-          id: 'org-1',
-          name: 'Apex Construction Company',
-          plan: 'premium',
-          memberCount: 5,
-          maxMembers: 50,
-          features: [],
-          logo: 'https://example.com/org-logo.png',
-          userRole: 'owner',
-          userStatus: 'active',
-        },
+        currentOrganization: apexOrgWithLogo,
       }),
     });
 
@@ -326,17 +332,7 @@ describe('ContextBreadcrumb', () => {
       selectedTeamId: 't1',
       initialEntries: ['/dashboard'],
       orgValue: createMockSimpleOrgValue({
-        currentOrganization: {
-          id: 'org-1',
-          name: 'Apex Construction Company',
-          plan: 'premium',
-          memberCount: 5,
-          maxMembers: 50,
-          features: [],
-          logo: 'https://example.com/org-logo.png',
-          userRole: 'owner',
-          userStatus: 'active',
-        },
+        currentOrganization: apexOrgWithLogo,
       }),
     });
 
@@ -354,26 +350,28 @@ describe('ContextBreadcrumb', () => {
     const switchOrganization = vi.fn();
     const setSelectedTeamId = vi.fn();
 
-    const orgs = [
+    const orgs: SimpleOrganization[] = [
       {
         id: 'org-1',
         name: 'Apex Construction Company',
-        plan: 'free' as const,
+        plan: 'free',
         memberCount: 1,
         maxMembers: 10,
         features: [],
-        userRole: 'owner' as const,
-        userStatus: 'active' as const,
+        userRole: 'owner',
+        userStatus: 'active',
+        scanLocationCollectionEnabled: true,
       },
       {
         id: 'org-2',
         name: 'Metro Equipment Services',
-        plan: 'free' as const,
+        plan: 'free',
         memberCount: 1,
         maxMembers: 10,
         features: [],
-        userRole: 'member' as const,
-        userStatus: 'active' as const,
+        userRole: 'member',
+        userStatus: 'active',
+        scanLocationCollectionEnabled: true,
       },
     ];
 
