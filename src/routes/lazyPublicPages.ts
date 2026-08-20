@@ -27,6 +27,9 @@ export const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
 export const PrivacyRequest = lazy(() => import('@/pages/PrivacyRequest'));
 export const DoNotSellOrShare = lazy(() => import('@/pages/DoNotSellOrShare'));
 export const Security = lazy(() => import('@/pages/Security'));
+export const RightToRepair = lazy(() =>
+  import('@/pages/RightToRepair').then((module) => ({ default: module.RightToRepair })),
+);
 export const OperatorCheckInPublicPage = lazy(
   () => import('@/features/operator-check-ins/pages/OperatorCheckInPublicPage'),
 );

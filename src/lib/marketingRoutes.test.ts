@@ -16,7 +16,7 @@ function requireMarketingRoute(path: string): MarketingRoute {
 }
 
 describe('MARKETING_ROUTES', () => {
-  it('lists exactly 16 indexable marketing URLs', () => {
+  it('lists exactly 17 indexable marketing URLs', () => {
     expect(MARKETING_ROUTES.length).toBe(EXPECTED_MARKETING_ROUTE_COUNT);
   });
 

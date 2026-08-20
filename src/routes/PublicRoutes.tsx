@@ -28,6 +28,7 @@ import {
   PrivacyRequest,
   DoNotSellOrShare,
   Security,
+  RightToRepair,
   OperatorCheckInPublicPage,
   QuickFormPublicPage,
 } from '@/routes/lazyPublicPages';
@@ -75,5 +76,6 @@ export const publicRouteElements = (
     <Route path="/privacy-request" element={<LazyRoute><PrivacyRequest /></LazyRoute>} />
     <Route path="/do-not-sell-or-share" element={<LazyRoute><DoNotSellOrShare /></LazyRoute>} />
     <Route path="/security" element={<LazyRoute><Security /></LazyRoute>} />
+    <Route path="/right-to-repair" element={<LazyRoute><RightToRepair /></LazyRoute>} />
   </>
 );
