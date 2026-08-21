@@ -18,15 +18,19 @@ jobs:
       - name: Deployment Status Update (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
+        env:
+          DEPLOY_STATE: ${{ github.event.deployment_status.state }}
+          DEPLOY_ENVIRONMENT: ${{ github.event.deployment_status.environment }}
+          DEPLOY_REF: ${{ github.event.deployment.ref }}
         run: |
-          Write-Host "Deployment status: ${{ github.event.deployment_status.state }}"
-          if ('${{ github.event.deployment_status.environment }}' -ne '') {
-            Write-Host "Environment: ${{ github.event.deployment_status.environment }}"
+          Write-Host "Deployment status: $env:DEPLOY_STATE"
+          if ($env:DEPLOY_ENVIRONMENT -ne '') {
+            Write-Host "Environment: $env:DEPLOY_ENVIRONMENT"
           }
-          if ('${{ github.event.deployment.ref }}' -ne '') {
-            Write-Host "Ref: ${{ github.event.deployment.ref }}"
+          if ($env:DEPLOY_REF -ne '') {
+            Write-Host "Ref: $env:DEPLOY_REF"
           }
-          if ('${{ github.event.deployment_status.state }}' -eq 'success') {
+          if ($env:DEPLOY_STATE -eq 'success') {
             Write-Host "✅ Deployment successful!"
           } else {
             Write-Host "❌ Deployment failed"
@@ -36,16 +40,20 @@ jobs:
       - name: Deployment Status Update (Unix)
         if: runner.os != 'Windows'
         shell: bash
+        env:
+          DEPLOY_STATE: ${{ github.event.deployment_status.state }}
+          DEPLOY_ENVIRONMENT: ${{ github.event.deployment_status.environment }}
+          DEPLOY_REF: ${{ github.event.deployment.ref }}
         run: |
-          echo "Deployment status: ${{ github.event.deployment_status.state }}"
-          if [ "${{ github.event.deployment_status.environment }}" != "" ]; then
-            echo "Environment: ${{ github.event.deployment_status.environment }}"
+          echo "Deployment status: $DEPLOY_STATE"
+          if [ "$DEPLOY_ENVIRONMENT" != "" ]; then
+            echo "Environment: $DEPLOY_ENVIRONMENT"
           fi
-          if [ "${{ github.event.deployment.ref }}" != "" ]; then
-            echo "Ref: ${{ github.event.deployment.ref }}"
+          if [ "$DEPLOY_REF" != "" ]; then
+            echo "Ref: $DEPLOY_REF"
           fi
           
-          if [ "${{ github.event.deployment_status.state }}" = "success" ]; then
+          if [ "$DEPLOY_STATE" = "success" ]; then
             echo "✅ Deployment successful!"
           else
             echo "❌ Deployment failed" 

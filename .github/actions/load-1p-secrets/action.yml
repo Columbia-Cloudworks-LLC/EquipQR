@@ -54,9 +54,11 @@ runs:
     - name: Validate OP_SERVICE_ACCOUNT_TOKEN presence
       id: probe
       shell: bash
+      env:
+        REQUIRED: ${{ inputs.required }}
       run: |
         if [ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]; then
-          if [ "${{ inputs.required }}" = "true" ]; then
+          if [ "$REQUIRED" = "true" ]; then
             echo "::error title=load-1p-secrets::OP_SERVICE_ACCOUNT_TOKEN is empty. Plant it as a GHA repo secret (gh secret set OP_SERVICE_ACCOUNT_TOKEN) and ensure the calling workflow passes it through env from secrets.OP_SERVICE_ACCOUNT_TOKEN. Or pass required: false to this action for best-effort loads."
             exit 1
           fi

@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **GitHub Actions run-script injection** — Store `github` / `inputs` context in step `env:` and quote those variables in `run:` scripts (`load-1p-secrets`, `deploy.yml`, `deployment-status.yml`) so untrusted event data cannot break out of the shell.
 - **Marketing footer link underlines** — Landing footer internal and external links now share the same muted color and rest/hover underline treatment so Connect and Columbia Cloudworks no longer look like a different link style than Product, Company, and Legal.
 - **Cross-org team IDOR (RT-13)** — Team fetch, update, and delete are scoped to the current organization. A foreign team UUID renders Team not found with no members or Edit Team.
 - **Same-org team isolation (RT-19)** — For non-owner/admin users, dashboard widgets, equipment/work-order lists, and direct work-order/equipment UUID routes use membership teams only. Org role (not a stale work-order manager flag) decides All teams scope.
