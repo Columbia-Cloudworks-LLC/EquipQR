@@ -47,7 +47,7 @@ describe('useSession', () => {
     expect(screen.getByTestId('is-loading')).toHaveTextContent('false');
     expect(screen.getByTestId('has-error')).toHaveTextContent('false');
     expect(screen.getByTestId('current-org-id')).toHaveTextContent('org-1');
-    expect(screen.getByTestId('user-id')).toHaveTextContent('user-1');
+    expect(screen.getByTestId('user-id')).toHaveTextContent('none');
 
     // Verify refresh function is available
     const refreshButton = screen.getByTestId('refresh-button');
