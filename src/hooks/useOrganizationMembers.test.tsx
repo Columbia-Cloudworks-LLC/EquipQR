@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@vitest-harness/utils/test-utils';
 import { QueryClient, type UseMutationResult } from '@tanstack/react-query';
-import { useOrganizationMembers, useUpdateMemberRole, useRemoveMember } from '@/features/organization/hooks/useOrganizationMembers';
+import { useOrganizationMembersQuery, useUpdateMemberRole, useRemoveMember } from '@/features/organization/hooks/useOrganizationMembers';
 
 // Mock dependencies
 vi.mock('@/integrations/supabase/client', async () => {
@@ -31,8 +31,28 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 
+function mockGetClaimsForUser(sub: string) {
+  return vi.mocked(supabase.auth.getClaims).mockResolvedValue({
+    data: {
+      claims: {
+        iss: 'https://supabase.test/auth/v1',
+        sub,
+        aud: 'authenticated',
+        exp: 9_999_999_999,
+        iat: 1_704_067_200,
+        role: 'authenticated',
+        aal: 'aal1',
+        session_id: 'session-1',
+      },
+      header: { alg: 'ES256', kid: 'test-kid', typ: 'JWT' },
+      signature: new Uint8Array(),
+    },
+    error: null,
+  });
+}
+
 const MembersProbe = ({ organizationId }: { organizationId: string }) => {
-  const { data, isLoading, error } = useOrganizationMembers(organizationId);
+  const { data, isLoading, error } = useOrganizationMembersQuery(organizationId);
 
   return (
     <div>
@@ -89,7 +109,7 @@ const RemoveMemberProbe = ({ organizationId, onReady }: { organizationId: string
   );
 };
 
-describe('useOrganizationMembers', () => {
+describe('useOrganizationMembersQuery', () => {
   let invalidateSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
@@ -102,7 +122,7 @@ describe('useOrganizationMembers', () => {
     invalidateSpy.mockRestore();
   });
 
-  describe('useOrganizationMembers', () => {
+  describe('useOrganizationMembersQuery', () => {
     it('should fetch and display organization members successfully', async () => {
       const mockMembersData = [
         {
@@ -337,17 +357,13 @@ describe('useOrganizationMembers', () => {
         teams_transferred: 2
       };
 
-      // Mock authenticated user claims
-      vi.mocked(supabase.auth.getClaims).mockResolvedValue({
-        data: { claims: { sub: mockUser.id } },
-        error: null
-      });
+      mockGetClaimsForUser(mockUser.id);
 
       // Mock successful RPC call
       vi.mocked(supabase.rpc).mockResolvedValue({
         data: mockRpcResult,
         error: null
-      });
+      } as never);
 
       let capturedMutation: RemoveMemberMutation | undefined;
       
@@ -397,17 +413,13 @@ describe('useOrganizationMembers', () => {
         error: 'Cannot remove the last owner'
       };
 
-      // Mock authenticated user claims
-      vi.mocked(supabase.auth.getClaims).mockResolvedValue({
-        data: { claims: { sub: mockUser.id } },
-        error: null
-      });
+      mockGetClaimsForUser(mockUser.id);
 
       // Mock RPC error result
       vi.mocked(supabase.rpc).mockResolvedValue({
         data: mockRpcResult,
         error: null
-      });
+      } as never);
 
       let capturedMutation: RemoveMemberMutation | undefined;
       
@@ -439,7 +451,7 @@ describe('useOrganizationMembers', () => {
     it('should handle authentication error', async () => {
       // Mock no authenticated user claims
       vi.mocked(supabase.auth.getClaims).mockResolvedValue({
-        data: { claims: null },
+        data: null,
         error: null
       });
 

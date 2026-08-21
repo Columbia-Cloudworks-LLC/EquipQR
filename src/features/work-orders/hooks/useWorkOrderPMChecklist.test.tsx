@@ -5,8 +5,11 @@ import React from 'react';
 import {
   PM_TEMPLATE_NONE_VALUE,
   useWorkOrderPMChecklist,
+  type WorkOrderPMChecklistEquipment,
+  type WorkOrderPMChecklistValues,
 } from './useWorkOrderPMChecklist';
 import * as usePMTemplatesModule from '@/features/pm-templates/hooks/usePMTemplates';
+import { getSimplifiedOrganizationRestrictions } from '@/utils/simplifiedOrganizationRestrictions';
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
@@ -150,11 +153,8 @@ describe('useWorkOrderPMChecklist', () => {
 
     vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
       restrictions: {
+        ...getSimplifiedOrganizationRestrictions(),
         canCreateCustomPMTemplates: true,
-        canAddMembers: true,
-        canAccessAdvancedAnalytics: true,
-        canAccessFleetMap: true,
-        upgradeMessage: '',
       },
       checkRestriction: vi.fn(),
       getRestrictionMessage: vi.fn(),
@@ -176,9 +176,8 @@ describe('useWorkOrderPMChecklist', () => {
 
       vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
         restrictions: {
+          ...getSimplifiedOrganizationRestrictions(),
           canCreateCustomPMTemplates: false,
-          canAddMembers: true,
-          canAccessAdvancedAnalytics: false,
           canAccessFleetMap: false,
           upgradeMessage: 'Upgrade for more features',
         },
@@ -265,7 +264,13 @@ describe('useWorkOrderPMChecklist', () => {
         default_pm_template_id: 'template-2',
       };
 
-      const { result, rerender } = renderHook(
+      const { result, rerender } = renderHook<
+        ReturnType<typeof useWorkOrderPMChecklist>,
+        {
+          selectedEquipment: WorkOrderPMChecklistEquipment;
+          values: WorkOrderPMChecklistValues;
+        }
+      >(
         ({ selectedEquipment, values }) =>
           useWorkOrderPMChecklist({
             values,

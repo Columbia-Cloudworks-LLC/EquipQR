@@ -42,6 +42,7 @@ export const WORK_ORDER_SELECT = `
     assigned_location_city,
     assigned_location_state,
     assigned_location_country,
+    updated_at,
     teams:team_id (
       id,
       name,
@@ -100,6 +101,7 @@ export type WorkOrderJoinedEquipment = {
   assigned_location_city?: string | null;
   assigned_location_state?: string | null;
   assigned_location_country?: string | null;
+  updated_at?: string | null;
   teams?: WorkOrderJoinedTeam;
 } | null;
 
@@ -135,7 +137,7 @@ export function mapBaseWorkOrderFields(wo: Record<string, unknown>): Partial<Wor
 
 export function mapQuickBooksInvoiceFields(wo: Record<string, unknown>): Partial<WorkOrder> {
   const invoiceEnvironment = wo.quickbooks_invoice_environment as 'sandbox' | 'production' | null | undefined;
-  const invoiceStatus = wo.invoice_status as WorkOrder['invoice_status'] | undefined;
+  const invoiceStatus = wo.invoice_status as WorkOrder['invoiceStatus'];
 
   return {
     quickbooks_invoice_id: (wo.quickbooks_invoice_id as string | null | undefined) ?? null,
@@ -193,7 +195,7 @@ function mapEquipmentLocationInput(equipment: WorkOrderJoinedEquipment) {
     assigned_location_state: equipment?.assigned_location_state,
     assigned_location_country: equipment?.assigned_location_country,
     locationText: equipment?.location,
-    updatedAt: equipment?.updated_at,
+    updatedAt: equipment?.updated_at ?? undefined,
   };
 }
 

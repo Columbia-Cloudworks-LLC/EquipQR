@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
-import { Check, Edit2, MapPin, Navigation, RefreshCw, X } from 'lucide-react';
+import { Check, Edit2, MapPin, Navigation, X } from 'lucide-react';
 import ClickableAddress from '@/components/ui/ClickableAddress';
 import GooglePlacesAutocomplete, { type PlaceLocationData } from '@/components/ui/GooglePlacesAutocomplete';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import { useLatestScanCoordinateFromHistory } from '@/features/equipment/hooks/u
 import type { EquipmentTeamSummary } from '@/features/equipment/services/EquipmentService';
 import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useIsDarkTheme } from '@/hooks/useThemeVersion';
+import { useIsDarkTheme, useThemeVersion } from '@/hooks/useThemeVersion';
 import { cn } from '@/lib/utils';
 import {
   buildEquipmentLocationOptions,
@@ -126,7 +126,8 @@ export function EquipmentLocationMapPanel({
   const [isCleared, setIsCleared] = useState(false);
   const [isLiveCaptureOpen, setIsLiveCaptureOpen] = useState(false);
   const isMobile = useIsMobile();
-  const isDark = useIsDarkTheme();
+  const themeVersion = useThemeVersion();
+  const isDark = useIsDarkTheme(themeVersion);
 
   const {
     googleMapsKey,
@@ -159,7 +160,7 @@ export function EquipmentLocationMapPanel({
     () => ({
       team: assignedTeam
         ? {
-            override_equipment_location: assignedTeam.override_equipment_location,
+            override_equipment_location: assignedTeam.override_equipment_location ?? undefined,
             location_lat: assignedTeam.location_lat,
             location_lng: assignedTeam.location_lng,
             location_address: assignedTeam.location_address,
@@ -228,9 +229,9 @@ export function EquipmentLocationMapPanel({
         city: '',
         state: '',
         country: '',
-        lat: undefined,
-        lng: undefined,
-      } as PlaceLocationData);
+        lat: null,
+        lng: null,
+      });
       setPendingPlace(null);
       setIsCleared(false);
       return;

@@ -113,7 +113,7 @@ export const WorkOrderHistoricalFields: React.FC<WorkOrderHistoricalFieldsProps>
         <div className="space-y-2">
           <Label>Completion Date</Label>
           <DateTimePicker
-            date={values.completedDate}
+            date={values.completedDate ?? undefined}
             onDateChange={(date) => {
               setValue('completedDate', date);
               setValue('historicalTimelineEvents', undefined);

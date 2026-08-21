@@ -7,6 +7,10 @@ import type { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrde
 export const PM_TEMPLATE_NONE_VALUE = '__none__';
 
 export type WorkOrderPMChecklistValues = Pick<WorkOrderFormData, 'hasPM' | 'pmTemplateId'>;
+export type WorkOrderPMChecklistSetValue = (
+  field: keyof WorkOrderPMChecklistValues,
+  value: WorkOrderPMChecklistValues[keyof WorkOrderPMChecklistValues],
+) => void;
 export type WorkOrderPMChecklistEquipment = {
   id: string;
   name: string;
@@ -15,7 +19,7 @@ export type WorkOrderPMChecklistEquipment = {
 
 interface UseWorkOrderPMChecklistProps {
   values: WorkOrderPMChecklistValues;
-  setValue: <K extends keyof WorkOrderFormData>(field: K, value: WorkOrderFormData[K]) => void;
+  setValue: WorkOrderPMChecklistSetValue;
   selectedEquipment?: WorkOrderPMChecklistEquipment | null;
   /** When true (manage PM on active WO), user can pick any compatible template. */
   allowTemplateOverride?: boolean;

@@ -46,7 +46,11 @@ export const useLeaveOrganization = () => {
 
       if (error) throw error;
 
-      const result = data as LeaveResult;
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
+        throw new Error('Failed to leave organization');
+      }
+
+      const result = data as unknown as LeaveResult;
       if (!result.success) {
         throw new Error(result.error || 'Failed to leave organization');
       }

@@ -53,4 +53,15 @@ describe('applyWorkOrderSupabaseFilters', () => {
     expect(query.not).toHaveBeenCalledWith('status', 'eq', 'completed');
     expect(query.not).toHaveBeenCalledWith('status', 'eq', 'cancelled');
   });
+
+  it('preserves extra builder methods on the returned query', () => {
+    const query = Object.assign(createMockQuery(), {
+      order: vi.fn(),
+    });
+
+    const result = applyWorkOrderSupabaseFilters(query, { status: 'submitted' });
+    result.order('created_date', { ascending: false });
+
+    expect(result.order).toHaveBeenCalledWith('created_date', { ascending: false });
+  });
 });

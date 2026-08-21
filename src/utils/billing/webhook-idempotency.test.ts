@@ -1,5 +1,5 @@
 
-import { describe, it, expect, beforeEach, vi, type MockInstance } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { supabase } from '@/integrations/supabase/client';
 
 // Mock the supabase client
@@ -16,14 +16,18 @@ vi.mock('@/integrations/supabase/client', () => ({
   }
 }));
 
+type SupabaseInsertResult = {
+  data?: unknown;
+  error: unknown;
+};
+
 type SupabaseFromHandlers = {
-  insert: (...args: unknown[]) => unknown;
+  insert: (...args: unknown[]) => Promise<SupabaseInsertResult> | SupabaseInsertResult;
   select?: (...args: unknown[]) => unknown;
 };
 
-const supabaseFromMock = supabase.from as unknown as MockInstance<
-  [string],
-  SupabaseFromHandlers
+const supabaseFromMock = supabase.from as unknown as Mock<
+  (table: string) => SupabaseFromHandlers
 >;
 
 describe('Webhook Event Idempotency', () => {
@@ -178,7 +182,7 @@ describe('Webhook Event Idempotency', () => {
         payload: { test: 'data' }
       };
 
-      const result = await supabase.from('stripe_event_logs').insert(eventLog);
+      const result = await supabaseFromMock('stripe_event_logs').insert(eventLog);
       
       expect(result.error).toBeNull();
       expect(mockInsert).toHaveBeenCalledWith(eventLog);

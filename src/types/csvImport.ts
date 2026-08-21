@@ -1,15 +1,3 @@
-export interface MappedRow {
-  rowIndex: number;
-  name?: string;
-  manufacturer?: string;
-  model?: string;
-  serial?: string;
-  location?: string;
-  last_maintenance?: string;
-  customAttributes: Record<string, string | number | boolean | null>;
-  raw: Record<string, string>;
-}
-
 export interface ImportPreviewRow {
   rowIndex: number;
   action: 'create' | 'merge' | 'error';

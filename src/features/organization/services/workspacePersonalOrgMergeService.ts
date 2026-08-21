@@ -26,11 +26,11 @@ export const requestWorkspacePersonalOrgMerge = async ({
     .rpc('request_workspace_personal_org_merge', {
       p_workspace_org_id: workspaceOrgId,
       p_target_user_id: targetUserId,
-      p_reason: reason || null,
+      p_reason: reason || undefined,
     });
 
   if (error) throw error;
-  return data as WorkspaceMergeActionResult;
+  return data as unknown as WorkspaceMergeActionResult;
 };
 
 export const respondToWorkspacePersonalOrgMerge = async ({
@@ -46,11 +46,11 @@ export const respondToWorkspacePersonalOrgMerge = async ({
     .rpc('respond_to_workspace_personal_org_merge', {
       p_request_id: requestId,
       p_accept: accept,
-      p_response_reason: responseReason || null,
+      p_response_reason: responseReason || undefined,
     });
 
   if (error) throw error;
-  return data as WorkspaceMergeActionResult;
+  return data as unknown as WorkspaceMergeActionResult;
 };
 
 export const getPersonalOrgMergePreview = async (
@@ -62,5 +62,5 @@ export const getPersonalOrgMergePreview = async (
     });
 
   if (error) throw error;
-  return data as PersonalOrgMergePreview;
+  return data as unknown as PersonalOrgMergePreview;
 };

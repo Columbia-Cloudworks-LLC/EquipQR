@@ -1,7 +1,8 @@
 
 import { useEffect, useRef, useMemo, useCallback } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type Path } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import type { WorkOrder as EnhancedWorkOrder } from '@/features/work-orders/types/workOrder';
 import { 
   workOrderFormSchema, 
@@ -12,6 +13,8 @@ import { showErrorToast } from '@/utils/errorHandling';
 
 // Re-export for backward compatibility
 export type { WorkOrderFormData };
+
+type WorkOrderFormInput = z.input<typeof workOrderFormSchema>;
 
 /** Adapter interface matching the old useFormValidation API for backward compatibility */
 interface FormAdapter<T> {
@@ -73,10 +76,15 @@ export const useWorkOrderForm = ({
     };
   }, [workOrder, equipmentId, initialIsHistorical, pmData]);
 
-  // Use react-hook-form with zodResolver
-  const rhf = useForm<WorkOrderFormData>({
+  // Zod .default() / .transform() make input and output types differ.
+  // Pin both so zodResolver matches useForm (see @hookform/resolvers docs).
+  const rhf = useForm<
+    WorkOrderFormInput,
+    unknown,
+    WorkOrderFormData
+  >({
     resolver: zodResolver(workOrderFormSchema),
-    defaultValues: initialValues as WorkOrderFormData,
+    defaultValues: initialValues as WorkOrderFormInput,
     mode: 'onChange',
   });
 
@@ -101,13 +109,21 @@ export const useWorkOrderForm = ({
     field: K, 
     value: WorkOrderFormData[K]
   ) => {
-    rhfSetValue(field, value, { shouldValidate: true, shouldDirty: true });
+    rhfSetValue(
+      field as Path<WorkOrderFormInput>,
+      value as WorkOrderFormInput[Extract<K, keyof WorkOrderFormInput>],
+      { shouldValidate: true, shouldDirty: true },
+    );
   }, [rhfSetValue]);
 
   // Create setValues adapter
   const setValuesAdapter = useCallback((values: Partial<WorkOrderFormData>) => {
     for (const [key, value] of Object.entries(values)) {
-      rhfSetValue(key as keyof WorkOrderFormData, value as WorkOrderFormData[keyof WorkOrderFormData], { shouldValidate: false });
+      rhfSetValue(
+        key as Path<WorkOrderFormInput>,
+        value as WorkOrderFormInput[keyof WorkOrderFormInput],
+        { shouldValidate: false },
+      );
     }
     // Trigger validation once after setting all values
     trigger();
@@ -141,7 +157,7 @@ export const useWorkOrderForm = ({
 
   // Create reset adapter
   const resetAdapter = useCallback(() => {
-    rhfReset(initialValues as WorkOrderFormData);
+    rhfReset(initialValues as WorkOrderFormInput);
   }, [rhfReset, initialValues]);
 
   // Create handleSubmit adapter matching the old signature.

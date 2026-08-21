@@ -37,7 +37,7 @@ export const WorkOrderDetailsStatusLockWarning: React.FC<WorkOrderDetailsStatusL
           title: "Work Order Reverted",
           description: `Status changed from ${result.old_status} to ${result.new_status}`,
         });
-        onStatusUpdate?.(result.new_status || 'accepted');
+        onStatusUpdate?.('accepted');
       } else {
         toast({
           title: "Revert Failed",

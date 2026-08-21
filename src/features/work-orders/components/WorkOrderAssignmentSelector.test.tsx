@@ -132,7 +132,11 @@ describe('WorkOrderAssignmentSelector', () => {
         isError: false,
         isSuccess: false,
         status: 'pending' as const,
-        variables: undefined,
+        variables: {
+          workOrderId: 'wo-1',
+          organizationId: 'org-1',
+          assigneeId: 'user-1',
+        },
         reset: vi.fn(),
         isIdle: false,
         context: undefined,

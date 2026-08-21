@@ -486,10 +486,8 @@ $oldStaleEap = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'
 try {
     $staleCheck = & npx supabase status 2>&1
-    $staleExit = $LASTEXITCODE
     $hasContainerError = ($staleCheck | Out-String) -match 'No such container'
 } catch {
-    $staleExit = 1
     $hasContainerError = "$_" -match 'No such container'
 } finally {
     $ErrorActionPreference = $oldStaleEap

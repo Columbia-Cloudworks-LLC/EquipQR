@@ -18,7 +18,7 @@ type UseGooglePlacesWebComponentOptions = {
 };
 
 type UseGooglePlacesWebComponentResult = {
-  webContainerRef: RefObject<HTMLDivElement>;
+  webContainerRef: RefObject<HTMLDivElement | null>;
   handleClearCheck: () => void;
 };
 
@@ -47,7 +47,7 @@ export function useGooglePlacesWebComponent({
 
         const handleSelect = async (event: Event) => {
           try {
-            const anyEvent = event as Record<string, unknown>;
+            const anyEvent = event as unknown as Record<string, unknown>;
             let place: google.maps.places.Place | undefined;
 
             if ('place' in anyEvent && anyEvent.place) {

@@ -40,8 +40,11 @@ export const useWorkOrderSubmission = ({
     }
   });
 
-  const { execute: submitForm, isLoading: isSubmitting } = useAsyncOperation(
-    async (data: WorkOrderFormData) => {
+  const { execute: submitForm, isLoading: isSubmitting } = useAsyncOperation<
+    void,
+    [data: WorkOrderFormData]
+  >(
+    async (data) => {
       if (onSubmit) {
         await onSubmit(data);
         onSuccess();

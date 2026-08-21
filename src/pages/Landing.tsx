@@ -17,7 +17,7 @@ const CTASection = lazy(() => import('@/components/landing/CTASection'));
 function BelowFoldFallback() {
   return (
     <div
-      className="min-h-[12rem] w-full animate-pulse bg-muted/20"
+      className="min-h-48 w-full animate-pulse bg-muted/20"
       aria-hidden
     />
   );

@@ -30,9 +30,9 @@ import { cn } from '@/lib/utils';
 type EquipmentMode = 'select' | 'create';
 
 interface WorkOrderEquipmentSelectorProps {
-  values: WorkOrderFormData;
+  values: Pick<Partial<WorkOrderFormData>, 'equipmentId'>;
   errors: Record<string, string>;
-  setValue: (field: keyof WorkOrderFormData, value: unknown) => void;
+  setValue: <K extends keyof WorkOrderFormData>(field: K, value: WorkOrderFormData[K]) => void;
   preSelectedEquipment?: EquipmentSelectorItem;
   allEquipment: EquipmentSelectorItem[];
   isEditMode: boolean;
@@ -83,7 +83,10 @@ const EquipmentOptionDetails: React.FC<{ equipment: EquipmentSelectorItem }> = (
   );
 };
 
-const WorkingHoursSection: React.FC<{ equipmentId: string; setValue: (field: string, value: unknown) => void; }> = ({ equipmentId, setValue }) => {
+const WorkingHoursSection: React.FC<{
+  equipmentId: string;
+  setValue: <K extends keyof WorkOrderFormData>(field: K, value: WorkOrderFormData[K]) => void;
+}> = ({ equipmentId, setValue }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [newHours, setNewHours] = useState('');
 
@@ -212,7 +215,7 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
       <div className="space-y-2">
         <Label>Equipment</Label>
         <div className="flex items-center gap-2 rounded-md border bg-muted/50 p-3">
-          <Forklift className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+          <Forklift className="h-4 w-4 shrink-0 text-muted-foreground" />
           <div className="min-w-0 flex-1">
             <div className="font-medium">{equipment.name}</div>
             <div className="text-sm text-muted-foreground">
@@ -224,7 +227,7 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
               {equipment.team?.name || 'No team'} • {locationDisplay}
             </div>
           </div>
-          <Badge variant="secondary" className="flex-shrink-0 text-xs">
+          <Badge variant="secondary" className="shrink-0 text-xs">
             {isEditMode ? 'Current' : 'Selected'}
           </Badge>
         </div>

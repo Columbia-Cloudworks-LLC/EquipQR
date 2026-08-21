@@ -4,14 +4,9 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { AppProviders as AppProvidersComponent } from './AppProviders';
 
-const ROUTER_FUTURE = {
-  v7_startTransition: true,
-  v7_relativeSplatPath: true,
-} as const;
-
 function renderWithRouter(ui: React.ReactElement, initialPath = '/') {
   return render(
-    <MemoryRouter initialEntries={[initialPath]} future={ROUTER_FUTURE}>
+    <MemoryRouter initialEntries={[initialPath]}>
       {ui}
     </MemoryRouter>,
   );

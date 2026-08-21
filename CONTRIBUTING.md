@@ -324,7 +324,6 @@ npm run test:coverage
 npm run test:watch
 ```
 
-
 **Journey test template** (for new features):
 
 ```typescript
@@ -477,4 +476,3 @@ If you have questions about contributing, feel free to:
 - Email [nicholas.king@columbiacloudworks.com](mailto:nicholas.king@columbiacloudworks.com)
 
 Thank you for contributing to EquipQR.
-

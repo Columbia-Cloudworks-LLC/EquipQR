@@ -147,7 +147,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
   };
 
   const truncatedId = workOrder.id.substring(0, 8).toUpperCase();
-  const { exportAudience } = permissionLevels;
+  const { exportAudience = 'none' } = permissionLevels;
   const canExport = exportAudience !== 'none';
   const showActionsMenu = canExport || showQuickBooks || canDelete;
   const actionsMenuLabel = canExport ? 'Export' : 'Actions';

@@ -2,9 +2,16 @@ import React from 'react';
 import { render, screen, fireEvent } from '@vitest-harness/utils/test-utils';
 import PMChecklistComponent from './PMChecklistComponent';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
-import type { WorkOrderData } from '@/features/work-orders/types/workOrderDetails';
+import type { OrganizationData, WorkOrderData } from '@/features/work-orders/types/workOrderDetails';
 
-export const defaultPmChecklistOrg = { id: 'org-1', name: 'Test Org' };
+export const defaultPmChecklistOrg: OrganizationData = {
+  id: 'org-1',
+  name: 'Test Org',
+  plan: 'free',
+  memberCount: 1,
+  maxMembers: 5,
+  features: [],
+};
 
 export function renderPMChecklist(
   pm: PreventativeMaintenance,
@@ -12,7 +19,7 @@ export function renderPMChecklist(
     readOnly?: boolean;
     isAdmin?: boolean;
     onUpdate?: () => void;
-    organization?: { id: string; name: string };
+    organization?: OrganizationData;
     workOrder?: WorkOrderData;
   },
 ) {

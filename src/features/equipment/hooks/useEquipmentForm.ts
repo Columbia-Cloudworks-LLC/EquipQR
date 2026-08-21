@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, type MutableRefObject } from 'react';
+import { useState, useMemo, useRef, type RefObject } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -47,7 +47,7 @@ const getEquipmentMutationErrorMessage = (error: unknown, fallback: string): str
 export const useEquipmentForm = (
   initialData?: EquipmentRecord,
   onSuccess?: () => void,
-  pendingMediaRef?: MutableRefObject<EquipmentFormPendingMedia>,
+  pendingMediaRef?: RefObject<EquipmentFormPendingMedia>,
   onCreated?: (equipmentId: string) => void,
 ) => {
   const [isOpen, setIsOpen] = useState(false);

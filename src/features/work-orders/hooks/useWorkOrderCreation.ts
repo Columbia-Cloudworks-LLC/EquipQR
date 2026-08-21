@@ -2,7 +2,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
-import { createPM, PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import {
+  createPM,
+  defaultForkliftChecklist,
+  type PMChecklistItem,
+} from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
@@ -10,6 +14,7 @@ import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
 import { attachWorkOrderCreationImages } from '@/features/work-orders/services/workOrderNotesService';
 import { workOrders as workOrderQueryKeys, workOrderMetrics } from '@/lib/queryKeys';
+import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 
 export interface CreateWorkOrderData {
   title: string;
@@ -17,6 +22,7 @@ export interface CreateWorkOrderData {
   equipmentId: string;
   priority: 'low' | 'medium' | 'high';
   dueDate?: string;
+  estimatedHours?: number;
   equipmentWorkingHours?: number;
   hasPM?: boolean;
   pmTemplateId?: string;
@@ -29,12 +35,12 @@ export interface CreateWorkOrderData {
 
 /** Result shape from mutationFn. */
 interface CreateWorkOrderResult {
-  workOrder: { id: string; [key: string]: unknown } | null;
+  workOrder: WorkOrder | null;
   queuedOffline: boolean;
   creationPhotoFailure?: boolean;
 }
 
-export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: string; [key: string]: unknown }) => void }) => {
+export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: WorkOrder) => void }) => {
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -95,7 +101,7 @@ export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: str
       // Create PM if required
       if (data.hasPM && data.equipmentId) {
         try {
-          let checklistData = null;
+          let checklistData: PMChecklistItem[] = defaultForkliftChecklist;
           let notes = '';
           if (data.pmTemplateId) {
             const { data: template } = await supabase
@@ -103,8 +109,8 @@ export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: { id: str
               .select('template_data, description')
               .eq('id', data.pmTemplateId)
               .single();
-            if (template) {
-              checklistData = template.template_data as PMChecklistItem[];
+            if (template && Array.isArray(template.template_data)) {
+              checklistData = template.template_data as unknown as PMChecklistItem[];
               notes = template.description || '';
             }
           }

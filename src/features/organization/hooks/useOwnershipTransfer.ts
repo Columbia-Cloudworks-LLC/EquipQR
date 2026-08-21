@@ -40,6 +40,19 @@ interface TransferResult {
   new_personal_org_id?: string;
 }
 
+function parseTransferResult(data: unknown, fallbackError: string): TransferResult {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new Error(fallbackError);
+  }
+
+  const result = data as unknown as TransferResult;
+  if (!result.success) {
+    throw new Error(result.error || fallbackError);
+  }
+
+  return result;
+}
+
 // ============================================
 // Queries
 // ============================================
@@ -103,17 +116,12 @@ export const useInitiateTransfer = () => {
         .rpc('initiate_ownership_transfer', {
           p_organization_id: organizationId,
           p_to_user_id: toUserId,
-          p_transfer_reason: transferReason || null,
+          p_transfer_reason: transferReason || undefined,
         });
 
       if (error) throw error;
 
-      const result = data as TransferResult;
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to initiate transfer');
-      }
-
-      return result;
+      return parseTransferResult(data, 'Failed to initiate transfer');
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['ownership-transfers'] });
@@ -156,17 +164,12 @@ export const useAcceptTransfer = () => {
           p_transfer_id: transferId,
           p_accept: true,
           p_departing_owner_role: departingOwnerRole,
-          p_response_reason: responseReason || null,
+          p_response_reason: responseReason || undefined,
         });
 
       if (error) throw error;
 
-      const result = data as TransferResult;
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to accept transfer');
-      }
-
-      return result;
+      return parseTransferResult(data, 'Failed to accept transfer');
     },
     onSuccess: (result) => {
       // Invalidate all relevant queries
@@ -214,17 +217,12 @@ export const useRejectTransfer = () => {
           p_transfer_id: transferId,
           p_accept: false,
           p_departing_owner_role: 'admin', // Not used for rejection
-          p_response_reason: responseReason || null,
+          p_response_reason: responseReason || undefined,
         });
 
       if (error) throw error;
 
-      const result = data as TransferResult;
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to reject transfer');
-      }
-
-      return result;
+      return parseTransferResult(data, 'Failed to reject transfer');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ownership-transfers'] });
@@ -264,12 +262,7 @@ export const useCancelTransfer = () => {
 
       if (error) throw error;
 
-      const result = data as TransferResult;
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to cancel transfer');
-      }
-
-      return result;
+      return parseTransferResult(data, 'Failed to cancel transfer');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ownership-transfers'] });

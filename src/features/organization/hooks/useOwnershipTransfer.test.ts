@@ -185,7 +185,7 @@ describe('useOwnershipTransfer hooks', () => {
         p_transfer_id: 'transfer-1',
         p_accept: true,
         p_departing_owner_role: 'admin',
-        p_response_reason: null,
+        p_response_reason: undefined,
       });
 
       // Should navigate to refresh

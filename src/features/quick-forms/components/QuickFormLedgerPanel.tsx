@@ -173,7 +173,7 @@ export function QuickFormLedgerPanel({ organizationId, forms }: QuickFormLedgerP
                 className="flex items-center gap-3 px-3 py-2 text-sm"
                 data-testid="quick-form-submission-row"
               >
-                <span className="font-mono tabular-nums text-xs text-muted-foreground min-w-[140px]">
+                <span className="font-mono tabular-nums text-xs text-muted-foreground min-w-35">
                   {formatDateTime(submission.submitted_at)}
                 </span>
                 <Badge variant="outline" className="shrink-0">
@@ -212,7 +212,7 @@ export function QuickFormLedgerPanel({ organizationId, forms }: QuickFormLedgerP
             {(viewing?.field_values ?? []).map((field) => (
               <div key={field.field_id} className="grid grid-cols-[1fr_1fr] gap-2 border-b py-1.5 last:border-b-0">
                 <span className="font-medium">{field.label}</span>
-                <span className="text-muted-foreground break-words">
+                <span className="text-muted-foreground wrap-break-word">
                   {formatQuickFormValue(field.value)}
                 </span>
               </div>

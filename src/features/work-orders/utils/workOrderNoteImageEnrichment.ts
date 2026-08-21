@@ -8,10 +8,29 @@ type ProfileRef = { id: string; name?: string | null };
 
 export type WorkOrderNoteImageRow = {
   id: string;
+  work_order_id: string;
   note_id: string | null;
+  file_name: string;
   file_url: string;
+  file_size?: number | null;
+  mime_type?: string | null;
+  description?: string | null;
   uploaded_by: string;
-  [key: string]: unknown;
+  created_at: string;
+};
+
+export type ResolvedWorkOrderNoteImage = {
+  id: string;
+  work_order_id: string;
+  note_id?: string;
+  file_name: string;
+  file_url: string;
+  file_size?: number;
+  mime_type?: string;
+  description?: string;
+  uploaded_by: string;
+  created_at: string;
+  uploaded_by_name: string;
 };
 
 export async function buildWorkOrderImageDisplayMap(
@@ -71,15 +90,23 @@ export function mapResolvedImagesForNote(
   imagesList: WorkOrderNoteImageRow[],
   displayByImageId: Map<string, string>,
   uploaderProfiles: ProfileRef[],
-) {
+): ResolvedWorkOrderNoteImage[] {
   return imagesList
     .filter((img) => img.note_id === noteId)
     .filter((img) => displayByImageId.has(img.id))
     .map((img) => {
       const uploader = uploaderProfiles.find((p) => p.id === img.uploaded_by);
       return {
-        ...img,
+        id: img.id,
+        work_order_id: img.work_order_id,
+        note_id: img.note_id ?? undefined,
+        file_name: img.file_name,
         file_url: displayByImageId.get(img.id)!,
+        file_size: img.file_size ?? undefined,
+        mime_type: img.mime_type ?? undefined,
+        description: img.description ?? undefined,
+        uploaded_by: img.uploaded_by,
+        created_at: img.created_at,
         uploaded_by_name: uploader?.name || 'Unknown',
       };
     });

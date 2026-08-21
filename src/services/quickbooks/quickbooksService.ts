@@ -108,7 +108,7 @@ export async function createOAuthSession(
   const { data, error } = await supabase
     .rpc('create_quickbooks_oauth_session', {
       p_organization_id: organizationId,
-      p_redirect_url: redirectUrl || null,
+      p_redirect_url: redirectUrl || undefined,
     });
 
   if (error) {
@@ -260,7 +260,7 @@ export async function disconnectQuickBooks(
   const { data, error } = await supabase
     .rpc('disconnect_quickbooks', {
       p_organization_id: organizationId,
-      p_realm_id: realmId || null,
+      p_realm_id: realmId || undefined,
     });
 
   if (error) {

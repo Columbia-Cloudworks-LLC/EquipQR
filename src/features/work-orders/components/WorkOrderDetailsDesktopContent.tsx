@@ -148,7 +148,7 @@ export function WorkOrderDetailsDesktopContent({
 
       <div {...stagger(3)}>
         <WorkOrderDetailsPMInfo
-          workOrder={workOrder}
+          workOrder={{ has_pm: workOrder.has_pm }}
           pmData={pmData}
           permissionLevels={permissionLevels}
         />

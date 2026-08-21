@@ -115,7 +115,7 @@ async function refreshAccessToken(refreshToken: string): Promise<GoogleRefreshRe
     // Check for specific error responses from Google
     let errorDetails: { error?: string; error_description?: string } = {};
     try {
-      errorDetails = await response.json();
+      errorDetails = await response.json() as { error?: string; error_description?: string };
     } catch {
       // Response wasn't JSON
     }
@@ -152,7 +152,7 @@ async function refreshAccessToken(refreshToken: string): Promise<GoogleRefreshRe
     );
   }
 
-  return await response.json();
+  return await response.json() as GoogleRefreshResponse;
 }
 
 /**

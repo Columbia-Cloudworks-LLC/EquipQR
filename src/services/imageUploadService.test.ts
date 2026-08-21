@@ -3,19 +3,30 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const { mockUpload, mockFrom, mockCreateSignedUrl, mockCreateSignedUrls, mockGetPublicUrl } = vi.hoisted(() => {
   const mockUpload = vi.fn();
   const mockCreateSignedUrl = vi.fn();
-  const mockCreateSignedUrls = vi.fn((paths: string[], expiresIn: number) => ({
+  const mockCreateSignedUrls = vi.fn((
+    paths: string[],
+    expiresIn: number,
+  ): {
+    data: Array<{ path: string; signedUrl: string | null; error?: string | null }> | null;
+    error: { message: string } | null;
+  } => ({
     data: paths.map((path: string) => ({
       path,
       signedUrl: `https://example.supabase.co/storage/v1/object/sign/mock/${path}?token=test-${expiresIn}`,
     })),
     error: null,
   }));
-  const mockGetPublicUrl = vi.fn(() => ({
+  const mockGetPublicUrl = vi.fn<(path: string) => { data: { publicUrl: string } }>(() => ({
     data: {
       publicUrl: 'https://example.supabase.co/storage/v1/object/public/organization-logos/org/logo.png',
     },
   }));
-  const mockFrom = vi.fn(() => ({
+  const mockFrom = vi.fn<(bucket: string) => {
+    upload: typeof mockUpload;
+    getPublicUrl: typeof mockGetPublicUrl;
+    createSignedUrl: ReturnType<typeof vi.fn>;
+    createSignedUrls: ReturnType<typeof vi.fn>;
+  }>(() => ({
     upload: mockUpload,
     getPublicUrl: mockGetPublicUrl,
     createSignedUrl: mockCreateSignedUrl,

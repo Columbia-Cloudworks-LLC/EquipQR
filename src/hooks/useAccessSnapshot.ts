@@ -84,7 +84,9 @@ async function getFallbackAccessSnapshot(userId: string): Promise<AccessSnapshot
         status: om.status as 'active' | 'pending' | 'inactive'
       })),
       accessibleTeamIds: (teamMemberships || []).map(tm => tm.team_id),
-      profiles: profiles ? [profiles] : []
+      profiles: profiles
+        ? [{ id: profiles.id, name: profiles.name, email: profiles.email ?? '' }]
+        : [],
     };
   } catch (error) {
     console.error('Fallback access snapshot failed:', error);

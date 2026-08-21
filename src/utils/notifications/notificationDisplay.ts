@@ -116,7 +116,7 @@ type NavigateNotificationOptions = {
   notification: Notification;
   organizationId: string | undefined;
   navigate: NavigateFunction;
-  switchOrganization: (orgId: string) => Promise<void>;
+  switchOrganization: (orgId: string) => void | Promise<void>;
 };
 
 /**

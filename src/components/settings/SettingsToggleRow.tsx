@@ -25,7 +25,7 @@ export const SettingsToggleRow: React.FC<SettingsToggleRowProps> = ({
   icon,
 }) => {
   return (
-    <div className="flex items-center justify-between rounded-lg border p-4 min-h-[48px]">
+    <div className="flex items-center justify-between rounded-lg border p-4 min-h-12">
       <div className="flex items-center gap-3 pr-4 min-w-0">
         {icon && <div className="shrink-0 text-muted-foreground">{icon}</div>}
         <div className="space-y-0.5">

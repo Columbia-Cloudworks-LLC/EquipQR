@@ -27,10 +27,6 @@ vi.mock('@/hooks/useAuth', () => ({
   }))
 }));
 
-vi.mock('@/hooks/usePendingRedirectHandler', () => ({
-  usePendingRedirectHandler: vi.fn()
-}));
-
 vi.mock('@/hooks/useAppToast', () => ({
   useAppToast: () => ({
     error: mockErrorToast,

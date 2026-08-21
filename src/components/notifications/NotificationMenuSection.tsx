@@ -50,7 +50,9 @@ const NotificationMenuSection: React.FC<NotificationMenuSectionProps> = ({
       notification,
       organizationId,
       navigate,
-      switchOrganization,
+      switchOrganization: async (orgId) => {
+        switchOrganization(orgId);
+      },
     });
   };
 
@@ -107,14 +109,14 @@ const NotificationMenuSection: React.FC<NotificationMenuSectionProps> = ({
                   onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="flex gap-2.5 w-full">
-                    <div className="text-base flex-shrink-0">
+                    <div className="text-base shrink-0">
                       {getNotificationEmoji(notification.type)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-sm font-medium truncate">{notification.title}</p>
                         {!notification.read && (
-                          <div className="h-2 w-2 bg-primary rounded-full flex-shrink-0 mt-1.5" />
+                          <div className="h-2 w-2 bg-primary rounded-full shrink-0 mt-1.5" />
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">

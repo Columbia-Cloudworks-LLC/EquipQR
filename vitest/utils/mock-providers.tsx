@@ -1,5 +1,6 @@
 // Mock providers file to avoid react-refresh warnings
 import React from 'react';
+import type { ContextType } from 'react';
 import { SessionContext } from '@/contexts/SessionContext';
 import { AuthContext } from '@/contexts/AuthContext';
 import {
@@ -9,11 +10,8 @@ import {
 } from '@vitest-harness/utils/mock-provider-values';
 import { SimpleOrganizationContext } from '@/contexts/SimpleOrganizationContext';
 
-// Type for auth context value - matches AuthContext shape
-type AuthContextValue = typeof mockAuthContextValue;
-
-// Type for session context value - matches SessionContext shape  
-type SessionContextValue = typeof mockSessionContextValue;
+type AuthContextValue = NonNullable<ContextType<typeof AuthContext>>;
+type SessionContextValue = NonNullable<ContextType<typeof SessionContext>>;
 
 // Type for simple org context value
 type SimpleOrgContextValue = ReturnType<typeof createMockSimpleOrgValue>;

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import type { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { OfflineAwareWorkOrderService } from './offlineAwareService';
 import { OfflineQueueService } from './offlineQueueService';
 
@@ -68,6 +69,17 @@ function jpegFile(name = 'snap.jpg') {
   return new File(['x'], name, { type: 'image/jpeg' });
 }
 
+function makeChecklistItem(overrides: Partial<PMChecklistItem> = {}): PMChecklistItem {
+  return {
+    id: 'item-1',
+    title: 'Check fluid',
+    condition: null,
+    required: true,
+    section: 'Fluids',
+    ...overrides,
+  };
+}
+
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe('OfflineAwareWorkOrderService', () => {
@@ -113,6 +125,23 @@ describe('OfflineAwareWorkOrderService', () => {
       expect((item.payload as { imageRefs?: unknown[] }).imageRefs).toHaveLength(1);
 
       Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+    });
+
+    it('forwards estimatedHours to WorkOrderService.create()', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+
+      mockCreate.mockResolvedValueOnce({
+        success: true,
+        data: { id: 'wo-new' },
+        error: null,
+      });
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      await svc.createWorkOrder({ ...makeCreateData(), estimatedHours: 2.5 });
+
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ estimated_hours: 2.5 }),
+      );
     });
 
     it('calls WorkOrderService.create() when online and succeeds', async () => {
@@ -267,7 +296,7 @@ describe('OfflineAwareWorkOrderService', () => {
       workOrderId: 'wo-abc',
       equipmentId: 'equip-abc',
       templateId: 'tmpl-1',
-      checklistData: [{ id: 'item-1', label: 'Check fluid', completed: false }],
+      checklistData: [makeChecklistItem()],
       notes: 'Initial notes',
     };
 
@@ -357,7 +386,7 @@ describe('OfflineAwareWorkOrderService', () => {
   describe('updatePM', () => {
     const pmId = 'pm-xyz';
     const updateData = {
-      checklistData: [{ id: 'item-1', label: 'Check fluid', completed: true }],
+      checklistData: [makeChecklistItem({ condition: 1 })],
       notes: 'Updated notes',
       status: 'in_progress' as const,
     };
@@ -430,8 +459,11 @@ describe('OfflineAwareWorkOrderService', () => {
 
       expect(result.queuedOffline).toBe(true);
       const items = queueReader.getAll();
+      expect(items[0].type).toBe('pm_update');
       expect(items[0].payload).toMatchObject({ pmId });
-      expect(items[0].payload.serverUpdatedAt).toBeUndefined();
+      if (items[0].type === 'pm_update') {
+        expect(items[0].payload.serverUpdatedAt).toBeUndefined();
+      }
 
       Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
     });

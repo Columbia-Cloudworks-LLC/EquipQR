@@ -57,6 +57,17 @@ const MobileWorkspaceSwitcher: React.FC<MobileWorkspaceSwitcherProps> = ({
   const { canCreateTeam } = usePermissions();
   const canCreateTeams = canCreateTeam();
 
+  if (!currentOrganization || isLoading) {
+    return (
+      <div className="flex w-full min-w-0 flex-col items-center gap-1 py-1">
+        <div className="h-4 w-32 max-w-full rounded bg-muted animate-pulse" />
+        {showTeamSegment && (
+          <div className="h-3 w-20 max-w-full rounded bg-muted animate-pulse" />
+        )}
+      </div>
+    );
+  }
+
   const handleOrganizationSwitch = (organizationId: string) => {
     if (organizationId === currentOrganization.id) return;
     switchOrganization(organizationId);
@@ -68,17 +79,6 @@ const MobileWorkspaceSwitcher: React.FC<MobileWorkspaceSwitcherProps> = ({
     setSelectedTeamId(teamId);
     setOpen(false);
   };
-
-  if (!currentOrganization || isLoading) {
-    return (
-      <div className="flex w-full min-w-0 flex-col items-center gap-1 py-1">
-        <div className="h-4 w-32 max-w-full rounded bg-muted animate-pulse" />
-        {showTeamSegment && (
-          <div className="h-3 w-20 max-w-full rounded bg-muted animate-pulse" />
-        )}
-      </div>
-    );
-  }
 
   const workspaceSummary = showTeamSegment
     ? `${currentOrganization.name}, ${teamLabel}`

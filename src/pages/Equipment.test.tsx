@@ -28,7 +28,6 @@ vi.mock('@/features/teams/hooks/useTeamManagement', () => ({
   useTeam: vi.fn(() => ({ data: null, isLoading: false })),
   useTeamMutations: vi.fn(() => ({ createTeamWithCreator: { mutateAsync: vi.fn() }, deleteTeam: { mutateAsync: vi.fn() } })),
   useTeamMembers: vi.fn(() => ({ availableUsers: { data: [] }, addMember: { mutateAsync: vi.fn() }, removeMember: { mutateAsync: vi.fn() }, updateRole: { mutateAsync: vi.fn() } })),
-  useTeamManagerCheck: vi.fn(() => ({ data: false, isLoading: false })),
 }));
 
 // Mock filtering hook to control states

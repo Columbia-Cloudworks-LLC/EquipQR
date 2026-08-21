@@ -4,7 +4,7 @@ import {
   getQuickBooksExportStatusBadgeClass,
   getQuickBooksExportStatusLabel,
   getQuickBooksInvoiceDisplay,
-} from '@/features/work-orders/components/quickBooksExportPresentation';
+} from '@/features/work-orders/utils/quickBooksExportPresentation';
 
 describe('getQuickBooksInvoiceDisplay', () => {
   it('returns no export state when existing export is absent', () => {

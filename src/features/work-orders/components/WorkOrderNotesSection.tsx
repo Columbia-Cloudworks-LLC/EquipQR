@@ -16,7 +16,7 @@ import {
   updateWorkOrderNote,
   addImagesToWorkOrderNote,
   deleteWorkOrderImage,
-  type WorkOrderNote,
+  type WorkOrderNoteListItem,
 } from '@/features/work-orders/services/workOrderNotesService';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
@@ -29,6 +29,7 @@ import {
   createNoteCreateMutationCallbacks,
   runOfflineAwareNoteCreate,
   showQueuedNoteCreateToasts,
+  type NoteCreateMutationInput,
 } from '@/components/common/noteCreateHelpers';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { useAttachedNoteImages } from '@/hooks/useAttachedNoteImages';
@@ -117,8 +118,8 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
 
   // Create note mutation — supports offline (text only; images when online)
   const createNoteMutation = useMutation({
-    mutationFn: (input) =>
-      runOfflineAwareNoteCreate({
+    mutationFn: (input: NoteCreateMutationInput) =>
+      runOfflineAwareNoteCreate<unknown>({
         input,
         organizationId: currentOrganization?.id,
         userId: user?.id,
@@ -237,7 +238,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
     queryClient.invalidateQueries({ queryKey: workOrderMetrics.imageCount(workOrderId) });
   };
 
-  const { handleEditNote, handleDeleteNote, handleToggleVisibility } = createNoteMutationHandlers<WorkOrderNote>({
+  const { handleEditNote, handleDeleteNote, handleToggleVisibility } = createNoteMutationHandlers<WorkOrderNoteListItem>({
     organizationId: currentOrganization?.id,
     setMutatingNoteId,
     invalidateNotes,
@@ -255,8 +256,9 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
     deleteNote: (note) => deleteWorkOrderNote(currentOrganization!.id, workOrderId, note.id),
     deleteNoteImage: (imageId) =>
       deleteWorkOrderImage(imageId, currentOrganization!.id, workOrderId),
-    addNoteImages: (note, files) =>
-      addImagesToWorkOrderNote(workOrderId, note.id, files, currentOrganization!.id),
+    addNoteImages: async (note, files) => {
+      await addImagesToWorkOrderNote(workOrderId, note.id, files, currentOrganization!.id);
+    },
   });
 
   const userDisplayName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
@@ -322,7 +324,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
               </div>
             ) : null}
             <NoteCardList
-              notes={visibleNotes as (WorkOrderNote & { _isPendingSync?: boolean })[]}
+              notes={visibleNotes}
               formatDate={formatDate}
               currentUserId={user?.id}
               isOrgAdmin={isOrgAdmin}

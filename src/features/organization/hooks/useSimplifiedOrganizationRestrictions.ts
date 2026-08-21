@@ -1,10 +1,10 @@
-import { useOrganizationMembers } from '@/features/organization/hooks/useOrganizationMembers';
+import { useOrganizationMembersQuery } from '@/features/organization/hooks/useOrganizationMembers';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { getSimplifiedOrganizationRestrictions, getRestrictionMessage } from '@/utils/simplifiedOrganizationRestrictions';
 
 export const useSimplifiedOrganizationRestrictions = () => {
   const { currentOrganization } = useOrganization();
-  const { data: members = [], isLoading } = useOrganizationMembers(currentOrganization?.id || '');
+  const { data: members = [], isLoading } = useOrganizationMembersQuery(currentOrganization?.id || '');
 
   // Billing is disabled - all features are enabled
   const restrictions = getSimplifiedOrganizationRestrictions();

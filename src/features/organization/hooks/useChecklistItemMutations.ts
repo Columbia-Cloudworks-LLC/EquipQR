@@ -9,7 +9,7 @@ import {
 type UseChecklistItemMutationsArgs = {
   setChecklistItems: React.Dispatch<React.SetStateAction<PMChecklistItem[]>>;
   setHasUnsavedChanges: React.Dispatch<React.SetStateAction<boolean>>;
-  newItemIdRef: React.MutableRefObject<string | null>;
+  newItemIdRef: React.RefObject<string | null>;
 };
 
 function insertItemAfter(

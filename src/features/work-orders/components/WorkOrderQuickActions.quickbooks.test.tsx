@@ -7,13 +7,13 @@
 
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // Mock the feature flags
 const mockIsQuickBooksEnabled = vi.fn(() => true);
 vi.mock('@/lib/flags', () => ({
-  isQuickBooksEnabled: (...args: unknown[]) => mockIsQuickBooksEnabled(...args),
+  isQuickBooksEnabled: () => mockIsQuickBooksEnabled(),
 }));
 
 // Mock the QuickBooks access hook
@@ -23,7 +23,7 @@ const mockUseQuickBooksAccess = vi.fn(() => ({
 }));
 
 vi.mock('@/hooks/useQuickBooksAccess', () => ({
-  useQuickBooksAccess: (...args: unknown[]) => mockUseQuickBooksAccess(...args),
+  useQuickBooksAccess: () => mockUseQuickBooksAccess(),
 }));
 
 // Mock QuickBooksExportButton to simplify the test

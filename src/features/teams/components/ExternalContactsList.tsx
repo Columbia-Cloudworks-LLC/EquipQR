@@ -68,8 +68,8 @@ function TeamRoleContacts({
         Team contacts
       </p>
       {roleContacts.map((member) => {
-        const name = member.profiles?.name ?? member.user_name ?? 'Team member';
-        const email = member.profiles?.email ?? member.user_email;
+        const name = member.profiles?.name ?? 'Team member';
+        const email = member.profiles?.email;
         const roleLabel = TEAM_ROLE_CONTACT_LABELS[member.role] ?? member.role;
 
         return (

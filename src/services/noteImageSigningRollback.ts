@@ -1,9 +1,9 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
-import { deleteImageFromStorage } from '@/services/imageUploadService';
+import { deleteImageFromStorage, type StorageBucket } from '@/services/imageUploadService';
 
 export async function rollbackNoteImageAfterSigningFailure(params: {
-  bucket: string;
+  bucket: StorageBucket;
   imagesTable: 'equipment_note_images' | 'work_order_images';
   imageId: string;
   storedPath: string;

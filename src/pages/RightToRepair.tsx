@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import { Download, Unlock, Wrench } from 'lucide-react';
@@ -35,7 +36,7 @@ export function RightToRepair(): JSX.Element {
           tabIndex={-1}
           className="flex-1 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
-          <section className="relative bg-gradient-to-br from-background via-background to-primary/5 pb-16 pt-32">
+          <section className="relative bg-linear-to-br from-background via-background to-primary/5 pb-16 pt-32">
             <div className="container mx-auto px-4">
               <div className="mx-auto max-w-3xl">
                 <PageBackButton className="mb-6" />

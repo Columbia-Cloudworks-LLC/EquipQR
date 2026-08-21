@@ -29,12 +29,24 @@ import { MobileWorkOrderStatusSheet } from '@/features/work-orders/components/Mo
 import { MobileWorkOrderFieldNextAction } from '@/features/work-orders/components/MobileWorkOrderFieldNextAction';
 import { buildWorkOrderStatusActions } from '@/features/work-orders/utils/buildWorkOrderStatusActions';
 import { useWorkOrderStatusChangeHandlers } from '@/features/work-orders/hooks/useWorkOrderStatusChangeHandlers';
-import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
+import type {
+  QuickBooksInvoiceStatus,
+  WorkOrder,
+  WorkOrderEmbeddedEquipment,
+  WorkOrderStatus,
+} from '@/features/work-orders/types/workOrder';
 import type { EquipmentWithTeam } from '@/features/equipment/services/EquipmentService';
 import type { EquipmentLocationEditProps } from '@/components/location/equipmentLocationEditProps';
-import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import type {
+  PreventativeMaintenance,
+  UpdatePMData,
+} from '@/features/pm-templates/services/preventativeMaintenanceService';
 import type { PMChecklistStats } from '@/features/work-orders/utils/pmChecklistStats';
-import type { WorkOrder, WorkOrderEmbeddedEquipment } from '@/features/work-orders/types/workOrder';
+import type {
+  AssigneeNameSummary,
+  MobileAssigneeSummary,
+  TeamSummary,
+} from '@/features/work-orders/utils/workOrderDetailsViewModel';
 import { WorkOrderPMManagementActions } from '@/features/work-orders/components/WorkOrderPMManagementActions';
 
 type StaggerProps = (index: number) => {
@@ -74,8 +86,9 @@ export interface WorkOrderDetailsMobileContentProps {
     pendingCount: number;
     failedCount: number;
   };
+  teamSummary?: TeamSummary;
   assigneeNameSummary?: AssigneeNameSummary;
-  mobileAssigneeSummary?: { id: string; name: string };
+  mobileAssigneeSummary?: MobileAssigneeSummary;
   mobileReviewOpen: boolean;
   onMobileReviewOpenChange: (open: boolean) => void;
   pmSectionRef: React.RefObject<HTMLDivElement | null>;
@@ -237,10 +250,8 @@ export function WorkOrderDetailsMobileContent({
         canPerformStatusActions: canChangeStatus,
         isManager,
         isTechnician,
-        canComplete: canCompleteWorkOrder(),
-        onStatusChange: (status) => {
-          routeStatusChange(status as WorkOrderStatus);
-        },
+        canComplete: Boolean(canCompleteWorkOrder()),
+        onStatusChange: routeStatusChange,
       }),
     [
       canChangeStatus,
@@ -278,7 +289,7 @@ export function WorkOrderDetailsMobileContent({
           equipment_id: workOrder.equipment_id,
           organization_id: workOrder.organization_id,
           equipmentTeamId: equipment?.team_id,
-          invoice_status: workOrder.invoice_status,
+          invoice_status: (workOrder.invoiceStatus ?? workOrder.invoice_status) as QuickBooksInvoiceStatus | null,
           quickbooks_invoice_number: workOrder.quickbooks_invoice_number,
           invoice_balance_cents: workOrder.invoice_balance_cents,
           invoice_paid_at: workOrder.invoice_paid_at,
@@ -327,8 +338,10 @@ export function WorkOrderDetailsMobileContent({
             created_at: workOrder.created_date,
             due_date: workOrder.due_date ?? undefined,
             estimated_hours: workOrder.estimated_hours ?? undefined,
+            equipment_working_hours_at_creation:
+              workOrder.equipment_working_hours_at_creation ?? undefined,
             has_pm: workOrder.has_pm ?? undefined,
-            pm_status: pmData?.status,
+            pm_status: pmData?.status as UpdatePMData['status'],
             pm_progress: pmChecklist.progress,
             pm_total: pmChecklist.total,
           }}
@@ -394,9 +407,9 @@ export function WorkOrderDetailsMobileContent({
                 isAdmin={permissionLevels.isManager}
                 workOrder={workOrder}
                 equipment={equipment}
-                team={workOrder.team}
+                team={teamSummary}
                 organization={currentOrganization}
-                assignee={workOrder.assignee}
+                assignee={mobileAssigneeSummary}
               />
             )}
             {pmLoading && <WorkOrderPMChecklistLoadingCard />}
@@ -451,7 +464,7 @@ export function WorkOrderDetailsMobileContent({
               <CollapsibleTrigger asChild>
                 <button
                   type="button"
-                  className="flex min-h-[44px] w-full items-center justify-between gap-3 text-left"
+                  className="flex min-h-11 w-full items-center justify-between gap-3 text-left"
                 >
                   <CardTitle className="text-lg">Events & Times</CardTitle>
                   <ChevronDown
@@ -467,7 +480,7 @@ export function WorkOrderDetailsMobileContent({
             <CollapsibleContent>
               <CardContent className="space-y-4 pt-0">
                 <WorkOrderDetailsPMInfo
-                  workOrder={workOrder}
+                  workOrder={{ has_pm: workOrder.has_pm }}
                   pmData={pmData}
                   permissionLevels={permissionLevels}
                 />

@@ -59,6 +59,7 @@ import {
   loadQueueItemImageFiles,
 } from './offlineQueueProcessorImages';
 import { attachWorkOrderCreationImages } from '@/features/work-orders/services/workOrderNotesService';
+import type { WorkOrderTableUpdate } from '@/features/work-orders/utils/workOrderUpdatePayload';
 import {
   parseOfflinePmPlaceholder,
   parseOfflineWorkOrderPlaceholder,
@@ -130,7 +131,7 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
         equipment_id: resolvedEquipmentId,
         priority: payload.priority,
         due_date: payload.dueDate,
-        estimated_hours: undefined,
+        estimated_hours: payload.estimatedHours,
         assignee_id: assigneeId,
         team_id: undefined,
         status,
@@ -312,7 +313,7 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
     }
 
     // Apply status change
-    const updateData: Record<string, unknown> = {
+    const updateData: WorkOrderTableUpdate = {
       status: newStatus,
       updated_at: new Date().toISOString(),
     };

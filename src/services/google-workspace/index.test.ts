@@ -9,6 +9,7 @@ import {
   listWorkspaceDirectoryUsers,
   listWorkspaceDirectoryUsersLight,
   selectGoogleWorkspaceMembers,
+  disconnectGoogleWorkspace,
 } from './index';
 
 const rpcMock = vi.fn();
@@ -510,6 +511,45 @@ describe('Google Workspace Service Functions', () => {
       await expect(
         selectGoogleWorkspaceMembers('org-123', ['alice@example.com'], [])
       ).rejects.toThrow('Only organization administrators can add members');
+    });
+  });
+
+  describe('disconnectGoogleWorkspace', () => {
+    it('returns the disconnect result on success', async () => {
+      const mockResult = {
+        success: true,
+        credentials_deleted: 1,
+        directory_users_deleted: 4,
+        domain_unclaimed: 1,
+        domain: 'example.com',
+      };
+      rpcMock.mockResolvedValue({ data: mockResult, error: null });
+
+      const result = await disconnectGoogleWorkspace('org-123');
+
+      expect(rpcMock).toHaveBeenCalledWith('disconnect_google_workspace', {
+        p_organization_id: 'org-123',
+      });
+      expect(result).toEqual(mockResult);
+    });
+
+    it('throws when the RPC returns a non-object payload', async () => {
+      rpcMock.mockResolvedValue({ data: null, error: null });
+
+      await expect(disconnectGoogleWorkspace('org-123')).rejects.toThrow(
+        'Failed to disconnect Google Workspace',
+      );
+    });
+
+    it('throws an error on RPC failure', async () => {
+      rpcMock.mockResolvedValue({
+        data: null,
+        error: { message: 'Only organization administrators can disconnect' },
+      });
+
+      await expect(disconnectGoogleWorkspace('org-123')).rejects.toThrow(
+        'Only organization administrators can disconnect',
+      );
     });
   });
 });

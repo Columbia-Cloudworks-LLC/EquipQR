@@ -1,11 +1,22 @@
 import { useEffect, type FC } from 'react';
 
-interface PageSEOProps {
+interface PageSEOIndexedProps {
   title: string;
   description: string;
   path: string;
   ogImage?: string;
+  noindex?: false;
 }
+
+interface PageSEONoindexProps {
+  title: string;
+  description?: string;
+  path?: string;
+  ogImage?: string;
+  noindex: true;
+}
+
+type PageSEOProps = PageSEOIndexedProps | PageSEONoindexProps;
 
 const BASE_URL = 'https://equipqr.app';
 const DEFAULT_OG_IMAGE = `${BASE_URL}/og-image.png`;
@@ -70,14 +81,16 @@ function upsertManagedHeadElement<T extends HTMLElement>(
  * Uses direct document updates (no react-helmet-async) for React 18 compatibility.
  *
  * Deprecated meta keywords are never written; any existing keywords tags are removed while mounted.
+ * Public QR/token pages pass `noindex` to keep secret links out of search indexes.
  */
 export const PageSEO: FC<PageSEOProps> = ({
   title,
   description,
   path,
   ogImage = DEFAULT_OG_IMAGE,
+  noindex = false,
 }) => {
-  const canonicalUrl = `${BASE_URL}${path}`;
+  const canonicalUrl = path !== undefined ? `${BASE_URL}${path}` : undefined;
   const fullTitle = path === '/' ? title : `${title} | EquipQR`;
 
   useEffect(() => {
@@ -104,66 +117,82 @@ export const PageSEO: FC<PageSEOProps> = ({
 
     removeAllKeywordsMetas(head);
 
-    upsertMeta('meta[name="description"]', () => {
-      const m = document.createElement('meta');
-      m.name = 'description';
-      return m;
-    }, (el) => {
-      el.content = description;
-    });
-
-    upsertLink('link[rel="canonical"]', () => document.createElement('link'), (el) => {
-      el.rel = 'canonical';
-      el.href = canonicalUrl;
-    });
-
-    const ogPairs: Array<[string, string]> = [
-      ['og:type', 'website'],
-      ['og:url', canonicalUrl],
-      ['og:title', fullTitle],
-      ['og:description', description],
-      ['og:image', ogImage],
-      ['og:image:width', '1200'],
-      ['og:image:height', '630'],
-      ['og:image:alt', `${title} - EquipQR`],
-    ];
-
-    for (const [prop, content] of ogPairs) {
-      upsertMeta(
-        `meta[property="${prop}"]`,
-        () => {
-          const m = document.createElement('meta');
-          m.setAttribute('property', prop);
-          return m;
-        },
-        (el) => {
-          el.setAttribute('property', prop);
-          el.content = content;
-        }
-      );
+    if (noindex) {
+      upsertMeta('meta[name="robots"]', () => {
+        const m = document.createElement('meta');
+        m.name = 'robots';
+        return m;
+      }, (el) => {
+        el.content = 'noindex, nofollow';
+      });
     }
 
-    const twitterPairs: Array<[string, string]> = [
-      ['twitter:card', 'summary_large_image'],
-      ['twitter:site', '@equipqr'],
-      ['twitter:title', fullTitle],
-      ['twitter:description', description],
-      ['twitter:image', ogImage],
-    ];
+    if (description !== undefined) {
+      upsertMeta('meta[name="description"]', () => {
+        const m = document.createElement('meta');
+        m.name = 'description';
+        return m;
+      }, (el) => {
+        el.content = description;
+      });
+    }
 
-    for (const [name, content] of twitterPairs) {
-      upsertMeta(
-        `meta[name="${name}"]`,
-        () => {
-          const m = document.createElement('meta');
-          m.name = name;
-          return m;
-        },
-        (el) => {
-          el.name = name;
-          el.content = content;
-        }
-      );
+    if (canonicalUrl !== undefined) {
+      upsertLink('link[rel="canonical"]', () => document.createElement('link'), (el) => {
+        el.rel = 'canonical';
+        el.href = canonicalUrl;
+      });
+    }
+
+    if (description !== undefined && canonicalUrl !== undefined) {
+      const ogPairs: Array<[string, string]> = [
+        ['og:type', 'website'],
+        ['og:url', canonicalUrl],
+        ['og:title', fullTitle],
+        ['og:description', description],
+        ['og:image', ogImage],
+        ['og:image:width', '1200'],
+        ['og:image:height', '630'],
+        ['og:image:alt', `${title} - EquipQR`],
+      ];
+
+      for (const [prop, content] of ogPairs) {
+        upsertMeta(
+          `meta[property="${prop}"]`,
+          () => {
+            const m = document.createElement('meta');
+            m.setAttribute('property', prop);
+            return m;
+          },
+          (el) => {
+            el.setAttribute('property', prop);
+            el.content = content;
+          }
+        );
+      }
+
+      const twitterPairs: Array<[string, string]> = [
+        ['twitter:card', 'summary_large_image'],
+        ['twitter:site', '@equipqr'],
+        ['twitter:title', fullTitle],
+        ['twitter:description', description],
+        ['twitter:image', ogImage],
+      ];
+
+      for (const [name, content] of twitterPairs) {
+        upsertMeta(
+          `meta[name="${name}"]`,
+          () => {
+            const m = document.createElement('meta');
+            m.name = name;
+            return m;
+          },
+          (el) => {
+            el.name = name;
+            el.content = content;
+          }
+        );
+      }
     }
 
     return () => {
@@ -178,7 +207,7 @@ export const PageSEO: FC<PageSEOProps> = ({
         el.removeAttribute(MANAGED_ATTR);
       }
     };
-  }, [title, description, path, ogImage, canonicalUrl, fullTitle]);
+  }, [title, description, path, ogImage, noindex, canonicalUrl, fullTitle]);
 
   return null;
 };

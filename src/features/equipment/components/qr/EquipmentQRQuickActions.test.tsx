@@ -10,6 +10,10 @@ import {
 } from '@/features/equipment/services/equipmentQRActionService';
 import { fetchQRActionTeamMemberships } from '@/features/equipment/services/equipmentQRPermissions';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
+import type {
+  WorkOrderPMChecklistSetValue,
+  WorkOrderPMChecklistValues,
+} from '@/features/work-orders/hooks/useWorkOrderPMChecklist';
 
 // Native select + plain file input stubs: Radix PM Select / photo picker coverage lives in
 // QRWorkOrderDialog.test.tsx. Keep this suite focused on quick-action permission + create wiring (#1314).
@@ -88,8 +92,8 @@ vi.mock('@/features/work-orders/components/WorkOrderPMChecklist', async () => {
     useWorkOrderPMChecklist,
   } = await import('@/features/work-orders/hooks/useWorkOrderPMChecklist');
   type ChecklistProps = {
-    values: { hasPM: boolean; pmTemplateId: string | null };
-    setValue: (field: 'hasPM' | 'pmTemplateId', value: boolean | string | null) => void;
+    values: WorkOrderPMChecklistValues;
+    setValue: WorkOrderPMChecklistSetValue;
     selectedEquipment?: { id: string; name: string; default_pm_template_id: string | null } | null;
     allowTemplateOverride?: boolean;
     autoDefaultFromEquipment?: boolean;

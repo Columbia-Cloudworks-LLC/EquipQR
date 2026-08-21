@@ -260,6 +260,24 @@ function createQueryBuilder(table: TableName, initialState?: Partial<QueryState>
     });
   };
 
+  const compareUnknownValues = (left: unknown, right: unknown): number => {
+    if (left === right) return 0;
+    if (left == null) return -1;
+    if (right == null) return 1;
+
+    if (
+      (typeof left === 'number' && typeof right === 'number') ||
+      (typeof left === 'string' && typeof right === 'string') ||
+      (typeof left === 'boolean' && typeof right === 'boolean')
+    ) {
+      if (left < right) return -1;
+      if (left > right) return 1;
+      return 0;
+    }
+
+    return 0;
+  };
+
   const applyOrdering = (data: unknown[]): unknown[] => {
     if (state.orderBy.length === 0) return data;
     
@@ -267,8 +285,10 @@ function createQueryBuilder(table: TableName, initialState?: Partial<QueryState>
       for (const { column, ascending } of state.orderBy) {
         const aVal = (a as Record<string, unknown>)[column];
         const bVal = (b as Record<string, unknown>)[column];
-        if (aVal < bVal) return ascending ? -1 : 1;
-        if (aVal > bVal) return ascending ? 1 : -1;
+        const comparison = compareUnknownValues(aVal, bVal);
+        if (comparison !== 0) {
+          return ascending ? comparison : -comparison;
+        }
       }
       return 0;
     });

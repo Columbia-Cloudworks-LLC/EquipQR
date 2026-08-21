@@ -4,6 +4,9 @@ import {
   rotateQrTokenViaRpc,
 } from '@/features/public-forms/qrTokenSecretsService';
 import type { QuickFormData } from '@/features/quick-forms/types/quickForm';
+import type { Database, Json } from '@/integrations/supabase/types';
+
+type QuickFormUpdate = Database['public']['Tables']['quick_forms']['Update'];
 
 export interface QuickForm {
   id: string;
@@ -46,8 +49,8 @@ export async function createQuickForm(input: {
   const { data, error } = await supabase.rpc('create_quick_form', {
     p_organization_id: input.organizationId,
     p_name: input.name,
-    p_description: input.description ?? null,
-    p_form_data: input.formData as unknown as Record<string, unknown>,
+    p_description: input.description ?? '',
+    p_form_data: input.formData as unknown as Json,
   });
 
   if (error) throw error;
@@ -78,10 +81,10 @@ export async function updateQuickForm(input: {
   formData?: QuickFormData;
   isActive?: boolean;
 }): Promise<QuickForm> {
-  const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  const updateData: QuickFormUpdate = { updated_at: new Date().toISOString() };
   if (input.name !== undefined) updateData.name = input.name;
   if (input.description !== undefined) updateData.description = input.description;
-  if (input.formData !== undefined) updateData.form_data = input.formData;
+  if (input.formData !== undefined) updateData.form_data = input.formData as unknown as Json;
   if (input.isActive !== undefined) updateData.is_active = input.isActive;
 
   const { data, error } = await supabase

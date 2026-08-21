@@ -8,13 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { 
   CheckCircle, 
   Play, 
-  Pause, 
-  X, 
   User, 
   Users, 
   AlertTriangle,
@@ -165,7 +163,9 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     isManager,
     isTechnician,
     canComplete: canCompleteWorkOrder(),
-    onStatusChange: handleStatusChange,
+    onStatusChange: (status) => {
+      void handleStatusChange(status);
+    },
   });
 
   return (
@@ -408,7 +408,7 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
                     )}
                     {contextData.team.location_address && (
                       <div className="flex items-center gap-2 text-sm pl-6">
-                        <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                        <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                         {contextData.team.location_lat != null && contextData.team.location_lng != null ? (
                           <ClickableAddress
                             address={contextData.team.location_address}

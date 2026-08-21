@@ -17,14 +17,9 @@ vi.mock('sonner', () => ({
   },
 }));
 
-const ROUTER_FUTURE = {
-  v7_startTransition: true,
-  v7_relativeSplatPath: true,
-} as const;
-
 function renderBanner() {
   return render(
-    <MemoryRouter future={ROUTER_FUTURE}>
+    <MemoryRouter>
       <CookieConsentProvider>
         <CookieConsentBanner />
       </CookieConsentProvider>
@@ -105,7 +100,7 @@ describe('CookieConsentBanner', () => {
     localStorage.setItem('equipqr:equipment-view-mode', 'table');
 
     render(
-      <MemoryRouter future={ROUTER_FUTURE}>
+      <MemoryRouter>
         <CookieConsentProvider>
           <PreferenceProbe onRehydrate={onRehydrate} />
           <CookieConsentBanner />

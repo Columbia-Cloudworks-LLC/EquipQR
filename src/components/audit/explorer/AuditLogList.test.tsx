@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@vitest-harness/utils/test-utils';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { ListImperativeAPI } from 'react-window';
 import {
   ACTION_SEVERITY_COLOR,
   AuditAction,
@@ -51,9 +52,7 @@ vi.mock('react-window', () => ({
     rowCount: number;
     rowHeight: number;
     rowProps: Record<string, unknown>;
-    listRef?: React.MutableRefObject<{
-      scrollToRow: (config: { index: number; align?: string }) => void;
-    } | null>;
+    listRef?: React.RefObject<ListImperativeAPI | null>;
     style?: React.CSSProperties;
   }) {
     React.useLayoutEffect(() => {

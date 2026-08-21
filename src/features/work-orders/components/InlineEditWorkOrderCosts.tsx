@@ -199,7 +199,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
           />
         ) : compactMobile ? (
           <div className="flex flex-wrap gap-2 pt-1">
-            <Button type="button" variant="default" size="sm" className="min-h-[44px] flex-1" onClick={handleStartEdit}>
+            <Button type="button" variant="default" size="sm" className="min-h-11 flex-1" onClick={handleStartEdit}>
               <Plus className="h-4 w-4 mr-1.5" aria-hidden />
               Add cost
             </Button>
@@ -207,7 +207,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
               type="button"
               variant="outline"
               size="sm"
-              className="min-h-[44px] flex-1"
+              className="min-h-11 flex-1"
               onClick={() => setLaborDialogOpen(true)}
             >
               <Clock className="h-4 w-4 mr-1.5" aria-hidden />
@@ -267,7 +267,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
               type="button"
               variant="outline"
               size="sm"
-              className="min-h-[44px] h-auto w-full whitespace-normal px-2 py-2 text-center leading-snug"
+              className="min-h-11 h-auto w-full whitespace-normal px-2 py-2 text-center leading-snug"
               onClick={() => setLaborDialogOpen(true)}
               disabled={isSaving}
             >
@@ -279,7 +279,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="min-h-[44px] h-auto w-full whitespace-normal px-2 py-2 text-center leading-snug"
+                className="min-h-11 h-auto w-full whitespace-normal px-2 py-2 text-center leading-snug"
                 onClick={() => setShowInventorySelector(true)}
                 disabled={isSaving}
               >
@@ -293,7 +293,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
             type="button"
             variant="secondary"
             size="sm"
-            className="min-h-[44px] h-auto w-full"
+            className="min-h-11 h-auto w-full"
             onClick={wrappedAddCost}
             disabled={isSaving}
           >
@@ -315,7 +315,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
               type="button"
               variant="default"
               size="sm"
-              className="min-h-[44px]"
+              className="min-h-11"
               onClick={() => void handleSave()}
               disabled={isSaving}
             >
@@ -326,7 +326,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
               type="button"
               variant="outline"
               size="sm"
-              className="min-h-[44px]"
+              className="min-h-11"
               onClick={handleCancel}
               disabled={isSaving}
             >

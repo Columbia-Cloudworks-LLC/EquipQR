@@ -1,4 +1,4 @@
-import type { AuditLogPagination, AuditLogQueryResult } from '@/types/audit';
+import type { AuditLogEntry, AuditLogPagination, AuditLogQueryResult } from '@/types/audit';
 
 export function resolveAuditPagination(
   pagination: AuditLogPagination | undefined,
@@ -10,14 +10,14 @@ export function resolveAuditPagination(
   return { page, pageSize, offset };
 }
 
-export function buildAuditLogQueryResult<T extends { created_at: string }>(
-  data: T[],
+export function buildAuditLogQueryResult(
+  data: AuditLogEntry[],
   totalCount: number,
   offset: number,
   pageSize: number,
 ): AuditLogQueryResult {
   return {
-    data: data as AuditLogQueryResult['data'],
+    data,
     totalCount,
     hasMore: offset + pageSize < totalCount,
   };

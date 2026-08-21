@@ -13,7 +13,7 @@ releases are not backported.
 
 ## Reporting a Vulnerability
 
-To report a security vulnerability, create a new issue here https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues and expect to receive a response within 24 hours.
+To report a security vulnerability, create a new issue on the [EquipQR GitHub issues](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues) page and expect to receive a response within 24 hours.
 
 If you submit a security vulnerability report and it is accepted, you will be noted in our contributing documentation.
 If you submit a contribution to fix a security vulnerability and it is approved, you will be added to this project as a contributing member.

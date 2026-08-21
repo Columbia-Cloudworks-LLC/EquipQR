@@ -188,7 +188,7 @@ describe('QuickBooks Auth Utilities', () => {
 
       expect(mockRpc).toHaveBeenCalledWith('create_quickbooks_oauth_session', expect.objectContaining({
         p_organization_id: 'org-123',
-        p_redirect_url: null,
+        p_redirect_url: undefined,
       }));
     });
 

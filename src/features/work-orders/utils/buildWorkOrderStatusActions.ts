@@ -1,5 +1,6 @@
 import { CheckCircle, Pause, Play, X } from 'lucide-react';
 import type { ComponentType } from 'react';
+import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 
 export type WorkOrderStatusAction = {
   label: string;
@@ -11,12 +12,12 @@ export type WorkOrderStatusAction = {
 };
 
 type BuildWorkOrderStatusActionsParams = {
-  status: string;
+  status: WorkOrderStatus;
   canPerformStatusActions: boolean;
   isManager: boolean;
   isTechnician: boolean;
   canComplete: boolean;
-  onStatusChange: (status: string) => void;
+  onStatusChange: (status: WorkOrderStatus) => void | Promise<void>;
 };
 
 export function buildWorkOrderStatusActions({

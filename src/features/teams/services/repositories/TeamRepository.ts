@@ -5,7 +5,6 @@ import {
   getTeamMembersOptimized,
   getTeamMembersByTeamIdsOptimized,
   getTeamByIdOptimized,
-  isTeamManagerOptimized,
   addTeamMember,
   updateTeamMemberRole,
   createTeamWithCreator as createTeamWithCreatorService,
@@ -13,6 +12,7 @@ import {
   updateTeam as updateTeamService
 } from '@/features/teams/services/teamService';
 import type { 
+  Team,
   TeamWithMembers,
   TeamMember,
   TeamMemberInsert,
@@ -20,6 +20,28 @@ import type {
   TeamInsert,
   TeamUpdate
 } from '@/features/teams/types/team';
+
+function toTeamWithMembers(
+  team: Team,
+  members: TeamWithMembers['members'],
+): TeamWithMembers {
+  return {
+    ...team,
+    members,
+    member_count: team.member_count,
+    team_lead_id: team.team_lead_id ?? null,
+    preferred_view: team.preferred_view ?? 'internal',
+    override_equipment_location: team.override_equipment_location ?? false,
+    image_url: team.image_url ?? null,
+    customer_id: team.customer_id ?? null,
+    location_address: team.location_address ?? null,
+    location_city: team.location_city ?? null,
+    location_state: team.location_state ?? null,
+    location_country: team.location_country ?? null,
+    location_lat: team.location_lat ?? null,
+    location_lng: team.location_lng ?? null,
+  };
+}
 
 /**
  * Unified Team Repository using optimized queries for better performance
@@ -55,11 +77,7 @@ class TeamRepository {
         },
       }));
 
-      return {
-        ...team,
-        members: formattedMembers,
-        member_count: team.member_count,
-      };
+      return toTeamWithMembers(team, formattedMembers);
     });
   }
 
@@ -83,11 +101,7 @@ class TeamRepository {
       }
     }));
 
-    return {
-      ...team,
-      members: formattedMembers,
-      member_count: team.member_count
-    };
+    return toTeamWithMembers(team, formattedMembers);
   }
 
   /**
@@ -114,13 +128,6 @@ class TeamRepository {
    */
   static async updateMemberRole(teamId: string, userId: string, role: TeamMemberRole) {
     return updateTeamMemberRole(teamId, userId, role);
-  }
-
-  /**
-   * Check if a user is a team manager using optimized query
-   */
-  static async isTeamManager(userId: string, teamId: string): Promise<boolean> {
-    return isTeamManagerOptimized(userId, teamId);
   }
 
   /**

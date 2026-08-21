@@ -67,7 +67,7 @@ export const PMChangeWarningDialog: React.FC<PMChangeWarningDialogProps> = ({
 
             <div className="bg-warning/10 dark:bg-warning/15 border border-warning/30 dark:border-warning/50 rounded-lg p-3 mt-3">
               <div className="flex items-start gap-2">
-                <FileDown className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
+                <FileDown className="h-4 w-4 text-warning mt-0.5 shrink-0" />
                 <div className="text-sm text-warning dark:text-warning">
                   <strong>Recommendation:</strong> Before proceeding, go to the work order details page and download the PM checklist PDF to preserve any critical notes or inspection data.
                 </div>

@@ -91,6 +91,19 @@ const baseWorkOrder: WorkOrder = {
   estimated_hours: 4,
   historical_notes: null,
   historical_start_date: null,
+  equipment_working_hours_at_creation: null,
+  invoice_balance_cents: null,
+  invoice_due_date: null,
+  invoice_last_synced_at: null,
+  invoice_paid_at: null,
+  invoice_sent_at: null,
+  invoice_status: null,
+  invoice_sync_error: null,
+  primary_image_id: null,
+  quickbooks_invoice_environment: null,
+  quickbooks_invoice_id: null,
+  quickbooks_invoice_number: null,
+  quickbooks_realm_id: null,
 };
 
 describe('WorkOrderCard', () => {

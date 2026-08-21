@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import type { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { OfflineQueueService, OfflineQueuePayloadError } from './offlineQueueService';
 import type { OfflineQueueEnqueueInput } from './offlineQueueService';
 
@@ -47,6 +48,18 @@ function makeCreateInput(overrides?: Partial<OfflineQueueEnqueueInput>): Offline
 
 function enqueueItems(svc: OfflineQueueService, count: number) {
   return Array.from({ length: count }, () => svc.enqueue(makeCreateInput()));
+}
+
+function makeChecklistItem(overrides: Partial<PMChecklistItem> = {}): PMChecklistItem {
+  return {
+    id: 'item-1',
+    title: 'Check oil',
+    condition: 1,
+    required: true,
+    notes: '',
+    section: 'Inspection',
+    ...overrides,
+  };
 }
 
 describe('OfflineQueueService', () => {
@@ -476,7 +489,7 @@ describe('OfflineQueueService', () => {
         type: 'pm_update',
         payload: {
           pmId: 'pm-1',
-          checklistData: [{ id: 'item-1', title: 'Check oil', condition: 1, notes: '' }],
+          checklistData: [makeChecklistItem()],
           notes: 'First note',
           status: 'in_progress',
           serverUpdatedAt: '2026-05-01T10:00:00Z',
@@ -488,7 +501,7 @@ describe('OfflineQueueService', () => {
         type: 'pm_update',
         payload: {
           pmId: 'pm-1',
-          checklistData: [{ id: 'item-1', title: 'Check oil', condition: 3, notes: 'Updated' }],
+          checklistData: [makeChecklistItem({ condition: 3, notes: 'Updated' })],
           notes: 'Second note',
           status: 'completed',
           completedAt: '2026-05-01T11:00:00Z',
@@ -574,7 +587,7 @@ describe('OfflineQueueService', () => {
         type: 'pm_update',
         payload: {
           pmId: 'pm-3',
-          checklistData: [{ id: 'item-2', title: 'Check brakes', condition: 2, notes: '' }],
+          checklistData: [makeChecklistItem({ id: 'item-2', title: 'Check brakes', condition: 2 })],
           // notes and status intentionally omitted (undefined)
         },
         organizationId: ORG_ID,
@@ -612,7 +625,7 @@ describe('OfflineQueueService', () => {
         payload: {
           pmId: 'pm-T',
           templateId: 'tpl-new',
-          checklistData: [{ id: 'x', title: 'Item', condition: 1, notes: '' }],
+          checklistData: [makeChecklistItem({ id: 'x', title: 'Item' })],
         },
         organizationId: ORG_ID,
         userId: USER_ID,

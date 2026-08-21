@@ -11,6 +11,14 @@ import {
   useDeletePMTemplate,
   useClonePMTemplate
 } from '@/features/pm-templates/hooks/usePMTemplates';
+import type {
+  PMTemplate,
+  PMTemplateSummary,
+} from '@/features/pm-templates/services/pmChecklistTemplatesService';
+import {
+  createMockOrganization,
+  createMockSimpleOrganizationContext,
+} from '@vitest-harness/mocks/testTypes';
 
 // Mock services and dependencies
 vi.mock('@/contexts/OrganizationContext');
@@ -18,7 +26,7 @@ vi.mock('@/hooks/useAuth');
 vi.mock('@/features/pm-templates/services/pmChecklistTemplatesService');
 vi.mock('sonner');
 
-const mockTemplates = [
+const mockTemplates: PMTemplate[] = [
   {
     id: 'template-1',
     organization_id: null,
@@ -28,6 +36,8 @@ const mockTemplates = [
     template_data: [
       { id: 'item-1', section: 'Engine', title: 'Check oil', description: '', condition: null, notes: '', required: true }
     ],
+    interval_value: null,
+    interval_type: null,
     created_by: 'user-1',
     updated_by: null,
     created_at: '2024-01-01T00:00:00Z',
@@ -42,6 +52,8 @@ const mockTemplates = [
     template_data: [
       { id: 'item-2', section: 'Safety', title: 'Check brakes', description: '', condition: null, notes: '', required: true }
     ],
+    interval_value: null,
+    interval_type: null,
     created_by: 'user-1',
     updated_by: null,
     created_at: '2024-01-01T00:00:00Z',
@@ -49,13 +61,15 @@ const mockTemplates = [
   }
 ];
 
-const mockTemplateSummaries = [
+const mockTemplateSummaries: PMTemplateSummary[] = [
   {
     id: 'template-1',
     name: 'Global Template',
     description: 'Global template description',
     is_protected: true,
     organization_id: null,
+    interval_value: null,
+    interval_type: null,
     sections: [{ name: 'Engine', count: 1 }],
     itemCount: 1
   },
@@ -65,6 +79,8 @@ const mockTemplateSummaries = [
     description: 'Organization template',
     is_protected: false,
     organization_id: 'org-1',
+    interval_value: null,
+    interval_type: null,
     sections: [{ name: 'Safety', count: 1 }],
     itemCount: 1
   }
@@ -90,25 +106,19 @@ describe('usePMTemplates', () => {
     const { pmChecklistTemplatesService, templateToSummary } = await import('@/features/pm-templates/services/pmChecklistTemplatesService');
     const { toast } = await import('sonner');
     
-    vi.mocked(useOrganization).mockReturnValue({
-      currentOrganization: { 
-        id: 'org-1', 
-        name: 'Test Org',
-        plan: 'premium' as const,
-        memberCount: 5,
-        maxMembers: 10,
-        features: ['advanced-analytics'],
-        userRole: 'admin' as const,
-        userStatus: 'active' as const
-      },
-      setCurrentOrganization: vi.fn(),
-      userOrganizations: [],
-      organizations: [],
-      switchOrganization: vi.fn(),
-      error: null,
-      refetch: vi.fn(),
-      isLoading: false
-    });
+    vi.mocked(useOrganization).mockReturnValue(
+      createMockSimpleOrganizationContext(
+        createMockOrganization({
+          id: 'org-1',
+          name: 'Test Org',
+          plan: 'premium',
+          memberCount: 5,
+          maxMembers: 10,
+          features: ['advanced-analytics'],
+          userRole: 'admin',
+        }),
+      ),
+    );
     
     vi.mocked(useAuth).mockReturnValue({
       user: { id: 'user-1', email: 'test@example.com' },
@@ -123,7 +133,7 @@ describe('usePMTemplates', () => {
     vi.mocked(pmChecklistTemplatesService.updateTemplate).mockResolvedValue(mockTemplates[0]);
     vi.mocked(pmChecklistTemplatesService.deleteTemplate).mockResolvedValue(undefined);
     vi.mocked(pmChecklistTemplatesService.cloneTemplate).mockResolvedValue(mockTemplates[1]);
-    vi.mocked(templateToSummary).mockImplementation((template: typeof mockTemplates[0]) => 
+    vi.mocked(templateToSummary).mockImplementation((template) =>
       mockTemplateSummaries.find(s => s.id === template.id)!
     );
     vi.mocked(toast.success).mockImplementation(() => '1');
@@ -165,16 +175,7 @@ describe('usePMTemplates', () => {
 
     it('is disabled when no organization is selected', async () => {
       const { useOrganization } = await import('@/contexts/OrganizationContext');
-      vi.mocked(useOrganization).mockReturnValue({
-        currentOrganization: null,
-        setCurrentOrganization: vi.fn(),
-        userOrganizations: [],
-        organizations: [],
-        switchOrganization: vi.fn(),
-        error: null,
-        refetch: vi.fn(),
-        isLoading: false
-      });
+      vi.mocked(useOrganization).mockReturnValue(createMockSimpleOrganizationContext(null));
 
       const { result } = renderHook(() => usePMTemplates(), { wrapper });
 
@@ -288,16 +289,7 @@ describe('usePMTemplates', () => {
 
     it('throws error when organization or user not found', async () => {
       const { useOrganization } = await import('@/contexts/OrganizationContext');
-      vi.mocked(useOrganization).mockReturnValue({
-        currentOrganization: null,
-        setCurrentOrganization: vi.fn(),
-        userOrganizations: [],
-        organizations: [],
-        switchOrganization: vi.fn(),
-        error: null,
-        refetch: vi.fn(),
-        isLoading: false
-      });
+      vi.mocked(useOrganization).mockReturnValue(createMockSimpleOrganizationContext(null));
 
       const { result } = renderHook(() => useCreatePMTemplate(), { wrapper });
 
@@ -427,16 +419,7 @@ describe('usePMTemplates', () => {
 
     it('throws error when organization not found', async () => {
       const { useOrganization } = await import('@/contexts/OrganizationContext');
-      vi.mocked(useOrganization).mockReturnValue({
-        currentOrganization: null,
-        setCurrentOrganization: vi.fn(),
-        userOrganizations: [],
-        organizations: [],
-        switchOrganization: vi.fn(),
-        error: null,
-        refetch: vi.fn(),
-        isLoading: false
-      });
+      vi.mocked(useOrganization).mockReturnValue(createMockSimpleOrganizationContext(null));
 
       const { result } = renderHook(() => useClonePMTemplate(), { wrapper });
 

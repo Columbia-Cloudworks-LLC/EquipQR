@@ -62,6 +62,7 @@ export interface Team {
   customer_status?: string | null;
   customer_is_tax_exempt?: boolean | null;
   quickbooks_synced_at?: string | null;
+  team_lead_id?: string | null;
 }
 
 // ============================================
@@ -121,5 +122,10 @@ export interface TeamWithMembers extends TeamRow {
     } | null;
   }>;
   member_count: number;
+  /** Joined from the linked customer account; not a `teams` column. */
+  customer_name?: string | null;
+  customer_status?: string | null;
+  customer_is_tax_exempt?: boolean | null;
+  quickbooks_synced_at?: string | null;
 }
 

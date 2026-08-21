@@ -19,7 +19,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         className={cn(
           buttonVariants({ variant, size, className }),
           MC_FOCUS_VISIBLE_RING,
-          isPrimaryAction && "min-h-[44px] min-w-[44px]"
+          isPrimaryAction && "min-h-11 min-w-11"
         )}
         ref={ref}
         {...props}

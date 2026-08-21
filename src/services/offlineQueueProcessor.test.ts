@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { OfflineQueueProcessor } from './offlineQueueProcessor';
 import { OfflineQueueService } from './offlineQueueService';
 import type { OfflineQueueItem } from './offlineQueueService';
+import type { EquipmentCreateData } from '@/features/equipment/services/EquipmentService';
 import { QueryClient } from '@tanstack/react-query';
 
 // ── Mock setup ─────────────────────────────────────────────────────────
@@ -119,6 +120,40 @@ function createPendingItem(overrides?: Partial<OfflineQueueItem>): OfflineQueueI
     payloadSizeBytes: 100,
     ...overrides,
   } as OfflineQueueItem;
+}
+
+function makeEquipmentCreatePayload(
+  overrides: Partial<EquipmentCreateData> = {},
+): EquipmentCreateData {
+  return {
+    name: 'Excavator',
+    manufacturer: 'Komatsu',
+    model: 'PC200',
+    serial_number: 'SN-002',
+    team_id: 'team-1',
+    status: 'active',
+    location: 'Yard A',
+    notes: null,
+    assigned_location_city: null,
+    assigned_location_country: null,
+    assigned_location_lat: null,
+    assigned_location_lng: null,
+    assigned_location_state: null,
+    assigned_location_street: null,
+    custom_attributes: null,
+    customer_id: null,
+    default_pm_template_id: null,
+    image_url: null,
+    import_id: null,
+    installation_date: '2026-01-01',
+    last_known_location: null,
+    last_maintenance: null,
+    last_maintenance_work_order_id: null,
+    use_team_location: false,
+    warranty_expiration: null,
+    working_hours: 0,
+    ...overrides,
+  };
 }
 
 describe('OfflineQueueProcessor', () => {
@@ -430,11 +465,7 @@ describe('OfflineQueueProcessor', () => {
   });
 
   it('processes equipment_create_full via EquipmentService.create()', async () => {
-    const payload = {
-      name: 'Excavator', manufacturer: 'Komatsu', model: 'PC200',
-      serial_number: 'SN-002', team_id: 'team-1', status: 'active',
-      location: 'Yard A',
-    };
+    const payload = makeEquipmentCreatePayload();
     const item = createPendingItem({
       type: 'equipment_create_full',
       payload,
@@ -453,11 +484,7 @@ describe('OfflineQueueProcessor', () => {
     const item = createPendingItem({
       type: 'equipment_create_full',
       syncedEquipmentId: 'eq-already-created',
-      payload: {
-        name: 'Excavator', manufacturer: 'Komatsu', model: 'PC200',
-        serial_number: 'SN-002', team_id: 'team-1', status: 'active',
-        location: 'Yard A',
-      },
+      payload: makeEquipmentCreatePayload(),
     });
     localStorage.setItem(STORAGE_KEY, JSON.stringify([item]));
 
@@ -475,10 +502,7 @@ describe('OfflineQueueProcessor', () => {
       type: 'equipment_create_full',
       retryCount: 0,
       maxRetries: 5,
-      payload: {
-        name: 'Excavator', manufacturer: 'Komatsu', model: 'PC200',
-        serial_number: 'SN-DUP', team_id: 'team-1', status: 'active', location: 'Yard A',
-      },
+      payload: makeEquipmentCreatePayload({ serial_number: 'SN-DUP' }),
     });
     localStorage.setItem(STORAGE_KEY, JSON.stringify([item]));
 
@@ -498,10 +522,7 @@ describe('OfflineQueueProcessor', () => {
       retryCount: 1,
       maxRetries: 5,
       syncedEquipmentId: 'eq-persisted',
-      payload: {
-        name: 'Excavator', manufacturer: 'Komatsu', model: 'PC200',
-        serial_number: 'SN-REPLAY', team_id: 'team-1', status: 'active', location: 'Yard A',
-      },
+      payload: makeEquipmentCreatePayload({ serial_number: 'SN-REPLAY' }),
     });
     localStorage.setItem(STORAGE_KEY, JSON.stringify([item]));
 
@@ -577,7 +598,7 @@ describe('OfflineQueueProcessor', () => {
 
     const item = createPendingItem({
       type: 'equipment_create',
-      payload: { name: 'Loader', manufacturer: 'Cat', model: 'D6', serial_number: 'SN-001' },
+      payload: { name: 'Loader', manufacturer: 'Cat', model: 'D6', serial_number: 'SN-001', team_id: 'team-1' },
     });
     localStorage.setItem(STORAGE_KEY, JSON.stringify([item]));
 

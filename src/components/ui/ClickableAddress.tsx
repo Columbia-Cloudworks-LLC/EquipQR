@@ -66,7 +66,7 @@ const ClickableAddress: React.FC<ClickableAddressProps> = ({
       aria-label={`${fullText} (opens in new tab)`}
     >
       <span className={compact ? 'truncate' : undefined}>{shortText}</span>
-      {showIcon && <ExternalLink className="h-3 w-3 flex-shrink-0" />}
+      {showIcon && <ExternalLink className="h-3 w-3 shrink-0" />}
     </a>
   );
 

@@ -51,6 +51,39 @@ describe('team org scope (RT-13)', () => {
     expect(result).toBeNull();
   });
 
+  it('updateTeam maps member_count from the team_members aggregate', async () => {
+    const chain = createMaybeSingleChain({
+      data: {
+        id: 'metro-team',
+        name: 'Metro',
+        description: null,
+        organization_id: 'apex-org',
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+        image_url: null,
+        location_address: null,
+        location_city: null,
+        location_state: null,
+        location_country: null,
+        location_lat: null,
+        location_lng: null,
+        override_equipment_location: false,
+        preferred_view: 'internal',
+        customer_id: null,
+        team_lead_id: null,
+        team_members: [{ count: 3 }],
+      },
+      error: null,
+    });
+    vi.mocked(supabase.from).mockReturnValue(chain as never);
+
+    const result = await updateTeam('metro-team', { name: 'Metro' }, 'apex-org');
+
+    expect(result.member_count).toBe(3);
+    expect(result.description).toBe('');
+    expect(chain.select).toHaveBeenCalledWith(expect.stringContaining('team_members(count)'));
+  });
+
   it('updateTeam scopes the mutation to the current organization', async () => {
     const chain = createMaybeSingleChain({
       data: null,

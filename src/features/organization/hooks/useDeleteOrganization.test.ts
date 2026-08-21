@@ -88,6 +88,21 @@ describe('useDeleteOrganization hooks', () => {
 
       expect(supabase.rpc).not.toHaveBeenCalled();
     });
+
+    it('should reject a non-object RPC payload', async () => {
+      vi.mocked(supabase.rpc).mockResolvedValueOnce({
+        data: ['not', 'stats'],
+        error: null,
+      } as never);
+
+      const { result } = renderHook(
+        () => useOrganizationDeletionStats('org-1', true),
+        { wrapper: createWrapper() }
+      );
+
+      await waitFor(() => expect(result.current.isError).toBe(true));
+      expect(result.current.error).toEqual(new Error('Failed to get deletion stats'));
+    });
   });
 
   describe('useDeleteOrganization', () => {

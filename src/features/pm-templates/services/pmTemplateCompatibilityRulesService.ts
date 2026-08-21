@@ -6,11 +6,9 @@ import type {
   MatchingPMTemplateResult 
 } from '@/features/pm-templates/types/pmTemplateCompatibility';
 import { assertPmTemplateAccessible } from '@/features/pm-templates/services/pmTemplateAccess';
-import { normalizeCompatibilityRuleValue } from '@/services/compatibilityRuleNormalize';
 import {
   filterValidCompatibilityRules,
   mapCompatibilityRulesToJsonb,
-  throwOnCompatibilityRuleDuplicate,
 } from '@/services/compatibilityRulesJsonb';
 
 // ============================================
@@ -48,107 +46,6 @@ export const getRulesForTemplate = async (
     return (data || []) as PMTemplateCompatibilityRule[];
   } catch (error) {
     logger.error('Error fetching compatibility rules for PM template:', error);
-    throw error;
-  }
-};
-
-// ============================================
-// Add Compatibility Rule
-// ============================================
-
-/**
- * Add a single compatibility rule for a PM template.
- * 
- * Rules are organization-scoped, so this adds a rule for the specified
- * organization. Works for both global and org-owned templates.
- * 
- * @param organizationId - Organization ID (rule is scoped to this org)
- * @param templateId - PM template ID
- * @param rule - Rule data (manufacturer, model)
- * @returns The created rule
- */
-const addRule = async (
-  organizationId: string,
-  templateId: string,
-  rule: PMTemplateCompatibilityRuleFormData
-): Promise<PMTemplateCompatibilityRule> => {
-  try {
-    await assertPmTemplateAccessible(organizationId, templateId);
-
-    // Normalize values for matching
-    const manufacturerNorm = normalizeCompatibilityRuleValue(rule.manufacturer);
-    const modelNorm = rule.model ? normalizeCompatibilityRuleValue(rule.model) : null;
-
-    const { data, error } = await supabase
-      .from('pm_template_compatibility_rules')
-      .insert({
-        pm_template_id: templateId,
-        organization_id: organizationId,
-        manufacturer: rule.manufacturer.trim(),
-        model: rule.model?.trim() || null,
-        manufacturer_norm: manufacturerNorm,
-        model_norm: modelNorm
-      })
-      .select()
-      .single();
-
-    if (error) {
-      throwOnCompatibilityRuleDuplicate(
-        error,
-        'This manufacturer/model combination already exists for this template',
-      );
-      throw error;
-    }
-
-    return data as PMTemplateCompatibilityRule;
-  } catch (error) {
-    logger.error('Error adding PM template compatibility rule:', error);
-    throw error;
-  }
-};
-
-// ============================================
-// Remove Compatibility Rule
-// ============================================
-
-/**
- * Remove a compatibility rule by ID.
- * 
- * Rules are organization-scoped, so this only allows removing rules
- * that belong to the specified organization.
- * 
- * @param organizationId - Organization ID (must match rule's organization)
- * @param ruleId - Rule ID to remove
- */
-const removeRule = async (
-  organizationId: string,
-  ruleId: string
-): Promise<void> => {
-  try {
-    // Delete the rule only if it belongs to this organization
-    // RLS will also enforce this, but we check explicitly for a clear error message
-    const { data: rule, error: fetchError } = await supabase
-      .from('pm_template_compatibility_rules')
-      .select('id, organization_id')
-      .eq('id', ruleId)
-      .single();
-
-    if (fetchError || !rule) {
-      throw new Error('Compatibility rule not found or access denied');
-    }
-
-    if (rule.organization_id !== organizationId) {
-      throw new Error('Compatibility rule not found or access denied');
-    }
-
-    const { error } = await supabase
-      .from('pm_template_compatibility_rules')
-      .delete()
-      .eq('id', ruleId);
-
-    if (error) throw error;
-  } catch (error) {
-    logger.error('Error removing PM template compatibility rule:', error);
     throw error;
   }
 };

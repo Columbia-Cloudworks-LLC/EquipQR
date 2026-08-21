@@ -47,9 +47,9 @@ const startExecution = <T>(execute: () => Promise<T>): Promise<T> => {
   return executePromise;
 };
 
-const renderAsyncOp = <T,>(
-  operation: () => Promise<T>,
-  options?: Parameters<typeof useAsyncOperation<T>>[1],
+const renderAsyncOp = <T, TArgs extends unknown[] = []>(
+  operation: (...args: TArgs) => Promise<T>,
+  options?: Parameters<typeof useAsyncOperation<T, TArgs>>[1],
 ) => renderHook(() => useAsyncOperation(operation, options));
 
 describe('useAsyncOperation', () => {
@@ -128,6 +128,19 @@ describe('useAsyncOperation', () => {
       });
 
       expect(operation).toHaveBeenCalledWith('arg1', 42, { key: 'value' });
+    });
+
+    it('preserves a typed operation argument through execute()', async () => {
+      const operation = vi.fn<(data: { title: string }) => Promise<void>>()
+        .mockResolvedValue(undefined);
+      const { result } = renderHook(() => useAsyncOperation(operation));
+      const payload = { title: 'Inspect unit' };
+
+      await act(async () => {
+        await result.current.execute(payload);
+      });
+
+      expect(operation).toHaveBeenCalledWith(payload);
     });
   });
 

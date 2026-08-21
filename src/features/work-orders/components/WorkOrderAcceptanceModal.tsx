@@ -99,20 +99,20 @@ const WorkOrderAcceptanceModal: React.FC<WorkOrderAcceptanceModalProps> = ({
       if (equipmentTeam?.members) {
         // Add team managers
         const teamManagers = equipmentTeam.members
-          .filter(m => m.role === 'manager' && m.id !== currentUser?.id)
+          .filter(m => m.role === 'manager' && m.user_id !== currentUser?.id)
           .map(m => ({
-            id: m.id,
-            name: m.name,
+            id: m.user_id,
+            name: m.profiles?.name ?? 'Unknown',
             type: 'user' as const,
             role: 'Team Manager'
           }));
 
         // Add team technicians
         const teamTechnicians = equipmentTeam.members
-          .filter(m => m.role === 'technician' && m.id !== currentUser?.id)
+          .filter(m => m.role === 'technician' && m.user_id !== currentUser?.id)
           .map(m => ({
-            id: m.id,
-            name: m.name,
+            id: m.user_id,
+            name: m.profiles?.name ?? 'Unknown',
             type: 'user' as const,
             role: 'Team Technician'
           }));

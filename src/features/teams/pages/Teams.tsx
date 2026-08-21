@@ -145,7 +145,7 @@ const Teams = () => {
           />
         </div>
         <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-          <SelectTrigger className="w-[160px] shrink-0">
+          <SelectTrigger className="w-40 shrink-0">
             <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
             <SelectValue />
           </SelectTrigger>

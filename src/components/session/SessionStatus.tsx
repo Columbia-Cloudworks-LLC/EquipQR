@@ -69,7 +69,7 @@ export const SessionStatus = () => {
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7"
-                onClick={refreshSession}
+                onClick={() => void refreshSession()}
                 disabled={isLoading}
                 aria-label="Refresh session"
               >
@@ -81,7 +81,7 @@ export const SessionStatus = () => {
         </TooltipProvider>
       </div>
 
-      <div className="flex items-center justify-between min-h-[32px]">
+      <div className="flex items-center justify-between min-h-8">
         <div className="flex items-center gap-2">
           {getStatusIcon()}
           <span className="text-sm">Session Data</span>
@@ -93,7 +93,7 @@ export const SessionStatus = () => {
 
       {sessionData && (
         <>
-          <div className="flex items-center justify-between min-h-[32px]">
+          <div className="flex items-center justify-between min-h-8">
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">Last Updated</span>
@@ -101,7 +101,7 @@ export const SessionStatus = () => {
             <span className="text-xs text-muted-foreground">{getSessionAge()}</span>
           </div>
 
-          <div className="flex items-center justify-between min-h-[32px]">
+          <div className="flex items-center justify-between min-h-8">
             <div className="flex items-center gap-2">
               <ShieldAlert className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">Last Sign In</span>
@@ -109,7 +109,7 @@ export const SessionStatus = () => {
             <span className="text-xs text-muted-foreground">{getLastSignIn()}</span>
           </div>
 
-          <div className="flex items-center justify-between min-h-[32px]">
+          <div className="flex items-center justify-between min-h-8">
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">Organizations</span>
@@ -117,7 +117,7 @@ export const SessionStatus = () => {
             <span className="text-sm font-medium">{sessionData.organizations.length}</span>
           </div>
 
-          <div className="flex items-center justify-between min-h-[32px]">
+          <div className="flex items-center justify-between min-h-8">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">Team Memberships</span>

@@ -98,7 +98,7 @@ const BottomNav: React.FC = () => {
               className={cn(
                 // Touch target: 48x48px minimum
                 "flex flex-col items-center justify-center",
-                "min-w-[48px] min-h-[48px] py-2 px-3",
+                "min-w-12 min-h-12 py-2 px-3",
                 // Touch feedback
                 "touch-manipulation active:scale-95",
                 "transition-all duration-fast",
@@ -142,7 +142,7 @@ const BottomNav: React.FC = () => {
           className={cn(
             // Touch target: 48x48px minimum
             "flex flex-col items-center justify-center",
-            "min-w-[48px] min-h-[48px] py-2 px-3",
+            "min-w-12 min-h-12 py-2 px-3",
             // Touch feedback
             "touch-manipulation active:scale-95",
             "transition-all duration-fast",

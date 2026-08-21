@@ -30,7 +30,7 @@ const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({
     }
 
     try {
-      const checklistItems = pmData.checklist_data as PMChecklistItem[];
+      const checklistItems = pmData.checklist_data as unknown as PMChecklistItem[];
       return checklistItems.map(item => ({
         id: item.id,
         status: getItemStatus(item),
@@ -89,7 +89,7 @@ const PMProgressIndicator: React.FC<PMProgressIndicatorProps> = ({
       )}
 
       {showCount && totalCount > 0 && (
-        <span className="text-xs text-muted-foreground tabular-nums flex-shrink-0">
+        <span className="text-xs text-muted-foreground tabular-nums shrink-0">
           {completedCount}/{totalCount}
         </span>
       )}

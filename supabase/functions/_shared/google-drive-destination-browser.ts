@@ -96,7 +96,7 @@ async function listSharedDrives(accessToken: string): Promise<DriveDestinationBr
     throw new Error(`Unable to list Shared Drives: ${response.status} ${errorBody}`);
   }
 
-  const data: { drives?: SharedDriveRecord[] } = await response.json();
+  const data = await response.json() as { drives?: SharedDriveRecord[] };
   return (data.drives ?? []).map(mapSharedDriveToBrowseItem);
 }
 
@@ -142,7 +142,7 @@ async function listChildFolders(
     throw new Error(`Unable to list Drive folders: ${response.status} ${errorBody}`);
   }
 
-  const data: { files?: DriveFileRecord[] } = await response.json();
+  const data = await response.json() as { files?: DriveFileRecord[] };
   return (data.files ?? [])
     .map((file) => mapFolderToBrowseItem(file, parentId, driveId))
     .filter((item): item is DriveDestinationBrowseItem => item !== null);

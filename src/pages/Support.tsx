@@ -92,7 +92,7 @@ const ContactSection: React.FC<ContactSectionProps> = ({
 );
 
 const HelpCenterCard: React.FC = () => (
-  <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-accent/5">
+  <Card className="border-primary/20 bg-linear-to-r from-primary/5 to-accent/5">
     <CardHeader>
       <CardTitle className="flex items-center gap-2">
         <BookOpen className="h-5 w-5" />
@@ -165,7 +165,7 @@ const Support: React.FC = () => {
 
           <ContactSection />
 
-          <Card className="bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
+          <Card className="bg-linear-to-r from-primary/5 to-accent/5 border-primary/20">
             <CardContent className="p-6 text-center">
               <h3 className="text-xl font-semibold mb-2">Create a free account</h3>
               <p className="text-muted-foreground mb-4">

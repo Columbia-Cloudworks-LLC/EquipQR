@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { useUpdatePM } from '@/features/pm-templates/hooks/usePMData';
 import { useQueryClient } from '@tanstack/react-query';
 import { workOrderRevertService } from '@/features/work-orders/services/workOrderRevertService';
-import { WorkOrderData, EquipmentData, TeamMemberData, OrganizationData } from '@/features/work-orders/types/workOrderDetails';
+import { WorkOrderData, EquipmentData, TeamMemberData } from '@/features/work-orders/types/workOrderDetails';
 import { invalidateWorkOrderCaches } from '@/features/work-orders/utils/invalidateWorkOrderQueries';
 import { logger } from '@/utils/logger';
 import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
@@ -91,10 +91,10 @@ interface PMChecklistComponentProps {
   onUpdate: () => void;
   readOnly?: boolean;
   isAdmin?: boolean;
-  workOrder?: WorkOrderData;
-  equipment?: EquipmentData;
+  workOrder?: Pick<WorkOrderData, 'id' | 'organization_id' | 'status'>;
+  equipment?: Pick<EquipmentData, 'id'>;
   team?: TeamMemberData;
-  organization?: OrganizationData;
+  organization?: { id: string };
   assignee?: TeamMemberData;
 }
 

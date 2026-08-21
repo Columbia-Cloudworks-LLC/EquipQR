@@ -3,8 +3,8 @@
  *
  * Prevents open-redirect attacks by ensuring redirect targets are safe,
  * same-origin relative paths.  Used by every consumer of the
- * `pendingRedirect` sessionStorage value (AuthContext, Auth page,
- * usePendingRedirectHandler) and Google OAuth `redirectTo` / `?next=` flow.
+ * `pendingRedirect` sessionStorage value (AuthContext, Auth page)
+ * and Google OAuth `redirectTo` / `?next=` flow.
  */
 
 const PENDING_REDIRECT_STORAGE_KEY = 'pendingRedirect';

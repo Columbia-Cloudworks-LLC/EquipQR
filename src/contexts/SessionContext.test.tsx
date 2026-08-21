@@ -58,6 +58,7 @@ const mockOrganization: SessionOrganization = {
   features: ['feature1', 'feature2'],
   userRole: 'admin' as const,
   userStatus: 'active' as const,
+  scanLocationCollectionEnabled: true,
 };
 
 const mockSessionData: SessionData = {
@@ -143,6 +144,11 @@ describe('SessionContext', () => {
       expect(hook.result.current?.isLoading).toBe(false);
     });
     return hook;
+  };
+
+  const simulateVisibilityChange = (visible: boolean) => {
+    const onVisibilityChange = (mockUsePageVisibility as MockVisibilityHook).mockVisibilityCallback;
+    onVisibilityChange?.(visible);
   };
 
   it('should initialize with loading state', () => {
@@ -254,10 +260,7 @@ describe('SessionContext', () => {
 
     renderSessionHook();
 
-    // Simulate visibility change
-    if ((mockUsePageVisibility as MockVisibilityHook).mockVisibilityCallback) {
-      (mockUsePageVisibility as MockVisibilityHook).mockVisibilityCallback(true);
-    }
+    simulateVisibilityChange(true);
 
     expect(mockSessionManager.shouldRefreshOnVisibility).toHaveBeenCalledWith(true);
     expect(mockSessionManager.refreshSession).toHaveBeenCalledWith(false);
@@ -271,10 +274,7 @@ describe('SessionContext', () => {
     // Clear previous calls
     mockSessionManager.refreshSession.mockClear();
 
-    // Simulate visibility change
-    if ((mockUsePageVisibility as MockVisibilityHook).mockVisibilityCallback) {
-      (mockUsePageVisibility as MockVisibilityHook).mockVisibilityCallback(true);
-    }
+    simulateVisibilityChange(true);
 
     expect(mockSessionManager.shouldRefreshOnVisibility).toHaveBeenCalledWith(true);
     expect(mockSessionManager.refreshSession).not.toHaveBeenCalled();

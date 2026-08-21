@@ -13,6 +13,7 @@
  * - All string values are length-capped
  */
 
+import type { QueryClient } from '@tanstack/react-query';
 import { APP_VERSION } from '@/lib/version';
 import { FeatureFlags } from '@/lib/flags';
 import { getRecentErrors } from './consoleErrorBuffer';
@@ -56,7 +57,7 @@ export function collectSessionDiagnostics(
     organizationId: string | null;
     currentOrganization: { plan?: string; userRole?: string } | null;
   },
-  queryClient?: { getQueryCache: () => { getAll: () => Array<{ state: { status: string }; queryKey: unknown[] }> } },
+  queryClient?: QueryClient,
 ): SessionDiagnostics {
   // Failed React Query keys
   const failedQueries: string[] = [];

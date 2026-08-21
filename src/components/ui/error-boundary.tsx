@@ -59,7 +59,7 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div
           ref={this.fallbackRef}
-          className="flex items-center justify-center min-h-[200px] p-4"
+          className="flex items-center justify-center min-h-50 p-4"
           role="alert"
           aria-live="assertive"
           tabIndex={-1}

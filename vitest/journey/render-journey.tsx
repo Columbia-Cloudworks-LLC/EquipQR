@@ -194,4 +194,5 @@ export function renderJourney(options: RenderJourneyOptions): RenderJourneyResul
 // Re-export common testing utilities
 // ============================================
 
-export type { PersonaKey, UserPersona } from '@vitest-harness/fixtures/personas';
+export { personas };
+export type { PersonaKey, UserPersona };

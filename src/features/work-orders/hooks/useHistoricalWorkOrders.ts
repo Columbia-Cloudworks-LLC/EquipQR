@@ -2,7 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
-import { defaultForkliftChecklist } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import {
+  defaultForkliftChecklist,
+  type PMChecklistItem,
+} from '@/features/pm-templates/services/preventativeMaintenanceService';
+import type { Json } from '@/integrations/supabase/types';
 import { workOrders } from '@/lib/queryKeys/workOrders';
 import { invalidateWorkOrderCaches } from '@/features/work-orders/utils/invalidateWorkOrderQueries';
 import { historicalTimelineService } from '@/features/work-orders/services/historicalTimelineService';
@@ -27,7 +31,7 @@ export interface HistoricalWorkOrderData {
   pmStatus?: string;
   pmCompletionDate?: string;
   pmNotes?: string;
-  pmChecklistData?: unknown[];
+  pmChecklistData?: PMChecklistItem[];
   timelineEvents?: HistoricalTimelineEvent[];
 }
 
@@ -154,9 +158,9 @@ export const useCreateHistoricalWorkOrder = (options?: {
           p_pm_status: data.pmStatus || 'pending',
           p_pm_completion_date: data.pmCompletionDate,
           p_pm_notes: data.pmNotes,
-          p_pm_checklist_data: data.hasPM && (!data.pmChecklistData || data.pmChecklistData.length === 0)
+          p_pm_checklist_data: (data.hasPM && (!data.pmChecklistData || data.pmChecklistData.length === 0)
             ? defaultForkliftChecklist
-            : data.pmChecklistData || [],
+            : data.pmChecklistData ?? []) as unknown as Json,
           // Omit when absent: both DEFINER overloads retain authenticated EXECUTE
           // after #1310 re-lock (legacy without p_timeline_events + timeline).
           ...(data.timelineEvents

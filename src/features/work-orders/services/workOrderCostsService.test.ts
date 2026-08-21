@@ -168,6 +168,18 @@ describe('workOrderCostsService', () => {
       expect(result).toHaveLength(0);
     });
 
+    it('should compute total_price_cents when the database value is null', async () => {
+      const mockCosts = [
+        { id: 'cost-1', work_order_id: 'wo-1', description: 'Parts', quantity: 2, unit_price_cents: 1000, total_price_cents: null, created_by: 'user-1', created_at: '2024-01-01' }
+      ];
+
+      mockCostsAndProfilesSequence(mockCosts, [{ id: 'user-1', name: 'John Doe' }]);
+
+      const result = await getWorkOrderCosts('wo-1');
+
+      expect(result[0].total_price_cents).toBe(2000);
+    });
+
     it('should handle "Unknown" for profiles that cannot be resolved', async () => {
       const mockCosts = [
         { id: 'cost-1', work_order_id: 'wo-1', description: 'Parts', quantity: 1, unit_price_cents: 1000, total_price_cents: 1000, created_by: 'unknown-user', created_at: '2024-01-01' }

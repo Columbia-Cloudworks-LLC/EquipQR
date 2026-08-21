@@ -106,16 +106,5 @@ export class PerformanceMonitor {
   }
 }
 
-// React hook for performance monitoring
-function usePerformanceTimer(name: string, enabled = true) {
-  const monitor = PerformanceMonitor.getInstance();
-  
-  return {
-    startTimer: () => enabled ? monitor.startTimer(name) : () => {},
-    recordMetric: (value: number) => enabled ? monitor.recordMetric(name, value) : undefined,
-    getMetrics: () => monitor.getMetrics(name)
-  };
-}
-
 // Export singleton instance
 export const performanceMonitor = PerformanceMonitor.getInstance();

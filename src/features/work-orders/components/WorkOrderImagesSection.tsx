@@ -140,7 +140,7 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
           <CollapsibleTrigger asChild>
             <button
               type="button"
-              className="flex min-h-[44px] w-full touch-manipulation items-start justify-between gap-3 text-left"
+              className="flex min-h-11 w-full touch-manipulation items-start justify-between gap-3 text-left"
               aria-expanded={isOpen}
               aria-controls={`work-order-images-content-${workOrderId}`}
             >
@@ -210,7 +210,7 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
                           <div className="relative aspect-video w-full overflow-hidden rounded-md bg-muted">
                             {primaryImageId === image.id ? (
                               <Badge
-                                className="absolute left-2 top-2 z-[1] shadow-sm"
+                                className="absolute left-2 top-2 z-1 shadow-sm"
                                 variant="secondary"
                               >
                                 Primary
