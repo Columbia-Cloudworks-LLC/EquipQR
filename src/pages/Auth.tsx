@@ -87,8 +87,14 @@ const Auth = () => {
     const params = new URLSearchParams(location.search);
     const orgId = params.get('invitedOrgId') || undefined;
     const orgName = params.get('invitedOrgName') || undefined;
-    const raw = params.get('mode') ?? params.get('tab');
-    const parsed: AuthMode = raw === 'signin' || raw === 'signup' ? raw : 'signin';
+    const modeParam = params.get('mode');
+    const tabParam = params.get('tab');
+    const parsed: AuthMode =
+      modeParam === 'signin' || modeParam === 'signup'
+        ? modeParam
+        : tabParam === 'signin' || tabParam === 'signup'
+          ? tabParam
+          : 'signin';
     return {
       parsedMode: orgId || orgName ? 'signup' : parsed,
       prefillEmail: params.get('email') || undefined,
@@ -255,7 +261,7 @@ const Auth = () => {
           </CardHeader>
           <CardContent className="px-6 pb-8 sm:px-7 sm:pb-8">
             {success ? (
-              <div className="space-y-5 text-center" data-testid="signup-success-page">
+              <div className="space-y-5 text-center">
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/15">
                   <CheckCircle className="h-7 w-7 text-success" aria-hidden />
                 </div>

@@ -72,15 +72,17 @@ export async function applyPendingSignupOrganizationName(userId: string): Promis
     return;
   }
 
-  const { error: updateError } = await supabase
+  const { data: updated, error: updateError } = await supabase
     .from('organizations')
     .update({
       name: organizationName,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', organization.id);
+    .eq('id', organization.id)
+    .select('id')
+    .maybeSingle();
 
-  if (updateError) {
+  if (updateError || !updated) {
     logger.warn('Failed to apply pending Google signup organization name', updateError);
     return;
   }

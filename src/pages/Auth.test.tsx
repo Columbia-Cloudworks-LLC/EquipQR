@@ -65,12 +65,12 @@ vi.mock('@/components/auth/SignUpForm', () => ({
     onError: (msg: string) => void;
     onGoogleSignUp: (organizationName: string) => void;
   }) => (
-    <div data-testid="signup-form">
-      <button onClick={() => onGoogleSignUp('Fleet Co')}>Sign up with Google</button>
-      <button onClick={() => onSuccess('Account created', 'viralarchitect@yahoo.com')}>Submit SignUp</button>
-      <button onClick={() => onSuccess('Legal acceptance recorded successfully.')}>Retry Acceptance Success</button>
-      <button onClick={() => onError('Signup failed')}>Trigger SignUp Error</button>
-    </div>
+    <form aria-label="Sign up form">
+      <button type="button" onClick={() => onGoogleSignUp('Fleet Co')}>Sign up with Google</button>
+      <button type="button" onClick={() => onSuccess('Account created', 'viralarchitect@yahoo.com')}>Submit SignUp</button>
+      <button type="button" onClick={() => onSuccess('Legal acceptance recorded successfully.')}>Retry Acceptance Success</button>
+      <button type="button" onClick={() => onError('Signup failed')}>Trigger SignUp Error</button>
+    </form>
   )
 }));
 
@@ -82,10 +82,10 @@ vi.mock('@/components/auth/SignInForm', () => ({
     onError: (msg: string) => void;
     onGoogleSignIn: () => void;
   }) => (
-    <div data-testid="signin-form">
+    <form aria-label="Sign in form">
       <button type="button" onClick={onGoogleSignIn}>Login with Google</button>
-      <button onClick={() => onError('Invalid credentials')}>Trigger SignIn Error</button>
-    </div>
+      <button type="button" onClick={() => onError('Invalid credentials')}>Trigger SignIn Error</button>
+    </form>
   )
 }));
 
@@ -152,8 +152,8 @@ describe('Auth Page', () => {
     it('shows signin form by default', () => {
       render(<Auth />);
 
-      expect(screen.getByTestId('signin-form')).toBeInTheDocument();
-      expect(screen.queryByTestId('signup-form')).not.toBeInTheDocument();
+      expect(screen.getByRole('form', { name: /sign in form/i })).toBeInTheDocument();
+      expect(screen.queryByRole('form', { name: /sign up form/i })).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: /create an account/i })).toBeInTheDocument();
     });
 
@@ -162,9 +162,9 @@ describe('Auth Page', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /create an account/i }));
 
-      expect(screen.getByTestId('signup-form')).toBeInTheDocument();
-      expect(screen.queryByTestId('signin-form')).not.toBeInTheDocument();
-      expect(screen.getByText('Create your organization')).toBeInTheDocument();
+      expect(screen.getByRole('form', { name: /sign up form/i })).toBeInTheDocument();
+      expect(screen.queryByRole('form', { name: /sign in form/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /create your organization/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /sign up with google/i })).toBeInTheDocument();
     });
@@ -173,23 +173,31 @@ describe('Auth Page', () => {
       mockLocation.search = '?tab=signup';
       render(<Auth />);
 
-      expect(screen.getByTestId('signup-form')).toBeInTheDocument();
-      expect(screen.getByText('Create your organization')).toBeInTheDocument();
+      expect(screen.getByRole('form', { name: /sign up form/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /create your organization/i })).toBeInTheDocument();
     });
 
     it('opens signup from mode query param', () => {
       mockLocation.search = '?mode=signup';
       render(<Auth />);
 
-      expect(screen.getByTestId('signup-form')).toBeInTheDocument();
+      expect(screen.getByRole('form', { name: /sign up form/i })).toBeInTheDocument();
+    });
+
+    it('falls back to a valid tab when mode is present but invalid', () => {
+      mockLocation.search = '?mode=foo&tab=signup';
+      render(<Auth />);
+
+      expect(screen.getByRole('form', { name: /sign up form/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /create your organization/i })).toBeInTheDocument();
     });
 
     it('forces signup when invitation params are present', () => {
       mockLocation.search = '?tab=signin&invitedOrgId=org-1&invitedOrgName=Acme';
       render(<Auth />);
 
-      expect(screen.getByTestId('signup-form')).toBeInTheDocument();
-      expect(screen.getByText('Create your organization')).toBeInTheDocument();
+      expect(screen.getByRole('form', { name: /sign up form/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /create your organization/i })).toBeInTheDocument();
     });
   });
 
@@ -214,11 +222,11 @@ describe('Auth Page', () => {
       fireEvent.click(screen.getByText('Submit SignUp'));
 
       await waitFor(() => {
-        expect(screen.getByTestId('signup-success-page')).toHaveTextContent('Check your email');
-        expect(screen.getByTestId('signup-success-page')).toHaveTextContent('viralarchitect@yahoo.com');
-        expect(screen.getByTestId('signup-success-page')).toHaveTextContent('Account created');
+        expect(screen.getByRole('heading', { name: /check your email/i })).toBeInTheDocument();
+        expect(screen.getByText('viralarchitect@yahoo.com')).toBeInTheDocument();
+        expect(screen.getByText('Account created')).toBeInTheDocument();
       });
-      expect(screen.queryByTestId('signup-form')).not.toBeInTheDocument();
+      expect(screen.queryByRole('form', { name: /sign up form/i })).not.toBeInTheDocument();
       expect(screen.getByRole('link', { name: /open email inbox/i })).toHaveAttribute('href', 'https://mail.yahoo.com/');
       expect(screen.getByRole('link', { name: /open email inbox/i })).toHaveAttribute('rel', 'noopener noreferrer');
       expect(mockSuccessToast).toHaveBeenCalledWith({
@@ -234,7 +242,7 @@ describe('Auth Page', () => {
 
       fireEvent.click(screen.getByText('Submit SignUp'));
       await waitFor(() => {
-        expect(screen.getByTestId('signup-success-page')).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /check your email/i })).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByRole('button', { name: /i verified my email - sign in/i }));
@@ -255,8 +263,8 @@ describe('Auth Page', () => {
           duration: 10000,
         });
       });
-      expect(screen.queryByTestId('signup-success-page')).not.toBeInTheDocument();
-      expect(screen.getByTestId('signup-form')).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: /check your email/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('form', { name: /sign up form/i })).toBeInTheDocument();
     });
   });
 

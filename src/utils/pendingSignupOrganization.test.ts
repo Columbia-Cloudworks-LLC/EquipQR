@@ -78,7 +78,11 @@ describe('pendingSignupOrganization', () => {
         update: (payload: { name: string }) => {
           expect(payload.name).toBe('Fleet Co');
           return {
-            eq: () => Promise.resolve({ error: null }),
+            eq: () => ({
+              select: () => ({
+                maybeSingle: () => Promise.resolve({ data: { id: 'org-1' }, error: null }),
+              }),
+            }),
           };
         },
       };
@@ -141,5 +145,46 @@ describe('pendingSignupOrganization', () => {
     expect(getPendingSignupOrganizationName()).toBe('Fleet Co');
     clearPendingSignupOrganizationName();
     expect(getPendingSignupOrganizationName()).toBeNull();
+  });
+
+  it('leaves the pending name in place when the rename updates zero rows', async () => {
+    setPendingSignupOrganizationName('Fleet Co');
+    from.mockImplementation((table: string) => {
+      if (table === 'personal_organizations') {
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: () => Promise.resolve({ data: { organization_id: 'org-1' }, error: null }),
+            }),
+          }),
+        };
+      }
+      return {
+        select: () => ({
+          eq: () => ({
+            maybeSingle: () =>
+              Promise.resolve({
+                data: {
+                  id: 'org-1',
+                  name: DEFAULT_PERSONAL_ORGANIZATION_NAME,
+                  created_at: new Date().toISOString(),
+                },
+                error: null,
+              }),
+          }),
+        }),
+        update: () => ({
+          eq: () => ({
+            select: () => ({
+              maybeSingle: () => Promise.resolve({ data: null, error: null }),
+            }),
+          }),
+        }),
+      };
+    });
+
+    await applyPendingSignupOrganizationName('user-1');
+
+    expect(getPendingSignupOrganizationName()).toBe('Fleet Co');
   });
 });

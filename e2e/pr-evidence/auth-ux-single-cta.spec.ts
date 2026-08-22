@@ -6,7 +6,7 @@ test.use({ storageState: { cookies: [], origins: [] } });
 
 async function acceptCookieBannerIfPresent(page: Page): Promise<void> {
   const banner = page.getByRole('region', { name: /cookie consent/i });
-  const acceptBtn = page.getByRole('button', { name: /^accept$/i });
+  const acceptBtn = banner.getByRole('button', { name: /^accept$/i });
   if (await banner.isVisible().catch(() => false)) {
     await acceptBtn.click();
     await expect(banner).toHaveCount(0);
