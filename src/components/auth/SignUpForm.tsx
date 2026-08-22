@@ -345,17 +345,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
         )}
       </div>
 
-      {emailSignupOpen ? (
-        <Button
-          type="button"
-          variant="ghost"
-          className="h-auto px-0 text-sm text-muted-foreground hover:text-foreground"
-          onClick={() => setEmailSignupOpen(false)}
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden />
-          Back to Google signup
-        </Button>
-      ) : (
+      {emailSignupOpen ? null : (
         <>
           <AuthGoogleSignInButton
             onClick={handleGoogleSignUp}
@@ -473,6 +463,15 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       {!formIsValid() && Object.keys(touched).length > 0 && (
         <p className="text-xs text-muted-foreground text-center">Fill in all required fields to continue</p>
       )}
+
+      <button
+        type="button"
+        className="flex w-full items-center justify-center gap-2 text-sm font-medium text-foreground underline underline-offset-4 hover:text-primary"
+        onClick={() => setEmailSignupOpen(false)}
+      >
+        <ArrowLeft className="h-4 w-4" aria-hidden />
+        Back to Google signup
+      </button>
         </>
       ) : null}
     </form>
