@@ -14,7 +14,7 @@ interface SessionContextType {
   isLoading: boolean;
   error: string | null;
   getCurrentOrganization: () => SessionOrganization | null;
-  switchOrganization: (organizationId: string) => void;
+  switchOrganization: (organizationId: string) => void | Promise<void>;
   hasTeamRole: (teamId: string, role: string) => boolean;
   hasTeamAccess: (teamId: string) => boolean;
   canManageTeam: (teamId: string) => boolean;

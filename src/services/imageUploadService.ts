@@ -158,10 +158,17 @@ export async function compressImageFile(
 
   try {
     const { default: imageCompression } = await import('browser-image-compression');
-    return await imageCompression(file, {
+    const compressed = await imageCompression(file, {
       maxSizeMB: settings.maxSizeMB,
       maxWidthOrHeight: settings.maxWidthOrHeight,
       useWebWorker: settings.useWebWorker,
+    });
+    if (compressed instanceof File) {
+      return compressed;
+    }
+    return new File([compressed], file.name, {
+      type: compressed.type || file.type,
+      lastModified: file.lastModified,
     });
   } catch (error) {
     logger.error('Image compression failed; uploading original file', {

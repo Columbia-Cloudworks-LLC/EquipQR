@@ -233,11 +233,10 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     }
   }, []);
 
-  const switchOrganization = useCallback((organizationId: string) => {
+  const switchOrganization = useCallback(async (organizationId: string) => {
     setCurrentOrganization(organizationId);
-    // Also update session context to keep them synchronized
     if (sessionContext?.switchOrganization) {
-      sessionContext.switchOrganization(organizationId);
+      await sessionContext.switchOrganization(organizationId);
     }
   }, [setCurrentOrganization, sessionContext]);
 

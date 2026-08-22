@@ -50,9 +50,7 @@ const NotificationMenuSection: React.FC<NotificationMenuSectionProps> = ({
       notification,
       organizationId,
       navigate,
-      switchOrganization: async (orgId) => {
-        switchOrganization(orgId);
-      },
+      switchOrganization,
     });
   };
 

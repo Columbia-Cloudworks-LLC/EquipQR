@@ -209,6 +209,16 @@ describe('imageUploadService', () => {
       expect(out).toBe(file);
       expect(imageCompression).not.toHaveBeenCalled();
     });
+
+    it('re-wraps a compressor Blob as a File that keeps the original name', async () => {
+      const original = new File(['x'.repeat(400_000)], 'big.jpg', { type: 'image/jpeg' });
+      const blob = new Blob(['tiny'], { type: 'image/webp' });
+      vi.mocked(imageCompression).mockResolvedValue(blob as unknown as File);
+      const out = await compressImageFile(original);
+      expect(out).toBeInstanceOf(File);
+      expect(out.name).toBe('big.jpg');
+      expect(out.type).toBe('image/webp');
+    });
   });
 
   describe('uploadImageToStorage', () => {

@@ -19,7 +19,10 @@ export interface StorageQuotaCheck {
 const MAX_STORAGE_GB = 5;
 
 function isQuotaRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+  return true;
 }
 
 function readBoolean(record: Record<string, unknown>, ...keys: string[]): boolean | undefined {
