@@ -80,7 +80,7 @@ jobs:
   lint-and-typecheck:
     name: Lint & Type Check
     runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
-    timeout-minutes: 10
+    timeout-minutes: 20
     permissions:
       contents: read
       checks: write
@@ -161,6 +161,9 @@ jobs:
 
     - name: Verify Node runtime and @types/node policy
       run: npm run verify:node-policy
+
+    - name: Run lint catalog
+      run: npm run lint:all
 
     - name: Run ESLint
       run: npx eslint . --format=json --output-file=eslint-report.json

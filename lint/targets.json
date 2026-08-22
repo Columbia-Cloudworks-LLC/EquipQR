@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "targets": [
+    {
+      "id": "eslint",
+      "kind": "node-cli",
+      "bin": "eslint/bin/eslint.js",
+      "match": {
+        "kind": "when",
+        "extensions": [".ts", ".tsx"],
+        "excludeSuffixes": [".d.ts"]
+      },
+      "hook": {
+        "failClosed": true,
+        "missingTool": "block",
+        "argv": ["--no-ignore", "--max-warnings", "0", "--format", "stylish", "{{file}}"],
+        "maxOutputLines": 20
+      },
+      "batch": {
+        "steps": [
+          { "argv": ["."], "contract": { "kind": "exit-code" } }
+        ]
+      }
+    },
+    {
+      "id": "markdownlint",
+      "kind": "node-cli",
+      "bin": "markdownlint-cli2/markdownlint-cli2-bin.mjs",
+      "match": {
+        "kind": "when",
+        "extensions": [".md", ".mdc"]
+      },
+      "hook": {
+        "failClosed": true,
+        "missingTool": "block",
+        "argv": ["--no-globs", "{{file}}"],
+        "maxOutputLines": 25
+      },
+      "batch": {
+        "steps": [
+          {
+            "argv": [".cursor/**/*.{md,mdc}", "AGENTS.md"],
+            "contract": { "kind": "exit-code" }
+          }
+        ]
+      }
+    },
+    {
+      "id": "psscriptanalyzer",
+      "kind": "pwsh-module",
+      "module": { "name": "PSScriptAnalyzer", "version": "1.23.0" },
+      "function": "Invoke-ScriptAnalyzer",
+      "match": {
+        "kind": "when",
+        "extensions": [".ps1"]
+      },
+      "hook": {
+        "failClosed": true,
+        "missingTool": "block",
+        "argv": ["-Path", "{{file}}", "-EnableExit"],
+        "maxOutputLines": 25
+      },
+      "batch": {
+        "steps": [
+          {
+            "argv": [],
+            "contract": { "kind": "exit-code" }
+          }
+        ]
+      }
+    },
+    {
+      "id": "actionlint",
+      "kind": "external-bin",
+      "tool": {
+        "name": "actionlint",
+        "version": "1.7.7",
+        "githubRelease": "rhysd/actionlint"
+      },
+      "match": {
+        "kind": "when",
+        "extensions": [".yml", ".yaml"],
+        "under": ".github/workflows"
+      },
+      "hook": {
+        "failClosed": true,
+        "missingTool": "block",
+        "argv": ["{{file}}"],
+        "maxOutputLines": 25
+      },
+      "batch": {
+        "steps": [
+          {
+            "argv": [".github/workflows"],
+            "contract": { "kind": "exit-code" }
+          }
+        ]
+      }
+    },
+    {
+      "id": "fallow",
+      "kind": "npx",
+      "package": "fallow@2.88.0",
+      "match": { "kind": "never" },
+      "hook": null,
+      "batch": {
+        "steps": [
+          {
+            "argv": ["--format", "json", "--quiet", "--summary"],
+            "contract": { "kind": "fallow-unused", "maxIssues": 0 }
+          },
+          {
+            "argv": ["dupes", "--format", "json", "--quiet"],
+            "contract": { "kind": "fallow-dupes", "maxCloneGroups": 0 }
+          }
+        ]
+      }
+    }
+  ]
+}

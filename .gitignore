@@ -32,6 +32,8 @@ dist-ssr
 *.sw?
 .vs/VSWorkspaceState.json
 tmp/*
+# Pinned lint binaries provisioned by scripts/lint-catalog.mjs
+tmp/lint-tools/
 tmpclaude-*-cwd
 *superpowers*
 
