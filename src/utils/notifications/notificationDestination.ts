@@ -31,6 +31,15 @@ function dataOrgSwitchId(data: NotificationData): string | null {
   return data.organization_id || data.workspace_org_id || null;
 }
 
+function transferSwitchId(
+  notification: Pick<Notification, 'type' | 'data'>,
+): string | null {
+  if (notification.type === 'ownership_transfer_accepted' && notification.data.new_org_id) {
+    return notification.data.new_org_id;
+  }
+  return dataOrgSwitchId(notification.data);
+}
+
 function go(
   path: string,
   switchToOrganizationId: string | null,
@@ -50,7 +59,7 @@ const DESTINATION_RULES: DestinationRule[] = [
     build: (notification) =>
       go(
         ORGANIZATION_SETTINGS_PATH,
-        dataOrgSwitchId(notification.data),
+        transferSwitchId(notification),
         notification.type === 'ownership_transfer_request'
           ? { compact: 'Respond →', detail: 'Click to respond to transfer request' }
           : VIEW('Click to view organization settings'),

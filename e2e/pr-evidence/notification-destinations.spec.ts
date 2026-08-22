@@ -29,7 +29,11 @@ test.describe('PR evidence notification destinations @pr-evidence', () => {
     await expect(menu.getByText(fixtures.workOrderAssigned.title)).toBeVisible();
     await expect(menu.getByText('View →').first()).toBeVisible();
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '01-user-menu-destination-ctas', { target: menu });
+    await evidenceScreenshot({
+      page,
+      label: '01-user-menu-destination-ctas',
+      target: menu,
+    });
 
     await page.keyboard.press('Escape');
     await gotoDashboard('/notifications');
@@ -46,7 +50,11 @@ test.describe('PR evidence notification destinations @pr-evidence', () => {
     await expect(teamRow.getByText('Click to view team')).toBeVisible();
     await expect(workOrderRow.getByText('Click to view work order')).toBeVisible();
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '02-notifications-page-destinations', { target: teamRow });
+    await evidenceScreenshot({
+      page,
+      label: '02-notifications-page-destinations',
+      target: teamRow,
+    });
 
     await teamRow.click();
     await expect(page).toHaveURL(
@@ -54,11 +62,14 @@ test.describe('PR evidence notification destinations @pr-evidence', () => {
       { timeout: 30_000 },
     );
     await assertHealthyShell();
-    await expect(page.getByRole('heading', { name: /heavy equipment team/i })).toBeVisible({
-      timeout: 30_000,
-    });
+    const teamHeading = page.getByRole('heading', { name: /heavy equipment team/i });
+    await expect(teamHeading).toBeVisible({ timeout: 30_000 });
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '03-team-destination');
+    await evidenceScreenshot({
+      page,
+      label: '03-team-destination',
+      target: teamHeading,
+    });
 
     await gotoDashboard('/notifications');
     await assertHealthyShell();
@@ -69,12 +80,15 @@ test.describe('PR evidence notification destinations @pr-evidence', () => {
       { timeout: 30_000 },
     );
     await assertHealthyShell();
-    await expect(
-      page.getByRole('heading', {
-        name: new RegExp(escapeRegExp(fixtures.workOrderAssigned.workOrderTitle), 'i'),
-      }).first(),
-    ).toBeVisible({ timeout: 30_000 });
+    const workOrderHeading = page.getByRole('heading', {
+      name: new RegExp(escapeRegExp(fixtures.workOrderAssigned.workOrderTitle), 'i'),
+    }).first();
+    await expect(workOrderHeading).toBeVisible({ timeout: 30_000 });
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '04-work-order-destination');
+    await evidenceScreenshot({
+      page,
+      label: '04-work-order-destination',
+      target: workOrderHeading,
+    });
   });
 });

@@ -71,6 +71,22 @@ describe('resolveNotificationDestination', () => {
       ),
     },
     {
+      name: 'ownership_transfer_accepted prefers data.new_org_id when the departing owner was removed',
+      notification: {
+        type: 'ownership_transfer_accepted',
+        data: {
+          organization_id: 'org-2',
+          workspace_org_id: 'ws-ignored',
+          new_org_id: 'org-personal',
+        },
+      },
+      expected: navigable(
+        ORGANIZATION_SETTINGS_PATH,
+        'org-personal',
+        view('Click to view organization settings'),
+      ),
+    },
+    {
       name: 'workspace_merge_request responds on organization settings',
       notification: {
         type: 'workspace_merge_request',

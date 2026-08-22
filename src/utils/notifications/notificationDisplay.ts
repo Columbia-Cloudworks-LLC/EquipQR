@@ -48,6 +48,8 @@ export function getNotificationEmoji(type: string): string {
       return '🔐';
     case 'audit_export':
       return '📤';
+    case 'export_ready':
+      return '📊';
     default:
       return '📢';
   }
@@ -96,6 +98,8 @@ export function getNotificationTypeLabel(type: string): string {
       return 'Team Role Changed';
     case 'audit_export':
       return 'Audit Export';
+    case 'export_ready':
+      return 'Export Ready';
     default:
       return 'General';
   }
