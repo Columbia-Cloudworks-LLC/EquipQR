@@ -424,6 +424,15 @@ async function ensureNodeCli(target, repoRoot) {
  * @param {ReturnType<typeof parseTarget>} target
  */
 async function ensureNpx(target) {
+    try {
+      resolveNpxCli(process.cwd());
+      return { ready: true, targetId: target.id };
+    } catch (error) {
+      return { ready: false, targetId: target.id, reason: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  /*
   return { ready: true, targetId: target.id };
 }
 
