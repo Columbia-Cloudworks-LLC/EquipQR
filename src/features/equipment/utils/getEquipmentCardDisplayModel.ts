@@ -90,7 +90,7 @@ export function getEquipmentCardDisplayModel(
 
   return {
     imageAlt: `${equipment.name} equipment`,
-    imageFallbackSrc: "/placeholder.svg",
+    imageFallbackSrc: "/images/ui/placeholder.svg",
     statusLabel: statusInfo.label,
     statusClassName: getStatusColor(equipment.status),
     lastMaintenanceText: lastMaintenanceDate ? `Last maintenance: ${lastMaintenanceDate}` : undefined,

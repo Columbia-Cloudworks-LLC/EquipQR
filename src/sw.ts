@@ -89,8 +89,8 @@ self.addEventListener('push', (event) => {
 
   const options: NotificationOptions = {
     body: data.body,
-    icon: '/icons/EquipQR-Icon-Purple-Small.png',
-    badge: '/icons/EquipQR-Icon-Purple-Small.png',
+    icon: '/images/brand/icons/EquipQR-Icon-Purple-Small.png',
+    badge: '/images/brand/icons/EquipQR-Icon-Purple-Small.png',
     // `vibrate`, `actions`, and `renotify` are valid Notification options
     // in all major browsers but not yet in lib.dom.ts; cast to any.
     ...({
@@ -218,7 +218,7 @@ registerRoute(
     url.origin === self.location.origin &&
     (request.destination === 'image' ||
       request.destination === 'font' ||
-      url.pathname.startsWith('/icons/') ||
+      url.pathname.startsWith('/images/') ||
       url.pathname.startsWith('/static/')),
   new CacheFirst({
     cacheName: 'equipqr-static-v1',

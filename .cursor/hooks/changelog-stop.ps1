@@ -76,7 +76,7 @@ $relevantFiles = $changedFiles | Where-Object {
     $_ -ne 'AGENTS.md' -and
     $_ -notmatch '^\.cursor/' -and
     $_ -notmatch '^docs/' -and
-    $_ -notmatch '^scripts/mcp\.template\.json$' -and
+    $_ -notmatch '^dev/mcp\.template\.json$' -and
     $_ -notmatch '^(README|CONTRIBUTING|SUPPORT|SECURITY)\.md$'
 }
 

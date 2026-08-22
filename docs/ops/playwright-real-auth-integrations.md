@@ -38,7 +38,7 @@ Never commit `tmp/playwright/auth/nicholas-google-qbo.json`. It contains live se
 Quick-login personas cannot complete Google Workspace OAuth. Capture storage state once in a headed browser:
 
 ```powershell
-# Local stack must be running (.\dev-start.bat)
+# Local stack must be running (.\dev\dev-start.bat)
 npm run e2e:google-auth:capture
 ```
 
@@ -53,7 +53,7 @@ In the opened browser:
 OAuth tokens are stored in local Supabase (`quickbooks_credentials`) after Intuit redirects to the edge callback. A Playwright storage file replays the EquipQR session only.
 
 ```powershell
-# Local stack must be running (.\dev-start.bat)
+# Local stack must be running (.\dev\dev-start.bat)
 npm run e2e:quickbooks-auth:capture
 ```
 
@@ -67,14 +67,14 @@ In the opened browser:
 Verify API access without the UI:
 
 ```powershell
-.\scripts\qbo\Invoke-QboQuery.ps1 -StatusOnly
-.\scripts\qbo\Invoke-QboQuery.ps1 -Query "select Id, DisplayName from Customer maxresults 5"
+.\dev\qbo\Invoke-QboQuery.ps1 -StatusOnly
+.\dev\qbo\Invoke-QboQuery.ps1 -Query "select Id, DisplayName from Customer maxresults 5"
 ```
 
 Run local QuickBooks preflight (headless replay):
 
 ```powershell
-. .\scripts\e2e\Load-QuickBooksLocalAuthEnv.ps1
+. .\dev\e2e\Load-QuickBooksLocalAuthEnv.ps1
 npx playwright test e2e/user/full/quickbooks-local.integration.spec.ts `
   --config playwright.user.config.ts --project quickbooks-local --reporter=line
 ```
@@ -90,16 +90,16 @@ npm run e2e:quickbooks-developer-auth:capture
 Sign in at `developer.intuit.com` (SMS/email verification as required). Output: `tmp/playwright/auth/quickbooks-developer-local.json`.
 
 ```powershell
-. .\scripts\e2e\Load-QuickBooksDeveloperStorageEnv.ps1
+. .\dev\e2e\Load-QuickBooksDeveloperStorageEnv.ps1
 # Agents replay E2E_QB_DEVELOPER_AUTH_STORAGE_STATE in Playwright / browser MCP
 ```
 
-Vault password fallback (when storage expires): `. .\scripts\e2e\Load-QuickBooksDeveloperEnv.ps1`
+Vault password fallback (when storage expires): `. .\dev\e2e\Load-QuickBooksDeveloperEnv.ps1`
 
 ### Run local Google Docs export test (headless replay)
 
 ```powershell
-. .\scripts\e2e\Load-GoogleLocalAuthEnv.ps1
+. .\dev\e2e\Load-GoogleLocalAuthEnv.ps1
 npx playwright test e2e/user/full/google-workspace-local.integration.spec.ts `
   --config playwright.user.config.ts --project google-oauth-local --reporter=line
 ```

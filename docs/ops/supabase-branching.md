@@ -109,7 +109,7 @@ If branching causes unexpected behavior (e.g. CI workflows break because of bran
 PR branching above is **schema/RLS validation only** (dataless, no Quick Login). Cloud Agents that need Dev Quick Login against an isolated backend use a separate lifecycle:
 
 - Create → seed (Auth Admin API) → point Vite at the branch → delete on teardown/TTL
-- Documented in [cloud-agent-ephemeral-stack.md](./cloud-agent-ephemeral-stack.md) (`scripts/cloud-agent-ephemeral-stack.sh`)
+- Documented in [cloud-agent-ephemeral-stack.md](./cloud-agent-ephemeral-stack.md) (`dev/cloud-agent-ephemeral-stack.sh`)
 - Does **not** replace this PR GitHub Integration path and must never seed production
 
 ## References

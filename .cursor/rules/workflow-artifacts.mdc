@@ -14,7 +14,7 @@ Cursor plugins (for example continual-learning / `agents-memory-updater`) may up
 - `.cursor/rules/**`
 - `.cursor/hooks/**`
 - `.cursor/agents/**`
-- `scripts/mcp.template.json`
+- `dev/mcp.template.json`
 
 ## On any authorized commit
 
@@ -38,4 +38,4 @@ Prefer the custom `reflect` skill when present (explicit approval before write).
 
 ## Changelog
 
-Workflow artifact commits do **not** require `CHANGELOG.md` entries (`changelog-stop` already excludes `.cursor/`, `docs/`, `AGENTS.md`, and `scripts/mcp.template.json`).
+Workflow artifact commits do **not** require `CHANGELOG.md` entries (`changelog-stop` already excludes `.cursor/`, `docs/`, `AGENTS.md`, and `dev/mcp.template.json`).

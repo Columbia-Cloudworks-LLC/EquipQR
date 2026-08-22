@@ -4,6 +4,38 @@
   "framework": "vite",
   "trailingSlash": false,
   "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/eqr-logo/:path*",
+      "destination": "/images/brand/eqr-logo/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/branded-logos/:path*",
+      "destination": "/images/brand/logos/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/placeholder.svg",
+      "destination": "/images/ui/placeholder.svg",
+      "permanent": true
+    },
+    {
+      "source": "/us.svg",
+      "destination": "/images/maps/us.svg",
+      "permanent": true
+    },
+    {
+      "source": "/icons/:file(.*).png",
+      "destination": "/images/brand/icons/:file.png",
+      "permanent": true
+    },
+    {
+      "source": "/icons/:file(.*).svg",
+      "destination": "/images/equipment/:file.svg",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/((?!.*\\.).*)",

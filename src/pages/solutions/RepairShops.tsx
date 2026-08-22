@@ -111,7 +111,7 @@ const RepairShops = () => {
                   <div className="flex items-start gap-4 mb-6">
                     <div className="shrink-0">
                       <img
-                        src="/branded-logos/3A-Equipment-Logo-Medium.png"
+                        src="/images/brand/logos/3A-Equipment-Logo-Medium.png"
                         alt="3-A Equipment Logo"
                         className="h-20 w-20 object-contain"
                       />

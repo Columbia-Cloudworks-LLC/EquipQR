@@ -12,7 +12,7 @@ import { startDocsDistCspServer, type DocsCspServer } from './shared/docs-csp-se
  * changed (VitePress regenerates its inline __VP_HASH_MAP__ bootstrap), because
  * Vercel serves headers from the committed vercel.json, not the build output.
  * The build now externalizes all inline scripts to /assets/inline.*.js
- * (scripts/docs/externalize-docs-inline-scripts.mjs) so the CSP stays a static
+ * (dev/docs/externalize-docs-inline-scripts.mjs) so the CSP stays a static
  * script-src 'self' that can never drift.
  *
  * Issue #1358 — VitePress theme mirrors Mission Control tokens from the app,

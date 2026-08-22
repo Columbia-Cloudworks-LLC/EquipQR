@@ -5,10 +5,10 @@
  * tour, invite flow, and role overview at phone viewport.
  *
  * Capture:
- *   .\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow "docs-start-here-mobile" `
+ *   .\dev\pr-evidence\Invoke-PrEvidence.ps1 -Flow "docs-start-here-mobile" `
  *     -Spec "e2e/pr-evidence/docs-start-here-mobile.spec.ts" -MobileViewport
  * Publish:
- *   .\scripts\docs-media\Publish-DocsMedia.ps1 `
+ *   .\dev\docs-media\Publish-DocsMedia.ps1 `
  *     -ManifestPath tmp\pr-evidence\docs-start-here-mobile\manifest.json `
  *     -Collection start-here -Variant mobile
  */

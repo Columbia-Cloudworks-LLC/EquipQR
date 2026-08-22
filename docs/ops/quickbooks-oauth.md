@@ -203,11 +203,11 @@ deno test --allow-env --allow-net=quickbooks.api.intuit.com ./quickbooks-export-
 ### Local development
 
 1. Use Intuit **Development** app credentials (same keys as preview sandbox).
-2. Run `.\scripts\sync-local-supabase-env.ps1` so `supabase/functions/.env` includes `QBO_USE_SANDBOX=true`.
+2. Run `.\dev\sync-local-supabase-env.ps1` so `supabase/functions/.env` includes `QBO_USE_SANDBOX=true`.
 3. Register the local callback URI in the Intuit Developer Portal (Development app → Keys & OAuth).
 4. Capture the integration once: `npm run e2e:quickbooks-auth:capture` (see `docs/ops/playwright-real-auth-integrations.md`).
 5. Restart Supabase after env changes: `npx supabase stop; npx supabase start -x logflare -x vector`
-6. Probe the QBO API from the shell: `.\scripts\qbo\Invoke-QboQuery.ps1 -StatusOnly`.
+6. Probe the QBO API from the shell: `.\dev\qbo\Invoke-QboQuery.ps1 -StatusOnly`.
 
 ## API reference
 

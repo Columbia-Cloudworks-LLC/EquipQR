@@ -19,18 +19,18 @@ const VIEWBOX = 100;
 // Equipment vectors served from /public/icons. The space in the crane variant's
 // filename must be percent-encoded for safe use as an SVG image href.
 const EQUIPMENT_ICONS = [
-  '/icons/barrier-svgrepo-com.svg',
-  '/icons/bulldozer-svgrepo-com.svg',
-  '/icons/concrete-mixer-concrete-svgrepo-com.svg',
-  '/icons/cone-svgrepo-com.svg',
-  '/icons/crane-svgrepo-com%20(1).svg',
-  '/icons/crane-svgrepo-com.svg',
-  '/icons/driller-maintenance-svgrepo-com.svg',
-  '/icons/excavator-svgrepo-com.svg',
-  '/icons/forklift-svgrepo-com.svg',
-  '/icons/tractor-svgrepo-com.svg',
-  '/icons/trolley-wheelbarrow-svgrepo-com.svg',
-  '/icons/truck-pickup-svgrepo-com.svg',
+  '/images/equipment/barrier-svgrepo-com.svg',
+  '/images/equipment/bulldozer-svgrepo-com.svg',
+  '/images/equipment/concrete-mixer-concrete-svgrepo-com.svg',
+  '/images/equipment/cone-svgrepo-com.svg',
+  '/images/equipment/crane-svgrepo-com%20(1).svg',
+  '/images/equipment/crane-svgrepo-com.svg',
+  '/images/equipment/driller-maintenance-svgrepo-com.svg',
+  '/images/equipment/excavator-svgrepo-com.svg',
+  '/images/equipment/forklift-svgrepo-com.svg',
+  '/images/equipment/tractor-svgrepo-com.svg',
+  '/images/equipment/trolley-wheelbarrow-svgrepo-com.svg',
+  '/images/equipment/truck-pickup-svgrepo-com.svg',
 ] as const;
 
 // Icon size in viewBox units. Slightly larger than the former dot diameter (5)

@@ -4,7 +4,7 @@
  * Feature `/features/*` rows are derived from FEATURE_SEO_BY_PATH.
  *
  * Relative imports are required: Vite loads this graph from `vite.config.ts` via Node ESM
- * (`scripts/generate-marketing-html.ts`), and `tsx scripts/generate-sitemap.ts` does the same.
+ * (`dev/generate-marketing-html.ts`), and `tsx dev/generate-sitemap.ts` does the same.
  * `@/` aliases are Vite/tsconfig.app paths only and fail as `ERR_MODULE_NOT_FOUND` / `UNRESOLVED_IMPORT`.
  */
 
@@ -33,7 +33,7 @@ export function resolveCanonicalUrl(route: MarketingRoute): string {
 }
 
 /**
- * Order matches legacy `scripts/generate-sitemap.mjs` (now `scripts/generate-sitemap.ts`) PUBLIC_ROUTES for stable sitemap output.
+ * Order matches legacy `dev/generate-sitemap.mjs` (now `dev/generate-sitemap.ts`) PUBLIC_ROUTES for stable sitemap output.
  */
 export const MARKETING_ROUTES: readonly MarketingRoute[] = [
   {

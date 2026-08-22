@@ -47,7 +47,7 @@ jobs:
         node-version: ${{ env.NODE_VERSION }}
 
     - name: Verify release metadata against PR base (main)
-      run: node scripts/verify-release-metadata.mjs
+      run: node dev/verify-release-metadata.mjs
       env:
         RELEASE_METADATA_MODE: main
         RELEASE_METADATA_BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -72,7 +72,7 @@ jobs:
     # the version bump → main-mode rules. Feature/fix PRs stay on preview mode.
     # Mode is a pure Actions expression (no bash / no head_ref interpolation).
     - name: Verify release metadata against preview base
-      run: node scripts/verify-release-metadata.mjs
+      run: node dev/verify-release-metadata.mjs
       env:
         RELEASE_METADATA_MODE: ${{ (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'main' || startsWith(github.head_ref, 'chore/release-v'))) && 'main' || 'preview' }}
         RELEASE_METADATA_BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -163,10 +163,13 @@ jobs:
       run: npm run verify:node-policy
 
     - name: Install PSScriptAnalyzer
-      run: node scripts/lint-catalog.mjs --mode provision --only psscriptanalyzer
+      run: node dev/lint-catalog.mjs --mode provision --only psscriptanalyzer
 
     - name: Run lint catalog
       run: npm run lint:all
+
+    - name: Verify root layout
+      run: npm run verify:root-layout
 
     - name: Run ESLint
       run: npx eslint . --format=json --output-file=eslint-report.json
@@ -242,7 +245,7 @@ jobs:
         npm ci --prefer-offline --no-audit || (rm -f package-lock.json && npm install --package-lock-only --no-audit && npm ci --prefer-offline --no-audit)
 
     - name: Run shard ${{ matrix.shard }}/${{ matrix.shard_total }}
-      run: node scripts/test-ci-shard.mjs --shard=${{ matrix.shard }}/${{ matrix.shard_total }}
+      run: node dev/test-ci-shard.mjs --shard=${{ matrix.shard }}/${{ matrix.shard_total }}
       env:
         CI: 'true'
         NODE_OPTIONS: '--max-old-space-size=4096'
@@ -308,11 +311,11 @@ jobs:
         pattern: coverage-shard-*
 
     - name: Merge coverage
-      run: node scripts/merge-coverage.mjs
+      run: node dev/merge-coverage.mjs
 
     # Floors match vitest.config.ts coverage.thresholds.global (ratchet runs on merged shards).
     - name: Run coverage ratchet
-      run: node scripts/coverage-ratchet.mjs
+      run: node dev/coverage-ratchet.mjs
 
     - name: Upload merged coverage to Codecov
       uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f
@@ -392,7 +395,7 @@ jobs:
       id: duration_report
       run: |
         set -euo pipefail
-        node scripts/vitest-perf/report-vitest-durations.mjs --markdown --github-summary --allow-empty vitest-results
+        node dev/vitest-perf/report-vitest-durations.mjs --markdown --github-summary --allow-empty vitest-results
         if grep -q '"empty": true' tmp/vitest-perf/latest-report.json 2>/dev/null; then
           echo "empty=true" >> "$GITHUB_OUTPUT"
         else
@@ -409,7 +412,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GITHUB_REPOSITORY: ${{ github.repository }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
-      run: node scripts/vitest-perf/publish-duration-pr-comment.mjs
+      run: node dev/vitest-perf/publish-duration-pr-comment.mjs
 
   security:
     name: Security Scan

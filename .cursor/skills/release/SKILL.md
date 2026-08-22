@@ -134,7 +134,7 @@ Customer-facing summary: short user or operator outcomes since last release per 
 ## Step 7: Publish evidence
 
 ```powershell
-.\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts" -PrNumber <num> -Publish
+.\dev\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts" -PrNumber <num> -Publish
 ```
 
 Skip when Step 5 did not apply.

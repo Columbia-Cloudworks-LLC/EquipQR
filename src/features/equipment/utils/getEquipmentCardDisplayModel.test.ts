@@ -30,7 +30,7 @@ describe('getEquipmentCardDisplayModel', () => {
         settings
       );
 
-      expect(result.imageFallbackSrc).toBe('/placeholder.svg');
+      expect(result.imageFallbackSrc).toBe('/images/ui/placeholder.svg');
     });
   });
 

@@ -55,7 +55,7 @@ After `-CaptureOnly`, capture writes `tmp/pr-evidence/{flow}/visual-review-check
 Then record approval:
 
 ```powershell
-.\scripts\pr-evidence\Complete-PrEvidenceVisualReview.ps1 -Flow "<flow>" -Notes "<what you verified>"
+.\dev\pr-evidence\Complete-PrEvidenceVisualReview.ps1 -Flow "<flow>" -Notes "<what you verified>"
 ```
 
 Upload/publish (`Invoke-PrEvidence.ps1` without `-CaptureOnly`) is blocked until `visual-review.json` has `approved: true`. Re-capture clears stale approval.
@@ -64,24 +64,24 @@ Upload/publish (`Invoke-PrEvidence.ps1` without `-CaptureOnly`) is blocked until
 
 ```powershell
 # Capture (stack must be up — dev-start.bat or run-user-regression preflight)
-.\scripts\pr-evidence\Invoke-PrEvidence.ps1 `
+.\dev\pr-evidence\Invoke-PrEvidence.ps1 `
   -Flow "my-feature-slug" `
   -Spec "e2e/pr-evidence/my-feature.spec.ts" `
   -CaptureOnly
 
 # Mandatory visual review — open each PNG in tmp/pr-evidence/{flow}/screenshots/
 # and walk visual-review-checklist.md before upload/publish.
-.\scripts\pr-evidence\Complete-PrEvidenceVisualReview.ps1 `
+.\dev\pr-evidence\Complete-PrEvidenceVisualReview.ps1 `
   -Flow "my-feature-slug" `
   -Notes "Verified framing, no horizontal scroll, mobile stacking OK"
 
 # Upload markdown (blocked until visual review is recorded)
-.\scripts\pr-evidence\Invoke-PrEvidence.ps1 `
+.\dev\pr-evidence\Invoke-PrEvidence.ps1 `
   -Flow "my-feature-slug" `
   -Spec "e2e/pr-evidence/my-feature.spec.ts"
 
 # After gh pr create, upload and post the evidence comment
-.\scripts\pr-evidence\Invoke-PrEvidence.ps1 `
+.\dev\pr-evidence\Invoke-PrEvidence.ps1 `
   -Flow "my-feature-slug" `
   -Spec "e2e/pr-evidence/my-feature.spec.ts" `
   -PrNumber 1234 `
@@ -114,13 +114,13 @@ await focusAndClick(page, page.getByRole('button', { name: /invite member/i }));
 When updating equipqr.info articles, also publish capture artifacts to the public **`docs-media`** bucket (stable paths for docs, not branch-scoped PR paths):
 
 ```powershell
-.\scripts\docs-media\Publish-DocsMedia.ps1 `
+.\dev\docs-media\Publish-DocsMedia.ps1 `
   -ManifestPath tmp\pr-evidence\location-maps-desktop\manifest.json `
   -Collection location-maps `
   -Variant desktop `
   -MarkdownOut tmp\docs-media\location-maps\desktop.md
 ```
 
-See `docs/public/support/README.md` and `scripts/docs-media/Publish-DocsMedia.ps1`.
+See `docs/public/support/README.md` and `dev/docs-media/Publish-DocsMedia.ps1`.
 
-See `scripts/pr-evidence/README.md` for full operator docs.
+See `dev/pr-evidence/README.md` for full operator docs.

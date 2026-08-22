@@ -42,8 +42,8 @@ Register these exact URIs in Intuit and Google Cloud consoles:
 Sync helper (read-only check first):
 
 ```powershell
-.\scripts\sync-supabase-secrets-from-1password.ps1 -Check -OpItem edge-env-preview-secrets
-.\scripts\sync-supabase-secrets-from-1password.ps1 -OpItem edge-env-prod-secrets
+.\dev\sync-supabase-secrets-from-1password.ps1 -Check -OpItem edge-env-preview-secrets
+.\dev\sync-supabase-secrets-from-1password.ps1 -OpItem edge-env-prod-secrets
 ```
 
 ## 1Password source-of-truth items
@@ -58,8 +58,8 @@ Update EquipQR Agents vault items so future syncs do not restore retired knobs:
 Re-run:
 
 ```powershell
-.\scripts\sync-vercel-from-1password.ps1
-.\scripts\sync-supabase-secrets-from-1password.ps1 -OpItem edge-env-preview-secrets
+.\dev\sync-vercel-from-1password.ps1
+.\dev\sync-supabase-secrets-from-1password.ps1 -OpItem edge-env-preview-secrets
 ```
 
 ## Intuit Developer Portal

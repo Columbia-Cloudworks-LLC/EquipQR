@@ -44,7 +44,7 @@ const SocialProofSection = () => {
             <span className="text-sm font-medium text-muted-foreground">Trusted by teams at</span>
             <div className="flex items-center gap-3">
               <img
-                src="/branded-logos/3A-Equipment-Logo-Medium.png"
+                src="/images/brand/logos/3A-Equipment-Logo-Medium.png"
                 alt=""
                 className="h-10 w-auto object-contain opacity-90"
                 aria-hidden
@@ -63,7 +63,7 @@ const SocialProofSection = () => {
               <div className="flex items-start gap-4 mb-6">
                 <div className="shrink-0">
                   <img
-                    src="/branded-logos/3A-Equipment-Logo-Medium.png"
+                    src="/images/brand/logos/3A-Equipment-Logo-Medium.png"
                     alt="3-A Equipment Logo"
                     className="h-20 w-20 object-contain"
                   />

@@ -1,5 +1,5 @@
 {
   "agentCanUpdateSnapshot": true,
-  "install": "bash scripts/cloud-agent-frontend-setup.sh",
-  "start": "bash scripts/cloud-agent-ephemeral-stack.sh"
+  "install": "bash dev/cloud-agent-frontend-setup.sh",
+  "start": "bash dev/cloud-agent-ephemeral-stack.sh"
 }

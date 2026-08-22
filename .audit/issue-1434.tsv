@@ -1,0 +1,12 @@
+ts	phase	decision	why	evidence	result
+2026-08-22T21:00:00Z	frame	treat 1434 as a layout migration, not a config dump into etc	Vite, ESLint, tsc, Vercel, Qodo, and GitHub all require named files at repo root	index.html, package.json, .pr_agent.toml, best_practices.md	open
+2026-08-22T21:00:10Z	frame	rename scripts/ to dev/ instead of nesting as dev/scripts/	scripts already resolve repo root as parent; nesting would break every .. lookup	scripts/Release-EquipQrNodeModuleLocks.ps1:Get-EquipQrRepoRoot	open
+2026-08-22T21:00:20Z	frame	skip architect/arena	the folders are named in the issue; the one-way door is which tools require root, which is a fact	issue 1434 body	skipped
+2026-08-22T21:00:30Z	frame	keep Qodo files at root	Qodo Merge reads best_practices.md, pr_compliance_checklist.yaml, and .pr_agent.toml from the repo root	CHANGELOG.md #645, .pr_agent.toml	kept
+2026-08-22T21:20:00Z	subtract	deleted unused .hintrc, conflicting .size-limit.json, and duplicate root favicon.ico	those files had no callers or duplicated a tighter package.json size-limit	.git status D .hintrc D .size-limit.json D favicon.ico	kept
+2026-08-22T21:25:00Z	dev	renamed scripts/ to dev/ and rewrote repo-root path strings	keeps every .. repo-root lookup working and matches the issue folder name	package.json scripts, .github/workflows/ci.yml	tests pending
+2026-08-22T21:35:00Z	dev	moved root launchers into dev/ and pointed repoRoot at the parent	root launchers assumed they lived at the repo root	dev/dev-start.ps1, .vscode/tasks.json	kept
+2026-08-22T21:40:00Z	etc	moved lint catalog to etc/lint and PROJECT_ROADMAP.md to docs/archive	lint is already loaded by explicit path; the roadmap is not a GitHub community file	etc/lint/targets.json, docs/archive/PROJECT_ROADMAP.md	kept
+2026-08-22T21:50:00Z	images	moved app images under public/images/{brand,equipment,maps,ui}	issue asked for public/images; favicon.ico and og-image.png stay at public root	index.html, public/manifest.webmanifest	localhost 200
+2026-08-22T21:55:00Z	images	added Vercel redirects from old /icons /eqr-logo /branded-logos URLs	invitation emails and JSON-LD still point at the old public paths	vercel.json redirects	kept
+2026-08-22T22:00:00Z	verify	root-layout check, lint, tsc, and targeted tests passed	prove the move on the real commands, not a file list	npm run verify:root-layout, npm run lint, npm run type-check	VERIFIED

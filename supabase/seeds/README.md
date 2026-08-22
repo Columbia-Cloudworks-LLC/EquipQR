@@ -2,7 +2,7 @@
 
 This folder contains the **durable core** of local development seed data — the minimal committed SQL that E2E fixtures and Playwright constants depend on. The files are executed in lexicographic order by the Supabase CLI.
 
-**Volume data is generated, not committed** (#1164). `scripts/seed-data/generate-seeds.ts` writes deterministic bulk SQL (inventory, alternate groups, equipment fleet, work orders with consumed parts and costs, inventory RBAC grants, operator check-ins) into `supabase/seeds/generated/` (gitignored), which `supabase db reset` applies **after** the committed files here. See [Generated Volume Data](#generated-volume-data).
+**Volume data is generated, not committed** (#1164). `dev/seed-data/generate-seeds.ts` writes deterministic bulk SQL (inventory, alternate groups, equipment fleet, work orders with consumed parts and costs, inventory RBAC grants, operator check-ins) into `supabase/seeds/generated/` (gitignored), which `supabase db reset` applies **after** the committed files here. See [Generated Volume Data](#generated-volume-data).
 
 ## Security Warning
 
@@ -223,7 +223,7 @@ If you're seeing duplicate organizations or unexpected default org selection:
 
 ## Generated Volume Data
 
-Bulk test data is produced by `scripts/seed-data/generate-seeds.ts` into `supabase/seeds/generated/` (gitignored) and applied by `supabase db reset` after the committed files (see `[db.seed].sql_paths` in `supabase/config.toml`).
+Bulk test data is produced by `dev/seed-data/generate-seeds.ts` into `supabase/seeds/generated/` (gitignored) and applied by `supabase db reset` after the committed files (see `[db.seed].sql_paths` in `supabase/config.toml`).
 
 ### How it runs
 
@@ -233,7 +233,7 @@ Bulk test data is produced by `scripts/seed-data/generate-seeds.ts` into `supaba
 | `run-user-regression.ps1 -ResetDb` (`dev-test.bat reset-db` / `local-full`) | Regenerates at scale 1, then resets |
 | `npm run seed:generate [-- --scale N]` | Manual regeneration only (no reset) |
 
-Generation is deterministic: the same scale always emits identical SQL (seeded RNG, counter-based UUIDs), so E2E behaves identically across machines and resets. Guardrail unit tests live in `scripts/seed-data/generate-seeds.test.ts`.
+Generation is deterministic: the same scale always emits identical SQL (seeded RNG, counter-based UUIDs), so E2E behaves identically across machines and resets. Guardrail unit tests live in `dev/seed-data/generate-seeds.test.ts`.
 
 ### Domains at scale 1
 
@@ -249,7 +249,7 @@ Generation is deterministic: the same scale always emits identical SQL (seeded R
 
 ### Dev media (images)
 
-After `supabase db reset`, step **5b** runs `scripts/seed-dev-media.ps1` to upload photos from `supabase/seed-images/` into private Storage buckets and store **canonical paths** in Postgres (equipment display, equipment note images, work order images). See `supabase/seed-images/README.md` for the `equipment/`, `drop/`, and `work-orders/` folder conventions.
+After `supabase db reset`, step **5b** runs `dev/seed-dev-media.ps1` to upload photos from `supabase/seed-images/` into private Storage buckets and store **canonical paths** in Postgres (equipment display, equipment note images, work order images). See `supabase/seed-images/README.md` for the `equipment/`, `drop/`, and `work-orders/` folder conventions.
 
 ### E2E safety contract
 

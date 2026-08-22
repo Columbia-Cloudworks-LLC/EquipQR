@@ -23,7 +23,7 @@ The user must provide an existing issue. If the user does not provide a valid is
 Prefer a connected GitHub integration (MCP or equivalent) when available to fetch issue JSON. Otherwise use the local CLI fallback:
 
 ```powershell
-.\scripts\itil\Get-ItilIssueContext.ps1 -Issue "<number-or-url>" -Json
+.\dev\itil\Get-ItilIssueContext.ps1 -Issue "<number-or-url>" -Json
 ```
 
 Or:

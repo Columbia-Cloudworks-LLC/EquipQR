@@ -24,7 +24,7 @@ import {
   createTableRegex,
   grantFunctionToAnonRegex,
   grantFunctionToAuthenticatedRegex,
-} from '../../scripts/lib/migrationSqlAnalysis.mjs';
+} from '../../dev/lib/migrationSqlAnalysis.mjs';
 
 const NAMING_REGEX = /^\d{14}_[a-z0-9_]+\.sql$/;
 

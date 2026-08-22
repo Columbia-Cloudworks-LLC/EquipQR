@@ -20,7 +20,7 @@ npm ci
 On **Windows**, if `npm ci` fails with **EPERM** / **EBUSY** on `tailwindcss-oxide` or `lightningcss` native binaries, the dev stack or Vitest/ESLint is still holding `node_modules` open. Stop everything and use the safe installer:
 
 ```powershell
-.\npm-ci-safe.bat
+.\dev\npm-ci-safe.bat
 # equivalent:
 npm run ci:install
 ```
@@ -43,10 +43,10 @@ op --version
 # Never echo the token. See AGENTS.md and .cursor/skills/toolbelt/SKILL.md.
 
 # Start local stack + sync env files from 1Password early in startup
-.\dev-start.bat
+.\dev\dev-start.bat
 
 # Optional: refresh Cursor MCP config (requires Cursor restart to apply)
-.\dev-setup-cursor-mcp.bat
+.\dev\dev-setup-cursor-mcp.bat
 ```
 
 Manual fallback (no 1Password access):
@@ -134,7 +134,7 @@ Key secrets include:
 
 ### Local Edge Function Development
 
-Preferred: let `.\dev-start.bat` sync `supabase/functions/.env` from 1Password.
+Preferred: let `.\dev\dev-start.bat` sync `supabase/functions/.env` from 1Password.
 
 Manual fallback: create `supabase/functions/.env`:
 
@@ -233,20 +233,20 @@ Two batch files in the project root let you bring the entire local stack up or t
 
 | Script | What it does |
 |--------|-------------|
-| **`dev-start.bat`** | Thin launcher for **`dev-start.ps1`**. Starts the **full** stack: Supabase + Edge Functions serve + docs + Vite. Exits **`0`** only when all four pass health checks. Optional **`-Force`**: after Supabase is up, runs **`supabase db reset`**, seeds dev media (equipment/note/work-order images via `scripts/seed-dev-media.ps1`), regenerates **`src/integrations/supabase/types.ts`**, then ensures Edge, docs, and Vite are running. **`-Force`** does **not** call **`dev-stop`**; if Vite, docs, or Edge Functions serve is already running, the script exits with an error and tells you to run **`dev-stop`** first. |
+| **`dev-start.bat`** | Thin launcher for **`dev-start.ps1`**. Starts the **full** stack: Supabase + Edge Functions serve + docs + Vite. Exits **`0`** only when all four pass health checks. Optional **`-Force`**: after Supabase is up, runs **`supabase db reset`**, seeds dev media (equipment/note/work-order images via `dev/seed-dev-media.ps1`), regenerates **`src/integrations/supabase/types.ts`**, then ensures Edge, docs, and Vite are running. **`-Force`** does **not** call **`dev-stop`**; if Vite, docs, or Edge Functions serve is already running, the script exits with an error and tells you to run **`dev-stop`** first. |
 | **`dev-stop.bat`** | Thin launcher for **`dev-stop.ps1`**. Stops Vite (port 8080), docs (port 5174), Edge Functions serve, the Supabase Docker stack, and sweeps dev ports. Exits **`1`** if any attempted stop step fails. Optional **`-Force`** (or **`/Force`**) also quits Docker Desktop. |
-| **`dev-setup-cursor-mcp.bat`** | Thin launcher for **`dev-setup-cursor-mcp.ps1`**. Renders `~/.cursor/mcp.json` from 1Password references (via `scripts/render-mcp-config.ps1`) and optionally writes the local gcloud service-account JSON. Does not start or stop the dev stack. |
+| **`dev-setup-cursor-mcp.bat`** | Thin launcher for **`dev-setup-cursor-mcp.ps1`**. Renders `~/.cursor/mcp.json` from 1Password references (via `dev/render-mcp-config.ps1`) and optionally writes the local gcloud service-account JSON. Does not start or stop the dev stack. |
 
 ```powershell
 # From the project root — or double-click in Explorer
-.\dev-start.bat                              # full stack, strict health
-.\dev-start.bat -Force                       # DB reset + types + seed dev media, then full stack (stop stack first if already running)
+.\dev\dev-start.bat                              # full stack, strict health
+.\dev\dev-start.bat -Force                       # DB reset + types + seed dev media, then full stack (stop stack first if already running)
 
-.\dev-stop.bat                               # Stop full dev stack (Docker Desktop keeps running)
-.\dev-stop.bat -Force                        # Same + quit Docker Desktop
+.\dev\dev-stop.bat                               # Stop full dev stack (Docker Desktop keeps running)
+.\dev\dev-stop.bat -Force                        # Same + quit Docker Desktop
 
-.\dev-setup-cursor-mcp.bat                   # Refresh Cursor MCP config only
-.\dev-setup-cursor-mcp.bat -SkipGcp          # Refresh MCP config without gcloud key write
+.\dev\dev-setup-cursor-mcp.bat                   # Refresh Cursor MCP config only
+.\dev\dev-setup-cursor-mcp.bat -SkipGcp          # Refresh MCP config without gcloud key write
 ```
 
 > **Tip**: `dev-start.bat` exits **`0`** only when Supabase API, Edge Functions serve, docs, and Vite are all healthy — suitable as a Playwright / E2E pre-test step. There is no final `pause`; failures return a non-zero exit code. 1Password env sync runs early when `op` is on PATH. MCP setup is intentionally separate via `dev-setup-cursor-mcp.bat` because Cursor restart is only relevant when MCP config changes. Logic lives in **`dev-start.ps1`** / **`dev-stop.ps1`** so batch stays double-click friendly without parser quirks.
@@ -295,23 +295,23 @@ npm run build
 
 A [git worktree](https://git-scm.com/docs/git-worktree) is a second checkout of the same repository. Cursor may create worktrees under a path like `%USERPROFILE%\.cursor\worktrees\...`. Those folders get **tracked** files only: ignored secrets (`.env`, `.env.local`, `supabase/functions/.env`) and `node_modules` are **not** copied. Worktrees also often do not have your 1Password-authenticated environment available by default.
 
-**Workflow:** Keep one canonical clone (for example `C:\Users\viral\EquipQR`) where you run `.\dev-start.bat` so env files exist on disk. In any other worktree, bootstrap once:
+**Workflow:** Keep one canonical clone (for example `C:\Users\viral\EquipQR`) where you run `.\dev\dev-start.bat` so env files exist on disk. In any other worktree, bootstrap once:
 
 ```powershell
 # From inside the worktree (any subfolder is fine if git sees the repo)
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\bootstrap-worktree-env.ps1 -InstallDeps
+powershell -NoProfile -ExecutionPolicy Bypass -File .\dev\bootstrap-worktree-env.ps1 -InstallDeps
 ```
 
 The script picks a source checkout automatically: another worktree of this repo that already has `.env`, preferring a path **not** under `.cursor\worktrees`. You can pin the source explicitly:
 
 ```powershell
 $env:EQUIPQR_MAIN_REPO = "C:\Users\viral\EquipQR"   # optional persistent default
-.\scripts\bootstrap-worktree-env.ps1 -SourceRoot "C:\Users\viral\EquipQR" -InstallDeps
+.\dev\bootstrap-worktree-env.ps1 -SourceRoot "C:\Users\viral\EquipQR" -InstallDeps
 ```
 
 Use `-UseHardLink` if you want the worktree to share the same files as the source (same drive; edits apply to both). Otherwise the default is **copy**.
 
-**Dev server:** `dev-start.bat` uses fixed ports (for example Vite on `8080`). Only one checkout should own the live stack at a time; stop the other with `.\dev-stop.bat` before starting in a different worktree.
+**Dev server:** `dev-start.bat` uses fixed ports (for example Vite on `8080`). Only one checkout should own the live stack at a time; stop the other with `.\dev\dev-stop.bat` before starting in a different worktree.
 
 ## Project Structure Deep Dive
 

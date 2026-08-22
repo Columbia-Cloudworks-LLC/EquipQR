@@ -70,7 +70,7 @@ Browse them on GitHub or in your local checkout:
 
 ### For New Developers
 1. Start with **[Developer Onboarding](./getting-started/developer-onboarding.md)** - 5-minute quick start
-   - Preferred setup path: use 1Password CLI + `.\dev-start.bat` to auto-sync env files
+   - Preferred setup path: use 1Password CLI + `.\dev\dev-start.bat` to auto-sync env files
 2. Read **[Development Lifecycle](./getting-started/development-lifecycle.md)** - Understand how work moves from plan to production
 3. Review [Architecture](./technical/architecture.md) - Understand system design
 4. Read [Standards](./technical/standards.md) - Learn coding standards and UI patterns

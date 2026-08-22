@@ -15,17 +15,17 @@ Cloud agents **do not** run `npx supabase start` in Docker. Cursor Cloud VMs hav
 
 ## What the scripts do
 
-1. `scripts/cloud-agent-ephemeral-stack.sh`
+1. `dev/cloud-agent-ephemeral-stack.sh`
    - Loads `SUPABASE_ACCESS_TOKEN` (env or `op://tgo2m6qbct5otqeqirjocn3joa/supabase-write/SUPABASE_ACCESS_TOKEN`)
    - Deletes stale `agent-*` branches older than TTL (default **4 hours**; invalid TTL fails closed)
 
    - Creates `agent-<session>` via **Management API** with `git_branch=preview` (required so migrations deploy; CLI-only creates often hit `MIGRATIONS_FAILED`)
    - Polls until `FUNCTIONS_DEPLOYED`
    - Fetches branch anon + service_role keys (`supabase branches get -o json`)
-   - Seeds Quick Login personas via Auth Admin API (`scripts/cloud-agent/seed-quick-login.mjs`)
+   - Seeds Quick Login personas via Auth Admin API (`dev/cloud-agent/seed-quick-login.mjs`)
    - Rewrites `.env` `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` (backup under `tmp/cloud-agent/`)
    - Starts Vite (`npm run dev`) unless `--skip-vite`
-2. `scripts/cloud-agent-ephemeral-teardown.sh`
+2. `dev/cloud-agent-ephemeral-teardown.sh`
    - Deletes the session branch
    - Restores `.env` from the pre-ephemeral backup
 
@@ -33,8 +33,8 @@ Cloud agents **do not** run `npx supabase start` in Docker. Cursor Cloud VMs hav
 
 [`.cursor/environment.json`](../../.cursor/environment.json):
 
-- `install` → `bash scripts/cloud-agent-frontend-setup.sh` (Node 24, 1Password `.env`, `npm ci`)
-- `start` → `bash scripts/cloud-agent-ephemeral-stack.sh`
+- `install` → `bash dev/cloud-agent-frontend-setup.sh` (Node 24, 1Password `.env`, `npm ci`)
+- `start` → `bash dev/cloud-agent-ephemeral-stack.sh`
 
 Cloud Agent secrets must include at least:
 
@@ -55,16 +55,16 @@ Primary smoke persona: `owner@apex.test` — org upgraded with one team + `CAT 3
 
 ```bash
 # Create branch, seed, rewrite .env, start Vite
-bash scripts/cloud-agent-ephemeral-stack.sh
+bash dev/cloud-agent-ephemeral-stack.sh
 
 # Create/seed only (no Vite)
-bash scripts/cloud-agent-ephemeral-stack.sh --skip-vite
+bash dev/cloud-agent-ephemeral-stack.sh --skip-vite
 
 # Playwright smoke (after Vite is up)
 CLOUD_AGENT_E2E=1 npx playwright test e2e/cloud-agent/quick-login-smoke.spec.ts
 
 # Tear down branch + restore .env
-bash scripts/cloud-agent-ephemeral-teardown.sh
+bash dev/cloud-agent-ephemeral-teardown.sh
 ```
 
 Session metadata: `tmp/cloud-agent/ephemeral-stack.json` (gitignored under `tmp/`).

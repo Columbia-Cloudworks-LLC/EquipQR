@@ -245,10 +245,10 @@ EquipQR uses a hybrid runner strategy for optimal performance and security.
 **Toggle Method:**
 ```powershell
 # Switch to self-hosted
-pwsh -File scripts/switch-runner-type.ps1 -RunnerType self-hosted
+pwsh -File dev/switch-runner-type.ps1 -RunnerType self-hosted
 
 # Switch to GitHub-hosted
-pwsh -File scripts/switch-runner-type.ps1 -RunnerType github-hosted
+pwsh -File dev/switch-runner-type.ps1 -RunnerType github-hosted
 ```
 
 **Runner Assignment:**
@@ -348,5 +348,5 @@ See [Deployment Guide - Self-Hosted Runner Setup](./deployment.md#self-hosted-ru
 | `.github/runner-config.yml` | Runner type configuration |
 | `vercel.json` | Vercel deployment configuration |
 | `supabase/config.toml` | Supabase CLI configuration |
-| `scripts/switch-runner-type.ps1` | Toggle self-hosted/GitHub-hosted runners |
-| `scripts/test-ci.mjs` | CI test runner with coverage validation |
+| `dev/switch-runner-type.ps1` | Toggle self-hosted/GitHub-hosted runners |
+| `dev/test-ci.mjs` | CI test runner with coverage validation |
