@@ -3,21 +3,29 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Mail } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { isMFAEnabled } from '@/lib/flags';
+import { AuthGoogleSignInButton } from '@/pages/AuthGoogleSignInButton';
 import DevQuickLogin from './DevQuickLogin';
 
 interface SignInFormProps {
   onError: (error: string) => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
+  onGoogleSignIn: () => void;
   /** Called when MFA verification is required after successful password auth */
   onMFARequired?: () => void;
 }
 
-const SignInForm: React.FC<SignInFormProps> = ({ onError, isLoading, setIsLoading, onMFARequired }) => {
+const SignInForm: React.FC<SignInFormProps> = ({
+  onError,
+  isLoading,
+  setIsLoading,
+  onGoogleSignIn,
+  onMFARequired,
+}) => {
   const { signIn } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
@@ -28,9 +36,13 @@ const SignInForm: React.FC<SignInFormProps> = ({ onError, isLoading, setIsLoadin
     password?: string;
     auth?: string;
   } | null>(null);
+  const [emailSignInOpen, setEmailSignInOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!emailSignInOpen) {
+      return;
+    }
     
     if (isLoading) return; // Prevent multiple submissions
     
@@ -92,6 +104,22 @@ const SignInForm: React.FC<SignInFormProps> = ({ onError, isLoading, setIsLoadin
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Dev-only quick login - tree-shaken out of production builds */}
       <DevQuickLogin onAuthFailure={onError} />
+      {emailSignInOpen ? null : (
+        <>
+          <AuthGoogleSignInButton
+            onClick={onGoogleSignIn}
+            disabled={isLoading}
+            label="Login with Google"
+          />
+          <p className="text-center text-xs text-muted-foreground">or</p>
+          <Button type="button" variant="outline" className="w-full" onClick={() => setEmailSignInOpen(true)}>
+            <Mail className="mr-2 h-4 w-4" aria-hidden />
+            Login with Email & Password
+          </Button>
+        </>
+      )}
+      {emailSignInOpen ? (
+        <>
       <div className="space-y-2">
         <Label htmlFor="signin-email">Email</Label>
         <Input
@@ -168,6 +196,16 @@ const SignInForm: React.FC<SignInFormProps> = ({ onError, isLoading, setIsLoadin
         )}
         Sign In
       </Button>
+      <button
+        type="button"
+        className="flex w-full items-center justify-center gap-2 text-sm font-medium text-foreground underline underline-offset-4 hover:text-primary"
+        onClick={() => setEmailSignInOpen(false)}
+      >
+        <ArrowLeft className="h-4 w-4" aria-hidden />
+        Back to Google login
+      </button>
+        </>
+      ) : null}
     </form>
   );
 };

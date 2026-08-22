@@ -35,6 +35,13 @@ export function getEmailErrorForValue(value: string): string | null {
   return isSignupEmailValid(value) || value.length === 0 ? null : 'Enter a valid email address';
 }
 
+export function canStartGoogleSignup(
+  organizationName: string,
+  orgNameError: string | null,
+): boolean {
+  return Boolean(organizationName.trim()) && !orgNameError;
+}
+
 export function getInvitedOrgNameConflict(
   orgName: string,
   invitedOrgName: string | undefined,

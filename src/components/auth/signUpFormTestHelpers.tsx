@@ -12,9 +12,17 @@ export const mockGetCurrentAuthSession = vi.mocked(authSignupService.getCurrentA
 export const defaultSignUpFormProps = {
   onSuccess: vi.fn(),
   onError: vi.fn(),
+  onGoogleSignUp: vi.fn(),
   isLoading: false,
   setIsLoading: vi.fn(),
 };
+
+export function revealEmailSignup(): void {
+  const reveal = screen.queryByRole('button', { name: /sign up with email/i });
+  if (reveal) {
+    fireEvent.click(reveal);
+  }
+}
 
 export const withRouter = (ui: React.ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
 
@@ -37,6 +45,8 @@ export const fillSignUpFormFast = (overrides: SignUpFormData = {}) => {
     verifyCaptcha: true,
   };
   const data = { ...defaults, ...overrides };
+
+  revealEmailSignup();
 
   if (data.name !== undefined) {
     fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: data.name } });
@@ -69,6 +79,7 @@ export function setupFastUser() {
 
 export function renderSignUpWithPasswordFields() {
   withRouter(<SignUpForm {...defaultSignUpFormProps} />);
+  revealEmailSignup();
   return {
     passwordInput: screen.getByLabelText('Password'),
     confirmPasswordInput: screen.getByLabelText(/confirm password/i),

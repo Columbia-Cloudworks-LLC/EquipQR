@@ -10,7 +10,8 @@ test.describe('signup success UX @full', () => {
     const uniquePassword = `E2e-Signup-${uniqueSuffix}-Zx9!Qk7#mN`;
 
     await page.goto('/auth');
-    await page.getByRole('tab', { name: /sign up/i }).click();
+    await page.getByRole('button', { name: /create an account/i }).click();
+    await page.getByRole('button', { name: /sign up with email/i }).click();
 
     await page.getByLabel(/^full name|^name/i).fill('E2E Signup User');
     await page.getByLabel(/^email/i).fill(uniqueEmail);

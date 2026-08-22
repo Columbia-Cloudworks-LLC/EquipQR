@@ -3,8 +3,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, XCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, Mail, XCircle } from 'lucide-react';
 import HCaptchaComponent from '@/components/ui/HCaptcha';
+import { AuthGoogleSignInButton } from '@/pages/AuthGoogleSignInButton';
 import { getCurrentAuthSession, signUpWithEmail } from '@/services/authSignupService';
 import { validatePasswordComplexity, calculatePasswordStrength } from '@/lib/passwordPolicy';
 import { checkPasswordBreachedHibp } from '@/lib/hibpPasswordCheck';
@@ -21,6 +22,7 @@ import SignUpTermsAcceptance from './SignUpTermsAcceptance';
 import {
   ALL_SIGNUP_FIELDS_TOUCHED,
   buildSignupUserMetadata,
+  canStartGoogleSignup,
   computePasswordMatch,
   getEmailErrorForValue,
   getInvitedOrgNameConflict,
@@ -33,6 +35,7 @@ import {
 interface SignUpFormProps {
   onSuccess: (message: string, email?: string) => void;
   onBeforeSignupSubmit?: () => void;
+  onGoogleSignUp: (organizationName: string) => void;
   onError: (error: string) => void;
   isLoading: boolean;
   setIsLoading: (loading: boolean) => void;
@@ -44,6 +47,7 @@ interface SignUpFormProps {
 const SignUpForm: React.FC<SignUpFormProps> = ({
   onSuccess,
   onBeforeSignupSubmit,
+  onGoogleSignUp,
   onError,
   isLoading,
   setIsLoading,
@@ -68,6 +72,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
   const [acceptanceTouched, setAcceptanceTouched] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [showRetryAcceptance, setShowRetryAcceptance] = useState(false);
+  const [emailSignupOpen, setEmailSignupOpen] = useState(Boolean(prefillEmail));
 
   const complexity = validatePasswordComplexity(formData.password);
   const strength = calculatePasswordStrength(formData.password);
@@ -103,6 +108,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
 
   useEffect(() => {
     if (!prefillEmail) return;
+    setEmailSignupOpen(true);
     setFormData(prev => {
       if (prefillEmail === prev.email) {
         return prev;
@@ -152,6 +158,9 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!emailSignupOpen) {
+      return;
+    }
 
     setSubmitAttempted(true);
     setAcceptanceTouched(true);
@@ -289,12 +298,70 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
     onError('CAPTCHA expired. Please complete it again.');
   };
 
+  const googleSignupReady = canStartGoogleSignup(formData.organizationName, orgNameError);
+
+  const handleGoogleSignUp = () => {
+    setTouched(prev => ({ ...prev, organizationName: true }));
+    const conflict = invitedOrgName
+      ? getInvitedOrgNameConflict(formData.organizationName, invitedOrgName)
+      : null;
+    if (conflict) {
+      setOrgNameError(conflict);
+      return;
+    }
+    const organizationName = formData.organizationName.trim();
+    if (!organizationName) {
+      return;
+    }
+    onGoogleSignUp(organizationName);
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {invitedOrgName && <SignUpInviteBanner invitedOrgName={invitedOrgName} />}
 
       <SignUpPrivacyNotice />
 
+      <div className="space-y-2">
+        <Label htmlFor="signup-organization">Organization Name</Label>
+        <Input
+          id="signup-organization"
+          type="text"
+          value={formData.organizationName}
+          onChange={e => handleInputChange('organizationName', e.target.value)}
+          onBlur={() => handleBlur('organizationName')}
+          placeholder={
+            invitedOrgName ? `Enter your organization name (not ${invitedOrgName})` : 'Enter your organization name'
+          }
+          required
+          aria-invalid={!!getFieldError('organizationName')}
+          aria-describedby={getFieldError('organizationName') ? 'signup-org-error' : undefined}
+        />
+        {getFieldError('organizationName') && (
+          <p id="signup-org-error" className="text-sm text-destructive flex items-center gap-1" aria-live="polite">
+            <XCircle className="h-3 w-3" />
+            {getFieldError('organizationName')}
+          </p>
+        )}
+      </div>
+
+      {emailSignupOpen ? null : (
+        <>
+          <AuthGoogleSignInButton
+            onClick={handleGoogleSignUp}
+            disabled={isLoading || !googleSignupReady}
+            label="Sign up with Google"
+          />
+          <p className="text-center text-xs text-muted-foreground">or</p>
+          <Button type="button" variant="outline" className="w-full" onClick={() => setEmailSignupOpen(true)}>
+            <Mail className="mr-2 h-4 w-4" aria-hidden />
+            Sign up with email
+          </Button>
+        </>
+      )}
+
+      {emailSignupOpen ? (
+        <>
       <div className="space-y-2">
         <Label htmlFor="signup-name">Full Name</Label>
         <Input
@@ -334,29 +401,6 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
         {getFieldError('email') && (
           <p id="signup-email-error" className="text-sm text-destructive" aria-live="polite">
             {getFieldError('email')}
-          </p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="signup-organization">Organization Name</Label>
-        <Input
-          id="signup-organization"
-          type="text"
-          value={formData.organizationName}
-          onChange={e => handleInputChange('organizationName', e.target.value)}
-          onBlur={() => handleBlur('organizationName')}
-          placeholder={
-            invitedOrgName ? `Enter your organization name (not ${invitedOrgName})` : 'Enter your organization name'
-          }
-          required
-          aria-invalid={!!getFieldError('organizationName')}
-          aria-describedby={getFieldError('organizationName') ? 'signup-org-error' : undefined}
-        />
-        {getFieldError('organizationName') && (
-          <p id="signup-org-error" className="text-sm text-destructive flex items-center gap-1" aria-live="polite">
-            <XCircle className="h-3 w-3" />
-            {getFieldError('organizationName')}
           </p>
         )}
       </div>
@@ -419,6 +463,17 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
       {!formIsValid() && Object.keys(touched).length > 0 && (
         <p className="text-xs text-muted-foreground text-center">Fill in all required fields to continue</p>
       )}
+
+      <button
+        type="button"
+        className="flex w-full items-center justify-center gap-2 text-sm font-medium text-foreground underline underline-offset-4 hover:text-primary"
+        onClick={() => setEmailSignupOpen(false)}
+      >
+        <ArrowLeft className="h-4 w-4" aria-hidden />
+        Back to Google signup
+      </button>
+        </>
+      ) : null}
     </form>
   );
 };
