@@ -67,9 +67,11 @@ jobs:
       - name: Deployment notification (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
+        env:
+          APP_VERSION: ${{ steps.version_win.outputs.version }}
         run: |
           Write-Host "🚀 Deployment triggered for $env:GITHUB_REF_NAME branch"
-          Write-Host "Version: ${{ steps.version_win.outputs.version }}"
+          Write-Host "Version: $env:APP_VERSION"
           Write-Host "Environment: production"
           Write-Host "Vercel will handle the actual deployment automatically"
           Write-Host ""
@@ -80,9 +82,12 @@ jobs:
       - name: Deployment notification (Unix)
         if: runner.os != 'Windows'
         shell: bash
+        env:
+          DEPLOY_REF_NAME: ${{ github.ref_name }}
+          APP_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          echo "🚀 Deployment triggered for ${{ github.ref_name }} branch"
-          echo "Version: ${{ steps.version.outputs.version }}"
+          echo "🚀 Deployment triggered for $DEPLOY_REF_NAME branch"
+          echo "Version: $APP_VERSION"
           echo "Environment: production"
           echo "Vercel will handle the actual deployment automatically"
           echo ""
