@@ -210,7 +210,7 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
                           <div className="relative aspect-video w-full overflow-hidden rounded-md bg-muted">
                             {primaryImageId === image.id ? (
                               <Badge
-                                className="absolute left-2 top-2 z-1 shadow-sm"
+                                className="absolute left-2 top-2 z-[1] shadow-sm"
                                 variant="secondary"
                               >
                                 Primary
