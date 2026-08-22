@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Mail, XCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, Mail, XCircle } from 'lucide-react';
 import HCaptchaComponent from '@/components/ui/HCaptcha';
 import { AuthGoogleSignInButton } from '@/pages/AuthGoogleSignInButton';
 import { getCurrentAuthSession, signUpWithEmail } from '@/services/authSignupService';
@@ -345,14 +345,23 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
         )}
       </div>
 
-      <AuthGoogleSignInButton
-        onClick={handleGoogleSignUp}
-        disabled={isLoading || !googleSignupReady}
-        label="Sign up with Google"
-      />
-
-      {emailSignupOpen ? null : (
+      {emailSignupOpen ? (
+        <Button
+          type="button"
+          variant="ghost"
+          className="h-auto px-0 text-sm text-muted-foreground hover:text-foreground"
+          onClick={() => setEmailSignupOpen(false)}
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden />
+          Back to Google signup
+        </Button>
+      ) : (
         <>
+          <AuthGoogleSignInButton
+            onClick={handleGoogleSignUp}
+            disabled={isLoading || !googleSignupReady}
+            label="Sign up with Google"
+          />
           <p className="text-center text-xs text-muted-foreground">or</p>
           <Button type="button" variant="outline" className="w-full" onClick={() => setEmailSignupOpen(true)}>
             <Mail className="mr-2 h-4 w-4" aria-hidden />

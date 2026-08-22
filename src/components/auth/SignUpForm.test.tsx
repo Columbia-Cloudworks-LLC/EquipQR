@@ -54,6 +54,21 @@ describe('SignUpForm', () => {
       expect(screen.getByTestId('hcaptcha-mock')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /create account & organization/i })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /sign up with email/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /sign up with google/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /back to google signup/i })).toBeInTheDocument();
+    });
+
+    it('returns to Google signup from the email path', () => {
+      withRouter(<SignUpForm {...defaultSignUpFormProps} />);
+      revealEmailSignup();
+
+      fireEvent.click(screen.getByRole('button', { name: /back to google signup/i }));
+
+      expect(screen.getByRole('button', { name: /sign up with google/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /sign up with email/i })).toBeInTheDocument();
+      expect(screen.queryByLabelText(/full name/i)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/email/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /back to google signup/i })).not.toBeInTheDocument();
     });
 
     it('should have correct input types and attributes', () => {
@@ -682,6 +697,8 @@ describe('SignUpForm', () => {
 
       expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /sign up with email/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /sign up with google/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /back to google signup/i })).toBeInTheDocument();
     });
   });
 

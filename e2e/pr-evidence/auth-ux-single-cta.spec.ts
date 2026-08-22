@@ -57,9 +57,13 @@ test.describe('PR evidence auth UX single CTA @pr-evidence', () => {
     await emailSignup.click();
     const emailField = page.getByLabel(/^email$/i);
     await expect(emailField).toBeVisible();
+    await expect(page.getByRole('button', { name: /sign up with google/i })).toHaveCount(0);
+    const backToGoogle = page.getByRole('button', { name: /back to google signup/i });
+    await expect(backToGoogle).toBeVisible();
     await emailField.scrollIntoViewIfNeeded();
     await evidencePause(page, 400);
     await evidenceScreenshot({ page, label: '06-auth-signup-email-path', target: emailField });
+    await evidenceScreenshot({ page, label: '07-auth-signup-back-to-google', target: backToGoogle });
   });
 
   test('legacy tab=signup still opens the create-org form', async ({ page }) => {
@@ -71,7 +75,7 @@ test.describe('PR evidence auth UX single CTA @pr-evidence', () => {
     await expect(page.getByRole('tab')).toHaveCount(0);
     await signupTitle.scrollIntoViewIfNeeded();
     await evidencePause(page, 400);
-    await evidenceScreenshot({ page, label: '07-auth-legacy-tab-signup', target: signupTitle });
+    await evidenceScreenshot({ page, label: '08-auth-legacy-tab-signup', target: signupTitle });
   });
 
   test('mobile sheet has a single Get Started account CTA', async ({ page }) => {
@@ -84,6 +88,6 @@ test.describe('PR evidence auth UX single CTA @pr-evidence', () => {
     await expect(accountCta).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole('link', { name: /^Sign In$/i })).toHaveCount(0);
     await evidencePause(page, 400);
-    await evidenceScreenshot({ page, label: '08-mobile-sheet-single-cta', target: accountCta });
+    await evidenceScreenshot({ page, label: '09-mobile-sheet-single-cta', target: accountCta });
   });
 });
