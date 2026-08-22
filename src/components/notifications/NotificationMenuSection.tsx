@@ -14,11 +14,11 @@ import { logger } from '@/utils/logger';
 import { useMarkAllNotificationsAsRead } from '@/hooks/useNotificationSettings';
 import { useMarkNotificationAsRead, type Notification } from '@/features/work-orders/hooks/useWorkOrderData';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { getNotificationEmoji } from '@/utils/notifications/notificationDisplay';
 import {
-  getNotificationEmoji,
   navigateForNotification,
-  notificationHasNavigableAction,
-} from '@/utils/notifications/notificationDisplay';
+  resolveNotificationDestination,
+} from '@/utils/notifications/notificationDestination';
 
 interface NotificationMenuSectionProps {
   organizationId: string;
@@ -93,7 +93,7 @@ const NotificationMenuSection: React.FC<NotificationMenuSectionProps> = ({
         <ScrollArea className="max-h-64">
           <div className="space-y-0.5 px-1">
             {recentNotifications.map((notification) => {
-              const hasAction = notificationHasNavigableAction(notification);
+              const dest = resolveNotificationDestination(notification);
               const isTransferRequest =
                 notification.type === 'ownership_transfer_request' ||
                 notification.type === 'workspace_merge_request';
@@ -124,9 +124,9 @@ const NotificationMenuSection: React.FC<NotificationMenuSectionProps> = ({
                         <p className="text-xs text-muted-foreground">
                           {formatRelative(notification.created_at)}
                         </p>
-                        {hasAction && (
+                        {dest.navigable && (
                           <span className="text-xs text-primary font-medium">
-                            {isTransferRequest ? 'Respond →' : 'View →'}
+                            {dest.cta.compact}
                           </span>
                         )}
                       </div>

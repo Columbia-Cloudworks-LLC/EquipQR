@@ -22,8 +22,11 @@ import { logger } from '@/utils/logger';
 import {
   getNotificationEmoji,
   getNotificationTypeLabel,
-  navigateForNotification,
 } from '@/utils/notifications/notificationDisplay';
+import {
+  navigateForNotification,
+  resolveNotificationDestination,
+} from '@/utils/notifications/notificationDestination';
 
 const Notifications: React.FC = () => {
   const { organizationId, switchOrganization } = useOrganization();
@@ -165,9 +168,10 @@ const Notifications: React.FC = () => {
           ) : (
             <div className="space-y-3">
               {filteredNotifications.map((notification) => {
-                const isTransferRequest = notification.type === 'ownership_transfer_request' || notification.type === 'workspace_merge_request';
-                const isOwnershipTransferRequest = notification.type === 'ownership_transfer_request';
-                const isWorkspaceMergeRequest = notification.type === 'workspace_merge_request';
+                const dest = resolveNotificationDestination(notification);
+                const isTransferRequest =
+                  notification.type === 'ownership_transfer_request' ||
+                  notification.type === 'workspace_merge_request';
                 const isActionRequired = isTransferRequest && !notification.read;
                 
                 return (
@@ -220,25 +224,11 @@ const Notifications: React.FC = () => {
                         {notification.message}
                       </p>
                       
-                      {(notification.data?.work_order_id ||
-                        notification.type.startsWith('ownership_transfer') ||
-                        notification.type.startsWith('workspace_merge') ||
-                        notification.type === 'member_added' ||
-                        notification.type === 'member_role_changed' ||
-                        notification.type === 'team_member_added' ||
-                        notification.type === 'team_member_role_changed' ||
-                        notification.type === 'audit_export') && (
+                      {dest.navigable && (
                         <div className="flex items-center gap-2 mt-3">
                           <ArrowRight className="h-3 w-3 text-primary" />
                           <span className="text-xs text-primary font-medium">
-                            {isOwnershipTransferRequest
-                              ? 'Click to respond to transfer request'
-                              : isWorkspaceMergeRequest
-                                ? 'Click to respond to merge request'
-                              : notification.data?.work_order_id 
-                                ? 'Click to view work order'
-                                : 'Click to view organization settings'
-                            }
+                            {dest.cta.detail}
                           </span>
                         </div>
                       )}
