@@ -1,5 +1,5 @@
-import { createE2EAdminClient } from '../../user/shared/fresh-start-reset';
-import { apexOrgId, seedTeams, seedWorkOrders } from '../../user/shared/seed-data';
+import { createE2EAdminClient } from '@/e2e/user/shared/fresh-start-reset';
+import { apexOrgId, seedTeams, seedWorkOrders } from '@/e2e/user/shared/seed-data';
 
 const apexOwnerUserId = 'bb0e8400-e29b-41d4-a716-446655440001';
 

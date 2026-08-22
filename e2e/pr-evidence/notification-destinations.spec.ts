@@ -1,6 +1,6 @@
-import { test, expect } from '../user/fixtures/equipqr-test';
-import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
-import { seedNotificationDestinationFixtures } from './shared/notification-destinations-seed';
+import { test, expect } from '@/e2e/user/fixtures/equipqr-test';
+import { evidenceScreenshot, evidencePause } from '@/e2e/pr-evidence/shared/evidence-helpers';
+import { seedNotificationDestinationFixtures } from '@/e2e/pr-evidence/shared/notification-destinations-seed';
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -58,7 +58,7 @@ test.describe('PR evidence notification destinations @pr-evidence', () => {
       timeout: 30_000,
     });
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '03-team-destination');
+    await evidenceScreenshot({ page, label: '03-team-destination', target: page.getByRole('heading', { name: /heavy equipment team/i }) });
 
     await gotoDashboard('/notifications');
     await assertHealthyShell();
@@ -75,6 +75,6 @@ test.describe('PR evidence notification destinations @pr-evidence', () => {
       }).first(),
     ).toBeVisible({ timeout: 30_000 });
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '04-work-order-destination');
+    await evidenceScreenshot({ page, label: '04-work-order-destination', target: page.getByRole('heading', { name: new RegExp(escapeRegExp(fixtures.workOrderAssigned.workOrderTitle), 'i') }).first() });
   });
 });
