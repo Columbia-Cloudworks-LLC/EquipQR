@@ -5,20 +5,75 @@ export const PENDING_SIGNUP_ORGANIZATION_STORAGE_KEY = 'pendingSignupOrganizatio
 export const DEFAULT_PERSONAL_ORGANIZATION_NAME = 'My Organization';
 export const PENDING_SIGNUP_ORGANIZATION_MAX_AGE_MS = 15 * 60 * 1000;
 
-export function getPendingSignupOrganizationName(): string | null {
+export type PendingSignupApplyUser = {
+  id: string;
+  created_at?: string | null;
+  app_metadata?: {
+    provider?: string;
+    providers?: string[];
+  };
+};
+
+type PendingSignupOrganizationRecord = {
+  name: string;
+  startedAt: number;
+};
+
+function isGoogleAuthUser(user: PendingSignupApplyUser): boolean {
+  if (user.app_metadata?.provider === 'google') {
+    return true;
+  }
+  return user.app_metadata?.providers?.includes('google') === true;
+}
+
+function isRecentAuthUser(createdAt: string | null | undefined, now = Date.now()): boolean {
+  const createdMs = Date.parse(createdAt ?? '');
+  return Number.isFinite(createdMs) && now - createdMs <= PENDING_SIGNUP_ORGANIZATION_MAX_AGE_MS;
+}
+
+function readPendingRecord(now = Date.now()): PendingSignupOrganizationRecord | null {
   try {
-    const value = sessionStorage.getItem(PENDING_SIGNUP_ORGANIZATION_STORAGE_KEY)?.trim();
-    return value || null;
+    const raw = sessionStorage.getItem(PENDING_SIGNUP_ORGANIZATION_STORAGE_KEY)?.trim();
+    if (!raw) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as { name?: unknown; startedAt?: unknown };
+      if (typeof parsed.name === 'string' && typeof parsed.startedAt === 'number') {
+        const name = parsed.name.trim();
+        if (!name) {
+          return null;
+        }
+        if (now - parsed.startedAt > PENDING_SIGNUP_ORGANIZATION_MAX_AGE_MS) {
+          sessionStorage.removeItem(PENDING_SIGNUP_ORGANIZATION_STORAGE_KEY);
+          return null;
+        }
+        return { name, startedAt: parsed.startedAt };
+      }
+    } catch {
+      // Earlier commits stored a plain name string.
+    }
+
+    return { name: raw, startedAt: now };
   } catch {
     return null;
   }
+}
+
+export function getPendingSignupOrganizationName(): string | null {
+  return readPendingRecord()?.name ?? null;
 }
 
 export function setPendingSignupOrganizationName(organizationName: string): void {
   const trimmed = organizationName.trim();
   try {
     if (trimmed) {
-      sessionStorage.setItem(PENDING_SIGNUP_ORGANIZATION_STORAGE_KEY, trimmed);
+      const record: PendingSignupOrganizationRecord = {
+        name: trimmed,
+        startedAt: Date.now(),
+      };
+      sessionStorage.setItem(PENDING_SIGNUP_ORGANIZATION_STORAGE_KEY, JSON.stringify(record));
       return;
     }
     sessionStorage.removeItem(PENDING_SIGNUP_ORGANIZATION_STORAGE_KEY);
@@ -35,16 +90,23 @@ export function clearPendingSignupOrganizationName(): void {
   }
 }
 
-export async function applyPendingSignupOrganizationName(userId: string): Promise<void> {
-  const organizationName = getPendingSignupOrganizationName();
-  if (!organizationName) {
+export async function applyPendingSignupOrganizationName(
+  user: PendingSignupApplyUser,
+): Promise<void> {
+  const pending = readPendingRecord();
+  if (!pending) {
+    return;
+  }
+
+  if (!isGoogleAuthUser(user) || !isRecentAuthUser(user.created_at)) {
+    clearPendingSignupOrganizationName();
     return;
   }
 
   const { data: personalOrg, error: personalOrgError } = await supabase
     .from('personal_organizations')
     .select('organization_id')
-    .eq('user_id', userId)
+    .eq('user_id', user.id)
     .maybeSingle();
 
   if (personalOrgError || !personalOrg?.organization_id) {
@@ -75,7 +137,7 @@ export async function applyPendingSignupOrganizationName(userId: string): Promis
   const { data: updated, error: updateError } = await supabase
     .from('organizations')
     .update({
-      name: organizationName,
+      name: pending.name,
       updated_at: new Date().toISOString(),
     })
     .eq('id', organization.id)

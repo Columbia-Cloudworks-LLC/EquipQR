@@ -368,7 +368,13 @@ describe('AuthContext', () => {
       await result.current!.signInWithGoogle({ organizationName: '  Fleet Co  ' });
     });
 
-    expect(setItem).toHaveBeenCalledWith('pendingSignupOrganizationName', 'Fleet Co');
+    const stored = setItem.mock.calls.find(
+      ([key]) => key === 'pendingSignupOrganizationName',
+    )?.[1];
+    expect(JSON.parse(String(stored))).toEqual({
+      name: 'Fleet Co',
+      startedAt: expect.any(Number),
+    });
     setItem.mockRestore();
   });
 

@@ -82,7 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')
         ) {
           schedulePendingTermsAcceptanceFlush(session.user);
-          void applyPendingSignupOrganizationName(session.user.id);
+          void applyPendingSignupOrganizationName(session.user);
         }
 
         // Handle post-login redirect for QR code scans (only for actual sign-ins)
@@ -207,6 +207,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signIn = async (email: string, password: string) => {
+    clearPendingSignupOrganizationName();
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -254,6 +255,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Clear application-specific storage
       try {
         clearPendingRedirect();
+        clearPendingSignupOrganizationName();
         // Clear admin grants cache keys from localStorage (they start with equipqr_admin_grants_)
         Object.keys(localStorage)
           .filter(key => key.startsWith('equipqr_admin_grants_'))

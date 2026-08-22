@@ -38,15 +38,17 @@ export async function signInWithEmailPassword(
   await page.goto('/auth?tab=signin');
   await expect(page).toHaveURL(/\/auth/i, { timeout: 30_000 });
 
+  const emailField = page.getByLabel(/^email$/i).or(page.locator('#signin-email')).first();
   const emailPath = page.getByRole('button', { name: /login with email & password/i });
-  if (await emailPath.isVisible().catch(() => false)) {
+  await expect(emailPath.or(emailField)).toBeVisible({ timeout: 30_000 });
+  if (!(await emailField.isVisible().catch(() => false))) {
     await emailPath.click();
   }
+  await expect(emailField).toBeVisible({ timeout: 15_000 });
 
-  const emailField = page.getByLabel(/email/i).or(page.locator('input[type="email"]')).first();
   const passwordField = page
-    .getByLabel(/password/i)
-    .or(page.locator('input[type="password"]'))
+    .getByLabel(/^password$/i)
+    .or(page.locator('#signin-password'))
     .first();
 
   await emailField.fill(email);

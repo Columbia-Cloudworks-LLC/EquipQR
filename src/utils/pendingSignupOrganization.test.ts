@@ -33,6 +33,14 @@ function mockQuery(result: { data: unknown; error: unknown }) {
   from.mockReturnValue({ select, update });
 }
 
+function googleNewUser(id = 'user-1') {
+  return {
+    id,
+    created_at: new Date().toISOString(),
+    app_metadata: { provider: 'google' },
+  };
+}
+
 describe('pendingSignupOrganization', () => {
   beforeEach(() => {
     sessionStorage.clear();
@@ -42,11 +50,29 @@ describe('pendingSignupOrganization', () => {
 
   it('stores and clears a trimmed organization name', () => {
     setPendingSignupOrganizationName('  Fleet Co  ');
-    expect(sessionStorage.getItem(PENDING_SIGNUP_ORGANIZATION_STORAGE_KEY)).toBe('Fleet Co');
+    const stored = JSON.parse(
+      sessionStorage.getItem(PENDING_SIGNUP_ORGANIZATION_STORAGE_KEY) ?? '',
+    ) as { name: string; startedAt: number };
+    expect(stored.name).toBe('Fleet Co');
+    expect(stored.startedAt).toEqual(expect.any(Number));
     expect(getPendingSignupOrganizationName()).toBe('Fleet Co');
 
     setPendingSignupOrganizationName('   ');
     expect(getPendingSignupOrganizationName()).toBeNull();
+  });
+
+  it('expires a pending name after the signup window', () => {
+    setPendingSignupOrganizationName('Fleet Co');
+    const stored = JSON.parse(
+      sessionStorage.getItem(PENDING_SIGNUP_ORGANIZATION_STORAGE_KEY) ?? '',
+    ) as { name: string; startedAt: number };
+    sessionStorage.setItem(
+      PENDING_SIGNUP_ORGANIZATION_STORAGE_KEY,
+      JSON.stringify({ ...stored, startedAt: Date.now() - 16 * 60 * 1000 }),
+    );
+
+    expect(getPendingSignupOrganizationName()).toBeNull();
+    expect(sessionStorage.getItem(PENDING_SIGNUP_ORGANIZATION_STORAGE_KEY)).toBeNull();
   });
 
   it('renames a brand-new default personal organization', async () => {
@@ -88,7 +114,7 @@ describe('pendingSignupOrganization', () => {
       };
     });
 
-    await applyPendingSignupOrganizationName('user-1');
+    await applyPendingSignupOrganizationName(googleNewUser());
 
     expect(getPendingSignupOrganizationName()).toBeNull();
   });
@@ -124,7 +150,7 @@ describe('pendingSignupOrganization', () => {
       };
     });
 
-    await applyPendingSignupOrganizationName('user-1');
+    await applyPendingSignupOrganizationName(googleNewUser());
 
     expect(updateFn).not.toHaveBeenCalled();
     expect(getPendingSignupOrganizationName()).toBeNull();
@@ -140,7 +166,7 @@ describe('pendingSignupOrganization', () => {
       }),
     }));
 
-    await applyPendingSignupOrganizationName('user-1');
+    await applyPendingSignupOrganizationName(googleNewUser());
 
     expect(getPendingSignupOrganizationName()).toBe('Fleet Co');
     clearPendingSignupOrganizationName();
@@ -183,8 +209,38 @@ describe('pendingSignupOrganization', () => {
       };
     });
 
-    await applyPendingSignupOrganizationName('user-1');
+    await applyPendingSignupOrganizationName(googleNewUser());
 
     expect(getPendingSignupOrganizationName()).toBe('Fleet Co');
+  });
+
+  it('clears a pending name for password or existing-user sign-in', async () => {
+    setPendingSignupOrganizationName('Fleet Co');
+    const updateFn = vi.fn();
+    from.mockImplementation(() => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: () => Promise.resolve({ data: { organization_id: 'org-1' }, error: null }),
+        }),
+      }),
+      update: updateFn,
+    }));
+
+    await applyPendingSignupOrganizationName({
+      id: 'user-1',
+      created_at: new Date().toISOString(),
+      app_metadata: { provider: 'email' },
+    });
+    expect(updateFn).not.toHaveBeenCalled();
+    expect(getPendingSignupOrganizationName()).toBeNull();
+
+    setPendingSignupOrganizationName('Fleet Co');
+    await applyPendingSignupOrganizationName({
+      id: 'user-1',
+      created_at: new Date(Date.now() - 16 * 60 * 1000).toISOString(),
+      app_metadata: { provider: 'google' },
+    });
+    expect(updateFn).not.toHaveBeenCalled();
+    expect(getPendingSignupOrganizationName()).toBeNull();
   });
 });
