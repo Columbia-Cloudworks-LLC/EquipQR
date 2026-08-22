@@ -6,6 +6,7 @@ import { workOrderKeys } from '@/features/work-orders/hooks/useWorkOrders';
 import { workOrders as workOrderQueryKeys, notifications as notificationQueryKeys } from '@/lib/queryKeys';
 export type NotificationData = {
   work_order_id?: string;
+  team_id?: string;
   // Ownership transfer fields
   transfer_id?: string;
   organization_id?: string;

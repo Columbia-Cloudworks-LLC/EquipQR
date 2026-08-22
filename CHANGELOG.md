@@ -28,6 +28,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Fixed
 
+- **Notification taps open the relevant page (#1431)** — Tapping a notification now goes to the matching work order, team, members list, audit log, or reports page instead of a generic organization dump.
 - **Marketing footer link underlines** — Landing footer internal and external links now share the same muted color and rest/hover underline treatment.
 
 ### Security
