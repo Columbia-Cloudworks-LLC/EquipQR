@@ -267,6 +267,18 @@ export function selectTargets(catalog, request) {
 }
 
 /**
+ * @param {ReturnType<typeof parseCatalog>} catalog
+ * @param {readonly string[] | undefined} only
+ */
+export function unknownOnlyIds(catalog, only) {
+  if (!only || only.length === 0) {
+    return [];
+  }
+  const known = new Set(catalog.targets.map((target) => target.id));
+  return only.filter((id) => !known.has(id));
+}
+
+/**
  * @param {readonly string[]} tokens
  * @param {{ file?: string; repoRoot: string }} ctx
  */
@@ -363,6 +375,23 @@ export function pwshArgvFlags(argv) {
 /** @param {string} url @param {string} dest */
 export function curlDownloadArgs(url, dest) {
   return ['-fsSL', '--proto', '=https', '--max-time', String(DOWNLOAD_MAX_SECONDS), '--retry', '2', '-o', dest, url];
+}
+
+/** @param {string} name @param {string} version */
+export function pwshModuleInstallScript(name, version) {
+  return [
+    '[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12',
+    'Import-Module PowerShellGet -ErrorAction SilentlyContinue',
+    '$gallery = Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue',
+    'if (-not $gallery) { Register-PSRepository -Default -ErrorAction SilentlyContinue; $gallery = Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue }',
+    '$previousPolicy = if ($gallery) { [string]$gallery.InstallationPolicy } else { $null }',
+    'try {',
+    '  if (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue) { Set-PSRepository -Name PSGallery -InstallationPolicy Trusted }',
+    `  Install-Module -Name ${psQuote(name)} -RequiredVersion ${psQuote(version)} -Scope CurrentUser -Force`,
+    '} finally {',
+    '  if ($previousPolicy) { Set-PSRepository -Name PSGallery -InstallationPolicy $previousPolicy -ErrorAction SilentlyContinue }',
+    '}',
+  ].join('\n');
 }
 
 /** @param {string} repoRoot */
@@ -549,13 +578,7 @@ async function ensurePwshModule(target, repoRoot) {
   if (check.exitCode === 0) {
     return { ready: true, targetId: target.id };
   }
-  const installScript = [
-    '[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12',
-    'Import-Module PowerShellGet -ErrorAction SilentlyContinue',
-    'if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) { Register-PSRepository -Default -ErrorAction SilentlyContinue }',
-    'Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue',
-    `Install-Module -Name ${psQuote(name)} -RequiredVersion ${psQuote(version)} -Scope CurrentUser -Force`,
-  ].join('; ');
+  const installScript = pwshModuleInstallScript(name, version);
   const install = await spawnProcess(
     powershell,
     ['-NoProfile', '-NonInteractive', '-Command', installScript],
@@ -889,6 +912,19 @@ async function runTargetProcessSafe(target, argv, repoRoot, mode) {
  */
 export async function runCatalog(request) {
   const catalog = loadCatalog(request.repoRoot);
+  const unknown = unknownOnlyIds(catalog, request.only);
+  if (unknown.length > 0) {
+    const outcomes = unknown.map((id) => ({
+      targetId: id,
+      status: 'failed',
+      message: `unknown lint target: ${id}`,
+      exitCode: 1,
+    }));
+    if (request.mode === 'hook') {
+      return formatHookResponse(outcomes, request.path ?? '', 25);
+    }
+    return { ok: false, outcomes };
+  }
   const selected = selectTargets(catalog, request);
 
   if (request.mode === 'provision') {

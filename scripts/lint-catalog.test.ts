@@ -6,8 +6,10 @@ import {
   npxCliCandidates,
   parseCatalog,
   pwshArgvFlags,
+  pwshModuleInstallScript,
   renderArgv,
   resolveNpxCli,
+  unknownOnlyIds,
 } from './lint-catalog.mjs';
 
 const repoRoot = path.resolve('/equipqr-lint-catalog');
@@ -110,6 +112,41 @@ describe('curlDownloadArgs', () => {
     const args = curlDownloadArgs('https://example.invalid/file', path.join(repoRoot, 'file.bin'));
     expect(args).toContain('--max-time');
     expect(args).toContain('--retry');
+  });
+});
+
+describe('unknownOnlyIds', () => {
+  it('returns catalog IDs that were requested but not defined', () => {
+    const catalog = parseCatalog({
+      version: 1,
+      targets: [
+        {
+          id: 'eslint',
+          kind: 'node-cli',
+          bin: 'eslint/bin/eslint.js',
+          match: { kind: 'when', extensions: ['.ts'] },
+          hook: {
+            failClosed: true,
+            missingTool: 'block',
+            argv: ['{{file}}'],
+            maxOutputLines: 20,
+          },
+          batch: { steps: [{ argv: ['.'], contract: { kind: 'exit-code' } }] },
+        },
+      ],
+    });
+    expect(unknownOnlyIds(catalog, ['eslint'])).toEqual([]);
+    expect(unknownOnlyIds(catalog, ['eslint', 'nope'])).toEqual(['nope']);
+  });
+});
+
+describe('pwshModuleInstallScript', () => {
+  it('restores the previous PSGallery installation policy', () => {
+    const script = pwshModuleInstallScript('PSScriptAnalyzer', '1.23.0');
+    expect(script).toContain('$previousPolicy');
+    expect(script).toContain('finally');
+    expect(script).toContain('Set-PSRepository -Name PSGallery -InstallationPolicy $previousPolicy');
+    expect(script).not.toMatch(/SkipPublisherCheck/);
   });
 });
 
