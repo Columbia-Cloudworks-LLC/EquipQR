@@ -30,7 +30,7 @@ Do **not** confuse git branch **`preview`** (integration train) with Vercel envi
 ## Day-to-day loop
 
 1. Branch off `origin/preview`.
-2. Implement and verify locally (`dev-stop.bat` / `dev-start.bat`, lint, tests, E2E).
+2. Implement and verify locally (`.\dev\dev-stop.bat` / `.\dev\dev-start.bat`, lint, tests, E2E).
 3. Push your work branch → Vercel builds a **Preview** deployment.
 4. Test on the **commit-specific `*.vercel.app` URL** and/or local stack.
 5. Open PR **`feat/*` → `preview`**. CI + Supabase ephemeral branch (when `supabase/**` changes) must pass. Accumulate short customer-facing CHANGELOG `[Unreleased]` bullets per `.cursor/rules/changelog.mdc`. **Do not** bump `package.json`.

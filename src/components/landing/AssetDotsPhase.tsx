@@ -16,8 +16,8 @@ interface AssetDotsPhaseProps {
 
 const VIEWBOX = 100;
 
-// Equipment vectors served from /public/icons. The space in the crane variant's
-// filename must be percent-encoded for safe use as an SVG image href.
+// Equipment vectors served from /public/images/equipment. The space in the crane
+// variant's filename must be percent-encoded for safe use as an SVG image href.
 const EQUIPMENT_ICONS = [
   '/images/equipment/barrier-svgrepo-com.svg',
   '/images/equipment/bulldozer-svgrepo-com.svg',

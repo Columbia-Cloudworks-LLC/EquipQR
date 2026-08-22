@@ -37,7 +37,7 @@ const MIGRATIONS_DIR = 'supabase/migrations';
 
 const REGENERATION_HINT = [
   'Regenerate the schema reference dump and commit it with your migration:',
-  '  1. .\\dev-start.bat -Force   (or: npx supabase db reset)',
+  '  1. .\\dev\\dev-start.bat -Force   (or: npx supabase db reset)',
   '  2. npx supabase db dump --local -f supabase/current_schema.sql',
   '  3. git add supabase/current_schema.sql',
   `Pure data migrations may opt out with a "${DATA_ONLY_MARKER}" comment line.`,

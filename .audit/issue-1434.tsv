@@ -10,3 +10,6 @@ ts	phase	decision	why	evidence	result
 2026-08-22T21:50:00Z	images	moved app images under public/images/{brand,equipment,maps,ui}	issue asked for public/images; favicon.ico and og-image.png stay at public root	index.html, public/manifest.webmanifest	localhost 200
 2026-08-22T21:55:00Z	images	added Vercel redirects from old /icons /eqr-logo /branded-logos URLs	invitation emails and JSON-LD still point at the old public paths	vercel.json redirects	kept
 2026-08-22T22:00:00Z	verify	root-layout check, lint, tsc, and targeted tests passed	prove the move on the real commands, not a file list	npm run verify:root-layout, npm run lint, npm run type-check	VERIFIED
+2026-08-22T22:20:00Z	evidence	retarget spec away from landing PNG that does not exist	landing header uses inline Logo SVG; EquipQR PNG is TopBar mobile only	e2e/pr-evidence/public-image-layout.spec.ts	kept
+2026-08-22T22:26:00Z	evidence	captured 4 PNGs plus H.264 demo on localhost:8080	prove moved /images/brand and /images/equipment paths render	tmp/pr-evidence/public-image-layout	VERIFIED
+2026-08-22T22:27:00Z	evidence	approved visual review	header brand, 3-A logos, footer partner icon, mobile TopBar PNG fully framed	visual-review.json	VERIFIED
