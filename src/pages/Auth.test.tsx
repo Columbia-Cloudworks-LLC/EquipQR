@@ -75,8 +75,15 @@ vi.mock('@/components/auth/SignUpForm', () => ({
 }));
 
 vi.mock('@/components/auth/SignInForm', () => ({
-  default: ({ onError }: { onError: (msg: string) => void }) => (
+  default: ({
+    onError,
+    onGoogleSignIn,
+  }: {
+    onError: (msg: string) => void;
+    onGoogleSignIn: () => void;
+  }) => (
     <div data-testid="signin-form">
+      <button type="button" onClick={onGoogleSignIn}>Login with Google</button>
       <button onClick={() => onError('Invalid credentials')}>Trigger SignIn Error</button>
     </div>
   )
@@ -137,7 +144,7 @@ describe('Auth Page', () => {
     it('renders Google sign in button', () => {
       render(<Auth />);
 
-      expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /login with google/i })).toBeInTheDocument();
     });
   });
 
@@ -359,7 +366,7 @@ describe('Auth Page', () => {
 
       render(<Auth />);
 
-      const googleButton = screen.getByRole('button', { name: /continue with google/i });
+      const googleButton = screen.getByRole('button', { name: /login with google/i });
       fireEvent.click(googleButton);
 
       await waitFor(() => {
@@ -383,7 +390,7 @@ describe('Auth Page', () => {
 
       render(<Auth />);
 
-      const googleButton = screen.getByRole('button', { name: /continue with google/i });
+      const googleButton = screen.getByRole('button', { name: /login with google/i });
       fireEvent.click(googleButton);
 
       await waitFor(() => {

@@ -57,7 +57,7 @@ test.describe('PR evidence OAuth pending redirect @pr-evidence', () => {
       page.getByText(/complete sign in to view scanned equipment/i),
     ).toBeVisible();
 
-    const googleButton = page.getByRole('button', { name: /continue with google/i });
+    const googleButton = page.getByRole('button', { name: /login with google/i });
     await expect(googleButton).toBeVisible({ timeout: 30_000 });
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '02-auth-next-param-qr-prompt', {

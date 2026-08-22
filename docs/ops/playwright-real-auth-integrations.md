@@ -26,7 +26,7 @@ npx playwright codegen "https://preview.equipqr.app/auth?tab=signin" `
 ```
 
 3. In the codegen browser:
-   - Click **Continue with Google** and sign in as `nicholas.king@columbiacloudworks.com`
+   - Click **Login with Google** and sign in as `nicholas.king@columbiacloudworks.com`
    - Wait until `/dashboard` loads
    - Open `https://app.sandbox.qbo.intuit.com/app/homepage` in the **same** browser tab/window and sign into a **sandbox** QuickBooks company
    - Close codegen (file is saved automatically)
@@ -44,7 +44,7 @@ npm run e2e:google-auth:capture
 
 In the opened browser:
 
-1. Click **Continue with Google** and sign in as `nicholas.king@columbiacloudworks.com`.
+1. Click **Login with Google** and sign in as `nicholas.king@columbiacloudworks.com`.
 2. If Google Workspace is not connected on Integrations, click **Connect Google Workspace** and finish consent (one-time setup).
 3. Wait for the setup script to save `tmp/playwright/auth/google-workspace-local.json`.
 

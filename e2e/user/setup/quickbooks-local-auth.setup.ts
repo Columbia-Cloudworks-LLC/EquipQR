@@ -39,7 +39,7 @@ setup('capture QuickBooks local integration @quickbooks-auth-setup', async ({ pa
       [
         '',
         '[quickbooks-auth-setup] Sign in to EquipQR in the browser window.',
-        '[quickbooks-auth-setup] Use Continue with Google or your local test account.',
+        '[quickbooks-auth-setup] Use Login with Google or your local test account.',
         '[quickbooks-auth-setup] Waiting up to 10 minutes for /dashboard ...',
         '',
       ].join('\n'),

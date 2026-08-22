@@ -38,6 +38,11 @@ export async function signInWithEmailPassword(
   await page.goto('/auth?tab=signin');
   await expect(page).toHaveURL(/\/auth/i, { timeout: 30_000 });
 
+  const emailPath = page.getByRole('button', { name: /login with email & password/i });
+  if (await emailPath.isVisible().catch(() => false)) {
+    await emailPath.click();
+  }
+
   const emailField = page.getByLabel(/email/i).or(page.locator('input[type="email"]')).first();
   const passwordField = page
     .getByLabel(/password/i)

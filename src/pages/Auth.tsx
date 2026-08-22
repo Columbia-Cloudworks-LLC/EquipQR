@@ -4,7 +4,6 @@ import { useLocation, useNavigate, type NavigateFunction } from 'react-router-do
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
 import { CheckCircle, ExternalLink, Loader2, Mail, QrCode } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useMFA } from '@/hooks/useMFA';
@@ -22,7 +21,6 @@ import SignInForm from '@/components/auth/SignInForm';
 import MFAVerification from '@/components/auth/MFAVerification';
 import LegalFooter from '@/components/layout/LegalFooter';
 import { useAppToast } from '@/hooks/useAppToast';
-import { AuthGoogleSignInButton } from '@/pages/AuthGoogleSignInButton';
 
 type AuthMode = 'signin' | 'signup';
 
@@ -305,6 +303,9 @@ const Auth = () => {
                   onError={handleError}
                   isLoading={isLoading}
                   setIsLoading={setIsLoading}
+                  onGoogleSignIn={() => {
+                    void handleGoogleSignIn();
+                  }}
                   onMFARequired={handleMFARequired}
                 />
               ) : (
@@ -324,18 +325,6 @@ const Auth = () => {
                   invitedOrgName={invitedOrgName}
                 />
               )}
-
-              {mode === 'signin' ? (
-                <div className="mt-4">
-                  <Separator className="my-4" />
-                  <AuthGoogleSignInButton
-                    onClick={() => {
-                      void handleGoogleSignIn();
-                    }}
-                    disabled={isLoading}
-                  />
-                </div>
-              ) : null}
 
               <p className="mt-6 text-center text-sm text-muted-foreground">
                 {mode === 'signin' ? (

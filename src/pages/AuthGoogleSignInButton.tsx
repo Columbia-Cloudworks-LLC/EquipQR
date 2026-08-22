@@ -9,7 +9,7 @@ type AuthGoogleSignInButtonProps = {
 export function AuthGoogleSignInButton({
   onClick,
   disabled,
-  label = 'Continue with Google',
+  label = 'Login with Google',
 }: AuthGoogleSignInButtonProps) {
   return (
     <Button type="button" variant="outline" className="w-full" onClick={onClick} disabled={disabled}>
