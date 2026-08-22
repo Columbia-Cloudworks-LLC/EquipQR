@@ -110,12 +110,9 @@ const LandingHeader = () => {
           </div>
 
           {/* Desktop CTA */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Button asChild variant="outline">
-              <Link to="/auth?tab=signin">Sign In</Link>
-            </Button>
+          <div className="hidden md:flex items-center">
             <Button asChild>
-              <Link to="/auth?tab=signup">Get Started</Link>
+              <Link to="/auth">Get Started</Link>
             </Button>
           </div>
 
@@ -131,7 +128,7 @@ const LandingHeader = () => {
                 <SheetHeader className="sr-only">
                   <SheetTitle>Site navigation</SheetTitle>
                   <SheetDescription>
-                    Jump to a section, sign in, or create an account.
+                    Jump to a section or get started.
                   </SheetDescription>
                 </SheetHeader>
                 <div className="flex flex-col gap-8 mt-6">
@@ -194,13 +191,8 @@ const LandingHeader = () => {
                     </p>
                     <div className="flex flex-col gap-2">
                       <SheetClose asChild>
-                        <Button asChild variant="outline" className="w-full justify-start h-11">
-                          <Link to="/auth?tab=signin">Sign In</Link>
-                        </Button>
-                      </SheetClose>
-                      <SheetClose asChild>
                         <Button asChild className="w-full h-11">
-                          <Link to="/auth?tab=signup">Get Started Free</Link>
+                          <Link to="/auth">Get Started</Link>
                         </Button>
                       </SheetClose>
                     </div>
