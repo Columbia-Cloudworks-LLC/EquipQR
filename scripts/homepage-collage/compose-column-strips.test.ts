@@ -1,10 +1,16 @@
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import {
-  COLLAGE_MAX_OBJECT_BYTES,
-  HOMEPAGE_COLLAGE_OBJECT_KEYS,
-  formatUploadCommands,
-  validateComposeSources,
-} from './compose-column-strips';
+import { COLLAGE_MAX_OBJECT_BYTES, validateComposeSources } from './compose-column-strips';
+
+const RECIPE_PATH = join(dirname(fileURLToPath(import.meta.url)), 'recipe.json');
+
+interface RecipeTile {
+  readonly source: string;
+  readonly grade: 'clean' | 'worn';
+  readonly crop: 'center-cover';
+}
 
 describe('compose-column-strips validation', () => {
   it('accepts four 9:16 sources with a clean/worn mix under the 5 MiB cap', () => {
@@ -49,27 +55,16 @@ describe('compose-column-strips validation', () => {
     expect(result.errors.some((error) => /5 MiB/.test(error))).toBe(true);
   });
 
-  it('prints upload-screenshot commands for the four homepage-collage keys', () => {
-    const commands = formatUploadCommands('/tmp/out');
+  it('keeps four columns of three tiles with a clean and worn mix', () => {
+    const recipe = JSON.parse(readFileSync(RECIPE_PATH, 'utf8')) as { columns: RecipeTile[][] };
 
-    expect(HOMEPAGE_COLLAGE_OBJECT_KEYS).toEqual([
-      'homepage-collage/col-0.webp',
-      'homepage-collage/col-1.webp',
-      'homepage-collage/col-2.webp',
-      'homepage-collage/col-3.webp',
-    ]);
-    expect(commands).toHaveLength(4);
-    expect(commands[0]).toBe(
-      'npx tsx scripts/upload-screenshot.ts "/tmp/out/col-0.webp" homepage-collage/col-0.webp landing-page-images',
-    );
-    expect(commands[3]).toContain('homepage-collage/col-3.webp');
-  });
-
-  it('quotes local paths that contain spaces', () => {
-    const commands = formatUploadCommands('C:/Users/viral/My Strips');
-
-    expect(commands[1]).toBe(
-      'npx tsx scripts/upload-screenshot.ts "C:/Users/viral/My Strips/col-1.webp" homepage-collage/col-1.webp landing-page-images',
-    );
+    expect(recipe.columns).toHaveLength(4);
+    for (const tiles of recipe.columns) {
+      expect(tiles).toHaveLength(3);
+      const grades = new Set(tiles.map((tile) => tile.grade));
+      expect(grades.has('clean')).toBe(true);
+      expect(grades.has('worn')).toBe(true);
+      expect(tiles.every((tile) => tile.crop === 'center-cover')).toBe(true);
+    }
   });
 });

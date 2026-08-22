@@ -1,8 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { cleanup, render } from '@testing-library/react';
 import { PricingCollageBackground } from '@/components/landing/pricing-collage/PricingCollageBackground';
 
-const SUPABASE_URL = 'https://custom-supabase.example.test';
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
 function stubMatchMedia(reduced: boolean): void {
@@ -25,12 +24,7 @@ function stubMatchMedia(reduced: boolean): void {
 describe('PricingCollageBackground', () => {
   beforeEach(() => {
     cleanup();
-    vi.stubEnv('VITE_SUPABASE_URL', SUPABASE_URL);
     stubMatchMedia(false);
-  });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
   });
 
   it('renders four duplicate-strip columns as eight decorative images', () => {

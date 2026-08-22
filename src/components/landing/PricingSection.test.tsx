@@ -1,9 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import PricingSection from '@/components/landing/PricingSection';
-
-const SUPABASE_URL = 'https://custom-supabase.example.test';
 
 function renderSection() {
   return render(
@@ -16,11 +14,6 @@ function renderSection() {
 describe('PricingSection', () => {
   beforeEach(() => {
     cleanup();
-    vi.stubEnv('VITE_SUPABASE_URL', SUPABASE_URL);
-  });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
   });
 
   it('keeps id=pricing, the heading, both CTAs, and a hidden collage as the first child', () => {

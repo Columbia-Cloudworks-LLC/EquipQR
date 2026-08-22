@@ -80,7 +80,7 @@ export const steps: Step[] = [
 export const showcases: ImageScreenshot[] = [
   {
     kind: 'image',
-    imageUrl: landingImage('work-orders-list-2026-04.png'),
+    imageUrl: landingImage('work-orders-list-2026-04.webp'),
     imageAlt: 'Work orders list with filters by status, priority, and assignee',
     title: 'Work Orders List',
     description:
@@ -88,7 +88,7 @@ export const showcases: ImageScreenshot[] = [
   },
   {
     kind: 'image',
-    imageUrl: landingImage('work-order-detail-2026-04.png'),
+    imageUrl: landingImage('work-order-detail-2026-04.webp'),
     imageAlt: 'Work order detail page with equipment info, assignee, and PM checklist',
     title: 'Work Order Detail & PM Checklist',
     description:

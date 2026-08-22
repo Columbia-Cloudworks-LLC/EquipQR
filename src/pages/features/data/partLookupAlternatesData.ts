@@ -119,7 +119,7 @@ export const steps: Step[] = [
 export const showcases: ImageScreenshot[] = [
   {
     kind: 'image',
-    imageUrl: landingImage('part-lookup-2026-04.png'),
+    imageUrl: landingImage('part-lookup-2026-04.webp'),
     imageAlt: 'Part Lookup page with search by part number tab and example search suggestions',
     title: 'Search by Part Number or Make/Model',
     description:

@@ -79,7 +79,7 @@ export const steps: Step[] = [
 export const showcases: Screenshot[] = [
   {
     kind: 'image',
-    imageUrl: landingImage('equipment-qr-code-modal-2026-04.png'),
+    imageUrl: landingImage('equipment-qr-code-modal-2026-04.webp'),
     imageAlt: 'EquipQR Equipment QR Code modal showing scannable QR code with equipment URL and download options',
     title: 'Equipment QR Codes',
     description:
@@ -87,7 +87,7 @@ export const showcases: Screenshot[] = [
   },
   {
     kind: 'image',
-    imageUrl: landingImage('equipment-list-2026-04.png'),
+    imageUrl: landingImage('equipment-list-2026-04.webp'),
     imageAlt: 'EquipQR Equipment list showing QR code buttons on each equipment card with team assignments and last maintenance dates',
     title: 'Quick Access from Equipment List',
     description:

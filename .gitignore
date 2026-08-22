@@ -113,4 +113,8 @@ public/sitemap.xml
 public/__mobile-frame.html
 public/__viewport-probe.html
 
+# Homepage collage source drop. Compose with `npm run collage:compose`.
+# App stills live in public/images/landing/; do not ship raw sources.
+public/images/marketing/
+
 node_modules_broken/@tailwindcss/.oxide-win32-x64-msvc-EpFgz722.old/tailwindcss-oxide.win32-x64-msvc.node
