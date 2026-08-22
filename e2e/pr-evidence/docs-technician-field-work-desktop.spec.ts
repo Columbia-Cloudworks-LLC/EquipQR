@@ -10,10 +10,10 @@
  * captures never mutate durable-core fixtures.
  *
  * Capture:
- *   .\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow "docs-technician-field-work-desktop" `
+ *   .\dev\pr-evidence\Invoke-PrEvidence.ps1 -Flow "docs-technician-field-work-desktop" `
  *     -Spec "e2e/pr-evidence/docs-technician-field-work-desktop.spec.ts"
  * Publish:
- *   .\scripts\docs-media\Publish-DocsMedia.ps1 `
+ *   .\dev\docs-media\Publish-DocsMedia.ps1 `
  *     -ManifestPath tmp\pr-evidence\docs-technician-field-work-desktop\manifest.json `
  *     -Collection technician-field-work -Variant desktop
  */

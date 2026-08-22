@@ -73,29 +73,29 @@ From the repo root, prefer the shared PowerShell drivers:
 
 | Step | Script |
 |------|--------|
-| 1 | [`scripts/pr-feedback/Get-PrContext.ps1`](../../../scripts/pr-feedback/Get-PrContext.ps1) |
-| 1b, 9 | [`scripts/pr-feedback/Get-PrChecks.ps1`](../../../scripts/pr-feedback/Get-PrChecks.ps1) — use `-Json` for structured status; `-Watch` (and `-FailFast` when diagnosing) to block until checks finish |
-| 2 (inline threads) | [`scripts/pr-feedback/Get-PrFeedbackThreads.ps1`](../../../scripts/pr-feedback/Get-PrFeedbackThreads.ps1) |
-| 2b (review bodies) | [`scripts/pr-feedback/Get-PrReviewBodies.ps1`](../../../scripts/pr-feedback/Get-PrReviewBodies.ps1) |
-| 2c (Qodo findings) | [`scripts/pr-feedback/Get-PrQodoFindings.ps1`](../../../scripts/pr-feedback/Get-PrQodoFindings.ps1) — parses the **persistent parent** comment; open items lack `<s>` / `✓ Resolved` strikethrough |
-| 2c-fix (Qodo auto-fix PR) | [`scripts/pr-feedback/Get-PrQodoFixPr.ps1`](../../../scripts/pr-feedback/Get-PrQodoFixPr.ps1) — mines **Qodo Fixer** cherry-pick comment for closed fix PR link |
-| 5 | [`scripts/pr-feedback/Invoke-PrVerification.ps1`](../../../scripts/pr-feedback/Invoke-PrVerification.ps1) (supplement with Fallow — see Step 5) |
-| 6 | [`scripts/pr-evidence/Invoke-PrEvidence.ps1`](../../../scripts/pr-evidence/Invoke-PrEvidence.ps1) |
-| 8 | [`scripts/pr-feedback/Publish-PrFeedbackResponses.ps1`](../../../scripts/pr-feedback/Publish-PrFeedbackResponses.ps1) |
+| 1 | [`dev/pr-feedback/Get-PrContext.ps1`](../../../dev/pr-feedback/Get-PrContext.ps1) |
+| 1b, 9 | [`dev/pr-feedback/Get-PrChecks.ps1`](../../../dev/pr-feedback/Get-PrChecks.ps1) — use `-Json` for structured status; `-Watch` (and `-FailFast` when diagnosing) to block until checks finish |
+| 2 (inline threads) | [`dev/pr-feedback/Get-PrFeedbackThreads.ps1`](../../../dev/pr-feedback/Get-PrFeedbackThreads.ps1) |
+| 2b (review bodies) | [`dev/pr-feedback/Get-PrReviewBodies.ps1`](../../../dev/pr-feedback/Get-PrReviewBodies.ps1) |
+| 2c (Qodo findings) | [`dev/pr-feedback/Get-PrQodoFindings.ps1`](../../../dev/pr-feedback/Get-PrQodoFindings.ps1) — parses the **persistent parent** comment; open items lack `<s>` / `✓ Resolved` strikethrough |
+| 2c-fix (Qodo auto-fix PR) | [`dev/pr-feedback/Get-PrQodoFixPr.ps1`](../../../dev/pr-feedback/Get-PrQodoFixPr.ps1) — mines **Qodo Fixer** cherry-pick comment for closed fix PR link |
+| 5 | [`dev/pr-feedback/Invoke-PrVerification.ps1`](../../../dev/pr-feedback/Invoke-PrVerification.ps1) (supplement with Fallow — see Step 5) |
+| 6 | [`dev/pr-evidence/Invoke-PrEvidence.ps1`](../../../dev/pr-evidence/Invoke-PrEvidence.ps1) |
+| 8 | [`dev/pr-feedback/Publish-PrFeedbackResponses.ps1`](../../../dev/pr-feedback/Publish-PrFeedbackResponses.ps1) |
 
-JSON manifest formats, dry-run behavior, and examples live in [`scripts/pr-feedback/README.md`](../../../scripts/pr-feedback/README.md).
+JSON manifest formats, dry-run behavior, and examples live in [`dev/pr-feedback/README.md`](../../../dev/pr-feedback/README.md).
 
 **CI watch pattern** (also see `loop-on-ci` skill):
 
 ```powershell
 # Snapshot before triage
-.\scripts\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <number> -Json
+.\dev\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <number> -Json
 
 # If pendingCount > 0, block until complete
-.\scripts\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <number> -Watch
+.\dev\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <number> -Watch
 
 # After push — do not hand off until exit 0 (green)
-.\scripts\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <number> -Watch -FailFast
+.\dev\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <number> -Watch -FailFast
 ```
 
 ### Step 1: Identify the PR and Preflight the Working Tree
@@ -103,9 +103,9 @@ JSON manifest formats, dry-run behavior, and examples live in [`scripts/pr-feedb
 **Script (recommended):**
 
 ```powershell
-.\scripts\pr-feedback\Get-PrContext.ps1 -Json
+.\dev\pr-feedback\Get-PrContext.ps1 -Json
 # or for an explicit PR:
-.\scripts\pr-feedback\Get-PrContext.ps1 -PullRequestNumber <number> -Json
+.\dev\pr-feedback\Get-PrContext.ps1 -PullRequestNumber <number> -Json
 ```
 
 **Manual fallback:**
@@ -133,7 +133,7 @@ git diff
 **Inspect attached checks first** — `gh pr checks` is the source of truth (includes all PR-attached checks, not only GitHub Actions workflow runs).
 
 ```powershell
-.\scripts\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <number> -Json
+.\dev\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <number> -Json
 ```
 
 Interpret the JSON:
@@ -146,7 +146,7 @@ Interpret the JSON:
 
 ```powershell
 # Block until checks settle
-.\scripts\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <number> -Watch
+.\dev\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <number> -Watch
 ```
 
 **After a fix push**, repeat Step 1b before re-reading Qodo or inline threads — a green local verify does not substitute for green PR checks (per `.cursor/rules/pr-ci-gate-before-open.mdc`).
@@ -158,8 +158,8 @@ Interpret the JSON:
 **Scripts (recommended):**
 
 ```powershell
-.\scripts\pr-feedback\Get-PrFeedbackThreads.ps1 -PullRequestNumber <number> -Json
-.\scripts\pr-feedback\Get-PrReviewBodies.ps1 -PullRequestNumber <number> -Json
+.\dev\pr-feedback\Get-PrFeedbackThreads.ps1 -PullRequestNumber <number> -Json
+.\dev\pr-feedback\Get-PrReviewBodies.ps1 -PullRequestNumber <number> -Json
 ```
 
 **GraphQL (manual fallback):** Prefer `reviewThreads` — it returns resolution state and comment content together.
@@ -199,7 +199,7 @@ Qodo posts **two** comment types on every re-push:
 **Script (recommended):**
 
 ```powershell
-.\scripts\pr-feedback\Get-PrQodoFindings.ps1 -PullRequestNumber <number> -Json
+.\dev\pr-feedback\Get-PrQodoFindings.ps1 -PullRequestNumber <number> -Json
 ```
 
 **Procedure:**
@@ -227,7 +227,7 @@ Qodo often opens a **closed** remediation PR (`Fix: [for cherry-picking] ...`, a
 **Script:**
 
 ```powershell
-.\scripts\pr-feedback\Get-PrQodoFixPr.ps1 -PullRequestNumber <number> -Json
+.\dev\pr-feedback\Get-PrQodoFixPr.ps1 -PullRequestNumber <number> -Json
 ```
 
 **Stable comment pattern:**
@@ -339,7 +339,7 @@ Run checks in the PR worktree until all pass. **Do not commit with failing lint,
 #### Additional gates (when warranted)
 
 - **`npm run build`** — when routing, env wiring, Vite, or PWA may be affected
-- **Full `npm test`** — when the change is broad or high-risk (shared providers, auth, router shells, cross-feature hooks, build tooling). Use `.\scripts\pr-feedback\Invoke-PrVerification.ps1` for lint → tsc → full test → build in one script.
+- **Full `npm test`** — when the change is broad or high-risk (shared providers, auth, router shells, cross-feature hooks, build tooling). Use `.\dev\pr-feedback\Invoke-PrVerification.ps1` for lint → tsc → full test → build in one script.
 - **Local E2E** — per `.cursor/rules/local-verify-before-preview-push.mdc` when user-visible UI, OAuth, or integrations changed
 
 **Worktree-aware:** If the PR branch lives in another git worktree (`git worktree list`), run all commands **in that worktree**.
@@ -351,12 +351,12 @@ Document commands run and pass/fail outcomes in the handoff.
 When fixes change user-visible behavior, capture fresh evidence per `.cursor/rules/pr-visual-evidence.mdc` **before** posting the summary comment:
 
 ```powershell
-.\scripts\pr-evidence\Invoke-PrEvidence.ps1 `
+.\dev\pr-evidence\Invoke-PrEvidence.ps1 `
   -Flow "<short-slug>" `
   -Spec "e2e/pr-evidence/<feature>.spec.ts"
 
 # After push, publish hosted URLs for the summary comment:
-.\scripts\pr-evidence\Invoke-PrEvidence.ps1 `
+.\dev\pr-evidence\Invoke-PrEvidence.ps1 `
   -Flow "<short-slug>" `
   -Spec "e2e/pr-evidence/<feature>.spec.ts" `
   -PrNumber <num> `
@@ -391,7 +391,7 @@ Push to the PR branch proactively once verification passes (per `.cursor/rules/b
 **Script (recommended):**
 
 ```powershell
-.\scripts\pr-feedback\Publish-PrFeedbackResponses.ps1 `
+.\dev\pr-feedback\Publish-PrFeedbackResponses.ps1 `
   -PullRequestNumber <number> `
   -DeferredIssuesFile .\tmp\deferred.json `
   -ThreadRepliesFile .\tmp\replies.json `
@@ -479,7 +479,7 @@ Omit empty sections. **Deferred / tracked** lines must include issue links.
 After every push, **watch** until all attached checks pass. Do not mark the feedback round complete on local verify alone.
 
 ```powershell
-.\scripts\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <pr_number> -Watch
+.\dev\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <pr_number> -Watch
 ```
 
 If checks fail:

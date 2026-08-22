@@ -6,7 +6,7 @@ on:
       - 'supabase/**'
       - '.github/scripts/validate-migrations.js'
       - '.github/workflows/supabase-migration-validator.yml'
-      - 'scripts/check-schema-reference.mjs'
+      - 'dev/check-schema-reference.mjs'
 
 jobs:
   validate-migrations:
@@ -68,6 +68,6 @@ jobs:
       # trivially.
       - name: Check schema reference freshness
         if: github.event_name == 'pull_request'
-        run: node scripts/check-schema-reference.mjs
+        run: node dev/check-schema-reference.mjs
         env:
           SCHEMA_REFERENCE_BASE_SHA: ${{ github.event.pull_request.base.sha }}

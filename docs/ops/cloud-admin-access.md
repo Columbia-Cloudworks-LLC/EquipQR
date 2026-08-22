@@ -7,7 +7,7 @@
 When gcloud MCP impersonation is insufficient (OAuth client redirect URIs, Workspace user security, Admin Console policy), agents may sign in through the browser using Columbia Cloudworks Agents vault item `Google (Business)`:
 
 ```powershell
-. .\scripts\e2e\Load-GoogleBusinessEnv.ps1
+. .\dev\e2e\Load-GoogleBusinessEnv.ps1
 ```
 
 See `docs/ops/agent-secrets-and-access.md` for vault UUID, item IDs, and `op://` rules.

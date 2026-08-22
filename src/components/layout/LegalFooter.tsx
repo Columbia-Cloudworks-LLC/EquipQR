@@ -45,7 +45,7 @@ export default function LegalFooter() {
               showIcon={false}
             >
               <img
-                src="/icons/Columbia-Cloudworks-Icon-Small.png"
+                src="/images/brand/icons/Columbia-Cloudworks-Icon-Small.png"
                 alt=""
                 className="h-3.5 w-3.5 shrink-0 rounded-sm opacity-90 ring-1 ring-background/10"
               />

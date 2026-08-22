@@ -28,7 +28,7 @@ Keep **`equipqr.info` off the SPA project (`equipqr`)** — only the docs projec
 
 **Design tokens (app ↔ docs):** The product Mission Control palette lives in [`src/index.css`](../../src/index.css). The VitePress theme under [`docs/.vitepress/theme/`](../.vitepress/theme/) mirrors those HSL values into `equipqr-tokens.css` and maps them to VitePress `--vp-*` variables in `custom.css` (default appearance is dark). When you change primary, background, border, or semantic status colors in the app, update the matching `--eqr-*` values in `equipqr-tokens.css` in the same change (or immediately after) so equipqr.info stays visually continuous with equipqr.app. There is not yet a shared compiled token package — the mirror is intentional and documented.
 
-**Local footer testing:** Run `.\dev-start.bat` to start the product app and docs site together. In local Vite dev mode, the app footer’s Documentation link defaults to `http://localhost:5174`; production builds default to `https://equipqr.info`. Set `VITE_DOCUMENTATION_URL` when you need to test a different docs preview URL, such as `http://localhost:4173` after running `npm run docs:build` and then `npm run docs:preview`.
+**Local footer testing:** Run `.\dev\dev-start.bat` to start the product app and docs site together. In local Vite dev mode, the app footer’s Documentation link defaults to `http://localhost:5174`; production builds default to `https://equipqr.info`. Set `VITE_DOCUMENTATION_URL` when you need to test a different docs preview URL, such as `http://localhost:4173` after running `npm run docs:build` and then `npm run docs:preview`.
 
 **Related domains:** During domain migration, **`equipqr.support`** / **`www.equipqr.support`** on the SPA project may temporarily redirect to **`equipqr.app`** instead of **`equipqr.info`** because Vercel only allows same-project redirect targets; revisit in the dashboard if those URLs should land on the public docs site again.
 
@@ -379,12 +379,12 @@ aws cloudfront create-invalidation --distribution-id YOUR_DISTRIBUTION_ID --path
 
 - Switch to self-hosted (Windows):
 ```powershell
-pwsh -File scripts/switch-runner-type.ps1 -RunnerType self-hosted
+pwsh -File dev/switch-runner-type.ps1 -RunnerType self-hosted
 ```
 
 - Switch to GitHub-hosted (Ubuntu):
 ```powershell
-pwsh -File scripts/switch-runner-type.ps1 -RunnerType github-hosted
+pwsh -File dev/switch-runner-type.ps1 -RunnerType github-hosted
 ```
 
 Then commit and push the workflow changes.

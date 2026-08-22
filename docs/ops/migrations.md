@@ -235,7 +235,7 @@ npx supabase db reset
 npx supabase db diff
 
 # Validate migration filenames
-node scripts/supabase-fix-migrations.mjs
+node dev/supabase-fix-migrations.mjs
 ```
 
 **Why local testing is required:**
@@ -251,7 +251,7 @@ Use the project's migration fix script to validate filenames:
 
 ```bash
 # Check and fix migration filenames
-node scripts/supabase-fix-migrations.mjs
+node dev/supabase-fix-migrations.mjs
 ```
 
 ## Schema Reference File (`current_schema.sql`)
@@ -274,7 +274,7 @@ DDL/schema-changing means anything that alters structure: `CREATE`/`ALTER`/`DROP
 
 ### Regeneration commands
 
-With the local stack running and all migrations applied (`.\dev-start.bat -Force` or `npx supabase db reset`):
+With the local stack running and all migrations applied (`.\dev\dev-start.bat -Force` or `npx supabase db reset`):
 
 ```bash
 # Regenerate the reference dump from the local database
@@ -307,7 +307,7 @@ Agents working in this repo must treat dump regeneration as part of the migratio
 
 ### CI guardrail
 
-`scripts/check-schema-reference.mjs` runs in the **Supabase Migration Validator** workflow on every PR that touches `supabase/**`:
+`dev/check-schema-reference.mjs` runs in the **Supabase Migration Validator** workflow on every PR that touches `supabase/**`:
 
 - PRs with **no** migration changes pass trivially (no false positives)
 - PRs that change schema-affecting migrations **must** also change `supabase/current_schema.sql`, otherwise the check fails with the regeneration commands
@@ -418,7 +418,7 @@ $$;
 #### 3. Invalid Migration Filenames
 
 **Problem:** Files named `-.sql` or with dashes get skipped.
-**Solution:** Run `node scripts/supabase-fix-migrations.mjs` to normalize names.
+**Solution:** Run `node dev/supabase-fix-migrations.mjs` to normalize names.
 
 #### 4. Constraint Violations
 
@@ -453,7 +453,7 @@ npx supabase db shell
 \d+ table_name
 
 # Validate migration filenames
-node scripts/supabase-fix-migrations.mjs
+node dev/supabase-fix-migrations.mjs
 ```
 
 ### Emergency Recovery

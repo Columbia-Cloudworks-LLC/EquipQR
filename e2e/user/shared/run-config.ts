@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { RECORDING_VIEWPORT } from '../../../scripts/lib/recording-quality.mjs';
+import { RECORDING_VIEWPORT } from '../../../dev/lib/recording-quality.mjs';
 
 export type ActionOverlayMode = 'none' | 'debug' | 'marketing';
 export type UserRegressionRunProfile = 'test' | 'watch' | 'demo';

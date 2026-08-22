@@ -164,7 +164,7 @@ export async function installActionOverlay(page: Page, title: string): Promise<v
         overlay.style.font = '13px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
 
         const icon = document.createElement('img');
-        icon.src = '/eqr-logo/icon.svg';
+        icon.src = '/images/brand/eqr-logo/icon.svg';
         icon.alt = '';
         icon.decoding = 'async';
         icon.style.flex = '0 0 auto';

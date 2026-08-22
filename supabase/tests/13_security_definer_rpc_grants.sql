@@ -1,6 +1,6 @@
 -- pgTAP: SECURITY DEFINER EXECUTE grant lockdown (issues #762, #1310)
--- Allowlist names must match scripts/security-definer-rpc-allowlists.json
--- (validated by scripts/validate-security-definer-allowlist-sync.mjs).
+-- Allowlist names must match dev/security-definer-rpc-allowlists.json
+-- (validated by dev/validate-security-definer-allowlist-sync.mjs).
 
 BEGIN;
 SELECT plan(26);

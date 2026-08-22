@@ -8,14 +8,14 @@ on:
     paths:
       - .github/workflows/copilot-setup-steps.yml
       - .github/actions/load-1p-secrets/**
-      - scripts/agent-bootstrap.sh
-      - scripts/cloud-agent-frontend-setup.sh
+      - dev/agent-bootstrap.sh
+      - dev/cloud-agent-frontend-setup.sh
   pull_request:
     paths:
       - .github/workflows/copilot-setup-steps.yml
       - .github/actions/load-1p-secrets/**
-      - scripts/agent-bootstrap.sh
-      - scripts/cloud-agent-frontend-setup.sh
+      - dev/agent-bootstrap.sh
+      - dev/cloud-agent-frontend-setup.sh
 
 jobs:
   # MUST be named exactly `copilot-setup-steps` to be picked up by the agent.
@@ -61,4 +61,4 @@ jobs:
         if: env.HAS_OP_TOKEN == 'true'
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-        run: bash scripts/agent-bootstrap.sh
+        run: bash dev/agent-bootstrap.sh

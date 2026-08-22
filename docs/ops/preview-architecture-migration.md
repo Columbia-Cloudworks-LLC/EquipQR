@@ -79,10 +79,10 @@ Everything that currently assumes `preview.equipqr.app` and/or `olsdirkvvfegvclb
 
 ### Scripts
 
-- `scripts/sync-supabase-secrets-from-1password.ps1` — `edge-env-preview-secrets` locked to `olsdirk`
-- `scripts/configure-supabase-auth.mjs` — preview environment = `olsdirk` + `preview.equipqr.app`
-- `scripts/export-schema-baseline.{sh,ps1}` — links/exports from **olsdirk**
-- `scripts/bootstrap-local-google-auth.ps1` — reads preview auth config from **olsdirk** API
+- `dev/sync-supabase-secrets-from-1password.ps1` — `edge-env-preview-secrets` locked to `olsdirk`
+- `dev/configure-supabase-auth.mjs` — preview environment = `olsdirk` + `preview.equipqr.app`
+- `dev/export-schema-baseline.{sh,ps1}` — links/exports from **olsdirk**
+- `dev/bootstrap-local-google-auth.ps1` — reads preview auth config from **olsdirk** API
 
 ### Supabase config
 
@@ -169,7 +169,7 @@ All vendor OAuth callbacks use **`https://supabase.equipqr.app/functions/v1/...`
 
 - Deleted Vercel custom environment **`staging`** (slug `staging`, branch matcher `preview`).
 - Reattached **`preview.equipqr.app`** to the standard Preview deployment (not custom staging).
-- Added `.github/workflows/preview-domain-alias.yml` + `scripts/vercel/Set-PreviewDomainAlias.ps1` to point **`preview.equipqr.app`** at deployments from git branch **`preview`** only (domain anchor, not every feat/* Preview build).
+- Added `.github/workflows/preview-domain-alias.yml` + `dev/vercel/Set-PreviewDomainAlias.ps1` to point **`preview.equipqr.app`** at deployments from git branch **`preview`** only (domain anchor, not every feat/* Preview build).
 - Synced Vercel **Preview** env vars from `app-env-preview-public` → **`https://supabase.equipqr.app`** (production Supabase API).
 - GitHub **`staging`** environment removed from `.github/secrets-map.yml` (use **Preview** only).
 

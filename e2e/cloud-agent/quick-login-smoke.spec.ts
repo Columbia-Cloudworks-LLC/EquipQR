@@ -6,7 +6,7 @@ import { expect, test } from '@playwright/test';
  * Prerequisites:
  *   - Vite on http://localhost:8080
  *   - .env pointed at an ephemeral branch seeded by
- *     scripts/cloud-agent-ephemeral-stack.sh
+ *     dev/cloud-agent-ephemeral-stack.sh
  *
  * Skip when CLOUD_AGENT_E2E is not set so local Windows CI / default e2e
  * suites do not hit a non-seeded backend.

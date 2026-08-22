@@ -20,11 +20,11 @@ High-risk allowlisted RPCs reviewed for `auth.uid()` / org-scoped RBAC before ac
 
 Lint `0029_authenticated_security_definer_function_executable` flags **any** public `SECURITY DEFINER` function granted to `authenticated`, including the intentional allowlist above and the six RLS predicate helpers. After `20260602120000_lockdown_security_definer_rpc_grants.sql` and the #1310 re-lockdown (`20260719214316_security_advisor_1310_hardening.sql`), internal/trigger/cron DEFINER helpers are **not** callable via PostgREST. Public-bucket listing policies and Datadog `search_path` are addressed in the same #1310 migration.
 
-Treat unexpected advisor rows as deployment drift: regenerate [`security-definer-rpc-inventory.md`](./security-definer-rpc-inventory.md) and diff against [`security-definer-rpc-allowlists.json`](../../scripts/security-definer-rpc-allowlists.json).
+Treat unexpected advisor rows as deployment drift: regenerate [`security-definer-rpc-inventory.md`](./security-definer-rpc-inventory.md) and diff against [`security-definer-rpc-allowlists.json`](../../dev/security-definer-rpc-allowlists.json).
 
 ## Advisor export reconciliation
 
 - **2026-06-02 (#762):** Compared a 57-function Advisor export with the allowlist — gaps none; several allowlist names are `SECURITY INVOKER` (not DEFINER advisor rows).
 - **2026-07-19 (#1310):** Production Advisor showed 24 anon + 94 authenticated DEFINER warnings plus 4 public-bucket listing rows. Drift came from default privileges re-granting new functions to `anon`/`authenticated`. Re-lockdown + default-privilege revoke restores the intentional surface (3 anon token RPCs; authenticated allowlist only).
 
-Run: `node scripts/reconcile-advisor-rpc-warnings.mjs tmp/rpc-advisor-export.txt`
+Run: `node dev/reconcile-advisor-rpc-warnings.mjs tmp/rpc-advisor-export.txt`

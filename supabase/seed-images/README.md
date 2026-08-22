@@ -3,11 +3,11 @@
 Drop photos here to exercise **equipment display images**, **equipment note images**, and **work order note images** on the local stack. Files are uploaded automatically when you run:
 
 ```powershell
-.\dev-stop.bat
-.\dev-start.bat -Force
+.\dev\dev-stop.bat
+.\dev\dev-start.bat -Force
 ```
 
-Step **5b** runs `scripts/seed-dev-media.ps1` after `supabase db reset`.
+Step **5b** runs `dev/seed-dev-media.ps1` after `supabase db reset`.
 
 ## Folder layout
 

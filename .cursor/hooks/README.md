@@ -11,7 +11,7 @@ These hooks are Windows-specific and require PowerShell. They will not work on U
 - `guard-migrations.ps1` - Guards against reading migration files incorrectly
 - `changelog-stop.ps1` - After a completed session, remind for a short `[Unreleased]` bullet or an explicit no-user-visible-change justification
 - `component-check.py` - Fuzzy-searches existing components before the agent creates a new one
-- `lint-on-edit.ps1` - Cursor stdin adapter for the lint catalog (`lint/targets.json` via `scripts/lint-catalog.mjs`). Fail-closed on edited `.ts`/`.tsx`, `.md`/`.mdc`, `.ps1`, and `.github/workflows` files. Fallow is project-only.
+- `lint-on-edit.ps1` - Cursor stdin adapter for the lint catalog (`etc/lint/targets.json` via `dev/lint-catalog.mjs`). Fail-closed on edited `.ts`/`.tsx`, `.md`/`.mdc`, `.ps1`, and `.github/workflows` files. Fallow is project-only.
 - `strict-type-check.ps1` - Blocks edits that introduce explicit `: any` types in `.ts`/`.tsx` files and runs `tsc --noEmit`
 - `secret-guardian.py` - Scans prompts and shell commands for hardcoded secrets (Stripe keys, Supabase service-role keys, QBO refresh tokens) and blocks the action if detected
 - `architecture-guard.py` - Enforces layered-architecture import rules: blocks UI components from importing features (UI Purity), warns on cross-feature imports (Feature Isolation)

@@ -7,7 +7,7 @@ This directory is served under `/support/*` on the EquipQR Help Center (`equipqr
 Documentation screenshots and demo videos are **not committed as PNGs/MP4s** in this repo. Instead:
 
 1. Capture deterministic states from the local dev stack with Playwright PR evidence specs under `e2e/pr-evidence/`.
-2. Upload artifacts to the public Supabase **`docs-media`** bucket via `.\scripts\docs-media\Publish-DocsMedia.ps1`.
+2. Upload artifacts to the public Supabase **`docs-media`** bucket via `.\dev\docs-media\Publish-DocsMedia.ps1`.
 3. Reference the returned public URLs in equipqr.info markdown articles.
 
 Stable storage paths follow:
@@ -25,10 +25,10 @@ https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/locatio
 
 The **`docs-media`** bucket is created by Supabase migration (`supabase/migrations/20260704180000_create_docs_media_bucket.sql`) during normal deploy.
 
-Optionally verify public access after deploy. `Publish-DocsMedia.ps1` loads `SUPABASE_URL` automatically via `Set-PrEvidenceUploadEnvironment`; for a manual probe, set `SUPABASE_URL` per `scripts/README-upload-screenshot.md` and run:
+Optionally verify public access after deploy. `Publish-DocsMedia.ps1` loads `SUPABASE_URL` automatically via `Set-PrEvidenceUploadEnvironment`; for a manual probe, set `SUPABASE_URL` per `dev/README-upload-screenshot.md` and run:
 
 ```powershell
-.\scripts\docs-media\Bootstrap-DocsMediaBucket.ps1
+.\dev\docs-media\Bootstrap-DocsMediaBucket.ps1
 ```
 
 ## Legacy committed assets
@@ -46,7 +46,7 @@ Older articles may still reference committed PNGs under `docs/public/support/` o
 ## Adding documentation media
 
 1. Add or extend `e2e/pr-evidence/location-maps-*.spec.ts` (or a feature-specific spec).
-2. Capture: `.\scripts\pr-evidence\Invoke-PrEvidenceCapture.ps1 -Flow location-maps-desktop -Spec e2e/pr-evidence/location-maps-desktop.spec.ts`
-3. Publish to docs-media: `.\scripts\docs-media\Publish-DocsMedia.ps1 -ManifestPath tmp\pr-evidence\location-maps-desktop\manifest.json -Collection location-maps -Variant desktop -MarkdownOut tmp\docs-media\location-maps\desktop.md`
+2. Capture: `.\dev\pr-evidence\Invoke-PrEvidenceCapture.ps1 -Flow location-maps-desktop -Spec e2e/pr-evidence/location-maps-desktop.spec.ts`
+3. Publish to docs-media: `.\dev\docs-media\Publish-DocsMedia.ps1 -ManifestPath tmp\pr-evidence\location-maps-desktop\manifest.json -Collection location-maps -Variant desktop -MarkdownOut tmp\docs-media\location-maps\desktop.md`
 4. Paste URLs from `tmp/docs-media/location-maps/desktop.md` into the target article.
 5. Verify on `npm run docs:dev` at `http://localhost:5174`.

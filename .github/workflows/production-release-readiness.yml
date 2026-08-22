@@ -94,7 +94,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/release/wait-for-vercel-deployment.mjs >> "$GITHUB_OUTPUT"
+          node dev/release/wait-for-vercel-deployment.mjs >> "$GITHUB_OUTPUT"
 
       - name: Promote Vercel deployment to production
         env:
@@ -104,7 +104,7 @@ jobs:
           VERCEL_DEPLOYMENT_ID: ${{ steps.wait_vercel.outputs.deployment_id }}
           GITHUB_SHA: ${{ github.sha }}
           VERCEL_PROMOTE_TIMEOUT: 5m
-        run: node scripts/release/promote-vercel-production.mjs
+        run: node dev/release/promote-vercel-production.mjs
 
       - name: Deploy edge functions to production
         shell: bash

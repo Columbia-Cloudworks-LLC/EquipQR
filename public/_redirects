@@ -1,1 +1,7 @@
+/eqr-logo/* /images/brand/eqr-logo/:splat 301
+/branded-logos/* /images/brand/logos/:splat 301
+/placeholder.svg /images/ui/placeholder.svg 301
+/us.svg /images/maps/us.svg 301
+/icons/:file.png /images/brand/icons/:file.png 301
+/icons/:file.svg /images/equipment/:file.svg 301
 /* /app-shell.html 200

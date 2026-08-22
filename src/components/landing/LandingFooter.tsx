@@ -177,7 +177,7 @@ const LandingFooter = () => {
             showIcon={false}
           >
             <img
-              src="/icons/Columbia-Cloudworks-Icon-Small.png"
+              src="/images/brand/icons/Columbia-Cloudworks-Icon-Small.png"
               alt=""
               className="w-5 h-5 rounded-sm opacity-90 ring-1 ring-background/10"
             />

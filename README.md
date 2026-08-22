@@ -2,7 +2,7 @@
 
 # <a href="https://equipqr.app">EquipQR</a>â„¢
 
-<a href="https://equipqr.app"><img src="public/icons/EquipQR-Icon-Purple-Medium.png" alt="EquipQRâ„¢ Logo" width="150" /></a>
+<a href="https://equipqr.app"><img src="public/images/brand/icons/EquipQR-Icon-Purple-Medium.png" alt="EquipQRâ„¢ Logo" width="150" /></a>
 
 ![Version](https://img.shields.io/badge/version-3.28.0-blue?style=for-the-badge)
 
@@ -42,7 +42,7 @@ Detailed documentation is located in the [`/docs`](./docs/README.md) directory:
 * **Architecture.** [System Architecture](./docs/technical/architecture.md) and [Database Schema](./docs/technical/architecture.md#database-schema)
 * **Guides.** [Workflows](./docs/guides/workflows.md) and [Permissions](./docs/guides/permissions.md)
 * **Operations.** [Deployment](./docs/ops/deployment.md), [Migrations](./docs/ops/migrations.md), [Local Supabase Development](./docs/ops/local-supabase-development.md), [QuickBooks OAuth](./docs/ops/quickbooks-oauth.md), [DSR Compliance Runbook](./docs/ops/dsr-compliance-runbook.md), and [Disaster Recovery](./docs/ops/disaster-recovery.md)
-* **Demo operations.** [Demo Recording Baseline](./scripts/DEMO-RECORDING.md) and [Demo System v2 Runbook](./scripts/DEMO-SYSTEM-V2.md)
+* **Demo operations.** [Demo Recording Baseline](./dev/DEMO-RECORDING.md) and [Demo System v2 Runbook](./dev/DEMO-SYSTEM-V2.md)
 
 ## Prerequisites (accounts and services)
 
@@ -78,12 +78,12 @@ EquipQR uses external services. For exact environment variables and where theyâ€
     > Note: This repo intentionally installs `xlsx` from `cdn.sheetjs.com` (not npm registry). Ensure your CI and network policy allow access to that host during `npm install`.
 
 2. **Configure Environment**
-    Preferred: if you have access, use 1Password CLI + `.\dev-start.bat` so env files are synced automatically.
+    Preferred: if you have access, use 1Password CLI + `.\dev\dev-start.bat` so env files are synced automatically.
 
     ```powershell
     op --version
-    .\dev-start.bat                    # full stack (Supabase + functions + Vite)
-    .\dev-setup-cursor-mcp.bat         # optional: refresh Cursor MCP config
+    .\dev\dev-start.bat                    # full stack (Supabase + functions + Vite)
+    .\dev\dev-setup-cursor-mcp.bat         # optional: refresh Cursor MCP config
     ```
 
     Manual fallback:
@@ -97,7 +97,7 @@ EquipQR uses external services. For exact environment variables and where theyâ€
 3. **Run Development Server**
 
     ```powershell
-    .\dev-start.bat
+    .\dev\dev-start.bat
     ```
 
 ### Git Worktrees (Cursor-friendly)
@@ -105,7 +105,7 @@ EquipQR uses external services. For exact environment variables and where theyâ€
 When working from a git worktree, copy env files from your canonical checkout:
 
 ```powershell
-.\scripts\bootstrap-worktree-env.ps1 -SourcePath "<canonical-repo-path>"
+.\dev\bootstrap-worktree-env.ps1 -SourcePath "<canonical-repo-path>"
 ```
 
 Add `-InstallDependencies` to run `npm ci` as part of bootstrap.

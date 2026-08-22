@@ -75,7 +75,7 @@ npx supabase db reset  # Resets and applies all migrations
 npx supabase db diff   # Verify schema matches expectations
 
 # 4. Validate filename
-node scripts/supabase-fix-migrations.mjs
+node dev/supabase-fix-migrations.mjs
 
 # 5. Deploy to production (only after local testing succeeds)
 npx supabase db push --linked
@@ -138,7 +138,7 @@ mv 20251028_old.sql 20250901_new.sql
 
 **Fix:**
 ```bash
-node scripts/supabase-fix-migrations.mjs
+node dev/supabase-fix-migrations.mjs
 # Follow the output instructions
 ```
 
@@ -150,7 +150,7 @@ node scripts/supabase-fix-migrations.mjs
 - [ ] Used `IF NOT EXISTS` for safe operations
 - [ ] **Tested with `npx supabase db reset` locally** (REQUIRED)
 - [ ] Verified schema with `npx supabase db diff`
-- [ ] Validated with `node scripts/supabase-fix-migrations.mjs`
+- [ ] Validated with `node dev/supabase-fix-migrations.mjs`
 - [ ] Checked production state with MCP tools (for existing migrations)
 - [ ] Verified migration is idempotent (can run multiple times)
 - [ ] Added RLS policies if creating new tables

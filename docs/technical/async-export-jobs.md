@@ -38,7 +38,7 @@ Equipment / work-order **sync** exports still prefer the DB RPCs `export_equipme
 
 ## Local verification
 
-After `.\dev-start.bat -Force` (applies the migration):
+After `.\dev\dev-start.bat -Force` (applies the migration):
 
 1. Export equipment or work orders from Reports — expect loading toast, then download.
 2. Confirm a row in `export_request_log` with `job_mode=async` and `status=completed`.

@@ -1,4 +1,4 @@
-# Cursor stdin adapter. Matching and lint spawn live in scripts/lint-catalog.mjs.
+# Cursor stdin adapter. Matching and lint spawn live in dev/lint-catalog.mjs.
 $inputJson = [Console]::In.ReadToEnd()
 try {
     $filePath = ($inputJson | ConvertFrom-Json).path
@@ -11,7 +11,7 @@ if (-not $filePath -or -not (Test-Path -LiteralPath $filePath)) {
     exit 0
 }
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$engine = Join-Path $repoRoot "scripts\lint-catalog.mjs"
+$engine = Join-Path $repoRoot "dev\lint-catalog.mjs"
 $stderrFile = [System.IO.Path]::GetTempFileName()
 try {
     $ErrorActionPreference = 'Continue'

@@ -5,10 +5,10 @@
  *   welcome-to-equipqr, navigation-tour, invite-team-members, role-overview.
  *
  * Capture:
- *   .\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow "docs-start-here-desktop" `
+ *   .\dev\pr-evidence\Invoke-PrEvidence.ps1 -Flow "docs-start-here-desktop" `
  *     -Spec "e2e/pr-evidence/docs-start-here-desktop.spec.ts"
  * Publish:
- *   .\scripts\docs-media\Publish-DocsMedia.ps1 `
+ *   .\dev\docs-media\Publish-DocsMedia.ps1 `
  *     -ManifestPath tmp\pr-evidence\docs-start-here-desktop\manifest.json `
  *     -Collection start-here -Variant desktop
  */

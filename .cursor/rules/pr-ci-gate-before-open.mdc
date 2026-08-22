@@ -10,7 +10,7 @@ Local lint/tests/build are **necessary but not sufficient** for feature-branch P
 
 1. **Never run `gh pr create` until CI-parity install succeeds locally:**
    ```powershell
-   .\dev-stop.bat   # on Windows when Vite/stack may hold native binary locks
+   .\dev\dev-stop.bat   # on Windows when Vite/stack may hold native binary locks
    npm ci --prefer-offline --no-audit
    ```
    If this fails, fix lockfile / `.npmrc` / dependency peers **before** push or PR open. On Windows EPERM/EBUSY during `npm ci`, stop the stack per `dev-stack-lifecycle.mdc` and retry; if still blocked locally, ensure CI passes on push (Linux clean install). Do **not** rely on `npm install --legacy-peer-deps` alone when `npm ci` would fail — if you needed `--legacy-peer-deps`, ensure `.npmrc` sets `legacy-peer-deps=true` and re-run `npm ci`.

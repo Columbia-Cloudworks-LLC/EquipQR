@@ -225,7 +225,7 @@ async function handle(req: Request, _ctx: RequestContext): Promise<Response> {
 
     // Construct absolute URLs for logos
     // Use purple medium logo (preferred branding that works on any background)
-    const equipQRLogoUrl = `${baseUrl}/icons/EquipQR-Icon-Purple-Medium.png`;
+    const equipQRLogoUrl = `${baseUrl}/images/brand/icons/EquipQR-Icon-Purple-Medium.png`;
 
     // Create email HTML content
     const emailHtml = `

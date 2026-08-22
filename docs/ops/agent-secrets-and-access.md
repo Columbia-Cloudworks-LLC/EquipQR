@@ -19,7 +19,7 @@ Operational reference for Cursor agents and headless automation. Columbia Cloudw
 Load Google Business credentials for browser automation:
 
 ```powershell
-. .\scripts\e2e\Load-GoogleBusinessEnv.ps1
+. .\dev\e2e\Load-GoogleBusinessEnv.ps1
 # Sets GOOGLE_BUSINESS_EMAIL and GOOGLE_BUSINESS_PASSWORD
 ```
 
@@ -29,7 +29,7 @@ Load Google Business credentials for browser automation:
 op read op://mrviyowmjwrxv7syobdlhnmawa/ukvy6bzwb2ikq5cfeambgcq5u4/username
 ```
 
-Constants and helpers: `scripts/op/columbia-cloudworks-agents-vault.ps1`.
+Constants and helpers: `dev/op/columbia-cloudworks-agents-vault.ps1`.
 
 | Token env var | Service account | Permissions | Typical use |
 |---|---|---|---|
@@ -60,15 +60,14 @@ Use the repo helper, which runs `op` in a **detached** `powershell.exe -File` pr
 
 ```powershell
 # Dry-run field update (safe)
-.\scripts\op-item-mutate.ps1 `
+.\dev\op-item-mutate.ps1 `
   -Action Edit `
   -Item "app-env-preview-public" `
-  -Vault "EquipQR Agents" `
   -Assignment "GOOGLE_WORKSPACE_CLIENT_ID[text]=87469690682-example.apps.googleusercontent.com" `
   -DryRun
 
 # Apply
-.\scripts\op-item-mutate.ps1 -Action Edit -Item "app-env-preview-public" -Vault "EquipQR Agents" `
+.\dev\op-item-mutate.ps1 -Action Edit -Item "app-env-preview-public" `
   -Assignment "GOOGLE_WORKSPACE_CLIENT_ID[text]=87469690682-example.apps.googleusercontent.com"
 ```
 
@@ -87,11 +86,11 @@ Interactive maintainer terminals (`PS D:\EquipQR>`) can run `op` directly; agent
 | Script | Source | Target |
 |---|---|---|
 | `dev-start.bat` / `dev-start.ps1` | `app-env-local-dev`, `edge-env-local-dev` | `.env`, `supabase/functions/.env` |
-| `scripts/sync-vercel-from-1password.ps1` | `app-env-*-public` | Vercel env (production / preview) |
-| `scripts/sync-supabase-secrets-from-1password.ps1` | `edge-env-*-secrets` | Supabase Edge secrets |
-| `scripts/render-mcp-config.ps1` | `scripts/mcp.template.json` + `op inject` | `~/.cursor/mcp.json` |
+| `dev/sync-vercel-from-1password.ps1` | `app-env-*-public` | Vercel env (production / preview) |
+| `dev/sync-supabase-secrets-from-1password.ps1` | `edge-env-*-secrets` | Supabase Edge secrets |
+| `dev/render-mcp-config.ps1` | `dev/mcp.template.json` + `op inject` | `~/.cursor/mcp.json` |
 
-Verify MCP wiring: `.\scripts\op-mcp-doctor.ps1` (expect 13/13 green on maintainer machine).
+Verify MCP wiring: `.\dev\op-mcp-doctor.ps1` (expect 13/13 green on maintainer machine).
 
 ### Preview OAuth alignment checklist
 
@@ -102,7 +101,7 @@ Google Workspace OAuth requires **matching client ID** in:
 
 After vault edit:
 
-1. `.\scripts\sync-vercel-from-1password.ps1 -Environment preview`
+1. `.\dev\sync-vercel-from-1password.ps1 -Environment preview`
 2. Redeploy the latest Vercel Preview deployment for git **`preview`** (or merge/push to `preview` so `preview.equipqr.app` rebuilds)
 3. Confirm edge secrets via `sync-supabase-secrets-from-1password.ps1 -Check -OpItem edge-env-prod-secrets`
 
@@ -114,16 +113,16 @@ Use this end-to-end loop after any secret rotation in 1Password. Never paste sec
 
 ```powershell
 $env:OP_SERVICE_ACCOUNT_TOKEN = [Environment]::GetEnvironmentVariable('OP_SERVICE_ACCOUNT_TOKEN','User')
-.\scripts\sync-supabase-secrets-from-1password.ps1 -Check -OpItem edge-env-prod-secrets
-.\scripts\sync-vercel-from-1password.ps1 -Check -Environment preview
-.\scripts\sync-vercel-from-1password.ps1 -Check -Environment production
+.\dev\sync-supabase-secrets-from-1password.ps1 -Check -OpItem edge-env-prod-secrets
+.\dev\sync-vercel-from-1password.ps1 -Check -Environment preview
+.\dev\sync-vercel-from-1password.ps1 -Check -Environment production
 ```
 
 **2. Rotate in 1Password** (detached writes only)
 
 ```powershell
 # Dry-run first
-.\scripts\op-item-mutate.ps1 -Action Edit -Item "edge-env-prod-secrets" -Vault "EquipQR Agents" `
+.\dev\op-item-mutate.ps1 -Action Edit -Item "edge-env-prod-secrets" `
   -Assignment "TOKEN_ENCRYPTION_KEY[text]=<openssl rand -base64 32 output>" -DryRun
 # Apply without -DryRun when dry-run looks correct
 ```
@@ -134,11 +133,11 @@ For `TOKEN_ENCRYPTION_KEY` on production: generate a **new** key; do not copy th
 
 ```powershell
 # Production edge (serves preview.equipqr.app and equipqr.app) — apply only when maintainer authorizes
-.\scripts\sync-supabase-secrets-from-1password.ps1 -OpItem edge-env-prod-secrets
+.\dev\sync-supabase-secrets-from-1password.ps1 -OpItem edge-env-prod-secrets
 
 # Vercel public env
-.\scripts\sync-vercel-from-1password.ps1 -Environment preview
-.\scripts\sync-vercel-from-1password.ps1 -Environment production
+.\dev\sync-vercel-from-1password.ps1 -Environment preview
+.\dev\sync-vercel-from-1password.ps1 -Environment production
 ```
 
 **4. Redeploy affected surfaces**
@@ -163,7 +162,7 @@ See also `docs/ops/preview-architecture-migration.md` (#1033) for consolidating 
 
 ## MCP and vendor access tiers
 
-Rendered in `~/.cursor/mcp.json` from `scripts/mcp.template.json`:
+Rendered in `~/.cursor/mcp.json` from `dev/mcp.template.json`:
 
 | MCP entry | Tier | Notes |
 |---|---|---|

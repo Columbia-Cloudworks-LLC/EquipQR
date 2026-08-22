@@ -22,7 +22,7 @@ A baseline migration can help new environments apply a single SQL file instead o
 Regenerate the reference exports locally:
 
 ```powershell
-.\scripts\export-schema-baseline.ps1
+.\dev\export-schema-baseline.ps1
 ```
 
 CI regenerates both files on `main` pushes via `.github/workflows/export-schema.yml` when `PREVIEW_DATABASE_URL` is configured.

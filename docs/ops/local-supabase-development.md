@@ -83,7 +83,7 @@ npx supabase migration list
 - After pulling, verify migrations match production using the validation script:
 
 ```bash
-node scripts/supabase-fix-migrations.mjs
+node dev/supabase-fix-migrations.mjs
 ```
 
 ### Step 4: Pull Edge Functions from Production
@@ -100,7 +100,7 @@ npx supabase functions pull quickbooks-oauth-callback
 
 ### Step 5: Start Local Supabase Instance
 
-> **Preferred workflow**: Run `.\dev-start.bat` from the project root. It launches **`dev-start.ps1`**, front-loads 1Password sync when `op` is available, then starts Docker, Supabase, Edge Functions serve, the docs site, and Vite. Exit code **`0`** means all four passed health checks. **`-Force`** resets the local DB, regenerates TypeScript types, and re-seeds dev media (equipment/note/work-order images) after Supabase is up — run **`.\dev-stop.bat`** first if the dev stack is already running. **`.\dev-stop.bat`** launches **`dev-stop.ps1`** for teardown; **`-Force`** there also quits Docker Desktop.
+> **Preferred workflow**: Run `.\dev\dev-start.bat` from the project root. It launches **`dev-start.ps1`**, front-loads 1Password sync when `op` is available, then starts Docker, Supabase, Edge Functions serve, the docs site, and Vite. Exit code **`0`** means all four passed health checks. **`-Force`** resets the local DB, regenerates TypeScript types, and re-seeds dev media (equipment/note/work-order images) after Supabase is up — run **`.\dev\dev-stop.bat`** first if the dev stack is already running. **`.\dev\dev-stop.bat`** launches **`dev-stop.ps1`** for teardown; **`-Force`** there also quits Docker Desktop.
 
 Start a local Supabase instance (PostgreSQL, PostgREST, Auth, Storage, Edge Functions):
 
@@ -126,7 +126,7 @@ npx supabase status
 
 ### Step 6: Set Up Local Environment Variables
 
-Preferred: use `.\dev-start.bat` with 1Password CLI available. It syncs base `.env` and edge env values automatically, then writes local Supabase URL overrides to `.env.local`.
+Preferred: use `.\dev\dev-start.bat` with 1Password CLI available. It syncs base `.env` and edge env values automatically, then writes local Supabase URL overrides to `.env.local`.
 
 Manual fallback (without 1Password): create a `.env.local` file for local Supabase development:
 
@@ -267,13 +267,13 @@ git checkout -b feature/quickbooks-edge-function-update
 
 ```bash
 # Check migration filenames are valid
-node scripts/supabase-fix-migrations.mjs
+node dev/supabase-fix-migrations.mjs
 
 # Verify no migrations were accidentally modified
 git diff supabase/migrations/
 
 # Check for missing migrations
-node scripts/check-missing-migrations.mjs
+node dev/check-missing-migrations.mjs
 ```
 
 ### Migration Safety Rules
@@ -324,10 +324,10 @@ npx supabase db diff
 
 ```bash
 # Check for missing migrations
-node scripts/check-missing-migrations.mjs
+node dev/check-missing-migrations.mjs
 
 # Validate migration filenames
-node scripts/supabase-fix-migrations.mjs
+node dev/supabase-fix-migrations.mjs
 ```
 
 ## Commit Workflow
@@ -382,8 +382,8 @@ npx supabase db pull
 
 2. **Verify sync**:
 ```bash
-node scripts/check-missing-migrations.mjs
-node scripts/supabase-fix-migrations.mjs
+node dev/check-missing-migrations.mjs
+node dev/supabase-fix-migrations.mjs
 ```
 
 ## Best Practices Summary
@@ -421,7 +421,7 @@ npx supabase functions pull
 ### 3. Never Modify Existing Migrations
 
 - Check `git log` to see if a migration was already deployed
-- Use `node scripts/check-missing-migrations.mjs` to verify
+- Use `node dev/check-missing-migrations.mjs` to verify
 - Production is the source of truth for migration timestamps
 - If a migration is already in production, create a new migration to fix issues
 
@@ -429,10 +429,10 @@ npx supabase functions pull
 
 ```bash
 # Before every commit
-node scripts/supabase-fix-migrations.mjs
+node dev/supabase-fix-migrations.mjs
 
 # Check for missing migrations
-node scripts/check-missing-migrations.mjs
+node dev/check-missing-migrations.mjs
 ```
 
 ### 5. Deploy to Production Only After Local Testing
@@ -508,25 +508,25 @@ npx supabase stop
 
 ## Generated volume seed data (#1164)
 
-Committed files under `supabase/seeds/` are the **durable core** — test users, Playwright fixture UUIDs, PM templates, and the small cross-org scenario matrix. Bulk inventory, alternate groups, extra equipment, work orders with consumed parts, parts RBAC grants, and operator check-ins are **generated on demand** into `supabase/seeds/generated/` (gitignored) by `scripts/seed-data/generate-seeds.ts`.
+Committed files under `supabase/seeds/` are the **durable core** — test users, Playwright fixture UUIDs, PM templates, and the small cross-org scenario matrix. Bulk inventory, alternate groups, extra equipment, work orders with consumed parts, parts RBAC grants, and operator check-ins are **generated on demand** into `supabase/seeds/generated/` (gitignored) by `dev/seed-data/generate-seeds.ts`.
 
 | Entry point | Behavior |
 | ----------- | ---------- |
-| `.\dev-start.bat -Force` | Regenerates at `-SeedScale` (default 1), then `supabase db reset` |
-| `.\dev-test.bat reset-db` / `run-user-regression.ps1 -ResetDb` | Regenerates at scale 1, then resets |
+| `.\dev\dev-start.bat -Force` | Regenerates at `-SeedScale` (default 1), then `supabase db reset` |
+| `.\dev\dev-test.bat reset-db` / `run-user-regression.ps1 -ResetDb` | Regenerates at scale 1, then resets |
 | `npm run seed:generate [-- --scale N]` | Manual regeneration only (no DB reset) |
 
-Generation is deterministic (seeded RNG + counter UUIDs). Guardrail tests live in `scripts/seed-data/generate-seeds.test.ts`. See `supabase/seeds/README.md` for domain breakdown and E2E safety contracts (generated UUID prefixes stay disjoint from durable-core fixtures; Apex stays empty for operator check-ins and inventory RBAC deny paths).
+Generation is deterministic (seeded RNG + counter UUIDs). Guardrail tests live in `dev/seed-data/generate-seeds.test.ts`. See `supabase/seeds/README.md` for domain breakdown and E2E safety contracts (generated UUID prefixes stay disjoint from durable-core fixtures; Apex stays empty for operator check-ins and inventory RBAC deny paths).
 
 ## Common Commands Reference
 
 ```bash
 # ---- One-click dev environment (Windows) ----
-.\dev-start.bat                      # Supabase + Edge Functions + docs + Vite (strict health)
-.\dev-start.bat -Force               # Regenerate volume seeds, DB reset, types, seed dev media, then full stack (stop first if running)
-.\dev-start.bat -Force -SeedScale 5  # Same with 5x generated inventory/equipment/work-order volume (#1164)
-.\dev-stop.bat                       # Stop Vite, docs, Edge serve, Supabase Docker; sweep ports
-.\dev-stop.bat -Force                # Same + quit Docker Desktop
+.\dev\dev-start.bat                      # Supabase + Edge Functions + docs + Vite (strict health)
+.\dev\dev-start.bat -Force               # Regenerate volume seeds, DB reset, types, seed dev media, then full stack (stop first if running)
+.\dev\dev-start.bat -Force -SeedScale 5  # Same with 5x generated inventory/equipment/work-order volume (#1164)
+.\dev\dev-stop.bat                       # Stop Vite, docs, Edge serve, Supabase Docker; sweep ports
+.\dev\dev-stop.bat -Force                # Same + quit Docker Desktop
 
 # ---- Supabase CLI commands (always use npx) ----
 npx supabase --version              # Check version
@@ -546,8 +546,8 @@ npx supabase functions pull          # Pull functions from remote
 npx supabase gen types typescript --local > src/integrations/supabase/types.ts  # Generate types
 
 # ---- Validation scripts ----
-node scripts/supabase-fix-migrations.mjs      # Validate migration filenames
-node scripts/check-missing-migrations.mjs    # Check for missing migrations
+node dev/supabase-fix-migrations.mjs      # Validate migration filenames
+node dev/check-missing-migrations.mjs    # Check for missing migrations
 ```
 
 ## Additional Resources

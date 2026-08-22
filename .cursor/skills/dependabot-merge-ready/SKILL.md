@@ -23,7 +23,7 @@ Invoking this workflow **MUST** include a PR number or a link to a PR that was o
 
 ```powershell
 # Accept -PullRequestNumber <n> or parse number from a github.com/.../pull/<n> URL
-.\scripts\pr-feedback\Get-PrContext.ps1 -PullRequestNumber <number> -Json
+.\dev\pr-feedback\Get-PrContext.ps1 -PullRequestNumber <number> -Json
 gh pr view <number> --json author,title,headRefName,baseRefName,url
 ```
 
@@ -60,7 +60,7 @@ git switch <headRefName>   # from Get-PrContext
 git diff origin/preview...HEAD -- package.json package-lock.json
 
 # CI-parity sync (prefer over npm install on this repo)
-.\dev-stop.bat             # if EPERM/EBUSY risk on Windows
+.\dev\dev-stop.bat             # if EPERM/EBUSY risk on Windows
 npm ci --prefer-offline --no-audit
 ```
 
@@ -74,7 +74,7 @@ Record: dependency name, from-version, to-version, dev vs prod.
 
 ### EquipQR Phase 2 commands
 
-Search `src/`, `supabase/functions/`, `e2e/`, `scripts/` for package name and known import paths.
+Search `src/`, `supabase/functions/`, `e2e/`, `dev/` for package name and known import paths.
 
 ```powershell
 npm run lint
@@ -165,13 +165,13 @@ git push -u origin HEAD
 **CI + Qodo loop** (merge-ready exit criteria per `pr-merge-ready-workflow.mdc`):
 
 ```powershell
-.\scripts\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <number> -Watch -FailFast
+.\dev\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <number> -Watch -FailFast
 
 Start-Sleep -Seconds 90
-.\scripts\pr-feedback\Get-PrQodoFindings.ps1 -PullRequestNumber <number> -Json
+.\dev\pr-feedback\Get-PrQodoFindings.ps1 -PullRequestNumber <number> -Json
 # Wait until reviewInProgress: false, then openCount: 0 (all buckets)
 
-.\scripts\pr-feedback\Get-PrFeedbackThreads.ps1 -PullRequestNumber <number> -Json
+.\dev\pr-feedback\Get-PrFeedbackThreads.ps1 -PullRequestNumber <number> -Json
 # unresolved non-outdated thread count must be 0
 
 gh pr view <number> --json mergeable,mergeStateStatus,url
@@ -182,7 +182,7 @@ gh pr view <number> --json mergeable,mergeStateStatus,url
 When Qodo flags findings, it often opens a **closed** fix PR (`Fix: [for cherry-picking] ...`, author `app/qodo-code-review`) and posts a **Qodo Fixer** comment on the feature PR. Mine it before writing fixes by hand:
 
 ```powershell
-.\scripts\pr-feedback\Get-PrQodoFixPr.ps1 -PullRequestNumber <number> -Json
+.\dev\pr-feedback\Get-PrQodoFixPr.ps1 -PullRequestNumber <number> -Json
 ```
 
 **Comment pattern (stable):**
