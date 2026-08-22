@@ -20,7 +20,7 @@ const ALLOWLIST_SUFFIXES = [
 ];
 
 const SCAN_ROOTS = [
-  'scripts',
+  'dev',
   'docs',
   '.env.example',
   '.github/secrets-map.yml',

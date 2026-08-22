@@ -29,7 +29,7 @@ import {
 const NAMING_REGEX = /^\d{14}_[a-z0-9_]+\.sql$/;
 
 /** Exact reserved names only (avoids prefix matches like authentication_logs vs auth). */
-const RPC_ALLOWLIST_PATH = path.join('scripts', 'security-definer-rpc-allowlists.json');
+const RPC_ALLOWLIST_PATH = path.join('dev', 'security-definer-rpc-allowlists.json');
 let rpcAnonAllowlist = null;
 let rpcAuthenticatedAllowlist = null;
 try {
