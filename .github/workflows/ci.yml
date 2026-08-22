@@ -80,7 +80,7 @@ jobs:
   lint-and-typecheck:
     name: Lint & Type Check
     runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
-    timeout-minutes: 10
+    timeout-minutes: 20
     permissions:
       contents: read
       checks: write
@@ -161,6 +161,12 @@ jobs:
 
     - name: Verify Node runtime and @types/node policy
       run: npm run verify:node-policy
+
+    - name: Install PSScriptAnalyzer
+      run: node scripts/lint-catalog.mjs --mode provision --only psscriptanalyzer
+
+    - name: Run lint catalog
+      run: npm run lint:all
 
     - name: Run ESLint
       run: npx eslint . --format=json --output-file=eslint-report.json
@@ -592,8 +598,8 @@ jobs:
           echo "Version must match pattern: x.y.z (e.g., 1.0.0, 2.1.3)"
           exit 1
         fi
-        echo "APP_VERSION=$APP_VERSION" >> $GITHUB_ENV
-        echo "APP_VERSION=$APP_VERSION" >> $GITHUB_OUTPUT
+        echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_ENV"
+        echo "APP_VERSION=$APP_VERSION" >> "$GITHUB_OUTPUT"
         echo "📊 Version Information:"
         echo "  App version (from package.json): $APP_VERSION"
 
@@ -606,7 +612,7 @@ jobs:
     - name: Export public env for Vite (Unix)
       if: runner.os != 'Windows'
       shell: bash
-      run: echo "VITE_APP_VERSION=${APP_VERSION}" >> $GITHUB_ENV
+      run: echo "VITE_APP_VERSION=${APP_VERSION}" >> "$GITHUB_ENV"
 
     - name: Build application
       run: npm run build
@@ -735,11 +741,11 @@ jobs:
         build_size=$(du -sb dist/ | cut -f1)
         max_size=$((12 * 1024 * 1024)) # 12MB in bytes
 
-        echo "Build size: $(($build_size / 1024 / 1024))MB"
-        echo "Maximum allowed: $(($max_size / 1024 / 1024))MB"
+        echo "Build size: $((build_size / 1024 / 1024))MB"
+        echo "Maximum allowed: $((max_size / 1024 / 1024))MB"
 
-        if [ $build_size -gt $max_size ]; then
-          echo "❌ Build size $(($build_size / 1024 / 1024))MB exceeds maximum of $(($max_size / 1024 / 1024))MB"
+        if [ "$build_size" -gt "$max_size" ]; then
+          echo "❌ Build size $((build_size / 1024 / 1024))MB exceeds maximum of $((max_size / 1024 / 1024))MB"
           echo "Large files in build:"
           find dist/ -type f -size +1M -exec du -sh {} \; | sort -hr | head -10
           exit 1
@@ -832,7 +838,7 @@ jobs:
 
             echo "  $filename: ${size_kb}KB (gzipped)"
 
-            if [ $gzip_size -gt $max_gzip_size ]; then
+            if [ "$gzip_size" -gt "$max_gzip_size" ]; then
               echo "::error file=$js_file::Gzipped JS bundle $filename (${size_kb}KB) exceeds 500KB limit"
               failed=true
             fi

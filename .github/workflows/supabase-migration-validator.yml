@@ -48,9 +48,11 @@ jobs:
             CHANGED=$(git diff --name-only "$BASE_SHA" HEAD -- 'supabase/migrations/*.sql' 2>/dev/null || git ls-files 'supabase/migrations/*.sql')
           fi
 
-          echo "changed_files<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGED" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          {
+            echo "changed_files<<EOF"
+            echo "$CHANGED"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
           echo "Changed migration files:"
           echo "$CHANGED"
