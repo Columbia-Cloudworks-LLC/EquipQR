@@ -9,7 +9,7 @@ These hooks are Windows-specific and require PowerShell. They will not work on U
 - `sync-types.ps1` - Syncs TypeScript types after file edits
 - `run-tests.ps1` - Runs tests after file edits
 - `guard-migrations.ps1` - Guards against reading migration files incorrectly
-- `changelog-stop.ps1` - At the end of completed agent sessions, asks the agent to update `CHANGELOG.md` when relevant repo changes were made without a changelog entry
+- `changelog-stop.ps1` - After a completed session, remind for a short `[Unreleased]` bullet or an explicit no-user-visible-change justification
 - `component-check.py` - Fuzzy-searches existing components before the agent creates a new one
 - `lint-on-edit.ps1` - Cursor stdin adapter for the lint catalog (`lint/targets.json` via `scripts/lint-catalog.mjs`). Fail-closed on edited `.ts`/`.tsx`, `.md`/`.mdc`, `.ps1`, and `.github/workflows` files. Fallow is project-only.
 - `strict-type-check.ps1` - Blocks edits that introduce explicit `: any` types in `.ts`/`.tsx` files and runs `tsc --noEmit`

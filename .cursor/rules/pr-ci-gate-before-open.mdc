@@ -35,7 +35,7 @@ CI runs different release-metadata jobs by PR base (`ci.yml`):
 
 | PR base | Job | Mode | Expectation |
 |---------|-----|------|-------------|
-| **`preview`** | `preview-release-metadata` | `RELEASE_METADATA_MODE=preview` | No `package.json` version bump vs base; release-relevant diffs require non-empty CHANGELOG `[Unreleased]`; lockfile aligned with package |
+| **`preview`** | `preview-release-metadata` | `RELEASE_METADATA_MODE=preview` | No `package.json` version bump vs base; release-relevant diffs require non-empty CHANGELOG `[Unreleased]` (short customer-facing bullets per `.cursor/rules/changelog.mdc`); lockfile aligned with package |
 | **`main`** | `release-metadata` | `RELEASE_METADATA_MODE=main` | When release-relevant: bump `package.json` above base, empty `[Unreleased]`, versioned CHANGELOG section, lockfile aligned |
 
 Local checks:

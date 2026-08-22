@@ -7,32 +7,34 @@ All notable changes to EquipQR by Columbia Cloudworks LLC will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+Entries through 3.28.0 are more verbose than the current policy. Newer notes are short customer-facing outcomes. Editorial rules live in `.cursor/rules/changelog.mdc`.
+
 ## [Unreleased]
 
 ### Added
 
-- **Project-wide lint catalog.** `npm run lint:all` runs ESLint, markdownlint, PSScriptAnalyzer, actionlint, and Fallow from `lint/targets.json`. One after-edit hook dispatches by file kind.
-- **Homepage pricing collage.** Four vertical equipment photo strips scroll behind the pricing card on `/`. Reduced motion freezes the first frame.
-- **Right to Repair stance.** Public `/right-to-repair` (Legal footer) states that EquipQR supports independent repair and will not hold customer records hostage. The page includes a filterable case atlas of documented post-sale lock-in patterns. It is a public stance, not a contract.
+- **Homepage pricing collage** — Four vertical equipment photo strips scroll behind the pricing card on `/`. Reduced motion freezes the first frame.
+- **Right to Repair stance** — Public `/right-to-repair` (Legal footer) states EquipQR supports independent repair and will not hold customer records hostage. The page includes a filterable case atlas. It is a stance, not a contract.
 
 ### Changed
 
-- **TypeScript strict hygiene.** Root `tsconfig` enables `strict` and consistent file casing; RPC and JSON results are narrowed instead of unsound casts; unused services, debug helpers, and duplicate presentation modules are removed; Tailwind `darkMode` also matches `.dark`; `@tanstack/react-query-persist-client` aligns with react-query 5.101.2.
-- **Single image upload split.** Logo and avatar upload now uses a session model plus variant layouts so the shared control stays easier to change without altering upload, replace, or remove behavior.
-- **Rental card bulldozer icon** — The Equipment rental agencies card on the homepage About section uses a construction-yellow bulldozer so the glyph reads on the dark card.
-- **Marketing and public docs in shop voice** — Landing, Repair Shops, feature pages, README, and public docs now match the homepage hero. Feature prerender SEO comes from `FEATURE_SEO_BY_PATH`. HowTo JSON-LD steps come from the visible page steps.
+- **Homepage rental card icon** — The Equipment rental agencies card uses a construction-yellow bulldozer so the glyph reads on the dark card.
+- **Marketing and public docs voice** — Landing, Repair Shops, feature pages, README, and public docs now match the homepage hero.
+- **Changelog content policy** — New notes record customer-visible outcomes only. Sections through 3.28.0 stay as written.
 
 ### Fixed
 
-- **GitHub Actions run-script injection** — Store `github` / `inputs` context in step `env:` and quote those variables in `run:` scripts (`load-1p-secrets`, `deploy.yml`, `deployment-status.yml`) so untrusted event data cannot break out of the shell.
-- **Marketing footer link underlines** — Landing footer internal and external links now share the same muted color and rest/hover underline treatment so Connect and Columbia Cloudworks no longer look like a different link style than Product, Company, and Legal.
-- **Cross-org team IDOR (RT-13)** — Team fetch, update, and delete are scoped to the current organization. A foreign team UUID renders Team not found with no members or Edit Team.
-- **Same-org team isolation (RT-19)** — For non-owner/admin users, dashboard widgets, equipment/work-order lists, and direct work-order/equipment UUID routes use membership teams only. Org role (not a stale work-order manager flag) decides All teams scope.
-- **Public Quick Form flood (RT-03)** — Fail-closed hCaptcha when the secret is configured; 10-minute cooldown and hourly cap of 5 per token; success copy no longer invites an immediate resubmit. Public Quick Form and operator check-in pages pass the widget token through `onSuccess` so Submit enables after CAPTCHA. Cooldown 429 copy is allowlisted and shown inline on the form.
-- **Operator check-in same-day reuse (RT-02)** — `submit_operator_checkin_public` rejects a second submit on the same UTC day; load returns the already-submitted state so refresh is not a blank form.
-- **Privacy request length (RT-06)** — Client `maxLength` plus matching server caps on name (200) and details (4000), checked before captcha.
-- **Wildcard CORS leftovers** — `list-organizations-admin`, `export-work-orders-to-google-docs`, and `upload-to-google-drive` use origin-validated CORS; the static header is production origin, not `*`.
-- **CSP `frame-ancestors`** — Production CSP includes `frame-ancestors 'self'` so clickjacking is not XFO-only.
+- **Marketing footer link underlines** — Landing footer internal and external links now share the same muted color and rest/hover underline treatment.
+
+### Security
+
+- **Cross-org team IDOR (RT-13)** — Team fetch, update, and delete stay in the current organization. A foreign team UUID shows Team not found with no members or Edit Team.
+- **Same-org team isolation (RT-19)** — Non-owner/admin users see only membership teams on dashboard widgets, equipment and work-order lists, and direct UUID routes.
+- **Public Quick Form flood (RT-03)** — Fail-closed hCaptcha when configured, plus a 10-minute cooldown and hourly cap of 5 per token.
+- **Operator check-in same-day reuse (RT-02)** — A second submit on the same UTC day is rejected. Load returns the already-submitted state.
+- **Privacy request length (RT-06)** — Name (200) and details (4000) have matching client and server caps, checked before captcha.
+- **Wildcard CORS leftovers** — Remaining admin and Google export endpoints use origin-validated CORS instead of `*`.
+- **CSP frame-ancestors** — Production CSP includes `frame-ancestors 'self'`.
 
 ## [3.28.0] - 2026-08-10
 

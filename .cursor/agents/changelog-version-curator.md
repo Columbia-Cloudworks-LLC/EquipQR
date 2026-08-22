@@ -16,6 +16,12 @@ Work conservatively. Preserve unrelated working-tree changes, never rewrite user
 
 If the parent does not specify a mode, infer: bumping files for a feature PR into preview → **feature/preview**; parent is `/release` or opening a PR to `main` → **release/main**.
 
+## Content policy
+
+Follow `.cursor/rules/changelog.mdc`. That file is the only editorial policy.
+
+Write one short bullet per user or operator outcome. Omit work with no customer, operator, or integrator effect, except the minimal `[Unreleased]` note preview CI needs for lockfile or `package.json` diffs.
+
 ## Operating Rules
 
 - This repository runs on Windows with PowerShell. Use PowerShell-safe commands only; do not use bash heredocs, `cat`, `head`, `tail`, `sed`, `awk`, `grep`, or `&&`.
@@ -50,7 +56,7 @@ If the parent does not specify a mode, infer: bumping files for a feature PR int
 ## Feature / preview mode
 
 1. Confirm package version on the working tree matches `origin/preview` (and typically `origin/main` until a promote). **Do not bump.**
-2. Ensure release-relevant changes have customer-facing bullets under `## [Unreleased]` (Keep a Changelog categories).
+2. Accumulate short customer-facing bullets under `## [Unreleased]` per `.cursor/rules/changelog.mdc`. If the change has no customer, operator, or integrator effect, omit the note or write the minimal CI-required `[Unreleased]` bullet. Do not write file-path or test-count essays.
 3. Do not insert a new `## [X.Y.Z]` section and do not empty `[Unreleased]`.
 4. Do not change README badges.
 5. Validate with preview-mode verify when helpful:
@@ -71,9 +77,9 @@ Inspect unreleased work with:
 
 Choose the next SemVer version:
 
-- Patch: bug fixes, security fixes without API/product shape changes, docs/tooling updates, CI/build reliability, small UX corrections, dependency patch updates.
-- Minor: new customer-visible capability, workflow expansion, new integration behavior, database/API additions that enable new product behavior, notable UX or support-library expansion.
-- Major: breaking customer-visible behavior or data/API contract, but only when the user explicitly requests a major release.
+- Patch: fixes, security without product-shape change, batched dependencies, small UX corrections. Do not cut a patch solely for one dependency bump. Batch routine dependency notes into the next real release.
+- Minor: new customer-visible capability or meaningful workflow expansion.
+- Major: only when the user explicitly requests a breaking customer-visible change.
 
 If there are no unreleased changes worth shipping, report a no-op and do not bump.
 
@@ -84,8 +90,10 @@ If the current branch already has a version bump above `origin/main`, verify tha
 1. `CHANGELOG.md`
    - Keep `## [Unreleased]` at the top and leave it empty after releasing its contents.
    - Insert `## [X.Y.Z] - YYYY-MM-DD` immediately below `[Unreleased]`.
-   - Move or synthesize release entries from unreleased changes into Keep a Changelog categories: `Added`, `Changed`, `Fixed`, `Removed`, `Security`.
-   - Prefer customer-facing outcomes over implementation inventory.
+   - Rewrite `[Unreleased]` into short customer-facing bullets per `.cursor/rules/changelog.mdc`. Do not move verbose prose as-is.
+   - Use Keep a Changelog categories only when non-empty: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
+   - Batch routine dependency notes into one Changed bullet, or drop them when they have no user-visible effect.
+   - Drop bullets that have no customer, operator, or integrator effect.
    - Preserve issue and PR links when they are known.
    - Update the comparison link footer so `[Unreleased]` compares `vX.Y.Z...HEAD`, and add `[X.Y.Z]` comparing the prior release tag to `vX.Y.Z`.
    - If older comparison links are stale, repair the top release links touched by this bump rather than rewriting the entire footer.

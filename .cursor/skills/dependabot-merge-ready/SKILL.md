@@ -117,12 +117,14 @@ Skip Phase 4 when there are no debt findings beyond the routine bump.
 
 ## Phase 5: Changelog metadata (preview mode — no version bump)
 
-Dependabot PRs target **`preview`**. Do **not** bump `package.json` / lockfile app version — that happens on `/release` promote to `main`.
+This is **not** a versioned release. Dependabot PRs target **`preview`**. Do **not** bump `package.json` / lockfile app version. Do not add a versioned CHANGELOG section.
+
+Preview release-metadata CI treats `package.json` and `package-lock.json` as release-relevant, so add one short `[Unreleased]` Changed note. Follow `.cursor/rules/changelog.mdc`. At the next `/release`, the curator batches that note into one dependency bullet or drops it.
 
 ### EquipQR release metadata (required for merge-ready to `preview`)
 
 1. Keep the existing root `package.json` version unchanged vs `origin/preview`.
-2. Add at least one bullet under CHANGELOG `## [Unreleased]` (e.g. `### Changed`) describing the dependency update and any minimal remediation.
+2. Add one short Changed bullet under CHANGELOG `## [Unreleased]` for the lockfile or `package.json` diff.
 3. Ensure `package-lock.json` dependency changes from the bump are committed; root app version stays aligned with `package.json` (no bump).
 
 ```powershell
@@ -213,7 +215,7 @@ Address every unstriked Qodo item and unresolved thread; fix forward → Phase 3
 - CI run link (green)
 - Qodo parent comment URL with `openCount=0`
 - Tech-debt issue link (if Phase 4 created/updated one)
-- Confirmation: no feature regression; Unreleased changelog note; no package.json version bump
+- Confirmation: no feature regression; short Unreleased note; no package.json version bump; not a versioned release
 
 ---
 
@@ -224,7 +226,7 @@ Address every unstriked Qodo item and unresolved thread; fix forward → Phase 3
 - [ ] npm ci + lint + type-check + test:ci + build green locally
 - [ ] Minimal remediation only (if needed)
 - [ ] Tech-debt issues idempotently updated/created (if applicable)
-- [ ] CHANGELOG [Unreleased] updated; package.json version unchanged vs preview
+- [ ] Short CHANGELOG [Unreleased] Changed note (CI requirement, not a versioned release); package.json version unchanged vs preview
 - [ ] verify:release-metadata with RELEASE_METADATA_MODE=preview
 - [ ] Fallow clean; commit pushed
 - [ ] CI green (Get-PrChecks -Watch)
