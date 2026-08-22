@@ -4,7 +4,12 @@ import sys
 import tempfile
 from pathlib import Path
 
-from PIL import Image
+try:
+    from PIL import Image
+except ImportError as error:
+    raise SystemExit(
+        "Pillow is required for npm run collage:compose. Install it with: python -m pip install pillow"
+    ) from error
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RECIPE_PATH = Path(__file__).with_name("recipe.json")
@@ -25,14 +30,22 @@ def open_image(path: Path) -> Image.Image:
     except Exception as first_error:
         with tempfile.TemporaryDirectory() as tmp:
             converted = Path(tmp) / "converted.png"
-            result = subprocess.run(
-                ["ffmpeg", "-y", "-i", str(path), str(converted)],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
+            try:
+                result = subprocess.run(
+                    ["ffmpeg", "-y", "-i", str(path), str(converted)],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+            except FileNotFoundError as ffmpeg_missing:
+                raise SystemExit(
+                    f"failed to open {path.name}: {first_error}; ffmpeg is not on PATH"
+                ) from ffmpeg_missing
             if result.returncode != 0 or not converted.is_file():
-                raise SystemExit(f"failed to open {path.name}: {first_error}") from first_error
+                detail = (result.stderr or result.stdout or "").strip()
+                raise SystemExit(
+                    f"failed to open {path.name}: {first_error}; ffmpeg: {detail or result.returncode}"
+                ) from first_error
             image = Image.open(converted)
             image.load()
             return image.convert("RGB")

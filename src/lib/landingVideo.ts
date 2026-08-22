@@ -7,5 +7,10 @@ export function landingVideo(filename: string): string {
   if (normalized.includes('..')) {
     throw new Error(`landingVideo(): parent-directory segments are not allowed (${filename})`);
   }
+
+  if (normalized === 'pr-evidence' || normalized.startsWith('pr-evidence/')) {
+    throw new Error(`landingVideo(): pr-evidence/ is not a marketing demo (${filename})`);
+  }
+
   return `${PRODUCTION_LANDING_VIDEOS_ORIGIN}/${normalized}`;
 }

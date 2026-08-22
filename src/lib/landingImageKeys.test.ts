@@ -5,6 +5,12 @@ import { LANDING_IMAGE_KEYS } from './landingImage';
 
 const LANDING_DIR = join(process.cwd(), 'public', 'images', 'landing');
 
+const LANDING_CATALOG_NOISE = new Set(['.gitkeep', '.DS_Store', 'Thumbs.db', 'desktop.ini']);
+
+function isLandingCatalogNoise(name: string): boolean {
+  return LANDING_CATALOG_NOISE.has(name);
+}
+
 function listLandingFiles(dir: string, prefix = ''): string[] {
   if (!existsSync(dir)) {
     return [];
@@ -22,11 +28,11 @@ function listLandingFiles(dir: string, prefix = ''): string[] {
       continue;
     }
 
-    if (entry.isFile() && entry.name !== '.gitkeep') {
-      files.push(relative.replaceAll('\\', '/'));
+    if (isLandingCatalogNoise(entry.name)) {
+      continue;
     }
 
-    if (entry.isSymbolicLink() && statSync(absolute).isFile() && entry.name !== '.gitkeep') {
+    if (entry.isFile() || (entry.isSymbolicLink() && statSync(absolute).isFile())) {
       files.push(relative.replaceAll('\\', '/'));
     }
   }

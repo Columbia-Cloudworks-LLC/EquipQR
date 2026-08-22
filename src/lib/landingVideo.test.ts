@@ -34,4 +34,8 @@ describe('landingVideo', () => {
   it('throws for parent-directory segments', () => {
     expect(() => landingVideo('../demo.mp4')).toThrow(/\.\./);
   });
+
+  it('throws for pr-evidence paths', () => {
+    expect(() => landingVideo('pr-evidence/branch/demo.mp4')).toThrow(/pr-evidence/);
+  });
 });
