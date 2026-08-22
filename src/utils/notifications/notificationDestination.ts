@@ -28,8 +28,9 @@ type DestinationRule = {
 };
 
 function dataOrgSwitchId(data: NotificationData): string | null {
-  return data.organization_id || data.workspace_org_id || null;
+  return data.new_org_id || data.organization_id || data.workspace_org_id || null;
 }
+
 
 function go(
   path: string,
