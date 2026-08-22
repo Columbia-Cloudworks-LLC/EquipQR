@@ -52,4 +52,9 @@ describe('landingVideo', () => {
     vi.stubEnv('VITE_SUPABASE_URL', 'https://supabase.equipqr.app/');
     expect(landingVideo('demo.mp4')).toBe(`${PRODUCTION_VIDEO_ORIGIN}/demo.mp4`);
   });
+
+  it('ignores lookalike hosts and extra path segments on VITE_SUPABASE_URL', () => {
+    vi.stubEnv('VITE_SUPABASE_URL', 'https://supabase.equipqr.app.evil.com/storage/v1');
+    expect(landingVideo('demo.mp4')).toBe(`${PRODUCTION_VIDEO_ORIGIN}/demo.mp4`);
+  });
 });
