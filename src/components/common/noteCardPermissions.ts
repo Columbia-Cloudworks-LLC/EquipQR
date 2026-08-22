@@ -3,7 +3,7 @@ export type NotesVisibilityFilterValue = 'all' | 'public' | 'private';
 export interface NoteWithPrivacy {
   id: string;
   is_private?: boolean;
-  author_id?: string;
+  author_id?: string | null;
 }
 
 export function filterNotesByVisibility<T extends NoteWithPrivacy>(

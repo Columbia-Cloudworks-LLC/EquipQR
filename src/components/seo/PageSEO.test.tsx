@@ -72,6 +72,26 @@ describe('PageSEO', () => {
     removeTestSeededHeadNodes();
   });
 
+  it('writes robots noindex from title-only public pages without a canonical URL', async () => {
+    document.title = 'InitialTitle';
+
+    const { unmount } = render(<PageSEO title="Intake Form — Quick Form" noindex />);
+
+    await waitFor(() => {
+      expect(document.title).toBe('Intake Form — Quick Form | EquipQR');
+    });
+
+    expect(
+      document.querySelector('meta[name="robots"][data-equipqr-page-seo]')?.getAttribute('content')
+    ).toBe('noindex, nofollow');
+    expect(document.querySelector('link[rel="canonical"]')).toBeNull();
+    expect(document.querySelector('meta[name="description"][data-equipqr-page-seo]')).toBeNull();
+
+    unmount();
+    expect(document.title).toBe('InitialTitle');
+    expect(document.querySelector('meta[name="robots"]')).toBeNull();
+  });
+
   it('writes title, description, canonical, Open Graph, and Twitter metadata to document.head', async () => {
     document.title = 'InitialTitle';
 

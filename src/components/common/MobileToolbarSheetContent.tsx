@@ -11,7 +11,7 @@ export type MobileToolbarSheetContentProps = React.ComponentPropsWithoutRef<
  * users can still switch sections without losing their place.
  */
 export const MobileToolbarSheetContent = React.forwardRef<
-  React.ElementRef<typeof SheetContent>,
+  React.ComponentRef<typeof SheetContent>,
   MobileToolbarSheetContentProps
 >(({ className, ...props }, ref) => (
   <SheetContent

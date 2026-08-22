@@ -60,7 +60,7 @@ type WorkOrderDetailsOverlaysProps = {
   onCompleteMobileWorkOrder: () => void;
   showFieldAcceptDialog: boolean;
   onFieldAcceptDialogClose: () => void;
-  onFieldAcceptComplete: () => void;
+  onFieldAcceptComplete: (assigneeId?: string) => Promise<void>;
   fieldAcceptanceMutation: Pick<UseMutationResult<unknown, unknown, unknown, unknown>, 'isPending'>;
   onOpenNotesComposer: () => void;
   onScrollToCosts: () => void;

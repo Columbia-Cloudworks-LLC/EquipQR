@@ -232,12 +232,16 @@ export async function importCustomerFromQB(
       .eq('organization_id', organizationId);
 
     if (rollbackError) {
-      throw new Error(
-        `${syncMessage} (Cleanup of the partially imported customer also failed: ${rollbackError.message})`,
+      throw Object.assign(
+        new Error(
+          `${syncMessage} (Cleanup of the partially imported customer also failed: ${rollbackError.message})`
+        ),
         { cause: syncErr }
       );
     }
-    throw syncErr instanceof Error ? syncErr : new Error(syncMessage, { cause: syncErr });
+    throw syncErr instanceof Error
+      ? syncErr
+      : Object.assign(new Error(syncMessage), { cause: syncErr });
   }
   return customer;
 }
@@ -329,10 +333,10 @@ export async function createExternalContact(
     p_organization_id: organizationId,
     p_customer_id: contact.customer_id,
     p_name: contact.name,
-    p_email: contact.email ?? null,
-    p_phone: contact.phone ?? null,
-    p_role: contact.role ?? null,
-    p_notes: contact.notes ?? null,
+    p_email: contact.email ?? undefined,
+    p_phone: contact.phone ?? undefined,
+    p_role: contact.role ?? undefined,
+    p_notes: contact.notes ?? undefined,
   });
 
   if (error) throw error;
@@ -348,10 +352,10 @@ export async function updateExternalContact(
     p_organization_id: organizationId,
     p_contact_id: contactId,
     p_name: fields.name,
-    p_email: fields.email,
-    p_phone: fields.phone,
-    p_role: fields.role,
-    p_notes: fields.notes,
+    p_email: fields.email ?? '',
+    p_phone: fields.phone ?? '',
+    p_role: fields.role ?? '',
+    p_notes: fields.notes ?? '',
   });
 
   if (error) throw error;

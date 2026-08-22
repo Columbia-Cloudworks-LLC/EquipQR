@@ -228,7 +228,7 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
               <CollapsibleTrigger asChild>
                 <button
                   type="button"
-                  className="flex min-h-[44px] w-full touch-manipulation items-center justify-between text-left"
+                  className="flex min-h-11 w-full touch-manipulation items-center justify-between text-left"
                 >
                   <span className="inline-flex items-center gap-2 text-base font-semibold">
                     <Clipboard className="h-4 w-4 text-muted-foreground" />
@@ -271,7 +271,7 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
               <CollapsibleTrigger asChild>
                 <button
                   type="button"
-                  className="flex min-h-[44px] w-full touch-manipulation items-center justify-between text-left"
+                  className="flex min-h-11 w-full touch-manipulation items-center justify-between text-left"
                 >
                   <span className="inline-flex items-center gap-2 text-base font-semibold">
                     <Wrench className="h-4 w-4 text-muted-foreground" />
@@ -331,7 +331,7 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
                         val != null && (
                           <div key={key} className="flex justify-between gap-4">
                             <span className="shrink-0 text-muted-foreground">{humanizeAttributeKey(key)}</span>
-                            <span className="break-words text-right">{humanizeAttributeValue(val)}</span>
+                            <span className="wrap-break-word text-right">{humanizeAttributeValue(val)}</span>
                           </div>
                         ),
                     )}

@@ -31,7 +31,9 @@ const mockTeam = {
   created_at: new Date().toISOString(),
 };
 
-const mockUseTeam = vi.fn(() => ({ data: mockTeam, isLoading: false }));
+const mockUseTeam = vi.fn<(...args: unknown[]) => { data: typeof mockTeam | null; isLoading: boolean }>(
+  () => ({ data: mockTeam, isLoading: false }),
+);
 
 vi.mock('@/features/teams/hooks/useTeamManagement', () => ({
   useTeam: (...args: unknown[]) => mockUseTeam(...args),

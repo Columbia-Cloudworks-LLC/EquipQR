@@ -46,7 +46,7 @@ export function MobileWorkOrderStatusSheet({
                   <Button
                     type="button"
                     variant={action.variant}
-                    className={`min-h-[44px] w-full justify-start touch-manipulation ${
+                    className={`min-h-11 w-full justify-start touch-manipulation ${
                       isCancelAction
                         ? 'text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive'
                         : ''

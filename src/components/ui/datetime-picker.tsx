@@ -114,7 +114,7 @@ export function DateTimePicker({
         <Button
           variant="outline"
           className={cn(
-            "h-11 min-h-[44px] w-full min-w-0 justify-start px-3 text-left font-normal",
+            "h-11 min-h-11 w-full min-w-0 justify-start px-3 text-left font-normal",
             !selectedDate && "text-muted-foreground",
             className
           )}
@@ -134,7 +134,8 @@ export function DateTimePicker({
             month={visibleMonth}
             onMonthChange={setVisibleMonth}
             onSelect={handleDateSelect}
-            initialFocus
+            // eslint-disable-next-line jsx-a11y/no-autofocus -- DayPicker v10 focuses the selected/today cell after the popover opens
+            autoFocus
             className={cn("pointer-events-auto")}
           />
           {showShortcuts ? (

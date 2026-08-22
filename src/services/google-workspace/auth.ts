@@ -168,8 +168,8 @@ export async function generateGoogleWorkspaceAuthUrl(
   const { data: sessionData, error: sessionError } = await supabase.rpc(
     'create_google_workspace_oauth_session',
     {
-      p_organization_id: config.organizationId || null,
-      p_redirect_url: config.redirectUrl || null,
+      p_organization_id: config.organizationId || undefined,
+      p_redirect_url: config.redirectUrl || undefined,
       p_origin_url: originUrl,
     }
   );

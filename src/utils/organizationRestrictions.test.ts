@@ -6,13 +6,14 @@ describe('organizationRestrictions', () => {
   describe('getOrganizationRestrictions', () => {
     it('should return all features enabled (billing permanently disabled)', () => {
       const members: RealOrganizationMember[] = [
-        { 
-          id: 'member-1', 
-          user_id: 'user-1', 
-          organization_id: 'org-1', 
-          role: 'admin', 
-          created_at: '2023-01-01',
-          profiles: { display_name: 'Test User', email: 'test@example.com' }
+        {
+          id: 'member-1',
+          userId: 'user-1',
+          name: 'Test User',
+          email: 'test@example.com',
+          role: 'admin',
+          joinedDate: '2023-01-01',
+          status: 'active',
         }
       ];
       
@@ -30,9 +31,9 @@ describe('organizationRestrictions', () => {
     it('should return same restrictions regardless of member count', () => {
       const emptyMembers: RealOrganizationMember[] = [];
       const manyMembers: RealOrganizationMember[] = [
-        { id: 'm1', user_id: 'u1', organization_id: 'org-1', role: 'admin', created_at: '2023-01-01', profiles: { display_name: 'A', email: 'a@test.com' } },
-        { id: 'm2', user_id: 'u2', organization_id: 'org-1', role: 'member', created_at: '2023-01-01', profiles: { display_name: 'B', email: 'b@test.com' } },
-        { id: 'm3', user_id: 'u3', organization_id: 'org-1', role: 'member', created_at: '2023-01-01', profiles: { display_name: 'C', email: 'c@test.com' } },
+        { id: 'm1', userId: 'u1', name: 'A', email: 'a@test.com', role: 'admin', joinedDate: '2023-01-01', status: 'active' },
+        { id: 'm2', userId: 'u2', name: 'B', email: 'b@test.com', role: 'member', joinedDate: '2023-01-01', status: 'active' },
+        { id: 'm3', userId: 'u3', name: 'C', email: 'c@test.com', role: 'member', joinedDate: '2023-01-01', status: 'active' },
       ];
       
       const emptyRestrictions = getOrganizationRestrictions(emptyMembers);

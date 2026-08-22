@@ -7,7 +7,7 @@ describe('Input', () => {
   it('meets minimum 44px height for touch / pointer targets on mission-control field', () => {
     render(<Input aria-label="Equipment search" />);
     const el = screen.getByRole('textbox', { name: /equipment search/i });
-    expect(el).toHaveClass('min-h-[44px]');
+    expect(el).toHaveClass('min-h-11');
   });
 
   it('uses a thick focus-visible ring aligned with mission-control tokens', () => {

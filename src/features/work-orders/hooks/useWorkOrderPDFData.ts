@@ -98,13 +98,13 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
     teamId,
   } = options;
   
-  const { organization } = useOrganization();
+  const { currentOrganization, organizationId: contextOrganizationId } = useOrganization();
   const { toast } = useAppToast();
   const queryClient = useQueryClient();
   const settingsContext = useContext(SettingsContext);
   const { settings: fallbackSettings } = useUserSettings();
   const settings = settingsContext?.settings ?? fallbackSettings;
-  const organizationId = organizationIdOverride ?? organization?.id;
+  const organizationId = organizationIdOverride ?? contextOrganizationId ?? undefined;
   const exportDateSettings = useMemo(
     () =>
       ({
@@ -387,7 +387,7 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
     setIsGeneratingWorksheet(true);
 
     try {
-      const orgLogoUrl = (organization as Record<string, unknown> | null)?.logo as string | null ?? null;
+      const orgLogoUrl = currentOrganization?.logo ?? null;
 
       let teamImgUrl: string | null = null;
       if (teamId && organizationId) {
@@ -439,7 +439,7 @@ export const useWorkOrderPDF = (options: UseWorkOrderPDFOptions): UseWorkOrderPD
       isGeneratingWorksheetRef.current = false;
       setIsGeneratingWorksheet(false);
     }
-  }, [equipment, exportDateSettings, organizationName, pmData, workOrder, organization, teamId, organizationId, buildQRCodes, buildPageIdentity, toast]);
+  }, [equipment, exportDateSettings, organizationName, pmData, workOrder, currentOrganization, teamId, organizationId, buildQRCodes, buildPageIdentity, toast]);
 
   return {
     downloadPDF,

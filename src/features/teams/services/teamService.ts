@@ -5,6 +5,7 @@ import type {
   TeamInsert, 
   TeamUpdate, 
   TeamMemberInsert,
+  TeamMemberRole,
   Team,
   TeamMember,
   TeamWithMembers
@@ -22,6 +23,63 @@ import {
 
 // Re-export types for backward compatibility
 export type { Team, TeamMember, TeamWithMembers };
+
+type TeamCustomerJoin = {
+  name: string;
+  status: string;
+  quickbooks_synced_at: string | null;
+} | null;
+
+function toTeam(
+  row: Pick<
+    TeamRow,
+    | 'id'
+    | 'name'
+    | 'description'
+    | 'organization_id'
+    | 'created_at'
+    | 'updated_at'
+    | 'image_url'
+    | 'location_address'
+    | 'location_city'
+    | 'location_state'
+    | 'location_country'
+    | 'location_lat'
+    | 'location_lng'
+    | 'override_equipment_location'
+    | 'preferred_view'
+    | 'customer_id'
+    | 'team_lead_id'
+  > & { team_members?: Array<{ count: number }> | null },
+  extras?: {
+    image_url?: string | null;
+    customer?: TeamCustomerJoin;
+  },
+): Team {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description ?? '',
+    organization_id: row.organization_id,
+    member_count: row.team_members?.[0]?.count || 0,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    image_url: extras?.image_url ?? row.image_url,
+    location_address: row.location_address ?? undefined,
+    location_city: row.location_city ?? undefined,
+    location_state: row.location_state ?? undefined,
+    location_country: row.location_country ?? undefined,
+    location_lat: row.location_lat ?? undefined,
+    location_lng: row.location_lng ?? undefined,
+    override_equipment_location: row.override_equipment_location,
+    preferred_view: isTeamView(row.preferred_view) ? row.preferred_view : 'internal',
+    customer_id: row.customer_id,
+    customer_name: extras?.customer?.name ?? null,
+    customer_status: extras?.customer?.status ?? null,
+    quickbooks_synced_at: extras?.customer?.quickbooks_synced_at ?? null,
+    team_lead_id: row.team_lead_id,
+  };
+}
 
 export const getTeamImageUrl = async (
   teamId: string,
@@ -95,14 +153,17 @@ export const updateTeam = async (
     .update(updates)
     .eq('id', id)
     .eq('organization_id', organizationId)
-    .select()
+    .select(`
+      *,
+      team_members(count)
+    `)
     .maybeSingle();
 
   if (error && error.code !== 'PGRST116') throw error;
   if (!data) {
     throw new Error('Team could not be updated. You may not have permission to edit this team.');
   }
-  return data;
+  return toTeam(data);
 };
 
 // Delete a team
@@ -150,7 +211,7 @@ export const removeTeamMember = async (teamId: string, userId: string): Promise<
 export const updateTeamMemberRole = async (
   teamId: string, 
   userId: string, 
-  role: Database['public']['Enums']['team_member_role']
+  role: TeamMemberRole
 ): Promise<TeamMember> => {
   const { data, error } = await supabase
     .from('team_members')
@@ -231,8 +292,8 @@ export const getTeamMembersOptimized = async (teamId: string): Promise<TeamMembe
       team_id: member.team_id,
       role: member.role,
       joined_date: member.joined_date,
-      user_name: member.profiles?.name,
-      user_email: member.profiles?.email
+      user_name: member.profiles?.name ?? undefined,
+      user_email: member.profiles?.email ?? undefined,
     }));
   } catch (error) {
     logger.error('Error fetching team members:', error);
@@ -290,8 +351,8 @@ export const getTeamMembersByTeamIdsOptimized = async (
         team_id: teamId,
         role: member.role,
         joined_date: member.joined_date,
-        user_name: member.profiles?.name,
-        user_email: member.profiles?.email,
+        user_name: member.profiles?.name ?? undefined,
+        user_email: member.profiles?.email ?? undefined,
       };
       if (list) {
         list.push(mapped);
@@ -334,30 +395,12 @@ export const getOrganizationTeamsOptimized = async (organizationId: string): Pro
     const signedBatch = await batchResolveTeamImageDisplayUrls(rawImages);
 
     return teams.map((team, i) => {
-      const customer = (team as Record<string, unknown>).customers as
-        { id: string; name: string; status: string; quickbooks_synced_at: string | null } | null;
+      const customer = (team as Record<string, unknown>).customers as TeamCustomerJoin;
       const rawImage = (team as TeamRow).image_url;
-      return {
-        id: team.id,
-        name: team.name,
-        description: team.description,
-        organization_id: team.organization_id,
-        member_count: team.team_members?.[0]?.count || 0,
-        created_at: team.created_at,
-        updated_at: team.updated_at,
+      return toTeam(team, {
         image_url: displayUrlForStoredPrivateImage(signedBatch[i], rawImage),
-        location_address: team.location_address,
-        location_city: team.location_city,
-        location_state: team.location_state,
-        location_country: team.location_country,
-        location_lat: team.location_lat,
-        location_lng: team.location_lng,
-        override_equipment_location: team.override_equipment_location,
-        customer_id: team.customer_id,
-        customer_name: customer?.name ?? null,
-        customer_status: customer?.status ?? null,
-        quickbooks_synced_at: customer?.quickbooks_synced_at ?? null,
-      };
+        customer,
+      });
     });
   } catch (error) {
     logger.error('Error fetching organization teams:', error);
@@ -392,59 +435,18 @@ export const getTeamByIdOptimized = async (
     }
     if (!data) return null;
 
-    const customer = (data as Record<string, unknown>).customers as
-      { id: string; name: string; status: string; quickbooks_synced_at: string | null } | null;
+    const customer = (data as Record<string, unknown>).customers as TeamCustomerJoin;
 
     const rawImage = (data as unknown as TeamRow).image_url;
     const [signedForTeam] = await batchResolveTeamImageDisplayUrls(rawImage ? [rawImage] : []);
 
-    return {
-      id: data.id,
-      name: data.name,
-      description: data.description,
-      organization_id: data.organization_id,
-      member_count: data.team_members?.[0]?.count || 0,
-      created_at: data.created_at,
-      updated_at: data.updated_at,
+    return toTeam(data, {
       image_url: displayUrlForStoredPrivateImage(signedForTeam, rawImage),
-      location_address: data.location_address,
-      location_city: data.location_city,
-      location_state: data.location_state,
-      location_country: data.location_country,
-      location_lat: data.location_lat,
-      location_lng: data.location_lng,
-      override_equipment_location: data.override_equipment_location,
-      preferred_view: isTeamView(data.preferred_view) ? data.preferred_view : 'internal',
-      customer_id: data.customer_id,
-      customer_name: customer?.name ?? null,
-      customer_status: customer?.status ?? null,
-      quickbooks_synced_at: customer?.quickbooks_synced_at ?? null,
-    };
+      customer,
+    });
   } catch (error) {
     logger.error('Error fetching team by ID:', error);
     return null;
-  }
-};
-
-/**
- * Check if user is team manager using optimized query
- * Uses idx_team_members_user_team index
- */
-export const isTeamManagerOptimized = async (userId: string, teamId: string): Promise<boolean> => {
-  try {
-    const { data, error } = await supabase
-      .from('team_members')
-      .select('role')
-      .eq('user_id', userId)
-      .eq('team_id', teamId)
-      .eq('role', 'manager')
-      .single();
-
-    if (error && error.code !== 'PGRST116') throw error;
-    return !!data;
-  } catch (error) {
-    logger.error('Error checking team manager status:', error);
-    return false;
   }
 };
 

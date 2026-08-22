@@ -28,8 +28,8 @@ export async function updateEquipmentNoteRpc(params: {
     p_organization_id: params.organizationId,
     p_equipment_id: params.equipmentId,
     p_note_id: params.noteId,
-    p_content: params.content ?? null,
-    p_is_private: params.isPrivate ?? null,
+    p_content: params.content ?? undefined,
+    p_is_private: params.isPrivate ?? undefined,
   });
   if (error) throw error;
   assertRpcSuccess(data, 'Failed to update equipment note');
@@ -74,8 +74,8 @@ export async function updateWorkOrderNoteRpc(params: {
     p_organization_id: params.organizationId,
     p_work_order_id: params.workOrderId,
     p_note_id: params.noteId,
-    p_content: params.content ?? null,
-    p_is_private: params.isPrivate ?? null,
+    p_content: params.content ?? undefined,
+    p_is_private: params.isPrivate ?? undefined,
   });
   if (error) throw error;
   assertRpcSuccess(data, 'Failed to update work order note');

@@ -78,11 +78,3 @@ export function isMFAEnabled(): boolean {
   return MFA_ENABLED;
 }
 
-/**
- * Check if the offline queue feature is enabled
- * @returns true if offline queue features should be active
- */
-function isOfflineQueueEnabled(): boolean {
-  return OFFLINE_QUEUE_ENABLED;
-}
-

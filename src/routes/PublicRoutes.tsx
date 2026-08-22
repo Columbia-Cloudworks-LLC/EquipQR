@@ -32,12 +32,9 @@ import {
   OperatorCheckInPublicPage,
   QuickFormPublicPage,
 } from '@/routes/lazyPublicPages';
+import { LazyRoute } from '@/routes/LazyRoute';
 import { LandingCanonicalRedirect } from '@/routes/redirects';
-import { qrRouteFallback, textRouteFallback } from '@/routes/routerConfig';
-
-const LazyRoute = ({ children }: { children: React.ReactNode }) => (
-  <Suspense fallback={textRouteFallback}>{children}</Suspense>
-);
+import { qrRouteFallback } from '@/routes/routerConfig';
 
 export const publicRouteElements = (
   <>

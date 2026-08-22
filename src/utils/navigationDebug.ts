@@ -13,15 +13,3 @@ export const logNavigationEvent = (event: string, data?: unknown) => {
     logger.debug(`🧭 Navigation [${navigationEventCount}]: ${event}`, data || '');
   }
 };
-
-const getNavigationStats = () => {
-  return {
-    lastEvent: lastNavigationEvent,
-    eventCount: navigationEventCount
-  };
-};
-
-const resetNavigationStats = () => {
-  lastNavigationEvent = null;
-  navigationEventCount = 0;
-};

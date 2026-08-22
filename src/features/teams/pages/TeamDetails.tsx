@@ -301,7 +301,7 @@ const TeamDetails = () => {
             >
               Teams
             </Link>
-            <ChevronRight className="h-3.5 w-3.5 flex-shrink-0 opacity-50" aria-hidden="true" />
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden="true" />
             <span className="text-foreground font-medium truncate max-w-[20ch] sm:max-w-none" aria-current="page" title={team.name}>
               {team.name}
             </span>

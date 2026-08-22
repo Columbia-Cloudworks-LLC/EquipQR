@@ -124,7 +124,7 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <Link 
                     to={`/dashboard/equipment/${equipment.id}`}
-                    className="text-lg font-medium text-primary hover:underline break-words"
+                    className="text-lg font-medium text-primary hover:underline wrap-break-word"
                   >
                     {equipment.name}
                   </Link>
@@ -141,22 +141,22 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="font-medium">Manufacturer:</span>
-                    <span className="ml-2 text-muted-foreground break-words">{equipment.manufacturer}</span>
+                    <span className="ml-2 text-muted-foreground wrap-break-word">{equipment.manufacturer}</span>
                   </div>
                   <div>
                     <span className="font-medium">Model:</span>
-                    <span className="ml-2 text-muted-foreground break-words">{equipment.model}</span>
+                    <span className="ml-2 text-muted-foreground wrap-break-word">{equipment.model}</span>
                   </div>
                   <div className="sm:col-span-2">
                     <span className="font-medium">Serial Number:</span>
-                    <span className="ml-2 text-muted-foreground break-words">{equipment.serial_number}</span>
+                    <span className="ml-2 text-muted-foreground wrap-break-word">{equipment.serial_number}</span>
                   </div>
                   {/* Working Hours - standard data label */}
                   <div className="sm:col-span-2">
                     <span className="font-medium">
                       {workOrder.equipment_working_hours_at_creation ? 'Meter Reading (at creation):' : 'Equipment Hours:'}
                     </span>
-                    <span className="ml-2 text-muted-foreground break-words">
+                    <span className="ml-2 text-muted-foreground wrap-break-word">
                       {workingHoursLoading ? (
                         <span className="animate-pulse">Loading...</span>
                       ) : (
@@ -176,7 +176,7 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
                         val != null && (
                           <div key={key}>
                             <span className="font-medium">{humanizeAttributeKey(key)}:</span>
-                            <span className="ml-2 text-muted-foreground break-words">{humanizeAttributeValue(val)}</span>
+                            <span className="ml-2 text-muted-foreground wrap-break-word">{humanizeAttributeValue(val)}</span>
                           </div>
                         )
                       ))}

@@ -21,6 +21,7 @@ import {
   updateWorkOrderNoteRpc,
 } from '@/services/noteMutationRpc';
 import { uploadFilesToNoteImageBucket } from '@/services/noteImageUploadShared';
+import { mapWorkOrderNoteRow } from '@/features/work-orders/services/workOrderNoteMappers';
 
 async function prepareWorkOrderNoteImageUpload(
   workOrderId: string,
@@ -92,6 +93,11 @@ export interface WorkOrderNote {
   author_name?: string;
   images?: WorkOrderNoteImage[];
 }
+
+/** Notes list row after author/image enrichment — author_name is always present. */
+export type WorkOrderNoteListItem = WorkOrderNote & {
+  author_name: string;
+};
 
 export interface WorkOrderNoteImage {
   id: string;
@@ -171,10 +177,10 @@ export const createWorkOrderNoteWithImages = async (
 
   const uploadedImages = await uploadWorkOrderNoteImages(workOrderId, note.id, images, userId);
 
-  return {
-    ...note,
+  return mapWorkOrderNoteRow(note, {
+    authorIdFallback: userId,
     images: uploadedImages,
-  };
+  });
 };
 
 /** Attach creation-time photos via the standard note+storage path and set work_orders.primary_image_id to the first uploaded image. */
@@ -219,7 +225,7 @@ export async function attachWorkOrderCreationImages(params: {
 export const getWorkOrderNotesWithImages = async (
   workOrderId: string,
   organizationId: string,
-) => {
+): Promise<WorkOrderNoteListItem[]> => {
   if (!organizationId.trim()) {
     throw new Error('Organization ID is required to fetch work order notes with images');
   }
@@ -241,7 +247,11 @@ export const getWorkOrderNotesWithImages = async (
     if (!notes) return [];
 
     // Get author names separately
-    const authorIds = [...new Set(notes.map(note => note.author_id))];
+    const authorIds = [...new Set(
+      notes
+        .map(note => note.author_id)
+        .filter((id): id is string => Boolean(id)),
+    )];
     let profiles: Array<{ id: string; name?: string }> = [];
     
     if (authorIds.length > 0) {
@@ -265,13 +275,10 @@ export const getWorkOrderNotesWithImages = async (
         uploaderProfiles,
       );
 
-      return {
-        ...note,
-        hours_worked: Number(note.hours_worked) || 0,
-        machine_hours: note.machine_hours != null ? Number(note.machine_hours) : null,
+      return mapWorkOrderNoteRow(note, {
         author_name: author?.name || 'Unknown',
         images: noteImages,
-      };
+      });
     });
   } catch (error) {
     logger.error('Error fetching work order notes:', error);

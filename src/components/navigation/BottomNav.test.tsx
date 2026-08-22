@@ -36,7 +36,7 @@ describe('BottomNav inventory RBAC', () => {
       isPartsManager: false,
       isPartsConsumer: false,
       isLoading: false,
-      currentOrganization: undefined,
+      currentOrganization: null,
     });
 
     renderBottomNav();
@@ -52,7 +52,7 @@ describe('BottomNav inventory RBAC', () => {
       isPartsManager: false,
       isPartsConsumer: true,
       isLoading: false,
-      currentOrganization: undefined,
+      currentOrganization: null,
     });
 
     renderBottomNav();

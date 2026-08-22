@@ -3,7 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { usePermissions, useWorkOrderPermissions } from './usePermissions';
 import { 
   createMockUserContext,
-  createMockSimpleOrganizationContext
+  createMockSimpleOrganizationContext,
+  createMockSessionOrganization
 } from '@vitest-harness/mocks/testTypes';
 import type { WorkOrderData } from '@/features/work-orders/types/workOrder';
 
@@ -54,7 +55,10 @@ vi.mock('@/services/permissions/PermissionEngine', () => ({
   permissionEngine: {
     hasPermission: vi.fn((permission: string, context: { userRole?: string; organizationId?: string; teamId?: string }) => {
       const role = context?.userRole;
-      
+      if (!role) {
+        return false;
+      }
+
       // Organization permissions
       if (permission === 'organization.manage') {
         return ['owner', 'admin'].includes(role);
@@ -135,16 +139,7 @@ const createTestOrganization = (role: 'owner' | 'admin' | 'member' = 'member') =
 const updateSessionMockForRole = (role: 'owner' | 'admin' | 'member') => {
     mockUseSession.mockReturnValue({
       sessionData: {
-        organizations: [{
-          id: 'org-1',
-          name: 'Test Organization',
-          plan: 'free' as const,
-          memberCount: 1,
-          maxMembers: 5,
-          features: [],
-          userRole: role as 'owner' | 'admin' | 'member',
-          userStatus: 'active' as const
-        }],
+        organizations: [createMockSessionOrganization({ userRole: role })],
         currentOrganizationId: 'org-1',
         teamMemberships: [],
         lastUpdated: new Date().toISOString(),
@@ -152,16 +147,7 @@ const updateSessionMockForRole = (role: 'owner' | 'admin' | 'member') => {
       },
       isLoading: false,
       error: null,
-      getCurrentOrganization: vi.fn(() => ({
-        id: 'org-1',
-        name: 'Test Organization',
-        plan: 'free' as const,
-        memberCount: 1,
-        maxMembers: 5,
-        features: [],
-        userRole: role as 'owner' | 'admin' | 'member',
-        userStatus: 'active' as const
-      })),
+      getCurrentOrganization: vi.fn(() => createMockSessionOrganization({ userRole: role })),
       switchOrganization: vi.fn(),
       hasTeamRole: vi.fn(() => false),
       hasTeamAccess: vi.fn((teamId: string) => teamId === 'team-1'),

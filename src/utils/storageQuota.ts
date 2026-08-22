@@ -18,6 +18,42 @@ export interface StorageQuotaCheck {
 
 const MAX_STORAGE_GB = 5;
 
+function isQuotaRecord(value: unknown): value is Record<string, unknown> {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+  return true;
+}
+
+function readBoolean(record: Record<string, unknown>, ...keys: string[]): boolean | undefined {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'boolean') return value;
+  }
+  return undefined;
+}
+
+function readNumber(record: Record<string, unknown>, ...keys: string[]): number | undefined {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+  }
+  return undefined;
+}
+
+function parseStorageQuotaCheck(data: unknown, fileSizeBytes: number): StorageQuotaCheck {
+  const record = isQuotaRecord(data) ? data : {};
+  return {
+    canUpload: readBoolean(record, 'can_upload', 'canUpload') ?? true,
+    currentStorageGB: readNumber(record, 'current_storage_gb', 'currentStorageGB') ?? 0,
+    maxStorageGB: readNumber(record, 'max_storage_gb', 'maxStorageGB') ?? MAX_STORAGE_GB,
+    fileSizeMB: readNumber(record, 'file_size_mb', 'fileSizeMB') ?? (fileSizeBytes / (1024 * 1024)),
+    wouldExceed: readBoolean(record, 'would_exceed', 'wouldExceed') ?? false,
+    remainingGB: readNumber(record, 'remaining_gb', 'remainingGB') ?? MAX_STORAGE_GB,
+    usagePercent: readNumber(record, 'usage_percent', 'usagePercent') ?? 0,
+  };
+}
+
 /**
  * Check if organization can upload a file of specified size
  */
@@ -60,18 +96,7 @@ export async function checkStorageQuota(
       };
     }
 
-    // Ensure all properties are defined with defaults
-    // result is guaranteed to be defined here (checked on line 49)
-    const result = data as StorageQuotaCheck;
-    return {
-      canUpload: result.canUpload ?? true,
-      currentStorageGB: result.currentStorageGB ?? 0,
-      maxStorageGB: result.maxStorageGB ?? MAX_STORAGE_GB,
-      fileSizeMB: result.fileSizeMB ?? (fileSizeBytes / (1024 * 1024)),
-      wouldExceed: result.wouldExceed ?? false,
-      remainingGB: result.remainingGB ?? MAX_STORAGE_GB,
-      usagePercent: result.usagePercent ?? 0
-    };
+    return parseStorageQuotaCheck(data, fileSizeBytes);
   } catch (error) {
     logger.error('Failed to check storage quota', error);
     // Fail open - allow upload on error
@@ -84,27 +109,6 @@ export async function checkStorageQuota(
       remainingGB: MAX_STORAGE_GB,
       usagePercent: 0
     };
-  }
-}
-
-/**
- * Get current storage usage for an organization
- */
-async function getCurrentStorage(organizationId: string): Promise<number> {
-  try {
-    const { data, error } = await supabase.rpc('get_organization_storage_mb', {
-      org_id: organizationId
-    });
-
-    if (error) {
-      logger.error('Error getting storage', error);
-      return 0;
-    }
-
-    return data || 0;
-  } catch (error) {
-    logger.error('Failed to get storage', error);
-    return 0;
   }
 }
 

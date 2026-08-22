@@ -49,7 +49,10 @@ export async function countDriveFolderChildren(
     throw new Error(`Failed to inspect folder contents: ${response.status} ${body}`);
   }
 
-  const data: { files?: Array<{ id: string }>; nextPageToken?: string } = await response.json();
+  const data = await response.json() as {
+    files?: Array<{ id: string }>;
+    nextPageToken?: string;
+  };
   const pageCount = data.files?.length ?? 0;
 
   // One page is enough for empty checks and delete confirmation; UI shows "N+" when N !== 1.
@@ -85,7 +88,7 @@ export async function createDriveFolder(
     throw new Error(`Failed to create folder "${name}": ${response.status} ${body}`);
   }
 
-  const data: { id: string; name?: string } = await response.json();
+  const data = await response.json() as { id: string; name?: string };
   return { id: data.id, name: data.name?.trim() || name };
 }
 

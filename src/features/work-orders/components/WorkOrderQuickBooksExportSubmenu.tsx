@@ -24,7 +24,7 @@ import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 import {
   getQuickBooksExportAvailability,
   getQuickBooksInvoiceDisplay,
-} from '@/features/work-orders/components/quickBooksExportPresentation';
+} from '@/features/work-orders/utils/quickBooksExportPresentation';
 
 interface WorkOrderQuickBooksExportSubmenuProps {
   workOrderId: string;

@@ -22,7 +22,7 @@ describe('updateHistoricalWorkOrderNoteTimestamp', () => {
         created_at: '2024-01-03T12:00:00.000Z',
       },
       error: null,
-    });
+    } as never);
 
     const result = await updateHistoricalWorkOrderNoteTimestamp(
       'org-1',

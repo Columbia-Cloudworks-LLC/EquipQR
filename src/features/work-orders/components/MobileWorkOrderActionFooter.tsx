@@ -106,17 +106,17 @@ export const MobileWorkOrderActionFooter: React.FC<MobileWorkOrderActionFooterPr
   }
 
   return (
-    <div className="fixed bottom-[70px] left-0 right-0 z-fixed border-t bg-background/95 backdrop-blur-sm shadow-elevation-2 lg:hidden">
+    <div className="fixed bottom-17.5 left-0 right-0 z-fixed border-t bg-background/95 backdrop-blur-sm shadow-elevation-2 lg:hidden">
       <div
         className={cn(
-          'flex min-h-[36px] items-center justify-center gap-1.5 px-3 py-1.5 pb-safe-bottom text-xs',
+          'flex min-h-9 items-center justify-center gap-1.5 px-3 py-1.5 pb-safe-bottom text-xs',
           queueRow.className,
         )}
         aria-live="polite"
       >
         {queueRow.content}
         {syncState.failedCount > 0 && onRetrySync ? (
-          <Button type="button" variant="ghost" size="sm" className="ml-1 h-8 min-h-[44px] px-2 text-xs" onClick={onRetrySync}>
+          <Button type="button" variant="ghost" size="sm" className="ml-1 h-8 min-h-11 px-2 text-xs" onClick={onRetrySync}>
             Retry
           </Button>
         ) : null}

@@ -115,34 +115,3 @@ export const createMockSupabaseClient = () => {
     },
   };
 };
-
-// Mock data
-const mockEquipment = {
-  id: '1',
-  name: 'Test Equipment',
-  manufacturer: 'Test Manufacturer',
-  model: 'Test Model',
-  serial_number: 'TEST123',
-  status: 'active',
-  location: 'Test Location',
-  organization_id: 'org-1',
-  default_pm_template_id: null,
-};
-
-const mockWorkOrder = {
-  id: '1',
-  title: 'Test Work Order',
-  description: 'Test Description',
-  equipment_id: '1',
-  status: 'submitted',
-  priority: 'medium',
-  organization_id: 'org-1',
-};
-
-const mockUser = {
-  id: '1',
-  email: 'test@example.com',
-  user_metadata: {
-    full_name: 'Test User',
-  },
-};

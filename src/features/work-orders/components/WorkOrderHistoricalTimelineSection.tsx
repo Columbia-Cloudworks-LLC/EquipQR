@@ -54,7 +54,7 @@ export function WorkOrderHistoricalTimelineSection({
 }: WorkOrderHistoricalTimelineSectionProps) {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorMode, setEditorMode] = useState<'edit' | 'convert'>('edit');
-  const isHistorical = Boolean(workOrder.isHistorical ?? workOrder.is_historical);
+  const isHistorical = Boolean(workOrder.is_historical);
   const { data: historyRows = [], isSuccess: historyReady } = useWorkOrderTimeline(workOrder.id);
 
   const conversionSeedEvents = useMemo(

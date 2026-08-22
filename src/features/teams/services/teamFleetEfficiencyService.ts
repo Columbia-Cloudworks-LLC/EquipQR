@@ -25,10 +25,12 @@ export const getFleetEfficiency = async (
       return [];
     }
 
-    const { data, error } = await supabase.rpc('get_fleet_efficiency', {
-      p_org_id: organizationId,
-      p_team_ids: isOrgAdmin ? null : userTeamIds
-    });
+    const { data, error } = await supabase.rpc(
+      'get_fleet_efficiency',
+      isOrgAdmin
+        ? { p_org_id: organizationId }
+        : { p_org_id: organizationId, p_team_ids: userTeamIds },
+    );
 
     if (error) {
       logger.error('Error fetching fleet efficiency data', error);

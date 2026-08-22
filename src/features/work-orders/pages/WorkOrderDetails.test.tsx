@@ -275,7 +275,8 @@ describe('WorkOrderDetails', () => {
       expect(mockWorkOrderDetailsMobile).toHaveBeenCalled();
     });
 
-    const latestProps = mockWorkOrderDetailsMobile.mock.calls.at(-1)?.[0] as {
+    const mobileCalls = mockWorkOrderDetailsMobile.mock.calls;
+    const latestProps = mobileCalls[mobileCalls.length - 1]?.[0] as {
       onDeleteRequest?: unknown;
     };
 
@@ -296,7 +297,7 @@ describe('WorkOrderDetails', () => {
         priority: 'medium',
         created_date: '2024-01-01T00:00:00Z',
         createdDate: '2024-01-01T00:00:00Z',
-        dueDate: null,
+        due_date: null,
         equipment_id: 'eq-1',
         has_pm: false,
         teamName: null,
@@ -350,7 +351,8 @@ describe('WorkOrderDetails', () => {
     expect(screen.queryByText('Next action')).not.toBeInTheDocument();
     expect(screen.getByTestId('mobile-work-order-action-footer-marker')).toBeInTheDocument();
 
-    const footerProps = mockMobileWorkOrderActionFooterProps.mock.calls.at(-1)?.[0] as {
+    const footerCalls = mockMobileWorkOrderActionFooterProps.mock.calls;
+    const footerProps = footerCalls[footerCalls.length - 1]?.[0] as {
       workOrder: { status: string };
       syncState: { isOnline: boolean };
     };
@@ -360,7 +362,8 @@ describe('WorkOrderDetails', () => {
     await waitFor(() => {
       expect(mockWorkOrderNotesSectionProps).toHaveBeenCalled();
     });
-    const notesProps = mockWorkOrderNotesSectionProps.mock.calls.at(-1)?.[0] as {
+    const notesCalls = mockWorkOrderNotesSectionProps.mock.calls;
+    const notesProps = notesCalls[notesCalls.length - 1]?.[0] as {
       canAddNotes?: boolean;
       hideInlineAddButton?: boolean;
     };
@@ -375,7 +378,7 @@ describe('WorkOrderDetails', () => {
           status: 'in_progress',
           priority: 'high',
           updated_at: '2024-01-02T00:00:00Z',
-          dueDate: '2024-01-05T00:00:00Z',
+          due_date: '2024-01-05T00:00:00Z',
           has_pm: true,
           assignee_id: 'user-1',
           created_by: 'requestor-1',
@@ -419,7 +422,8 @@ describe('WorkOrderDetails', () => {
     await waitFor(() => {
       expect(mockWorkOrderNotesSectionProps).toHaveBeenCalled();
     });
-    const notesProps = mockWorkOrderNotesSectionProps.mock.calls.at(-1)?.[0] as {
+    const notesCalls = mockWorkOrderNotesSectionProps.mock.calls;
+    const notesProps = notesCalls[notesCalls.length - 1]?.[0] as {
       hideInlineAddButton?: boolean;
     };
     expect(notesProps.hideInlineAddButton).toBe(true);
@@ -427,7 +431,8 @@ describe('WorkOrderDetails', () => {
     await waitFor(() => {
       expect(mockWorkOrderImagesSectionProps).toHaveBeenCalled();
     });
-    const imageSectionProps = mockWorkOrderImagesSectionProps.mock.calls.at(-1)?.[0] as {
+    const imageSectionCalls = mockWorkOrderImagesSectionProps.mock.calls;
+    const imageSectionProps = imageSectionCalls[imageSectionCalls.length - 1]?.[0] as {
       showPrivateNotes?: boolean;
       workOrderId?: string;
       primaryImageId?: string | null;
@@ -456,7 +461,7 @@ describe('WorkOrderDetails', () => {
           status: 'in_progress',
           priority: 'high',
           updated_at: '2024-01-02T00:00:00Z',
-          dueDate: '2024-01-05T00:00:00Z',
+          due_date: '2024-01-05T00:00:00Z',
           has_pm: false,
           assignee_id: 'user-1',
           created_by: 'requestor-1',
@@ -478,7 +483,8 @@ describe('WorkOrderDetails', () => {
     await waitFor(() => {
       expect(mockWorkOrderImagesSectionProps).toHaveBeenCalled();
     });
-    const props = mockWorkOrderImagesSectionProps.mock.calls.at(-1)?.[0] as {
+    const imageSectionCalls = mockWorkOrderImagesSectionProps.mock.calls;
+    const props = imageSectionCalls[imageSectionCalls.length - 1]?.[0] as {
       showPrivateNotes?: boolean;
       primaryImageId?: string | null;
     };
@@ -498,7 +504,7 @@ describe('WorkOrderDetails', () => {
           status: 'in_progress',
           priority: 'high',
           updated_at: '2024-01-02T00:00:00Z',
-          dueDate: null,
+          due_date: null,
           has_pm: true,
           teamName: null,
           assigneeName: null,
@@ -548,7 +554,7 @@ describe('WorkOrderDetails', () => {
           status: 'in_progress',
           priority: 'high',
           updated_at: '2024-01-02T00:00:00Z',
-          dueDate: null,
+          due_date: null,
           has_pm: true,
           teamName: null,
           assigneeName: null,

@@ -36,7 +36,7 @@ import WorkOrderCreationPhotoPicker from '@/features/work-orders/components/Work
 import { OFFLINE_CREATION_PHOTOS_MESSAGE } from '@/features/work-orders/utils/workOrderCreationImages';
 import { toast } from 'sonner';
 import { WorkOrderPMChecklist } from '@/features/work-orders/components/WorkOrderPMChecklist';
-import type { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
+import type { WorkOrderPMChecklistSetValue } from '@/features/work-orders/hooks/useWorkOrderPMChecklist';
 import { QRDialogFormError } from '@/features/equipment/components/qr/QRDialogFormError';
 
 interface QRWorkOrderDialogProps {
@@ -102,8 +102,8 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
     [hasPM, pmTemplateId],
   );
 
-  const setPmValue = useCallback(
-    <K extends 'hasPM' | 'pmTemplateId'>(field: K, value: WorkOrderFormData[K]) => {
+  const setPmValue = useCallback<WorkOrderPMChecklistSetValue>(
+    (field, value) => {
       if (field === 'hasPM') {
         setHasPM(Boolean(value));
         return;

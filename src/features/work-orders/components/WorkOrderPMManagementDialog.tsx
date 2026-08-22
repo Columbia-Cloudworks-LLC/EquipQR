@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ExternalLink, Wrench } from 'lucide-react';
 import { WorkOrderPMChecklist } from '@/features/work-orders/components/WorkOrderPMChecklist';
 import type { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
+import type { WorkOrderPMChecklistSetValue } from '@/features/work-orders/hooks/useWorkOrderPMChecklist';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { WORK_ORDER_PM_MANAGEMENT_DOCS_URL } from '@/lib/documentationUrl';
@@ -60,15 +61,17 @@ export function WorkOrderPMManagementDialog({
     [hasPM, pmTemplateId],
   );
 
-  const setValue = useCallback(
-    <K extends 'hasPM' | 'pmTemplateId'>(field: K, value: WorkOrderFormData[K]) => {
+  const setValue = useCallback<WorkOrderPMChecklistSetValue>(
+    (field, value) => {
       if (field === 'hasPM') {
         if (!value) {
           setPmTemplateId(null);
         }
         return;
       }
-      setPmTemplateId(typeof value === 'string' ? value : null);
+      if (field === 'pmTemplateId') {
+        setPmTemplateId(typeof value === 'string' ? value : null);
+      }
     },
     [],
   );

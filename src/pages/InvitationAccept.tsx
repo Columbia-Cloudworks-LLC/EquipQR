@@ -138,7 +138,7 @@ const InvitationAccept = () => {
   };
 
   const handleDeclineInvitation = async () => {
-    if (!invitation) return;
+    if (!invitation || !token) return;
 
     try {
       const { error } = await supabase

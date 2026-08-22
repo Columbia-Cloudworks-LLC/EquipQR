@@ -5,13 +5,13 @@ export interface WorkOrderData {
   status: 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
   priority: 'low' | 'medium' | 'high';
   created_date: string;
-  due_date?: string;
-  completed_date?: string;
-  estimated_hours?: number;
-  assignee_id?: string;
+  due_date?: string | null;
+  completed_date?: string | null;
+  estimated_hours?: number | null;
+  assignee_id?: string | null;
   assigneeName?: string;
   teamName?: string;
-  team_id?: string;
+  team_id?: string | null;
   equipment_id: string;
   organization_id: string;
   has_pm?: boolean;
@@ -35,11 +35,11 @@ export interface WorkOrderData {
 export interface EquipmentData {
   id: string;
   name: string;
-  manufacturer?: string;
-  model?: string;
-  serial_number?: string;
+  manufacturer?: string | null;
+  model?: string | null;
+  serial_number?: string | null;
   status: 'active' | 'maintenance' | 'inactive';
-  location?: string;
+  location?: string | null;
   team_id?: string | null;
   customer_id?: string | null;
 }
@@ -78,7 +78,7 @@ export interface PermissionLevels {
 
 export interface TeamMemberData {
   id?: string;
-  name: string;
+  name?: string | null;
   email?: string;
   role?: 'manager' | 'technician' | 'requestor' | 'viewer';
   status?: 'active' | 'pending' | 'inactive';

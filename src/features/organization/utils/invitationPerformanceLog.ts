@@ -11,7 +11,7 @@ export async function logInvitationPerformance(params: {
       function_name: params.functionName,
       execution_time_ms: params.executionTimeMs,
       success: params.success,
-      error_message: params.errorMessage ?? null,
+      error_message: params.errorMessage,
     });
   } catch {
     // Performance logging is non-critical

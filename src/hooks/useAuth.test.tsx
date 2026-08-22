@@ -33,35 +33,36 @@ interface MockAuthContextOverrides {
   signInWithGoogle?: () => Promise<{ error: Error | null }>;
 }
 
-const createMockAuthContextValue = (overrides: MockAuthContextOverrides = {}) => ({
-  user: 'user' in overrides ? overrides.user : {
-    id: 'user-1',
-    email: 'test@example.com',
-    app_metadata: {},
-    user_metadata: {},
-    aud: 'authenticated',
-    created_at: '2024-01-01T00:00:00Z'
-  } as User,
-  session: 'session' in overrides ? overrides.session : {
-    access_token: 'token',
-    refresh_token: 'refresh_token',
-    expires_in: 3600,
-    token_type: 'bearer',
-    user: {
-      id: 'user-1',
-      email: 'test@example.com',
-      app_metadata: {},
-      user_metadata: {},
-      aud: 'authenticated',
-      created_at: '2024-01-01T00:00:00Z'
-    }
-  } as Session,
-  isLoading: false,
-  signIn: vi.fn(),
-  signUp: vi.fn(),
-  signOut: vi.fn(),
-  signInWithGoogle: vi.fn(),
-  ...overrides
+type AuthContextValue = NonNullable<React.ContextType<typeof AuthContext>>;
+
+const defaultMockUser = {
+  id: 'user-1',
+  email: 'test@example.com',
+  app_metadata: {},
+  user_metadata: {},
+  aud: 'authenticated',
+  created_at: '2024-01-01T00:00:00Z',
+} as User;
+
+const createMockAuthContextValue = (
+  overrides: MockAuthContextOverrides = {},
+): AuthContextValue => ({
+  user: overrides.user !== undefined ? overrides.user : defaultMockUser,
+  session:
+    overrides.session !== undefined
+      ? overrides.session
+      : ({
+          access_token: 'token',
+          refresh_token: 'refresh_token',
+          expires_in: 3600,
+          token_type: 'bearer',
+          user: defaultMockUser,
+        } as Session),
+  isLoading: overrides.isLoading ?? false,
+  signIn: overrides.signIn ?? vi.fn(),
+  signUp: overrides.signUp ?? vi.fn(),
+  signOut: overrides.signOut ?? vi.fn(),
+  signInWithGoogle: overrides.signInWithGoogle ?? vi.fn(),
 });
 
 describe('useAuth', () => {

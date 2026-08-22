@@ -171,7 +171,7 @@ export const auditService = {
       if (error) throw error;
       
       return createServiceSuccessResponse(
-        buildAuditLogQueryResult(data as AuditLogEntry[], count ?? 0, offset, pageSize),
+        buildAuditLogQueryResult((data ?? []) as unknown as AuditLogEntry[], count ?? 0, offset, pageSize),
       );
     } catch (error) {
       return createServiceErrorResponse(error, 'AuditService error');
@@ -221,8 +221,7 @@ export const auditService = {
         organizationId,
         filters,
         select: '*',
-        applyExtraCountFilters: (query) => query.lte('created_at', cutoff),
-        applyExtraPageFilters: (query) => query.lte('created_at', cutoff),
+        createdAtLte: cutoff,
         onProgress,
       });
 

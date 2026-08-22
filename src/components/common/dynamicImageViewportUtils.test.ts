@@ -180,6 +180,16 @@ describe('noteCardPermissions', () => {
     expect(filterNotesByVisibility(notes, 'all', 'user-1')).toHaveLength(3);
   });
 
+  it('accepts notes whose author_id is null', () => {
+    const notes = [
+      { id: '1', is_private: false, author_id: null },
+      { id: '2', is_private: true, author_id: null },
+    ];
+    expect(filterNotesByVisibility(notes, 'public', 'user-1')).toHaveLength(1);
+    expect(filterNotesByVisibility(notes, 'private', 'user-1')).toHaveLength(0);
+    expect(filterNotesByVisibility(notes, 'all', 'user-1')).toHaveLength(2);
+  });
+
   it('marks notes edited after creation', () => {
     expect(
       isNoteEdited('2024-01-01T00:00:00Z', '2024-01-01T00:05:00Z'),

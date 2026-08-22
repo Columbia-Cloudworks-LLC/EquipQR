@@ -2,10 +2,13 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
-import type { QuickBooksInvoiceStatus } from '@/features/work-orders/types/workOrder';
+import {
+  isQuickBooksInvoiceStatus,
+  type QuickBooksInvoiceStatus,
+} from '@/features/work-orders/types/workOrder';
 
 interface QuickBooksInvoiceStatusBadgeProps {
-  status?: QuickBooksInvoiceStatus | null;
+  status?: QuickBooksInvoiceStatus | string | null;
   invoiceNumber?: string | null;
   balanceCents?: number | null;
   paidAt?: string | null;
@@ -52,7 +55,7 @@ const QuickBooksInvoiceStatusBadge: React.FC<QuickBooksInvoiceStatusBadgeProps> 
 }) => {
   const { formatDate } = useFormatTimestamp();
 
-  if (!status) return null;
+  if (!isQuickBooksInvoiceStatus(status)) return null;
 
   const parts = [formatStatusLabel(status)];
   if (status === 'paid' && paidAt) {

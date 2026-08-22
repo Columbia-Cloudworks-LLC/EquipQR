@@ -8,12 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
   Button,
-  Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Card,
   CardContent,
   Avatar,
@@ -122,7 +116,12 @@ const RoleChangeDialog: React.FC<RoleChangeDialogProps> = ({
               <TeamRoleSelect
                 label="New Team Role *"
                 value={selectedRole}
-                onValueChange={setSelectedRole}
+                onValueChange={(value) => {
+                  const nextRole = roleOptions.find((option) => option.value === value)?.value;
+                  if (nextRole) {
+                    setSelectedRole(nextRole);
+                  }
+                }}
                 options={roleOptions}
                 required
               />

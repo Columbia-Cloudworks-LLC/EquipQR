@@ -107,7 +107,7 @@ const PMChecklistItemRow = React.memo<PMChecklistItemRowProps>(function PMCheckl
                   if ('vibrate' in navigator) navigator.vibrate(30);
                 }}
               >
-                <SelectTrigger className="w-full min-h-[44px] touch-manipulation">
+                <SelectTrigger className="w-full min-h-11 touch-manipulation">
                   <SelectValue placeholder="Select assessment..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -127,7 +127,7 @@ const PMChecklistItemRow = React.memo<PMChecklistItemRowProps>(function PMCheckl
               type="button"
               variant="ghost"
               size="icon"
-              className="min-h-[44px] min-w-[44px] mt-5 shrink-0 touch-manipulation"
+              className="min-h-11 min-w-11 mt-5 shrink-0 touch-manipulation"
               onClick={() => onToggleNotes(item.id)}
               aria-label={
                 showNotes

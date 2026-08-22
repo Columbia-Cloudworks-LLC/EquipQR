@@ -64,7 +64,7 @@ export async function validateGoogleDriveDestination(
     throw new Error("Unable to validate selected Google Drive destination.");
   }
 
-  const metadata: DriveFileMetadata = await response.json();
+  const metadata = await response.json() as DriveFileMetadata;
 
   if (metadata.trashed) {
     throw new Error("The selected destination is in trash. Choose a different location.");

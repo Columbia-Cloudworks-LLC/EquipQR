@@ -52,7 +52,7 @@ async function findFolderByName(
     throw new Error(`Failed to search for folder "${name}": ${response.status} ${body}`);
   }
 
-  const data: { files?: Array<{ id: string; name: string }> } = await response.json();
+  const data = await response.json() as { files?: Array<{ id: string; name: string }> };
   return data.files?.[0]?.id ?? null;
 }
 
@@ -89,7 +89,7 @@ async function createFolder(
     throw new Error(`Failed to create folder "${name}": ${response.status} ${body}`);
   }
 
-  const data: { id: string } = await response.json();
+  const data = await response.json() as { id: string };
   return data.id;
 }
 

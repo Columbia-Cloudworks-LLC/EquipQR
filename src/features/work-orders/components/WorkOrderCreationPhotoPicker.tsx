@@ -15,7 +15,7 @@ const Thumbnail: React.FC<{
   if (!previewUrl) return null;
 
   return (
-    <div className="group relative flex-shrink-0">
+    <div className="group relative shrink-0">
       <div className="relative h-16 w-16 overflow-hidden rounded-md border border-input bg-muted">
         <img src={previewUrl} alt={file.name} className="h-full w-full object-cover" />
         <Button

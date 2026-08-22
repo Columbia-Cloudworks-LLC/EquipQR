@@ -29,12 +29,3 @@ export function mapCompatibilityRulesToJsonb<T extends CompatibilityRuleJsonbInp
     ...(rule.notes !== undefined ? { notes: rule.notes } : {}),
   }));
 }
-
-export function throwOnCompatibilityRuleDuplicate(
-  error: { code?: string } | null,
-  message: string,
-): void {
-  if (error?.code === '23505') {
-    throw new Error(message);
-  }
-}

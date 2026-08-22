@@ -1,8 +1,11 @@
 import type { UpdateWorkOrderData } from '@/features/work-orders/hooks/useWorkOrderUpdate';
+import type { Database } from '@/integrations/supabase/types';
+
+export type WorkOrderTableUpdate = Database['public']['Tables']['work_orders']['Update'];
 
 /** Maps camelCase work-order update fields to Supabase `work_orders` column payload. */
-export function buildWorkOrderUpdatePayload(data: UpdateWorkOrderData): Record<string, unknown> {
-  const updateData: Record<string, unknown> = {};
+export function buildWorkOrderUpdatePayload(data: UpdateWorkOrderData): WorkOrderTableUpdate {
+  const updateData: WorkOrderTableUpdate = {};
   if (data.title !== undefined) updateData.title = data.title;
   if (data.description !== undefined) updateData.description = data.description;
   if (data.priority !== undefined) updateData.priority = data.priority;

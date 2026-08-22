@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
 import { ArrowRight } from 'lucide-react';
@@ -27,7 +27,7 @@ const RepairShops = () => {
         className="outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         {/* Hero Section */}
-        <section className="relative pt-32 pb-24 bg-gradient-to-br from-background via-background to-primary/5">
+        <section className="relative pt-32 pb-24 bg-linear-to-br from-background via-background to-primary/5">
           <div className="container px-4 mx-auto">
             <div className="text-center max-w-4xl mx-auto">
               <h1
@@ -109,7 +109,7 @@ const RepairShops = () => {
               <Card className="max-w-3xl border-primary/20 bg-primary/5 w-full">
                 <CardContent className="p-8">
                   <div className="flex items-start gap-4 mb-6">
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                       <img
                         src="/branded-logos/3A-Equipment-Logo-Medium.png"
                         alt="3-A Equipment Logo"

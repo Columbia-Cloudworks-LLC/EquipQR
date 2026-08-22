@@ -116,7 +116,7 @@ type NavigateNotificationOptions = {
   notification: Notification;
   organizationId: string | undefined;
   navigate: NavigateFunction;
-  switchOrganization: (orgId: string) => Promise<void>;
+  switchOrganization: (orgId: string) => void | Promise<void | boolean>;
 };
 
 /**
@@ -138,7 +138,10 @@ export async function navigateForNotification({
     const targetOrgId =
       notification.data?.organization_id || notification.data?.workspace_org_id;
     if (targetOrgId && targetOrgId !== organizationId) {
-      await switchOrganization(targetOrgId);
+      const switched = await switchOrganization(targetOrgId);
+      if (switched === false) {
+        return false;
+      }
     }
     navigate('/dashboard/organization');
     return true;
@@ -154,7 +157,10 @@ export async function navigateForNotification({
     const targetOrgId =
       notification.data?.organization_id || notification.data?.workspace_org_id;
     if (targetOrgId && targetOrgId !== organizationId) {
-      await switchOrganization(targetOrgId);
+      const switched = await switchOrganization(targetOrgId);
+      if (switched === false) {
+        return false;
+      }
     }
     navigate('/dashboard/organization');
     return true;

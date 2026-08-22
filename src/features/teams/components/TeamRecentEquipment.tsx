@@ -71,7 +71,7 @@ const TeamRecentEquipment: React.FC<TeamRecentEquipmentProps> = ({
                   </div>
                   <Badge
                     variant={getEquipmentStatusBadgeVariant(item.status)}
-                    className="ml-2 flex-shrink-0"
+                    className="ml-2 shrink-0"
                   >
                     {item.status}
                   </Badge>

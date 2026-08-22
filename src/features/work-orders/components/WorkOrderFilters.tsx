@@ -2,7 +2,6 @@
 // Duplication rationale: Desktop filters mirror mobile toolbar semantics
 import React from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { WorkOrderFilters as FiltersType } from '@/features/work-orders/types/workOrder';
 import type { WorkOrderFiltersToolbarProps } from '@/features/work-orders/types/workOrderFiltersToolbarTypes';
 import WorkOrderToolbar from './WorkOrderToolbar';
 import MobileWorkOrderToolbar from './MobileWorkOrderToolbar';

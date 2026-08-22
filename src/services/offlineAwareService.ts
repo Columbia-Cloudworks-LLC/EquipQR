@@ -19,13 +19,17 @@ import { WorkOrderService } from '@/features/work-orders/services/workOrderServi
 import { EquipmentService } from '@/features/equipment/services/EquipmentService';
 import { updateEquipmentWorkingHours } from '@/features/equipment/services/equipmentWorkingHoursService';
 import { createEquipmentNoteWithImages } from '@/features/equipment/services/equipmentNotesService';
-import { createWorkOrderNoteWithImages } from '@/features/work-orders/services/workOrderNotesService';
+import { createWorkOrderNoteWithImages, type WorkOrderNote } from '@/features/work-orders/services/workOrderNotesService';
 import { logger } from '@/utils/logger';
 import { isNetworkError } from '@/utils/errorHandling';
 import type { CreateWorkOrderData } from '@/features/work-orders/hooks/useWorkOrderCreation';
 import type { UpdateWorkOrderData } from '@/features/work-orders/hooks/useWorkOrderUpdate';
-import { buildWorkOrderUpdatePayload } from '@/features/work-orders/utils/workOrderUpdatePayload';
-import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
+import {
+  buildWorkOrderUpdatePayload,
+  type WorkOrderTableUpdate,
+} from '@/features/work-orders/utils/workOrderUpdatePayload';
+import type { WorkOrder, WorkOrderStatus } from '@/features/work-orders/types/workOrder';
+import type { EquipmentNote } from '@/features/equipment/types/equipmentNotes';
 import type {
   QuickEquipmentCreateData,
   EquipmentCreateData,
@@ -81,7 +85,7 @@ export class OfflineAwareWorkOrderService {
   async createWorkOrder(
     data: CreateWorkOrderData,
     resolvedAssigneeId?: string,
-  ): Promise<OfflineAwareResult<{ id: string; [key: string]: unknown }>> {
+  ): Promise<OfflineAwareResult<WorkOrder>> {
     // ── TIER 1: Fast pre-check — skip network entirely when offline ──
     if (!navigator.onLine) {
       return this.queueCreate(data, resolvedAssigneeId);
@@ -99,7 +103,7 @@ export class OfflineAwareWorkOrderService {
         equipment_id: data.equipmentId,
         priority: data.priority,
         due_date: data.dueDate,
-        estimated_hours: undefined,
+        estimated_hours: data.estimatedHours,
         assignee_id: assigneeId,
         team_id: undefined,
         status,
@@ -169,7 +173,7 @@ export class OfflineAwareWorkOrderService {
 
     // ── TIER 2: Attempt real call ──
     try {
-      const updateData: Record<string, unknown> = {
+      const updateData: WorkOrderTableUpdate = {
         status: newStatus,
         updated_at: new Date().toISOString(),
       };
@@ -203,7 +207,7 @@ export class OfflineAwareWorkOrderService {
   private async queueCreate(
     data: CreateWorkOrderData,
     resolvedAssigneeId?: string,
-  ): Promise<OfflineAwareResult<{ id: string; [key: string]: unknown }>> {
+  ): Promise<OfflineAwareResult<WorkOrder>> {
     try {
       const { images, ...payloadWithoutImages } = data;
       let imageRefs: OfflineQueueImageRef[] | undefined;
@@ -229,7 +233,7 @@ export class OfflineAwareWorkOrderService {
         throw err;
       }
       logger.error('Failed to enqueue offline create', err);
-      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
+      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
     }
   }
 
@@ -262,7 +266,7 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline update', err);
-      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
+      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
     }
   }
 
@@ -287,7 +291,7 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline status update', err);
-      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
+      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
     }
   }
 
@@ -365,7 +369,7 @@ export class OfflineAwareWorkOrderService {
     isPrivate: boolean = false,
     machineHours?: number,
     images: File[] = [],
-  ): Promise<OfflineAwareResult<{ id: string; [key: string]: unknown }>> {
+  ): Promise<OfflineAwareResult<EquipmentNote>> {
     if (!navigator.onLine) {
       return this.queueEquipmentNote(equipmentId, content, hoursWorked, isPrivate, machineHours, images);
     }
@@ -404,7 +408,7 @@ export class OfflineAwareWorkOrderService {
     isPrivate: boolean = false,
     machineHours?: number,
     images: File[] = [],
-  ): Promise<OfflineAwareResult<{ id: string; [key: string]: unknown }>> {
+  ): Promise<OfflineAwareResult<WorkOrderNote>> {
     if (!navigator.onLine) {
       return this.queueWorkOrderNote(
         workOrderId,
@@ -458,7 +462,7 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline equipment create', err);
-      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
+      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
     }
   }
 
@@ -477,7 +481,7 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline equipment create', err);
-      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
+      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
     }
   }
 
@@ -506,7 +510,7 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline equipment update', err);
-      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
+      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
     }
   }
 
@@ -523,7 +527,7 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline equipment hours', err);
-      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
+      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
     }
   }
 
@@ -534,7 +538,7 @@ export class OfflineAwareWorkOrderService {
     isPrivate: boolean,
     machineHours?: number,
     images: File[] = [],
-  ): Promise<OfflineAwareResult<{ id: string; [key: string]: unknown }>> {
+  ): Promise<OfflineAwareResult<EquipmentNote>> {
     try {
       let imageRefs: OfflineQueueImageRef[] | undefined;
       if (images.length) {
@@ -559,7 +563,7 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline equipment note', err);
-      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
+      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
     }
   }
 
@@ -570,7 +574,7 @@ export class OfflineAwareWorkOrderService {
     isPrivate: boolean,
     machineHours?: number,
     images: File[] = [],
-  ): Promise<OfflineAwareResult<{ id: string; [key: string]: unknown }>> {
+  ): Promise<OfflineAwareResult<WorkOrderNote>> {
     try {
       let imageRefs: OfflineQueueImageRef[] | undefined;
       if (images.length) {
@@ -595,7 +599,7 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline work order note', err);
-      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
+      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
     }
   }
 
@@ -706,7 +710,7 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline PM init', err);
-      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
+      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
     }
   }
 
@@ -736,7 +740,7 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline PM update', err);
-      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
+      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
     }
   }
 
@@ -753,7 +757,7 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline PM delete', err);
-      throw new Error('Cannot save offline — please try again when connected.', { cause: err });
+      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
     }
   }
 }

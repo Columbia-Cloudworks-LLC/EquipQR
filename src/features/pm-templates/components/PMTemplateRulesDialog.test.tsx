@@ -66,7 +66,7 @@ describe('PMTemplateRulesDialog', () => {
       error: null,
       status: 'success',
       fetchStatus: 'idle'
-    } as ReturnType<typeof usePMTemplateCompatibilityRules>);
+    } as unknown as ReturnType<typeof usePMTemplateCompatibilityRules>);
 
     vi.mocked(useBulkSetPMTemplateRules).mockReturnValue({
       mutateAsync: mockMutateAsync.mockResolvedValue(undefined),
@@ -130,7 +130,7 @@ describe('PMTemplateRulesDialog', () => {
         error: null,
         status: 'pending',
         fetchStatus: 'fetching'
-      } as ReturnType<typeof usePMTemplateCompatibilityRules>);
+      } as unknown as ReturnType<typeof usePMTemplateCompatibilityRules>);
 
       renderRulesDialog();
 
@@ -148,7 +148,7 @@ describe('PMTemplateRulesDialog', () => {
         error: null,
         status: 'pending',
         fetchStatus: 'fetching'
-      } as ReturnType<typeof usePMTemplateCompatibilityRules>);
+      } as unknown as ReturnType<typeof usePMTemplateCompatibilityRules>);
 
       renderRulesDialog();
 
@@ -187,7 +187,7 @@ describe('PMTemplateRulesDialog', () => {
         error: null,
         status: 'success',
         fetchStatus: 'idle'
-      } as ReturnType<typeof usePMTemplateCompatibilityRules>);
+      } as unknown as ReturnType<typeof usePMTemplateCompatibilityRules>);
 
       renderRulesDialog();
 

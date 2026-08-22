@@ -33,7 +33,7 @@ const MFAEnrollment: React.FC<MFAEnrollmentProps> = ({
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const otpRef = useMountFocus<React.ElementRef<typeof InputOTP>>(step === 'verify');
+  const otpRef = useMountFocus<React.ComponentRef<typeof InputOTP>>(step === 'verify');
 
   // Clear the "copied" timeout on unmount to prevent state updates after unmount
   useEffect(() => {

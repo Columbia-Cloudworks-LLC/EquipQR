@@ -5,13 +5,16 @@ export type ExportArtifactLike = Pick<
   'provider_file_id' | 'web_view_link'
 > | null | undefined;
 
-export function getGoogleDriveArtifactDisplay(artifact: ExportArtifactLike) {
+export function getGoogleDriveArtifactDisplay(artifact: ExportArtifactLike): {
+  hasLinkedArtifact: boolean;
+  webViewLink: string | null;
+} {
   const providerFileId = artifact?.provider_file_id;
   const webViewLink = artifact?.web_view_link;
   const hasLinkedArtifact = Boolean(providerFileId && webViewLink);
   return {
     hasLinkedArtifact,
-    webViewLink: hasLinkedArtifact ? webViewLink : null,
+    webViewLink: hasLinkedArtifact ? webViewLink ?? null : null,
   };
 }
 

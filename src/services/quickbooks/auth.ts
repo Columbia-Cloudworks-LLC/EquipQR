@@ -101,7 +101,7 @@ export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): P
   const { data: sessionData, error: sessionError } = await supabase
     .rpc('create_quickbooks_oauth_session', {
       p_organization_id: config.organizationId,
-      p_redirect_url: config.redirectUrl || null,
+      p_redirect_url: config.redirectUrl || undefined,
       p_origin_url: originUrl,
     });
 

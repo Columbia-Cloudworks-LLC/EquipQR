@@ -5,6 +5,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { useWorkOrderDetailsActions } from './useWorkOrderDetailsActions';
 import type { WorkOrderFormData } from '@/features/work-orders/schemas/workOrderSchema';
 import type { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import type { PMTemplate } from '@/features/pm-templates/services/pmChecklistTemplatesService';
 
 // Mock dependencies
 vi.mock('@/integrations/supabase/client', async () => {
@@ -45,23 +46,27 @@ const mockChecklistData: PMChecklistItem[] = [
   },
 ];
 
-// Mock PM template
-const mockPMTemplate = {
+const mockPMTemplate: PMTemplate = {
   id: 'template-1',
+  organization_id: 'org-1',
   name: 'Test Template',
+  description: 'Test template description',
+  is_protected: false,
   template_data: mockChecklistData,
+  interval_value: null,
+  interval_type: null,
+  created_by: 'user-1',
+  updated_by: null,
+  created_at: '2024-01-01T00:00:00Z',
+  updated_at: '2024-01-01T00:00:00Z',
 };
+
+type HookPMData = NonNullable<Parameters<typeof useWorkOrderDetailsActions>[2]>;
 
 interface TestComponentProps {
   workOrderId: string;
   organizationId: string;
-  pmData?: {
-    id?: string;
-    equipment_id?: string;
-    template_id?: string | null;
-    checklist_data?: unknown[];
-    notes?: string;
-  } | null;
+  pmData?: HookPMData | null;
   onReady?: (actions: ReturnType<typeof useWorkOrderDetailsActions>) => void;
 }
 
@@ -107,7 +112,7 @@ describe('useWorkOrderDetailsActions - Equipment ID Prioritization', () => {
       equipment_id: 'eq-1',
       organization_id: 'org-1',
       status: 'pending',
-    } as unknown as ReturnType<typeof createPM>);
+    } as Awaited<ReturnType<typeof createPM>>);
   });
 
   afterEach(() => {
@@ -121,14 +126,16 @@ describe('useWorkOrderDetailsActions - Equipment ID Prioritization', () => {
 
   const buildPmFormData = (
     overrides: PmFormDataOverrides = {},
-  ): Omit<WorkOrderFormData, 'equipmentId'> & { equipmentId?: string | null } => ({
+  ): WorkOrderFormData => ({
     title: 'Test Work Order',
     description: 'Test Description',
     priority: 'medium',
     hasPM: true,
     pmTemplateId: 'template-1',
+    assigneeId: null,
+    isHistorical: false,
     ...overrides,
-  });
+  } as WorkOrderFormData);
 
   async function renderActionsHarness(
     pmData: TestComponentProps['pmData'] = null,
@@ -349,14 +356,16 @@ describe('useWorkOrderDetailsActions - PM template management', () => {
 
   const buildPmFormData = (
     overrides: PmFormDataOverrides = {},
-  ): Omit<WorkOrderFormData, 'equipmentId'> & { equipmentId?: string | null } => ({
+  ): WorkOrderFormData => ({
     title: 'Test Work Order',
     description: 'Test Description',
     priority: 'medium',
     hasPM: true,
     pmTemplateId: 'template-2',
+    assigneeId: null,
+    isHistorical: false,
     ...overrides,
-  });
+  } as WorkOrderFormData);
 
   async function renderActionsHarness(
     pmData: TestComponentProps['pmData'] = null,

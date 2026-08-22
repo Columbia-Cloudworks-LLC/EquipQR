@@ -3,19 +3,30 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const { mockUpload, mockFrom, mockCreateSignedUrl, mockCreateSignedUrls, mockGetPublicUrl } = vi.hoisted(() => {
   const mockUpload = vi.fn();
   const mockCreateSignedUrl = vi.fn();
-  const mockCreateSignedUrls = vi.fn((paths: string[], expiresIn: number) => ({
+  const mockCreateSignedUrls = vi.fn((
+    paths: string[],
+    expiresIn: number,
+  ): {
+    data: Array<{ path: string; signedUrl: string | null; error?: string | null }> | null;
+    error: { message: string } | null;
+  } => ({
     data: paths.map((path: string) => ({
       path,
       signedUrl: `https://example.supabase.co/storage/v1/object/sign/mock/${path}?token=test-${expiresIn}`,
     })),
     error: null,
   }));
-  const mockGetPublicUrl = vi.fn(() => ({
+  const mockGetPublicUrl = vi.fn<(path: string) => { data: { publicUrl: string } }>(() => ({
     data: {
       publicUrl: 'https://example.supabase.co/storage/v1/object/public/organization-logos/org/logo.png',
     },
   }));
-  const mockFrom = vi.fn(() => ({
+  const mockFrom = vi.fn<(bucket: string) => {
+    upload: typeof mockUpload;
+    getPublicUrl: typeof mockGetPublicUrl;
+    createSignedUrl: ReturnType<typeof vi.fn>;
+    createSignedUrls: ReturnType<typeof vi.fn>;
+  }>(() => ({
     upload: mockUpload,
     getPublicUrl: mockGetPublicUrl,
     createSignedUrl: mockCreateSignedUrl,
@@ -197,6 +208,16 @@ describe('imageUploadService', () => {
       const out = await compressImageFile(file);
       expect(out).toBe(file);
       expect(imageCompression).not.toHaveBeenCalled();
+    });
+
+    it('re-wraps a compressor Blob as a File that keeps the original name', async () => {
+      const original = new File(['x'.repeat(400_000)], 'big.jpg', { type: 'image/jpeg' });
+      const blob = new Blob(['tiny'], { type: 'image/webp' });
+      vi.mocked(imageCompression).mockResolvedValue(blob as unknown as File);
+      const out = await compressImageFile(original);
+      expect(out).toBeInstanceOf(File);
+      expect(out.name).toBe('big.jpg');
+      expect(out.type).toBe('image/webp');
     });
   });
 

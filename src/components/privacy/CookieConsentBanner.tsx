@@ -14,7 +14,7 @@ export function CookieConsentBanner() {
   return (
     <section
       aria-label="Cookie consent"
-      className="fixed inset-x-0 bottom-0 z-[var(--z-cookie-banner)] border-t border-border bg-background/95 p-4 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/90"
+      className="fixed inset-x-0 bottom-0 z-(--z-cookie-banner) border-t border-border bg-background/95 p-4 shadow-lg backdrop-blur supports-backdrop-filter:bg-background/90"
     >
       <div className="mx-auto flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
         <div className="space-y-1 text-sm text-muted-foreground">
@@ -32,10 +32,10 @@ export function CookieConsentBanner() {
           </p>
         </div>
         <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
-          <Button type="button" variant="outline" onClick={reject} className="min-h-[44px]">
+          <Button type="button" variant="outline" onClick={reject} className="min-h-11">
             Reject
           </Button>
-          <Button type="button" onClick={accept} className="min-h-[44px]">
+          <Button type="button" onClick={accept} className="min-h-11">
             Accept
           </Button>
         </div>

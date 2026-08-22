@@ -412,6 +412,14 @@ export interface DisconnectWorkspaceResult {
   domain: string | null;
 }
 
+function parseDisconnectWorkspaceResult(data: unknown): DisconnectWorkspaceResult {
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+    throw new Error('Failed to disconnect Google Workspace');
+  }
+
+  return data as unknown as DisconnectWorkspaceResult;
+}
+
 /**
  * Disconnect Google Workspace integration for an organization.
  * Clears OAuth credentials, cached directory users, and releases the workspace domain claim.
@@ -429,5 +437,5 @@ export async function disconnectGoogleWorkspace(
     throw new Error(error.message);
   }
 
-  return data as DisconnectWorkspaceResult;
+  return parseDisconnectWorkspaceResult(data);
 }

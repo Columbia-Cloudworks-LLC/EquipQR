@@ -1,6 +1,5 @@
 import React from 'react';
 import { Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { FilterPopoverClearAllFooter } from '@/components/filters/FilterPopoverClearAllFooter';
 import { FilterPopoverShell } from '@/components/filters/FilterPopoverShell';
 import {

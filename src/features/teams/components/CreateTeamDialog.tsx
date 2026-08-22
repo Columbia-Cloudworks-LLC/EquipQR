@@ -9,12 +9,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTeamMutations } from '@/features/teams/hooks/useTeamManagement';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCustomerMutations } from '@/features/teams/hooks/useCustomerAccount';
+import { TeamCreateFields } from '@/features/teams/components/TeamCreateFields';
 import {
-  TeamCreateFields,
   buildTeamCreatePayload,
   emptyTeamCreateFieldsValue,
   resolveTeamCreateCustomerId,
-} from '@/features/teams/components/TeamCreateFields';
+} from '@/features/teams/utils/teamCreateFields';
 
 interface CreateTeamDialogProps {
   open: boolean;
@@ -81,7 +81,7 @@ const CreateTeamDialog: React.FC<CreateTeamDialogProps> = ({ open, onClose, orga
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-120">
         <DialogHeader>
           <DialogTitle>Create New Team</DialogTitle>
           <DialogDescription>

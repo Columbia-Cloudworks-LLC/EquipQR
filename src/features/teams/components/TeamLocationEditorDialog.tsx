@@ -18,7 +18,7 @@ import {
 } from '@/features/teams/utils/teamLocationUtils';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
-import { useIsDarkTheme } from '@/hooks/useThemeVersion';
+import { useIsDarkTheme, useThemeVersion } from '@/hooks/useThemeVersion';
 import { useToast } from '@/hooks/use-toast';
 
 type TeamLocationEditorDialogProps = {
@@ -35,7 +35,8 @@ export function TeamLocationEditorDialog({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { isLoaded: isPlacesLoaded } = useGoogleMapsLoader();
-  const isDark = useIsDarkTheme();
+  const themeVersion = useThemeVersion();
+  const isDark = useIsDarkTheme(themeVersion);
   const { googleMapsKey, mapId } = useGoogleMapsKey();
   const [isSaving, setIsSaving] = useState(false);
 
@@ -111,7 +112,7 @@ export function TeamLocationEditorDialog({
           recenterKey={editor.recenterKey}
           onCenterChange={editor.handleMapCenterChange}
           googleMapsKey={googleMapsKey}
-          mapId={mapId}
+          mapId={mapId ?? undefined}
           isDark={isDark}
           isLiveCaptureOpen={editor.isLiveCaptureOpen}
           onLiveCaptureOpenChange={editor.setIsLiveCaptureOpen}

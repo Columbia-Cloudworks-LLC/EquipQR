@@ -24,7 +24,7 @@ export abstract class BaseService {
     this.organizationId = organizationId;
   }
 
-  protected handleError(error: unknown): ApiResponse<null> {
+  protected handleError<T>(error: unknown): ApiResponse<T> {
     logger.error('Service error:', error);
     return {
       data: null,

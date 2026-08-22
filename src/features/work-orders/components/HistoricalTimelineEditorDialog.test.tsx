@@ -7,6 +7,7 @@ import {
   createInitialTimelineRow,
   type HistoricalTimelineEditorRow,
 } from '@/features/work-orders/utils/historicalTimeline';
+import type { WorkOrderTimelineHistoryRow } from '@/features/work-orders/services/historicalTimelineService';
 
 vi.mock('@/features/work-orders/hooks/useWorkOrderContextualAssignment', () => ({
   useWorkOrderContextualAssignment: () => ({
@@ -219,7 +220,8 @@ describe('HistoricalTimelineEditor', () => {
 
     await user.click(screen.getByRole('button', { name: /add event/i }));
 
-    const latestEvents = onChange.mock.calls.at(-1)?.[0];
+    const latestCall = onChange.mock.calls[onChange.mock.calls.length - 1];
+    const latestEvents = latestCall?.[0];
     expect(latestEvents).toHaveLength(2);
     expect(latestEvents?.[1]?.changedAt).toBe(submittedAcceptedEvents[1].changedAt);
   });
@@ -274,18 +276,28 @@ describe('HistoricalTimelineEditorDialog', () => {
   });
 
   it('seeds editor state when history rows arrive after the dialog opens', async () => {
-    const historyRows = [
+    const historyRows: WorkOrderTimelineHistoryRow[] = [
       {
+        id: 'hist-1',
+        work_order_id: 'wo-1',
+        old_status: null,
         new_status: 'submitted',
+        changed_by: 'user-1',
         changed_at: '2024-01-01T08:00:00.000Z',
         reason: 'Created',
         metadata: null,
+        is_historical_creation: true,
       },
       {
+        id: 'hist-2',
+        work_order_id: 'wo-1',
+        old_status: 'submitted',
         new_status: 'accepted',
+        changed_by: 'user-1',
         changed_at: '2024-01-02T08:00:00.000Z',
         reason: 'Accepted',
         metadata: null,
+        is_historical_creation: true,
       },
     ];
 

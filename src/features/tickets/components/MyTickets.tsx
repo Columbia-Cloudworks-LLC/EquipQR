@@ -73,7 +73,7 @@ const TicketRow: React.FC<{ ticket: Ticket }> = ({ ticket }) => {
               )}
             </div>
           </div>
-          <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-1 transition-transform group-data-[state=open]:rotate-180" />
+          <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0 mt-1 transition-transform group-data-[state=open]:rotate-180" />
         </div>
       </CollapsibleTrigger>
       <CollapsibleContent>

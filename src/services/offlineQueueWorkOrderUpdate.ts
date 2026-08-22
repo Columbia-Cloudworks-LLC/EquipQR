@@ -1,5 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
-import { buildWorkOrderUpdatePayload } from '@/features/work-orders/utils/workOrderUpdatePayload';
+import {
+  buildWorkOrderUpdatePayload,
+  type WorkOrderTableUpdate,
+} from '@/features/work-orders/utils/workOrderUpdatePayload';
 import type { UpdateWorkOrderData } from '@/features/work-orders/hooks/useWorkOrderUpdate';
 import { logger } from '@/utils/logger';
 import type { WorkOrderServerSnapshot } from './offlineQueueService';
@@ -50,14 +53,45 @@ export function normalizeOfflineFieldValue(field: string, ourValue: unknown): un
   return field === 'dueDate' || field === 'estimatedHours' ? (ourValue || null) : ourValue;
 }
 
+function applyMergedSnapshotValue(
+  target: WorkOrderTableUpdate,
+  dbCol: keyof WorkOrderServerSnapshot,
+  value: unknown,
+): void {
+  switch (dbCol) {
+    case 'title':
+      target.title = value as WorkOrderTableUpdate['title'];
+      return;
+    case 'description':
+      target.description = value as WorkOrderTableUpdate['description'];
+      return;
+    case 'priority':
+      target.priority = value as WorkOrderTableUpdate['priority'];
+      return;
+    case 'due_date':
+      target.due_date = value as WorkOrderTableUpdate['due_date'];
+      return;
+    case 'estimated_hours':
+      target.estimated_hours = value as WorkOrderTableUpdate['estimated_hours'];
+      return;
+    case 'has_pm':
+      target.has_pm = value as WorkOrderTableUpdate['has_pm'];
+      return;
+    default: {
+      const _exhaustive: never = dbCol;
+      return _exhaustive;
+    }
+  }
+}
+
 export function buildFieldLevelWorkOrderMerge(
   current: WorkOrderMergeRow,
   data: UpdateWorkOrderData,
   changedFields: string[],
   serverSnapshot: WorkOrderServerSnapshot | undefined,
   workOrderId: string,
-): { safeUpdate: Record<string, unknown>; conflictingFields: string[] } {
-  const safeUpdate: Record<string, unknown> = {};
+): { safeUpdate: WorkOrderTableUpdate; conflictingFields: string[] } {
+  const safeUpdate: WorkOrderTableUpdate = {};
   const conflictingFields: string[] = [];
 
   for (const field of changedFields) {
@@ -76,7 +110,7 @@ export function buildFieldLevelWorkOrderMerge(
       continue;
     }
 
-    safeUpdate[dbCol] = normalizeOfflineFieldValue(field, ourValue);
+    applyMergedSnapshotValue(safeUpdate, dbCol, normalizeOfflineFieldValue(field, ourValue));
   }
 
   return { safeUpdate, conflictingFields };

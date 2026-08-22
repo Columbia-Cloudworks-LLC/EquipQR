@@ -98,8 +98,8 @@ const Auth = () => {
     setPendingQRScan(isQrDestination);
   }, [location.search]);
 
-  // Handle pending redirects after authentication
-  // This replaces usePendingRedirectHandler to avoid race conditions with duplicate effects
+  // Handle pending redirects after authentication in one effect
+  // (avoids race conditions from a second redirect hook).
   useEffect(() => {
     if (user && !authLoading) {
       // Keep the post-signup success view visible until the user continues to sign-in.
@@ -219,7 +219,7 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-info/10 to-primary/20">
+    <div className="min-h-screen flex flex-col bg-linear-to-br from-info/10 to-primary/20">
       <div className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">

@@ -226,8 +226,13 @@
 @layer base {
   * {
     @apply border-border;
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--scrollbar-thumb)) transparent;
+  }
+
+  @supports (scrollbar-width: thin) and (scrollbar-color: auto) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: hsl(var(--scrollbar-thumb)) transparent;
+    }
   }
 
   *::-webkit-scrollbar {
@@ -290,9 +295,11 @@
      ============================================ */
   
   /* Themed scrollbar — explicit opt-in when a region overrides global base rules */
-  .scrollbar-themed {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--scrollbar-thumb)) transparent;
+  @supports (scrollbar-width: thin) and (scrollbar-color: auto) {
+    .scrollbar-themed {
+      scrollbar-width: thin;
+      scrollbar-color: hsl(var(--scrollbar-thumb)) transparent;
+    }
   }
 
   .scrollbar-themed::-webkit-scrollbar {
@@ -318,7 +325,12 @@
   /* Hide scrollbar while maintaining scroll functionality */
   .scrollbar-none {
     -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
+  }
+
+  @supports (scrollbar-width: none) {
+    .scrollbar-none {
+      scrollbar-width: none; /* Firefox */
+    }
   }
   
   .scrollbar-none::-webkit-scrollbar {
@@ -545,15 +557,19 @@
   }
 
   /* Card silhouette expands into the details page shell. */
-  ::view-transition-group(eq-vt-shell) {
-    animation-duration: 450ms;
-    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
+  ::view-transition-group(eq-vt-shell),
   ::view-transition-old(eq-vt-shell),
   ::view-transition-new(eq-vt-shell) {
     animation-duration: 450ms;
     animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none !important;
+    }
+  }
+
+  ::view-transition-old(eq-vt-shell),
+  ::view-transition-new(eq-vt-shell) {
     /* Keep shell content clipped while the bounds morph so the card
        silhouette reads as expanding into the details layout. */
     overflow: clip;
@@ -571,6 +587,10 @@
   ::view-transition-new(eq-vt-hours) {
     animation-duration: 400ms;
     animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none !important;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -579,22 +599,6 @@
       opacity: 1;
       pointer-events: auto;
       transition: none;
-    }
-
-    ::view-transition-group(eq-vt-shell),
-    ::view-transition-old(eq-vt-shell),
-    ::view-transition-new(eq-vt-shell),
-    ::view-transition-old(eq-vt-image),
-    ::view-transition-new(eq-vt-image),
-    ::view-transition-old(eq-vt-name),
-    ::view-transition-new(eq-vt-name),
-    ::view-transition-old(eq-vt-meta),
-    ::view-transition-new(eq-vt-meta),
-    ::view-transition-old(eq-vt-location),
-    ::view-transition-new(eq-vt-location),
-    ::view-transition-old(eq-vt-hours),
-    ::view-transition-new(eq-vt-hours) {
-      animation: none !important;
     }
   }
   

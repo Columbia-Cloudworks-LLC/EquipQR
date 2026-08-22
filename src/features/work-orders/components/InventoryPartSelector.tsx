@@ -140,7 +140,7 @@ export const InventoryPartSelector: React.FC<InventoryPartSelectorProps> = ({
               <div className="flex items-center gap-2">
                 <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
                 <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
-                  <SelectTrigger className="w-[220px]">
+                  <SelectTrigger className="w-55">
                     <SelectValue placeholder="Sort by..." />
                   </SelectTrigger>
                   <SelectContent>

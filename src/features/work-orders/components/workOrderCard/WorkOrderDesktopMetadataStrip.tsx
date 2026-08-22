@@ -26,21 +26,21 @@ export const WorkOrderDesktopMetadataStrip: React.FC<WorkOrderDesktopMetadataStr
   canEdit,
 }) => {
   const equipmentTeamName = workOrder.equipmentTeamName ?? workOrder.teamName;
-  const createdDateValue = workOrder.created_date ?? workOrder.createdDate;
-  const dueDateValue = workOrder.due_date ?? workOrder.dueDate;
-  const estimatedHoursValue = workOrder.estimated_hours ?? workOrder.estimatedHours;
-  const completedDateValue = workOrder.completed_date ?? workOrder.completedDate;
+  const createdDateValue = workOrder.created_date;
+  const dueDateValue = workOrder.due_date;
+  const estimatedHoursValue = workOrder.estimated_hours;
+  const completedDateValue = workOrder.completed_date;
 
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground mt-3 pt-3 border-t">
       <span className="inline-flex items-center gap-1">
-        <Calendar className="h-3.5 w-3.5 flex-shrink-0" />
+        <Calendar className="h-3.5 w-3.5 shrink-0" />
         {fmtDate(createdDateValue)}
       </span>
 
       {dueDateValue && (
         <span className={cn('inline-flex items-center gap-1', isWorkOrderOverdue && 'text-destructive font-medium')}>
-          <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+          <Clock className="h-3.5 w-3.5 shrink-0" />
           Due {fmtDate(dueDateValue)}
           {isWorkOrderOverdue && (
             <Tooltip>
@@ -55,8 +55,8 @@ export const WorkOrderDesktopMetadataStrip: React.FC<WorkOrderDesktopMetadataStr
 
       {equipmentTeamName && (
         <span className="inline-flex items-center gap-1">
-          <Users className="h-3.5 w-3.5 flex-shrink-0" />
-          <span className="truncate max-w-[12rem]">{equipmentTeamName}</span>
+          <Users className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate max-w-48">{equipmentTeamName}</span>
         </span>
       )}
 
@@ -64,12 +64,12 @@ export const WorkOrderDesktopMetadataStrip: React.FC<WorkOrderDesktopMetadataStr
         <span className="inline-flex items-center gap-1 cursor-pointer hover:text-foreground rounded px-1 -mx-1 transition-colors">
           {workOrder.assigneeName ? (
             <>
-              <User className="h-3.5 w-3.5 flex-shrink-0" />
-              <span className="truncate max-w-[10rem]">{workOrder.assigneeName}</span>
+              <User className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate max-w-40">{workOrder.assigneeName}</span>
             </>
           ) : (
             <>
-              <UserX className="h-3.5 w-3.5 flex-shrink-0" />
+              <UserX className="h-3.5 w-3.5 shrink-0" />
               Unassigned
             </>
           )}
@@ -78,7 +78,7 @@ export const WorkOrderDesktopMetadataStrip: React.FC<WorkOrderDesktopMetadataStr
 
       {workOrder.effectiveLocation && (
         <span className="inline-flex items-center gap-1">
-          <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+          <MapPin className="h-3.5 w-3.5 shrink-0" />
           <ClickableAddress
             address={workOrder.effectiveLocation.formattedAddress}
             lat={workOrder.effectiveLocation.lat}
@@ -92,7 +92,7 @@ export const WorkOrderDesktopMetadataStrip: React.FC<WorkOrderDesktopMetadataStr
 
       {estimatedHoursValue && (
         <span className="inline-flex items-center gap-1">
-          <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+          <Clock className="h-3.5 w-3.5 shrink-0" />
           Est. {estimatedHoursValue}h
         </span>
       )}

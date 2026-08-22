@@ -45,7 +45,7 @@ export async function exportReport(
     .catch((err: unknown) => {
       const msg = err instanceof Error ? err.message : 'Failed to invoke export-report';
       logger.error('Report export invoke failed', { error: msg });
-      throw new Error(msg, { cause: err });
+      throw Object.assign(new Error(msg), { cause: err });
     });
 
   const { data, error: invokeError } = invokeResult;
@@ -55,7 +55,7 @@ export async function exportReport(
     );
     const message = errorPayload?.error || invokeError.message || 'Failed to export report';
     logger.error('Report export failed', { error: message });
-    throw new Error(message, { cause: invokeError });
+    throw Object.assign(new Error(message), { cause: invokeError });
   }
 
   if (data && typeof data === 'object' && 'error' in data) {

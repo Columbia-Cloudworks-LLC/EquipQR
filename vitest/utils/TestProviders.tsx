@@ -85,15 +85,3 @@ export const TestProviders = ({
     </MemoryRouter>
   );
 };
-
-/**
- * Create a wrapper component pre-configured for a specific persona.
- * Useful for renderHook and other testing scenarios.
- */
-export const createPersonaWrapper = (persona: UserPersona, initialEntries?: string[]) => {
-  return ({ children }: { children: React.ReactNode }) => (
-    <TestProviders persona={persona} initialEntries={initialEntries}>
-      {children}
-    </TestProviders>
-  );
-};

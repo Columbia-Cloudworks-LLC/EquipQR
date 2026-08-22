@@ -5,7 +5,7 @@ import { useBulkGridPendingApply } from '@/hooks/useBulkGridPendingApply';
 
 type BulkGridWorkspaceOptions<TField extends string> = {
   selectedRowIds: Set<string>;
-  fieldLabels: Record<TField, string>;
+  fieldLabels: Partial<Record<TField, string>>;
   onSetCellValue: (rowId: string, field: TField, value: unknown) => void;
   onSetCellValueOnRows?: (rowIds: string[], field: TField, value: unknown) => void;
   onToggleSelected: (rowId: string) => void;
@@ -27,7 +27,11 @@ export function useBulkGridWorkspace<TField extends string>({
     selectedRowIds,
     fieldLabels,
     onSetCellValue,
-    onSetCellValueOnRows,
+    onSetCellValueOnRows:
+      onSetCellValueOnRows ??
+      ((rowIds, field, value) => {
+        rowIds.forEach((rowId) => onSetCellValue(rowId, field, value));
+      }),
   });
 
   return {

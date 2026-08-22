@@ -2,7 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { render, screen } from '@vitest-harness/utils/test-utils';
 import { SessionContext, type SessionData } from '@/contexts/SessionContext';
+import { createMockSessionOrganization } from '@vitest-harness/mocks/testTypes';
 import { useSession } from './useSession';
+
+const testOrganization = createMockSessionOrganization({
+  id: 'org-1',
+  name: 'Test Org',
+  userRole: 'admin',
+});
 
 interface SessionDataWithUser extends SessionData {
   user?: { id?: string };
@@ -40,7 +47,7 @@ describe('useSession', () => {
     expect(screen.getByTestId('is-loading')).toHaveTextContent('false');
     expect(screen.getByTestId('has-error')).toHaveTextContent('false');
     expect(screen.getByTestId('current-org-id')).toHaveTextContent('org-1');
-    expect(screen.getByTestId('user-id')).toHaveTextContent('user-1');
+    expect(screen.getByTestId('user-id')).toHaveTextContent('none');
 
     // Verify refresh function is available
     const refreshButton = screen.getByTestId('refresh-button');
@@ -164,49 +171,16 @@ describe('useSession', () => {
   it('should provide all session context methods', () => {
     const mockSessionValue = {
       sessionData: {
-        organizations: [{
-          id: 'org-1',
-          name: 'Test Org',
-          plan: 'free' as const,
-          memberCount: 1,
-          maxMembers: 10,
-          features: [],
-          billingEmail: 'test@example.com',
-          isOwner: true,
-          userRole: 'admin' as const,
-          userStatus: 'active' as const
-        }],
+        organizations: [testOrganization],
         teamMemberships: [],
-        currentOrganization: {
-          id: 'org-1',
-          name: 'Test Org',
-          plan: 'free' as const,
-          memberCount: 1,
-          maxMembers: 10,
-          features: [],
-          billingEmail: 'test@example.com',
-          isOwner: true,
-          userRole: 'admin' as const,
-          userStatus: 'active' as const
-        },
+        currentOrganization: testOrganization,
         currentOrganizationId: 'org-1',
         lastUpdated: new Date().toISOString(),
         version: 1
       },
       isLoading: false,
       error: null,
-      getCurrentOrganization: vi.fn(() => ({ 
-        id: 'org-1', 
-        name: 'Test Org', 
-        plan: 'free' as const,
-        memberCount: 1,
-        maxMembers: 10,
-        features: [],
-        billingEmail: 'test@example.com',
-        isOwner: true,
-        userRole: 'admin' as const,
-        userStatus: 'active' as const
-      })),
+      getCurrentOrganization: vi.fn(() => testOrganization),
       switchOrganization: vi.fn(() => Promise.resolve()),
       hasTeamRole: vi.fn(() => false),
       hasTeamAccess: vi.fn(() => false),

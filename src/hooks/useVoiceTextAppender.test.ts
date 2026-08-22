@@ -82,7 +82,8 @@ describe('useVoiceTextAppender', () => {
 
     rerender({ value: 'Second' });
 
-    const { onResult } = mockUseSpeechToText.mock.calls.at(-1)![0];
+    const lastCall = mockUseSpeechToText.mock.calls[mockUseSpeechToText.mock.calls.length - 1];
+    const { onResult } = lastCall[0];
     act(() => {
       onResult('third');
     });

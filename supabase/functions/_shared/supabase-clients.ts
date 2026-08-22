@@ -15,7 +15,7 @@ import {
   SupabaseClient,
   User,
 } from "npm:@supabase/supabase-js@2.45.0";
-import { corsHeaders, getCorsHeaders } from "./cors.ts";
+import { getCorsHeaders, getFallbackCorsHeaders } from "./cors.ts";
 import { SAFE_ERROR_PATTERNS } from "./error-message-allowlist.ts";
 import { MissingSecretError, requireSecret } from "./require-secret.ts";
 
@@ -38,7 +38,7 @@ export interface ResponseOptions {
 
 function resolveCorsHeaders(opts?: ResponseOptions): Record<string, string> {
   if (opts?.req) return getCorsHeaders(opts.req);
-  return corsHeaders;
+  return getFallbackCorsHeaders();
 }
 
 // =============================================================================
@@ -797,7 +797,7 @@ export function handleCorsPreflightIfNeeded(
 ): Response | null {
   if (req.method === "OPTIONS") {
     const headers = opts?.useValidatedOrigin === false
-      ? corsHeaders
+      ? getFallbackCorsHeaders()
       : getCorsHeaders(req);
     return new Response(null, { headers });
   }

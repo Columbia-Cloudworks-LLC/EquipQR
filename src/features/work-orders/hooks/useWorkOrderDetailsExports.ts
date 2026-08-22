@@ -8,12 +8,13 @@ import {
   buildWorkOrderPdfInput,
 } from '@/features/work-orders/utils/workOrderDetailsViewModel';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
-import type { EquipmentData, PMData } from '@/features/work-orders/types/workOrderDetails';
+import type { EquipmentData } from '@/features/work-orders/types/workOrderDetails';
+import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 
 type UseWorkOrderDetailsExportsParams = {
   workOrder: WorkOrder | null | undefined;
   equipment: EquipmentData | null | undefined;
-  pmData: PMData | null | undefined;
+  pmData: PreventativeMaintenance | null | undefined;
   organizationId?: string;
   organizationName?: string;
   isManager: boolean;

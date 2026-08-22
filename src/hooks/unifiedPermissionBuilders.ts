@@ -118,6 +118,9 @@ export function buildWorkOrderPermissions(
       const isLocked = workOrder ? isWorkOrderEditLocked(workOrder.status) : false;
       const notePermissionInput = buildWorkOrderNotePermissionInput(workOrder, userContext);
       const canAddNotes = canAddWorkOrderNotes(notePermissionInput);
+      const teamId = workOrder?.teamId;
+      const isManagerOfWorkOrderTeam = teamId ? isTeamManager(teamId) : false;
+      const isMemberOfWorkOrderTeam = teamId ? isTeamMember(teamId) : false;
 
       return {
         canEdit: canEdit && !isLocked,
@@ -128,10 +131,10 @@ export function buildWorkOrderPermissions(
         canChangeStatus: hasPermission('workorder.changestatus', entityContext),
         canAddNotes,
         canAddImages: canAddNotes,
-        canAddCosts: (hasRole(['owner', 'admin']) || isTeamManager(workOrder?.teamId)) && !isLocked,
-        canEditCosts: (hasRole(['owner', 'admin']) || isTeamManager(workOrder?.teamId)) && !isLocked,
-        canViewPM: hasRole(['owner', 'admin']) || isTeamMember(workOrder?.teamId),
-        canEditPM: (hasRole(['owner', 'admin']) || isTeamMember(workOrder?.teamId)) && !isLocked,
+        canAddCosts: (hasRole(['owner', 'admin']) || isManagerOfWorkOrderTeam) && !isLocked,
+        canEditCosts: (hasRole(['owner', 'admin']) || isManagerOfWorkOrderTeam) && !isLocked,
+        canViewPM: hasRole(['owner', 'admin']) || isMemberOfWorkOrderTeam,
+        canEditPM: (hasRole(['owner', 'admin']) || isMemberOfWorkOrderTeam) && !isLocked,
       };
     },
     canViewAll: hasRole(['owner', 'admin']),

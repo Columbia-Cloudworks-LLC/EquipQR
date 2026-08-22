@@ -18,7 +18,7 @@ import { useTeamMutations } from '@/features/teams/hooks/useTeamManagement';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { Receipt } from 'lucide-react';
-import type { Team } from '@/features/teams/types/team';
+import type { TeamWithMembers } from '@/features/teams/types/team';
 
 const UNASSIGNED_VALUE = 'unassigned';
 const CREATE_NEW_VALUE = '__create_new__';
@@ -32,7 +32,7 @@ export interface TeamPickerWithCreateProps {
   onRequestUnassignedConfirm?: () => void;
   disabled?: boolean;
   id?: string;
-  teamFilter?: (team: Team) => boolean;
+  teamFilter?: (team: TeamWithMembers) => boolean;
 }
 
 const TeamPickerWithCreate: React.FC<TeamPickerWithCreateProps> = ({

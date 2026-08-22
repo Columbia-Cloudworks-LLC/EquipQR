@@ -194,7 +194,7 @@ const AutocompleteInput = React.forwardRef<HTMLInputElement, AutocompleteInputPr
 
     const SuggestionsList = (
       <Command shouldFilter={false} data-autocomplete-list ref={listRef}>
-        <CommandList id={listId} className="max-h-[200px]" role="listbox">
+        <CommandList id={listId} className="max-h-50" role="listbox">
           {filteredSuggestions.length === 0 ? (
             <CommandEmpty>{emptyMessage}</CommandEmpty>
           ) : (
@@ -335,7 +335,7 @@ const AutocompleteInput = React.forwardRef<HTMLInputElement, AutocompleteInputPr
           />
         </PopoverAnchor>
         <PopoverContent 
-          className="w-[var(--radix-popper-anchor-width)] p-0" 
+          className="w-(--radix-popper-anchor-width) p-0" 
           align="start"
           side="bottom"
           sideOffset={4}

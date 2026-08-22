@@ -87,13 +87,13 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
   const noteAndPhotoRow = (
     <div className="flex flex-wrap gap-2">
       {permissions.canAddNotes ? (
-        <Button type="button" variant="outline" className="min-h-[44px] flex-1" onClick={onAddNote}>
+        <Button type="button" variant="outline" className="min-h-11 flex-1" onClick={onAddNote}>
           <MessageSquare className="mr-2 h-4 w-4 shrink-0" aria-hidden />
           Add note
         </Button>
       ) : null}
       {permissions.canUpload ? (
-        <Button type="button" variant="outline" className="min-h-[44px] flex-1" onClick={onAddPhoto}>
+        <Button type="button" variant="outline" className="min-h-11 flex-1" onClick={onAddPhoto}>
           <Camera className="mr-2 h-4 w-4 shrink-0" aria-hidden />
           Photo
         </Button>
@@ -103,7 +103,7 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
 
   const noteOnlyRow =
     permissions.canAddNotes ? (
-      <Button type="button" variant="outline" className="min-h-[44px] w-full" onClick={onAddNote}>
+      <Button type="button" variant="outline" className="min-h-11 w-full" onClick={onAddNote}>
         <MessageSquare className="mr-2 h-4 w-4 shrink-0" aria-hidden />
         Add note
       </Button>
@@ -115,7 +115,7 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
         <CardTitle className="text-base font-semibold">Next step</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div aria-live="polite" className="min-h-[1.25rem] text-sm text-muted-foreground">
+        <div aria-live="polite" className="min-h-5 text-sm text-muted-foreground">
           {syncBanner ? (
             <div
               className={cn(
@@ -133,7 +133,7 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="ml-auto min-h-[44px]"
+                  className="ml-auto min-h-11"
                   onClick={onRetrySync}
                 >
                   <RefreshCw className="mr-1 h-4 w-4" aria-hidden />
@@ -145,14 +145,14 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
         </div>
 
         {workOrder.status === 'completed' ? (
-          <div className="flex min-h-[44px] items-center gap-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-success">
+          <div className="flex min-h-11 items-center gap-2 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-success">
             <CheckCircle2 className="h-5 w-5 shrink-0" aria-hidden />
             <span className="font-medium">Completed</span>
           </div>
         ) : null}
 
         {workOrder.status === 'cancelled' ? (
-          <div className="flex min-h-[44px] items-center gap-2 rounded-lg border bg-muted px-3 py-2">
+          <div className="flex min-h-11 items-center gap-2 rounded-lg border bg-muted px-3 py-2">
             <Ban className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
             <span className="font-medium">Cancelled</span>
           </div>
@@ -160,7 +160,7 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
 
         {workOrder.status === 'submitted' && permissions.canWork ? (
           <>
-            <Button type="button" className="h-12 min-h-[44px] w-full text-base font-semibold" onClick={onAcceptWorkOrder}>
+            <Button type="button" className="h-12 min-h-11 w-full text-base font-semibold" onClick={onAcceptWorkOrder}>
               Accept work order
             </Button>
             {noteOnlyRow}
@@ -169,7 +169,7 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
 
         {(workOrder.status === 'accepted' || workOrder.status === 'assigned') && permissions.canWork ? (
           <>
-            <Button type="button" className="h-12 min-h-[44px] w-full text-base font-semibold" onClick={onStartWork}>
+            <Button type="button" className="h-12 min-h-11 w-full text-base font-semibold" onClick={onStartWork}>
               <Play className="mr-2 h-5 w-5" aria-hidden />
               Start work
             </Button>
@@ -189,7 +189,7 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
                 </p>
                 <Button
                   type="button"
-                  className="h-12 min-h-[44px] w-full text-base font-semibold"
+                  className="h-12 min-h-11 w-full text-base font-semibold"
                   onClick={onContinueChecklist}
                 >
                   <ClipboardList className="mr-2 h-5 w-5" aria-hidden />
@@ -197,7 +197,7 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
                 </Button>
               </>
             ) : (
-              <Button type="button" className="h-12 min-h-[44px] w-full text-base font-semibold" onClick={onComplete}>
+              <Button type="button" className="h-12 min-h-11 w-full text-base font-semibold" onClick={onComplete}>
                 <CheckCircle2 className="mr-2 h-5 w-5" aria-hidden />
                 Complete work order
               </Button>
@@ -208,7 +208,7 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
 
         {workOrder.status === 'on_hold' && permissions.canWork ? (
           <>
-            <Button type="button" className="h-12 min-h-[44px] w-full text-base font-semibold" onClick={onResumeWork}>
+            <Button type="button" className="h-12 min-h-11 w-full text-base font-semibold" onClick={onResumeWork}>
               <Play className="mr-2 h-5 w-5" aria-hidden />
               Resume work
             </Button>

@@ -70,6 +70,7 @@ describe('workOrderRowMapper', () => {
       assigned_location_city: null,
       assigned_location_state: null,
       assigned_location_country: null,
+      updated_at: '2026-03-01T00:00:00Z',
       teams: {
         id: 'team-1',
         name: 'Field Team',
@@ -92,6 +93,7 @@ describe('workOrderRowMapper', () => {
     expect(location?.source).toBe('team');
     expect(location?.lat).toBe(30.0);
     expect(location?.lng).toBe(-97.0);
+    expect(location?.updatedAt).toBe('2026-03-01T00:00:00Z');
   });
 
   it('resolves last scan location when equipment location is not team-based', () => {

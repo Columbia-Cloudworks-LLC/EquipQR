@@ -5,7 +5,7 @@ import type { ApiResponse } from '@/services/base/BaseService';
 export function createServiceErrorResponse(
   error: unknown,
   logLabel: string,
-): ApiResponse<null> {
+): { data: null; error: string; success: false } {
   logger.error(`${logLabel}:`, error);
   return {
     data: null,

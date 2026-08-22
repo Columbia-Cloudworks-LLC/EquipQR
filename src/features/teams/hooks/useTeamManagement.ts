@@ -55,11 +55,9 @@ export const useTeams = (
   );
 
   return {
+    ...query,
     teams,
     managedTeams,
-    isLoading: query.isLoading,
-    error: query.error,
-    ...query,
   };
 };
 
@@ -228,14 +226,4 @@ export const useTeamMembers = (teamId: string | undefined, organizationId: strin
     removeMember: removeMemberMutation,
     updateRole: updateRoleMutation,
   };
-};
-
-// Hook to check if user can manage team
-const useTeamManagerCheck = (userId: string | undefined, teamId: string | undefined) => {
-  return useQuery({
-    queryKey: ['teamManager', userId, teamId],
-    queryFn: () => TeamRepository.isTeamManager(userId!, teamId!),
-    enabled: !!userId && !!teamId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
 };

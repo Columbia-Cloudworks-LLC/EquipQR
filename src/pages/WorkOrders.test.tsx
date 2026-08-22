@@ -8,6 +8,7 @@ import { workOrders as woFixtures, organizations } from '@vitest-harness/fixture
 import * as useTeamBasedWorkOrdersModule from '@/features/teams/hooks/useTeamBasedWorkOrders';
 import '@/contexts/OrganizationContext';
 import * as useWorkOrderFiltersModule from '@/features/work-orders/hooks/useWorkOrderFilters';
+import type { QuickFilterPreset } from '@/features/work-orders/hooks/useWorkOrderFilters';
 import * as useMobileModule from '@/hooks/use-mobile';
 
 // ============================================
@@ -104,22 +105,35 @@ vi.mock('@/features/work-orders/hooks/useBatchAssignUnassignedWorkOrders', () =>
   }))
 }));
 
-vi.mock('@/features/work-orders/hooks/useWorkOrderFilters', () => ({
-  useWorkOrderFilters: vi.fn(() => ({
+const { createWorkOrderFiltersMock } = vi.hoisted(() => ({
+  createWorkOrderFiltersMock: (
+    workOrders: WorkOrderData[] = [],
+    updateFilter = vi.fn(),
+  ) => ({
     filters: {
       searchQuery: '',
       statusFilter: 'all',
       assigneeFilter: 'all',
       teamFilter: 'all',
       priorityFilter: 'all',
-      dueDateFilter: 'all'
+      dueDateFilter: 'all',
+      invoiceFilter: 'all',
     },
-    filteredWorkOrders: [],
+    filteredWorkOrders: workOrders,
+    totalCount: workOrders.length,
+    activePresets: new Set<QuickFilterPreset>(),
+    sortField: 'created' as const,
+    sortDirection: 'desc' as const,
     getActiveFilterCount: vi.fn(() => 0),
     clearAllFilters: vi.fn(),
-    applyQuickFilter: vi.fn(),
-    updateFilter: vi.fn()
-  }))
+    toggleQuickFilter: vi.fn(),
+    updateFilter,
+    updateSort: vi.fn(),
+  }),
+}));
+
+vi.mock('@/features/work-orders/hooks/useWorkOrderFilters', () => ({
+  useWorkOrderFilters: vi.fn(() => createWorkOrderFiltersMock())
 }));
 
 // Mock components
@@ -164,11 +178,6 @@ vi.mock('@/features/work-orders/components/WorkOrdersList', () => ({
   )
 }));
 
-vi.mock('@/components/notifications/NotificationCenter', () => ({
-  __esModule: true,
-  default: () => <div data-testid="notification-center">Notifications</div>
-}));
-
 vi.mock('@/features/work-orders/components/WorkOrderForm', () => ({
   default: ({ open, onClose }: { open: boolean; onClose: () => void }) =>
     open ? (
@@ -197,21 +206,9 @@ function configureAccess(options: {
 }
 
 function setWorkOrders(workOrders: WorkOrderData[]) {
-  vi.mocked(useWorkOrderFiltersModule.useWorkOrderFilters).mockReturnValue({
-    filters: {
-      searchQuery: '',
-      statusFilter: 'all',
-      assigneeFilter: 'all',
-      teamFilter: 'all',
-      priorityFilter: 'all',
-      dueDateFilter: 'all'
-    },
-    filteredWorkOrders: workOrders,
-    getActiveFilterCount: vi.fn(() => 0),
-    clearAllFilters: vi.fn(),
-    applyQuickFilter: vi.fn(),
-    updateFilter: vi.fn()
-  });
+  vi.mocked(useWorkOrderFiltersModule.useWorkOrderFilters).mockReturnValue(
+    createWorkOrderFiltersMock(workOrders),
+  );
 }
 
 // ============================================
@@ -345,14 +342,9 @@ describe('WorkOrders Page', () => {
 
     it('responds to search input', () => {
       const mockUpdateFilter = vi.fn();
-      vi.mocked(useWorkOrderFiltersModule.useWorkOrderFilters).mockReturnValue({
-        filters: { searchQuery: '', statusFilter: 'all', assigneeFilter: 'all', teamFilter: 'all', priorityFilter: 'all', dueDateFilter: 'all' },
-        filteredWorkOrders: [],
-        getActiveFilterCount: vi.fn(() => 0),
-        clearAllFilters: vi.fn(),
-        applyQuickFilter: vi.fn(),
-        updateFilter: mockUpdateFilter
-      });
+      vi.mocked(useWorkOrderFiltersModule.useWorkOrderFilters).mockReturnValue(
+        createWorkOrderFiltersMock([], mockUpdateFilter),
+      );
 
       render(<WorkOrders />);
       fireEvent.change(screen.getByPlaceholderText(/search work orders/i), { target: { value: 'hydraulic' } });

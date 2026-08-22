@@ -71,38 +71,6 @@ class QueryMonitor {
 
 export const queryMonitor = new QueryMonitor();
 
-// Utility to wrap Supabase queries with monitoring
-function monitorQuery<T>(
-  queryName: string,
-  queryFn: () => Promise<T>,
-  expectedIndexes?: string[]
-): Promise<T> {
-  const startTime = Date.now();
-  
-  return queryFn()
-    .then(result => {
-      const duration = Date.now() - startTime;
-      queryMonitor.logQuery({
-        query: queryName,
-        duration,
-        timestamp: new Date(),
-        indexes_used: expectedIndexes,
-        performance_notes: expectedIndexes ? 'Using optimized indexes' : 'Standard query'
-      });
-      return result;
-    })
-    .catch(error => {
-      const duration = Date.now() - startTime;
-      queryMonitor.logQuery({
-        query: queryName,
-        duration,
-        timestamp: new Date(),
-        performance_notes: `Error: ${error.message}`
-      });
-      throw error;
-    });
-}
-
 // Performance monitoring utilities
 export const performanceUtils = {
   logIndexUsage: (queryName: string, indexes: string[]) => {

@@ -240,7 +240,7 @@ const TeamMetadataEditor: React.FC<TeamMetadataEditorProps> = ({
                   defaultValue={team.description ?? ''}
                   onChange={(e) => setDescriptionLength(e.target.value.length)}
                   placeholder="Brief description of the team's responsibilities..."
-                  className="min-h-[100px]"
+                  className="min-h-25"
                   maxLength={DESCRIPTION_MAX_LENGTH}
                 />
                 <p className="text-xs text-muted-foreground text-right">
