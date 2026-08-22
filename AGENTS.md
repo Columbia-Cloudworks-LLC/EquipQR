@@ -47,7 +47,7 @@ Naming convention for MCP-backed items: `<service>-<access-tier>` (not env tier)
 **Always mutate vault items through a detached subprocess:**
 
 ```powershell
-.\dev\op-item-mutate.ps1 -Action Edit -Item "app-env-preview-public" -Vault "EquipQR Agents" -Assignment "FIELD[text]=value"
+.\dev\op-item-mutate.ps1 -Action Edit -Item "app-env-preview-public" -Assignment "FIELD[text]=value"
 ```
 
 Or spawn `powershell.exe -NoProfile -File ...` yourself. Reads (`op read`, `op item list`, `op item get`) are fine inline.

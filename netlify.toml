@@ -3,6 +3,36 @@
   publish = "dist"
 
 [[redirects]]
+  from = "/eqr-logo/*"
+  to = "/images/brand/eqr-logo/:splat"
+  status = 301
+
+[[redirects]]
+  from = "/branded-logos/*"
+  to = "/images/brand/logos/:splat"
+  status = 301
+
+[[redirects]]
+  from = "/placeholder.svg"
+  to = "/images/ui/placeholder.svg"
+  status = 301
+
+[[redirects]]
+  from = "/us.svg"
+  to = "/images/maps/us.svg"
+  status = 301
+
+[[redirects]]
+  from = "/icons/:file.png"
+  to = "/images/brand/icons/:file.png"
+  status = 301
+
+[[redirects]]
+  from = "/icons/:file.svg"
+  to = "/images/equipment/:file.svg"
+  status = 301
+
+[[redirects]]
   from = "/*"
   to = "/app-shell.html"
   status = 200

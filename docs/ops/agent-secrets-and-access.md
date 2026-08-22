@@ -63,12 +63,11 @@ Use the repo helper, which runs `op` in a **detached** `powershell.exe -File` pr
 .\dev\op-item-mutate.ps1 `
   -Action Edit `
   -Item "app-env-preview-public" `
-  -Vault "EquipQR Agents" `
   -Assignment "GOOGLE_WORKSPACE_CLIENT_ID[text]=87469690682-example.apps.googleusercontent.com" `
   -DryRun
 
 # Apply
-.\dev\op-item-mutate.ps1 -Action Edit -Item "app-env-preview-public" -Vault "EquipQR Agents" `
+.\dev\op-item-mutate.ps1 -Action Edit -Item "app-env-preview-public" `
   -Assignment "GOOGLE_WORKSPACE_CLIENT_ID[text]=87469690682-example.apps.googleusercontent.com"
 ```
 
@@ -123,7 +122,7 @@ $env:OP_SERVICE_ACCOUNT_TOKEN = [Environment]::GetEnvironmentVariable('OP_SERVIC
 
 ```powershell
 # Dry-run first
-.\dev\op-item-mutate.ps1 -Action Edit -Item "edge-env-prod-secrets" -Vault "EquipQR Agents" `
+.\dev\op-item-mutate.ps1 -Action Edit -Item "edge-env-prod-secrets" `
   -Assignment "TOKEN_ENCRYPTION_KEY[text]=<openssl rand -base64 32 output>" -DryRun
 # Apply without -DryRun when dry-run looks correct
 ```
