@@ -3,8 +3,8 @@ import { landingImage } from './landingImage';
 
 describe('landingImage', () => {
   it('returns a same-origin path under /images/landing/', () => {
-    expect(landingImage('work-orders-list-2026-04.png')).toBe(
-      '/images/landing/work-orders-list-2026-04.png',
+    expect(landingImage('work-orders-list-2026-04.webp')).toBe(
+      '/images/landing/work-orders-list-2026-04.webp',
     );
   });
 
@@ -35,6 +35,6 @@ describe('landingImage', () => {
   });
 
   it('throws for parent-directory segments', () => {
-    expect(() => landingImage('../work-orders-list-2026-04.png')).toThrow(/\.\./);
+    expect(() => landingImage('../work-orders-list-2026-04.webp')).toThrow(/\.\./);
   });
 });

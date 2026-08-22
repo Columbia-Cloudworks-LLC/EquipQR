@@ -80,7 +80,7 @@ export const steps: Step[] = [
 export const showcases: ImageScreenshot[] = [
   {
     kind: 'image',
-    imageUrl: landingImage('teams-list-2026-04.png'),
+    imageUrl: landingImage('teams-list-2026-04.webp'),
     imageAlt: 'Teams list showing all teams with member counts and roles',
     title: 'Organization Teams',
     description:
@@ -88,7 +88,7 @@ export const showcases: ImageScreenshot[] = [
   },
   {
     kind: 'image',
-    imageUrl: landingImage('team-detail-2026-04.png'),
+    imageUrl: landingImage('team-detail-2026-04.webp'),
     imageAlt: 'Team detail page showing role assignments for team members',
     title: 'Role-Based Team Access',
     description:

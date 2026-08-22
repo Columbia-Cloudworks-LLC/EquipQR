@@ -81,7 +81,7 @@ export const steps: Step[] = [
 export const showcases: ImageScreenshot[] = [
   {
     kind: 'image',
-    imageUrl: landingImage('fleet-map-2026-04.png'),
+    imageUrl: landingImage('fleet-map-2026-04.webp'),
     imageAlt:
       'Fleet map showing equipment markers across the United States with location panel and filter controls',
     title: 'Equipment at Their Last Confirmed Locations',

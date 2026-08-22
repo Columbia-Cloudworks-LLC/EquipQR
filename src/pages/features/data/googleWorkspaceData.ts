@@ -81,7 +81,7 @@ export const steps: Step[] = [
 export const showcases: ImageScreenshot[] = [
   {
     kind: 'image',
-    imageUrl: landingImage('google-workspace-settings-2026-04.png'),
+    imageUrl: landingImage('google-workspace-settings-2026-04.webp'),
     imageAlt: 'Organization Settings showing Google Workspace integration with connected domain',
     title: 'Connect & Sync Directory',
     description:
@@ -89,7 +89,7 @@ export const showcases: ImageScreenshot[] = [
   },
   {
     kind: 'image',
-    imageUrl: landingImage('team-detail-2026-04.png'),
+    imageUrl: landingImage('team-detail-2026-04.webp'),
     imageAlt: 'Team member list showing Google Workspace members imported into EquipQR with assigned roles',
     title: 'Import from Google Workspace',
     description:

@@ -145,7 +145,7 @@ export const showcases: ShowcaseItem[] = [
   },
   {
     kind: 'image',
-    imageUrl: landingImage('pm-templates-list-2026-04.png'),
+    imageUrl: landingImage('pm-templates-list-2026-04.webp'),
     imageAlt: 'PM Templates List showing 6 global templates including Forklift, Excavator, and Scissor Lift',
     title: 'Browse Available Templates',
     description:
@@ -153,7 +153,7 @@ export const showcases: ShowcaseItem[] = [
   },
   {
     kind: 'image',
-    imageUrl: landingImage('pm-templates-detail-2026-04.png'),
+    imageUrl: landingImage('pm-templates-detail-2026-04.webp'),
     imageAlt: 'Forklift PM template detail view showing 12 sections and 103 checklist items',
     title: 'Detailed Template View',
     description:
