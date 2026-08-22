@@ -254,7 +254,6 @@ const Auth = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="px-6 pb-8 sm:px-7 sm:pb-8">
-            {/* MFA Verification Screen — shown after password or OAuth sign-in when MFA is required */}
             {success ? (
               <div className="space-y-5 text-center" data-testid="signup-success-page">
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/15">
