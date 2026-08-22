@@ -162,6 +162,11 @@ jobs:
     - name: Verify Node runtime and @types/node policy
       run: npm run verify:node-policy
 
+    - name: Install PSScriptAnalyzer
+      shell: pwsh
+      run: |
+        Install-Module -Name PSScriptAnalyzer -RequiredVersion 1.23.0 -Scope CurrentUser -Force -SkipPublisherCheck
+
     - name: Run lint catalog
       run: npm run lint:all
 

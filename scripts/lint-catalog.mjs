@@ -287,11 +287,18 @@ export function renderArgv(tokens, ctx) {
  */
 export function spawnProcess(executable, args, cwd) {
   return new Promise((resolve) => {
-    const child = spawn(executable, [...args], {
-      cwd,
-      windowsHide: true,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
+    let child;
+    try {
+      child = spawn(executable, [...args], {
+        cwd,
+        windowsHide: true,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      resolve({ exitCode: 1, stdout: '', stderr: message });
+      return;
+    }
     let stdout = '';
     let stderr = '';
     child.stdout.on('data', (chunk) => {
@@ -319,8 +326,10 @@ function resolvePowerShell() {
 
 /** @param {string} repoRoot */
 function resolveNpxCli(repoRoot) {
+  const nodeDir = path.dirname(process.execPath);
   const candidates = [
-    path.join(path.dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npx-cli.js'),
+    path.join(nodeDir, 'node_modules', 'npm', 'bin', 'npx-cli.js'),
+    path.join(nodeDir, '..', 'lib', 'node_modules', 'npm', 'bin', 'npx-cli.js'),
     path.join(repoRoot, 'node_modules', 'npm', 'bin', 'npx-cli.js'),
   ];
   for (const candidate of candidates) {
@@ -328,7 +337,7 @@ function resolveNpxCli(repoRoot) {
       return candidate;
     }
   }
-  throw new Error('npx-cli.js not found next to node or in node_modules/npm');
+  throw new Error(`npx-cli.js not found (looked in ${candidates.join(', ')})`);
 }
 
 /** @param {string} repoRoot */
@@ -396,13 +405,13 @@ function actionlintAsset(tool) {
   return { file, bin };
 }
 
-/** @param {string} url */
-async function downloadBuffer(url) {
-  const response = await fetch(url, { redirect: 'follow' });
-  if (!response.ok) {
-    throw new Error(`download failed ${response.status} ${url}`);
+/** @param {string} url @param {string} dest */
+async function downloadToFile(url, dest) {
+  const curl = process.platform === 'win32' ? 'curl.exe' : 'curl';
+  const result = await spawnProcess(curl, ['-fsSL', '--proto', '=https', '-o', dest, url], path.dirname(dest));
+  if (result.exitCode !== 0) {
+    throw new Error(result.stderr || result.stdout || `curl failed for ${url}`);
   }
-  return Buffer.from(await response.arrayBuffer());
 }
 
 /**
@@ -448,18 +457,20 @@ async function ensureExternalBin(target, repoRoot) {
   fs.mkdirSync(destDir, { recursive: true });
 
   try {
-    const checksums = (await downloadBuffer(`${releaseBase}/actionlint_${tool.version}_checksums.txt`)).toString('utf8');
-    const archive = await downloadBuffer(`${releaseBase}/${asset.file}`);
-    const digest = crypto.createHash('sha256').update(archive).digest('hex');
+    const checksumsPath = path.join(destDir, `actionlint_${tool.version}_checksums.txt`);
+    await downloadToFile(`${releaseBase}/actionlint_${tool.version}_checksums.txt`, checksumsPath);
+    await downloadToFile(`${releaseBase}/${asset.file}`, archivePath);
+    const checksums = fs.readFileSync(checksumsPath, 'utf8');
+    const digest = crypto.createHash('sha256').update(fs.readFileSync(archivePath)).digest('hex');
     const expectedLine = checksums.split(/\r?\n/).find((line) => line.includes(asset.file));
     const expected = expectedLine?.trim().split(/\s+/)[0];
     if (!expected) {
       return { ready: false, targetId: target.id, reason: `no checksum listed for ${asset.file}` };
     }
     if (expected.toLowerCase() !== digest) {
+      fs.rmSync(archivePath, { force: true });
       return { ready: false, targetId: target.id, reason: `checksum mismatch for ${asset.file}` };
     }
-    fs.writeFileSync(archivePath, archive);
     const extract = await spawnProcess('tar', ['-xf', archivePath, '-C', destDir], destDir);
     if (extract.exitCode !== 0) {
       return { ready: false, targetId: target.id, reason: extract.stderr || extract.stdout || 'tar extract failed' };
@@ -480,36 +491,6 @@ async function ensureExternalBin(target, repoRoot) {
 /** @param {{ name: string; version: string }} module @param {string} repoRoot */
 function cachedPwshModuleManifest(module, repoRoot) {
   return path.join(repoRoot, TOOLS_CACHE, module.name, module.version, `${module.name}.psd1`);
-}
-
-/**
- * @param {ReturnType<typeof parseTarget>} target
- * @param {string} repoRoot
- */
-async function downloadPwshModuleNupkg(target, repoRoot) {
-  if (target.kind !== 'pwsh-module') {
-    throw new Error('downloadPwshModuleNupkg on non pwsh-module target');
-  }
-  const { name, version } = target.module;
-  const destDir = path.join(repoRoot, TOOLS_CACHE, name, version);
-  const zipPath = path.join(destDir, `${name}.${version}.nupkg.zip`);
-  fs.mkdirSync(destDir, { recursive: true });
-  const url = `https://cdn.powershellgallery.com/packages/${name.toLowerCase()}.${version}.nupkg`;
-  const archive = await downloadBuffer(url);
-  fs.writeFileSync(zipPath, archive);
-  const extract = await spawnProcess('tar', ['-xf', zipPath, '-C', destDir], destDir);
-  if (extract.exitCode !== 0) {
-    throw new Error(extract.stderr || extract.stdout || `failed to extract ${name} nupkg`);
-  }
-  const manifest = cachedPwshModuleManifest(target.module, repoRoot);
-  if (!fs.existsSync(manifest)) {
-    throw new Error(`extracted ${name} nupkg missing ${name}.psd1`);
-  }
-  const manifestText = fs.readFileSync(manifest, 'utf8');
-  const versionMatch = manifestText.match(/ModuleVersion\s*=\s*'([^']+)'/);
-  if (!versionMatch || versionMatch[1] !== version) {
-    throw new Error(`downloaded ${name} ModuleVersion ${versionMatch?.[1] ?? 'missing'} does not match ${version}`);
-  }
 }
 
 /**
@@ -548,17 +529,14 @@ async function ensurePwshModule(target, repoRoot) {
   if (installed.exitCode === 0) {
     return { ready: true, targetId: target.id };
   }
-  try {
-    await downloadPwshModuleNupkg(target, repoRoot);
-    return { ready: true, targetId: target.id };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return {
-      ready: false,
-      targetId: target.id,
-      reason: [install.stderr, install.stdout, message].filter(Boolean).join('\n').trim(),
-    };
-  }
+  return {
+    ready: false,
+    targetId: target.id,
+    reason: [install.stderr, install.stdout, `Install-Module ${name} ${version} failed`]
+      .filter(Boolean)
+      .join('\n')
+      .trim(),
+  };
 }
 
 /**

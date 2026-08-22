@@ -1,11 +1,12 @@
+import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { matchesFile, parseCatalog, renderArgv } from './lint-catalog.mjs';
 
-const repoRoot = 'C:\\repo';
+const repoRoot = path.resolve('/equipqr-lint-catalog');
 
 describe('matchesFile', () => {
   it('returns false for match.kind never', () => {
-    expect(matchesFile({ kind: 'never' }, `${repoRoot}\\src\\app.ts`, repoRoot)).toBe(false);
+    expect(matchesFile({ kind: 'never' }, path.join(repoRoot, 'src', 'app.ts'), repoRoot)).toBe(false);
   });
 
   it('matches .ts and skips .d.ts', () => {
@@ -14,10 +15,10 @@ describe('matchesFile', () => {
       extensions: ['.ts', '.tsx'],
       excludeSuffixes: ['.d.ts'],
     };
-    expect(matchesFile(match, `${repoRoot}\\src\\app.ts`, repoRoot)).toBe(true);
-    expect(matchesFile(match, `${repoRoot}\\src\\app.tsx`, repoRoot)).toBe(true);
-    expect(matchesFile(match, `${repoRoot}\\src\\app.d.ts`, repoRoot)).toBe(false);
-    expect(matchesFile(match, `${repoRoot}\\README.md`, repoRoot)).toBe(false);
+    expect(matchesFile(match, path.join(repoRoot, 'src', 'app.ts'), repoRoot)).toBe(true);
+    expect(matchesFile(match, path.join(repoRoot, 'src', 'app.tsx'), repoRoot)).toBe(true);
+    expect(matchesFile(match, path.join(repoRoot, 'src', 'app.d.ts'), repoRoot)).toBe(false);
+    expect(matchesFile(match, path.join(repoRoot, 'README.md'), repoRoot)).toBe(false);
   });
 
   it('requires the under prefix for workflow files', () => {
@@ -26,8 +27,8 @@ describe('matchesFile', () => {
       extensions: ['.yml', '.yaml'],
       under: '.github/workflows',
     };
-    expect(matchesFile(match, `${repoRoot}\\.github\\workflows\\ci.yml`, repoRoot)).toBe(true);
-    expect(matchesFile(match, `${repoRoot}\\.github\\dependabot.yml`, repoRoot)).toBe(false);
+    expect(matchesFile(match, path.join(repoRoot, '.github', 'workflows', 'ci.yml'), repoRoot)).toBe(true);
+    expect(matchesFile(match, path.join(repoRoot, '.github', 'dependabot.yml'), repoRoot)).toBe(false);
   });
 });
 
@@ -82,9 +83,9 @@ describe('renderArgv', () => {
   it('substitutes {{file}} and {{repoRoot}} only', () => {
     expect(
       renderArgv(['--path', '{{file}}', '{{repoRoot}}', '{{other}}'], {
-        file: 'src\\app.ts',
-        repoRoot: 'C:\\repo',
+        file: path.join('src', 'app.ts'),
+        repoRoot,
       })
-    ).toEqual(['--path', 'src\\app.ts', 'C:\\repo', '{{other}}']);
+    ).toEqual(['--path', path.join('src', 'app.ts'), repoRoot, '{{other}}']);
   });
 });
