@@ -163,9 +163,7 @@ jobs:
       run: npm run verify:node-policy
 
     - name: Install PSScriptAnalyzer
-      shell: pwsh
-      run: |
-        Install-Module -Name PSScriptAnalyzer -RequiredVersion 1.23.0 -Scope CurrentUser -Force -SkipPublisherCheck
+      run: node scripts/lint-catalog.mjs --mode provision --only psscriptanalyzer
 
     - name: Run lint catalog
       run: npm run lint:all

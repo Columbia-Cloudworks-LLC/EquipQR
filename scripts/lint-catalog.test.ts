@@ -1,6 +1,14 @@
 import path from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { matchesFile, parseCatalog, renderArgv } from './lint-catalog.mjs';
+import {
+  curlDownloadArgs,
+  matchesFile,
+  npxCliCandidates,
+  parseCatalog,
+  pwshArgvFlags,
+  renderArgv,
+  resolveNpxCli,
+} from './lint-catalog.mjs';
 
 const repoRoot = path.resolve('/equipqr-lint-catalog');
 
@@ -76,6 +84,32 @@ describe('parseCatalog', () => {
     });
     expect(catalog.targets).toHaveLength(1);
     expect(catalog.targets[0]?.hook).toBeNull();
+  });
+});
+
+describe('npx readiness', () => {
+  it('lists Node and repo npm layouts', () => {
+    const candidates = npxCliCandidates(path.join(repoRoot, 'app'));
+    expect(candidates.some((candidate) => candidate.endsWith(path.join('npm', 'bin', 'npx-cli.js')))).toBe(true);
+    expect(candidates.some((candidate) => candidate.includes(path.join('app', 'node_modules', 'npm')))).toBe(true);
+  });
+
+  it('resolves npx-cli.js from the running Node install', () => {
+    expect(resolveNpxCli(repoRoot).endsWith('npx-cli.js')).toBe(true);
+  });
+});
+
+describe('pwshArgvFlags', () => {
+  it('drops -Path and keeps remaining flags such as -EnableExit', () => {
+    expect(pwshArgvFlags(['-Path', path.join(repoRoot, 'script.ps1'), '-EnableExit'])).toEqual(['-EnableExit']);
+  });
+});
+
+describe('curlDownloadArgs', () => {
+  it('bounds downloads with a timeout and retries', () => {
+    const args = curlDownloadArgs('https://example.invalid/file', path.join(repoRoot, 'file.bin'));
+    expect(args).toContain('--max-time');
+    expect(args).toContain('--retry');
   });
 });
 

@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const TARGET_KINDS = new Set(['node-cli', 'npx', 'external-bin', 'pwsh-module']);
 const CONTRACT_KINDS = new Set(['exit-code', 'fallow-unused', 'fallow-dupes']);
 const TOOLS_CACHE = path.join('tmp', 'lint-tools');
+const DOWNLOAD_MAX_SECONDS = 60;
 
 const repoRootFromModule = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -325,19 +326,43 @@ function resolvePowerShell() {
 }
 
 /** @param {string} repoRoot */
-function resolveNpxCli(repoRoot) {
+export function npxCliCandidates(repoRoot) {
   const nodeDir = path.dirname(process.execPath);
-  const candidates = [
+  return [
     path.join(nodeDir, 'node_modules', 'npm', 'bin', 'npx-cli.js'),
     path.join(nodeDir, '..', 'lib', 'node_modules', 'npm', 'bin', 'npx-cli.js'),
     path.join(repoRoot, 'node_modules', 'npm', 'bin', 'npx-cli.js'),
   ];
+}
+
+/** @param {string} repoRoot */
+export function resolveNpxCli(repoRoot) {
+  const candidates = npxCliCandidates(repoRoot);
   for (const candidate of candidates) {
     if (fs.existsSync(candidate)) {
       return candidate;
     }
   }
   throw new Error(`npx-cli.js not found (looked in ${candidates.join(', ')})`);
+}
+
+/** @param {readonly string[]} argv */
+export function pwshArgvFlags(argv) {
+  /** @type {string[]} */
+  const flags = [];
+  for (let i = 0; i < argv.length; i += 1) {
+    if (argv[i] === '-Path') {
+      i += 1;
+      continue;
+    }
+    flags.push(argv[i]);
+  }
+  return flags;
+}
+
+/** @param {string} url @param {string} dest */
+export function curlDownloadArgs(url, dest) {
+  return ['-fsSL', '--proto', '=https', '--max-time', String(DOWNLOAD_MAX_SECONDS), '--retry', '2', '-o', dest, url];
 }
 
 /** @param {string} repoRoot */
@@ -408,7 +433,7 @@ function actionlintAsset(tool) {
 /** @param {string} url @param {string} dest */
 async function downloadToFile(url, dest) {
   const curl = process.platform === 'win32' ? 'curl.exe' : 'curl';
-  const result = await spawnProcess(curl, ['-fsSL', '--proto', '=https', '-o', dest, url], path.dirname(dest));
+  const result = await spawnProcess(curl, curlDownloadArgs(url, dest), path.dirname(dest));
   if (result.exitCode !== 0) {
     throw new Error(result.stderr || result.stdout || `curl failed for ${url}`);
   }
@@ -431,9 +456,19 @@ async function ensureNodeCli(target, repoRoot) {
 
 /**
  * @param {ReturnType<typeof parseTarget>} target
+ * @param {string} repoRoot
  */
-async function ensureNpx(target) {
-  return { ready: true, targetId: target.id };
+async function ensureNpx(target, repoRoot) {
+  try {
+    resolveNpxCli(repoRoot);
+    return { ready: true, targetId: target.id };
+  } catch (error) {
+    return {
+      ready: false,
+      targetId: target.id,
+      reason: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 /**
@@ -518,7 +553,8 @@ async function ensurePwshModule(target, repoRoot) {
     '[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12',
     'Import-Module PowerShellGet -ErrorAction SilentlyContinue',
     'if (-not (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue)) { Register-PSRepository -Default -ErrorAction SilentlyContinue }',
-    `Install-Module -Name ${psQuote(name)} -RequiredVersion ${psQuote(version)} -Scope CurrentUser -Force -SkipPublisherCheck`,
+    'Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -ErrorAction SilentlyContinue',
+    `Install-Module -Name ${psQuote(name)} -RequiredVersion ${psQuote(version)} -Scope CurrentUser -Force`,
   ].join('; ');
   const install = await spawnProcess(
     powershell,
@@ -548,7 +584,7 @@ export async function ensureTool(target, repoRoot) {
     case 'node-cli':
       return ensureNodeCli(target, repoRoot);
     case 'npx':
-      return ensureNpx(target);
+      return ensureNpx(target, repoRoot);
     case 'external-bin':
       return ensureExternalBin(target, repoRoot);
     case 'pwsh-module':
@@ -635,6 +671,8 @@ async function spawnPwshModule(target, argv, repoRoot, options = {}) {
   const paths = options.paths ?? [];
   const hookPathIndex = argv.indexOf('-Path');
   const hookPath = hookPathIndex >= 0 ? argv[hookPathIndex + 1] : undefined;
+  const extraFlags = pwshArgvFlags(argv);
+  const extraFlagClause = extraFlags.length > 0 ? ` ${extraFlags.join(' ')}` : '';
   const cachedManifest = cachedPwshModuleManifest(target.module, repoRoot);
   const moduleImport = fs.existsSync(cachedManifest)
     ? `Import-Module -Name ${psQuote(cachedManifest)} -ErrorAction Stop`
@@ -654,9 +692,9 @@ async function spawnPwshModule(target, argv, repoRoot, options = {}) {
   }
   if (fs.existsSync(settings)) {
     script.push(`$settings = ${psQuote(settings)}`);
-    script.push(`$result = ${target.function} -Path $paths -Settings $settings`);
+    script.push(`$result = ${target.function} -Path $paths -Settings $settings${extraFlagClause}`);
   } else {
-    script.push(`$result = ${target.function} -Path $paths`);
+    script.push(`$result = ${target.function} -Path $paths${extraFlagClause}`);
   }
   script.push(
     `if ($result) { $result | ForEach-Object { '{0}:{1} {2} {3}' -f $_.ScriptName, $_.Line, $_.RuleName, $_.Message } | Write-Output }`
@@ -832,6 +870,21 @@ async function runTargetProcess(target, argv, repoRoot, mode) {
 }
 
 /**
+ * @param {ReturnType<typeof parseTarget>} target
+ * @param {readonly string[]} argv
+ * @param {string} repoRoot
+ * @param {'hook' | 'project'} mode
+ */
+async function runTargetProcessSafe(target, argv, repoRoot, mode) {
+  try {
+    return await runTargetProcess(target, argv, repoRoot, mode);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return { exitCode: 1, stdout: '', stderr: message };
+  }
+}
+
+/**
  * @param {{ mode: 'project' | 'hook' | 'provision'; path?: string; only?: readonly string[]; repoRoot: string }} request
  */
 export async function runCatalog(request) {
@@ -884,7 +937,7 @@ export async function runCatalog(request) {
         continue;
       }
       const argv = renderArgv(target.hook.argv, { file: filePath, repoRoot: request.repoRoot });
-      const exit = await runTargetProcess(target, argv, request.repoRoot, 'hook');
+      const exit = await runTargetProcessSafe(target, argv, request.repoRoot, 'hook');
       const outcome = applyContract({ kind: 'exit-code' }, exit, target.id);
       if (outcome.status === 'failed') {
         outcome.message = trimOutput(outcome.message ?? '', target.hook.maxOutputLines);
@@ -907,7 +960,7 @@ export async function runCatalog(request) {
     let failed = null;
     for (const step of target.batch.steps) {
       const argv = renderArgv(step.argv, { repoRoot: request.repoRoot });
-      const exit = await runTargetProcess(target, argv, request.repoRoot, 'project');
+      const exit = await runTargetProcessSafe(target, argv, request.repoRoot, 'project');
       const outcome = applyContract(step.contract, exit, target.id);
       if (outcome.status === 'failed') {
         failed = outcome;
