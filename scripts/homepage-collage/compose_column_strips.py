@@ -4,6 +4,11 @@ import sys
 import tempfile
 from pathlib import Path
 
+if sys.version_info < (3, 9):
+    raise SystemExit(
+        f"Python 3.9+ is required for npm run collage:compose (found {sys.version.split()[0]})"
+    )
+
 try:
     from PIL import Image
 except ImportError as error:

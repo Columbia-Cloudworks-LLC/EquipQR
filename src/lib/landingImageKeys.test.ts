@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { LANDING_IMAGE_KEYS } from './landingImage';
+import { LANDING_IMAGE_KEYS } from '@/lib/landingImage';
 
 const LANDING_DIR = join(process.cwd(), 'public', 'images', 'landing');
 
@@ -32,8 +32,21 @@ function listLandingFiles(dir: string, prefix = ''): string[] {
       continue;
     }
 
-    if (entry.isFile() || (entry.isSymbolicLink() && statSync(absolute).isFile())) {
+    if (entry.isFile()) {
       files.push(relative.replaceAll('\\', '/'));
+      continue;
+    }
+
+    if (!entry.isSymbolicLink()) {
+      continue;
+    }
+
+    try {
+      if (statSync(absolute).isFile()) {
+        files.push(relative.replaceAll('\\', '/'));
+      }
+    } catch {
+      // Dangling symlink — ignore so the catalog test reports extras, not a crash.
     }
   }
 
