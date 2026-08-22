@@ -30,40 +30,34 @@ test.describe('PR evidence auth UX single CTA @pr-evidence', () => {
     await getStarted.click();
     await expect(page).toHaveURL(/\/auth\/?$/);
     await expect(page.getByRole('tab')).toHaveCount(0);
-    await expect(page.getByRole('heading', { name: /sign in to equipqr/i })).toBeVisible({
-      timeout: 15_000,
-    });
+    const signinTitle = page.getByRole('heading', { name: /sign in to equipqr/i });
+    await expect(signinTitle).toBeVisible({ timeout: 15_000 });
     const createAccount = page.getByRole('button', { name: /create an account/i });
     await expect(createAccount).toBeVisible();
-    const authCard = page.locator('[class*="card"]').filter({
-      has: page.getByRole('heading', { name: /sign in to equipqr/i }),
-    });
     await evidencePause(page, 400);
-    await evidenceScreenshot({ page, label: '02-auth-signin-card', target: authCard });
+    await evidenceScreenshot({ page, label: '02-auth-signin-title', target: signinTitle });
+    await evidenceScreenshot({ page, label: '03-auth-signin-mode-switch', target: createAccount });
 
     await createAccount.click();
-    await expect(page.getByRole('heading', { name: /create your organization/i })).toBeVisible();
+    const signupTitle = page.getByRole('heading', { name: /create your organization/i });
+    await expect(signupTitle).toBeVisible();
     await expect(page.getByLabel(/full name/i)).toBeVisible();
-    await expect(page.getByRole('button', { name: /^sign in$/i })).toBeVisible();
-    const signupCard = page.locator('[class*="card"]').filter({
-      has: page.getByRole('heading', { name: /create your organization/i }),
-    });
+    const signInSwitch = page.getByRole('button', { name: /^sign in$/i });
+    await expect(signInSwitch).toBeVisible();
+    await signupTitle.scrollIntoViewIfNeeded();
     await evidencePause(page, 400);
-    await evidenceScreenshot({ page, label: '03-auth-signup-card', target: signupCard });
+    await evidenceScreenshot({ page, label: '04-auth-signup-title', target: signupTitle });
   });
 
   test('legacy tab=signup still opens the create-org form', async ({ page }) => {
     await page.goto('/auth?tab=signup', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: /create your organization/i })).toBeVisible({
-      timeout: 15_000,
-    });
+    const signupTitle = page.getByRole('heading', { name: /create your organization/i });
+    await expect(signupTitle).toBeVisible({ timeout: 15_000 });
     await expect(page.getByLabel(/full name/i)).toBeVisible();
     await expect(page.getByRole('tab')).toHaveCount(0);
-    const signupCard = page.locator('[class*="card"]').filter({
-      has: page.getByRole('heading', { name: /create your organization/i }),
-    });
+    await signupTitle.scrollIntoViewIfNeeded();
     await evidencePause(page, 400);
-    await evidenceScreenshot({ page, label: '04-auth-legacy-tab-signup', target: signupCard });
+    await evidenceScreenshot({ page, label: '05-auth-legacy-tab-signup', target: signupTitle });
   });
 
   test('mobile sheet has a single Get Started account CTA', async ({ page }) => {
@@ -76,6 +70,6 @@ test.describe('PR evidence auth UX single CTA @pr-evidence', () => {
     await expect(accountCta).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole('link', { name: /^Sign In$/i })).toHaveCount(0);
     await evidencePause(page, 400);
-    await evidenceScreenshot({ page, label: '05-mobile-sheet-single-cta', target: accountCta });
+    await evidenceScreenshot({ page, label: '06-mobile-sheet-single-cta', target: accountCta });
   });
 });
