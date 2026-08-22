@@ -1,10 +1,10 @@
 import { test, expect } from '../user/fixtures/equipqr-test';
-import { seedTeams } from '../user/shared/seed-data';
 import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
-import {
-  notificationDestinationFixtures,
-  seedNotificationDestinationFixtures,
-} from './shared/notification-destinations-seed';
+import { seedNotificationDestinationFixtures } from './shared/notification-destinations-seed';
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 test.describe('PR evidence notification destinations @pr-evidence', () => {
   test('taps open the matching team and work order', async ({
@@ -12,7 +12,7 @@ test.describe('PR evidence notification destinations @pr-evidence', () => {
     assertHealthyShell,
     page,
   }) => {
-    await seedNotificationDestinationFixtures();
+    const fixtures = await seedNotificationDestinationFixtures();
 
     await gotoDashboard('/');
     await assertHealthyShell();
@@ -23,10 +23,10 @@ test.describe('PR evidence notification destinations @pr-evidence', () => {
 
     const menu = page.getByRole('menu');
     await expect(menu).toBeVisible();
-    await expect(menu.getByText(notificationDestinationFixtures.teamMemberAdded.title)).toBeVisible({
+    await expect(menu.getByText(fixtures.teamMemberAdded.title)).toBeVisible({
       timeout: 30_000,
     });
-    await expect(menu.getByText(notificationDestinationFixtures.workOrderAssigned.title)).toBeVisible();
+    await expect(menu.getByText(fixtures.workOrderAssigned.title)).toBeVisible();
     await expect(menu.getByText('View →').first()).toBeVisible();
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '01-user-menu-destination-ctas', { target: menu });
@@ -36,25 +36,25 @@ test.describe('PR evidence notification destinations @pr-evidence', () => {
     await assertHealthyShell();
 
     const teamRow = page.getByRole('button', {
-      name: new RegExp(notificationDestinationFixtures.teamMemberAdded.title, 'i'),
+      name: new RegExp(escapeRegExp(fixtures.teamMemberAdded.title), 'i'),
     });
     const workOrderRow = page.getByRole('button', {
-      name: new RegExp(notificationDestinationFixtures.workOrderAssigned.title, 'i'),
+      name: new RegExp(escapeRegExp(fixtures.workOrderAssigned.title), 'i'),
     });
     await expect(teamRow).toBeVisible({ timeout: 30_000 });
     await expect(workOrderRow).toBeVisible();
-    await expect(page.getByText('Click to view team')).toBeVisible();
-    await expect(page.getByText('Click to view work order')).toBeVisible();
+    await expect(teamRow.getByText('Click to view team')).toBeVisible();
+    await expect(workOrderRow.getByText('Click to view work order')).toBeVisible();
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '02-notifications-page-destinations', { target: teamRow });
 
     await teamRow.click();
     await expect(page).toHaveURL(
-      new RegExp(`/dashboard/teams/${notificationDestinationFixtures.teamMemberAdded.teamId}`),
+      new RegExp(`/dashboard/teams/${fixtures.teamMemberAdded.teamId}(?:\\?|$)`),
       { timeout: 30_000 },
     );
     await assertHealthyShell();
-    await expect(page.getByText(seedTeams.apexHeavyEquipment.name)).toBeVisible({
+    await expect(page.getByRole('heading', { name: /heavy equipment team/i })).toBeVisible({
       timeout: 30_000,
     });
     await evidencePause(page, 600);
@@ -65,17 +65,15 @@ test.describe('PR evidence notification destinations @pr-evidence', () => {
     await expect(workOrderRow).toBeVisible({ timeout: 30_000 });
     await workOrderRow.click();
     await expect(page).toHaveURL(
-      new RegExp(
-        `/dashboard/work-orders/${notificationDestinationFixtures.workOrderAssigned.workOrderId}`,
-      ),
+      new RegExp(`/dashboard/work-orders/${fixtures.workOrderAssigned.workOrderId}(?:\\?|$)`),
       { timeout: 30_000 },
     );
     await assertHealthyShell();
     await expect(
       page.getByRole('heading', {
-        name: new RegExp(notificationDestinationFixtures.workOrderAssigned.workOrderTitle, 'i'),
+        name: new RegExp(escapeRegExp(fixtures.workOrderAssigned.workOrderTitle), 'i'),
       }).first(),
-    ).toBeVisible({ timeout: 60_000 });
+    ).toBeVisible({ timeout: 30_000 });
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '04-work-order-destination');
   });
