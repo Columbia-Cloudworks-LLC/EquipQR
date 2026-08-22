@@ -2,7 +2,7 @@ import { resolvePublicSupabaseOrigin } from '@/lib/publicSupabaseOrigin';
 
 const LANDING_PAGE_VIDEOS_BUCKET = '/storage/v1/object/public/landing-page-videos';
 
-function landingVideosOrigin(): string {
+function landingVideosBucketBaseUrl(): string {
   return `${resolvePublicSupabaseOrigin()}${LANDING_PAGE_VIDEOS_BUCKET}`;
 }
 
@@ -17,5 +17,5 @@ export function landingVideo(filename: string): string {
     throw new Error(`landingVideo(): pr-evidence/ is not a marketing demo (${filename})`);
   }
 
-  return `${landingVideosOrigin()}/${normalized}`;
+  return `${landingVideosBucketBaseUrl()}/${normalized}`;
 }
