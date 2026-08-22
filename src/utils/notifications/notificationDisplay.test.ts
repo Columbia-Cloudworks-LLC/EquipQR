@@ -1,68 +1,23 @@
-import { describe, expect, it, vi } from 'vitest';
-import type { Notification } from '@/features/work-orders/hooks/useWorkOrderData';
+import { describe, expect, it } from 'vitest';
 import {
+  getNotificationEmoji,
+  getNotificationTypeLabel,
   navigateForNotification,
   notificationHasNavigableAction,
+  resolveNotificationDestination,
 } from '@/utils/notifications/notificationDisplay';
 
-function buildNotification(overrides: Partial<Notification> = {}): Notification {
-  return {
-    id: 'notif-1',
-    organization_id: 'org-1',
-    user_id: 'user-1',
-    type: 'member_removed',
-    title: 'Removed from organization',
-    message: 'You were removed from the organization.',
-    data: {},
-    read: false,
-    is_global: false,
-    created_at: '2026-06-05T00:00:00.000Z',
-    updated_at: '2026-06-05T00:00:00.000Z',
-    ...overrides,
-  };
-}
-
-describe('notificationDisplay', () => {
-  it('treats member_removed notifications as navigable', () => {
-    const notification = buildNotification();
-
-    expect(notificationHasNavigableAction(notification)).toBe(true);
+describe('notificationDisplay destination re-exports', () => {
+  it('keeps destination helpers available from the display module', () => {
+    expect(typeof resolveNotificationDestination).toBe('function');
+    expect(typeof notificationHasNavigableAction).toBe('function');
+    expect(typeof navigateForNotification).toBe('function');
   });
+});
 
-  it('navigates member_removed notifications to the dashboard', async () => {
-    const notification = buildNotification();
-    const navigate = vi.fn();
-    const switchOrganization = vi.fn();
-
-    const handled = await navigateForNotification({
-      notification,
-      organizationId: 'org-1',
-      navigate,
-      switchOrganization,
-    });
-
-    expect(handled).toBe(true);
-    expect(navigate).toHaveBeenCalledWith('/dashboard');
-    expect(switchOrganization).not.toHaveBeenCalled();
-  });
-
-  it('does not navigate when a required org switch reports failure', async () => {
-    const notification = buildNotification({
-      type: 'member_added',
-      data: { organization_id: 'org-2' },
-    });
-    const navigate = vi.fn();
-    const switchOrganization = vi.fn().mockResolvedValue(false);
-
-    const handled = await navigateForNotification({
-      notification,
-      organizationId: 'org-1',
-      navigate,
-      switchOrganization,
-    });
-
-    expect(handled).toBe(false);
-    expect(switchOrganization).toHaveBeenCalledWith('org-2');
-    expect(navigate).not.toHaveBeenCalled();
+describe('notificationDisplay labels', () => {
+  it('labels export_ready instead of falling back to General', () => {
+    expect(getNotificationTypeLabel('export_ready')).toBe('Export Ready');
+    expect(getNotificationEmoji('export_ready')).toBe('📊');
   });
 });
