@@ -187,11 +187,13 @@ const Auth = () => {
     });
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = async (organizationName?: string) => {
     setIsLoading(true);
     setError(null);
 
-    const { error } = await signInWithGoogle();
+    const { error } = await signInWithGoogle(
+      organizationName ? { organizationName } : undefined,
+    );
     
     if (error) {
       handleError(error.message);
@@ -312,6 +314,9 @@ const Auth = () => {
                   }}
                   onSuccess={handleSuccess}
                   onError={handleError}
+                  onGoogleSignUp={(organizationName) => {
+                    void handleGoogleSignIn(organizationName);
+                  }}
                   isLoading={isLoading}
                   setIsLoading={setIsLoading}
                   prefillEmail={prefillEmail}
@@ -320,14 +325,17 @@ const Auth = () => {
                 />
               )}
 
-              <div className="mt-4">
-                <Separator className="my-4" />
-                <AuthGoogleSignInButton
-                  onClick={handleGoogleSignIn}
-                  disabled={isLoading}
-                  label={mode === 'signup' ? 'Sign up with Google' : undefined}
-                />
-              </div>
+              {mode === 'signin' ? (
+                <div className="mt-4">
+                  <Separator className="my-4" />
+                  <AuthGoogleSignInButton
+                    onClick={() => {
+                      void handleGoogleSignIn();
+                    }}
+                    disabled={isLoading}
+                  />
+                </div>
+              ) : null}
 
               <p className="mt-6 text-center text-sm text-muted-foreground">
                 {mode === 'signin' ? (

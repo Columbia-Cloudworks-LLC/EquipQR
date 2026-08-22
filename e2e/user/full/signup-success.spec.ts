@@ -11,6 +11,7 @@ test.describe('signup success UX @full', () => {
 
     await page.goto('/auth');
     await page.getByRole('button', { name: /create an account/i }).click();
+    await page.getByRole('button', { name: /sign up with email/i }).click();
 
     await page.getByLabel(/^full name|^name/i).fill('E2E Signup User');
     await page.getByLabel(/^email/i).fill(uniqueEmail);

@@ -17,6 +17,16 @@ vi.mock('@/integrations/supabase/client', () => ({
       signOut: vi.fn(),
     },
     rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+    from: vi.fn(() => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: () => Promise.resolve({ data: null, error: null }),
+        }),
+      }),
+      update: () => ({
+        eq: () => Promise.resolve({ error: null }),
+      }),
+    })),
   },
 }));
 
@@ -346,6 +356,20 @@ describe('AuthContext', () => {
       },
     });
     expect(signInResult).toEqual({ error: null });
+  });
+
+  it('stores a pending organization name before Google OAuth signup', async () => {
+    const setItem = vi.spyOn(sessionStorage, 'setItem');
+
+    const { result } = renderAuthHook();
+    await flushAuthTimers();
+
+    await act(async () => {
+      await result.current!.signInWithGoogle({ organizationName: '  Fleet Co  ' });
+    });
+
+    expect(setItem).toHaveBeenCalledWith('pendingSignupOrganizationName', 'Fleet Co');
+    setItem.mockRestore();
   });
 
   it('should pass pendingRedirect as next on Google OAuth redirectTo', async () => {

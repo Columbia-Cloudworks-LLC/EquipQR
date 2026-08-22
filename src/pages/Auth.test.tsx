@@ -59,11 +59,14 @@ vi.mock('@/components/auth/SignUpForm', () => ({
   default: ({
     onSuccess,
     onError,
+    onGoogleSignUp,
   }: {
     onSuccess: (msg: string, email?: string) => void;
     onError: (msg: string) => void;
+    onGoogleSignUp: (organizationName: string) => void;
   }) => (
     <div data-testid="signup-form">
+      <button onClick={() => onGoogleSignUp('Fleet Co')}>Sign up with Google</button>
       <button onClick={() => onSuccess('Account created', 'viralarchitect@yahoo.com')}>Submit SignUp</button>
       <button onClick={() => onSuccess('Legal acceptance recorded successfully.')}>Retry Acceptance Success</button>
       <button onClick={() => onError('Signup failed')}>Trigger SignUp Error</button>
@@ -385,6 +388,28 @@ describe('Auth Page', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Google auth failed')).toBeInTheDocument();
+      });
+    });
+
+    it('passes the signup organization name into Google OAuth', async () => {
+      const mockSignInWithGoogle = vi.fn(() => Promise.resolve({ error: null }));
+      vi.mocked(useAuthModule.useAuth).mockReturnValue({
+        user: null,
+        signInWithGoogle: mockSignInWithGoogle,
+        isLoading: false,
+        session: null,
+        signUp: vi.fn(),
+        signIn: vi.fn(),
+        signOut: vi.fn()
+      });
+
+      mockLocation.search = '?mode=signup';
+      render(<Auth />);
+
+      fireEvent.click(screen.getByRole('button', { name: /sign up with google/i }));
+
+      await waitFor(() => {
+        expect(mockSignInWithGoogle).toHaveBeenCalledWith({ organizationName: 'Fleet Co' });
       });
     });
   });
