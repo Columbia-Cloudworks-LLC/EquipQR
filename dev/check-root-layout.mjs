@@ -19,10 +19,10 @@ function isUnder(rel, prefix) {
 const layout = JSON.parse(fs.readFileSync(layoutPath, 'utf8'));
 const allowedFiles = new Set(layout.rootAllowedFiles);
 const allowedDirs = new Set(layout.rootAllowedDirs);
-const ignored = new Set(layout.rootIgnoredNames);
+const ignored = new Set(layout.rootIgnoredNames.map((name) => name.toLowerCase()));
 
 for (const name of fs.readdirSync(repoRoot)) {
-  if (ignored.has(name)) {
+  if (ignored.has(name.toLowerCase())) {
     continue;
   }
   const abs = path.join(repoRoot, name);
