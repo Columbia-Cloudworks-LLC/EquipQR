@@ -24,6 +24,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 - **Homepage rental card icon** — The Equipment rental agencies card uses a construction-yellow bulldozer so the glyph reads on the dark card.
 - **Marketing and public docs voice** — Landing, Repair Shops, feature pages, README, and public docs now match the homepage hero.
 - **Changelog content policy** — New notes record customer-visible outcomes only. Sections through 3.28.0 stay as written.
+- **In-repo marketing photos** — Homepage and feature marketing photos now ship with the app so they still load after a local reset. The pricing collage uses a new equipment photo set.
 
 ### Fixed
 

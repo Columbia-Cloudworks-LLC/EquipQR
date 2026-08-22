@@ -1,0 +1,24 @@
+{
+  "columns": [
+    [
+      { "source": "Toyota_forklift.jpg", "grade": "worn", "crop": "center-cover" },
+      { "source": "construction-site-forklift.jpg", "grade": "clean", "crop": "center-cover" },
+      { "source": "IMG_8366-scaled.jpeg", "grade": "worn", "crop": "center-cover" }
+    ],
+    [
+      { "source": "Narva_mine_bulldozer.jpg", "grade": "clean", "crop": "center-cover" },
+      { "source": "16172995678_a48b6a2ae1_b.jpg", "grade": "worn", "crop": "center-cover" },
+      { "source": "heavy-construction-equipment-1417014388C8F.jpg", "grade": "clean", "crop": "center-cover" }
+    ],
+    [
+      { "source": "Hitchhiker_3660R_forklift.jpg", "grade": "clean", "crop": "center-cover" },
+      { "source": "cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDIyLTExL2ZsNTI1MDcyODk0MjgtaW1hZ2UuanBn.jpg", "grade": "worn", "crop": "center-cover" },
+      { "source": "maintenance1.jpg", "grade": "worn", "crop": "center-cover" }
+    ],
+    [
+      { "source": "a-fleet-of-915a2-line-haul-tractor-trucks-await-their-7fcc76-1024.jpg", "grade": "clean", "crop": "center-cover" },
+      { "source": "sgt-andre-burnett-from-the-california-army-national-0990fb-1024.jpg", "grade": "clean", "crop": "center-cover" },
+      { "source": "Skid-steer_bulldozer.webp", "grade": "worn", "crop": "center-cover" }
+    ]
+  ]
+}

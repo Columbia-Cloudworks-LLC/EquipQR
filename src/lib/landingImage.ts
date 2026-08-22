@@ -1,37 +1,53 @@
-const LANDING_PAGE_IMAGES_BUCKET_PATH = '/storage/v1/object/public/landing-page-images';
+export type SitePath = `/${string}`;
 
-/**
- * Returns the full public URL for an image in the `landing-page-images`
- * Supabase storage bucket. Uses the build-time `VITE_SUPABASE_URL` so the
- * URL automatically tracks whichever Supabase URL the build is configured
- * with — no hardcoded hostname that would break if the Supabase custom
- * domain is ever changed, removed, or unavailable.
- *
- * Fails fast with a descriptive error when `VITE_SUPABASE_URL` is missing
- * or empty (matching the pattern in `src/integrations/supabase/client.ts`),
- * and normalizes trailing/leading slashes on both the base URL and the
- * filename so a misconfigured base URL like `https://host/` does not yield
- * a broken `https://host//storage/...` URL.
- *
- * Related: GitHub issue #677 captures the original incident that prompted
- * this helper (silent Cloudflare custom-hostname cert renewal failure +
- * ISP DNS interception of *.equipqr.app subdomains).
- *
- * @example
- * landingImage('work-orders-list.png');
- * // => '<VITE_SUPABASE_URL>/storage/v1/object/public/landing-page-images/work-orders-list.png'
- */
-export function landingImage(filename: string): string {
-  const rawSupabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+export const LANDING_IMAGE_KEYS = [
+  'homepage-collage/col-0.webp',
+  'homepage-collage/col-1.webp',
+  'homepage-collage/col-2.webp',
+  'homepage-collage/col-3.webp',
+  'teams-list-2026-04.png',
+  'team-detail-2026-04.png',
+  'fleet-map-2026-04.png',
+  'pm-templates-list-2026-04.png',
+  'pm-templates-detail-2026-04.png',
+  'quickbooks-settings-2026-04.png',
+  'work-order-detail-2026-04.png',
+  'work-orders-list-2026-04.png',
+  'equipment-qr-code-modal-2026-04.png',
+  'equipment-list-2026-04.png',
+  'google-workspace-settings-2026-04.png',
+  'mobile-work-orders-2026-04.png',
+  'mobile-work-order-detail-2026-04.png',
+  'mobile-pm-checklist-2026-04.png',
+  'inventory-list-2026-04.png',
+  'inventory-item-detail-2026-04.png',
+  'part-lookup-2026-04.png',
+] as const;
 
-  if (!rawSupabaseUrl || typeof rawSupabaseUrl !== 'string' || rawSupabaseUrl.trim() === '') {
-    throw new Error(
-      'landingImage(): missing required env VITE_SUPABASE_URL. Set it in your .env file or build environment.'
-    );
+type LandingImageKey = (typeof LANDING_IMAGE_KEYS)[number];
+
+const LANDING_IMAGE_KEY_SET: ReadonlySet<string> = new Set(LANDING_IMAGE_KEYS);
+
+function normalizeLandingImageFilename(filename: string): string {
+  return filename.replaceAll('\\', '/').replace(/^\/+/, '');
+}
+
+// Same-origin git catalog so a local Force reset does not empty marketing stills.
+export function landingImage(filename: string): SitePath {
+  const key = normalizeLandingImageFilename(filename);
+
+  if (key.includes('..')) {
+    throw new Error(`landingImage(): parent-directory segments are not allowed (${filename})`);
   }
 
-  const supabaseUrl = rawSupabaseUrl.trim().replace(/\/+$/, '');
-  const normalizedFilename = filename.replace(/^\/+/, '');
+  if (key === 'pr-evidence' || key.startsWith('pr-evidence/')) {
+    throw new Error(`landingImage(): pr-evidence/ is not a marketing still (${filename})`);
+  }
 
-  return `${supabaseUrl}${LANDING_PAGE_IMAGES_BUCKET_PATH}/${normalizedFilename}`;
+  if (!LANDING_IMAGE_KEY_SET.has(key)) {
+    throw new Error(`landingImage(): unknown landing image key ${key}`);
+  }
+
+  const catalogKey = key as LandingImageKey;
+  return `/images/landing/${catalogKey}`;
 }
