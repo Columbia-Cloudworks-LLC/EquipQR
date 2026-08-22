@@ -182,8 +182,9 @@ describe('SimpleOrganizationProvider syncWithSession', () => {
       expect(result.current.organizationId).toBe('session-org');
     });
 
-    await result.current.switchOrganization('missing-org');
+    const switched = await result.current.switchOrganization('missing-org');
 
+    expect(switched).toBe(false);
     await waitFor(() => {
       expect(result.current.organizationId).toBe('session-org');
     });

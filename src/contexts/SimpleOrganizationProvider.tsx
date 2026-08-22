@@ -233,14 +233,15 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     }
   }, []);
 
-  const switchOrganization = useCallback(async (organizationId: string): Promise<void> => {
+  const switchOrganization = useCallback(async (organizationId: string): Promise<boolean> => {
     const previousOrganizationId = currentOrganizationId;
     setCurrentOrganization(organizationId);
     if (!sessionContext?.switchOrganization) {
-      return;
+      return true;
     }
     try {
       await sessionContext.switchOrganization(organizationId);
+      return true;
     } catch (error) {
       logger.warn('Failed to switch session organization; reverting local org', {
         organizationId,
@@ -249,14 +250,15 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
       });
       if (previousOrganizationId) {
         setCurrentOrganization(previousOrganizationId);
-        return;
+      } else {
+        setCurrentOrganizationId(null);
+        try {
+          localStorage.removeItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY);
+        } catch (storageError) {
+          logger.warn('Failed to clear current organization from storage', storageError);
+        }
       }
-      setCurrentOrganizationId(null);
-      try {
-        localStorage.removeItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY);
-      } catch (storageError) {
-        logger.warn('Failed to clear current organization from storage', storageError);
-      }
+      return false;
     }
   }, [currentOrganizationId, setCurrentOrganization, sessionContext]);
 

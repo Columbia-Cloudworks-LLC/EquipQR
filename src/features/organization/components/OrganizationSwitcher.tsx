@@ -39,9 +39,11 @@ const OrganizationSwitcher: React.FC<OrganizationSwitcherProps> = ({
   const navigate = useNavigate();
   const [logoError, setLogoError] = useState(false);
 
-  const handleOrganizationSwitch = (organizationId: string) => {
-    switchOrganization(organizationId);
-    // Navigate to dashboard after switching organizations
+  const handleOrganizationSwitch = async (organizationId: string) => {
+    const switched = await switchOrganization(organizationId);
+    if (switched === false) {
+      return;
+    }
     navigate('/dashboard');
   };
 

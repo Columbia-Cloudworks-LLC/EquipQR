@@ -45,4 +45,24 @@ describe('notificationDisplay', () => {
     expect(navigate).toHaveBeenCalledWith('/dashboard');
     expect(switchOrganization).not.toHaveBeenCalled();
   });
+
+  it('does not navigate when a required org switch reports failure', async () => {
+    const notification = buildNotification({
+      type: 'member_added',
+      data: { organization_id: 'org-2' },
+    });
+    const navigate = vi.fn();
+    const switchOrganization = vi.fn().mockResolvedValue(false);
+
+    const handled = await navigateForNotification({
+      notification,
+      organizationId: 'org-1',
+      navigate,
+      switchOrganization,
+    });
+
+    expect(handled).toBe(false);
+    expect(switchOrganization).toHaveBeenCalledWith('org-2');
+    expect(navigate).not.toHaveBeenCalled();
+  });
 });

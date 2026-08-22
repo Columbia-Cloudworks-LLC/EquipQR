@@ -68,9 +68,12 @@ const MobileWorkspaceSwitcher: React.FC<MobileWorkspaceSwitcherProps> = ({
     );
   }
 
-  const handleOrganizationSwitch = (organizationId: string) => {
+  const handleOrganizationSwitch = async (organizationId: string) => {
     if (organizationId === currentOrganization.id) return;
-    switchOrganization(organizationId);
+    const switched = await switchOrganization(organizationId);
+    if (switched === false) {
+      return;
+    }
     setOpen(false);
     navigate('/dashboard');
   };
