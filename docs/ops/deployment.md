@@ -652,63 +652,40 @@ If you need to revert to GitHub-hosted runners:
 
 ## Versioning System
 
-EquipQR™ uses an automated semantic versioning system where `package.json` is the single source of truth for the application version.
+`package.json` is the source of truth for the shipped app version. Feature PRs into `preview` do not bump it. `/release` chooses one SemVer, empties `[Unreleased]`, and pushes the bump onto `preview` before the promote PR to `main`. Changelog bullets follow [`.cursor/rules/changelog.mdc`](../../.cursor/rules/changelog.mdc). See [`git-and-deploy.md`](./git-and-deploy.md).
 
 ### How It Works
 
 #### Version Format
 - **Format**: `MAJOR.MINOR.PATCH` (e.g., `1.12.3`)
 - **Tag Format**: `vMAJOR.MINOR.PATCH` (e.g., `v1.12.3`)
-- **Source of Truth**: the `version` field in `package.json`
+- **Source of Truth**: the `version` field in `package.json` after a promote
 
 ### Automatic Version Tagging
 
-The versioning system is fully automated:
+The tagging system is automated after promote:
 
-1. **Update version in `package.json`**:
-   - Edit `package.json` and change the `version` field (e.g., `"1.2.3"`)
-   - Commit and push to the `main` branch
-
-2. **Auto-tagging workflow**:
-   - The `version-tag.yml` workflow automatically triggers on push to `main` when `package.json` changes
-   - Reads version from `package.json`
-   - Checks if tag `v{version}` already exists
-   - If tag doesn't exist, creates annotated git tag `v{version}` and pushes it
-   - If tag exists, skips creation (no-op)
-
+1. **`/release`** bumps `package.json` on the `preview` tip and opens `preview` → `main`.
+2. **`version-tag.yml`** runs on push to `main` when `package.json` changes. It reads the version, creates annotated tag `v{version}` if missing, and skips if the tag already exists.
 3. **Build integration**:
-   - CI workflows read version directly from `package.json`
-   - Exposes as `VITE_APP_VERSION` environment variable during build
-   - App displays version in footer
+   - CI workflows read the version from `package.json`
+   - Exposes as `VITE_APP_VERSION` during build
+   - The app displays the version in the footer
 
 ### Semantic Versioning Guidelines
 
-- **Major** (X.0.0): Breaking changes, major new features
-- **Minor** (X.Y.0): New features, backward-compatible changes
-- **Patch** (X.Y.Z): Bug fixes, minor improvements
+- **Major** (X.0.0): Only when the user requests a breaking customer-visible change
+- **Minor** (X.Y.0): New customer-visible capability or meaningful workflow expansion
+- **Patch** (X.Y.Z): Fixes, security without product-shape change, batched dependencies, small UX corrections
+- Do not cut a patch for a single Dependabot bump
 
 ### Workflow
 
 #### To Release a New Version
 
-1. Update `package.json` version field:
-   ```json
-   {
-     "version": "1.2.3"
-   }
-   ```
+Run **`/release`** (or the promote path in [`git-and-deploy.md`](./git-and-deploy.md)). Do not bump `package.json` on a feature PR into `preview`.
 
-2. Commit and push to `main`:
-   ```bash
-   git add package.json
-   git commit -m "chore: bump version to 1.2.3"
-   git push origin main
-   ```
-
-3. The auto-tagging workflow will:
-   - Detect the version change
-   - Create tag `v1.2.3` if it doesn't exist
-   - Push the tag to the repository
+After the promote lands on `main`, `version-tag.yml` creates `vX.Y.Z` if that tag does not already exist.
 
 ### Local Development
 

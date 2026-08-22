@@ -27,7 +27,7 @@ Feature work merges to **`preview`** during normal development and accumulates C
 - **Never run the full Vitest suite.** Run only updated or added test files from the release diff (since last tag).
 - **PR visual evidence** when the release diff includes user-visible UI changes since the last tag (per `.cursor/rules/pr-visual-evidence.mdc`).
 - **No handoff until merge-ready** per `.cursor/rules/pr-merge-ready-workflow.mdc`.
-- **PR summary is customer-facing.**
+- **PR summary is customer-facing.** Short user or operator outcomes per `.cursor/rules/changelog.mdc`. No file lists, no implementation inventory, no migration names, no test counts.
 - **Feature work does not bump versions** — curator bumps only in this promote path.
 
 ## Workflow
@@ -77,7 +77,7 @@ git describe --tags --abbrev=0 origin/main
 
 Launch **changelog-version-curator** subagent with:
 
-> Curate the next EquipQR release from `origin/preview` for a **promote to main** (release/main mode). Update `CHANGELOG.md`, `package.json`, `package-lock.json`, and the README version badge. Determine patch vs minor from commits on `origin/preview` since the last tag on `origin/main`. Empty `[Unreleased]` into a versioned section. Do not commit or push — the parent `/release` handles git.
+> Curate the next EquipQR release from `origin/preview` for a **promote to main** (release/main mode). Follow `.cursor/rules/changelog.mdc`. Rewrite `[Unreleased]` into short customer-facing bullets. Do not move verbose prose as-is. No file lists, no implementation inventory, no migration names, no test counts. Batch routine dependency notes into one Changed bullet or drop them. Update `CHANGELOG.md`, `package.json`, `package-lock.json`, and the README version badge. Determine patch vs minor from user-visible outcomes on `origin/preview` since the last tag on `origin/main`. Empty `[Unreleased]` into a versioned section. Do not commit or push — the parent `/release` handles git.
 
 Validate version consistency before continuing.
 
@@ -127,7 +127,7 @@ gh pr create --base main --head preview --title "Release vX.Y.Z" --body-file "$e
 # or gh pr edit when updating an existing release PR
 ```
 
-Customer-facing summary: user-visible outcomes since last release — not file lists.
+Customer-facing summary: short user or operator outcomes since last release per `.cursor/rules/changelog.mdc`. No file lists, no implementation inventory, no migration names, no test counts.
 
 ---
 
