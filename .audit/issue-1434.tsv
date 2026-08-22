@@ -19,3 +19,4 @@ ts	phase	decision	why	evidence	result
 2026-08-22T22:55:10Z	qodo	add Netlify redirects for old image URLs	Vercel already had them; Netlify catch-all would serve HTML	netlify.toml public/_redirects	kept
 2026-08-22T22:55:20Z	qodo	ignore OS junk in root-layout	.DS_Store and Thumbs.db would fail a local verify:root-layout	etc/root-layout.json	kept
 2026-08-22T22:55:30Z	qodo	leave datadog-prod item name unchanged	the vault item predates this PR; renaming is a secrets-rotation change	dev/mcp.template.json comment only	dismissed
+2026-08-22T23:34:00Z	qodo	pin redirect destinations and 301 status	source-only assertions let a wrong destination pass CI	dev/legacy-public-image-redirects.test.ts	kept
