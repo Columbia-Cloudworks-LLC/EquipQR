@@ -106,11 +106,11 @@ describe('Auth Page', () => {
   });
 
   describe('Core Rendering', () => {
-    it('renders welcome title and description', () => {
+    it('renders sign-in title and description by default', () => {
       render(<Auth />);
 
-      expect(screen.getByText('Welcome to EquipQR™')).toBeInTheDocument();
-      expect(screen.getByText('Sign in to your account or create a new one to get started')).toBeInTheDocument();
+      expect(screen.getByText('Sign in to EquipQR')).toBeInTheDocument();
+      expect(screen.getByText('Sign in to your account to get started')).toBeInTheDocument();
     });
 
     it('renders logo component', () => {
@@ -119,11 +119,10 @@ describe('Auth Page', () => {
       expect(screen.getByTestId('logo')).toBeInTheDocument();
     });
 
-    it('renders sign in and sign up tabs', () => {
+    it('does not render tabs', () => {
       render(<Auth />);
 
-      expect(screen.getByRole('tab', { name: /sign in/i })).toBeInTheDocument();
-      expect(screen.getByRole('tab', { name: /sign up/i })).toBeInTheDocument();
+      expect(screen.queryByRole('tab')).not.toBeInTheDocument();
     });
 
     it('renders legal footer', () => {
@@ -139,22 +138,48 @@ describe('Auth Page', () => {
     });
   });
 
-  describe('Tab Navigation', () => {
+  describe('Mode switcher', () => {
     it('shows signin form by default', () => {
       render(<Auth />);
 
       expect(screen.getByTestId('signin-form')).toBeInTheDocument();
+      expect(screen.queryByTestId('signup-form')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /create an account/i })).toBeInTheDocument();
     });
 
-    it('renders both signin and signup tabs', () => {
+    it('switches to signup from the secondary action', () => {
       render(<Auth />);
 
-      // Both tabs should be present
-      const signinTab = screen.getByRole('tab', { name: /sign in/i });
-      const signupTab = screen.getByRole('tab', { name: /sign up/i });
-      
-      expect(signinTab).toBeInTheDocument();
-      expect(signupTab).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /create an account/i }));
+
+      expect(screen.getByTestId('signup-form')).toBeInTheDocument();
+      expect(screen.queryByTestId('signin-form')).not.toBeInTheDocument();
+      expect(screen.getByText('Create your organization')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /sign up with google/i })).toBeInTheDocument();
+    });
+
+    it('opens signup from legacy tab query param', () => {
+      mockLocation.search = '?tab=signup';
+      render(<Auth />);
+
+      expect(screen.getByTestId('signup-form')).toBeInTheDocument();
+      expect(screen.getByText('Create your organization')).toBeInTheDocument();
+    });
+
+    it('opens signup from mode query param', () => {
+      mockLocation.search = '?mode=signup';
+      render(<Auth />);
+
+      expect(screen.getByTestId('signup-form')).toBeInTheDocument();
+    });
+
+    it('forces signup when invitation params are present', () => {
+      mockLocation.search = '?tab=signin&invitedOrgId=org-1&invitedOrgName=Acme';
+      render(<Auth />);
+
+      expect(screen.getByTestId('signup-form')).toBeInTheDocument();
+      expect(screen.getByText('Create your organization')).toBeInTheDocument();
     });
   });
 
@@ -191,6 +216,20 @@ describe('Auth Page', () => {
         description: 'Account created',
         duration: 10000,
       });
+    });
+
+    it('returns to sign-in mode after email verification', async () => {
+      mockLocation.search = '?tab=signup';
+      render(<Auth />);
+
+      fireEvent.click(screen.getByText('Submit SignUp'));
+      await waitFor(() => {
+        expect(screen.getByTestId('signup-success-page')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /i verified my email - sign in/i }));
+
+      expect(mockNavigate).toHaveBeenCalledWith('/auth?mode=signin', { replace: true });
     });
 
     it('shows a generic success toast for non-signup success without email confirmation page', async () => {

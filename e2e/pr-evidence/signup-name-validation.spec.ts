@@ -12,10 +12,6 @@ test.describe('PR evidence signup name validation @pr-evidence', () => {
   test('signup form requires a real full name', async ({ page }) => {
     await page.goto('/auth?tab=signup', { waitUntil: 'domcontentloaded' });
 
-    const signupTab = page.getByRole('tab', { name: /sign up/i });
-    await expect(signupTab).toBeVisible({ timeout: 30_000 });
-    await signupTab.click();
-
     const nameInput = page.getByLabel(/full name/i);
     await expect(nameInput).toBeVisible({ timeout: 30_000 });
 
