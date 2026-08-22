@@ -13,3 +13,4 @@ ts	phase	decision	why	evidence	result
 2026-08-22T22:20:00Z	evidence	retarget spec away from landing PNG that does not exist	landing header uses inline Logo SVG; EquipQR PNG is TopBar mobile only	e2e/pr-evidence/public-image-layout.spec.ts	kept
 2026-08-22T22:26:00Z	evidence	captured 4 PNGs plus H.264 demo on localhost:8080	prove moved /images/brand and /images/equipment paths render	tmp/pr-evidence/public-image-layout	VERIFIED
 2026-08-22T22:27:00Z	evidence	approved visual review	header brand, 3-A logos, footer partner icon, mobile TopBar PNG fully framed	visual-review.json	VERIFIED
+2026-08-22T22:32:00Z	dev	point stop-dev-and-e2e at dev/dev-stop.ps1	repoRoot is the parent of dev/; the first npm-ci-safe run looked for root dev-stop.ps1	dev/stop-dev-and-e2e.ps1	kept

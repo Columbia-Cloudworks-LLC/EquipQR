@@ -50,7 +50,7 @@ Stop-EquipQrDevToolingProcesses -RepoRoot $repoRoot
 
 Write-Host ''
 Write-Host ' [Dev stack] Running dev-stop.ps1...'
-$devStopArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $repoRoot 'dev-stop.ps1'))
+$devStopArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $repoRoot 'dev\dev-stop.ps1'))
 if ($Force) {
     $devStopArgs += '-Force'
 }
