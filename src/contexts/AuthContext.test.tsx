@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { AuthProvider, AuthContext } from './AuthContext';
 import type { User, Session, AuthError } from '@supabase/supabase-js';
+import { PENDING_SIGNUP_ORGANIZATION_STORAGE_KEY } from '@/services/pendingSignupOrganization';
 
 // Mock Supabase
 vi.mock('@/integrations/supabase/client', () => ({
@@ -368,10 +369,15 @@ describe('AuthContext', () => {
       await result.current!.signInWithGoogle({ organizationName: '  Fleet Co  ' });
     });
 
+    expect(setItem).toHaveBeenCalledWith(
+      PENDING_SIGNUP_ORGANIZATION_STORAGE_KEY,
+      expect.any(String),
+    );
     const stored = setItem.mock.calls.find(
-      ([key]) => key === 'pendingSignupOrganizationName',
+      ([key]) => key === PENDING_SIGNUP_ORGANIZATION_STORAGE_KEY,
     )?.[1];
-    expect(JSON.parse(String(stored))).toEqual({
+    expect(typeof stored).toBe('string');
+    expect(JSON.parse(stored as string)).toEqual({
       name: 'Fleet Co',
       startedAt: expect.any(Number),
     });

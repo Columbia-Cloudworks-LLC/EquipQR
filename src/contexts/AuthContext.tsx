@@ -15,7 +15,7 @@ import {
   applyPendingSignupOrganizationName,
   clearPendingSignupOrganizationName,
   setPendingSignupOrganizationName,
-} from '@/utils/pendingSignupOrganization';
+} from '@/services/pendingSignupOrganization';
 
 /**
  * Throttle duration for applying pending admin grants.

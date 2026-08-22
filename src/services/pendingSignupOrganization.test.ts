@@ -61,6 +61,17 @@ describe('pendingSignupOrganization', () => {
     expect(getPendingSignupOrganizationName()).toBeNull();
   });
 
+  it('migrates a legacy plain-string pending name into a dated record', () => {
+    sessionStorage.setItem(PENDING_SIGNUP_ORGANIZATION_STORAGE_KEY, 'Fleet Co');
+    expect(getPendingSignupOrganizationName()).toBe('Fleet Co');
+    const stored = sessionStorage.getItem(PENDING_SIGNUP_ORGANIZATION_STORAGE_KEY);
+    expect(stored).toEqual(expect.any(String));
+    expect(JSON.parse(stored ?? '')).toEqual({
+      name: 'Fleet Co',
+      startedAt: expect.any(Number),
+    });
+  });
+
   it('expires a pending name after the signup window', () => {
     setPendingSignupOrganizationName('Fleet Co');
     const stored = JSON.parse(

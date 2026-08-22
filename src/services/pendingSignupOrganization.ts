@@ -51,11 +51,13 @@ function readPendingRecord(now = Date.now()): PendingSignupOrganizationRecord | 
         }
         return { name, startedAt: parsed.startedAt };
       }
+      sessionStorage.removeItem(PENDING_SIGNUP_ORGANIZATION_STORAGE_KEY);
+      return null;
     } catch {
-      // Earlier commits stored a plain name string.
+      const migrated: PendingSignupOrganizationRecord = { name: raw, startedAt: now };
+      sessionStorage.setItem(PENDING_SIGNUP_ORGANIZATION_STORAGE_KEY, JSON.stringify(migrated));
+      return migrated;
     }
-
-    return { name: raw, startedAt: now };
   } catch {
     return null;
   }
