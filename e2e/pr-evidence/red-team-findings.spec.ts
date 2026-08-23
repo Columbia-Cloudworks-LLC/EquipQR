@@ -54,7 +54,7 @@ test.describe('Red-team findings user-visible fixes @pr-evidence', () => {
     await expect(page.getByText(/pre-rental inspection/i)).toHaveCount(0);
 
     await evidencePause(page, 800);
-    await evidenceScreenshot(page, '02-metro-viewer-dashboard-team-scoped');
+    await evidenceScreenshot(page, '02-metro-viewer-dashboard-team-scoped', page.getByText(/total equipment/i).first());
 
     await gotoDashboardRoute(page, `/work-orders/${seedWorkOrders.assigned.id}`);
     await expect(page.getByRole('heading', { name: /pre-rental inspection/i })).toHaveCount(0);
