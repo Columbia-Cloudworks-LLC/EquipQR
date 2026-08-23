@@ -1,8 +1,9 @@
 import { useState, useMemo, useCallback, useRef } from 'react';
 import { useEquipmentList, useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
 import type { EquipmentListFilters } from '@/features/equipment/services/EquipmentService';
-import { usePermissions } from '@/hooks/usePermissions';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { isOrgAdminRole } from '@/features/teams/utils/teamAccessScope';
 import type { EquipmentViewMode } from '@/features/equipment/components/EquipmentCard';
 import {
   DEFAULT_EQUIPMENT_CARD_PAGE_SIZE,
@@ -95,9 +96,9 @@ export const useEquipmentFiltering = (
   // Derive RBAC inputs for the server-side query so team-scoped users only
   // see equipment on their teams (mirrors the app-layer gate in the non-
   // paginated path). isOrgAdmin = true skips the team filter entirely.
-  const { canManageOrganization } = usePermissions();
+  const { currentOrganization } = useOrganization();
   const { getUserTeamIds, isLoading: teamMembershipsLoading } = useTeamMembership();
-  const isOrgAdmin = canManageOrganization();
+  const isOrgAdmin = isOrgAdminRole(currentOrganization?.userRole);
   const rbacUserTeamIds = isOrgAdmin ? undefined : getUserTeamIds();
   // Avoid the empty-team short-circuit while session teams are still loading
   // (cache hydrate may temporarily expose teamMemberships: []).

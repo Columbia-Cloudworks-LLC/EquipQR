@@ -26,7 +26,7 @@ npx playwright codegen "https://preview.equipqr.app/auth?tab=signin" `
 ```
 
 3. In the codegen browser:
-   - Click **Continue with Google** and sign in as `nicholas.king@columbiacloudworks.com`
+   - Click **Login with Google** and sign in as `nicholas.king@columbiacloudworks.com`
    - Wait until `/dashboard` loads
    - Open `https://app.sandbox.qbo.intuit.com/app/homepage` in the **same** browser tab/window and sign into a **sandbox** QuickBooks company
    - Close codegen (file is saved automatically)
@@ -38,13 +38,13 @@ Never commit `tmp/playwright/auth/nicholas-google-qbo.json`. It contains live se
 Quick-login personas cannot complete Google Workspace OAuth. Capture storage state once in a headed browser:
 
 ```powershell
-# Local stack must be running (.\dev-start.bat)
+# Local stack must be running (.\dev\dev-start.bat)
 npm run e2e:google-auth:capture
 ```
 
 In the opened browser:
 
-1. Click **Continue with Google** and sign in as `nicholas.king@columbiacloudworks.com`.
+1. Click **Login with Google** and sign in as `nicholas.king@columbiacloudworks.com`.
 2. If Google Workspace is not connected on Integrations, click **Connect Google Workspace** and finish consent (one-time setup).
 3. Wait for the setup script to save `tmp/playwright/auth/google-workspace-local.json`.
 
@@ -53,7 +53,7 @@ In the opened browser:
 OAuth tokens are stored in local Supabase (`quickbooks_credentials`) after Intuit redirects to the edge callback. A Playwright storage file replays the EquipQR session only.
 
 ```powershell
-# Local stack must be running (.\dev-start.bat)
+# Local stack must be running (.\dev\dev-start.bat)
 npm run e2e:quickbooks-auth:capture
 ```
 
@@ -67,14 +67,14 @@ In the opened browser:
 Verify API access without the UI:
 
 ```powershell
-.\scripts\qbo\Invoke-QboQuery.ps1 -StatusOnly
-.\scripts\qbo\Invoke-QboQuery.ps1 -Query "select Id, DisplayName from Customer maxresults 5"
+.\dev\qbo\Invoke-QboQuery.ps1 -StatusOnly
+.\dev\qbo\Invoke-QboQuery.ps1 -Query "select Id, DisplayName from Customer maxresults 5"
 ```
 
 Run local QuickBooks preflight (headless replay):
 
 ```powershell
-. .\scripts\e2e\Load-QuickBooksLocalAuthEnv.ps1
+. .\dev\e2e\Load-QuickBooksLocalAuthEnv.ps1
 npx playwright test e2e/user/full/quickbooks-local.integration.spec.ts `
   --config playwright.user.config.ts --project quickbooks-local --reporter=line
 ```
@@ -90,16 +90,16 @@ npm run e2e:quickbooks-developer-auth:capture
 Sign in at `developer.intuit.com` (SMS/email verification as required). Output: `tmp/playwright/auth/quickbooks-developer-local.json`.
 
 ```powershell
-. .\scripts\e2e\Load-QuickBooksDeveloperStorageEnv.ps1
+. .\dev\e2e\Load-QuickBooksDeveloperStorageEnv.ps1
 # Agents replay E2E_QB_DEVELOPER_AUTH_STORAGE_STATE in Playwright / browser MCP
 ```
 
-Vault password fallback (when storage expires): `. .\scripts\e2e\Load-QuickBooksDeveloperEnv.ps1`
+Vault password fallback (when storage expires): `. .\dev\e2e\Load-QuickBooksDeveloperEnv.ps1`
 
 ### Run local Google Docs export test (headless replay)
 
 ```powershell
-. .\scripts\e2e\Load-GoogleLocalAuthEnv.ps1
+. .\dev\e2e\Load-GoogleLocalAuthEnv.ps1
 npx playwright test e2e/user/full/google-workspace-local.integration.spec.ts `
   --config playwright.user.config.ts --project google-oauth-local --reporter=line
 ```

@@ -1,10 +1,10 @@
 ---
 description: "Dev:kong502,gcloud stderr,types gen,maps CSP,WinNAT,stack cycle"
-globs: "{dev-start.ps1,dev-stop.ps1,dev-start.bat,dev-stop.bat,scripts/**/*.ps1,supabase/functions/**}"
+globs: "{dev-start.ps1,dev-stop.ps1,dev-start.bat,dev-stop.bat,dev/**/*.ps1,supabase/functions/**}"
 ---
 ## 0. First response: full stack cycle
 **When:** flaky probes, EPERM on `npm ci`, missing `vite.cmd`, Kong 502, or unknown stack health.
-**Fix:** `.\dev-stop.bat` then `.\dev-start.bat` or `.\dev-start.bat -Force` per **`dev-stack-lifecycle.mdc`**. Do not patch in place across multiple turns.
+**Fix:** `.\dev\dev-stop.bat` then `.\dev\dev-start.bat` or `.\dev\dev-start.bat -Force` per **`dev-stack-lifecycle.mdc`**. Do not patch in place across multiple turns.
 ## 1. Kong 502 on `/functions/v1/*` after `dev-start.bat`
 **Signature:** 502 on `/functions/v1/*`; kong upstream stale edge_runtime IP.
 **Root cause:** Kong upstream cache stale after `functions serve` recreates the container.
@@ -12,7 +12,7 @@ globs: "{dev-start.ps1,dev-stop.ps1,dev-start.bat,dev-stop.bat,scripts/**/*.ps1,
 ## 2. Step 1b red `python.exe` + MCP render failed
 **Signature:** stderr success line from gcloud then MCP render exit 1 despite OK auth.
 **Root cause:** gcloud writes success to stderr; PS `Stop` mode treats it as terminating (7.3+).
-**Reference:** `scripts/render-mcp-config.ps1`; `157ab9a6`.
+**Reference:** `dev/render-mcp-config.ps1`; `157ab9a6`.
 ## 3. `types.ts` polluted with Supabase CLI banners
 **Signature:** Post-`-Force`, `types.ts` gains `Connecting to db 5432` / CLI upgrade-banner lines; dirty (`tsc --noEmit` passes).
 **Root cause:** Step 6 pipes raw `npx supabase gen types typescript --local` stdout/stderr to disk; `.cursor/hooks/sync-types.ps1` anchors (`^export type` … `^} as const`).
@@ -26,4 +26,4 @@ globs: "{dev-start.ps1,dev-stop.ps1,dev-start.bat,dev-stop.bat,scripts/**/*.ps1,
 ## 6. `supabase start` WSAEACCES on 543xx
 **Signature:** WSAEACCES bind on 543xx; no listener/containers; `netsh excludedportrange` overlaps 54321-54328 (no `*`).
 **Root cause:** Ephemeral-range / WinNAT - **not Docker**; AGENTS.md.
-**Fix:** `.\scripts\reserve-supabase-ports.ps1` (elevated). Alt: `net stop winnat`; `netsh int ipv4 add excludedportrange protocol=tcp startport=54321 numberofports=8 store=persistent`; `net start winnat`. Verify `54321  54328  *`. Green dev-start before fix claims; AGENTS.md.
+**Fix:** `.\dev\reserve-supabase-ports.ps1` (elevated). Alt: `net stop winnat`; `netsh int ipv4 add excludedportrange protocol=tcp startport=54321 numberofports=8 store=persistent`; `net start winnat`. Verify `54321  54328  *`. Green dev-start before fix claims; AGENTS.md.

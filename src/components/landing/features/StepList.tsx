@@ -14,7 +14,7 @@ export const StepList = ({ steps }: StepListProps) => {
       <div className="space-y-8">
         {steps.map((step) => (
           <div key={step.number} className="flex gap-6">
-            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xl">
+            <div className="shrink-0 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xl">
               {step.number}
             </div>
             <div>

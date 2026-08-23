@@ -11,7 +11,7 @@ export const defaultWorkOrderDetailsDataMock = {
     priority: 'medium',
     created_date: '2024-01-01T00:00:00Z',
     createdDate: '2024-01-01T00:00:00Z',
-    dueDate: null,
+    due_date: null,
     equipment_id: 'eq-1',
     has_pm: false,
     teamName: null,

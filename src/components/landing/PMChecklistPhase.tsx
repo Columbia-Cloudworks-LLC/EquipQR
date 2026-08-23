@@ -194,7 +194,7 @@ export default function PMChecklistPhase({
                   >
                     <div
                       className={[
-                        'flex-shrink-0 w-3 h-3 rounded-sm border transition-colors duration-200',
+                        'shrink-0 w-3 h-3 rounded-sm border transition-colors duration-200',
                         isChecked
                           ? 'border-primary bg-primary'
                           : 'border-primary/40 bg-transparent',

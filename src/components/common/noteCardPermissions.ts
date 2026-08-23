@@ -3,7 +3,7 @@ export type NotesVisibilityFilterValue = 'all' | 'public' | 'private';
 export interface NoteWithPrivacy {
   id: string;
   is_private?: boolean;
-  author_id?: string;
+  author_id?: string | null;
 }
 
 export function filterNotesByVisibility<T extends NoteWithPrivacy>(
@@ -47,7 +47,7 @@ export interface NoteActionPermissions {
 }
 
 export interface ResolveNoteActionsInput {
-  note: { id: string; author_id: string; created_at: string };
+  note: { id: string; author_id?: string; created_at: string };
   currentUserId?: string;
   isOrgAdmin: boolean;
   isTeamManager: boolean;
@@ -67,7 +67,7 @@ export function resolveNoteActionPermissions(
     editWindowHours = DEFAULT_EDIT_WINDOW_HOURS,
   } = input;
 
-  const isAuthor = note.author_id === currentUserId;
+  const isAuthor = Boolean(currentUserId) && note.author_id === currentUserId;
   const canManageAny = isOrgAdmin || isTeamManager;
   const withinWindow = isWithinAuthorEditWindow(note.created_at, editWindowHours);
 

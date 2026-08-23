@@ -3,12 +3,11 @@ import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion';
 import { cn } from '@/lib/utils';
 
 export interface DemoVideoProps {
-  /** Filename in the `landing-page-videos` Supabase bucket, without extension. */
+  /** Demo filename without extension. `landingVideo` appends mp4, webm, and jpg. */
   baseName: string;
   /**
-   * Build a public URL for a file in the `landing-page-videos` bucket.
-   * Injected so unit tests can avoid the `VITE_SUPABASE_URL` env requirement
-   * of {@link landingVideo}.
+   * Build a public URL for a demo file.
+   * Injected so unit tests can pass a stub instead of {@link landingVideo}.
    */
   buildUrl: (filename: string) => string;
   /** Accessible label describing what the demo shows. Required for a11y. */
@@ -95,8 +94,8 @@ export const DemoVideo: React.FC<DemoVideoProps> = ({
   return (
     <div
       className={cn(
-        'mx-auto w-full max-w-xs overflow-hidden rounded-[2rem] border border-border bg-black shadow-lg',
-        'aspect-[1080/2340]',
+        'mx-auto w-full max-w-xs overflow-hidden rounded-4xl border border-border bg-black shadow-lg',
+        'aspect-1080/2340',
         className,
       )}
     >

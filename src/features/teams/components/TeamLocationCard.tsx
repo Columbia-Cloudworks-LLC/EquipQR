@@ -13,7 +13,7 @@ import { MapsUnavailableRetryPanel } from '@/components/location/MapsUnavailable
 import { TeamLocationEditorDialog } from '@/features/teams/components/TeamLocationEditorDialog';
 import { buildTeamAddress } from '@/features/teams/utils/teamLocationUtils';
 import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
-import { useIsDarkTheme } from '@/hooks/useThemeVersion';
+import { useIsDarkTheme, useThemeVersion } from '@/hooks/useThemeVersion';
 import type { TeamWithMembers } from '@/features/teams/services/teamService';
 
 interface TeamLocationCardProps {
@@ -33,7 +33,8 @@ function TeamMapMarker({ position }: { position: { lat: number; lng: number } })
 
 const TeamLocationCard: React.FC<TeamLocationCardProps> = ({ team, canEdit }) => {
   const [editorOpen, setEditorOpen] = useState(false);
-  const isDark = useIsDarkTheme();
+  const themeVersion = useThemeVersion();
+  const isDark = useIsDarkTheme(themeVersion);
   const {
     googleMapsKey,
     mapId,
@@ -75,7 +76,7 @@ const TeamLocationCard: React.FC<TeamLocationCardProps> = ({ team, canEdit }) =>
     if (!center) {
       return (
         <div
-          className="h-[120px] rounded-lg bg-muted/50 border-2 border-dashed border-muted-foreground/25 flex items-center justify-center"
+          className="h-30 rounded-lg bg-muted/50 border-2 border-dashed border-muted-foreground/25 flex items-center justify-center"
         >
           <div className="text-center space-y-2 px-4">
             <MapPin className="h-8 w-8 text-muted-foreground/50 mx-auto" />
@@ -188,7 +189,7 @@ const TeamLocationCard: React.FC<TeamLocationCardProps> = ({ team, canEdit }) =>
 
           {hasAddress && (
             <div className="flex items-start gap-2">
-              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
               <ClickableAddress
                 address={addressText}
                 lat={hasCoords ? (team.location_lat as number) : undefined}

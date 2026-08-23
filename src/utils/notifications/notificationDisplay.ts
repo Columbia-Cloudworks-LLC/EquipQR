@@ -1,7 +1,10 @@
 // fallow-ignore-file code-duplication
 // Duplication rationale: Display utils mirror page-level notification rendering
-import type { NavigateFunction } from 'react-router-dom';
-import type { Notification } from '@/features/work-orders/hooks/useWorkOrderData';
+export {
+  navigateForNotification,
+  notificationHasNavigableAction,
+  resolveNotificationDestination,
+} from '@/utils/notifications/notificationDestination';
 
 /** Emoji icon for notification types (bell dropdown and notifications page). */
 export function getNotificationEmoji(type: string): string {
@@ -45,6 +48,8 @@ export function getNotificationEmoji(type: string): string {
       return '🔐';
     case 'audit_export':
       return '📤';
+    case 'export_ready':
+      return '📊';
     default:
       return '📢';
   }
@@ -93,82 +98,10 @@ export function getNotificationTypeLabel(type: string): string {
       return 'Team Role Changed';
     case 'audit_export':
       return 'Audit Export';
+    case 'export_ready':
+      return 'Export Ready';
     default:
       return 'General';
   }
 }
 
-export function notificationHasNavigableAction(notification: Notification): boolean {
-  return Boolean(
-    notification.data?.work_order_id ||
-      notification.type.startsWith('ownership_transfer') ||
-      notification.type.startsWith('workspace_merge') ||
-      notification.type === 'member_added' ||
-      notification.type === 'member_removed' ||
-      notification.type === 'member_role_changed' ||
-      notification.type === 'team_member_added' ||
-      notification.type === 'team_member_role_changed' ||
-      notification.type === 'audit_export',
-  );
-}
-
-type NavigateNotificationOptions = {
-  notification: Notification;
-  organizationId: string | undefined;
-  navigate: NavigateFunction;
-  switchOrganization: (orgId: string) => Promise<void>;
-};
-
-/**
- * Navigate after a notification click. Caller is responsible for mark-as-read.
- * Returns true when navigation was handled.
- */
-export async function navigateForNotification({
-  notification,
-  organizationId,
-  navigate,
-  switchOrganization,
-}: NavigateNotificationOptions): Promise<boolean> {
-  if (
-    notification.type === 'ownership_transfer_request' ||
-    notification.type === 'workspace_merge_request' ||
-    notification.type.startsWith('ownership_transfer') ||
-    notification.type.startsWith('workspace_merge')
-  ) {
-    const targetOrgId =
-      notification.data?.organization_id || notification.data?.workspace_org_id;
-    if (targetOrgId && targetOrgId !== organizationId) {
-      await switchOrganization(targetOrgId);
-    }
-    navigate('/dashboard/organization');
-    return true;
-  }
-
-  if (
-    notification.type === 'member_added' ||
-    notification.type === 'member_role_changed' ||
-    notification.type === 'team_member_added' ||
-    notification.type === 'team_member_role_changed' ||
-    notification.type === 'audit_export'
-  ) {
-    const targetOrgId =
-      notification.data?.organization_id || notification.data?.workspace_org_id;
-    if (targetOrgId && targetOrgId !== organizationId) {
-      await switchOrganization(targetOrgId);
-    }
-    navigate('/dashboard/organization');
-    return true;
-  }
-
-  if (notification.data?.work_order_id) {
-    navigate(`/dashboard/work-orders/${notification.data.work_order_id}`);
-    return true;
-  }
-
-  if (notification.type === 'member_removed') {
-    navigate('/dashboard');
-    return true;
-  }
-
-  return false;
-}

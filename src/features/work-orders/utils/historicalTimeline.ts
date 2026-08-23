@@ -88,7 +88,7 @@ export function getSelectableStatusesForRow(
   }
 
   const previousStatus = rows[rowIndex - 1]?.newStatus;
-  if (!previousStatus || previousStatus === '') {
+  if (!previousStatus) {
     return [];
   }
 
@@ -150,7 +150,7 @@ export function canAddTimelineRow(rows: HistoricalTimelineEditorRow[]): boolean 
   }
 
   const lastStatus = rows[lastFilledIndex]?.newStatus;
-  if (!lastStatus || lastStatus === '') {
+  if (!lastStatus) {
     return false;
   }
 

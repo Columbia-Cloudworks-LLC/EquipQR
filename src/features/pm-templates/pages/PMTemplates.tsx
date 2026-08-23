@@ -174,7 +174,7 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0 px-2"
+                    className="min-h-11 min-w-11 md:min-h-0 md:min-w-0 px-2"
                     aria-label={`Delete template ${template.name}`}
                   >
                     <Trash2 className="h-3 w-3" />
@@ -513,7 +513,7 @@ const PMTemplates = () => {
           onClick={handleCreateTemplate}
           aria-label="New template"
           className={cn(
-            'fixed bottom-[78px] right-4 z-fixed h-14 w-14 rounded-full shadow-elevation-3',
+            'fixed bottom-19.5 right-4 z-fixed h-14 w-14 rounded-full shadow-elevation-3',
             'touch-manipulation transition-transform duration-100 active:scale-[0.97]',
             'motion-reduce:active:scale-100',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',

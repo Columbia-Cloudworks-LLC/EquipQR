@@ -4,8 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 import { EquipmentService } from '@/features/equipment/services/EquipmentService';
 import { batchResolveEquipmentDisplayImageUrls } from '@/services/imageUploadService';
-import { resolveEffectiveLocation } from '@/utils/effectiveLocation';
 import { applyWorkOrderSupabaseFilters } from '@/features/work-orders/utils/workOrderSupabaseFilters';
+import {
+  WORK_ORDER_LIST_SELECT,
+  mapWorkOrderRow,
+} from '@/features/work-orders/services/workOrderRowMapper';
 import type { SelectedTeamId } from '@/contexts/selected-team-context';
 import {
   isAllTeamsScope,
@@ -26,6 +29,25 @@ type TeamBasedWorkOrder = WorkOrder & {
   estimatedHours?: number | null;
   completedDate?: string | null;
 };
+
+function toTeamBasedWorkOrder(
+  wo: Record<string, unknown>,
+  signedEquipmentImageUrl: string | null | undefined,
+): TeamBasedWorkOrder {
+  const mapped = mapWorkOrderRow(wo);
+  return {
+    ...mapped,
+    equipmentId: mapped.equipment_id,
+    organizationId: mapped.organization_id,
+    assigneeId: mapped.assignee_id,
+    teamId: mapped.team_id ?? mapped.equipment?.team_id ?? null,
+    createdDate: mapped.created_date,
+    dueDate: mapped.due_date,
+    estimatedHours: mapped.estimated_hours,
+    completedDate: mapped.completed_date,
+    equipmentImageUrl: signedEquipmentImageUrl ?? mapped.equipmentImageUrl,
+  };
+}
 
 export interface TeamBasedWorkOrderFilters {
   status?: 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled' | 'all';
@@ -51,56 +73,7 @@ export const getTeamBasedWorkOrders = async (
     // Non-admins still need to resolve accessible equipment IDs for team gating.
     let query = supabase
       .from('work_orders')
-      .select(`
-        id,
-        title,
-        description,
-        equipment_id,
-        organization_id,
-        priority,
-        status,
-        assignee_id,
-        created_date,
-        due_date,
-        estimated_hours,
-        completed_date,
-        created_by,
-        has_pm,
-        equipment:equipment_id (
-          name,
-          manufacturer,
-          model,
-          serial_number,
-          working_hours,
-          image_url,
-          team_id,
-          use_team_location,
-          last_known_location,
-          assigned_location_lat,
-          assigned_location_lng,
-          assigned_location_street,
-          assigned_location_city,
-          assigned_location_state,
-          assigned_location_country,
-          teams:team_id (
-            id,
-            name,
-            override_equipment_location,
-            location_lat,
-            location_lng,
-            location_address,
-            location_city,
-            location_state,
-            location_country
-          )
-        ),
-        assignee:profiles!work_orders_assignee_id_fkey (
-          name
-        ),
-        creator:profiles!work_orders_created_by_fkey (
-          name
-        )
-      `)
+      .select(WORK_ORDER_LIST_SELECT)
       .eq('organization_id', organizationId)
       // Exclude work orders without equipment. The previous implementation
       // always applied .in('equipment_id', accessibleEquipmentIds) which
@@ -154,82 +127,22 @@ export const getTeamBasedWorkOrders = async (
       throw error;
     }
 
-    const rows = data || [];
+    const rows = (data ?? []) as unknown as Array<
+      Record<string, unknown> & {
+        equipment_id: string;
+        equipment?: { image_url?: string | null };
+      }
+    >;
 
     // equipment.image_url stores a canonical private-bucket path; sign it here
     // so list cards never emit a relative path into <img src> (#1086 — the
     // browser would resolve it against /dashboard/... and 404).
     const equipmentImageUrls = await batchResolveEquipmentDisplayImageUrls(
-      rows.map(wo => wo.equipment?.image_url ?? null),
-      { equipmentIds: rows.map(wo => wo.equipment_id) },
+      rows.map((wo) => wo.equipment?.image_url ?? null),
+      { equipmentIds: rows.map((wo) => wo.equipment_id) },
     );
 
-    return rows.map((wo, index) => {
-      const lastKnown = wo.equipment?.last_known_location;
-      let lastScan: { lat: number; lng: number } | undefined;
-      if (lastKnown && typeof lastKnown === 'object') {
-        const locationCandidate = lastKnown as Record<string, unknown>;
-        const lat = Number(locationCandidate.latitude ?? locationCandidate.lat);
-        const lng = Number(locationCandidate.longitude ?? locationCandidate.lng);
-        if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
-          lastScan = { lat, lng };
-        }
-      }
-
-      const effectiveLocation = wo.equipment
-        ? resolveEffectiveLocation({
-            team: wo.equipment.teams
-              ? {
-                  override_equipment_location: wo.equipment.teams.override_equipment_location,
-                  location_lat: wo.equipment.teams.location_lat,
-                  location_lng: wo.equipment.teams.location_lng,
-                  location_address: wo.equipment.teams.location_address,
-                  location_city: wo.equipment.teams.location_city,
-                  location_state: wo.equipment.teams.location_state,
-                  location_country: wo.equipment.teams.location_country,
-                }
-              : undefined,
-            equipment: {
-              use_team_location: wo.equipment.use_team_location,
-              assigned_location_lat: wo.equipment.assigned_location_lat,
-              assigned_location_lng: wo.equipment.assigned_location_lng,
-              assigned_location_street: wo.equipment.assigned_location_street,
-              assigned_location_city: wo.equipment.assigned_location_city,
-              assigned_location_state: wo.equipment.assigned_location_state,
-              assigned_location_country: wo.equipment.assigned_location_country,
-            },
-            lastScan,
-          })
-        : null;
-
-      return {
-        id: wo.id,
-        title: wo.title,
-        description: wo.description,
-        equipmentId: wo.equipment_id,
-        organizationId: wo.organization_id,
-        priority: wo.priority,
-        status: wo.status,
-        assigneeId: wo.assignee_id,
-        assigneeName: wo.assignee?.name,
-        teamId: wo.equipment?.team_id,
-        teamName: wo.equipment?.teams?.name,
-        createdDate: wo.created_date,
-        created_date: wo.created_date,
-        dueDate: wo.due_date,
-        estimatedHours: wo.estimated_hours,
-        completedDate: wo.completed_date,
-        equipmentName: wo.equipment?.name,
-        equipmentManufacturer: wo.equipment?.manufacturer,
-        equipmentModel: wo.equipment?.model,
-        equipmentSerialNumber: wo.equipment?.serial_number,
-        equipmentWorkingHours: wo.equipment?.working_hours,
-        equipmentImageUrl: equipmentImageUrls[index],
-        createdByName: wo.creator?.name,
-        has_pm: wo.has_pm,
-        effectiveLocation,
-      };
-    });
+    return rows.map((wo, index) => toTeamBasedWorkOrder(wo, equipmentImageUrls[index]));
   } catch (error) {
     logger.error('Error in getTeamBasedWorkOrders:', error);
     throw error;

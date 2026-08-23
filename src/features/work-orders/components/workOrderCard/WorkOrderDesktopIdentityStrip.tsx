@@ -31,7 +31,7 @@ export const WorkOrderDesktopIdentityStrip: React.FC<WorkOrderDesktopIdentityStr
         imageUrl={workOrder.equipmentImageUrl}
         equipmentName={workOrder.equipmentName}
         equipmentAltContext={workOrder.title}
-        className="h-24 w-24 rounded-xl flex-shrink-0"
+        className="h-24 w-24 rounded-xl shrink-0"
         iconClassName="h-10 w-10"
         isAboveTheFold={isAboveTheFold}
       />
@@ -51,7 +51,7 @@ export const WorkOrderDesktopIdentityStrip: React.FC<WorkOrderDesktopIdentityStr
           </p>
         )}
       </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-2 shrink-0">
         <WorkOrderQuickActions
           workOrderId={workOrder.id}
           workOrderStatus={workOrder.status}

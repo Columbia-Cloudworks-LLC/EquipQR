@@ -116,7 +116,20 @@ describe('Landing mobile UX pass', () => {
   it('renders each use-case outcome as a labeled chip', () => {
     renderWithRouter(<AboutSection />);
 
-    expect(screen.getAllByLabelText('The Win')).toHaveLength(6);
+    expect(screen.getAllByLabelText('The Win')).toHaveLength(5);
+  });
+
+  it('shows a construction-yellow bulldozer on the equipment rental card', () => {
+    renderWithRouter(<AboutSection />);
+
+    const heading = screen.getByRole('heading', { name: /equipment rental agencies/i });
+    const icon = screen.getByTestId('about-rental-bulldozer');
+    const well = icon.closest('span');
+
+    expect(heading).toBeInTheDocument();
+    expect(icon.tagName.toLowerCase()).toBe('svg');
+    expect(well?.className).toMatch(/text-warning/);
+    expect(well?.className).toMatch(/bg-warning/);
   });
 
   it('renders footer navigation as accordion triggers on mobile', () => {

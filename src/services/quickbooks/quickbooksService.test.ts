@@ -10,6 +10,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { PostgrestError } from '@supabase/supabase-js';
 import { createMockSupabaseClient } from '@vitest-harness/utils/mock-supabase';
 
 // Mock the supabase client before importing the service
@@ -40,7 +41,7 @@ function createMockAuthSession(overrides?: { access_token?: string; refresh_toke
     refresh_token: overrides?.refresh_token ?? 'refresh-token',
     expires_in: 3600,
     expires_at: Date.now() + 3600000,
-    token_type: 'bearer',
+    token_type: 'bearer' as const,
     user: {
       id: 'user-123',
       email: 'test@test.com',
@@ -57,6 +58,36 @@ function mockAuthenticatedSession(session = createMockAuthSession()) {
     data: { session },
     error: null,
   });
+}
+
+function mockRpcSuccess<T>(data: T, count = Array.isArray(data) ? data.length : 1) {
+  return {
+    data,
+    error: null,
+    count,
+    status: 200,
+    statusText: 'OK',
+    success: true as const,
+  };
+}
+
+function mockRpcFailure(
+  message: string,
+  options: { code?: string; status?: number; statusText?: string } = {},
+) {
+  return {
+    data: null,
+    error: new PostgrestError({
+      message,
+      details: '',
+      hint: '',
+      code: options.code ?? 'ERROR',
+    }),
+    count: null,
+    status: options.status ?? 500,
+    statusText: options.statusText ?? 'Internal Server Error',
+    success: false as const,
+  };
 }
 
 describe('QuickBooks Service', () => {
@@ -80,13 +111,7 @@ describe('QuickBooks Service', () => {
         expires_at: new Date().toISOString(),
       };
 
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: [mockSessionData],
-        error: null,
-        count: 1,
-        status: 200,
-        statusText: 'OK',
-      });
+      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockRpcSuccess([mockSessionData]));
 
       const result = await createOAuthSession(mockOrganizationId);
 
@@ -97,18 +122,14 @@ describe('QuickBooks Service', () => {
       });
       expect(supabase.rpc).toHaveBeenCalledWith('create_quickbooks_oauth_session', {
         p_organization_id: mockOrganizationId,
-        p_redirect_url: null,
+        p_redirect_url: undefined,
       });
     });
 
     it('should throw error when RPC fails', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: null,
-        error: { message: 'Database error', code: 'DB001', details: null, hint: null },
-        count: 0,
-        status: 500,
-        statusText: 'Internal Server Error',
-      });
+      vi.mocked(supabase.rpc).mockResolvedValueOnce(
+        mockRpcFailure('Database error', { code: 'DB001' }),
+      );
 
       await expect(createOAuthSession(mockOrganizationId)).rejects.toThrow(
         'Failed to create OAuth session: Database error'
@@ -116,13 +137,7 @@ describe('QuickBooks Service', () => {
     });
 
     it('should throw error when no data returned', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: [],
-        error: null,
-        count: 0,
-        status: 200,
-        statusText: 'OK',
-      });
+      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockRpcSuccess([]));
 
       await expect(createOAuthSession(mockOrganizationId)).rejects.toThrow(
         'No session data returned'
@@ -140,13 +155,7 @@ describe('QuickBooks Service', () => {
         nonce: 'test-nonce',
       };
 
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: [mockValidation],
-        error: null,
-        count: 1,
-        status: 200,
-        statusText: 'OK',
-      });
+      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockRpcSuccess([mockValidation]));
 
       const result = await validateOAuthSession('test-token');
 
@@ -160,13 +169,7 @@ describe('QuickBooks Service', () => {
     });
 
     it('should return invalid for expired/missing session', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: [],
-        error: null,
-        count: 0,
-        status: 200,
-        statusText: 'OK',
-      });
+      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockRpcSuccess([]));
 
       const result = await validateOAuthSession('invalid-token');
 
@@ -190,13 +193,7 @@ describe('QuickBooks Service', () => {
         scopes: 'com.intuit.quickbooks.accounting',
       };
 
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: [mockStatus],
-        error: null,
-        count: 1,
-        status: 200,
-        statusText: 'OK',
-      });
+      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockRpcSuccess([mockStatus]));
 
       const result = await getConnectionStatus(mockOrganizationId);
 
@@ -221,13 +218,7 @@ describe('QuickBooks Service', () => {
         scopes: null,
       };
 
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: [mockStatus],
-        error: null,
-        count: 1,
-        status: 200,
-        statusText: 'OK',
-      });
+      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockRpcSuccess([mockStatus]));
 
       const result = await getConnectionStatus(mockOrganizationId);
 
@@ -235,13 +226,9 @@ describe('QuickBooks Service', () => {
     });
 
     it('should return not connected on RPC error', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: null,
-        error: { message: 'Permission denied', code: 'PERM001', details: null, hint: null },
-        count: 0,
-        status: 403,
-        statusText: 'Forbidden',
-      });
+      vi.mocked(supabase.rpc).mockResolvedValueOnce(
+        mockRpcFailure('Permission denied', { code: 'PERM001', status: 403, statusText: 'Forbidden' }),
+      );
 
       const result = await getConnectionStatus(mockOrganizationId);
 
@@ -256,29 +243,19 @@ describe('QuickBooks Service', () => {
         message: 'QuickBooks disconnected successfully',
       };
 
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: [mockResult],
-        error: null,
-        count: 1,
-        status: 200,
-        statusText: 'OK',
-      });
+      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockRpcSuccess([mockResult]));
 
       await expect(disconnectQuickBooks(mockOrganizationId)).resolves.not.toThrow();
       expect(supabase.rpc).toHaveBeenCalledWith('disconnect_quickbooks', {
         p_organization_id: mockOrganizationId,
-        p_realm_id: null,
+        p_realm_id: undefined,
       });
     });
 
     it('should throw error on RPC failure', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: null,
-        error: { message: 'Permission denied', code: 'PERM001', details: null, hint: null },
-        count: 0,
-        status: 403,
-        statusText: 'Forbidden',
-      });
+      vi.mocked(supabase.rpc).mockResolvedValueOnce(
+        mockRpcFailure('Permission denied', { code: 'PERM001', status: 403, statusText: 'Forbidden' }),
+      );
 
       await expect(disconnectQuickBooks(mockOrganizationId)).rejects.toThrow(
         'Failed to disconnect QuickBooks: Permission denied'
@@ -291,13 +268,7 @@ describe('QuickBooks Service', () => {
         message: 'No QuickBooks connection found to disconnect',
       };
 
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: [mockResult],
-        error: null,
-        count: 1,
-        status: 200,
-        statusText: 'OK',
-      });
+      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockRpcSuccess([mockResult]));
 
       await expect(disconnectQuickBooks(mockOrganizationId)).rejects.toThrow(
         'No QuickBooks connection found to disconnect'
@@ -507,7 +478,7 @@ describe('QuickBooks Service', () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         json: vi.fn().mockResolvedValue({ customers: mockCustomers }),
-      } as Response);
+      } as unknown as Response);
 
       const result = await searchCustomers(mockOrganizationId, 'test');
 
@@ -543,7 +514,7 @@ describe('QuickBooks Service', () => {
           invoice_number: '1001',
           is_update: false,
         }),
-      } as Response);
+      } as unknown as Response);
 
       const result = await exportInvoice(mockWorkOrderId);
 

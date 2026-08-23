@@ -28,7 +28,7 @@ Keep **`equipqr.info` off the SPA project (`equipqr`)** — only the docs projec
 
 **Design tokens (app ↔ docs):** The product Mission Control palette lives in [`src/index.css`](../../src/index.css). The VitePress theme under [`docs/.vitepress/theme/`](../.vitepress/theme/) mirrors those HSL values into `equipqr-tokens.css` and maps them to VitePress `--vp-*` variables in `custom.css` (default appearance is dark). When you change primary, background, border, or semantic status colors in the app, update the matching `--eqr-*` values in `equipqr-tokens.css` in the same change (or immediately after) so equipqr.info stays visually continuous with equipqr.app. There is not yet a shared compiled token package — the mirror is intentional and documented.
 
-**Local footer testing:** Run `.\dev-start.bat` to start the product app and docs site together. In local Vite dev mode, the app footer’s Documentation link defaults to `http://localhost:5174`; production builds default to `https://equipqr.info`. Set `VITE_DOCUMENTATION_URL` when you need to test a different docs preview URL, such as `http://localhost:4173` after running `npm run docs:build` and then `npm run docs:preview`.
+**Local footer testing:** Run `.\dev\dev-start.bat` to start the product app and docs site together. In local Vite dev mode, the app footer’s Documentation link defaults to `http://localhost:5174`; production builds default to `https://equipqr.info`. Set `VITE_DOCUMENTATION_URL` when you need to test a different docs preview URL, such as `http://localhost:4173` after running `npm run docs:build` and then `npm run docs:preview`.
 
 **Related domains:** During domain migration, **`equipqr.support`** / **`www.equipqr.support`** on the SPA project may temporarily redirect to **`equipqr.app`** instead of **`equipqr.info`** because Vercel only allows same-project redirect targets; revisit in the dashboard if those URLs should land on the public docs site again.
 
@@ -379,12 +379,12 @@ aws cloudfront create-invalidation --distribution-id YOUR_DISTRIBUTION_ID --path
 
 - Switch to self-hosted (Windows):
 ```powershell
-pwsh -File scripts/switch-runner-type.ps1 -RunnerType self-hosted
+pwsh -File dev/switch-runner-type.ps1 -RunnerType self-hosted
 ```
 
 - Switch to GitHub-hosted (Ubuntu):
 ```powershell
-pwsh -File scripts/switch-runner-type.ps1 -RunnerType github-hosted
+pwsh -File dev/switch-runner-type.ps1 -RunnerType github-hosted
 ```
 
 Then commit and push the workflow changes.
@@ -652,63 +652,40 @@ If you need to revert to GitHub-hosted runners:
 
 ## Versioning System
 
-EquipQR™ uses an automated semantic versioning system where `package.json` is the single source of truth for the application version.
+`package.json` is the source of truth for the shipped app version. Feature PRs into `preview` do not bump it. `/release` chooses one SemVer, empties `[Unreleased]`, and pushes the bump onto `preview` before the promote PR to `main`. Changelog bullets follow `.cursor/rules/changelog.mdc`. See [`git-and-deploy.md`](./git-and-deploy.md).
 
 ### How It Works
 
 #### Version Format
 - **Format**: `MAJOR.MINOR.PATCH` (e.g., `1.12.3`)
 - **Tag Format**: `vMAJOR.MINOR.PATCH` (e.g., `v1.12.3`)
-- **Source of Truth**: the `version` field in `package.json`
+- **Source of Truth**: the `version` field in `package.json` after a promote
 
 ### Automatic Version Tagging
 
-The versioning system is fully automated:
+The tagging system is automated after promote:
 
-1. **Update version in `package.json`**:
-   - Edit `package.json` and change the `version` field (e.g., `"1.2.3"`)
-   - Commit and push to the `main` branch
-
-2. **Auto-tagging workflow**:
-   - The `version-tag.yml` workflow automatically triggers on push to `main` when `package.json` changes
-   - Reads version from `package.json`
-   - Checks if tag `v{version}` already exists
-   - If tag doesn't exist, creates annotated git tag `v{version}` and pushes it
-   - If tag exists, skips creation (no-op)
-
+1. **`/release`** bumps `package.json` on the `preview` tip and opens `preview` → `main`.
+2. **`version-tag.yml`** runs on push to `main` when `package.json` changes. It reads the version, creates annotated tag `v{version}` if missing, and skips if the tag already exists.
 3. **Build integration**:
-   - CI workflows read version directly from `package.json`
-   - Exposes as `VITE_APP_VERSION` environment variable during build
-   - App displays version in footer
+   - CI workflows read the version from `package.json`
+   - Exposes as `VITE_APP_VERSION` during build
+   - The app displays the version in the footer
 
 ### Semantic Versioning Guidelines
 
-- **Major** (X.0.0): Breaking changes, major new features
-- **Minor** (X.Y.0): New features, backward-compatible changes
-- **Patch** (X.Y.Z): Bug fixes, minor improvements
+- **Major** (X.0.0): Only when the user requests a breaking customer-visible change
+- **Minor** (X.Y.0): New customer-visible capability or meaningful workflow expansion
+- **Patch** (X.Y.Z): Fixes, security without product-shape change, batched dependencies, small UX corrections
+- Do not cut a patch for a single Dependabot bump
 
 ### Workflow
 
 #### To Release a New Version
 
-1. Update `package.json` version field:
-   ```json
-   {
-     "version": "1.2.3"
-   }
-   ```
+Run **`/release`** (or the promote path in [`git-and-deploy.md`](./git-and-deploy.md)). Do not bump `package.json` on a feature PR into `preview`.
 
-2. Commit and push to `main`:
-   ```bash
-   git add package.json
-   git commit -m "chore: bump version to 1.2.3"
-   git push origin main
-   ```
-
-3. The auto-tagging workflow will:
-   - Detect the version change
-   - Create tag `v1.2.3` if it doesn't exist
-   - Push the tag to the repository
+After the promote lands on `main`, `version-tag.yml` creates `vX.Y.Z` if that tag does not already exist.
 
 ### Local Development
 

@@ -50,7 +50,13 @@ describe('pmChecklistHelpers', () => {
     });
 
     it('returns not_rated for unknown condition values', () => {
-      const item = { id: '1', condition: 99 } as PMChecklistItem;
+      const item: PMChecklistItem = {
+        id: '1',
+        title: 'Unknown condition',
+        required: false,
+        section: 'General',
+        condition: 99 as unknown as PMChecklistItem['condition'],
+      };
       expect(getItemStatus(item)).toBe('not_rated');
     });
   });

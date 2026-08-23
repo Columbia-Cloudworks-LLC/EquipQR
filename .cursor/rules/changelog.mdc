@@ -1,0 +1,50 @@
+---
+description: "CHANGELOG content policy. Short customer-facing bullets. Unreleased on preview. Version bump only on promote."
+alwaysApply: true
+---
+
+# Changelog content policy
+
+This file is the only editorial policy. Skills, hooks, and human docs point here. Do not copy a second policy.
+
+Audience is customers, operators (org owners and admins), and external integrators. Not CI, agents, or repo-only tooling.
+
+## Include
+
+Write a `CHANGELOG.md` bullet only when the change is one of these:
+
+- New user-visible capability
+- Bug fix users or operators can notice
+- Security fix
+- Breaking or notable workflow change
+- Removal or deprecation users will notice
+- Performance users can feel
+
+## Omit or batch
+
+Do not write implementation tours. Do not cut a versioned release for these alone:
+
+- Routine Dependabot or dependency patches with no user-visible effect. Add a short `[Unreleased]` note when preview CI requires one for lockfile or `package.json` diffs. At `/release`, batch those notes into one dependency bullet or drop them if nothing user-facing shipped.
+- Internal refactors with no behavior change
+- CI jobs, test infra, agent scripts, and Cursor rules or skills, unless operator-facing release behavior changed
+- File paths, migration filenames, test counts, LOC, job names, "how we built it"
+
+## Bullet shape
+
+Prefer:
+
+    - **Short bold title** — One sentence of user or operator impact. (#issue or #PR)
+
+One bullet is one outcome. Usually two lines or fewer. Issue or PR numbers are encouraged.
+
+## Train and SemVer
+
+- PRs into `preview`: accumulate under `## [Unreleased]` only. Never bump the app version in `package.json`.
+- `/release` (`preview` → `main`): one SemVer decision for the whole batch. Empty `[Unreleased]` into one `## [X.Y.Z] - YYYY-MM-DD`. Rewrite bullets into the short style above. Do not move verbose prose as-is.
+- Patch: fixes, security without product-shape change, batched dependencies, small UX corrections. Do not cut a patch solely for one dependency bump.
+- Minor: new customer-visible capability or meaningful workflow expansion.
+- Major: only when the user explicitly requests a breaking customer-visible change.
+
+Use Keep a Changelog categories only when non-empty: Added, Changed, Deprecated, Removed, Fixed, Security.
+
+Do not rewrite historical sections. Entries through the latest released version stay as written.

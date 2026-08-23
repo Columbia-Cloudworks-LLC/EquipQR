@@ -1,8 +1,18 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@vitest-harness/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { User } from '@supabase/supabase-js';
 import Auth from './Auth';
 import * as useAuthModule from '@/hooks/useAuth';
+
+const mockAuthenticatedUser: User = {
+  id: 'user-1',
+  email: 'test@test.com',
+  aud: 'authenticated',
+  created_at: '2024-01-01T00:00:00Z',
+  app_metadata: {},
+  user_metadata: {},
+};
 
 const mockErrorToast = vi.hoisted(() => vi.fn());
 const mockSuccessToast = vi.hoisted(() => vi.fn());
@@ -15,10 +25,6 @@ vi.mock('@/hooks/useAuth', () => ({
     signInWithGoogle: vi.fn(() => Promise.resolve({ error: null })),
     isLoading: false
   }))
-}));
-
-vi.mock('@/hooks/usePendingRedirectHandler', () => ({
-  usePendingRedirectHandler: vi.fn()
 }));
 
 vi.mock('@/hooks/useAppToast', () => ({
@@ -53,23 +59,33 @@ vi.mock('@/components/auth/SignUpForm', () => ({
   default: ({
     onSuccess,
     onError,
+    onGoogleSignUp,
   }: {
     onSuccess: (msg: string, email?: string) => void;
     onError: (msg: string) => void;
+    onGoogleSignUp: (organizationName: string) => void;
   }) => (
-    <div data-testid="signup-form">
-      <button onClick={() => onSuccess('Account created', 'viralarchitect@yahoo.com')}>Submit SignUp</button>
-      <button onClick={() => onSuccess('Legal acceptance recorded successfully.')}>Retry Acceptance Success</button>
-      <button onClick={() => onError('Signup failed')}>Trigger SignUp Error</button>
-    </div>
+    <form aria-label="Sign up form">
+      <button type="button" onClick={() => onGoogleSignUp('Fleet Co')}>Sign up with Google</button>
+      <button type="button" onClick={() => onSuccess('Account created', 'viralarchitect@yahoo.com')}>Submit SignUp</button>
+      <button type="button" onClick={() => onSuccess('Legal acceptance recorded successfully.')}>Retry Acceptance Success</button>
+      <button type="button" onClick={() => onError('Signup failed')}>Trigger SignUp Error</button>
+    </form>
   )
 }));
 
 vi.mock('@/components/auth/SignInForm', () => ({
-  default: ({ onError }: { onError: (msg: string) => void }) => (
-    <div data-testid="signin-form">
-      <button onClick={() => onError('Invalid credentials')}>Trigger SignIn Error</button>
-    </div>
+  default: ({
+    onError,
+    onGoogleSignIn,
+  }: {
+    onError: (msg: string) => void;
+    onGoogleSignIn: () => void;
+  }) => (
+    <form aria-label="Sign in form">
+      <button type="button" onClick={onGoogleSignIn}>Login with Google</button>
+      <button type="button" onClick={() => onError('Invalid credentials')}>Trigger SignIn Error</button>
+    </form>
   )
 }));
 
@@ -100,11 +116,11 @@ describe('Auth Page', () => {
   });
 
   describe('Core Rendering', () => {
-    it('renders welcome title and description', () => {
+    it('renders sign-in title and description by default', () => {
       render(<Auth />);
 
-      expect(screen.getByText('Welcome to EquipQR™')).toBeInTheDocument();
-      expect(screen.getByText('Sign in to your account or create a new one to get started')).toBeInTheDocument();
+      expect(screen.getByText('Sign in to EquipQR')).toBeInTheDocument();
+      expect(screen.getByText('Sign in to your account to get started')).toBeInTheDocument();
     });
 
     it('renders logo component', () => {
@@ -113,11 +129,10 @@ describe('Auth Page', () => {
       expect(screen.getByTestId('logo')).toBeInTheDocument();
     });
 
-    it('renders sign in and sign up tabs', () => {
+    it('does not render tabs', () => {
       render(<Auth />);
 
-      expect(screen.getByRole('tab', { name: /sign in/i })).toBeInTheDocument();
-      expect(screen.getByRole('tab', { name: /sign up/i })).toBeInTheDocument();
+      expect(screen.queryByRole('tab')).not.toBeInTheDocument();
     });
 
     it('renders legal footer', () => {
@@ -129,26 +144,60 @@ describe('Auth Page', () => {
     it('renders Google sign in button', () => {
       render(<Auth />);
 
-      expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /login with google/i })).toBeInTheDocument();
     });
   });
 
-  describe('Tab Navigation', () => {
+  describe('Mode switcher', () => {
     it('shows signin form by default', () => {
       render(<Auth />);
 
-      expect(screen.getByTestId('signin-form')).toBeInTheDocument();
+      expect(screen.getByRole('form', { name: /sign in form/i })).toBeInTheDocument();
+      expect(screen.queryByRole('form', { name: /sign up form/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /create an account/i })).toBeInTheDocument();
     });
 
-    it('renders both signin and signup tabs', () => {
+    it('switches to signup from the secondary action', () => {
       render(<Auth />);
 
-      // Both tabs should be present
-      const signinTab = screen.getByRole('tab', { name: /sign in/i });
-      const signupTab = screen.getByRole('tab', { name: /sign up/i });
-      
-      expect(signinTab).toBeInTheDocument();
-      expect(signupTab).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /create an account/i }));
+
+      expect(screen.getByRole('form', { name: /sign up form/i })).toBeInTheDocument();
+      expect(screen.queryByRole('form', { name: /sign in form/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /create your organization/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /sign up with google/i })).toBeInTheDocument();
+    });
+
+    it('opens signup from legacy tab query param', () => {
+      mockLocation.search = '?tab=signup';
+      render(<Auth />);
+
+      expect(screen.getByRole('form', { name: /sign up form/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /create your organization/i })).toBeInTheDocument();
+    });
+
+    it('opens signup from mode query param', () => {
+      mockLocation.search = '?mode=signup';
+      render(<Auth />);
+
+      expect(screen.getByRole('form', { name: /sign up form/i })).toBeInTheDocument();
+    });
+
+    it('falls back to a valid tab when mode is present but invalid', () => {
+      mockLocation.search = '?mode=foo&tab=signup';
+      render(<Auth />);
+
+      expect(screen.getByRole('form', { name: /sign up form/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /create your organization/i })).toBeInTheDocument();
+    });
+
+    it('forces signup when invitation params are present', () => {
+      mockLocation.search = '?tab=signin&invitedOrgId=org-1&invitedOrgName=Acme';
+      render(<Auth />);
+
+      expect(screen.getByRole('form', { name: /sign up form/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /create your organization/i })).toBeInTheDocument();
     });
   });
 
@@ -173,11 +222,11 @@ describe('Auth Page', () => {
       fireEvent.click(screen.getByText('Submit SignUp'));
 
       await waitFor(() => {
-        expect(screen.getByTestId('signup-success-page')).toHaveTextContent('Check your email');
-        expect(screen.getByTestId('signup-success-page')).toHaveTextContent('viralarchitect@yahoo.com');
-        expect(screen.getByTestId('signup-success-page')).toHaveTextContent('Account created');
+        expect(screen.getByRole('heading', { name: /check your email/i })).toBeInTheDocument();
+        expect(screen.getByText('viralarchitect@yahoo.com')).toBeInTheDocument();
+        expect(screen.getByText('Account created')).toBeInTheDocument();
       });
-      expect(screen.queryByTestId('signup-form')).not.toBeInTheDocument();
+      expect(screen.queryByRole('form', { name: /sign up form/i })).not.toBeInTheDocument();
       expect(screen.getByRole('link', { name: /open email inbox/i })).toHaveAttribute('href', 'https://mail.yahoo.com/');
       expect(screen.getByRole('link', { name: /open email inbox/i })).toHaveAttribute('rel', 'noopener noreferrer');
       expect(mockSuccessToast).toHaveBeenCalledWith({
@@ -185,6 +234,20 @@ describe('Auth Page', () => {
         description: 'Account created',
         duration: 10000,
       });
+    });
+
+    it('returns to sign-in mode after email verification', async () => {
+      mockLocation.search = '?tab=signup';
+      render(<Auth />);
+
+      fireEvent.click(screen.getByText('Submit SignUp'));
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /check your email/i })).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /i verified my email - sign in/i }));
+
+      expect(mockNavigate).toHaveBeenCalledWith('/auth?mode=signin', { replace: true });
     });
 
     it('shows a generic success toast for non-signup success without email confirmation page', async () => {
@@ -200,8 +263,8 @@ describe('Auth Page', () => {
           duration: 10000,
         });
       });
-      expect(screen.queryByTestId('signup-success-page')).not.toBeInTheDocument();
-      expect(screen.getByTestId('signup-form')).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: /check your email/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('form', { name: /sign up form/i })).toBeInTheDocument();
     });
   });
 
@@ -228,14 +291,14 @@ describe('Auth Page', () => {
   describe('Authenticated User Redirect', () => {
     it('navigates to home when user is already authenticated', async () => {
       vi.mocked(useAuthModule.useAuth).mockReturnValue({
-        user: { id: 'user-1', email: 'test@test.com' },
+        user: mockAuthenticatedUser,
         signInWithGoogle: vi.fn(),
         isLoading: false,
-        session: { user: { id: 'user-1' } },
+        session: null,
         signUp: vi.fn(),
         signIn: vi.fn(),
         signOut: vi.fn()
-      } as ReturnType<typeof useAuthModule.useAuth>);
+      });
 
       render(<Auth />);
 
@@ -311,7 +374,7 @@ describe('Auth Page', () => {
 
       render(<Auth />);
 
-      const googleButton = screen.getByRole('button', { name: /continue with google/i });
+      const googleButton = screen.getByRole('button', { name: /login with google/i });
       fireEvent.click(googleButton);
 
       await waitFor(() => {
@@ -320,7 +383,9 @@ describe('Auth Page', () => {
     });
 
     it('displays error when Google sign in fails', async () => {
-      const mockSignInWithGoogle = vi.fn(() => Promise.resolve({ error: { message: 'Google auth failed' } }));
+      const mockSignInWithGoogle = vi.fn(() =>
+        Promise.resolve({ error: new Error('Google auth failed') }),
+      );
       vi.mocked(useAuthModule.useAuth).mockReturnValue({
         user: null,
         signInWithGoogle: mockSignInWithGoogle,
@@ -333,11 +398,33 @@ describe('Auth Page', () => {
 
       render(<Auth />);
 
-      const googleButton = screen.getByRole('button', { name: /continue with google/i });
+      const googleButton = screen.getByRole('button', { name: /login with google/i });
       fireEvent.click(googleButton);
 
       await waitFor(() => {
         expect(screen.getByText('Google auth failed')).toBeInTheDocument();
+      });
+    });
+
+    it('passes the signup organization name into Google OAuth', async () => {
+      const mockSignInWithGoogle = vi.fn(() => Promise.resolve({ error: null }));
+      vi.mocked(useAuthModule.useAuth).mockReturnValue({
+        user: null,
+        signInWithGoogle: mockSignInWithGoogle,
+        isLoading: false,
+        session: null,
+        signUp: vi.fn(),
+        signIn: vi.fn(),
+        signOut: vi.fn()
+      });
+
+      mockLocation.search = '?mode=signup';
+      render(<Auth />);
+
+      fireEvent.click(screen.getByRole('button', { name: /sign up with google/i }));
+
+      await waitFor(() => {
+        expect(mockSignInWithGoogle).toHaveBeenCalledWith({ organizationName: 'Fleet Co' });
       });
     });
   });

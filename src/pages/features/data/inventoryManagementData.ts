@@ -16,22 +16,22 @@ export type Screenshot = ImageScreenshot;
 export const heroIcon = Warehouse;
 
 export const content: FeaturePageContent = {
-  benefitsTitle: 'Why Use Inventory Management?',
+  benefitsTitle: 'Parts on hand before the job starts',
   benefitsDescription:
-    'Keep parts organized, avoid stockouts, and ensure the right components are available when your technicians need them. Full visibility and audit trails for every transaction.',
-  capabilitiesTitle: 'Key Capabilities',
+    'Track stock, receipts, and issues. Link parts to machines so techs pull the right item on the work order.',
+  capabilitiesTitle: 'What inventory tracks',
   capabilitiesDescription:
-    'Everything you need to manage parts and supplies: catalog, transactions, compatibility, and alerts—all in one place.',
-  stepsTitle: 'How It Works',
+    'Catalog, transactions, compatibility, and low-stock alerts in one place.',
+  stepsTitle: 'How it works',
   stepsDescription:
-    'Inventory Management fits into your existing workflow—from receiving parts to consuming them on work orders.',
+    'Receive parts, issue them on a work order, and reorder when stock drops.',
   stepsClassName: 'bg-muted/30',
-  showcaseTitle: 'See Inventory Management in Action',
-  showcaseDescription: "Here's what Inventory Management looks like in the EquipQR™ app.",
-  ctaTitle: 'Ready to Organize Your Parts & Supplies?',
+  showcaseTitle: 'Parts inventory',
+  showcaseDescription: 'Stock levels, thresholds, and transaction history on each item.',
+  ctaTitle: 'Add the first parts',
   ctaDescription:
-    'Start using Inventory Management today—completely free. Create your account and begin tracking stock right away.',
-  ctaPrimaryText: 'Start Using Inventory Management Free',
+    'Create a free account and start tracking stock on the next job.',
+  ctaPrimaryText: 'Add the first parts',
 };
 
 export const capabilities: Capability[] = [
@@ -42,7 +42,7 @@ export const capabilities: Capability[] = [
   },
   {
     name: 'Transaction History',
-    description: 'Track every receipt, issue, and adjustment with full audit trail. Know who moved what and when.',
+    description: 'Track every receipt, issue, and adjustment with a full audit trail. Know who moved what and when.',
     icon: History,
   },
   {
@@ -52,7 +52,7 @@ export const capabilities: Capability[] = [
   },
   {
     name: 'Low Stock Alerts',
-    description: 'Set minimum quantities and get notified when stock falls below threshold. Never run out of critical parts.',
+    description: 'Set minimum quantities and get notified when stock falls below threshold. Reorder before the next job stalls.',
     icon: AlertTriangle,
   },
   {
@@ -66,8 +66,8 @@ export const benefits: Benefit[] = [
   {
     icon: PackageCheck,
     iconColor: 'success',
-    title: 'Real-Time Stock Levels',
-    subtitle: 'Always know what\'s on hand',
+    title: 'What is on the shelf',
+    subtitle: 'Receipts, issues, and current qty',
     description:
       'Track quantities across locations with every receipt, issue, and adjustment recorded. View current stock at a glance and drill into transaction history for any item.',
     benefits: ['Live quantity updates', 'Transaction audit trail', 'Multi-location support'],
@@ -77,16 +77,16 @@ export const benefits: Benefit[] = [
     icon: AlertTriangle,
     iconColor: 'warning',
     title: 'Low Stock Alerts',
-    subtitle: 'Never run out of critical parts',
+    subtitle: 'Reorder before the job stalls',
     description:
-      'Set minimum quantities per item and get notified when stock falls below threshold. Proactively reorder before downtime—integrate with your replenishment workflow.',
+      'Set minimum quantities per item and get notified when stock falls below threshold. Reorder before downtime. Hook the alert into your replenishment workflow.',
     benefits: ['Custom thresholds', 'In-app notifications', 'Reorder visibility'],
     benefitColor: 'warning',
   },
   {
     icon: Link2,
     iconColor: 'info',
-    title: 'Equipment Compatibility',
+    title: 'Which parts fit this machine',
     subtitle: 'Link parts to equipment',
     description:
       'Define which parts fit which equipment via compatibility rules. Technicians see only relevant inventory when working on a unit, and work orders can consume linked parts with one click.',
@@ -118,14 +118,14 @@ export const steps: Step[] = [
     number: 4,
     title: 'Stay Ahead of Stockouts',
     description:
-      'Rely on low-stock alerts to reorder before you run out. View dashboards and reports to analyze usage patterns and optimize replenishment.',
+      'Rely on low-stock alerts to reorder before you run out. View dashboards and reports to analyze usage patterns and plan replenishment.',
   },
 ];
 
 export const showcases: Screenshot[] = [
   {
     kind: 'image',
-    imageUrl: landingImage('inventory-list-2026-04.png'),
+    imageUrl: landingImage('inventory-list-2026-04.webp'),
     imageAlt: 'Inventory list view showing parts with stock levels, SKUs, and low stock indicators',
     title: 'Inventory List View',
     description:
@@ -133,7 +133,7 @@ export const showcases: Screenshot[] = [
   },
   {
     kind: 'image',
-    imageUrl: landingImage('inventory-item-detail-2026-04.png'),
+    imageUrl: landingImage('inventory-item-detail-2026-04.webp'),
     imageAlt: 'Inventory item detail page showing stock quantity, threshold, unit cost, and transaction history tabs',
     title: 'Item Detail & Stock Information',
     description:

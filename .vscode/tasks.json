@@ -10,7 +10,7 @@
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        "${workspaceFolder}\\dev-start.ps1",
+        "${workspaceFolder}\\dev\\dev-start.ps1",
         "-PrepareOnly"
       ],
       "presentation": {
@@ -30,7 +30,7 @@
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        "${workspaceFolder}\\scripts\\dev-edge-functions.ps1"
+        "${workspaceFolder}\\dev\\dev-edge-functions.ps1"
       ],
       "isBackground": true,
       "presentation": {
@@ -60,7 +60,7 @@
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        "${workspaceFolder}\\scripts\\dev-docs.ps1"
+        "${workspaceFolder}\\dev\\dev-docs.ps1"
       ],
       "isBackground": true,
       "presentation": {
@@ -90,7 +90,7 @@
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        "${workspaceFolder}\\scripts\\dev-vite.ps1"
+        "${workspaceFolder}\\dev\\dev-vite.ps1"
       ],
       "isBackground": true,
       "presentation": {
@@ -131,7 +131,7 @@
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        "${workspaceFolder}\\dev-start.ps1",
+        "${workspaceFolder}\\dev\\dev-start.ps1",
         "-Force"
       ],
       "presentation": {
@@ -151,7 +151,7 @@
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        "${workspaceFolder}\\dev-stop.ps1"
+        "${workspaceFolder}\\dev\\dev-stop.ps1"
       ],
       "presentation": {
         "panel": "dedicated",
@@ -170,7 +170,7 @@
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        "${workspaceFolder}\\dev-stop.ps1",
+        "${workspaceFolder}\\dev\\dev-stop.ps1",
         "-Force"
       ],
       "presentation": {
@@ -190,7 +190,7 @@
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        "${workspaceFolder}\\scripts\\stop-dev-and-e2e.ps1"
+        "${workspaceFolder}\\dev\\stop-dev-and-e2e.ps1"
       ],
       "presentation": {
         "panel": "dedicated",
@@ -209,7 +209,7 @@
         "-ExecutionPolicy",
         "Bypass",
         "-File",
-        "${workspaceFolder}\\scripts\\stop-dev-and-e2e.ps1",
+        "${workspaceFolder}\\dev\\stop-dev-and-e2e.ps1",
         "-Force"
       ],
       "presentation": {
@@ -224,7 +224,7 @@
       "label": "EquipQR: E2E Critical (headless)",
       "type": "shell",
       "command": "cmd",
-      "args": ["/c", "${workspaceFolder}\\dev-test.bat"],
+      "args": ["/c", "${workspaceFolder}\\dev\\dev-test.bat"],
       "options": { "cwd": "${workspaceFolder}" },
       "presentation": {
         "panel": "dedicated",
@@ -238,7 +238,7 @@
       "label": "EquipQR: E2E Full (headless)",
       "type": "shell",
       "command": "cmd",
-      "args": ["/c", "${workspaceFolder}\\dev-test.bat", "full"],
+      "args": ["/c", "${workspaceFolder}\\dev\\dev-test.bat", "full"],
       "options": { "cwd": "${workspaceFolder}" },
       "presentation": {
         "panel": "dedicated",
@@ -252,7 +252,7 @@
       "label": "EquipQR: E2E Critical (headed)",
       "type": "shell",
       "command": "cmd",
-      "args": ["/c", "${workspaceFolder}\\dev-test.bat", "headed"],
+      "args": ["/c", "${workspaceFolder}\\dev\\dev-test.bat", "headed"],
       "options": { "cwd": "${workspaceFolder}" },
       "presentation": {
         "panel": "dedicated",
@@ -266,7 +266,7 @@
       "label": "EquipQR: E2E Critical Watch",
       "type": "shell",
       "command": "cmd",
-      "args": ["/c", "${workspaceFolder}\\dev-test.bat", "watch"],
+      "args": ["/c", "${workspaceFolder}\\dev\\dev-test.bat", "watch"],
       "options": { "cwd": "${workspaceFolder}" },
       "presentation": {
         "panel": "dedicated",
@@ -280,7 +280,7 @@
       "label": "EquipQR: E2E Full Watch",
       "type": "shell",
       "command": "cmd",
-      "args": ["/c", "${workspaceFolder}\\dev-test.bat", "full", "watch"],
+      "args": ["/c", "${workspaceFolder}\\dev\\dev-test.bat", "full", "watch"],
       "options": { "cwd": "${workspaceFolder}" },
       "presentation": {
         "panel": "dedicated",
@@ -296,7 +296,7 @@
       "command": "cmd",
       "args": [
         "/c",
-        "${workspaceFolder}\\dev-test.bat",
+        "${workspaceFolder}\\dev\\dev-test.bat",
         "full",
         "watch",
         "record",
@@ -315,7 +315,7 @@
       "label": "EquipQR: E2E Support Record",
       "type": "shell",
       "command": "cmd",
-      "args": ["/c", "${workspaceFolder}\\dev-test.bat", "support-record"],
+      "args": ["/c", "${workspaceFolder}\\dev\\dev-test.bat", "support-record"],
       "options": { "cwd": "${workspaceFolder}" },
       "presentation": {
         "panel": "dedicated",
@@ -331,7 +331,7 @@
       "command": "cmd",
       "args": [
         "/c",
-        "${workspaceFolder}\\dev-test.bat",
+        "${workspaceFolder}\\dev\\dev-test.bat",
         "full",
         "mobile",
         "watch",
@@ -351,7 +351,7 @@
       "label": "EquipQR: E2E Critical Reset DB",
       "type": "shell",
       "command": "cmd",
-      "args": ["/c", "${workspaceFolder}\\dev-test.bat", "reset-db"],
+      "args": ["/c", "${workspaceFolder}\\dev\\dev-test.bat", "reset-db"],
       "options": { "cwd": "${workspaceFolder}" },
       "presentation": {
         "panel": "dedicated",
@@ -365,7 +365,7 @@
       "label": "EquipQR: E2E Inspector (Playwright debug)",
       "type": "shell",
       "command": "cmd",
-      "args": ["/c", "${workspaceFolder}\\dev-test.bat", "inspector"],
+      "args": ["/c", "${workspaceFolder}\\dev\\dev-test.bat", "inspector"],
       "options": { "cwd": "${workspaceFolder}" },
       "presentation": {
         "panel": "dedicated",

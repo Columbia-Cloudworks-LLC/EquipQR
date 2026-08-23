@@ -3,49 +3,49 @@ import { landingImage } from '@/lib/landingImage';
 import type { Benefit, FeaturePageContent, ImageScreenshot, Step } from './featurePageTypes';
 
 export const content: FeaturePageContent = {
-  benefitsTitle: 'Why Use Team Collaboration?',
+  benefitsTitle: 'Each crew sees only their machines',
   benefitsDescription:
-    'Give each team a dedicated view of equipment and work orders. Control who sees what with roles and permissions, and balance workload across your org.',
-  stepsTitle: 'How It Works',
-  stepsDescription: 'Teams connect people, equipment, and work orders in one place.',
-  showcaseTitle: 'See Team Collaboration in Action',
-  showcaseDescription: "Here's what teams and permissions look like in the EquipQR™ app.",
+    'Give each team a view of its equipment and work orders. Roles decide who edits and who only looks.',
+  stepsTitle: 'How it works',
+  stepsDescription: 'Create a team, assign machines and jobs, watch the load.',
+  showcaseTitle: 'Teams and roles',
+  showcaseDescription: 'Org teams, member counts, and Manager / Technician / Requestor / Viewer roles.',
   showcaseClassName: 'bg-muted/30',
-  ctaTitle: 'Ready to Organize Your Teams?',
+  ctaTitle: 'Create the first team',
   ctaDescription:
-    'Start using Team Collaboration today—completely free. Create your account, set up teams, and distribute work with clear visibility and control.',
-  ctaPrimaryText: 'Start Using Teams Free',
+    'Create a free account, add a team, and put the first machines on it.',
+  ctaPrimaryText: 'Create the first team',
 };
 
 export const benefits: Benefit[] = [
   {
     icon: Users,
     iconColor: 'success',
-    title: 'Cross-Organizational Teams',
-    subtitle: 'One workspace, many teams',
+    title: 'Crews with their own machines',
+    subtitle: 'Location, trade, or customer',
     description:
-      "Create teams that span your organization or map to locations, divisions, or crews. Assign equipment and work orders to teams so members see only what's relevant to them.",
-    benefits: ['Team-scoped equipment', 'Team-scoped work orders', 'Flexible structure'],
+      'Create teams that match how the shop actually runs. Assign equipment and work orders so members see only their machines.',
+    benefits: ['Team-scoped equipment', 'Team-scoped work orders'],
     benefitColor: 'success',
   },
   {
     icon: Shield,
     iconColor: 'info',
-    title: 'Role-Based Permissions',
-    subtitle: 'Control access by role',
+    title: 'Roles that match the floor',
+    subtitle: 'Manager, technician, requestor, viewer',
     description:
-      'Assign admin, member, or viewer roles at the organization and team level. Admins manage settings and members; members perform work; viewers see read-only data.',
+      'Assign admin, member, or viewer roles at the organization and team level. Admins manage settings and members. Members perform work. Viewers see read-only data.',
     benefits: ['Org and team roles', 'Invite and manage members', 'Secure by default'],
     benefitColor: 'info',
   },
   {
     icon: BarChart2,
     iconColor: 'warning',
-    title: 'Workload Balancing',
-    subtitle: 'Distribute work fairly',
+    title: 'Who is overloaded',
+    subtitle: 'See load, then reassign',
     description:
-      'See how work is distributed across teams and technicians. Use dashboards and filters to identify overloaded assignees and reassign or rebalance as needed.',
-    benefits: ['Team dashboards', 'Assignee visibility', 'Performance insights'],
+      'See how work is spread across teams and technicians. Filters show overloaded assignees so you can reassign.',
+    benefits: ['Team dashboards', 'Assignee load'],
     benefitColor: 'warning',
   },
 ];
@@ -55,7 +55,7 @@ export const steps: Step[] = [
     number: 1,
     title: 'Create Teams',
     description:
-      'Create teams that match your structure—by location, trade, or project. Add members and assign roles. Each team can have its own equipment and work order scope.',
+      'Create teams that match your structure, by location, trade, or project. Add members and assign roles. Each team can have its own equipment and work order scope.',
   },
   {
     number: 2,
@@ -73,14 +73,14 @@ export const steps: Step[] = [
     number: 4,
     title: 'Track & Rebalance',
     description:
-      'Monitor completion rates, overdue work, and assignee load. Reassign work or adjust team scope as needed. Use fleet efficiency and dashboard metrics to optimize allocation.',
+      'Monitor completion rates, overdue work, and assignee load. Reassign work or adjust team scope as needed. Use fleet efficiency and dashboard metrics to rebalance allocation.',
   },
 ];
 
 export const showcases: ImageScreenshot[] = [
   {
     kind: 'image',
-    imageUrl: landingImage('teams-list-2026-04.png'),
+    imageUrl: landingImage('teams-list-2026-04.webp'),
     imageAlt: 'Teams list showing all teams with member counts and roles',
     title: 'Organization Teams',
     description:
@@ -88,11 +88,11 @@ export const showcases: ImageScreenshot[] = [
   },
   {
     kind: 'image',
-    imageUrl: landingImage('team-detail-2026-04.png'),
+    imageUrl: landingImage('team-detail-2026-04.webp'),
     imageAlt: 'Team detail page showing role assignments for team members',
     title: 'Role-Based Team Access',
     description:
-      'Assign each team member a role — Manager, Technician, Requestor, or Viewer. Managers oversee the team and handle work order flow; Technicians perform and log work; Requestors submit work order requests directly from a QR scan; Viewers get read-only access. Every action is attributed by role so you always know who did what.',
+      'Assign each team member a role. Manager, Technician, Requestor, or Viewer. Managers oversee the team and handle work order flow. Technicians perform and log work. Requestors submit work order requests directly from a QR scan. Viewers get read-only access. Every action is attributed by role so you always know who did what.',
   },
 ];
 

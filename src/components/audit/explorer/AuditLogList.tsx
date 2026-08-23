@@ -155,7 +155,7 @@ function AuditListRow({
         style={{ backgroundColor: ACTION_SEVERITY_COLOR[entry.action] }}
         aria-hidden="true"
       />
-      <span className="font-mono tabular-nums text-[11px] text-muted-foreground min-w-[110px] shrink-0">
+      <span className="font-mono tabular-nums text-[11px] text-muted-foreground min-w-27.5 shrink-0">
         {createdAtLabel}
       </span>
       <Badge
@@ -170,10 +170,10 @@ function AuditListRow({
       >
         {entry.actionLabel}
       </Badge>
-      <span className="font-medium truncate min-w-0 basis-[180px]">
+      <span className="font-medium truncate min-w-0 basis-45">
         {entry.entity_name ?? 'Unknown'}
       </span>
-      <span className="text-muted-foreground truncate min-w-0 basis-[120px]">
+      <span className="text-muted-foreground truncate min-w-0 basis-30">
         {entry.actor_name}
       </span>
       <span className="text-muted-foreground/80 truncate min-w-0 flex-1">
@@ -212,7 +212,7 @@ export function AuditLogList({
   );
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const listRef = useListRef();
+  const listRef = useListRef(null);
 
   const scrollVirtualToIndex = useCallback(
     (index: number) => {

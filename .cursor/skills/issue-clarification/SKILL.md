@@ -23,7 +23,7 @@ The user must provide an existing issue. If the user does not provide a valid is
 Prefer a connected GitHub integration (MCP or equivalent) when available to fetch issue JSON. Otherwise use the local CLI fallback:
 
 ```powershell
-.\scripts\itil\Get-ItilIssueContext.ps1 -Issue "<number-or-url>" -Json
+.\dev\itil\Get-ItilIssueContext.ps1 -Issue "<number-or-url>" -Json
 ```
 
 Or:
@@ -205,13 +205,13 @@ Write the complete proposed **new title** and **full body** to a persistent draf
 
 2. Then the five `<details>` / `<summary>` sections with these exact summary labels and default states:
 
-| Section | Default state |
-| --- | --- |
-| Original Issue Body | collapsed (omit `open`) |
-| Affected User(s) | expanded (`open`) |
-| Problem Statement | expanded (`open`) |
-| Success Criteria | expanded (`open`) |
-| Documented Findings | expanded (`open`) |
+   | Section | Default state |
+   | --- | --- |
+   | Original Issue Body | collapsed (omit `open`) |
+   | Affected User(s) | expanded (`open`) |
+   | Problem Statement | expanded (`open`) |
+   | Success Criteria | expanded (`open`) |
+   | Documented Findings | expanded (`open`) |
 
 3. Preserve the prior issue body **verbatim** inside Original Issue Body (before any clarification rewrite).
 

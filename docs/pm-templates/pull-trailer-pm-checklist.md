@@ -4,7 +4,7 @@
 **Total Items:** 51  
 **Sections:** 9
 
-This document contains the complete pull trailer preventative maintenance checklist with all sections, items, and descriptions.
+51 items. Default EquipQR template for pull trailers.
 
 ---
 

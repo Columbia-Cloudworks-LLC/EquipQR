@@ -67,10 +67,10 @@ If you have 1Password access for EquipQR, use it as the default setup path.
 op --version
 
 # Start the full local stack (prompts for 1Password auth early)
-.\dev-start.bat
+.\dev\dev-start.bat
 
 # Optional: refresh Cursor MCP config only (restart Cursor afterwards)
-.\dev-setup-cursor-mcp.bat
+.\dev\dev-setup-cursor-mcp.bat
 ```
 
 If you do not have 1Password access, use the manual fallback:
@@ -96,7 +96,7 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 Preferred:
 
 ```powershell
-.\dev-start.bat
+.\dev\dev-start.bat
 ```
 
 Manual fallback (when not using full local stack automation):
@@ -137,7 +137,7 @@ Visit `http://localhost:8080` to see the application running!
    ```
 
 3. **Configure local environment**:
-   - Preferred: run `.\dev-start.bat` and let it sync env files automatically (including 1Password-backed sync when available)
+   - Preferred: run `.\dev\dev-start.bat` and let it sync env files automatically (including 1Password-backed sync when available)
    - Manual fallback: create `.env.local` with local Supabase credentials from `npx supabase status`
    - Use local Supabase URL from `supabase/config.toml` or `npx supabase status` (default: `http://localhost:54321`)
 

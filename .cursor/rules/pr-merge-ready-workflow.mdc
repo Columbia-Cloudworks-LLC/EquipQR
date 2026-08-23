@@ -40,9 +40,9 @@ Implement with focused commits. Run Fallow before each commit per `fallow-before
 Run in order:
 
 1. Fallow (both scans)
-2. **`npm ci --prefer-offline --no-audit`** when lockfile/deps changed or before first PR open — on Windows, run `.\dev-stop.bat` first if EPERM/EBUSY is possible (`dev-stack-lifecycle.mdc`). Linux CI is authoritative if local `npm ci` is blocked by file locks after a successful prior install.
+2. **`npm ci --prefer-offline --no-audit`** when lockfile/deps changed or before first PR open — on Windows, run `.\dev\dev-stop.bat` first if EPERM/EBUSY is possible (`dev-stack-lifecycle.mdc`). Linux CI is authoritative if local `npm ci` is blocked by file locks after a successful prior install.
 3. `npm run lint`, `npm run type-check`, `npm run test:ci`, `npm run build`, `npm run verify:spa-routing` when applicable
-4. Ensure stack healthy via batch files (`dev-stack-lifecycle.mdc`); use `.\dev-start.bat -Force` when migrations/seeds affect E2E
+4. Ensure stack healthy via batch files (`dev-stack-lifecycle.mdc`); use `.\dev\dev-start.bat -Force` when migrations/seeds affect E2E
 5. Local E2E / PR evidence capture per `local-verify-before-preview-push.mdc` and `pr-visual-evidence.mdc`
 
 ## Phase 3 — Open PR
@@ -57,7 +57,7 @@ Day-to-day feature/fix PR:
 
 ```powershell
 gh pr create --base preview --head feat/<short-slug> --title "<conventional title>" --body-file "$env:TEMP\pr-<slug>-body.md"
-.\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts" -PrNumber <num> -Publish
+.\dev\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts" -PrNumber <num> -Publish
 ```
 
 Release / promote PR (`preview` → `main` or `chore/release-v*`):
@@ -84,7 +84,7 @@ Poll after green CI on latest push:
 
 ```powershell
 Start-Sleep -Seconds 90
-.\scripts\pr-feedback\Get-PrQodoFindings.ps1 -PullRequestNumber <num> -Json
+.\dev\pr-feedback\Get-PrQodoFindings.ps1 -PullRequestNumber <num> -Json
 ```
 
 Wait until `reviewInProgress: false`, then until `openCount: 0`. Address **every** unstriked finding in all three buckets — not only "action required." Push fixes, re-watch CI, re-poll Qodo.
@@ -92,7 +92,7 @@ Wait until `reviewInProgress: false`, then until `openCount: 0`. Address **every
 ### 4c — Inline threads
 
 ```powershell
-.\scripts\pr-feedback\Get-PrFeedbackThreads.ps1 -PullRequestNumber <num> -Json
+.\dev\pr-feedback\Get-PrFeedbackThreads.ps1 -PullRequestNumber <num> -Json
 ```
 
 Resolve or reply; push code fixes when needed. Audit resolved threads for regressions from post-open commits.
@@ -100,9 +100,9 @@ Resolve or reply; push code fixes when needed. Audit resolved threads for regres
 ### 4d — Final snapshot
 
 ```powershell
-.\scripts\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <num> -Json
-.\scripts\pr-feedback\Get-PrQodoFindings.ps1 -PullRequestNumber <num> -Json
-.\scripts\pr-feedback\Get-PrFeedbackThreads.ps1 -PullRequestNumber <num> -Json
+.\dev\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <num> -Json
+.\dev\pr-feedback\Get-PrQodoFindings.ps1 -PullRequestNumber <num> -Json
+.\dev\pr-feedback\Get-PrFeedbackThreads.ps1 -PullRequestNumber <num> -Json
 gh pr view <num> --json mergeable,mergeStateStatus,url
 ```
 
@@ -110,7 +110,7 @@ Post a merge-ready handoff comment citing CI run URL, Qodo parent comment URL wi
 
 ## Fix-forward patterns (from production PRs)
 
-- **Migration validator:** register RPCs in `scripts/security-definer-rpc-allowlists.json`; add `-- rpc-authenticated-grant-allowed:` markers per function.
+- **Migration validator:** register RPCs in `dev/security-definer-rpc-allowlists.json`; add `-- rpc-authenticated-grant-allowed:` markers per function.
 - **CodeQL:** fix findings on changed files; avoid dynamic `RegExp` construction from user/path input in E2E specs when a literal pattern suffices.
 - **Qodo product bugs:** implement fix, push, wait for strikethrough — do not hand off with open items.
 - **E2E fixture drift:** reset idempotent test org state (e.g. `e2e/user/shared/fresh-start-reset.ts`) before evidence capture; ensure seed cleanup allowlists include fixture orgs.

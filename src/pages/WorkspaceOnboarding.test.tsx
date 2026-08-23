@@ -180,22 +180,29 @@ describe('WorkspaceOnboarding', () => {
     });
     mockGenerateAuthUrl.mockResolvedValue('https://accounts.google.com/o/oauth2/v2/auth?...');
 
-    // Mock window.location.href setter
     const originalLocation = window.location;
-    delete (window as { location?: Location }).location;
-    window.location = { ...originalLocation, href: '' } as Location;
-
-    customRender(<WorkspaceOnboarding />);
-
-    const button = screen.getByRole('button', { name: /connect google workspace/i });
-    fireEvent.click(button);
-
-    await waitFor(() => {
-      expect(mockGenerateAuthUrl).toHaveBeenCalled();
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      writable: true,
+      value: { ...originalLocation, href: '' },
     });
 
-    // Restore
-    window.location = originalLocation;
+    try {
+      customRender(<WorkspaceOnboarding />);
+
+      const button = screen.getByRole('button', { name: /connect google workspace/i });
+      fireEvent.click(button);
+
+      await waitFor(() => {
+        expect(mockGenerateAuthUrl).toHaveBeenCalled();
+      });
+    } finally {
+      Object.defineProperty(window, 'location', {
+        configurable: true,
+        writable: true,
+        value: originalLocation,
+      });
+    }
   });
 
   it('shows sync and member selection for connected workspace', () => {

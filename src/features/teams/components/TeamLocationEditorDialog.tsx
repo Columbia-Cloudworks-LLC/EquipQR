@@ -18,7 +18,7 @@ import {
 } from '@/features/teams/utils/teamLocationUtils';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
-import { useIsDarkTheme } from '@/hooks/useThemeVersion';
+import { useIsDarkTheme, useThemeVersion } from '@/hooks/useThemeVersion';
 import { useToast } from '@/hooks/use-toast';
 
 type TeamLocationEditorDialogProps = {
@@ -35,7 +35,8 @@ export function TeamLocationEditorDialog({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { isLoaded: isPlacesLoaded } = useGoogleMapsLoader();
-  const isDark = useIsDarkTheme();
+  const themeVersion = useThemeVersion();
+  const isDark = useIsDarkTheme(themeVersion);
   const { googleMapsKey, mapId } = useGoogleMapsKey();
   const [isSaving, setIsSaving] = useState(false);
 
@@ -69,7 +70,7 @@ export function TeamLocationEditorDialog({
         updates.location_lng = editor.pendingPlace.lng ?? null;
       }
 
-      await updateTeam(team.id, updates);
+      await updateTeam(team.id, updates, team.organization_id);
       await queryClient.invalidateQueries({ queryKey: ['team', team.id] });
       await queryClient.invalidateQueries({ queryKey: ['teams'] });
 
@@ -87,7 +88,7 @@ export function TeamLocationEditorDialog({
     } finally {
       setIsSaving(false);
     }
-  }, [editor.isCleared, editor.pendingPlace, onOpenChange, queryClient, team.id, toast]);
+  }, [editor.isCleared, editor.pendingPlace, onOpenChange, queryClient, team.id, team.organization_id, toast]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -111,7 +112,7 @@ export function TeamLocationEditorDialog({
           recenterKey={editor.recenterKey}
           onCenterChange={editor.handleMapCenterChange}
           googleMapsKey={googleMapsKey}
-          mapId={mapId}
+          mapId={mapId ?? undefined}
           isDark={isDark}
           isLiveCaptureOpen={editor.isLiveCaptureOpen}
           onLiveCaptureOpenChange={editor.setIsLiveCaptureOpen}

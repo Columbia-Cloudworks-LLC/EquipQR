@@ -22,7 +22,7 @@
  *    schema-incompatible build).
  */
 
-import { get, set, del, keys, delMany } from 'idb-keyval';
+import { get, set, del } from 'idb-keyval';
 import { experimental_createQueryPersister } from '@tanstack/react-query-persist-client';
 import type { Query } from '@tanstack/react-query';
 
@@ -115,20 +115,6 @@ type ScopedQueryPersister = ReturnType<typeof experimental_createQueryPersister<
 let cachedPersisterKey: string | null = null;
 let cachedPersister: ScopedQueryPersister | null = null;
 
-/** The IndexedDB key under which the persister writes its serialized cache. */
-function persistenceKey(scope: PersistenceScope): string {
-  return `equipqr-tanstack-query:${scope.userId}:${scope.orgId}`;
-}
-
-/**
- * Returns the current `<user>:<org>` scope, or `null` when no scope has been
- * announced yet. Components must not assume a scope exists — until the user
- * is authenticated and an organization is selected, persistence is a no-op.
- */
-function getActivePersistenceScope(): PersistenceScope | null {
-  return currentScope;
-}
-
 /**
  * Announce the active scope. Called from `OrganizationContext` once both the
  * authenticated user id and the current organization id are known. Switching
@@ -137,26 +123,6 @@ function getActivePersistenceScope(): PersistenceScope | null {
  */
 export function setActivePersistenceScope(scope: PersistenceScope | null): void {
   currentScope = scope;
-}
-
-/**
- * Drop the persisted cache for a specific scope (used on sign-out).
- * Logs and swallows IDB failures — clearing is best-effort.
- */
-async function clearPersistedCache(scope: PersistenceScope): Promise<void> {
-  const legacyKey = persistenceKey(scope);
-  const persisterKeyPrefix = `equipqr:tq:${scope.userId}:${scope.orgId}`;
-  try {
-    await del(legacyKey);
-    const allKeys = await keys<IDBValidKey>();
-    const scoped = allKeys.filter((k): k is string => {
-      if (typeof k !== 'string') return false;
-      return k === legacyKey || k.startsWith(persisterKeyPrefix);
-    });
-    if (scoped.length) await delMany(scoped);
-  } catch {
-    // best-effort cleanup — IDB unavailable in some contexts
-  }
 }
 
 /**

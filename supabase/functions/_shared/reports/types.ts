@@ -2,11 +2,15 @@
  * Shared types for Fleet Export Console report data access (#1192).
  */
 
-import type { reportTypeSchema } from "../org-scoped-queries.ts";
-import type { z } from "https://esm.sh/zod@4.4.3";
-
-/** CSV export report types served by export-report. */
-export type FleetReportType = z.infer<typeof reportTypeSchema>;
+/** CSV export report types served by export-report (matches `reportTypeSchema`). */
+export type FleetReportType =
+  | "equipment"
+  | "work-orders"
+  | "inventory"
+  | "scans"
+  | "operator-check-ins"
+  | "quick-forms"
+  | "alternate-groups";
 
 export interface ReportExportFilters {
   status?: string;

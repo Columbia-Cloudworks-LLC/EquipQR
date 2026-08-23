@@ -8,9 +8,19 @@ interface TestableCacheManager {
   instance?: CacheManager;
 }
 
+type MockQueryClient = {
+  invalidateQueries: ReturnType<typeof vi.fn>;
+  cancelQueries: ReturnType<typeof vi.fn>;
+  getQueryData: ReturnType<typeof vi.fn>;
+  setQueryData: ReturnType<typeof vi.fn>;
+  getQueryCache: ReturnType<typeof vi.fn>;
+  removeQueries: ReturnType<typeof vi.fn>;
+  clear: ReturnType<typeof vi.fn>;
+};
+
 describe('CacheManager', () => {
   let cacheManager: CacheManager;
-  let mockQueryClient: QueryClient;
+  let mockQueryClient: MockQueryClient;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -18,7 +28,6 @@ describe('CacheManager', () => {
     // Reset singleton instance
     (CacheManager as unknown as TestableCacheManager).instance = undefined;
     
-    // Create mock query client
     mockQueryClient = {
       invalidateQueries: vi.fn(),
       cancelQueries: vi.fn(),
@@ -29,10 +38,10 @@ describe('CacheManager', () => {
       })),
       removeQueries: vi.fn(),
       clear: vi.fn(),
-    } as unknown as QueryClient;
+    };
 
     cacheManager = CacheManager.getInstance();
-    cacheManager.setQueryClient(mockQueryClient);
+    cacheManager.setQueryClient(mockQueryClient as unknown as QueryClient);
   });
 
   describe('singleton pattern', () => {

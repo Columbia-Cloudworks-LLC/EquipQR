@@ -6,7 +6,11 @@
 
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
+
+function invokeMock<TReturn>(mockFn: (...args: never[]) => TReturn, args: unknown[]): TReturn {
+  return (mockFn as (...mockArgs: unknown[]) => TReturn)(...args);
+}
 
 // Mock the feature flags
 vi.mock('@/lib/flags', () => ({
@@ -31,7 +35,7 @@ const mockUseQuickBooksAccess = vi.fn(() => ({
 }));
 
 vi.mock('@/hooks/useQuickBooksAccess', () => ({
-  useQuickBooksAccess: (...args: unknown[]) => mockUseQuickBooksAccess(...args),
+  useQuickBooksAccess: (...args: unknown[]) => invokeMock(mockUseQuickBooksAccess, args),
 }));
 
 // Mock the QuickBooks service
@@ -39,11 +43,11 @@ const mockGetConnectionStatus = vi.fn();
 const mockResolveQuickBooksCustomerId = vi.fn();
 
 vi.mock('@/services/quickbooks', () => ({
-  getConnectionStatus: (...args: unknown[]) => mockGetConnectionStatus(...args),
+  getConnectionStatus: (...args: unknown[]) => invokeMock(mockGetConnectionStatus, args),
 }));
 
 vi.mock('@/features/teams/services/customerAccountService', () => ({
-  resolveQuickBooksCustomerId: (...args: unknown[]) => mockResolveQuickBooksCustomerId(...args),
+  resolveQuickBooksCustomerId: (...args: unknown[]) => invokeMock(mockResolveQuickBooksCustomerId, args),
 }));
 
 // Mock the export hook
@@ -57,17 +61,22 @@ const mockUseExportToQuickBooks = vi.fn(() => ({
   error: null,
   data: undefined,
 }));
+type LastExportMockData = Pick<
+  QuickBooksExportLog,
+  'quickbooks_invoice_id' | 'quickbooks_invoice_number' | 'quickbooks_environment'
+> | null;
+
 const mockUseQuickBooksLastExport = vi.fn(() => ({
-  data: null,
+  data: null as LastExportMockData,
 }));
 const mockUseQuickBooksExportLogs = vi.fn(() => ({
-  data: [],
+  data: [] as QuickBooksExportLog[],
 }));
 
 vi.mock('@/hooks/useExportToQuickBooks', () => ({
-  useExportToQuickBooks: (...args: unknown[]) => mockUseExportToQuickBooks(...args),
-  useQuickBooksLastExport: (...args: unknown[]) => mockUseQuickBooksLastExport(...args),
-  useQuickBooksExportLogs: (...args: unknown[]) => mockUseQuickBooksExportLogs(...args),
+  useExportToQuickBooks: (...args: unknown[]) => invokeMock(mockUseExportToQuickBooks, args),
+  useQuickBooksLastExport: (...args: unknown[]) => invokeMock(mockUseQuickBooksLastExport, args),
+  useQuickBooksExportLogs: (...args: unknown[]) => invokeMock(mockUseQuickBooksExportLogs, args),
 }));
 
 // Mock toast
@@ -80,15 +89,21 @@ vi.mock('sonner', () => ({
 
 import { QuickBooksExportButton } from '@/features/work-orders/components/QuickBooksExportButton';
 import { isQuickBooksEnabled } from '@/lib/flags';
+import type { QuickBooksExportLog } from '@/services/quickbooks/quickbooksService';
 import { renderWithQuickBooksProviders } from '@/services/quickbooks/quickbooksTestUtils';
 
-const renderComponent = (props = {
+type QuickBooksExportButtonProps = React.ComponentProps<typeof QuickBooksExportButton>;
+
+const defaultExportButtonProps: QuickBooksExportButtonProps = {
   workOrderId: 'wo-123',
   teamId: 'team-456',
-  workOrderStatus: 'completed' as const,
+  workOrderStatus: 'completed',
   asMenuItem: false,
   showStatusDetails: false,
-}) => renderWithQuickBooksProviders(<QuickBooksExportButton {...props} />);
+};
+
+const renderComponent = (props: Partial<QuickBooksExportButtonProps> = {}) =>
+  renderWithQuickBooksProviders(<QuickBooksExportButton {...defaultExportButtonProps} {...props} />);
 
 describe('QuickBooksExportButton Component', () => {
   beforeEach(() => {

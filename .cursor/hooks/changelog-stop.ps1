@@ -3,7 +3,8 @@
 # Behavior:
 # - Runs when the Cursor agent loop ends.
 # - If the session completed and the repo has relevant changes without a
-#   corresponding CHANGELOG.md update, it auto-submits a follow-up prompt.
+#   CHANGELOG.md update, it asks for one short [Unreleased] bullet or an
+#   explicit no-user-visible-change justification (.cursor/rules/changelog.mdc).
 # - Ignores docs and Cursor metadata so plan-only or tooling-only sessions
 #   do not trigger unnecessary changelog nags.
 
@@ -75,7 +76,7 @@ $relevantFiles = $changedFiles | Where-Object {
     $_ -ne 'AGENTS.md' -and
     $_ -notmatch '^\.cursor/' -and
     $_ -notmatch '^docs/' -and
-    $_ -notmatch '^scripts/mcp\.template\.json$' -and
+    $_ -notmatch '^dev/mcp\.template\.json$' -and
     $_ -notmatch '^(README|CONTRIBUTING|SUPPORT|SECURITY)\.md$'
 }
 
@@ -92,9 +93,9 @@ if ($remainingCount -gt 0) {
 }
 
 $followupMessage = if ($loopCount -eq 0) {
-    "Before you wrap up, update CHANGELOG.md to reflect this session's changes. Relevant modified files: $previewText. If no changelog entry is needed, explain that explicitly in your final response."
+    "If this session changed something customers, operators, or integrators can see, add one short Keep a Changelog bullet under CHANGELOG.md [Unreleased] per .cursor/rules/changelog.mdc. Relevant modified files: $previewText. If there is no user-visible change, say that explicitly and skip a long write-up."
 } else {
-    "CHANGELOG.md is still unchanged even though this session modified: $previewText. Update CHANGELOG.md now, or explicitly justify why no changelog entry is needed before ending the session."
+    "CHANGELOG.md is still unchanged. Relevant modified files: $previewText. Add one short [Unreleased] bullet if the change is user, operator, or integrator visible (.cursor/rules/changelog.mdc). If not, say that explicitly and stop."
 }
 
 $response = @{

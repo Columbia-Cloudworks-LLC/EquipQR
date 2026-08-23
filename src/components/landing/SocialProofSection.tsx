@@ -44,7 +44,7 @@ const SocialProofSection = () => {
             <span className="text-sm font-medium text-muted-foreground">Trusted by teams at</span>
             <div className="flex items-center gap-3">
               <img
-                src="/branded-logos/3A-Equipment-Logo-Medium.png"
+                src="/images/brand/logos/3A-Equipment-Logo-Medium.png"
                 alt=""
                 className="h-10 w-auto object-contain opacity-90"
                 aria-hidden
@@ -61,9 +61,9 @@ const SocialProofSection = () => {
           <Card className="max-w-3xl border-primary/20 bg-primary/5">
             <CardContent className="p-8">
               <div className="flex items-start gap-4 mb-6">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <img
-                    src="/branded-logos/3A-Equipment-Logo-Medium.png"
+                    src="/images/brand/logos/3A-Equipment-Logo-Medium.png"
                     alt="3-A Equipment Logo"
                     className="h-20 w-20 object-contain"
                   />
@@ -118,7 +118,7 @@ const SocialProofSection = () => {
           {trustBadges.map(({ icon: Icon, label }, index) => (
             <LandingReveal key={label} delayMs={index * 60}>
               <div className="flex items-center gap-3 rounded-lg border border-border bg-card/50 px-4 py-3">
-                <Icon className="h-6 w-6 text-primary flex-shrink-0" aria-hidden />
+                <Icon className="h-6 w-6 text-primary shrink-0" aria-hidden />
                 <span className="text-sm font-medium text-foreground">{label}</span>
               </div>
             </LandingReveal>

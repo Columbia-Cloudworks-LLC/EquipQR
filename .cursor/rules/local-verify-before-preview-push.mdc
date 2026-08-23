@@ -14,7 +14,7 @@ As of 2026-06-13, the local dev stack has **production parity** (Auth, Edge Func
 - "Zero manual intervention" means no asking the maintainer to click OAuth, reload, sign in, or confirm behavior. Use shell, Vitest, Playwright, Supabase CLI, edge logs, and **browser MCP** instead.
 - If the change cannot be verified locally without a human step, **stop before push** and report the blocker.
 
-**Exception:** workflow-only paths (`.cursor/**`, `AGENTS.md`, `scripts/mcp.template.json`) still follow `workflow-artifacts.mdc` — Fallow clean, no product E2E required.
+**Exception:** workflow-only paths (`.cursor/**`, `AGENTS.md`, `dev/mcp.template.json`) still follow `workflow-artifacts.mdc` — Fallow clean, no product E2E required.
 
 ## Minimum gate (every product/runtime change)
 
@@ -32,10 +32,10 @@ Pick the **smallest credible E2E proof** that covers the user-visible outcome. P
 
 | Change touches | Local E2E proof (agent-run) |
 |---|---|
-| UI route / form / dashboard flow | Browser MCP smoke on `http://localhost:8080` **or** `.\dev-test.bat` critical when a spec exists |
+| UI route / form / dashboard flow | Browser MCP smoke on `http://localhost:8080` **or** `.\dev\dev-test.bat` critical when a spec exists |
 | User-visible behavior touched indirectly (help links, copy, docs discovery) | Playwright PR evidence or browser MCP proving discovery **and** the underlying workflow still completes |
 | equipqr.info docs wired to app surfaces | `npm run docs:build` plus Playwright/browser proof from each contextual Help link and Help Center nav to the article |
-| Broad UX / release-sensitive | `.\dev-test.bat full` (headless) |
+| Broad UX / release-sensitive | `.\dev\dev-test.bat full` (headless) |
 | Edge Function / OAuth callback | `deno test` in function dir if present; then exercise callback path on local stack; confirm via edge logs + DB/RPC read |
 | Google sign-in (Supabase Auth) | Browser MCP: complete Google login locally; confirm session in app |
 | Google Workspace Connect / disconnect | Browser MCP on integrations page; complete flow locally; confirm `gw_connected` redirect or RPC `get_google_workspace_connection_status` |
@@ -47,17 +47,17 @@ Pick the **smallest credible E2E proof** that covers the user-visible outcome. P
 Before E2E, ensure the stack is up and env is current. Follow **`dev-stack-lifecycle.mdc`** — batch files only:
 
 ```powershell
-.\dev-stop.bat
-.\dev-start.bat          # normal restart
+.\dev\dev-stop.bat
+.\dev\dev-start.bat          # normal restart
 # or
-.\dev-start.bat -Force   # DB reset, migrations/seeds, types regen
+.\dev\dev-start.bat -Force   # DB reset, migrations/seeds, types regen
 ```
 
 Agents may run stop/start **without asking** when verification or dependency work requires a clean stack. After edge env changes under `supabase/functions/.env`, use a **full** batch-file cycle — not partial Docker-only restarts.
 
 Before `npm ci` on Windows, stop the stack if native binary EPERM/EBUSY is possible.
 
-OAuth redirect mismatches locally almost always mean `GW_OAUTH_REDIRECT_BASE_URL` / `QB_OAUTH_REDIRECT_BASE_URL` missing from the edge runtime — see `scripts/sync-local-supabase-env.ps1`.
+OAuth redirect mismatches locally almost always mean `GW_OAUTH_REDIRECT_BASE_URL` / `QB_OAUTH_REDIRECT_BASE_URL` missing from the edge runtime — see `dev/sync-local-supabase-env.ps1`.
 
 Reference: `docs/technical/e2e-user-regression.md`, `docs/technical/testing-guidelines.md`.
 

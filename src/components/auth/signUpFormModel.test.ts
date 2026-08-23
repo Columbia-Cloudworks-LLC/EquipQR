@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildSignupUserMetadata,
+  canStartGoogleSignup,
   getSignupFieldError,
   isSignupFormValid,
   type SignUpValidationContext,
@@ -78,5 +79,14 @@ describe('signUpFormModel name handling', () => {
 
     expect(metadata.name).toBe('Ada Lovelace');
     expect(metadata.organization_name).toBe('Analytical Engines');
+  });
+});
+
+describe('canStartGoogleSignup', () => {
+  it('requires a trimmed organization name and no conflict error', () => {
+    expect(canStartGoogleSignup('', null)).toBe(false);
+    expect(canStartGoogleSignup('   ', null)).toBe(false);
+    expect(canStartGoogleSignup('Fleet Co', 'Please choose a different name')).toBe(false);
+    expect(canStartGoogleSignup('Fleet Co', null)).toBe(true);
   });
 });

@@ -11,6 +11,11 @@ import {
 } from '@/utils/redirectValidation';
 import { schedulePendingTermsAcceptanceFlush } from '@/lib/termsAcceptanceRecording';
 import { clearOfflineBlobsForUser } from '@/services/offlineBlobStore';
+import {
+  applyPendingSignupOrganizationName,
+  clearPendingSignupOrganizationName,
+  setPendingSignupOrganizationName,
+} from '@/services/pendingSignupOrganization';
 
 /**
  * Throttle duration for applying pending admin grants.
@@ -24,7 +29,7 @@ interface AuthContextType {
   isLoading: boolean;
   signUp: (email: string, password: string, name: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signInWithGoogle: () => Promise<{ error: Error | null }>;
+  signInWithGoogle: (options?: { organizationName?: string }) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -77,6 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')
         ) {
           schedulePendingTermsAcceptanceFlush(session.user);
+          void applyPendingSignupOrganizationName(session.user);
         }
 
         // Handle post-login redirect for QR code scans (only for actual sign-ins)
@@ -201,6 +207,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signIn = async (email: string, password: string) => {
+    clearPendingSignupOrganizationName();
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -209,7 +216,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error };
   };
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (options?: { organizationName?: string }) => {
+    const organizationName = options?.organizationName?.trim();
+    if (organizationName) {
+      setPendingSignupOrganizationName(organizationName);
+    } else {
+      clearPendingSignupOrganizationName();
+    }
+
     const redirectTo = buildGoogleOAuthRedirectTo(
       window.location.origin,
       getPendingRedirect(),
@@ -241,6 +255,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Clear application-specific storage
       try {
         clearPendingRedirect();
+        clearPendingSignupOrganizationName();
         // Clear admin grants cache keys from localStorage (they start with equipqr_admin_grants_)
         Object.keys(localStorage)
           .filter(key => key.startsWith('equipqr_admin_grants_'))

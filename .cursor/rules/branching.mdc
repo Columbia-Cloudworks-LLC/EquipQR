@@ -31,8 +31,9 @@ There is **no `dev` branch**. Git **`preview`** is the default merge target for 
    gh pr create --base preview --head feat/<short-name> --title "<conventional-commit title>"
    ```
 6. **Changelog / version discipline:**
-   - PRs into **`preview`**: accumulate notes under CHANGELOG `[Unreleased]`; **do not** bump `package.json` / lockfile app version.
-   - PRs into **`main`** (from `preview` / release): semver bump, versioned CHANGELOG section, empty `[Unreleased]` after cut.
+   - Notes follow `.cursor/rules/changelog.mdc` (short customer-facing outcomes).
+   - PRs into **`preview`**: accumulate under CHANGELOG `[Unreleased]` only. **Do not** bump `package.json` / lockfile app version.
+   - PRs into **`main`** (from `preview` / release): one SemVer bump, versioned CHANGELOG section, empty `[Unreleased]` after cut.
 7. **Pre-production testing:**
    - **Primary:** commit-specific Vercel Preview URL after pushing a work branch, and/or **`preview.equipqr.app`** after merge to `preview`.
    - **Supabase:** no perpetual preview database. Cloud `preview.equipqr.app` uses **production** Supabase for ordinary (non-schema) QA. Use a properly seeded **ephemeral** Supabase PR branch only when actively testing `supabase/**` schema/RLS/migrations.

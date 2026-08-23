@@ -25,6 +25,7 @@ describe('historical work order submission payload', () => {
     });
 
     expect(customEvents).toHaveLength(5);
-    expect(eventsToRpcPayload(customEvents).at(-1)?.new_status).toBe('completed');
+    const payload = eventsToRpcPayload(customEvents);
+    expect(payload[payload.length - 1]?.new_status).toBe('completed');
   });
 });

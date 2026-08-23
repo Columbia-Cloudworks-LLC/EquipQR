@@ -81,9 +81,11 @@ jobs:
         id: target
         shell: bash
         run: |
-          echo "env=production" >> $GITHUB_OUTPUT
-          echo "supabase_url=https://ymxkzronkhwxzcdcbnwq.supabase.co" >> $GITHUB_OUTPUT
-          echo "anon_op_field=prod_anon_public_key" >> $GITHUB_OUTPUT
+          {
+            echo "env=production"
+            echo "supabase_url=https://ymxkzronkhwxzcdcbnwq.supabase.co"
+            echo "anon_op_field=prod_anon_public_key"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Load Supabase anon key from 1Password
         uses: ./.github/actions/load-1p-secrets

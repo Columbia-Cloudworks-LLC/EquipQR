@@ -37,9 +37,24 @@ interface DeleteResult {
   };
 }
 
-// ============================================
-// Queries
-// ============================================
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function parseSuccessfulRpcResult<T extends { success: boolean; error?: string }>(
+  data: unknown,
+  fallbackMessage: string,
+): T {
+  if (!isJsonObject(data)) {
+    throw new Error(fallbackMessage);
+  }
+
+  const result = data as unknown as T;
+  if (!result.success) {
+    throw new Error(result.error || fallbackMessage);
+  }
+  return result;
+}
 
 /**
  * Get statistics about what will be deleted when organization is deleted
@@ -58,12 +73,7 @@ export const useOrganizationDeletionStats = (
 
       if (error) throw error;
 
-      const result = data as DeletionStats;
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to get deletion stats');
-      }
-
-      return result;
+      return parseSuccessfulRpcResult<DeletionStats>(data, 'Failed to get deletion stats');
     },
     enabled: !!organizationId && enabled,
     staleTime: 10 * 1000, // 10 seconds
@@ -101,12 +111,7 @@ export const useDeleteOrganization = () => {
 
       if (error) throw error;
 
-      const result = data as DeleteResult;
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to delete organization');
-      }
-
-      return result;
+      return parseSuccessfulRpcResult<DeleteResult>(data, 'Failed to delete organization');
     },
     onSuccess: (result) => {
       // Invalidate all organization-related queries

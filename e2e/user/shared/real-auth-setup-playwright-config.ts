@@ -1,7 +1,7 @@
 import path from 'path';
 import { defineConfig, devices, type PlaywrightTestConfig } from '@playwright/test';
 import { resolveRealAuthBaseUrl } from './real-auth-config';
-import { RECORDING_VIEWPORT } from '../../../scripts/lib/recording-quality.mjs';
+import { RECORDING_VIEWPORT } from '../../../dev/lib/recording-quality.mjs';
 
 export interface RealAuthSetupPlaywrightOptions {
   outputSubdir: string;

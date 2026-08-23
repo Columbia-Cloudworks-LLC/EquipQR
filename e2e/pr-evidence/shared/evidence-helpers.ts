@@ -35,11 +35,49 @@ export interface EvidenceScreenshotOptions {
   target?: Locator;
 }
 
+export type EvidenceScreenshotArgs = EvidenceScreenshotOptions & {
+  page: Page;
+  label: string;
+};
+
+function isEvidenceScreenshotArgs(
+  value: Page | EvidenceScreenshotArgs,
+): value is EvidenceScreenshotArgs {
+  return typeof value === 'object' && value !== null && 'label' in value && 'page' in value;
+}
+
 /**
  * Save a labeled PNG under tmp/pr-evidence/{flow}/screenshots/ for upload scripts.
  * Always asserts no horizontal viewport overflow; pass `target` to gate on control framing.
  */
 export async function evidenceScreenshot(
+  args: EvidenceScreenshotArgs,
+): Promise<string>;
+export async function evidenceScreenshot(
+  page: Page,
+  label: string,
+  options?: EvidenceScreenshotOptions,
+): Promise<string>;
+export async function evidenceScreenshot(
+  pageOrArgs: Page | EvidenceScreenshotArgs,
+  label?: string,
+  options?: EvidenceScreenshotOptions,
+): Promise<string> {
+  if (isEvidenceScreenshotArgs(pageOrArgs)) {
+    if (!pageOrArgs.label) {
+      throw new Error('evidenceScreenshot requires a label');
+    }
+    return captureFramedEvidenceScreenshot(pageOrArgs.page, pageOrArgs.label, pageOrArgs);
+  }
+
+  if (!label) {
+    throw new Error('evidenceScreenshot requires a label');
+  }
+
+  return captureFramedEvidenceScreenshot(pageOrArgs, label, options);
+}
+
+async function captureFramedEvidenceScreenshot(
   page: Page,
   label: string,
   options?: EvidenceScreenshotOptions,

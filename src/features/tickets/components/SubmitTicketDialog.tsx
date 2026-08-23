@@ -107,7 +107,7 @@ const SubmitTicketDialog: React.FC<SubmitTicketDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-125">
         <DialogHeader>
           <DialogTitle>Report an Issue</DialogTitle>
           <DialogDescription>

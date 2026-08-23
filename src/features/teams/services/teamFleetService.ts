@@ -23,6 +23,20 @@ export interface TeamFleetOption {
   location_country?: string | null;
 }
 
+/** Team row returned by `getAccessibleTeams` before equipment counts are joined. */
+type AccessibleTeamRow = Pick<
+  TeamFleetOption,
+  | 'id'
+  | 'name'
+  | 'description'
+  | 'location_lat'
+  | 'location_lng'
+  | 'location_address'
+  | 'location_city'
+  | 'location_state'
+  | 'location_country'
+>;
+
 export interface TeamEquipmentData {
   teamId: string;
   teamName: string;
@@ -46,7 +60,7 @@ export const getAccessibleTeams = async (
   organizationId: string, 
   userTeamIds: string[], 
   isOrgAdmin: boolean
-): Promise<TeamFleetOption[]> => {
+): Promise<AccessibleTeamRow[]> => {
   try {
     let query = supabase
       .from('teams')
@@ -277,9 +291,9 @@ export const getTeamEquipmentWithLocations = async (
           lng: coords.lng,
           source,
           formatted_address,
-          working_hours: item.working_hours,
-          last_maintenance: item.last_maintenance,
-          image_url: item.image_url,
+          working_hours: item.working_hours ?? undefined,
+          last_maintenance: item.last_maintenance ?? undefined,
+          image_url: item.image_url ?? undefined,
           location_updated_at,
           team_id: item.team_id,
           team_name: teamName

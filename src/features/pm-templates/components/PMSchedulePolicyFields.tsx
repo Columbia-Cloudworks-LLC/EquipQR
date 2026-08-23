@@ -74,7 +74,7 @@ export function PMSchedulePolicyFields({
 
       {value.mode === 'custom' && (
         <div className="flex flex-wrap items-end gap-4 pt-1">
-          <div className="flex-1 max-w-[200px]">
+          <div className="flex-1 max-w-50">
             <Label htmlFor={intervalValueId} className="text-xs">
               Every
             </Label>

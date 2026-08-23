@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { verifySuperAdminAccess } from "../_shared/admin-validation.ts";
 import { withCorrelationId } from "../_shared/supabase-clients.ts";
 
@@ -9,6 +9,7 @@ const logStep = (step: string, details?: any) => {
 };
 
 Deno.serve(withCorrelationId(async (req, _ctx) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

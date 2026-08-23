@@ -24,7 +24,7 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
           <Button
             variant="ghost"
             asChild
-            className="-ml-2 min-h-[44px] gap-1.5 px-2 text-muted-foreground hover:text-foreground touch-manipulation"
+            className="-ml-2 min-h-11 gap-1.5 px-2 text-muted-foreground hover:text-foreground touch-manipulation"
           >
             <Link to="/dashboard/work-orders">
               <ArrowLeft className="h-4 w-4" aria-hidden />
@@ -36,7 +36,7 @@ export const WorkOrderDetailsMobileHeader: React.FC<WorkOrderDetailsMobileHeader
             <Button
               variant={showExports ? 'outline' : 'ghost'}
               onClick={() => void onOpenActionSheet()}
-              className="min-h-[44px] min-w-[44px] touch-manipulation"
+              className="min-h-11 min-w-11 touch-manipulation"
               aria-label={showExports ? 'Export' : 'Open actions and settings'}
               title={showExports ? 'Export' : 'Open actions and settings'}
             >

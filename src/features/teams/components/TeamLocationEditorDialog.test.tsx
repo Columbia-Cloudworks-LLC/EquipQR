@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@vitest-harness/utils/test-utils';
 import { TeamLocationEditorDialog } from '@/features/teams/components/TeamLocationEditorDialog';
+import type { TeamWithMembers } from '@/features/teams/services/teamService';
 
 vi.mock('@/hooks/useGoogleMapsLoader', () => ({
   useGoogleMapsLoader: vi.fn(() => ({ isLoaded: true })),
@@ -71,7 +72,7 @@ vi.mock('@/features/teams/services/teamService', () => ({
   updateTeam: (...args: unknown[]) => mockUpdateTeam(...args),
 }));
 
-const baseTeam = {
+const baseTeam: TeamWithMembers = {
   id: 'team-1',
   name: 'Heavy Equipment Team',
   description: 'Main yard',
@@ -81,6 +82,8 @@ const baseTeam = {
   image_url: null,
   customer_id: null,
   override_equipment_location: false,
+  preferred_view: 'internal',
+  team_lead_id: null,
   location_address: null,
   location_city: null,
   location_state: null,
@@ -113,6 +116,7 @@ describe('TeamLocationEditorDialog', () => {
           location_lat: 32.77,
           location_lng: -96.79,
         }),
+        'org-1',
       );
     });
   });

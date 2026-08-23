@@ -3,10 +3,17 @@ import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
 import { applySelectedTeamFilter } from '@/features/dashboard/utils/dashboardTeamScope';
 import { getTeamBasedDashboardStats } from '@/features/teams/services/teamBasedDashboardService';
 
-function createQueryChain(resolved: { data: unknown; error: null }) {
-  const chain: Record<string, ReturnType<typeof vi.fn>> & {
-    then: Promise<{ data: unknown; error: null }>['then'];
-  } = {
+type DashboardQueryChain = {
+  select: ReturnType<typeof vi.fn>;
+  eq: ReturnType<typeof vi.fn>;
+  in: ReturnType<typeof vi.fn>;
+  is: ReturnType<typeof vi.fn>;
+  not: ReturnType<typeof vi.fn>;
+  then: Promise<{ data: unknown; error: null }>['then'];
+};
+
+function createQueryChain(resolved: { data: unknown; error: null }): DashboardQueryChain {
+  const chain: DashboardQueryChain = {
     select: vi.fn(),
     eq: vi.fn(),
     in: vi.fn(),
@@ -73,5 +80,16 @@ describe('dashboard team scope (#1075)', () => {
 
     expect(equipmentChain.eq).toHaveBeenCalledWith('team_id', 'team-a');
     expect(teamChain.eq).toHaveBeenCalledWith('id', 'team-a');
+  });
+
+  it('getTeamBasedDashboardStats scopes All teams to memberships for non-admins (RT-19)', async () => {
+    equipmentChain = createQueryChain({ data: [{ id: 'eq-cs', status: 'active' }], error: null });
+    workOrderChain = createQueryChain({ data: [{ status: 'submitted', due_date: null }], error: null });
+    teamChain = createQueryChain({ data: [{ id: 'team-cs' }], error: null });
+
+    await getTeamBasedDashboardStats('org-1', ['team-cs'], false, null);
+
+    expect(equipmentChain.in).toHaveBeenCalledWith('team_id', ['team-cs']);
+    expect(teamChain.in).toHaveBeenCalledWith('id', ['team-cs']);
   });
 });

@@ -3,23 +3,23 @@ import { landingImage } from '@/lib/landingImage';
 import type { Benefit, Capability, FeaturePageContent, ImageScreenshot, Step } from './featurePageTypes';
 
 export const content: FeaturePageContent = {
-  benefitsTitle: 'Why Use Part Lookup & Alternates?',
+  benefitsTitle: 'Use what is on the shelf',
   benefitsDescription:
-    'Reduce downtime by finding the right part—or an approved substitute—fast. Fewer wrong orders, less guesswork, and better cost visibility.',
-  capabilitiesTitle: 'Key Capabilities',
+    'Search the part number. See stock and approved substitutes. Put the alternate on the work order when the preferred SKU is out.',
+  capabilitiesTitle: 'What lookup covers',
   capabilitiesDescription:
-    'Part Lookup and alternates give you one place to search, compare, and substitute parts across inventory and catalogs.',
-  stepsTitle: 'How It Works',
+    'Search, compare, and substitute parts across inventory and catalogs.',
+  stepsTitle: 'How it works',
   stepsDescription:
-    'Part Lookup and alternates integrate with Inventory Management and work orders for a seamless lookup-to-use workflow.',
+    'Search a number, compare alternates, use the one you have on the job.',
   stepsClassName: 'bg-muted/30',
-  showcaseTitle: 'See Part Lookup in Action',
+  showcaseTitle: 'Part lookup',
   showcaseDescription:
-    'Search by part number, OEM number, or description. Results show inventory stock, alternates, and cost at a glance.',
-  ctaTitle: 'Ready to Find Parts Faster?',
+    'Search by part number, OEM number, or description. Results show inventory stock, alternates, and cost.',
+  ctaTitle: 'Search the first part number',
   ctaDescription:
-    'Start using Part Lookup and alternates today—completely free. Create your account and begin searching your inventory and building alternate groups.',
-  ctaPrimaryText: 'Start Using Part Lookup Free',
+    'Create a free account and search your inventory for the next substitute.',
+  ctaPrimaryText: 'Search the first part number',
   ctaClassName: 'bg-muted/30',
 };
 
@@ -27,8 +27,8 @@ export const benefits: Benefit[] = [
   {
     icon: Zap,
     iconColor: 'success',
-    title: 'Fast Part Number Search',
-    subtitle: 'Find parts in seconds',
+    title: 'Search the part number',
+    subtitle: 'Inventory, alternates, and OEM numbers',
     description:
       'Search by part number, description, or manufacturer. Results include your inventory, alternate groups, and linked cross-references so you never miss a match.',
     benefits: ['Instant search results', 'Fuzzy matching', 'Cross-catalog lookup'],
@@ -37,8 +37,8 @@ export const benefits: Benefit[] = [
   {
     icon: GitCompare,
     iconColor: 'info',
-    title: 'Alternate Part Discovery',
-    subtitle: 'Swap with confidence',
+    title: 'Use the substitute on the shelf',
+    subtitle: 'Approved alternates with stock',
     description:
       'Create alternate groups for interchangeable parts. When the preferred part is unavailable, see approved substitutes with stock levels and use them on work orders without second-guessing.',
     benefits: ['Approved alternates only', 'One-click substitution', 'Reduce downtime'],
@@ -50,7 +50,7 @@ export const benefits: Benefit[] = [
     title: 'Stock & Cost Comparison',
     subtitle: 'Make informed decisions',
     description:
-      'See real-time stock availability and cost for each part and its alternates. Compare options before committing to a work order or purchase, and optimize for availability and budget.',
+      'See real-time stock availability and cost for each part and its alternates. Compare options before committing to a work order or purchase.',
     benefits: ['Stock visibility', 'Cost comparison', 'Smarter ordering'],
     benefitColor: 'warning',
   },
@@ -100,13 +100,13 @@ export const steps: Step[] = [
     number: 2,
     title: 'View Alternates & Stock',
     description:
-      'Open any part to see its alternate group and stock levels. Compare availability and cost across preferred and alternate options. Use what’s in stock or plan reorders accordingly.',
+      'Open any part to see its alternate group and stock levels. Compare availability and cost across preferred and alternate options. Use what\'s in stock or plan reorders accordingly.',
   },
   {
     number: 3,
     title: 'Use in Work Orders',
     description:
-      'When adding parts to a work order, search from Part Lookup or pick from equipment-linked inventory. Select an alternate if the primary is out of stock—consumption and history stay accurate.',
+      'When adding parts to a work order, search from Part Lookup or pick from equipment-linked inventory. Select an alternate if the primary is out of stock. Consumption and history stay accurate.',
   },
   {
     number: 4,
@@ -119,7 +119,7 @@ export const steps: Step[] = [
 export const showcases: ImageScreenshot[] = [
   {
     kind: 'image',
-    imageUrl: landingImage('part-lookup-2026-04.png'),
+    imageUrl: landingImage('part-lookup-2026-04.webp'),
     imageAlt: 'Part Lookup page with search by part number tab and example search suggestions',
     title: 'Search by Part Number or Make/Model',
     description:

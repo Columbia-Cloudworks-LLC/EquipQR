@@ -10,7 +10,7 @@ const mockUpdateTeam = vi.fn();
 const mockUpsertPolicy = vi.fn();
 const mockToast = vi.fn();
 const mockOnClose = vi.fn();
-const mockCanManageTeam = vi.fn(() => true);
+const mockCanManageTeam = vi.fn<(teamId: string) => boolean>(() => true);
 const mockIsOrganizationAdmin = vi.fn(() => true);
 
 vi.mock('@/features/teams/services/teamService', () => ({
@@ -52,7 +52,7 @@ vi.mock('@/hooks/use-toast', () => ({
 
 vi.mock('@/hooks/usePermissions', () => ({
   usePermissions: () => ({
-    canManageTeam: (...args: unknown[]) => mockCanManageTeam(...args),
+    canManageTeam: mockCanManageTeam,
     isOrganizationAdmin: () => mockIsOrganizationAdmin(),
   }),
 }));
@@ -76,8 +76,17 @@ const mockTeam: TeamWithMembers = {
   organization_id: 'org-1',
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
-  override_equipment_location: false,
+  image_url: null,
   customer_id: null,
+  override_equipment_location: false,
+  preferred_view: 'internal',
+  team_lead_id: null,
+  location_address: null,
+  location_city: null,
+  location_state: null,
+  location_country: null,
+  location_lat: null,
+  location_lng: null,
   members: [],
   member_count: 1,
 };
@@ -113,9 +122,13 @@ describe('TeamMetadataEditor', () => {
     await user.click(screen.getByRole('button', { name: 'Save Changes' }));
 
     await waitFor(() => {
-      expect(mockUpdateTeam).toHaveBeenCalledWith('team-1', expect.objectContaining({
-        name: 'Maintenance Team',
-      }));
+      expect(mockUpdateTeam).toHaveBeenCalledWith(
+        'team-1',
+        expect.objectContaining({
+          name: 'Maintenance Team',
+        }),
+        'org-1',
+      );
     });
 
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['team', 'team-1'] });
@@ -140,9 +153,13 @@ describe('TeamMetadataEditor', () => {
     await user.click(screen.getByRole('button', { name: 'Save Changes' }));
 
     await waitFor(() => {
-      expect(mockUpdateTeam).toHaveBeenCalledWith('team-1', expect.objectContaining({
-        name: 'Maintenance Team',
-      }));
+      expect(mockUpdateTeam).toHaveBeenCalledWith(
+        'team-1',
+        expect.objectContaining({
+          name: 'Maintenance Team',
+        }),
+        'org-1',
+      );
     });
 
     expect(mockUpsertPolicy).not.toHaveBeenCalled();

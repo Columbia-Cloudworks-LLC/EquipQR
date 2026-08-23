@@ -61,7 +61,9 @@ describe('scanFeedback', () => {
     audioInstances.length = 0;
     resetScanFeedbackForTests();
     vi.stubGlobal('AudioContext', MockAudioContext);
-    vi.stubGlobal('navigator', { ...navigator, vibrate: undefined as typeof navigator.vibrate });
+    const navigatorWithoutVibrate = { ...navigator };
+    delete (navigatorWithoutVibrate as { vibrate?: unknown }).vibrate;
+    vi.stubGlobal('navigator', navigatorWithoutVibrate);
   });
 
   afterEach(() => {

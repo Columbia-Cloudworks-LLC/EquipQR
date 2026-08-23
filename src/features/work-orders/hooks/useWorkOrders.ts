@@ -8,6 +8,8 @@
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import { WorkOrderService, WorkOrderFilters, WorkOrder } from '@/features/work-orders/services/workOrderService';
 import { createScopedQueryPersister } from '@/lib/queryPersistence';
+import { workOrders as workOrderLibKeys } from '@/lib/queryKeys';
+import { teamAccessQueryScope, resolveTeamReadScope } from '@/features/teams/utils/teamAccessScope';
 
 // Re-export types for convenience
 export type { WorkOrderFilters, WorkOrder } from '@/features/work-orders/services/workOrderService';
@@ -235,15 +237,28 @@ export const useWorkOrdersDueToday = (
  */
 export const useWorkOrderById = (
   organizationId: string,
-  workOrderId: string
+  workOrderId: string,
+  options?: {
+    userTeamIds?: string[];
+    isOrgAdmin?: boolean;
+    enabled?: boolean;
+  },
 ): UseQueryResult<WorkOrder | null, Error> => {
+  const teamScope = resolveTeamReadScope(options);
   return useQuery({
-    queryKey: workOrderKeys.detail(organizationId, workOrderId),
+    queryKey: workOrderLibKeys.detailScoped(
+      organizationId,
+      workOrderId,
+      teamAccessQueryScope(teamScope.isOrgAdmin, teamScope.userTeamIds),
+    ),
     queryFn: async (): Promise<WorkOrder | null> => {
       if (!organizationId || !workOrderId) return null;
       
       const service = new WorkOrderService(organizationId);
-      const result = await service.getById(workOrderId);
+      const result = await service.getById(workOrderId, {
+        userTeamIds: teamScope.userTeamIds,
+        isOrgAdmin: teamScope.isOrgAdmin,
+      });
       
       if (result.success && result.data) {
         return result.data;
@@ -256,7 +271,7 @@ export const useWorkOrderById = (
       
       throw new Error(result.error || 'Failed to fetch work order');
     },
-    enabled: !!organizationId && !!workOrderId,
+    enabled: !!organizationId && !!workOrderId && (options?.enabled ?? true),
     staleTime: DEFAULT_STALE_TIME,
     persister: fieldReadPersister(),
   });

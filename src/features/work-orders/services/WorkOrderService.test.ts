@@ -66,7 +66,7 @@ describe('WorkOrderService', () => {
       
       expect(result.success).toBe(true);
       expect(result.data).toBeInstanceOf(Array);
-      expect(result.data.length).toBeGreaterThan(0);
+      expect(result.data?.length).toBeGreaterThan(0);
     });
 
     it('should filter work orders by status', async () => {
@@ -94,7 +94,7 @@ describe('WorkOrderService', () => {
       const result = await service.getAll({ status: 'submitted' }, {});
       
       expect(result.success).toBe(true);
-      expect(result.data.every(wo => wo.status === 'submitted')).toBe(true);
+      expect(result.data?.every(wo => wo.status === 'submitted')).toBe(true);
     });
 
     it('should filter work orders by priority', async () => {
@@ -122,7 +122,7 @@ describe('WorkOrderService', () => {
       const result = await service.getAll({ priority: 'high' }, {});
       
       expect(result.success).toBe(true);
-      expect(result.data.every(wo => wo.priority === 'high')).toBe(true);
+      expect(result.data?.every(wo => wo.priority === 'high')).toBe(true);
     });
 
     it('should filter work orders by assignee', async () => {
@@ -152,7 +152,7 @@ describe('WorkOrderService', () => {
       const result = await service.getAll({ assigneeId }, {});
       
       expect(result.success).toBe(true);
-      expect(result.data.every(wo => wo.assignee_id === assigneeId)).toBe(true);
+      expect(result.data?.every(wo => wo.assignee_id === assigneeId)).toBe(true);
     });
 
     it('should apply pagination correctly', async () => {
@@ -181,7 +181,7 @@ describe('WorkOrderService', () => {
       const result = await service.getAll({}, { page: 1, limit: 3 });
       
       expect(result.success).toBe(true);
-      expect(result.data.length).toBeLessThanOrEqual(3);
+      expect(result.data?.length).toBeLessThanOrEqual(3);
     });
   });
 
@@ -210,7 +210,7 @@ describe('WorkOrderService', () => {
       
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
-      expect(result.data.id).toBe('wo-1');
+      expect(result.data?.id).toBe('wo-1');
     });
 
     it('should handle non-existent work order', async () => {
@@ -226,6 +226,47 @@ describe('WorkOrderService', () => {
       
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
+    });
+
+    it('does not query when the caller has no accessible teams', async () => {
+      const result = await service.getById('wo-1', { userTeamIds: [], isOrgAdmin: false });
+
+      expect(supabase.from).not.toHaveBeenCalled();
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/not found/i);
+    });
+
+    it('scopes the fetch to equipment on the caller accessible teams', async () => {
+      const mockWorkOrder = {
+        id: 'wo-1',
+        title: 'Work Order 1',
+        status: 'submitted',
+        priority: 'medium',
+        organization_id: 'test-org',
+        equipment: { id: 'eq-1', team_id: 'team-cs' },
+        assignee: null,
+        creator: null,
+      };
+
+      const mockQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        in: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: mockWorkOrder, error: null }),
+      };
+
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
+
+      const result = await service.getById('wo-1', {
+        userTeamIds: ['team-cs'],
+        isOrgAdmin: false,
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockQuery.in).toHaveBeenCalledWith('equipment.team_id', ['team-cs']);
+      expect(mockQuery.select.mock.calls[0][0]).toContain(
+        'equipment!work_orders_equipment_id_fkey!inner',
+      );
     });
   });
 
@@ -275,8 +316,8 @@ describe('WorkOrderService', () => {
       
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
-      expect(result.data.title).toBe(workOrderData.title);
-      expect(result.data.status).toBe('submitted');
+      expect(result.data?.title).toBe(workOrderData.title);
+      expect(result.data?.status).toBe('submitted');
     });
 
     it('should validate required fields', async () => {
@@ -340,8 +381,8 @@ describe('WorkOrderService', () => {
       const result = await service.update('wo-1', updateData);
       
       expect(result.success).toBe(true);
-      expect(result.data.title).toBe(updateData.title);
-      expect(result.data.priority).toBe(updateData.priority);
+      expect(result.data?.title).toBe(updateData.title);
+      expect(result.data?.priority).toBe(updateData.priority);
     });
 
     it('should handle non-existent work order update', async () => {
@@ -402,7 +443,7 @@ describe('WorkOrderService', () => {
       const result = await service.updateStatus('wo-1', newStatus);
       
       expect(result.success).toBe(true);
-      expect(result.data.status).toBe(newStatus);
+      expect(result.data?.status).toBe(newStatus);
     });
 
     it('should handle database error during status update', async () => {
@@ -479,7 +520,7 @@ describe('WorkOrderService', () => {
       expect(result.data).toHaveProperty('submitted');
       expect(result.data).toHaveProperty('in_progress');
       expect(result.data).toHaveProperty('completed');
-      expect(typeof result.data.submitted).toBe('number');
+      expect(typeof result.data?.submitted).toBe('number');
     });
   });
 
@@ -505,7 +546,7 @@ describe('WorkOrderService', () => {
       expect(result.data).toHaveProperty('low');
       expect(result.data).toHaveProperty('medium');
       expect(result.data).toHaveProperty('high');
-      expect(typeof result.data.low).toBe('number');
+      expect(typeof result.data?.low).toBe('number');
     });
   });
 });

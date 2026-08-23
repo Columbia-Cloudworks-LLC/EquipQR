@@ -537,10 +537,15 @@ export class EquipmentService {
    */
   static async getById(
     organizationId: string,
-    id: string
+    id: string,
+    options: { userTeamIds?: string[]; isOrgAdmin?: boolean } = {},
   ): Promise<ApiResponse<EquipmentWithTeam>> {
     try {
-      const { data, error } = await supabase
+      if (options.userTeamIds !== undefined && !options.isOrgAdmin && options.userTeamIds.length === 0) {
+        return createServiceErrorResponse(new Error('Equipment not found'), 'EquipmentService error');
+      }
+
+      let query = supabase
         .from('equipment')
         .select(`
           *,
@@ -558,8 +563,13 @@ export class EquipmentService {
           )
         `)
         .eq('id', id)
-        .eq('organization_id', organizationId)
-        .single();
+        .eq('organization_id', organizationId);
+
+      if (options.userTeamIds !== undefined && !options.isOrgAdmin) {
+        query = query.in('team_id', options.userTeamIds);
+      }
+
+      const { data, error } = await query.single();
 
       if (error) {
         logger.error('Error fetching equipment by ID:', error);

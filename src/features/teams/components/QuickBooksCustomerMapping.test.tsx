@@ -30,12 +30,14 @@ vi.mock('@/contexts/OrganizationContext', () => ({
   })),
 }));
 
-const mockUseQuickBooksAccess = vi.fn(() => ({
-  data: true,
-  isLoading: false,
-}));
+const mockUseQuickBooksAccess = vi.hoisted(() =>
+  vi.fn(() => ({
+    data: true,
+    isLoading: false,
+  })),
+);
 vi.mock('@/hooks/useQuickBooksAccess', () => ({
-  useQuickBooksAccess: (...args: unknown[]) => mockUseQuickBooksAccess(...args),
+  useQuickBooksAccess: mockUseQuickBooksAccess,
 }));
 
 vi.mock('@/hooks/usePermissions', () => ({
@@ -260,7 +262,7 @@ describe('QuickBooksCustomerMapping', () => {
       importFromQB: { mutateAsync: mockImportFromQB, isPending: false },
       refreshFromQB: { mutateAsync: vi.fn(), isPending: false },
       remapFromQB: { mutateAsync: vi.fn(), isPending: false },
-    } as ReturnType<typeof import('@/features/teams/hooks/useCustomerAccount').useCustomerMutations>);
+    } as unknown as ReturnType<typeof import('@/features/teams/hooks/useCustomerAccount').useCustomerMutations>);
 
     mockSearchCustomers.mockResolvedValue({
       success: true,

@@ -1,5 +1,5 @@
-import { corsHeaders } from '../_shared/cors.ts';
-import { withCorrelationId } from '../_shared/supabase-clients.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
+import { handleCorsPreflightIfNeeded, withCorrelationId } from '../_shared/supabase-clients.ts';
 import { MissingSecretError, requireSecret } from '../_shared/require-secret.ts';
 
 const FUNCTION_NAME = 'verify-hcaptcha';
@@ -17,10 +17,10 @@ interface HCaptchaVerificationResponse {
 }
 
 Deno.serve(withCorrelationId(async (req, _ctx) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const preflight = handleCorsPreflightIfNeeded(req);
+  if (preflight) return preflight;
+
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     // Surface a missing secret as the standard MISSING_REQUIRED_SECRET log.

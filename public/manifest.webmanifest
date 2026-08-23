@@ -1,5 +1,5 @@
 {
-  "name": "EquipQR™ - Fleet Equipment Management",
+  "name": "EquipQR",
   "short_name": "EquipQR",
   "description": "Next-generation fleet equipment management with QR code tracking",
   "start_url": "/",
@@ -8,17 +8,17 @@
   "theme_color": "#7c3aed",
   "icons": [
     {
-      "src": "/icons/EquipQR-Icon-Purple-Small.png",
+      "src": "/images/brand/icons/EquipQR-Icon-Purple-Small.png",
       "sizes": "100x100",
       "type": "image/png"
     },
     {
-      "src": "/icons/EquipQR-Icon-Purple-Medium.png",
+      "src": "/images/brand/icons/EquipQR-Icon-Purple-Medium.png",
       "sizes": "500x502",
       "type": "image/png"
     },
     {
-      "src": "/icons/EquipQR-Icon-Purple-Large.png",
+      "src": "/images/brand/icons/EquipQR-Icon-Purple-Large.png",
       "sizes": "any",
       "type": "image/png",
       "purpose": "any maskable"

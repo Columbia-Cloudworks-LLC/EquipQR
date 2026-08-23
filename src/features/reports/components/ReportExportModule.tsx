@@ -13,6 +13,7 @@ import {
   FileSpreadsheet,
   Layers,
   Loader2,
+  type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ReportCardConfig } from '@/features/reports/types/reports';
@@ -26,15 +27,15 @@ import { WorksheetSelector } from '@/features/work-orders/components/WorksheetSe
 
 const EXPORT_ROW_LIMIT = 50_000;
 
-const REPORT_ICONS: Record<string, React.ReactNode> = {
-  Forklift: <Forklift className="h-8 w-8" />,
-  ClipboardList: <ClipboardList className="h-8 w-8" />,
-  Package: <Package className="h-8 w-8" />,
-  ScanLine: <ScanLine className="h-8 w-8" />,
-  ClipboardSignature: <ClipboardSignature className="h-8 w-8" />,
-  FileSignature: <FileSignature className="h-8 w-8" />,
-  FileSpreadsheet: <FileSpreadsheet className="h-8 w-8" />,
-  Layers: <Layers className="h-8 w-8" />,
+const REPORT_ICONS: Record<string, LucideIcon> = {
+  Forklift,
+  ClipboardList,
+  Package,
+  ScanLine,
+  ClipboardSignature,
+  FileSignature,
+  FileSpreadsheet,
+  Layers,
 };
 
 export interface ReportExportModuleProps {
@@ -194,9 +195,8 @@ export const ReportExportModule: React.FC<ReportExportModuleProps> = ({
     (hasWorksheetSelection && selectedWorksheets.length === 0) ||
     (hasColumnSelection && selectedColumns.length === 0);
   const iconSize = featured ? 'h-10 w-10' : 'h-8 w-8';
-
-  const iconNode = REPORT_ICONS[config.icon] ?? <FileSpreadsheet className={iconSize} />;
-  const scaledIcon = React.cloneElement(iconNode as React.ReactElement, { className: iconSize });
+  const Icon = REPORT_ICONS[config.icon] ?? FileSpreadsheet;
+  const scaledIcon = <Icon className={iconSize} />;
 
   const fieldSelector = hasColumnSelection ? (
     <div className="mt-3">
@@ -274,7 +274,7 @@ export const ReportExportModule: React.FC<ReportExportModuleProps> = ({
       <div className="flex flex-1 flex-col p-4 sm:hidden">
         <div className="flex items-start gap-3">
           <div className="shrink-0 border border-primary/20 bg-primary/10 p-2 text-primary">
-            {React.cloneElement(iconNode as React.ReactElement, { className: 'h-6 w-6' })}
+            <Icon className="h-6 w-6" />
           </div>
           <div className="min-w-0 flex-1">
             <h3 className="truncate font-semibold text-sm">{config.title}</h3>

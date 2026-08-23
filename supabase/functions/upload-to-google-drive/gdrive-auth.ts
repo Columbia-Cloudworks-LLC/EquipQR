@@ -13,7 +13,7 @@ import {
   hasScope,
 } from "../_shared/google-workspace-token.ts";
 import { checkRateLimit } from "../_shared/work-orders-export-data.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import { logStep } from "./gdrive-validation.ts";
 import { tokenErrorResponse, rateLimitResponse } from "./gdrive-error-responses.ts";
 
@@ -34,6 +34,7 @@ export async function authorizeDriveUpload(
   organizationId: string | undefined,
   parentId: string | undefined,
 ): Promise<Response | AuthorizedDriveUpload> {
+  const corsHeaders = getCorsHeaders(req);
   const adminClient = createAdminSupabaseClient();
 
   const auth = await requireUser(req, supabase);
@@ -85,7 +86,7 @@ export async function authorizeDriveUpload(
   }
 
   if (!rateLimitOk) {
-    return rateLimitResponse();
+    return rateLimitResponse(corsHeaders);
   }
 
   let tokenResult;
@@ -94,7 +95,7 @@ export async function authorizeDriveUpload(
   } catch (tokenError) {
     if (tokenError instanceof GoogleWorkspaceTokenError) {
       logStep("Token error", { code: tokenError.code, message: tokenError.message });
-      return tokenErrorResponse(tokenError);
+      return tokenErrorResponse(tokenError, corsHeaders);
     }
     throw tokenError;
   }

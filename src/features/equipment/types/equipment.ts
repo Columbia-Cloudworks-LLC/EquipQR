@@ -227,21 +227,6 @@ export interface EquipmentFilters {
 }
 
 // ============================================
-// Equipment Note Types
-// ============================================
-
-export interface EquipmentNote {
-  id: string;
-  equipment_id: string;
-  author_id: string;
-  content: string;
-  is_private: boolean;
-  created_at: string;
-  updated_at: string;
-  authorName?: string;
-}
-
-// ============================================
 // Equipment Scan Types
 // ============================================
 

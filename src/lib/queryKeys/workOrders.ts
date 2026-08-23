@@ -8,6 +8,8 @@ export const workOrders = {
   enhancedById: (orgId: string, workOrderId: string) => ['workOrder', 'enhanced', orgId, workOrderId] as const,
   optimized: (orgId: string) => ['work-orders', orgId, 'optimized'] as const,
   byId: (orgId: string, workOrderId: string) => ['work-orders', orgId, workOrderId] as const,
+  detailScoped: (orgId: string, workOrderId: string, teamAccessScope: string) =>
+    ['work-orders', 'detail', orgId, workOrderId, teamAccessScope] as const,
   legacyById: (orgId: string, workOrderId: string) => ['workOrder', orgId, workOrderId] as const,
   legacyList: (orgId: string) => ['workOrders', orgId] as const,
   enhancedList: (orgId: string) => ['enhanced-work-orders', orgId] as const,

@@ -89,7 +89,7 @@ const TeamRecentWorkOrders: React.FC<TeamRecentWorkOrdersProps> = ({
                     <div className="flex items-center gap-2">
                       <p className="font-medium line-clamp-1">{order.title}</p>
                       {overdue && (
-                        <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0" />
+                        <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground">
@@ -102,7 +102,7 @@ const TeamRecentWorkOrders: React.FC<TeamRecentWorkOrdersProps> = ({
                   </div>
                   <Badge
                     variant={getWorkOrderStatusBadgeVariant(order.status)}
-                    className="ml-2 flex-shrink-0"
+                    className="ml-2 shrink-0"
                   >
                     {formatWorkOrderStatus(order.status)}
                   </Badge>

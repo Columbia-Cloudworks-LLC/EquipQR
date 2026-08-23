@@ -6,10 +6,10 @@
  * the seeded in-progress oil change.
  *
  * Capture:
- *   .\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow "docs-technician-field-work-mobile" `
+ *   .\dev\pr-evidence\Invoke-PrEvidence.ps1 -Flow "docs-technician-field-work-mobile" `
  *     -Spec "e2e/pr-evidence/docs-technician-field-work-mobile.spec.ts" -MobileViewport
  * Publish:
- *   .\scripts\docs-media\Publish-DocsMedia.ps1 `
+ *   .\dev\docs-media\Publish-DocsMedia.ps1 `
  *     -ManifestPath tmp\pr-evidence\docs-technician-field-work-mobile\manifest.json `
  *     -Collection technician-field-work -Variant mobile
  */

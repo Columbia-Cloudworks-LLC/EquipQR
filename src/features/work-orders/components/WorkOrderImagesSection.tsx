@@ -140,7 +140,7 @@ const WorkOrderImagesSection: React.FC<WorkOrderImagesSectionProps> = ({
           <CollapsibleTrigger asChild>
             <button
               type="button"
-              className="flex min-h-[44px] w-full touch-manipulation items-start justify-between gap-3 text-left"
+              className="flex min-h-11 w-full touch-manipulation items-start justify-between gap-3 text-left"
               aria-expanded={isOpen}
               aria-controls={`work-order-images-content-${workOrderId}`}
             >

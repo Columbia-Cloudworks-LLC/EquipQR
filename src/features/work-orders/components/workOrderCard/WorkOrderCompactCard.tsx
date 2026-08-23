@@ -26,17 +26,17 @@ export const WorkOrderCompactCard: React.FC<WorkOrderCardProps> = memo(({
   onNavigate,
 }) => {
   const { formatDate } = useFormatTimestamp();
-  const fmtDate = (v?: string | null) => (v ? formatDate(v) : '—');
 
   const computedData = useMemo(() => {
-    const overdueStatus = isOverdue(workOrder.dueDate ?? workOrder.due_date, workOrder.status);
+    const fmtDate = (v?: string | null) => (v ? formatDate(v) : '—');
+    const overdueStatus = isOverdue(workOrder.due_date, workOrder.status);
     return {
       isOverdue: overdueStatus,
-      formattedDueDate: fmtDate(workOrder.dueDate ?? workOrder.due_date),
-      formattedCreatedDate: fmtDate(workOrder.createdDate ?? workOrder.created_date),
+      formattedDueDate: fmtDate(workOrder.due_date),
+      formattedCreatedDate: fmtDate(workOrder.created_date),
       statusBorderClass: getWorkOrderStatusBorderWithOverdue(workOrder.status, overdueStatus),
     };
-  }, [workOrder.status, workOrder.dueDate, workOrder.due_date, workOrder.createdDate, workOrder.created_date, formatDate]);
+  }, [workOrder.status, workOrder.due_date, workOrder.created_date, formatDate]);
 
   const isTerminal = isTerminalStatus(workOrder.status);
   const navigationProps = getWorkOrderCardNavigationProps(workOrder.id, onNavigate);
@@ -110,7 +110,7 @@ export const WorkOrderCompactCard: React.FC<WorkOrderCardProps> = memo(({
 
           {workOrder.effectiveLocation && (
             <div className="flex items-center gap-2">
-              <MapPin className="h-3 w-3 flex-shrink-0" />
+              <MapPin className="h-3 w-3 shrink-0" />
               <ClickableAddress
                 address={workOrder.effectiveLocation.formattedAddress}
                 lat={workOrder.effectiveLocation.lat}

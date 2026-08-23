@@ -3,40 +3,40 @@ import { landingImage } from '@/lib/landingImage';
 import type { Benefit, FeaturePageContent, ImageScreenshot, Step } from './featurePageTypes';
 
 export const content: FeaturePageContent = {
-  benefitsTitle: 'Why Use Customer CRM?',
+  benefitsTitle: 'Each machine has an owner',
   benefitsDescription:
-    'Know who owns what. Track service history per customer, streamline reporting, and keep client relationships organized.',
-  stepsTitle: 'How It Works',
-  stepsDescription: 'Customer CRM connects clients, equipment, and service history in one place.',
-  showcaseTitle: 'See Customer CRM in Action',
+    'Know who owns what. Keep service history per customer so invoices and reports land on the right account.',
+  stepsTitle: 'How it works',
+  stepsDescription: 'Add a customer, link machines, filter jobs by owner.',
+  showcaseTitle: 'Customers and machines',
   showcaseDescription:
-    "Here's what customer-linked equipment and service history look like in the EquipQR™ app.",
+    'Customer records sit with the equipment you service for them.',
   showcaseClassName: 'bg-muted/30',
-  ctaTitle: 'Ready to Organize by Customer?',
+  ctaTitle: 'Link the first customer',
   ctaDescription:
-    'Start using Customer CRM today—completely free. Create your account, add customers, link equipment, and maintain a permanent service history for every client asset.',
-  ctaPrimaryText: 'Start Using Customer CRM Free',
+    'Create a free account, add a customer, and attach the first machines.',
+  ctaPrimaryText: 'Link the first customer',
 };
 
 export const benefits: Benefit[] = [
   {
     icon: Building2,
     iconColor: 'success',
-    title: 'Customer Profiles',
-    subtitle: 'Organize by client',
+    title: 'Who owns the machine',
+    subtitle: 'Customer records on the equipment',
     description:
-      'Create customer records and link equipment to each client. View all assets and contact info in one place. Perfect for rental companies, dealers, and service providers who manage client equipment.',
+      'Create customer records and link equipment to each client. View all assets and contact info in one place. Built for rental companies, dealers, and service providers who manage client equipment.',
     benefits: ['Customer-linked equipment', 'Contact and details', 'Single view per customer'],
     benefitColor: 'success',
   },
   {
     icon: History,
     iconColor: 'info',
-    title: 'Service History Tracking',
-    subtitle: 'Permanent record per asset',
+    title: 'History per owner',
+    subtitle: 'Work orders and PM on that account',
     description:
-      "Every work order and PM completion is stored on the equipment. When equipment is linked to a customer, you have a full service history for that client's assets—ideal for warranty, audits, and reporting.",
-    benefits: ['Work order history', 'PM records', 'Audit-ready documentation'],
+      "Every work order and PM completion is stored on the equipment. When equipment is linked to a customer, you have a full service history for that client's assets. Use it for warranty, audits, and reporting.",
+    benefits: ['Work order history', 'PM records'],
     benefitColor: 'info',
   },
   {
@@ -81,16 +81,16 @@ export const steps: Step[] = [
 export const showcases: ImageScreenshot[] = [
   {
     kind: 'image',
-    imageUrl: landingImage('equipment-list-2026-04.png'),
+    imageUrl: landingImage('equipment-list-2026-04.webp'),
     imageAlt:
-      'Equipment list view showing all tracked assets — each piece of equipment can be linked to a customer',
+      'Equipment list view showing all tracked assets. Each piece of equipment can be linked to a customer',
     title: 'Customers & Linked Equipment',
     description:
       'View all customers and their linked equipment. Open a customer to see contact details and every asset you maintain for them. Create and edit customers, then assign equipment.',
   },
   {
     kind: 'image',
-    imageUrl: landingImage('team-detail-2026-04.png'),
+    imageUrl: landingImage('team-detail-2026-04.webp'),
     imageAlt:
       'Service team detail page showing team members and the equipment they are responsible for',
     title: 'Service Teams & Customer Equipment',

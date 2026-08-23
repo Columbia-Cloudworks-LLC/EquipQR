@@ -32,10 +32,10 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
     
     setIsAssigning(true);
     try {
-      let assigneeId = null;
-      
+      let assigneeId: string | null = null;
+
       if (assignmentData.type === 'assign') {
-        assigneeId = assignmentData.id;
+        assigneeId = assignmentData.id ?? null;
       }
       const organizationId = workOrder.organization_id ?? workOrder.organizationId;
       if (!organizationId) {
@@ -70,7 +70,7 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
     } finally {
       setIsAssigning(false);
     }
-  }, [assignmentMutation, isAssigning, toast, workOrder.id, workOrder.organizationId, workOrder.organization_id]);
+  }, [assignmentMutation, isAssigning, toast, workOrder.id, workOrder.organizationId, workOrder.organization_id, workOrder.status]);
 
   if (disabled) return <>{children}</>;
 
@@ -90,7 +90,7 @@ export const WorkOrderAssignmentHover: React.FC<WorkOrderAssignmentHoverProps> =
             <div className="text-xs text-muted-foreground">Loading options...</div>
           ) : isAssignmentBlocked ? (
             <div className="flex items-start gap-2 text-xs text-warning">
-              <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
               <span>No team assigned to equipment. Assign a team to enable assignments.</span>
             </div>
           ) : assignmentOptions.length === 0 ? (

@@ -1,61 +1,61 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Wrench, 
-  Server, 
-  Hammer, 
-  Building, 
-  Package,
-  HelpCircle
+import {
+  Wrench,
+  Server,
+  Hammer,
+  Building,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import type { ComponentType } from 'react';
+import { cn } from '@/lib/utils';
+import { BulldozerIcon } from './BulldozerIcon';
 import LandingReveal from './LandingReveal';
 
 interface UseCase {
-  icon: LucideIcon;
+  icon: ComponentType<{ className?: string }>;
   title: string;
   description: string;
   win: string;
+  /** Overrides the default primary-tint well + ICON_COLORS tone. */
+  iconWellClassName?: string;
 }
 
 const useCases: UseCase[] = [
   {
     icon: Wrench,
-    title: 'Heavy Equipment & Repair Shops',
-    description: 'QR codes on excavators, loaders, and trucks. Mechanics scan to see history, schedule service, or log repairs.',
-    win: 'Zero confusion on service status; faster turnaround times.'
+    title: 'Heavy equipment and repair shops',
+    description: 'QR codes on excavators, loaders, and trucks. Mechanics scan to see history, log a repair, or start a work order.',
+    win: 'The tech has the record on the phone. Nobody calls the office.',
   },
   {
     icon: Server,
-    title: 'IT Departments & MSPs',
-    description: 'Tag every device at setup. A quick scan shows who had it, specs, and warranty.',
-    win: 'Accurate asset lifecycle management without the manual data entry.'
+    title: 'IT departments and MSPs',
+    description: 'Tag the device when it is issued. A scan shows who had it, the specs, and whether warranty still covers it.',
+    win: 'You stop retyping asset spreadsheets.',
   },
   {
     icon: Hammer,
-    title: 'Tool Cribs & Shared Inventory',
-    description: 'Check tools in and out to specific employees. Know who has what at any moment.',
-    win: 'Accountability that reduces lost or stolen inventory.'
+    title: 'Tool cribs and shared inventory',
+    description: 'Check tools in and out against a person. You know who has the impact wrench right now.',
+    win: 'Fewer tools that walk off and never come back.',
   },
   {
     icon: Building,
-    title: 'Facilities & Property Management',
-    description: 'Codes on HVAC, boilers, and safety equipment. Technicians scan to log inspections and prove compliance.',
-    win: 'A digital paper trail that keeps inspectors happy and buildings safe.'
+    title: 'Facilities and property management',
+    description: 'Codes on HVAC, boilers, and safety gear. Techs scan to log the inspection.',
+    win: 'The inspector asks for the log. You have it.',
   },
   {
-    icon: Package,
-    title: 'Equipment Rental Agencies',
-    description: 'Scan returns to log damage, flag for cleaning, or mark ready to rent.',
-    win: 'Catch damage early and get inventory back in rotation faster.'
+    icon: BulldozerIcon,
+    title: 'Equipment rental agencies',
+    description: 'Scan the return. Log damage, flag it for cleaning, or mark it ready to rent.',
+    win: 'Catch the ding at the gate, not on the next customer\'s job.',
+    // text-secondary (~#1f1f23) vanishes on the dark card; construction yellow does not.
+    iconWellClassName: 'bg-warning/20 text-warning',
   },
-  {
-    icon: HelpCircle,
-    title: 'Have a Unique Workflow?',
-    description: 'EquipQR is flexible. Contact us to see how we can fit your tracking needs.',
-    win: 'A custom solution tailored to your business.'
-  }
 ];
+
+const ICON_COLORS = ['text-primary', 'text-info', 'text-success', 'text-warning'];
 
 const AboutSection = ({ id }: { id?: string }) => {
   return (
@@ -63,37 +63,31 @@ const AboutSection = ({ id }: { id?: string }) => {
       <div className="container px-4 mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            Who Is EquipQR™ For?
+            Who EquipQR is for
           </h2>
           <p className="mx-auto max-w-3xl text-left text-xl text-muted-foreground sm:text-center">
-            Whether you're managing heavy equipment, IT assets, tools, facilities, or rental inventory, EquipQR™ helps you track, maintain, and organize your equipment with ease.
+            Shops stick a QR on the machine. The next scan pulls history. Same pattern for IT gear, tool cribs, buildings, and rental fleets.
           </p>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {useCases.map((useCase, index) => {
-            const getIconColor = (i: number) => {
-              const colors = ['text-primary', 'text-info', 'text-success', 'text-warning', 'text-secondary', 'text-primary'];
-              return colors[i % colors.length];
-            };
-            const isCtaCard = useCase.title === 'Have a Unique Workflow?';
-
-            return (
+          {useCases.map((useCase, index) => (
               <LandingReveal key={useCase.title} delayMs={index * 60} className="h-full">
                 <Card
-                  className={`relative flex h-full flex-col overflow-hidden border-border bg-card/50 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 hover:bg-card hover:shadow-lg ${
-                    isCtaCard ? 'border-dashed bg-primary/5' : ''
-                  }`}
+                  className="relative flex h-full flex-col overflow-hidden border-border bg-card/50 backdrop-blur-sm transition-all duration-200 hover:-translate-y-1 hover:bg-card hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0"
                 >
-                  {/* Subtle gradient stripe at top */}
                   <div
-                    className="h-1 w-full bg-gradient-to-r from-primary/20 via-primary/10 to-transparent"
+                    className="h-1 w-full bg-linear-to-r from-primary/20 via-primary/10 to-transparent"
                     aria-hidden
                   />
-                  <CardHeader className="pb-2 flex-shrink-0">
+                  <CardHeader className="pb-2 shrink-0">
                     <div className="mb-3 flex">
                       <span
-                        className={`rounded-2xl bg-primary/10 p-3 ${getIconColor(index)}`}
+                        className={cn(
+                          'rounded-2xl p-3',
+                          useCase.iconWellClassName
+                            ?? `bg-primary/10 ${ICON_COLORS[index % ICON_COLORS.length]}`,
+                        )}
                         aria-hidden
                       >
                         <useCase.icon className="h-10 w-10 sm:h-11 sm:w-11" />
@@ -111,15 +105,14 @@ const AboutSection = ({ id }: { id?: string }) => {
                       <p className="mt-2 text-sm font-medium text-foreground">{useCase.win}</p>
                     </div>
                   </CardHeader>
-                  <CardContent className="flex flex-col flex-grow pb-6 pt-0">
+                  <CardContent className="flex flex-col grow pb-6 pt-0">
                     <CardDescription className="text-sm leading-relaxed">
                       {useCase.description}
                     </CardDescription>
                   </CardContent>
                 </Card>
               </LandingReveal>
-            );
-          })}
+          ))}
         </div>
       </div>
     </section>

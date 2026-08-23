@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fetchWorkOrderImagesWithUploaderProfiles } from './workOrderNoteImageEnrichment';
+import {
+  fetchWorkOrderImagesWithUploaderProfiles,
+  mapResolvedImagesForNote,
+  type WorkOrderNoteImageRow,
+} from './workOrderNoteImageEnrichment';
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: { from: vi.fn() },
@@ -70,5 +74,45 @@ describe('fetchWorkOrderImagesWithUploaderProfiles', () => {
     ).rejects.toThrow('Organization ID is required to fetch work order images');
 
     expect(fromMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('mapResolvedImagesForNote', () => {
+  const image: WorkOrderNoteImageRow = {
+    id: 'img-1',
+    work_order_id: 'wo-1',
+    note_id: 'note-1',
+    file_name: 'photo.jpg',
+    file_url: 'storage/photo.jpg',
+    uploaded_by: 'user-1',
+    created_at: '2026-08-20T00:00:00.000Z',
+  };
+
+  it('returns display fields including file_name and work_order_id', () => {
+    const displayByImageId = new Map([['img-1', 'https://signed.example/photo.jpg']]);
+
+    const mapped = mapResolvedImagesForNote('note-1', [image], displayByImageId, [
+      { id: 'user-1', name: 'Alex' },
+    ]);
+
+    expect(mapped).toEqual([
+      {
+        id: 'img-1',
+        work_order_id: 'wo-1',
+        note_id: 'note-1',
+        file_name: 'photo.jpg',
+        file_url: 'https://signed.example/photo.jpg',
+        file_size: undefined,
+        mime_type: undefined,
+        description: undefined,
+        uploaded_by: 'user-1',
+        created_at: '2026-08-20T00:00:00.000Z',
+        uploaded_by_name: 'Alex',
+      },
+    ]);
+  });
+
+  it('omits images without a display URL', () => {
+    expect(mapResolvedImagesForNote('note-1', [image], new Map(), [])).toEqual([]);
   });
 });

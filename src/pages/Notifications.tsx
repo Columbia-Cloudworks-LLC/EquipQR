@@ -16,13 +16,17 @@ import {
   useMarkAllNotificationsAsRead
 } from '@/hooks/useNotificationSettings';
 import { useMarkNotificationAsRead, type Notification } from '@/features/work-orders/hooks/useWorkOrderData';
+import { toNotificationData } from '@/hooks/useOrganizationNotifications';
 import { useNotificationMarkReadOnClick } from '@/hooks/useNotificationMarkReadOnClick';
 import { logger } from '@/utils/logger';
 import {
   getNotificationEmoji,
   getNotificationTypeLabel,
-  navigateForNotification,
 } from '@/utils/notifications/notificationDisplay';
+import {
+  navigateForNotification,
+  resolveNotificationDestination,
+} from '@/utils/notifications/notificationDestination';
 
 const Notifications: React.FC = () => {
   const { organizationId, switchOrganization } = useOrganization();
@@ -32,7 +36,11 @@ const Notifications: React.FC = () => {
   const [filterRead, setFilterRead] = useState<string>('all');
 
   // Set up real-time notifications
-  const { data: notifications = [], isLoading } = useRealTimeNotifications(organizationId || '');
+  const { data: notificationRows = [], isLoading } = useRealTimeNotifications(organizationId || '');
+  const notifications: Notification[] = notificationRows.map((row) => ({
+    ...row,
+    data: toNotificationData(row.data),
+  }));
   const markAsReadMutation = useMarkNotificationAsRead();
   const markAllAsReadMutation = useMarkAllNotificationsAsRead();
   
@@ -62,7 +70,7 @@ const Notifications: React.FC = () => {
 
     await navigateForNotification({
       notification,
-      organizationId,
+      organizationId: organizationId ?? undefined,
       navigate,
       switchOrganization,
     });
@@ -160,9 +168,10 @@ const Notifications: React.FC = () => {
           ) : (
             <div className="space-y-3">
               {filteredNotifications.map((notification) => {
-                const isTransferRequest = notification.type === 'ownership_transfer_request' || notification.type === 'workspace_merge_request';
-                const isOwnershipTransferRequest = notification.type === 'ownership_transfer_request';
-                const isWorkspaceMergeRequest = notification.type === 'workspace_merge_request';
+                const dest = resolveNotificationDestination(notification);
+                const isTransferRequest =
+                  notification.type === 'ownership_transfer_request' ||
+                  notification.type === 'workspace_merge_request';
                 const isActionRequired = isTransferRequest && !notification.read;
                 
                 return (
@@ -183,7 +192,7 @@ const Notifications: React.FC = () => {
                   }
                 >
                   <div className="flex gap-4">
-                    <div className="text-2xl flex-shrink-0 mt-1">
+                    <div className="text-2xl shrink-0 mt-1">
                       {getNotificationEmoji(notification.type)}
                     </div>
                     
@@ -193,7 +202,7 @@ const Notifications: React.FC = () => {
                           <h3 className="font-medium text-sm sm:text-base flex items-center gap-2">
                             {notification.title}
                             {!notification.read && (
-                              <div className="h-2 w-2 bg-primary rounded-full flex-shrink-0" />
+                              <div className="h-2 w-2 bg-primary rounded-full shrink-0" />
                             )}
                           </h3>
                           <Badge variant="outline" className="text-xs mt-1">
@@ -201,7 +210,7 @@ const Notifications: React.FC = () => {
                           </Badge>
                         </div>
                         
-                        <div className="text-right flex-shrink-0">
+                        <div className="text-right shrink-0">
                           <p className="text-xs text-muted-foreground">
                             {format(new Date(notification.created_at), 'MMM d, yyyy')}
                           </p>
@@ -215,25 +224,11 @@ const Notifications: React.FC = () => {
                         {notification.message}
                       </p>
                       
-                      {(notification.data?.work_order_id ||
-                        notification.type.startsWith('ownership_transfer') ||
-                        notification.type.startsWith('workspace_merge') ||
-                        notification.type === 'member_added' ||
-                        notification.type === 'member_role_changed' ||
-                        notification.type === 'team_member_added' ||
-                        notification.type === 'team_member_role_changed' ||
-                        notification.type === 'audit_export') && (
+                      {dest.navigable && (
                         <div className="flex items-center gap-2 mt-3">
                           <ArrowRight className="h-3 w-3 text-primary" />
                           <span className="text-xs text-primary font-medium">
-                            {isOwnershipTransferRequest
-                              ? 'Click to respond to transfer request'
-                              : isWorkspaceMergeRequest
-                                ? 'Click to respond to merge request'
-                              : notification.data?.work_order_id 
-                                ? 'Click to view work order'
-                                : 'Click to view organization settings'
-                            }
+                            {dest.cta.detail}
                           </span>
                         </div>
                       )}

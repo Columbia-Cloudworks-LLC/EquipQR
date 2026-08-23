@@ -173,7 +173,26 @@ describe('useEquipment', () => {
       });
     });
 
-    it('fetches single equipment by id', async () => {
+    it('fetches single equipment by id for org admins without a team filter', async () => {
+      const { result } = renderHook(
+        () =>
+          useEquipmentById(organizations.acme.id, equipment.forklift1.id, {
+            isOrgAdmin: true,
+          }),
+        { wrapper: createWrapper() }
+      );
+
+      await waitForHookSuccess(result);
+
+      expect(EquipmentService.getById).toHaveBeenCalledWith(
+        organizations.acme.id,
+        equipment.forklift1.id,
+        { userTeamIds: undefined, isOrgAdmin: true },
+      );
+      expect(result.current.data?.id).toBe(equipment.forklift1.id);
+    });
+
+    it('fails closed to an empty team list when RBAC options are omitted', async () => {
       const { result } = renderHook(
         () => useEquipmentById(organizations.acme.id, equipment.forklift1.id),
         { wrapper: createWrapper() }
@@ -183,9 +202,24 @@ describe('useEquipment', () => {
 
       expect(EquipmentService.getById).toHaveBeenCalledWith(
         organizations.acme.id,
-        equipment.forklift1.id
+        equipment.forklift1.id,
+        { userTeamIds: [], isOrgAdmin: false },
       );
-      expect(result.current.data?.id).toBe(equipment.forklift1.id);
+    });
+
+    it('does not fetch until enabled after team membership resolves', () => {
+      const { result } = renderHook(
+        () =>
+          useEquipmentById(organizations.acme.id, equipment.forklift1.id, {
+            userTeamIds: ['team-cs'],
+            isOrgAdmin: false,
+            enabled: false,
+          }),
+        { wrapper: createWrapper() },
+      );
+
+      expect(result.current.fetchStatus).toBe('idle');
+      expect(EquipmentService.getById).not.toHaveBeenCalled();
     });
 
     it('is disabled without equipmentId', () => {
@@ -488,7 +522,8 @@ describe('useEquipment', () => {
 
       expect(EquipmentService.getById).toHaveBeenCalledWith(
         organizations.acme.id,
-        equipment.forklift1.id
+        equipment.forklift1.id,
+        { userTeamIds: [], isOrgAdmin: false },
       );
     });
   });

@@ -162,4 +162,32 @@ describe('SimpleOrganizationProvider syncWithSession', () => {
     expect(localStorage.getItem(CURRENT_ORG_STORAGE_KEY)).toBe('session-org');
     expect(result.current.currentOrganization?.id).toBe('session-org');
   });
+
+  it('reverts the local org id when the session switch rejects', async () => {
+    localStorage.setItem(CURRENT_ORG_STORAGE_KEY, 'session-org');
+    mockSession.sessionData = {
+      currentOrganizationId: 'session-org',
+      organizations: [sessionOrg],
+      teamMemberships: [],
+      lastUpdated: '2026-01-01T00:00:00Z',
+      version: 1,
+    };
+    mockSession.switchOrganization.mockRejectedValue(new Error('Organization missing-org not found'));
+
+    const { result } = renderHook(() => useSimpleOrganization(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.organizationId).toBe('session-org');
+    });
+
+    const switched = await result.current.switchOrganization('missing-org');
+
+    expect(switched).toBe(false);
+    await waitFor(() => {
+      expect(result.current.organizationId).toBe('session-org');
+    });
+    expect(localStorage.getItem(CURRENT_ORG_STORAGE_KEY)).toBe('session-org');
+  });
 });

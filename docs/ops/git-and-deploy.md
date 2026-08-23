@@ -30,10 +30,10 @@ Do **not** confuse git branch **`preview`** (integration train) with Vercel envi
 ## Day-to-day loop
 
 1. Branch off `origin/preview`.
-2. Implement and verify locally (`dev-stop.bat` / `dev-start.bat`, lint, tests, E2E).
+2. Implement and verify locally (`.\dev\dev-stop.bat` / `.\dev\dev-start.bat`, lint, tests, E2E).
 3. Push your work branch → Vercel builds a **Preview** deployment.
 4. Test on the **commit-specific `*.vercel.app` URL** and/or local stack.
-5. Open PR **`feat/*` → `preview`**. CI + Supabase ephemeral branch (when `supabase/**` changes) must pass. Accumulate CHANGELOG `[Unreleased]`; **do not** bump `package.json`.
+5. Open PR **`feat/*` → `preview`**. CI + Supabase ephemeral branch (when `supabase/**` changes) must pass. Accumulate short customer-facing CHANGELOG `[Unreleased]` bullets per `.cursor/rules/changelog.mdc`. **Do not** bump `package.json`.
 6. Merge to `preview` → Vercel updates **`preview.equipqr.app`**.
 7. When ready to ship: **`/release`** or open **`preview` → `main`** with version bump + empty Unreleased → **Production Release Readiness** → **`vercel promote`** → **equipqr.app**.
 
@@ -55,8 +55,9 @@ Retired: `preview-domain-alias.yml` (fast-forward `preview` from `main` + deploy
 
 ## Release / version tags
 
-- PRs into **`preview`**: `[Unreleased]` notes only; forbid app version bump.
-- PRs into **`main`**: semver bump, versioned CHANGELOG section, empty `[Unreleased]`.
+- PRs into **`preview`**: short `[Unreleased]` notes per `.cursor/rules/changelog.mdc` only. Forbid app version bump.
+- PRs into **`main`**: one SemVer bump for the promote, versioned CHANGELOG section, empty `[Unreleased]`.
+- Batch routine dependency maintenance into that promote. Do not cut a versioned release for one bump.
 - **`/release`** pushes release metadata onto **`preview`**, then opens **`preview` → `main`** (never a non-`preview` head into `main`).
 - `version-tag.yml` tags on push to `main` when `package.json` changes.
 

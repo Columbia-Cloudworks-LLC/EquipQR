@@ -14,7 +14,15 @@ vi.mock('@/hooks/useAuth', () => ({
 }));
 
 // Helper to fill form fields quickly using fireEvent.change
+const revealEmailSignIn = () => {
+  const reveal = screen.queryByRole('button', { name: /login with email & password/i });
+  if (reveal) {
+    fireEvent.click(reveal);
+  }
+};
+
 const fillFormFast = (email = 'test@example.com', password = 'password123') => {
+  revealEmailSignIn();
   fireEvent.change(screen.getByLabelText('Email'), { target: { value: email } });
   fireEvent.change(screen.getByLabelText('Password'), { target: { value: password } });
 };
@@ -27,6 +35,7 @@ describe('SignInForm', () => {
     onError: mockOnError,
     isLoading: false,
     setIsLoading: mockSetIsLoading,
+    onGoogleSignIn: vi.fn(),
   };
 
   beforeEach(() => {
@@ -34,16 +43,47 @@ describe('SignInForm', () => {
     mockSignIn.mockResolvedValue({ error: null });
   });
 
-  it('should render all form fields', () => {
+  it('keeps email credentials hidden until login with email and password', () => {
     render(<SignInForm {...defaultProps} />);
+
+    expect(screen.getByRole('button', { name: /login with google/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /login with email & password/i })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Email')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Sign In' })).not.toBeInTheDocument();
+  });
+
+  it('reveals email fields and hides Google after login with email and password', () => {
+    render(<SignInForm {...defaultProps} />);
+    revealEmailSignIn();
 
     expect(screen.getByLabelText('Email')).toBeInTheDocument();
     expect(screen.getByLabelText('Password')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Sign In' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /login with google/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /back to google login/i })).toBeInTheDocument();
+  });
+
+  it('returns to Google login from the email path', () => {
+    render(<SignInForm {...defaultProps} />);
+    revealEmailSignIn();
+    fireEvent.click(screen.getByRole('button', { name: /back to google login/i }));
+
+    expect(screen.getByRole('button', { name: /login with google/i })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Email')).not.toBeInTheDocument();
+  });
+
+  it('starts Google login from the collapsed card', () => {
+    const onGoogleSignIn = vi.fn();
+    render(<SignInForm {...defaultProps} onGoogleSignIn={onGoogleSignIn} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /login with google/i }));
+    expect(onGoogleSignIn).toHaveBeenCalledTimes(1);
   });
 
   it('should have correct input types', () => {
     render(<SignInForm {...defaultProps} />);
+    revealEmailSignIn();
 
     const emailInput = screen.getByLabelText('Email');
     const passwordInput = screen.getByLabelText('Password');
@@ -54,6 +94,7 @@ describe('SignInForm', () => {
 
   it('should require email and password fields', () => {
     render(<SignInForm {...defaultProps} />);
+    revealEmailSignIn();
 
     const emailInput = screen.getByLabelText('Email');
     const passwordInput = screen.getByLabelText('Password');
@@ -64,6 +105,7 @@ describe('SignInForm', () => {
 
   it('should update form data when typing in inputs', () => {
     render(<SignInForm {...defaultProps} />);
+    revealEmailSignIn();
 
     const emailInput = screen.getByLabelText('Email');
     const passwordInput = screen.getByLabelText('Password');
@@ -106,6 +148,7 @@ describe('SignInForm', () => {
 
   it('should prevent form submission if fields are empty', () => {
     render(<SignInForm {...defaultProps} />);
+    revealEmailSignIn();
 
     const submitButton = screen.getByRole('button', { name: 'Sign In' });
     fireEvent.click(submitButton);
@@ -148,6 +191,7 @@ describe('SignInForm', () => {
 
   it('should disable submit button when loading', () => {
     render(<SignInForm {...defaultProps} isLoading={true} />);
+    revealEmailSignIn();
 
     // When loading, the button's accessible name includes the loading spinner's aria-label
     // So it becomes "Loading Sign In" instead of just "Sign In"
@@ -157,6 +201,7 @@ describe('SignInForm', () => {
 
   it('should show loading spinner when loading', () => {
     render(<SignInForm {...defaultProps} isLoading={true} />);
+    revealEmailSignIn();
 
     const spinner = screen.getByRole('status', { hidden: true });
     expect(spinner).toBeInTheDocument();
@@ -203,6 +248,7 @@ describe('SignInForm', () => {
           onError={mockOnError}
           isLoading={localIsLoading}
           setIsLoading={setLocalIsLoading}
+          onGoogleSignIn={vi.fn()}
         />
       );
     };
@@ -247,6 +293,7 @@ describe('SignInForm', () => {
 
   it('should handle form reset correctly', () => {
     render(<SignInForm {...defaultProps} />);
+    revealEmailSignIn();
 
     const emailInput = screen.getByLabelText('Email');
     const passwordInput = screen.getByLabelText('Password');

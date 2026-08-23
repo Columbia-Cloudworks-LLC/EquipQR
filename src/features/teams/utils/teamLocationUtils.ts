@@ -29,7 +29,7 @@ export function teamLocationToPlaceData(team: TeamWithMembers): PlaceLocationDat
     city: team.location_city ?? '',
     state: team.location_state ?? '',
     country: team.location_country ?? '',
-    lat: team.location_lat ?? undefined,
-    lng: team.location_lng ?? undefined,
+    lat: team.location_lat ?? null,
+    lng: team.location_lng ?? null,
   };
 }

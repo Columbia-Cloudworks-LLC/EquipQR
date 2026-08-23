@@ -11,8 +11,12 @@ function yourTemplatesGrid(page: Page) {
     .locator('div.grid');
 }
 
+export function getYourTemplateCards(page: Page, templateName: string) {
+  return yourTemplatesGrid(page).locator('> div').filter({ hasText: templateName });
+}
+
 export function getYourTemplateCard(page: Page, templateName: string) {
-  return yourTemplatesGrid(page).locator('> div').filter({ hasText: templateName }).first();
+  return getYourTemplateCards(page, templateName).first();
 }
 
 export async function expandStarterCatalogIfNeeded(page: Page): Promise<void> {
@@ -150,12 +154,24 @@ export async function openEquipmentCheckinQrDialog(page: Page, templateName: str
   await ensureOperatorCheckinQrLinkReady(page, templateName);
 
   const assignmentRow = getOperatorCheckinAssignmentRow(page, templateName);
-  await assignmentRow.getByRole('button', { name: /view qr code/i }).click();
+  await assignmentRow.scrollIntoViewIfNeeded();
+  await assignmentRow.getByRole('button', { name: /^view qr code$/i }).click();
 
   const dialog = page.getByRole('dialog');
-  await expect(dialog.getByText(new RegExp(`${templateName} QR Code`, 'i'))).toBeVisible({
-    timeout: 30_000,
-  });
+  await expect(dialog).toBeVisible({ timeout: 15_000 });
+
+  const checkinTitle = dialog.getByText(new RegExp(`${templateName} QR Code`, 'i'));
+  if ((await checkinTitle.count()) === 0) {
+    const typeTrigger = dialog.getByLabel(/qr code type/i);
+    await expect(typeTrigger).toBeVisible({ timeout: 10_000 });
+    await typeTrigger.click();
+    await page
+      .getByRole('option', { name: new RegExp(`daily check-in:\\s*${templateName}`, 'i') })
+      .first()
+      .click();
+  }
+
+  await expect(checkinTitle).toBeVisible({ timeout: 30_000 });
 }
 
 export async function extractOperatorCheckinTokenFromQrDialog(page: Page): Promise<string> {
@@ -355,8 +371,9 @@ export async function expectLedgerSubmissionVisible(
 
 export async function deleteTemplateFromConsole(page: Page, templateName: string): Promise<void> {
   await page.getByRole('tab', { name: /^templates$/i }).click();
-  const templateCard = getYourTemplateCard(page, templateName);
-  await templateCard.getByRole('button', { name: /^delete$/i }).click();
+  const remaining = getYourTemplateCards(page, templateName);
+  const before = await remaining.count();
+  await remaining.first().getByRole('button', { name: /^delete$/i }).click();
 
   const dialog = page.getByRole('alertdialog');
   await expect(dialog.getByRole('heading', { name: /delete template/i })).toBeVisible({
@@ -364,7 +381,22 @@ export async function deleteTemplateFromConsole(page: Page, templateName: string
   });
   await dialog.getByRole('button', { name: /delete template/i }).click();
   await expect(dialog).toBeHidden({ timeout: 30_000 });
-  await expect(getYourTemplateCard(page, templateName)).toHaveCount(0, { timeout: 30_000 });
+  await expect(remaining).toHaveCount(Math.max(0, before - 1), { timeout: 30_000 });
+}
+
+export async function removeAssignedChecklistsNamed(page: Page, templateName: string): Promise<void> {
+  await page.getByRole('tab', { name: /check-ins/i }).click();
+  const rows = page
+    .locator('ul.divide-y > li')
+    .filter({ hasText: templateName })
+    .filter({ has: page.getByRole('button', { name: /checklist actions/i }) });
+  for (let i = 0; i < 8; i += 1) {
+    const before = await rows.count();
+    if (before === 0) return;
+    await rows.first().getByRole('button', { name: /checklist actions/i }).click();
+    await page.getByRole('menuitem', { name: /remove checklist/i }).click();
+    await expect(rows).toHaveCount(before - 1, { timeout: 15_000 });
+  }
 }
 
 export async function restoreTemplateFromConsole(page: Page, templateName: string): Promise<void> {

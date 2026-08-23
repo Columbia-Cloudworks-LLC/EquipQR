@@ -14,7 +14,7 @@ type SaveTrigger = 'text' | 'selection' | 'manual';
 type VirtualRowProps = ChecklistItemRowCallbacks & {
   items: PMChecklistItem[];
   sections: string[];
-  newItemIdRef: React.MutableRefObject<string | null>;
+  newItemIdRef: React.RefObject<string | null>;
 };
 
 function VirtualItemRow({
@@ -63,7 +63,7 @@ export interface SectionItemsListProps {
   sectionItems: PMChecklistItem[];
   sections: string[];
   previewMode: boolean;
-  newItemIdRef: React.MutableRefObject<string | null>;
+  newItemIdRef: React.RefObject<string | null>;
   onCommit: (itemId: string, updates: Partial<PMChecklistItem>) => void;
   onDuplicate: (itemId: string) => void;
   onMoveToSection: (itemId: string, targetSection: string) => void;
@@ -174,8 +174,8 @@ export function SectionItemsList({
         {sectionItems.map((item) => (
           <div key={item.id} className="rounded border p-3">
             <div className="flex items-center justify-between gap-2">
-              <div className="font-medium min-w-0 break-words">{item.title}</div>
-              <Badge variant={item.required ? 'default' : 'outline'} className="flex-shrink-0">
+              <div className="font-medium min-w-0 wrap-break-word">{item.title}</div>
+              <Badge variant={item.required ? 'default' : 'outline'} className="shrink-0">
                 {item.required ? 'Required' : 'Optional'}
               </Badge>
             </div>

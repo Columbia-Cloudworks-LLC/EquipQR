@@ -10,23 +10,23 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CheckCircle2, Globe, Info, X } from 'lucide-react';
-import { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
 import {
   PM_TEMPLATE_NONE_VALUE,
   useWorkOrderPMChecklist,
   type WorkOrderPMChecklistEquipment,
+  type WorkOrderPMChecklistSetValue,
   type WorkOrderPMChecklistValues,
 } from '@/features/work-orders/hooks/useWorkOrderPMChecklist';
-import type { PMTemplate } from '@/features/pm-templates/services/pmChecklistTemplatesService';
+import type { PMTemplateSummary } from '@/features/pm-templates/services/pmChecklistTemplatesService';
 
 interface PMTemplateSelectorProps {
   isLoading: boolean;
-  templates: PMTemplate[];
+  templates: PMTemplateSummary[];
   selectedValue: string;
   onTemplateChange: (templateId: string) => void;
   showLicenseFooter?: boolean;
   canCreateCustomPMTemplates?: boolean;
-  assignedTemplate?: PMTemplate | null;
+  assignedTemplate?: PMTemplateSummary | null;
   equipmentName?: string;
 }
 
@@ -87,7 +87,7 @@ const PMTemplateSelector: React.FC<PMTemplateSelectorProps> = ({
 
 interface WorkOrderPMChecklistProps {
   values: WorkOrderPMChecklistValues;
-  setValue: <K extends keyof WorkOrderFormData>(field: K, value: WorkOrderFormData[K]) => void;
+  setValue: WorkOrderPMChecklistSetValue;
   selectedEquipment?: WorkOrderPMChecklistEquipment | null;
   allowTemplateOverride?: boolean;
   autoDefaultFromEquipment?: boolean;

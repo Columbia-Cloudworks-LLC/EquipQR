@@ -70,7 +70,7 @@ export function InlineEditWorkOrderAssignee({
           onValueChange={setSelectedValue}
           disabled={isLoading || assignmentMutation.isPending}
         >
-          <SelectTrigger id={`assignee-${workOrder.id}`} className="min-h-[44px] w-full touch-manipulation">
+          <SelectTrigger id={`assignee-${workOrder.id}`} className="min-h-11 w-full touch-manipulation">
             <SelectValue placeholder={isLoading ? 'Loading assignees...' : 'Select assignee'} />
           </SelectTrigger>
           <SelectContent>
@@ -94,7 +94,7 @@ export function InlineEditWorkOrderAssignee({
           <Button
             type="button"
             size="sm"
-            className="min-h-[44px] flex-1 touch-manipulation"
+            className="min-h-11 flex-1 touch-manipulation"
             onClick={() => void handleSave()}
             disabled={!selectedValue || assignmentMutation.isPending}
           >
@@ -105,7 +105,7 @@ export function InlineEditWorkOrderAssignee({
             type="button"
             variant="outline"
             size="sm"
-            className="min-h-[44px] touch-manipulation"
+            className="min-h-11 touch-manipulation"
             onClick={handleCancel}
             disabled={assignmentMutation.isPending}
           >

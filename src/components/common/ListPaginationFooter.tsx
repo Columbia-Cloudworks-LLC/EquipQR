@@ -61,7 +61,7 @@ const ListPaginationFooter: React.FC<ListPaginationFooterProps> = ({
               onPageChange(1);
             }}
           >
-            <SelectTrigger id={pageSizeSelectId} className="w-[88px]">
+            <SelectTrigger id={pageSizeSelectId} className="w-22">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

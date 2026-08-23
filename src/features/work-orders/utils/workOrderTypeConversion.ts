@@ -14,10 +14,10 @@ export interface WorkOrderLike {
   organizationId?: string;
   created_date?: string;
   createdDate?: string;
-  assignee_id?: string;
-  assigneeId?: string;
-  team_id?: string;
-  teamId?: string;
-  created_by?: string;
+  assignee_id?: string | null;
+  assigneeId?: string | null;
+  team_id?: string | null;
+  teamId?: string | null;
+  created_by?: string | null;
   createdByName?: string;
 }

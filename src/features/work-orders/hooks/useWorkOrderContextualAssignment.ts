@@ -11,13 +11,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-
-interface AssignmentOption {
-  id: string;
-  name: string;
-  email?: string;
-  role?: string;
-}
+import type { AssignmentOption } from '@/features/work-orders/hooks/useWorkOrderAssignment';
 
 interface ContextualAssignmentResult {
   assignees: AssignmentOption[];
@@ -106,7 +100,8 @@ export function useWorkOrderContextualAssignment(workOrder?: AssignmentWorkOrder
           id: member.user_id,
           name: member.profiles.name,
           email: member.profiles.email,
-          role: member.role
+          role: member.role,
+          type: 'user' as const,
         })));
       }
 
@@ -136,7 +131,8 @@ export function useWorkOrderContextualAssignment(workOrder?: AssignmentWorkOrder
             id: member.user_id,
             name: member.profiles.name,
             email: member.profiles.email,
-            role: member.role
+            role: member.role,
+            type: 'user' as const,
           })));
         }
       }

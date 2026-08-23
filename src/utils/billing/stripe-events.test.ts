@@ -1,5 +1,5 @@
 
-import { describe, it, expect, beforeEach, vi, type MockInstance } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { supabase } from '@/integrations/supabase/client';
 
 // Mock the supabase client
@@ -15,15 +15,19 @@ vi.mock('@/integrations/supabase/client', () => ({
   }
 }));
 
+type SupabaseInsertResult = {
+  data?: unknown;
+  error: unknown;
+};
+
 type SupabaseFromHandlers = {
-  insert: (...args: unknown[]) => unknown;
+  insert: (...args: unknown[]) => Promise<SupabaseInsertResult> | SupabaseInsertResult;
   select?: (...args: unknown[]) => unknown;
   eq?: (...args: unknown[]) => { single: (...args: unknown[]) => unknown };
 };
 
-const supabaseFromMock = supabase.from as unknown as MockInstance<
-  [string],
-  SupabaseFromHandlers
+const supabaseFromMock = supabase.from as unknown as Mock<
+  (table: string) => SupabaseFromHandlers
 >;
 
 describe('Stripe Event Logging', () => {
@@ -127,7 +131,7 @@ describe('Stripe Event Logging', () => {
       };
 
       try {
-        await supabase.from('stripe_event_logs').insert(eventLog);
+        await supabaseFromMock('stripe_event_logs').insert(eventLog);
       } catch (error) {
         const supabaseError = error as { code?: string };
         expect(supabaseError?.code).toBe('23505');
@@ -152,7 +156,7 @@ describe('Stripe Event Logging', () => {
         payload: { test: 'data' }
       };
 
-      const result = await supabase.from('stripe_event_logs').insert(eventLog);
+      const result = await supabaseFromMock('stripe_event_logs').insert(eventLog);
       
       expect(result.error).toBeNull();
       expect(mockInsert).toHaveBeenCalledWith(eventLog);
@@ -281,7 +285,7 @@ describe('Stripe Event Logging', () => {
       }
 
       // Test that stripe_event_logs would still work for audit
-      const auditResult = await supabase.from('stripe_event_logs').insert({
+      const auditResult = await supabaseFromMock('stripe_event_logs').insert({
         event_id: 'evt_audit_123',
         type: 'invoice.payment_succeeded',
         subscription_id: 'sub_123',

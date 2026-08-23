@@ -51,8 +51,8 @@ export function useWorkOrderStatusChangeHandlers(
     user?.id,
   ]);
 
-  const canCompleteWorkOrder = useCallback(() => {
-    return !workOrder.has_pm || (pmData && pmData.status === 'completed');
+  const canCompleteWorkOrder = useCallback((): boolean => {
+    return !workOrder.has_pm || pmData?.status === 'completed';
   }, [workOrder.has_pm, pmData]);
 
   const handleStatusChange = useCallback(

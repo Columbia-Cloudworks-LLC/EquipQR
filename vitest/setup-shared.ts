@@ -91,7 +91,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-globalThis.vi = vi;
+(globalThis as typeof globalThis & { vi: typeof vi }).vi = vi;
 
 const TEST_APP_VERSION = 'test-harness-v0.0.0-test';
 vi.stubGlobal('__APP_VERSION__', TEST_APP_VERSION);

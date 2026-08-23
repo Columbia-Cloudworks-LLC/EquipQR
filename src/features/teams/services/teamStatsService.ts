@@ -19,11 +19,6 @@ export interface TeamWorkOrderStats {
   completedWorkOrders: number;
 }
 
-export interface TeamStats {
-  equipment: TeamEquipmentStats;
-  workOrders: TeamWorkOrderStats;
-}
-
 export interface RecentEquipmentItem {
   id: string;
   name: string;
@@ -243,19 +238,4 @@ export async function getTeamRecentWorkOrders(
     logger.error('Error in getTeamRecentWorkOrders:', error);
     throw error;
   }
-}
-
-/**
- * Get all team stats in a single call (equipment + work orders)
- */
-async function getTeamStats(
-  organizationId: string,
-  teamId: string
-): Promise<TeamStats> {
-  const [equipment, workOrders] = await Promise.all([
-    getTeamEquipmentStats(organizationId, teamId),
-    getTeamWorkOrderStats(organizationId, teamId),
-  ]);
-
-  return { equipment, workOrders };
 }

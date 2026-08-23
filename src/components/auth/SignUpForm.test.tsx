@@ -2,6 +2,7 @@ import './signUpFormTestSetup';
 
 import React from 'react';
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SignUpForm from './SignUpForm';
 import { PRIVACY_VERSION_HASH, TERMS_VERSION_HASH } from '@/lib/legalPolicyVersions';
@@ -10,12 +11,16 @@ import {
   defaultSignUpFormProps,
   fillSignUpFormFast,
   mockSignUpWithEmail,
-  RouterWrapper,
+  revealEmailSignup,
   setupFastUser,
   setupSignUpFormBeforeEach,
   setupSignUpPasswordFields,
   withRouter,
 } from './signUpFormTestHelpers';
+
+const RouterWrapper = ({ children }: { children: React.ReactNode }) => (
+  <MemoryRouter>{children}</MemoryRouter>
+);
 
 describe('SignUpForm', () => {
   beforeEach(() => {
@@ -23,21 +28,52 @@ describe('SignUpForm', () => {
   });
 
   describe('Form Rendering', () => {
-    it('should render all form fields correctly', () => {
+    it('keeps email credentials hidden until sign up with email', () => {
       withRouter(<SignUpForm {...defaultSignUpFormProps} />);
+
+      expect(screen.getByLabelText(/organization name/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /sign up with google/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /sign up with email/i })).toBeInTheDocument();
+      expect(screen.queryByLabelText(/full name/i)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/email/i)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
+      expect(screen.queryByRole('group', { name: /hcaptcha/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /create account & organization/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /retry saving legal acceptance/i })).not.toBeInTheDocument();
+    });
+
+    it('reveals email fields after sign up with email', () => {
+      withRouter(<SignUpForm {...defaultSignUpFormProps} />);
+      revealEmailSignup();
 
       expect(screen.getByLabelText(/full name/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/organization name/i)).toBeInTheDocument();
       expect(screen.getByLabelText('Password')).toBeInTheDocument();
       expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument();
-      expect(screen.getByTestId('hcaptcha-mock')).toBeInTheDocument();
+      expect(screen.getByRole('group', { name: /hcaptcha/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /create account & organization/i })).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /retry saving legal acceptance/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /sign up with email/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /sign up with google/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /back to google signup/i })).toBeInTheDocument();
+    });
+
+    it('returns to Google signup from the email path', () => {
+      withRouter(<SignUpForm {...defaultSignUpFormProps} />);
+      revealEmailSignup();
+
+      fireEvent.click(screen.getByRole('button', { name: /back to google signup/i }));
+
+      expect(screen.getByRole('button', { name: /sign up with google/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /sign up with email/i })).toBeInTheDocument();
+      expect(screen.queryByLabelText(/full name/i)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/email/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /back to google signup/i })).not.toBeInTheDocument();
     });
 
     it('should have correct input types and attributes', () => {
       withRouter(<SignUpForm {...defaultSignUpFormProps} />);
+      revealEmailSignup();
 
       expect(screen.getByLabelText(/full name/i)).toHaveAttribute('type', 'text');
       expect(screen.getByLabelText(/email/i)).toHaveAttribute('type', 'email');
@@ -65,6 +101,7 @@ describe('SignUpForm', () => {
   describe('Input Handling', () => {
     it('should update form data when inputs change', () => {
       withRouter(<SignUpForm {...defaultSignUpFormProps} />);
+      revealEmailSignup();
 
       const nameInput = screen.getByLabelText(/full name/i);
       const emailInput = screen.getByLabelText(/email/i);
@@ -81,6 +118,7 @@ describe('SignUpForm', () => {
 
     it('should handle password input changes', () => {
       withRouter(<SignUpForm {...defaultSignUpFormProps} />);
+      revealEmailSignup();
 
       const passwordInput = screen.getByLabelText('Password');
       const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
@@ -119,7 +157,7 @@ describe('SignUpForm', () => {
       await user.type(confirmPasswordInput, 'SecurePass2!');
 
       expect(screen.getByText(/passwords do not match/i)).toBeInTheDocument();
-      expect(screen.getByTestId('password-match-error')).toBeInTheDocument();
+      expect(screen.getByLabelText(/^passwords do not match$/i)).toBeInTheDocument();
     });
 
     it('should show success icon when passwords match', async () => {
@@ -128,7 +166,7 @@ describe('SignUpForm', () => {
       await user.type(confirmPasswordInput, 'SecurePass1!');
 
       expect(screen.queryByText(/passwords do not match/i)).not.toBeInTheDocument();
-      expect(screen.getByTestId('password-match-success')).toBeInTheDocument();
+      expect(screen.getByLabelText(/^passwords match$/i)).toBeInTheDocument();
     });
 
     it('should validate password match when changing password field', async () => {
@@ -145,14 +183,15 @@ describe('SignUpForm', () => {
       await user.type(confirmPasswordInput, 'SecurePass1!');
       await user.clear(confirmPasswordInput);
 
-      expect(screen.queryByTestId('password-match-success')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('password-match-error')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/^passwords match$/i)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/^passwords do not match$/i)).not.toBeInTheDocument();
     });
   });
 
   describe('Form Validation', () => {
     it('should disable submit button when form is invalid', () => {
       withRouter(<SignUpForm {...defaultSignUpFormProps} />);
+      revealEmailSignup();
 
       const submitButton = screen.getByRole('button', { name: /create account & organization/i });
       expect(submitButton).toBeDisabled();
@@ -168,6 +207,7 @@ describe('SignUpForm', () => {
 
     it('should require all fields to be valid', () => {
       withRouter(<SignUpForm {...defaultSignUpFormProps} />);
+      revealEmailSignup();
 
       const submitButton = screen.getByRole('button', { name: /create account & organization/i });
       fillSignUpFormFast({ organization: '', password: '', confirmPassword: '', verifyCaptcha: false });
@@ -223,8 +263,9 @@ describe('SignUpForm', () => {
     it('should handle captcha error', () => {
       const onError = vi.fn();
       withRouter(<SignUpForm {...defaultSignUpFormProps} onError={onError} />);
+      revealEmailSignup();
 
-      fireEvent.click(screen.getByTestId('hcaptcha-error'));
+      fireEvent.click(screen.getByRole('button', { name: /trigger error/i }));
 
       expect(onError).toHaveBeenCalledWith('CAPTCHA verification failed. Please try again.');
     });
@@ -232,8 +273,9 @@ describe('SignUpForm', () => {
     it('should handle captcha expiration', () => {
       const onError = vi.fn();
       withRouter(<SignUpForm {...defaultSignUpFormProps} onError={onError} />);
+      revealEmailSignup();
 
-      fireEvent.click(screen.getByTestId('hcaptcha-expire'));
+      fireEvent.click(screen.getByRole('button', { name: /trigger expire/i }));
 
       expect(onError).toHaveBeenCalledWith('CAPTCHA expired. Please complete it again.');
     });
@@ -273,6 +315,7 @@ describe('SignUpForm', () => {
     it('should handle submission with incomplete form', async () => {
       const onError = vi.fn();
       withRouter(<SignUpForm {...defaultSignUpFormProps} onError={onError} />);
+      revealEmailSignup();
 
       const form = screen.getByRole('button', { name: /create account & organization/i }).closest('form');
 
@@ -372,15 +415,16 @@ describe('SignUpForm', () => {
   describe('Loading State', () => {
     it('should show loading spinner when isLoading is true', () => {
       withRouter(<SignUpForm {...defaultSignUpFormProps} isLoading={true} />);
+      revealEmailSignup();
 
-      expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
+      expect(screen.getByLabelText(/creating account/i)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /create account & organization/i })).toBeDisabled();
     });
 
     it('should not show loading spinner when isLoading is false', () => {
       withRouter(<SignUpForm {...defaultSignUpFormProps} isLoading={false} />);
 
-      expect(screen.queryByTestId('loading-spinner')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/creating account/i)).not.toBeInTheDocument();
     });
 
     it('should prevent multiple rapid submissions', async () => {
@@ -438,6 +482,7 @@ describe('SignUpForm', () => {
   describe('Edge Cases', () => {
     it('should handle very long input values', () => {
       withRouter(<SignUpForm {...defaultSignUpFormProps} />);
+      revealEmailSignup();
 
       const longString = 'a'.repeat(200);
       const nameInput = screen.getByLabelText(/full name/i);
@@ -471,9 +516,52 @@ describe('SignUpForm', () => {
     });
   });
 
+  describe('Google signup', () => {
+    it('does not start Google signup without an organization name', () => {
+      const onGoogleSignUp = vi.fn();
+      withRouter(<SignUpForm {...defaultSignUpFormProps} onGoogleSignUp={onGoogleSignUp} />);
+
+      const googleButton = screen.getByRole('button', { name: /sign up with google/i });
+      expect(googleButton).toBeDisabled();
+      fireEvent.click(googleButton);
+      expect(onGoogleSignUp).not.toHaveBeenCalled();
+    });
+
+    it('starts Google signup with the trimmed organization name', () => {
+      const onGoogleSignUp = vi.fn();
+      withRouter(<SignUpForm {...defaultSignUpFormProps} onGoogleSignUp={onGoogleSignUp} />);
+
+      fireEvent.change(screen.getByLabelText(/organization name/i), {
+        target: { value: '  Fleet Co  ' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /sign up with google/i }));
+
+      expect(onGoogleSignUp).toHaveBeenCalledWith('Fleet Co');
+    });
+
+    it('blocks Google signup when the organization name matches the invited org', () => {
+      const onGoogleSignUp = vi.fn();
+      withRouter(
+        <SignUpForm
+          {...defaultSignUpFormProps}
+          invitedOrgName="Acme Corporation"
+          onGoogleSignUp={onGoogleSignUp}
+        />,
+      );
+
+      fireEvent.change(screen.getByLabelText(/organization name/i), {
+        target: { value: 'Acme Corporation' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /sign up with google/i }));
+
+      expect(onGoogleSignUp).not.toHaveBeenCalled();
+    });
+  });
+
   describe('Accessibility', () => {
     it('should have proper label associations', () => {
       withRouter(<SignUpForm {...defaultSignUpFormProps} />);
+      revealEmailSignup();
 
       expect(screen.getByLabelText(/full name/i)).toHaveAttribute('id', 'signup-name');
       expect(screen.getByLabelText(/email/i)).toHaveAttribute('id', 'signup-email');
@@ -490,19 +578,10 @@ describe('SignUpForm', () => {
       expect(screen.getByRole('link', { name: /Privacy Notice at Collection/i })).toHaveFocus();
 
       await user.tab();
-      expect(screen.getByLabelText(/full name/i)).toHaveFocus();
-
-      await user.tab();
-      expect(screen.getByLabelText(/email/i)).toHaveFocus();
-
-      await user.tab();
       expect(screen.getByLabelText(/organization name/i)).toHaveFocus();
 
       await user.tab();
-      expect(screen.getByLabelText('Password')).toHaveFocus();
-
-      await user.tab();
-      expect(screen.getByLabelText(/confirm password/i)).toHaveFocus();
+      expect(screen.getByRole('button', { name: /sign up with email/i })).toHaveFocus();
     });
   });
 
@@ -558,6 +637,7 @@ describe('SignUpForm', () => {
       const { rerender } = render(<SignUpForm {...defaultSignUpFormProps} prefillEmail="" />, {
         wrapper: RouterWrapper,
       });
+      revealEmailSignup();
 
       const emailInput = screen.getByLabelText(/email/i);
       expect(emailInput).toHaveValue('');
@@ -604,9 +684,21 @@ describe('SignUpForm', () => {
 
     it('should not update if prefillEmail is not provided', () => {
       withRouter(<SignUpForm {...defaultSignUpFormProps} />);
+      revealEmailSignup();
 
       const emailInput = screen.getByLabelText(/email/i);
       expect(emailInput).toHaveValue('');
+    });
+
+    it('opens the email path when prefillEmail is provided', () => {
+      render(<SignUpForm {...defaultSignUpFormProps} prefillEmail="prefilled@example.com" />, {
+        wrapper: RouterWrapper,
+      });
+
+      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /sign up with email/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /sign up with google/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /back to google signup/i })).toBeInTheDocument();
     });
   });
 

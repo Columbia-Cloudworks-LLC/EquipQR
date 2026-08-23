@@ -22,18 +22,45 @@ vi.mock('@/features/work-orders/hooks/useHistoricalWorkOrders', () => ({
   }),
 }));
 
-const baseWorkOrder = {
+const baseWorkOrder: WorkOrder = {
   id: 'wo-1',
   organization_id: 'org-1',
   equipment_id: 'eq-1',
   title: 'Past repair',
+  description: 'Historical repair record',
   status: 'completed',
+  priority: 'medium',
+  created_by: 'user-1',
   created_date: '2026-06-20T12:00:00Z',
   completed_date: '2026-06-21T16:00:00Z',
-  assignee_id: null,
-  isHistorical: false,
+  due_date: null,
+  updated_at: '2026-06-21T16:00:00Z',
+  has_pm: false,
+  pm_required: false,
   is_historical: false,
-} as WorkOrder;
+  acceptance_date: null,
+  assignee_id: null,
+  assignee_name: null,
+  team_id: null,
+  created_by_admin: null,
+  created_by_name: null,
+  estimated_hours: null,
+  historical_notes: null,
+  historical_start_date: null,
+  equipment_working_hours_at_creation: null,
+  invoice_balance_cents: null,
+  invoice_due_date: null,
+  invoice_last_synced_at: null,
+  invoice_paid_at: null,
+  invoice_sent_at: null,
+  invoice_status: null,
+  invoice_sync_error: null,
+  primary_image_id: null,
+  quickbooks_invoice_environment: null,
+  quickbooks_invoice_id: null,
+  quickbooks_invoice_number: null,
+  quickbooks_realm_id: null,
+};
 
 describe('WorkOrderHistoricalTimelineSection', () => {
   it('opens convert dialog when admin clicks Edit Timeline on a live work order', async () => {
@@ -56,7 +83,7 @@ describe('WorkOrderHistoricalTimelineSection', () => {
 
     render(
       <WorkOrderHistoricalTimelineSection
-        workOrder={{ ...baseWorkOrder, isHistorical: true, is_historical: true }}
+        workOrder={{ ...baseWorkOrder, is_historical: true }}
         canEditTimeline
       />,
     );

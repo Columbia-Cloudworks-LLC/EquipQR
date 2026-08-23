@@ -62,7 +62,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
         <div className="flex items-center">
           <Link
             to={backLink.href}
-            className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             <span aria-hidden="true">←</span>
             <span>{backLink.label}</span>
@@ -76,7 +76,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
           {breadcrumbs.map((item, index) => (
             <div key={`${item.label}-${index}`} className="flex items-center gap-1.5">
               {index > 0 && (
-                <ChevronRight className="h-3.5 w-3.5 flex-shrink-0 opacity-50" aria-hidden="true" />
+                <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden="true" />
               )}
               {item.href ? (
                 <Link
@@ -138,7 +138,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
         
         {/* Actions - full width on mobile, auto on larger screens */}
         {actions && (
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             {actions}
           </div>
         )}

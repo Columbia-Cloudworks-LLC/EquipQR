@@ -1,0 +1,22 @@
+ts	phase	decision	why	evidence	result
+2026-08-22T21:00:00Z	frame	treat 1434 as a layout migration, not a config dump into etc	Vite, ESLint, tsc, Vercel, Qodo, and GitHub all require named files at repo root	index.html, package.json, .pr_agent.toml, best_practices.md	open
+2026-08-22T21:00:10Z	frame	rename scripts/ to dev/ instead of nesting as dev/scripts/	scripts already resolve repo root as parent; nesting would break every .. lookup	scripts/Release-EquipQrNodeModuleLocks.ps1:Get-EquipQrRepoRoot	open
+2026-08-22T21:00:20Z	frame	skip architect/arena	the folders are named in the issue; the one-way door is which tools require root, which is a fact	issue 1434 body	skipped
+2026-08-22T21:00:30Z	frame	keep Qodo files at root	Qodo Merge reads best_practices.md, pr_compliance_checklist.yaml, and .pr_agent.toml from the repo root	CHANGELOG.md #645, .pr_agent.toml	kept
+2026-08-22T21:20:00Z	subtract	deleted unused .hintrc, conflicting .size-limit.json, and duplicate root favicon.ico	those files had no callers or duplicated a tighter package.json size-limit	.git status D .hintrc D .size-limit.json D favicon.ico	kept
+2026-08-22T21:25:00Z	dev	renamed scripts/ to dev/ and rewrote repo-root path strings	keeps every .. repo-root lookup working and matches the issue folder name	package.json scripts, .github/workflows/ci.yml	tests pending
+2026-08-22T21:35:00Z	dev	moved root launchers into dev/ and pointed repoRoot at the parent	root launchers assumed they lived at the repo root	dev/dev-start.ps1, .vscode/tasks.json	kept
+2026-08-22T21:40:00Z	etc	moved lint catalog to etc/lint and PROJECT_ROADMAP.md to docs/archive	lint is already loaded by explicit path; the roadmap is not a GitHub community file	etc/lint/targets.json, docs/archive/PROJECT_ROADMAP.md	kept
+2026-08-22T21:50:00Z	images	moved app images under public/images/{brand,equipment,maps,ui}	issue asked for public/images; favicon.ico and og-image.png stay at public root	index.html, public/manifest.webmanifest	localhost 200
+2026-08-22T21:55:00Z	images	added Vercel redirects from old /icons /eqr-logo /branded-logos URLs	invitation emails and JSON-LD still point at the old public paths	vercel.json redirects	kept
+2026-08-22T22:00:00Z	verify	root-layout check, lint, tsc, and targeted tests passed	prove the move on the real commands, not a file list	npm run verify:root-layout, npm run lint, npm run type-check	VERIFIED
+2026-08-22T22:20:00Z	evidence	retarget spec away from landing PNG that does not exist	landing header uses inline Logo SVG; EquipQR PNG is TopBar mobile only	e2e/pr-evidence/public-image-layout.spec.ts	kept
+2026-08-22T22:26:00Z	evidence	captured 4 PNGs plus H.264 demo on localhost:8080	prove moved /images/brand and /images/equipment paths render	tmp/pr-evidence/public-image-layout	VERIFIED
+2026-08-22T22:27:00Z	evidence	approved visual review	header brand, 3-A logos, footer partner icon, mobile TopBar PNG fully framed	visual-review.json	VERIFIED
+2026-08-22T22:32:00Z	dev	point stop-dev-and-e2e at dev/dev-stop.ps1	repoRoot is the parent of dev/; the first npm-ci-safe run looked for root dev-stop.ps1	dev/stop-dev-and-e2e.ps1	kept
+2026-08-22T22:38:00Z	ci	retarget urlConfigDrift scan root and migration allowlist path to dev/	shard 2 failed with ENOENT on scripts/	dev/urlConfigDrift.test.ts CI job 97096518559	kept
+2026-08-22T22:55:00Z	qodo	omit -Vault from op-item-mutate examples	spaced vault names break detached op item edit; script already defaults to the UUID	AGENTS.md docs/ops/agent-secrets-and-access.md	kept
+2026-08-22T22:55:10Z	qodo	add Netlify redirects for old image URLs	Vercel already had them; Netlify catch-all would serve HTML	netlify.toml public/_redirects	kept
+2026-08-22T22:55:20Z	qodo	ignore OS junk in root-layout	.DS_Store and Thumbs.db would fail a local verify:root-layout	etc/root-layout.json	kept
+2026-08-22T22:55:30Z	qodo	leave datadog-prod item name unchanged	the vault item predates this PR; renaming is a secrets-rotation change	dev/mcp.template.json comment only	dismissed
+2026-08-22T23:34:00Z	qodo	pin redirect destinations and 301 status	source-only assertions let a wrong destination pass CI	dev/legacy-public-image-redirects.test.ts	kept

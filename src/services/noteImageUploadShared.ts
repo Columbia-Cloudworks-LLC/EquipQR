@@ -2,6 +2,7 @@ import { logger } from '@/utils/logger';
 import {
   uploadImageToStorage,
   displayUrlForStoredPrivateImage,
+  type StorageBucket,
 } from '@/services/imageUploadService';
 import { rollbackNoteImageAfterSigningFailure } from '@/services/noteImageSigningRollback';
 
@@ -11,8 +12,8 @@ export interface UploadedNoteImageRecord<TImage extends { id: string; file_url: 
 }
 
 export async function uploadFilesToNoteImageBucket<TImage extends { id: string; file_url: string }>(params: {
-  bucket: string;
-  imagesTable: string;
+  bucket: StorageBucket;
+  imagesTable: 'equipment_note_images' | 'work_order_images';
   images: File[];
   buildObjectKey: (file: File) => string;
   insertImageRecord: (file: File, storedPath: string) => Promise<TImage | null>;

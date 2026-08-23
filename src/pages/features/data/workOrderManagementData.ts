@@ -3,49 +3,49 @@ import { landingImage } from '@/lib/landingImage';
 import type { Benefit, FeaturePageContent, ImageScreenshot, Step } from './featurePageTypes';
 
 export const content: FeaturePageContent = {
-  benefitsTitle: 'Why Use Work Order Management?',
+  benefitsTitle: 'Every job stays on the board',
   benefitsDescription:
-    'Keep maintenance organized with clear statuses, assignments, and due dates. Reduce missed tasks and improve visibility across your team.',
-  stepsTitle: 'How It Works',
-  stepsDescription: 'Work orders tie equipment, teams, PM templates, and inventory into one workflow.',
-  showcaseTitle: 'See Work Order Management in Action',
-  showcaseDescription: "Here's what work orders look like in the EquipQR™ app.",
+    'Statuses, assignees, and due dates sit on the work order. The shop floor can see what is open without a call to the office.',
+  stepsTitle: 'How it works',
+  stepsDescription: 'Create the job, assign it, close it. PM checklists and parts stay on the same record.',
+  showcaseTitle: 'Work order board',
+  showcaseDescription: 'Filter by status, priority, or assignee. Open a job to finish the checklist.',
   showcaseClassName: 'bg-muted/30',
-  ctaTitle: 'Ready to Organize Your Maintenance?',
+  ctaTitle: 'Create the first work order',
   ctaDescription:
-    'Start using Work Order Management today—completely free. Create your account and keep every repair and PM tracked from start to finish.',
-  ctaPrimaryText: 'Start Using Work Orders Free',
+    'Open a job on a machine, assign it, and keep the history on that unit.',
+  ctaPrimaryText: 'Create the first work order',
 };
 
 export const benefits: Benefit[] = [
   {
     icon: UserCheck,
     iconColor: 'success',
-    title: 'Smart Assignment Rules',
-    subtitle: 'Assign work efficiently',
+    title: 'Assign the job',
+    subtitle: 'A tech or a team, then they accept',
     description:
-      'Assign work orders to technicians or teams based on skills, availability, or location. Use acceptance workflows so assignees confirm before starting, and reassign when needed.',
-    benefits: ['Team-based assignment', 'Acceptance workflow', 'Reassignment support'],
+      'Assign a work order to a technician or a team. They accept before starting. Reassign if the first person cannot take it.',
+    benefits: ['Team or individual', 'Accept before start'],
     benefitColor: 'success',
   },
   {
     icon: ListChecks,
     iconColor: 'info',
-    title: 'Progress Tracking',
-    subtitle: 'See status at a glance',
+    title: 'Status on the board',
+    subtitle: 'Draft, open, done, cancelled',
     description:
-      'Track work orders from draft to in progress, completed, or cancelled. Filter by status, priority, equipment, or assignee. Attach PM checklists, parts, and notes for full context.',
-    benefits: ['Clear status workflow', 'PM checklist integration', 'Parts and notes'],
+      'Filter by status, priority, machine, or assignee. PM checklists, parts, and notes sit on the same work order.',
+    benefits: ['Status and priority filters', 'PM, parts, and notes'],
     benefitColor: 'info',
   },
   {
     icon: Calendar,
     iconColor: 'warning',
-    title: 'Due Date Management',
-    subtitle: 'Stay on schedule',
+    title: 'Due dates and overdue',
+    subtitle: 'Urgent work at the top',
     description:
-      'Set due dates and priorities so urgent work rises to the top. Use filters and dashboards to spot overdue or upcoming work and keep maintenance on track.',
-    benefits: ['Priority and due dates', 'Overdue visibility', 'Dashboard summaries'],
+      'Set a due date and a priority. Filters and the dashboard show what is overdue or coming up this week.',
+    benefits: ['Due dates and priority', 'Overdue on the dashboard'],
     benefitColor: 'warning',
   },
 ];
@@ -80,15 +80,15 @@ export const steps: Step[] = [
 export const showcases: ImageScreenshot[] = [
   {
     kind: 'image',
-    imageUrl: landingImage('work-orders-list-2026-04.png'),
+    imageUrl: landingImage('work-orders-list-2026-04.webp'),
     imageAlt: 'Work orders list with filters by status, priority, and assignee',
     title: 'Work Orders List',
     description:
-      'View all work orders with filters by status, priority, assignee, or equipment. Quickly spot overdue items and drill into details. Create and assign new work from the same view.',
+      'View all work orders with filters by status, priority, assignee, or equipment. Spot overdue items and drill into details. Create and assign new work from the same view.',
   },
   {
     kind: 'image',
-    imageUrl: landingImage('work-order-detail-2026-04.png'),
+    imageUrl: landingImage('work-order-detail-2026-04.webp'),
     imageAlt: 'Work order detail page with equipment info, assignee, and PM checklist',
     title: 'Work Order Detail & PM Checklist',
     description:

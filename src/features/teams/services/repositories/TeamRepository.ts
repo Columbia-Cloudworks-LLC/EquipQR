@@ -5,7 +5,6 @@ import {
   getTeamMembersOptimized,
   getTeamMembersByTeamIdsOptimized,
   getTeamByIdOptimized,
-  isTeamManagerOptimized,
   addTeamMember,
   updateTeamMemberRole,
   createTeamWithCreator as createTeamWithCreatorService,
@@ -13,6 +12,7 @@ import {
   updateTeam as updateTeamService
 } from '@/features/teams/services/teamService';
 import type { 
+  Team,
   TeamWithMembers,
   TeamMember,
   TeamMemberInsert,
@@ -20,6 +20,28 @@ import type {
   TeamInsert,
   TeamUpdate
 } from '@/features/teams/types/team';
+
+function toTeamWithMembers(
+  team: Team,
+  members: TeamWithMembers['members'],
+): TeamWithMembers {
+  return {
+    ...team,
+    members,
+    member_count: team.member_count,
+    team_lead_id: team.team_lead_id ?? null,
+    preferred_view: team.preferred_view ?? 'internal',
+    override_equipment_location: team.override_equipment_location ?? false,
+    image_url: team.image_url ?? null,
+    customer_id: team.customer_id ?? null,
+    location_address: team.location_address ?? null,
+    location_city: team.location_city ?? null,
+    location_state: team.location_state ?? null,
+    location_country: team.location_country ?? null,
+    location_lat: team.location_lat ?? null,
+    location_lng: team.location_lng ?? null,
+  };
+}
 
 /**
  * Unified Team Repository using optimized queries for better performance
@@ -55,19 +77,15 @@ class TeamRepository {
         },
       }));
 
-      return {
-        ...team,
-        members: formattedMembers,
-        member_count: team.member_count,
-      };
+      return toTeamWithMembers(team, formattedMembers);
     });
   }
 
   /**
    * Get team by ID with members
    */
-  static async getTeamById(teamId: string): Promise<TeamWithMembers | null> {
-    const team = await getTeamByIdOptimized(teamId);
+  static async getTeamById(teamId: string, organizationId: string): Promise<TeamWithMembers | null> {
+    const team = await getTeamByIdOptimized(teamId, organizationId);
     if (!team) return null;
 
     const members = await getTeamMembersOptimized(teamId);
@@ -83,11 +101,7 @@ class TeamRepository {
       }
     }));
 
-    return {
-      ...team,
-      members: formattedMembers,
-      member_count: team.member_count
-    };
+    return toTeamWithMembers(team, formattedMembers);
   }
 
   /**
@@ -117,13 +131,6 @@ class TeamRepository {
   }
 
   /**
-   * Check if a user is a team manager using optimized query
-   */
-  static async isTeamManager(userId: string, teamId: string): Promise<boolean> {
-    return isTeamManagerOptimized(userId, teamId);
-  }
-
-  /**
    * Create a team with creator as manager
    */
   static async createTeamWithCreator(teamData: TeamInsert, creatorId: string) {
@@ -133,15 +140,15 @@ class TeamRepository {
   /**
    * Delete a team
    */
-  static async deleteTeam(teamId: string): Promise<void> {
-    return deleteTeamService(teamId);
+  static async deleteTeam(teamId: string, organizationId: string): Promise<void> {
+    return deleteTeamService(teamId, organizationId);
   }
 
   /**
    * Update team information
    */
-  static async updateTeam(teamId: string, updates: TeamUpdate) {
-    return updateTeamService(teamId, updates);
+  static async updateTeam(teamId: string, updates: TeamUpdate, organizationId: string) {
+    return updateTeamService(teamId, updates, organizationId);
   }
 }
 

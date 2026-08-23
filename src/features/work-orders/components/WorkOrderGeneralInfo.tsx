@@ -111,7 +111,7 @@ export const WorkOrderGeneralInfo: React.FC<WorkOrderGeneralInfoProps> = ({
                 `Describe the work needed for ${preSelectedEquipment.name}. Include any specific requirements, safety considerations, or special instructions...` :
                 "Provide detailed information about the work needed, including any specific requirements, safety considerations, or special instructions..."
               }
-              className="min-h-[120px] pb-12"
+              className="min-h-30 pb-12"
               value={values.description || ''}
               onChange={(e) => setValue('description', e.target.value)}
             />

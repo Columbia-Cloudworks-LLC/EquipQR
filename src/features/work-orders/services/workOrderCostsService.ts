@@ -5,7 +5,10 @@ import {
   fetchCreatorName,
   fetchCreatorNameMap,
 } from '@/features/work-orders/services/workOrderCostProfileHelpers';
-import { mapCostsWithCreatorProfiles } from '@/features/work-orders/services/workOrderCostListHelpers';
+import {
+  mapCostsWithCreatorProfiles,
+  resolveWorkOrderCostTotalCents,
+} from '@/features/work-orders/services/workOrderCostListHelpers';
 import { verifyWorkOrderOrganizationScope } from '@/features/work-orders/services/workOrderOrganizationGate';
 import type { 
   WorkOrderCost, 
@@ -49,6 +52,7 @@ export const getWorkOrderCosts = async (
 
     return costs.map(cost => ({
       ...cost,
+      total_price_cents: resolveWorkOrderCostTotalCents(cost),
       created_by_name: profilesMap[cost.created_by] || 'Unknown'
     }));
   } catch (error) {
@@ -75,6 +79,7 @@ export const createWorkOrderCost = async (costData: CreateWorkOrderCostData): Pr
 
     return {
       ...data,
+      total_price_cents: resolveWorkOrderCostTotalCents(data),
       created_by_name: await fetchCreatorName(userId),
     };
   } catch (error) {
@@ -100,6 +105,7 @@ export const updateWorkOrderCost = async (
 
     return {
       ...data,
+      total_price_cents: resolveWorkOrderCostTotalCents(data),
       created_by_name: await fetchCreatorName(data.created_by),
     };
   } catch (error) {
@@ -249,6 +255,7 @@ export const updateWorkOrderCostWithQuantityTracking = async (
     return {
       cost: {
         ...data,
+        total_price_cents: resolveWorkOrderCostTotalCents(data),
         created_by_name: await fetchCreatorName(data.created_by),
       },
       inventoryAdjustment

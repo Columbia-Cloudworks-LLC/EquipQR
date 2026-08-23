@@ -13,6 +13,7 @@ export const organization = (orgId: string) => ({
 // Team keys
 export const team = (teamId: string) => ({
   root: ['team', teamId] as const,
+  byOrg: (orgId: string) => ['team', teamId, 'org', orgId] as const,
   members: () => ['team', teamId, 'members'] as const,
   managerCheck: (userId: string) => ['team', teamId, 'manager', userId] as const,
   /** Signed display URL for the private team-images bucket (TopBar workspace avatar). */

@@ -4,7 +4,7 @@
 **Total Items**: 103  
 **Sections**: 12
 
-This document contains the complete forklift preventative maintenance checklist with all sections, items, and descriptions. Use this as a reference for expanding or modifying the checklist.
+103 items. Default EquipQR template for forklifts.
 
 ---
 
@@ -369,6 +369,4 @@ This document contains the complete forklift preventative maintenance checklist 
 
 - All items are marked as **required** in the system
 - Condition ratings are not pre-set in templates (set during PM completion)
-- This checklist serves as the default template for forklift preventative maintenance
-- Items can be expanded or modified as needed for specific equipment requirements
 

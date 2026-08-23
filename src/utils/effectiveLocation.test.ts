@@ -140,6 +140,14 @@ describe('effectiveLocation', () => {
     expect(parseLastKnownLocation({ lat: null, lng: -90.659318 })).toBeUndefined();
   });
 
+  it('returns undefined for non-object last_known_location JSON values', () => {
+    expect(parseLastKnownLocation('40.919345,-90.659318')).toBeUndefined();
+    expect(parseLastKnownLocation(12)).toBeUndefined();
+    expect(parseLastKnownLocation([])).toBeUndefined();
+    expect(parseLastKnownLocation(null)).toBeUndefined();
+    expect(parseLastKnownLocation(undefined)).toBeUndefined();
+  });
+
   it('builds selectable options for each available source', () => {
     const options = buildEquipmentLocationOptions({
       team,

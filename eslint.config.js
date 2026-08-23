@@ -84,7 +84,7 @@ export default tseslint.config(
     ignores: [
       "dist",
       "supabase/functions",
-      "scripts",
+      "dev",
       "coverage",
       "tmp",
       ".claude",

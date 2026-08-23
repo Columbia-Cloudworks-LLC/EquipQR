@@ -27,7 +27,15 @@ vi.mock('@/components/seo/PageSEO', () => ({
 }));
 
 vi.mock('@/components/ui/HCaptcha', () => ({
-  default: () => null,
+  default: ({
+    onSuccess,
+  }: {
+    onSuccess?: (token: string) => void;
+  }) => (
+    <button type="button" onClick={() => onSuccess?.('mock-captcha-token')}>
+      Verify Captcha
+    </button>
+  ),
 }));
 
 vi.mock('sonner', () => ({
@@ -118,7 +126,7 @@ describe('OperatorCheckInPublicPage', () => {
   });
 
   it('shows reset form after progress and clears answers and operator inputs', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderPublicPage();
 
     await screen.findByRole('heading', { name: /evidence daily safety walkaround/i });
@@ -137,7 +145,7 @@ describe('OperatorCheckInPublicPage', () => {
   });
 
   it('supports accessible Pass/Fail controls and submits checklist answers', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     renderPublicPage();
 
     await screen.findByRole('heading', { name: /evidence daily safety walkaround/i });
@@ -162,5 +170,46 @@ describe('OperatorCheckInPublicPage', () => {
     });
 
     expect(screen.getByText(/check-in complete/i)).toBeInTheDocument();
+  });
+
+  it('keeps submit disabled until captcha onSuccess provides a token', async () => {
+    vi.stubEnv('VITE_HCAPTCHA_SITEKEY', '10000000-ffff-ffff-ffff-000000000001');
+    mockLoadOperatorCheckinForm.mockResolvedValue({
+      ...mockFormResponse,
+      captchaRequired: true,
+    });
+    const user = userEvent.setup({ delay: null });
+    renderPublicPage();
+
+    await screen.findByRole('heading', { name: /evidence daily safety walkaround/i });
+    await user.type(screen.getByLabelText(/your name/i), 'Evidence Operator');
+    await user.click(screen.getByRole('button', { name: /pass: service brakes operate correctly/i }));
+    await user.click(screen.getByRole('button', { name: /pass: headlights and tail lights working/i }));
+
+    const submit = screen.getByRole('button', { name: /submit daily check-in/i });
+    expect(submit).toBeDisabled();
+
+    await user.click(screen.getByRole('button', { name: /verify captcha/i }));
+    expect(submit).toBeEnabled();
+
+    await user.click(submit);
+    await waitFor(() => {
+      expect(mockSubmitOperatorCheckin).toHaveBeenCalledWith(
+        expect.objectContaining({ captchaToken: 'mock-captcha-token' }),
+      );
+    });
+  });
+
+  it('shows the already-submitted state when load reports a same-day check-in (RT-02)', async () => {
+    mockLoadOperatorCheckinForm.mockResolvedValue({
+      ...mockFormResponse,
+      alreadySubmittedToday: true,
+      lastSubmittedAt: '2026-08-14T14:21:00.000Z',
+    });
+
+    renderPublicPage();
+
+    expect(await screen.findByText(/check-in complete/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /submit daily check-in/i })).not.toBeInTheDocument();
   });
 });

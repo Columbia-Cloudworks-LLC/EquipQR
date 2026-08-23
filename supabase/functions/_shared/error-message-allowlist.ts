@@ -196,12 +196,19 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   /^Missing action or token$/,
   /^Unsupported action$/,
   /^Too many check-ins\. Please try again later\.$/,
+  /^This check-in was already submitted today\.$/,
+  /^Check-in already submitted today\.$/,
   /^Unable to save check-in$/,
   /^Checklist incomplete$/,
   /^Required fields missing$/,
   /^Required item ".+" must be answered\.$/,
   /^".+" is required\.$/,
   /^Unknown checklist item: .+$/,
+
+  // Public Quick Forms
+  /^Form is not available$/,
+  /^Too many submissions\. Please try again later\.$/,
+  /^Unable to save submission$/,
 ];
 
 /**

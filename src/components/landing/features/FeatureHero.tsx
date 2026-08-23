@@ -13,7 +13,7 @@ interface FeatureHeroProps {
 
 export const FeatureHero = ({ icon: Icon, title, description, ctaText, ctaLink = '/auth?tab=signup' }: FeatureHeroProps) => {
   return (
-    <section className="relative pt-16 sm:pt-20 pb-24 bg-gradient-to-br from-background via-background to-primary/5">
+    <section className="relative pt-16 sm:pt-20 pb-24 bg-linear-to-br from-background via-background to-primary/5">
       <div className="container px-4 mx-auto">
         <div className="max-w-4xl mx-auto">
           <PageBackButton

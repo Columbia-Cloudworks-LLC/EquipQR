@@ -46,7 +46,7 @@ const CustomerContactActions: React.FC<CustomerContactActionsProps> = ({
               <a
                 href={`mailto:${c.email}`}
                 aria-label={`Email ${c.name} (${c.role ?? 'contact'})`}
-                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors min-h-[44px] px-2"
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors min-h-11 px-2"
               >
                 <Mail className="h-3.5 w-3.5" />
                 <span className="sr-only">{c.email}</span>
@@ -56,7 +56,7 @@ const CustomerContactActions: React.FC<CustomerContactActionsProps> = ({
               <a
                 href={`tel:${c.phone}`}
                 aria-label={`Call ${c.name} (${c.role ?? 'contact'})`}
-                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors min-h-[44px] px-2"
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors min-h-11 px-2"
               >
                 <Phone className="h-3.5 w-3.5" />
                 <span className="sr-only">{c.phone}</span>

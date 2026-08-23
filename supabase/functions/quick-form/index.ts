@@ -23,6 +23,7 @@ import {
   validateQuickFormValues,
 } from "../_shared/quick-form-validation.ts";
 import { requireQuickFormToken } from "../_shared/quick-form-public-auth.ts";
+import { isCaptchaEnforced } from "../_shared/hcaptcha-gate.ts";
 
 /** Public endpoint: Supabase session auth is intentionally omitted; access is gated by the form token hash. */
 
@@ -44,17 +45,13 @@ interface SubmitRequest {
 
 type QuickFormRequest = LoadRequest | SubmitRequest;
 
-function getHcaptchaSiteKey(): string | null {
-  return optionalSecret("HCAPTCHA_SITE_KEY", { legacyAliases: ["VITE_HCAPTCHA_SITEKEY"] });
-}
-
-/** CAPTCHA is enforced only when both secret and site key are configured. */
-function isCaptchaFullyConfigured(): boolean {
-  return Boolean(optionalSecret("HCAPTCHA_SECRET_KEY") && getHcaptchaSiteKey());
+/** CAPTCHA is required when the secret exists (preview/prod fail-closed). */
+function isCaptchaRequired(): boolean {
+  return isCaptchaEnforced(optionalSecret("HCAPTCHA_SECRET_KEY"));
 }
 
 async function verifyCaptcha(token: string | undefined): Promise<boolean> {
-  if (!isCaptchaFullyConfigured()) return true;
+  if (!isCaptchaRequired()) return true;
   const secret = optionalSecret("HCAPTCHA_SECRET_KEY");
   if (!secret || !token) return false;
 
@@ -111,7 +108,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
         fields: formData.fields,
         collectLocation: formData.collectLocation === true,
       },
-      captchaRequired: isCaptchaFullyConfigured(),
+      captchaRequired: isCaptchaRequired(),
     }, 200, { req });
   }
 
@@ -170,7 +167,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
 
   if (insertError) {
     console.error("[QUICK-FORM] insert failed:", insertError.message);
-    if (insertError.message.includes("Too many submissions")) {
+    if (insertError.message.includes("Too many submissions") || insertError.message.includes("Please wait before submitting")) {
       return createErrorResponse("Too many submissions. Please try again later.", 429, { req });
     }
     if (insertError.message.includes("not available")) {

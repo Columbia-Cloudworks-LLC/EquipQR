@@ -66,8 +66,8 @@ export const useSessionManager = ({ user, authLoading, onSessionUpdate, onError 
       const { organizations, currentOrganizationId, teamMemberships } =
         await SessionDataService.fetchSessionData(
           user.id,
-          prioritizedOrgId,
-          storedData?.currentOrganizationId
+          prioritizedOrgId ?? undefined,
+          storedData?.currentOrganizationId ?? undefined
         );
 
       const newSessionData = createSessionData(organizations, currentOrganizationId, teamMemberships);

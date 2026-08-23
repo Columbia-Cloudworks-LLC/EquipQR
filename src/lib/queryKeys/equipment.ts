@@ -6,6 +6,8 @@ export const equipment = {
             : ['equipment', orgId] as const,
   listOptimized: (orgId: string) => ['equipment', orgId, 'optimized'] as const,
   byId: (orgId: string, equipmentId: string) => ['equipment', orgId, equipmentId] as const,
+  byIdScoped: (orgId: string, equipmentId: string, teamAccessScope: string) =>
+    [...equipment.byId(orgId, equipmentId), teamAccessScope] as const,
   scans: (orgId: string, equipmentId: string) =>
     ['equipment', orgId, equipmentId, 'scans'] as const,
   scanFollowUps: (orgId: string, equipmentId: string) =>

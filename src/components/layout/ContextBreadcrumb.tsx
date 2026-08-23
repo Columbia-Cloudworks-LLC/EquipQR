@@ -113,7 +113,7 @@ const ContextBreadcrumb: React.FC = () => {
                       variant="ghost"
                       size="sm"
                       aria-label={`Switch team (current: ${teamLabel})`}
-                      className="inline-flex max-w-full items-center justify-center gap-1.5 h-8 px-2 sm:max-w-[10rem] text-muted-foreground hover:text-foreground sm:justify-start"
+                      className="inline-flex max-w-full items-center justify-center gap-1.5 h-8 px-2 sm:max-w-40 text-muted-foreground hover:text-foreground sm:justify-start"
                     >
                       <WorkspaceAvatar
                         kind="team"
@@ -122,7 +122,7 @@ const ContextBreadcrumb: React.FC = () => {
                         size="sm"
                       />
                       <span className="text-sm truncate">{teamLabel}</span>
-                      <ChevronsUpDown className="h-3.5 w-3.5 opacity-50 flex-shrink-0" />
+                      <ChevronsUpDown className="h-3.5 w-3.5 opacity-50 shrink-0" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" side="bottom" className="w-56">
@@ -173,7 +173,7 @@ const ContextBreadcrumb: React.FC = () => {
                       >
                         <span className="truncate">{m.team_name}</span>
                         {selectedTeamId === m.team_id && (
-                          <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                          <Check className="h-4 w-4 text-primary shrink-0" />
                         )}
                       </DropdownMenuItem>
                     ))}
@@ -192,7 +192,7 @@ const ContextBreadcrumb: React.FC = () => {
               </BreadcrumbSeparator>
               <BreadcrumbSeparator className="hidden sm:inline-flex" />
               <BreadcrumbItem className="min-w-0">
-                <BreadcrumbPage className="text-sm sm:text-base font-medium truncate max-w-[8rem] sm:max-w-none text-center sm:text-left">
+                <BreadcrumbPage className="text-sm sm:text-base font-medium truncate max-w-32 sm:max-w-none text-center sm:text-left">
                   {sectionLabel}
                 </BreadcrumbPage>
               </BreadcrumbItem>

@@ -8,7 +8,8 @@
     "xlsx"
   ],
   "ignorePatterns": [
-    "vitest/**"
+    "vitest/**",
+    "tmp/**"
   ],
   "ignoreExportsUsedInFile": true,
   "duplicates": {
@@ -20,13 +21,13 @@
       "src/pages/solutions/**",
       "src/components/landing/**",
       "supabase/functions/**",
-      "scripts/**",
+      "dev/**",
       "e2e/**/*.ts",
       "src/**/*.test.ts",
       "src/**/*.test.tsx",
       "vitest/**",
-      "scripts/**/*.test.ts",
-      "scripts/**/*.test.mjs",
+      "dev/**/*.test.ts",
+      "dev/**/*.test.mjs",
       "e2e/**/*.test.ts",
       "supabase/functions/**/*.test.ts",
       "supabase/functions/**/*.deno.test.ts",
@@ -37,22 +38,23 @@
   "entry": [
     "playwright.user.config.ts",
     "src/sw.ts",
-    "scripts/check-main-branch-migrations.mjs",
-    "scripts/check-missing-migrations.mjs",
-    "scripts/create-missing-migrations.mjs",
-    "scripts/fix-main-branch-migrations.mjs",
-    "scripts/reconcile-advisor-rpc-warnings.mjs",
-    "scripts/supabase-fix-migrations.mjs",
-    "scripts/test-ci.mjs",
-    "scripts/test-ci-entry.mjs",
-    "scripts/test-ci-sharded.mjs",
-    "scripts/test-ci-windows.mjs",
-    "scripts/upload-screenshot.ts",
-    "scripts/docs-media/print-storage-path.ts",
-    "scripts/run-vitest-local.test.mjs",
-    "scripts/vitest-perf/report-vitest-durations.test.mjs",
-    "scripts/vitest-perf/publish-duration-pr-comment.mjs",
-    "scripts/cloud-agent/seed-quick-login.mjs"
+    "dev/check-root-layout.mjs",
+    "dev/check-main-branch-migrations.mjs",
+    "dev/check-missing-migrations.mjs",
+    "dev/create-missing-migrations.mjs",
+    "dev/fix-main-branch-migrations.mjs",
+    "dev/reconcile-advisor-rpc-warnings.mjs",
+    "dev/supabase-fix-migrations.mjs",
+    "dev/test-ci.mjs",
+    "dev/test-ci-entry.mjs",
+    "dev/test-ci-sharded.mjs",
+    "dev/test-ci-windows.mjs",
+    "dev/upload-screenshot.ts",
+    "dev/docs-media/print-storage-path.ts",
+    "dev/run-vitest-local.test.mjs",
+    "dev/vitest-perf/report-vitest-durations.test.mjs",
+    "dev/vitest-perf/publish-duration-pr-comment.mjs",
+    "dev/cloud-agent/seed-quick-login.mjs"
   ],
   "ignoreExports": [
     {
@@ -64,7 +66,7 @@
       "exports": ["*"]
     },
     {
-      "file": "src/pages/features/data/inventoryManagementData.ts",
+      "file": "src/pages/features/data/*Data.ts",
       "exports": ["*"]
     },
     {

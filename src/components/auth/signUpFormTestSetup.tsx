@@ -21,18 +21,14 @@ vi.mock('@/components/ui/HCaptcha', () => ({
     onError?: () => void;
     onExpire?: () => void;
   }) => (
-    <div data-testid="hcaptcha-mock">
-      <button
-        type="button"
-        onClick={() => onSuccess('mock-captcha-token')}
-        data-testid="hcaptcha-success"
-      >
+    <div role="group" aria-label="hCaptcha">
+      <button type="button" onClick={() => onSuccess('mock-captcha-token')}>
         Verify Captcha
       </button>
-      <button type="button" onClick={() => onError?.()} data-testid="hcaptcha-error">
+      <button type="button" onClick={() => onError?.()}>
         Trigger Error
       </button>
-      <button type="button" onClick={() => onExpire?.()} data-testid="hcaptcha-expire">
+      <button type="button" onClick={() => onExpire?.()}>
         Trigger Expire
       </button>
     </div>

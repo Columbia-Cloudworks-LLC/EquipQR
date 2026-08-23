@@ -50,8 +50,8 @@ vi.mock('react-resizable-panels', async () => {
     if (!r) return;
     if (typeof r === 'function') {
       r(value);
-    } else if ('current' in r) {
-      (r as React.MutableRefObject<T | null>).current = value;
+    } else {
+      r.current = value;
     }
   }
 
@@ -114,7 +114,7 @@ describe('resizable', () => {
 
   it('maps direction vertical to orientation on the underlying Group', () => {
     render(
-      <ResizablePanelGroup direction="vertical" className="min-h-[200px]">
+      <ResizablePanelGroup direction="vertical" className="min-h-50">
         <ResizablePanel defaultSize={50}>A</ResizablePanel>
         <ResizableHandle />
         <ResizablePanel defaultSize={50}>B</ResizablePanel>

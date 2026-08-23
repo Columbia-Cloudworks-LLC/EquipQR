@@ -431,7 +431,7 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
                 className="pl-9"
               />
             </div>
-            <ScrollArea className="h-[300px] pr-4">
+            <ScrollArea className="h-75 pr-4">
               {searchLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -519,7 +519,7 @@ export const QuickBooksCustomerMapping: React.FC<QuickBooksCustomerMappingProps>
                 className="pl-9"
               />
             </div>
-            <ScrollArea className="h-[300px] pr-4">
+            <ScrollArea className="h-75 pr-4">
               {filteredAccounts.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <Building2 className="h-8 w-8 text-muted-foreground mb-2" />

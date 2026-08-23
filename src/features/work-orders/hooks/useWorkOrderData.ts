@@ -1,12 +1,12 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { WorkOrderService } from '@/features/work-orders/services/workOrderService';
 import { workOrderKeys } from '@/features/work-orders/hooks/useWorkOrders';
 import { workOrders as workOrderQueryKeys, notifications as notificationQueryKeys } from '@/lib/queryKeys';
-import { getAuthClaims } from '@/lib/authClaims';
 export type NotificationData = {
   work_order_id?: string;
+  team_id?: string;
   // Ownership transfer fields
   transfer_id?: string;
   organization_id?: string;
@@ -34,61 +34,6 @@ export interface Notification {
   created_at: string;
   updated_at: string;
 }
-
-// Notifications hooks
-// Includes both org-specific notifications AND global notifications (like ownership transfers)
-export const useNotifications = (organizationId: string) => {
-  return useQuery({
-    queryKey: notificationQueryKeys.byOrg(organizationId),
-    queryFn: async () => {
-      const claims = await getAuthClaims();
-      if (!claims) return [];
-
-      // Fetch org-specific notifications
-      const { data: orgNotifications, error: orgError } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('organization_id', organizationId)
-        .eq('user_id', claims.sub)
-        .eq('is_global', false)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (orgError) throw orgError;
-
-      // Fetch global notifications (visible across all orgs)
-      const { data: globalNotifications, error: globalError } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', claims.sub)
-        .eq('is_global', true)
-        .order('created_at', { ascending: false })
-        .limit(25);
-
-      if (globalError) throw globalError;
-
-      // Combine and sort by created_at
-      // Pre-compute timestamps to avoid creating Date objects inside the sort comparator
-      const allNotifications = [...(orgNotifications || []), ...(globalNotifications || [])];
-      const createdAtTimestamps = new Map<string, number>();
-      for (const notification of allNotifications) {
-        createdAtTimestamps.set(
-          notification.id,
-          new Date(notification.created_at).getTime()
-        );
-      }
-
-      allNotifications.sort((a, b) => {
-        const aTs = createdAtTimestamps.get(a.id) ?? 0;
-        const bTs = createdAtTimestamps.get(b.id) ?? 0;
-        return bTs - aTs;
-      });
-
-      return allNotifications as Notification[];
-    },
-    enabled: !!organizationId
-  });
-};
 
 export const useMarkNotificationAsRead = () => {
   const queryClient = useQueryClient();

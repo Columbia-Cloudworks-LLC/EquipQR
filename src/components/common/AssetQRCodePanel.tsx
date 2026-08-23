@@ -188,7 +188,7 @@ const AssetQRCodePanel: React.FC<AssetQRCodePanelProps> = ({
         </ul>
       </div>
 
-      <div className="flex gap-2 [&>button]:min-h-[44px]">
+      <div className="flex gap-2 [&>button]:min-h-11">
         <Button onClick={downloadQRCode} disabled={!qrCodeDataUrl} className="flex-1">
           <Download className="h-4 w-4" />
           Download {selectedFormat.toUpperCase()}

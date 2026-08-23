@@ -21,7 +21,7 @@ type ChecklistTemplateSectionsProps = {
   expanded: string[];
   focusSectionMode: boolean;
   visibleSections: string[];
-  newItemIdRef: React.MutableRefObject<string | null>;
+  newItemIdRef: React.RefObject<string | null>;
   addingSectionInline: boolean;
   inlineSectionName: string;
   inlineSectionRef: React.RefObject<HTMLInputElement | null>;
@@ -163,7 +163,7 @@ export function ChecklistTemplateSections({
                       <AccordionTrigger className="flex-1">
                         <div className="flex items-center justify-between w-full min-w-0 gap-2 pr-2">
                           <div className="font-medium truncate min-w-0">{section}</div>
-                          <div className="text-sm text-muted-foreground flex-shrink-0 whitespace-nowrap">
+                          <div className="text-sm text-muted-foreground shrink-0 whitespace-nowrap">
                             {sectionItems.length} items
                           </div>
                         </div>
@@ -198,7 +198,7 @@ export function ChecklistTemplateSections({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
+                            className="min-h-11 min-w-11 md:min-h-0 md:min-w-0"
                             onClick={() => onOpenDeleteSection(section)}
                             aria-label={`Delete section ${section}`}
                           >

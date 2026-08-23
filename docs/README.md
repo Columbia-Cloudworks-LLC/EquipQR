@@ -1,18 +1,18 @@
-# EquipQR™ Documentation
+# EquipQR documentation
 
-Welcome to the comprehensive documentation for EquipQR™, a modern fleet equipment management platform. This tree is organized for **Technical** and **Guides** content on the public docs site, plus **Operations** runbooks that remain **repository-internal** (not published on `equipqr.info`).
+This tree holds Technical and Guides content for the public docs site, plus Operations runbooks that stay in the repository (not published on `equipqr.info`).
 
-## 📚 Documentation Structure
+## Documentation structure
 
-### 🚀 Getting Started
+### Getting started
 
 Start here for new developers:
 
 - **[Developer Onboarding](./getting-started/developer-onboarding.md)** - Quick start guide (5-minute setup)
 - **[Development Lifecycle](./getting-started/development-lifecycle.md)** - Cursor plugin-first + preview-first release workflow
-- **[Troubleshooting](./getting-started/troubleshooting.md)** - Comprehensive troubleshooting guide
+- **[Troubleshooting](./getting-started/troubleshooting.md)** - Local stack and common setup failures
 
-### 🔧 Technical Documentation
+### Technical documentation
 
 Technical documentation for developers and system architects:
 
@@ -22,7 +22,7 @@ Technical documentation for developers and system architects:
 - **[Testing Guidelines](./technical/testing-guidelines.md)** - Test patterns and coverage expectations
 - **[API Reference](./technical/api-reference.md)** - API documentation with examples
 
-### 👋 Support & public documentation
+### Support and public documentation
 
 Published EquipQR documentation—including technician how-tos, reference guides,
 permissions, and workflows from this `docs/` tree—is hosted at **`https://equipqr.info`**
@@ -43,7 +43,7 @@ Use **`https://equipqr.info/support/`** as the canonical URL to share, bookmark,
 - **[Image Upload Technician Guide](./how-to/image-upload/technician-image-upload-guide.md)** —
   numbered-step guide with screenshots for the work-order-plus-photo flow.
 
-### 📖 Reference Guides (developers & admins)
+### Reference guides (developers and admins)
 
 Technical reference for developers, admins, and support engineers who need the
 full lifecycle and permission map:
@@ -52,7 +52,7 @@ full lifecycle and permission map:
   lifecycle and status-transition rules.
 - **[Permissions](./guides/permissions.md)** — full RBAC matrix.
 
-### 🚀 Operations (repository only)
+### Operations (repository only)
 
 Operational runbooks for deployment and maintenance live under `docs/ops/` in this repo.
 They are **not** published on **`https://equipqr.info`** (see [Public vs internal content](#public-vs-internal-content)).
@@ -63,13 +63,14 @@ Browse them on GitHub or in your local checkout:
 - **[Migrations](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/migrations.md)** - Database migration guide with critical rules
 - **[Migration Rules Quick Reference](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/migration-rules-quick-reference.md)** - Quick reference for migration best practices
 - **[Local Supabase Development](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/local-supabase-development.md)** - Complete guide for local Supabase setup, edge function development, and migration synchronization
+- **[QuickBooks OAuth](./ops/quickbooks-oauth.md).** Intuit OAuth, vault secrets, and sandbox wiring. Unpublished on equipqr.info.
 - **[Disaster Recovery](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/disaster-recovery.md)** - Database backup and point-in-time recovery procedures
 
-## 🎯 Quick Navigation
+## Quick navigation
 
 ### For New Developers
 1. Start with **[Developer Onboarding](./getting-started/developer-onboarding.md)** - 5-minute quick start
-   - Preferred setup path: use 1Password CLI + `.\dev-start.bat` to auto-sync env files
+   - Preferred setup path: use 1Password CLI + `.\dev\dev-start.bat` to auto-sync env files
 2. Read **[Development Lifecycle](./getting-started/development-lifecycle.md)** - Understand how work moves from plan to production
 3. Review [Architecture](./technical/architecture.md) - Understand system design
 4. Read [Standards](./technical/standards.md) - Learn coding standards and UI patterns
@@ -97,7 +98,7 @@ Browse them on GitHub or in your local checkout:
 5. Review [Architecture](./technical/architecture.md) - System architecture
 6. Reference [Migration Rules Quick Reference](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/migration-rules-quick-reference.md) - Quick reference
 
-## 📁 Additional Resources
+## Additional resources
 
 ### Archived Documentation
 - **[Historical Fixes](./archive/historical-fixes/README.md)** - Historical documentation of fixes and improvements
@@ -108,7 +109,7 @@ Browse them on GitHub or in your local checkout:
 ### Root Cause Analysis
 - **[RCA Documents](./rca/)** - Root cause analysis documents
 
-## 🔍 Finding Information
+## Finding information
 
 ### Search Tips
 - Use Ctrl+F (Cmd+F) to search within documents
@@ -144,7 +145,7 @@ Browse them on GitHub or in your local checkout:
 - [Workflows](./guides/workflows.md) - Work order and image upload processes
 - [Permissions](./guides/permissions.md) - Access control
 
-## 📋 Documentation Hierarchy (Sources of Truth)
+## Documentation hierarchy (sources of truth)
 
 To avoid redundancy and ensure consistency, each topic has a single **source of truth**. Other docs should summarize and link, not duplicate.
 
@@ -159,7 +160,7 @@ To avoid redundancy and ensure consistency, each topic has a single **source of 
 | Testing | `technical/testing-guidelines.md` | — |
 
 **For AI/reviewer checklists** (`.github/instructions/*`, `.github/copilot-instructions.md`):
-- These are short checklists for code review, not comprehensive documentation
+- These are short checklists for code review, not a second copy of the docs above
 - They should reference the full docs above, not duplicate content
 
 ## Public vs internal content
@@ -174,7 +175,7 @@ Use this when authoring or reviewing documentation:
 
 Do not add real org IDs, project IDs, tenant domains, service account emails, or copy-paste admin keys to public-facing pages. Prefer placeholders (for example `<GCP_ORG_ID>`) or point readers at internal ops docs in the repo.
 
-## 🤝 Contributing to Documentation
+## Contributing to documentation
 
 ### Documentation Standards
 - Use clear, concise language
@@ -190,7 +191,7 @@ Do not add real org IDs, project IDs, tenant domains, service account emails, or
 4. **Submit changes** - Follow the standard PR process
 5. **Update this index** - Add new documents to the navigation
 
-## 📞 Getting Help
+## Getting help
 
 ### Internal Resources
 - **Documentation Issues**: Create GitHub issues for missing or incorrect docs

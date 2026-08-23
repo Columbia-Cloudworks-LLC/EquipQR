@@ -14,7 +14,7 @@ const SIGN_IN_TIMEOUT_MS = 600_000;
  *   npm run e2e:quickbooks-developer-auth:capture
  *
  * Use with:
- *   . .\scripts\e2e\Load-QuickBooksDeveloperStorageEnv.ps1
+ *   . .\dev\e2e\Load-QuickBooksDeveloperStorageEnv.ps1
  */
 setup(
   'capture Intuit Developer Portal storage state @quickbooks-developer-auth-setup',

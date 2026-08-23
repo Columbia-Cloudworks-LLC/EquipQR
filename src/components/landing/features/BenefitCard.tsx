@@ -48,7 +48,7 @@ export const BenefitCard = ({
         <ul className="mt-4 space-y-2">
           {benefits.map((benefit, index) => (
             <li key={index} className="text-sm text-muted-foreground flex items-center">
-              <span className={`w-1.5 h-1.5 ${dotColorMap[benefitColor]} rounded-full mr-2 flex-shrink-0`} />
+              <span className={`w-1.5 h-1.5 ${dotColorMap[benefitColor]} rounded-full mr-2 shrink-0`} />
               {benefit}
             </li>
           ))}

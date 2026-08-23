@@ -49,6 +49,10 @@ describe('LegalFooter', () => {
 
     await user.click(screen.getByRole('button', { name: /legal links/i }));
 
+    expect(screen.getByRole('menuitem', { name: 'Right to Repair' })).toHaveAttribute(
+      'href',
+      '/right-to-repair',
+    );
     expect(screen.queryByRole('menuitem', { name: /dsr cockpit/i })).not.toBeInTheDocument();
   });
 });

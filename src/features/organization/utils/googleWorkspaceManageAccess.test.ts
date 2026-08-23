@@ -8,20 +8,29 @@ import {
 } from './googleWorkspaceManageAccess';
 import type { SessionData } from '@/types/session';
 
-const mockGetUser = vi.fn();
-const mockMaybeSingle = vi.fn();
-const mockEqStatus = vi.fn(() => ({ maybeSingle: mockMaybeSingle }));
-const mockEqUser = vi.fn(() => ({ eq: mockEqStatus }));
-const mockEqOrg = vi.fn(() => ({ eq: mockEqUser }));
-const mockSelect = vi.fn(() => ({ eq: mockEqOrg }));
-const mockFrom = vi.fn(() => ({ select: mockSelect }));
+const {
+  mockGetUser,
+  mockMaybeSingle,
+  mockFrom,
+} = vi.hoisted(() => {
+  const mockMaybeSingle = vi.fn();
+  const mockEqStatus = vi.fn(() => ({ maybeSingle: mockMaybeSingle }));
+  const mockEqUser = vi.fn(() => ({ eq: mockEqStatus }));
+  const mockEqOrg = vi.fn(() => ({ eq: mockEqUser }));
+  const mockSelect = vi.fn(() => ({ eq: mockEqOrg }));
+  return {
+    mockGetUser: vi.fn(),
+    mockMaybeSingle,
+    mockFrom: vi.fn(() => ({ select: mockSelect })),
+  };
+});
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     auth: {
-      getUser: (...args: unknown[]) => mockGetUser(...args),
+      getUser: mockGetUser,
     },
-    from: (...args: unknown[]) => mockFrom(...args),
+    from: mockFrom,
   },
 }));
 

@@ -94,13 +94,20 @@ function rewriteValue(value: unknown, remap: PlaceholderRemap): unknown {
   return value;
 }
 
+function rewriteQueueItemPlaceholders<T extends OfflineQueueItem>(
+  item: T,
+  remap: PlaceholderRemap,
+): T {
+  return {
+    ...item,
+    payload: rewriteValue(item.payload, remap),
+  } as T;
+}
+
 /** Deep-rewrite all string placeholder ids inside queue item payloads. */
 export function rewriteQueueItemsPlaceholders(
   items: OfflineQueueItem[],
   remap: PlaceholderRemap,
 ): OfflineQueueItem[] {
-  return items.map((item) => ({
-    ...item,
-    payload: rewriteValue(item.payload, remap) as OfflineQueueItem['payload'],
-  }));
+  return items.map((item) => rewriteQueueItemPlaceholders(item, remap));
 }

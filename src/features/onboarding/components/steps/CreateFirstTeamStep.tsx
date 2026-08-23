@@ -8,12 +8,12 @@ import { useTeamMutations } from '@/features/teams/hooks/useTeamManagement';
 import { useCustomerMutations } from '@/features/teams/hooks/useCustomerAccount';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { TeamCreateFields } from '@/features/teams/components/TeamCreateFields';
 import {
-  TeamCreateFields,
   buildTeamCreatePayload,
   emptyTeamCreateFieldsValue,
   resolveTeamCreateCustomerId,
-} from '@/features/teams/components/TeamCreateFields';
+} from '@/features/teams/utils/teamCreateFields';
 
 interface CreateFirstTeamStepProps {
   onTeamCreated: (teamId: string) => void;

@@ -81,21 +81,32 @@ vi.mock('@/hooks/useVoiceTextAppender', () => ({
   }),
 }));
 
-const createMockPM = (overrides?: Partial<PreventativeMaintenance>): PreventativeMaintenance => ({
-  id: 'pm-1',
-  work_order_id: 'wo-1',
-  equipment_id: 'eq-1',
-  template_id: null,
-  status: 'in_progress',
-  notes: '',
-  checklist_data: [
-    { id: 'item-1', title: 'Check oil level', section: 'Engine', required: true, condition: null, notes: undefined }
-  ] as unknown as PreventativeMaintenance['checklist_data'],
-  created_at: '2024-01-01T00:00:00Z',
-  updated_at: '2024-01-01T00:00:00Z',
-  completed_at: null,
-  ...overrides
-});
+const createMockPM = (overrides: Partial<PreventativeMaintenance> = {}): PreventativeMaintenance => {
+  const defaults: PreventativeMaintenance = {
+    id: 'pm-1',
+    work_order_id: 'wo-1',
+    equipment_id: 'eq-1',
+    organization_id: 'org-1',
+    template_id: null,
+    status: 'in_progress',
+    notes: '',
+    checklist_data: [
+      { id: 'item-1', title: 'Check oil level', section: 'Engine', required: true, condition: null, notes: undefined },
+    ] as unknown as PreventativeMaintenance['checklist_data'],
+    created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
+    created_by: 'user-1',
+    created_by_name: null,
+    completed_at: null,
+    completed_by: null,
+    completed_by_name: null,
+    equipment_working_hours_at_completion: null,
+    historical_completion_date: null,
+    historical_notes: null,
+    is_historical: false,
+  };
+  return { ...defaults, ...overrides };
+};
 
 const mockOnUpdate = vi.fn();
 

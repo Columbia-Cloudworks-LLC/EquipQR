@@ -8,20 +8,21 @@ export interface AsyncOperationState<T = unknown> {
   isSuccess: boolean;
 }
 
-export interface AsyncOperationHook<T = unknown> extends AsyncOperationState<T> {
-  execute: (...args: unknown[]) => Promise<T | null>;
+export interface AsyncOperationHook<T = unknown, TArgs extends unknown[] = unknown[]>
+  extends AsyncOperationState<T> {
+  execute: (...args: TArgs) => Promise<T | null>;
   reset: () => void;
   setData: (data: T) => void;
 }
 
-export const useAsyncOperation = <T = unknown>(
-  operation: (...args: unknown[]) => Promise<T>,
+export const useAsyncOperation = <T = unknown, TArgs extends unknown[] = unknown[]>(
+  operation: (...args: TArgs) => Promise<T>,
   options: {
     onSuccess?: (data: T) => void;
     onError?: (error: string) => void;
     resetOnExecute?: boolean;
   } = {}
-): AsyncOperationHook<T> => {
+): AsyncOperationHook<T, TArgs> => {
   const [state, setState] = useState<AsyncOperationState<T>>({
     data: null,
     isLoading: false,
@@ -29,7 +30,7 @@ export const useAsyncOperation = <T = unknown>(
     isSuccess: false
   });
 
-  const execute = useCallback(async (...args: unknown[]): Promise<T | null> => {
+  const execute = useCallback(async (...args: TArgs): Promise<T | null> => {
     if (options.resetOnExecute) {
       setState({
         data: null,

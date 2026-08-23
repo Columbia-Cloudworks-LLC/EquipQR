@@ -14,7 +14,30 @@ import type { EffectiveLocation } from '@/utils/effectiveLocation';
 
 export type WorkOrderStatus = 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
 export type WorkOrderPriority = 'low' | 'medium' | 'high';
-export type QuickBooksInvoiceStatus = 'draft' | 'sent' | 'viewed' | 'paid' | 'partially_paid' | 'overdue' | 'voided';
+const QUICKBOOKS_INVOICE_STATUSES = [
+  'draft',
+  'sent',
+  'viewed',
+  'paid',
+  'partially_paid',
+  'overdue',
+  'voided',
+] as const;
+export type QuickBooksInvoiceStatus = (typeof QUICKBOOKS_INVOICE_STATUSES)[number];
+
+const QUICKBOOKS_INVOICE_STATUS_SET: ReadonlySet<string> = new Set(QUICKBOOKS_INVOICE_STATUSES);
+
+export function isQuickBooksInvoiceStatus(
+  status: string | null | undefined,
+): status is QuickBooksInvoiceStatus {
+  return typeof status === 'string' && QUICKBOOKS_INVOICE_STATUS_SET.has(status);
+}
+
+export function toQuickBooksInvoiceStatus(
+  status: string | null | undefined,
+): QuickBooksInvoiceStatus | null {
+  return isQuickBooksInvoiceStatus(status) ? status : null;
+}
 
 // ============================================
 // Base Database Type
@@ -322,75 +345,3 @@ export interface WorkOrderImage {
   created_at: string;
   uploaded_by_name?: string;
 }
-
-// ============================================
-// Utility Type Converters
-// ============================================
-
-/**
- * Converts WorkOrder (database format) to WorkOrderData (UI format)
- */
-function toWorkOrderData(row: WorkOrder): WorkOrderData {
-  return {
-    id: row.id,
-    title: row.title,
-    description: row.description,
-    equipmentId: row.equipment_id,
-    organizationId: row.organization_id,
-    priority: row.priority,
-    status: row.status,
-    assigneeId: row.assignee_id ?? undefined,
-    assigneeName: row.assigneeName ?? row.assignee_name ?? undefined,
-    teamId: row.team_id ?? undefined,
-    teamName: row.teamName ?? undefined,
-    createdDate: row.created_date,
-    created_date: row.created_date,
-    dueDate: row.due_date ?? undefined,
-    estimatedHours: row.estimated_hours ?? undefined,
-    completedDate: row.completed_date ?? undefined,
-    equipmentName: row.equipmentName ?? undefined,
-    equipmentManufacturer: row.equipmentManufacturer ?? undefined,
-    equipmentModel: row.equipmentModel ?? undefined,
-    equipmentSerialNumber: row.equipmentSerialNumber ?? undefined,
-    equipmentWorkingHours: row.equipmentWorkingHours ?? undefined,
-    equipmentImageUrl: row.equipmentImageUrl ?? undefined,
-    createdByName: row.createdByName ?? row.created_by_name ?? undefined,
-    equipmentTeamId: row.equipmentTeamId ?? undefined,
-    equipmentTeamName: row.equipmentTeamName ?? undefined,
-    hasPM: row.has_pm,
-    pmRequired: row.pm_required,
-    isHistorical: row.is_historical,
-    quickbooksInvoiceId: row.quickbooks_invoice_id,
-    quickbooksInvoiceNumber: row.quickbooks_invoice_number,
-    quickbooksInvoiceEnvironment: row.quickbooks_invoice_environment as 'sandbox' | 'production' | null,
-    invoiceStatus: row.invoice_status,
-    invoiceSentAt: row.invoice_sent_at,
-    invoicePaidAt: row.invoice_paid_at,
-    invoiceBalanceCents: row.invoice_balance_cents,
-    invoiceDueDate: row.invoice_due_date,
-    invoiceLastSyncedAt: row.invoice_last_synced_at
-  };
-}
-
-/**
- * Converts WorkOrderData (UI format) back to partial WorkOrder format
- * Useful for update operations
- */
-function fromWorkOrderData(data: Partial<WorkOrderData>): Partial<WorkOrderUpdateData> {
-  const result: Partial<WorkOrderUpdateData> = {};
-  
-  if (data.title !== undefined) result.title = data.title;
-  if (data.description !== undefined) result.description = data.description;
-  if (data.equipmentId !== undefined) result.equipment_id = data.equipmentId;
-  if (data.priority !== undefined) result.priority = data.priority;
-  if (data.status !== undefined) result.status = data.status;
-  if (data.assigneeId !== undefined) result.assignee_id = data.assigneeId || null;
-  if (data.teamId !== undefined) result.team_id = data.teamId || null;
-  if (data.dueDate !== undefined) result.due_date = data.dueDate || null;
-  if (data.estimatedHours !== undefined) result.estimated_hours = data.estimatedHours || null;
-  if (data.completedDate !== undefined) result.completed_date = data.completedDate || null;
-  
-  return result;
-}
-
-

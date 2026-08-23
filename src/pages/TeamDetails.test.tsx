@@ -25,12 +25,15 @@ const mockTeam = {
   id: 'team-1',
   name: 'Alpha Team',
   description: 'Test team',
+  organization_id: 'org-1',
   member_count: 2,
   members: [{ id: 'u1' }, { id: 'u2' }],
   created_at: new Date().toISOString(),
 };
 
-const mockUseTeam = vi.fn(() => ({ data: mockTeam, isLoading: false }));
+const mockUseTeam = vi.fn<(...args: unknown[]) => { data: typeof mockTeam | null; isLoading: boolean }>(
+  () => ({ data: mockTeam, isLoading: false }),
+);
 
 vi.mock('@/features/teams/hooks/useTeamManagement', () => ({
   useTeam: (...args: unknown[]) => mockUseTeam(...args),
@@ -90,6 +93,17 @@ describe('TeamDetails permissions gating', () => {
     expect(screen.getByText('Team not found')).toBeInTheDocument();
     expect(screen.getByText('Back to Teams')).toBeInTheDocument();
     expect(screen.getByText('Return to Teams')).toBeInTheDocument();
+  });
+
+  it('shows Team not found when the team belongs to another organization (RT-13)', () => {
+    mockUseTeam.mockReturnValueOnce({
+      data: { ...mockTeam, organization_id: 'org-metro' },
+      isLoading: false,
+    });
+    render(<TeamDetails />);
+    expect(screen.getByText('Team not found')).toBeInTheDocument();
+    expect(screen.queryByText('Edit Team')).toBeNull();
+    expect(screen.queryByText('Members List')).toBeNull();
   });
 });
 

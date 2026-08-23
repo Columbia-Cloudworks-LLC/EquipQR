@@ -37,7 +37,7 @@ npm run build
 **Solution:**
 ```bash
 # 1. Preferred: run one-click startup with 1Password sync
-.\dev-start.bat
+.\dev\dev-start.bat
 
 # 2. Check if .env file exists
 ls -la .env

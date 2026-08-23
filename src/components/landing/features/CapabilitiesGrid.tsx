@@ -1,9 +1,10 @@
+import type { LucideIcon } from 'lucide-react';
 import { CapabilityCard } from './CapabilityCard';
 
 export interface Capability {
   name: string;
   description: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: LucideIcon;
 }
 
 interface CapabilitiesGridProps {

@@ -111,7 +111,7 @@ function CopyableValue({ value }: { value: string }) {
 
   return (
     <div className="flex items-center gap-1.5 min-w-0">
-      <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded truncate max-w-[220px]">
+      <code className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded truncate max-w-55">
         {value}
       </code>
       <Button

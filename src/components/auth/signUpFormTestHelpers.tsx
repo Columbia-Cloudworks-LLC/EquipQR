@@ -12,15 +12,19 @@ export const mockGetCurrentAuthSession = vi.mocked(authSignupService.getCurrentA
 export const defaultSignUpFormProps = {
   onSuccess: vi.fn(),
   onError: vi.fn(),
+  onGoogleSignUp: vi.fn(),
   isLoading: false,
   setIsLoading: vi.fn(),
 };
 
-export const withRouter = (ui: React.ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
+export function revealEmailSignup(): void {
+  const reveal = screen.queryByRole('button', { name: /sign up with email/i });
+  if (reveal) {
+    fireEvent.click(reveal);
+  }
+}
 
-export const RouterWrapper = ({ children }: { children: React.ReactNode }) => (
-  <MemoryRouter>{children}</MemoryRouter>
-);
+export const withRouter = (ui: React.ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
 
 export interface SignUpFormData {
   name?: string;
@@ -41,6 +45,8 @@ export const fillSignUpFormFast = (overrides: SignUpFormData = {}) => {
     verifyCaptcha: true,
   };
   const data = { ...defaults, ...overrides };
+
+  revealEmailSignup();
 
   if (data.name !== undefined) {
     fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: data.name } });
@@ -63,7 +69,7 @@ export const fillSignUpFormFast = (overrides: SignUpFormData = {}) => {
   }
   fireEvent.click(screen.getByLabelText(/I have read and agree/i));
   if (data.verifyCaptcha) {
-    fireEvent.click(screen.getByTestId('hcaptcha-success'));
+    fireEvent.click(screen.getByRole('button', { name: /verify captcha/i }));
   }
 };
 
@@ -73,6 +79,7 @@ export function setupFastUser() {
 
 export function renderSignUpWithPasswordFields() {
   withRouter(<SignUpForm {...defaultSignUpFormProps} />);
+  revealEmailSignup();
   return {
     passwordInput: screen.getByLabelText('Password'),
     confirmPasswordInput: screen.getByLabelText(/confirm password/i),

@@ -57,7 +57,7 @@ export async function createGoogleDocInFolder(
     throw new Error(`Failed to create Google Doc: ${response.status} ${errorBody}`);
   }
 
-  return await response.json();
+  return await response.json() as GoogleDocCreateResult;
 }
 
 /**
@@ -114,7 +114,7 @@ export async function getGoogleDriveFileMetadata(
     throw new Error(`Failed to fetch Drive file metadata: ${response.status} ${errorBody}`);
   }
 
-  return await response.json();
+  return await response.json() as DriveFileMetadata;
 }
 
 /**
@@ -169,7 +169,7 @@ export async function moveGoogleDriveFileToParent(
     throw new Error(`Failed to read Drive file parents: ${metadataResponse.status} ${errorBody}`);
   }
 
-  const metadata: { parents?: string[] } = await metadataResponse.json();
+  const metadata = await metadataResponse.json() as { parents?: string[] };
   const removeParents = (metadata.parents ?? []).join(",");
 
   const params = new URLSearchParams({

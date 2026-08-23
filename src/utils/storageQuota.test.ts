@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getStorageQuotaErrorMessage, MAX_STORAGE_GB } from './storageQuota';
+import { checkStorageQuota, getStorageQuotaErrorMessage, MAX_STORAGE_GB } from './storageQuota';
 import type { StorageQuotaCheck } from './storageQuota';
+import { supabase } from '@/integrations/supabase/client';
 
 // Mock supabase
 vi.mock('@/integrations/supabase/client', () => ({
@@ -20,6 +21,33 @@ vi.mock('@/utils/logger', () => ({
 describe('storageQuota', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('checkStorageQuota', () => {
+    it('maps snake_case RPC payload to StorageQuotaCheck', async () => {
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: {
+          can_upload: false,
+          current_storage_gb: 4.8,
+          max_storage_gb: 5,
+          file_size_mb: 250,
+          would_exceed: true,
+          remaining_gb: 0.2,
+          usage_percent: 96,
+        },
+        error: null,
+      } as never);
+
+      await expect(checkStorageQuota('org-1', 262144000)).resolves.toEqual({
+        canUpload: false,
+        currentStorageGB: 4.8,
+        maxStorageGB: 5,
+        fileSizeMB: 250,
+        wouldExceed: true,
+        remainingGB: 0.2,
+        usagePercent: 96,
+      });
+    });
   });
 
   describe('MAX_STORAGE_GB', () => {

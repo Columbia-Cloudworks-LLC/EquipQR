@@ -3,13 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { Badge } from '@/components/ui/badge';
 import { Clipboard, Wrench } from 'lucide-react';
-import { WorkOrderData, PMData, PermissionLevels } from '@/features/work-orders/types/workOrderDetails';
+import { PMData, PermissionLevels } from '@/features/work-orders/types/workOrderDetails';
 import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
 
 interface WorkOrderDetailsPMInfoProps {
-  workOrder: WorkOrderData;
-  pmData: PMData;
-  permissionLevels: PermissionLevels;
+  workOrder: { has_pm?: boolean };
+  pmData?: (Pick<PMData, 'status' | 'template_id'> & { completed_at?: string | null }) | null;
+  permissionLevels: Pick<PermissionLevels, 'isManager'> & { isRequestor?: boolean };
 }
 
 export const WorkOrderDetailsPMInfo: React.FC<WorkOrderDetailsPMInfoProps> = ({

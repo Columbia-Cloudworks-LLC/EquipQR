@@ -1,0 +1,28 @@
+---
+description: "Agent browser work must use Cursor Browser (cursor-ide-browser). No IronBee, Chrome DevTools, or other browsers without explicit user approval."
+alwaysApply: true
+---
+
+# Cursor Browser only
+
+When an agent needs to open, click, fill, screenshot, or otherwise drive a web page, use **Cursor Browser** — MCP server `cursor-ide-browser` — and nothing else.
+
+This supersedes `.cursor/rules/ironbee-devtools-use.mdc` for browser work. IronBee browser (`ironbee-dt-browser`) is not allowed.
+
+## Required
+
+- Navigate, snapshot, interact, and take screenshots via `cursor-ide-browser` tools (`browser_tabs`, `browser_navigate`, `browser_lock`, `browser_snapshot`, `browser_take_screenshot`, and the interaction tools on that server).
+- `browser_cdp` on **that same server** is allowed for page inspect/wait. That is still Cursor Browser.
+
+## Forbidden unless the user explicitly approves a named alternative
+
+- IronBee browser tools (`navigation_*`, `content_*`, `a11y_*` on `ironbee-dt-browser`)
+- Chrome DevTools MCP / `chrome-devtools` plugin skills
+- Any other browser agent, MCP, or skill
+- Launching Chrome/Edge/Playwright **as an agent-driven UI** (headed debug, extra MCP browsers)
+
+Do not ask to switch tools. Stay on Cursor Browser. If a task truly cannot be done there, **stop** and get explicit approval to use a named other browser before proceeding.
+
+## Not this rule
+
+Automated Playwright (`e2e/**`, `dev-test.bat`, `Invoke-PrEvidence.ps1`) is CI/local E2E, not agent browser driving. Those scripts stay allowed.

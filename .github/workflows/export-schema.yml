@@ -52,8 +52,8 @@ jobs:
             echo "exported=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          chmod +x scripts/export-schema-baseline.sh
-          ./scripts/export-schema-baseline.sh
+          chmod +x dev/export-schema-baseline.sh
+          ./dev/export-schema-baseline.sh
           echo "exported=true" >> "$GITHUB_OUTPUT"
         env:
           DATABASE_URL: ${{ secrets.PREVIEW_DATABASE_URL }}

@@ -243,7 +243,7 @@ export default function HeroAnimation() {
   return (
     <section
       aria-label="EquipQR asset tracking demo"
-      className="relative flex flex-col items-center justify-center pt-24 pb-14 md:pt-28 md:pb-20 bg-gradient-to-br from-background via-background to-primary/5"
+      className="relative flex flex-col items-center justify-center pt-24 pb-14 md:pt-28 md:pb-20 bg-linear-to-br from-background via-background to-primary/5"
     >
       <p className="sr-only">
         EquipQR tracks QR-coded equipment across the United States. The demo shows a QR

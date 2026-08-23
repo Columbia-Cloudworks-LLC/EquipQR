@@ -1,4 +1,4 @@
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import {
   createAdminSupabaseClient,
   createErrorResponse,
@@ -63,6 +63,7 @@ function buildDirectoryUrl(domain: string, pageToken?: string): string {
 }
 
 Deno.serve(withCorrelationId(async (req, _ctx) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -78,12 +79,16 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     const body: SyncRequest = await req.json();
     const { organizationId } = body;
     if (!organizationId) {
-      return createErrorResponse("organizationId is required", 400);
+      return createErrorResponse("organizationId is required", 400, { req });
     }
 
     const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
     if (!isAdmin) {
-      return createErrorResponse("Only organization administrators can sync Workspace users", 403);
+      return createErrorResponse(
+        "Only organization administrators can sync Workspace users",
+        403,
+        { req },
+      );
     }
 
     // SECURITY NOTE: We use the admin client for these operations because:
@@ -117,7 +122,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
           token_revoked: 401,
           insufficient_scopes: 403,
         };
-        return createErrorResponse(tokenError.message, statusMap[tokenError.code] ?? 500);
+        return createErrorResponse(tokenError.message, statusMap[tokenError.code] ?? 500, { req });
       }
       throw tokenError;
     }
@@ -172,7 +177,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
           // Response was not JSON
         }
         logStep("Directory API error", { status: response.status, directoryApiError });
-        return createErrorResponse(`Failed to fetch Google Workspace users (HTTP ${response.status})`, 502);
+        return createErrorResponse(`Failed to fetch Google Workspace users (HTTP ${response.status})`, 502, { req });
       }
 
       const payload: GoogleDirectoryResponse = await response.json();
@@ -204,7 +209,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
 
         if (upsertError) {
           logStep("Upsert error", { error: upsertError.message });
-          return createErrorResponse("Failed to store directory users", 500);
+          return createErrorResponse("Failed to store directory users", 500, { req });
         }
 
         pendingRows = []; // Reset batch
@@ -222,7 +227,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
 
       if (upsertError) {
         logStep("Upsert error", { error: upsertError.message });
-        return createErrorResponse("Failed to store directory users", 500);
+        return createErrorResponse("Failed to store directory users", 500, { req });
       }
     }
 
@@ -247,7 +252,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
         syncStartedAt: nowIso,
         ...errorDetails,
       });
-      return createErrorResponse("Failed to reconcile directory access", 500);
+      return createErrorResponse("Failed to reconcile directory access", 500, { req });
     }
 
     logStep("Sync complete", {
@@ -267,10 +272,10 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     }, 200, { req });
   } catch (error) {
     if (error instanceof MissingSecretError) {
-      return createErrorResponse(error, 500);
+      return createErrorResponse(error, 500, { req });
     }
     logStep("ERROR", { message: error instanceof Error ? error.message : String(error) });
-    return createErrorResponse("Unexpected error while syncing Google Workspace users", 500);
+    return createErrorResponse("Unexpected error while syncing Google Workspace users", 500, { req });
   }
 }));
 

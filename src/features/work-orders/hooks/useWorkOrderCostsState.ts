@@ -12,6 +12,11 @@ export interface WorkOrderCostItem extends Omit<WorkOrderCost, 'id' | 'created_a
   original_quantity?: number | null;
 }
 
+export type AddFilledWorkOrderCostInput = Pick<
+  WorkOrderCostItem,
+  'id' | 'work_order_id' | 'description' | 'quantity' | 'unit_price_cents' | 'inventory_item_id' | 'original_quantity'
+>;
+
 function mapPropsCostsToItems(newCosts: WorkOrderCost[]): WorkOrderCostItem[] {
   return newCosts.map((cost) => ({
     id: cost.id,
@@ -59,15 +64,7 @@ export const useWorkOrderCostsState = (initialCosts: WorkOrderCost[] = []) => {
    * Note: This also removes any empty placeholder rows (new items with empty description)
    * to ensure validation passes when the filled cost is the only real item.
    */
-  const addFilledCost = useCallback((data: {
-    id: string;
-    work_order_id: string;
-    description: string;
-    quantity: number;
-    unit_price_cents: number;
-    inventory_item_id?: string;
-    original_quantity?: number;
-  }) => {
+  const addFilledCost = useCallback((data: AddFilledWorkOrderCostInput) => {
     const newCost: WorkOrderCostItem = {
       id: data.id,
       work_order_id: data.work_order_id,

@@ -9,7 +9,9 @@ import { isChunkLoadError, reloadOnceForChunkError, clearChunkReloadFlag } from 
  * hard reload so the browser fetches the fresh shell. Non-chunk errors are
  * rethrown unchanged so real bugs still surface in the error boundary.
  */
-export function lazyWithRetry<T extends ComponentType<unknown>>(
+// `object` (not `unknown`) matches React.lazy: FC props are contravariant, so
+// `React.FC` (`FC<{}>`) is not assignable to `ComponentType<unknown>`.
+export function lazyWithRetry<T extends ComponentType<object>>(
   factory: () => Promise<{ default: T }>,
   chunkId: string,
 ): LazyExoticComponent<T> {

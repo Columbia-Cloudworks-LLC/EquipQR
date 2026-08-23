@@ -28,15 +28,13 @@ import {
   PrivacyRequest,
   DoNotSellOrShare,
   Security,
+  RightToRepair,
   OperatorCheckInPublicPage,
   QuickFormPublicPage,
 } from '@/routes/lazyPublicPages';
+import { LazyRoute } from '@/routes/LazyRoute';
 import { LandingCanonicalRedirect } from '@/routes/redirects';
-import { qrRouteFallback, textRouteFallback } from '@/routes/routerConfig';
-
-const LazyRoute = ({ children }: { children: React.ReactNode }) => (
-  <Suspense fallback={textRouteFallback}>{children}</Suspense>
-);
+import { qrRouteFallback } from '@/routes/routerConfig';
 
 export const publicRouteElements = (
   <>
@@ -75,5 +73,6 @@ export const publicRouteElements = (
     <Route path="/privacy-request" element={<LazyRoute><PrivacyRequest /></LazyRoute>} />
     <Route path="/do-not-sell-or-share" element={<LazyRoute><DoNotSellOrShare /></LazyRoute>} />
     <Route path="/security" element={<LazyRoute><Security /></LazyRoute>} />
+    <Route path="/right-to-repair" element={<LazyRoute><RightToRepair /></LazyRoute>} />
   </>
 );

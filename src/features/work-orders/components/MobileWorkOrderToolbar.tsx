@@ -22,8 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ListSortFieldControls } from '@/components/common/ListSortFieldControls';
-import type { WorkOrderFilters as FiltersType } from '@/features/work-orders/types/workOrder';
-import type { QuickFilterPreset, SortField, SortDirection } from '@/features/work-orders/hooks/useWorkOrderFilters';
+import type { SortField, SortDirection } from '@/features/work-orders/hooks/useWorkOrderFilters';
 import type { WorkOrderFiltersToolbarProps } from '@/features/work-orders/types/workOrderFiltersToolbarTypes';
 import {
   WORK_ORDER_QUICK_FILTER_PRESETS,

@@ -60,7 +60,7 @@ const NoteImageCarousel: React.FC<NoteImageCarouselProps> = ({
           src={image.file_url}
           alt={image.file_name}
           fileName={image.file_name}
-          className={cn('aspect-square w-full rounded-md sm:aspect-[4/3]', className)}
+          className={cn('aspect-square w-full rounded-md sm:aspect-4/3', className)}
           onClick={clickHandler ? () => clickHandler(image) : undefined}
         />
         {enableLightbox && !onImageClick ? lightbox : null}
@@ -79,7 +79,7 @@ const NoteImageCarousel: React.FC<NoteImageCarouselProps> = ({
                   src={image.file_url}
                   alt={image.file_name}
                   fileName={image.file_name}
-                  className="aspect-square w-full rounded-md sm:aspect-[4/3]"
+                  className="aspect-square w-full rounded-md sm:aspect-4/3"
                   onClick={clickHandler ? () => clickHandler(image) : undefined}
                 />
               </CarouselItem>

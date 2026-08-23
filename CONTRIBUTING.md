@@ -1,6 +1,6 @@
 # Contributing to EquipQR
 
-Thank you for your interest in contributing to EquipQR! This document provides guidelines and information for contributing to the project.
+This file covers branching, reviews, and how to land a change.
 
 ## Table of Contents
 
@@ -14,9 +14,9 @@ Thank you for your interest in contributing to EquipQR! This document provides g
 - [Coding Guidelines](#coding-guidelines)
 - [Pull Request Guidelines](#pull-request-guidelines)
 
-## Project Overview
+## Project overview
 
-EquipQR is a comprehensive fleet equipment management platform built with React, TypeScript, and Supabase. The application helps organizations track equipment, manage work orders, and coordinate maintenance teams.
+EquipQR is a QR-first work order app for heavy equipment repair shops, built with React, TypeScript, and Supabase.
 
 **Key Technologies:**
 - Frontend: React 18, TypeScript, Vite
@@ -62,33 +62,31 @@ EquipQR uses a **feat → preview → main** train (#1282). Authoritative policy
 
 ## Versioning & Release Process
 
-EquipQR uses **semantic versioning** with automatic git tag creation via GitHub Actions.
+EquipQR uses **semantic versioning**. GitHub Actions creates tags when a bumped `package.json` lands on `main`. What belongs in the changelog is defined in [`.cursor/rules/changelog.mdc`](.cursor/rules/changelog.mdc).
 
 ### How It Works
 
-1. **Update the version in `package.json`**:
-   - Edit the `"version"` field (e.g., `"1.2.3"` → `"1.3.0"`)
-   - Commit with message: `chore: bump version to X.Y.Z`
+1. **Feature PRs into `preview`**:
+   - Accumulate short `[Unreleased]` bullets
+   - Do **not** bump `package.json`
 
-2. **Merge to `main`**:
-   - When the PR is merged to `main`, the `version-tag.yml` workflow runs automatically
+2. **`/release` promote (`preview` → `main`)**:
+   - Choose one SemVer for the whole batch
+   - Empty `[Unreleased]` into one `## [X.Y.Z] - YYYY-MM-DD` section
+   - Bump `package.json`, `package-lock.json`, and the README version badge
 
-3. **Workflow automatically**:
-   - Reads version from `package.json`
+3. **`version-tag.yml`**:
+   - Runs when that bumped `package.json` lands on `main`
    - Validates semver format (x.y.z)
-   - Creates annotated git tag `vX.Y.Z` (if it doesn't already exist)
+   - Creates annotated git tag `vX.Y.Z` if it does not already exist
    - Pushes the tag to origin
 
 ### Semantic Versioning Guidelines
 
-Follow semantic versioning principles when choosing version numbers:
-
-- **Major** (X.0.0): Breaking changes, significant new features
-  - Example: `1.5.3` → `2.0.0`
-- **Minor** (X.Y.0): New features, backward-compatible changes
-  - Example: `1.5.3` → `1.6.0`
-- **Patch** (X.Y.Z): Bug fixes, minor improvements
-  - Example: `1.5.3` → `1.5.4`
+- **Major** (X.0.0): Only when the user requests a breaking customer-visible change
+- **Minor** (X.Y.0): New customer-visible capability or meaningful workflow expansion
+- **Patch** (X.Y.Z): Fixes, security without product-shape change, batched dependencies, small UX corrections
+- Do not cut a patch for a single Dependabot bump
 
 ### Version Display
 
@@ -324,7 +322,6 @@ npm run test:coverage
 npm run test:watch
 ```
 
-
 **Journey test template** (for new features):
 
 ```typescript
@@ -435,7 +432,7 @@ In rare cases, emergency hotfixes may bypass normal PR approval:
 - `fix: resolve work order assignment bug`
 - `docs: update API reference`
 - `refactor: simplify auth context`
-- `chore: bump version to 1.2.0`
+- `chore: refresh dependency lockfile`
 
 **Description**: Include
 - Summary of changes
@@ -476,5 +473,4 @@ If you have questions about contributing, feel free to:
 - Create an issue tagged `question`
 - Email [nicholas.king@columbiacloudworks.com](mailto:nicholas.king@columbiacloudworks.com)
 
-Thank you for contributing to EquipQR! 🎉
-
+Thank you for contributing to EquipQR.

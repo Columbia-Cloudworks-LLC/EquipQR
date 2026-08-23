@@ -56,7 +56,7 @@ function resolveLocalServiceRoleKey(): string {
 }
 
 /** Local E2E fixture helper — service role is required to reset seeded org state outside RLS. */
-function createE2EAdminClient(): SupabaseClient {
+export function createE2EAdminClient(): SupabaseClient {
   return createClient(LOCAL_SUPABASE_URL, resolveLocalServiceRoleKey(), {
     auth: { persistSession: false, autoRefreshToken: false },
   });

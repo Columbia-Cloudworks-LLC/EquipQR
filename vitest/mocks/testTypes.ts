@@ -4,7 +4,10 @@
 
 import { SessionOrganization } from '@/contexts/SessionContext';
 import { User } from '@/contexts/user-context';
-import { SimpleOrganization } from '@/contexts/SimpleOrganizationContext';
+import {
+  SimpleOrganization,
+  type SimpleOrganizationContextType,
+} from '@/contexts/SimpleOrganizationContext';
 import { vi } from 'vitest';
 
 // User context type since it's not exported
@@ -12,18 +15,6 @@ interface UserContextType {
   currentUser: User | null;
   isLoading: boolean;
   setCurrentUser: (user: User | null) => void;
-}
-
-// Simple organization context type since it's not exported  
-interface SimpleOrganizationContextType {
-  currentOrganization: SimpleOrganization | null;
-  organizations: SimpleOrganization[];
-  userOrganizations: SimpleOrganization[];
-  setCurrentOrganization: (organizationId: string) => void;
-  switchOrganization: (organizationId: string) => void;
-  isLoading: boolean;
-  error: string | null;
-  refetch: () => Promise<void>;
 }
 
 // Test-specific interfaces that match expected mock structures
@@ -132,49 +123,10 @@ export const createMockSimpleOrganizationContext = (
   currentOrganization: organization as SimpleOrganization | null,
   organizations: organization ? [organization as SimpleOrganization] : [],
   userOrganizations: organization ? [organization as SimpleOrganization] : [],
+  organizationId: organization?.id ?? null,
   setCurrentOrganization: vi.fn(),
   switchOrganization: vi.fn(),
   isLoading: false,
   error: null,
   refetch: vi.fn()
 });
-
-// Type-safe mock factories for common test scenarios
-const createAdminTestSetup = () => {
-  const user = createMockUser();
-  const organization = createMockOrganization({ 
-    userRole: 'admin',
-    members: [{ ...user, role: 'admin', organization_id: 'org-1' }] 
-  });
-  const sessionData = createMockSessionData({
-    organizations: [createMockSessionOrganization({ userRole: 'admin' })]
-  });
-
-  return { user, organization, sessionData };
-};
-
-const createMemberTestSetup = () => {
-  const user = createMockUser();
-  const organization = createMockOrganization({ 
-    userRole: 'member',
-    members: [{ ...user, role: 'member', organization_id: 'org-1' }] 
-  });
-  const sessionData = createMockSessionData({
-    organizations: [createMockSessionOrganization({ userRole: 'member' })]
-  });
-
-  return { user, organization, sessionData };
-};
-
-const createViewerTestSetup = () => {
-  const user = createMockUser();
-  const organization = createMockOrganization({ 
-    userRole: 'member', // Using member since viewer isn't a valid organization role
-    members: [{ ...user, role: 'member', organization_id: 'org-1' }] 
-  });
-  const sessionData = createMockSessionData({
-    organizations: [createMockSessionOrganization({ userRole: 'member' })]
-  });
-
-  return { user, organization, sessionData };
-};

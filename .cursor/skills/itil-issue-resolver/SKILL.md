@@ -109,7 +109,7 @@ Choose the smallest credible gate:
   npm test -- <test-paths>
   ```
 - Run `npm run build` when routing, bundling, PWA, Vite, or env wiring may be affected.
-- For UI changes, smoke the affected route with browser MCP or `.\dev-test.bat` critical when a spec exists.
+- For UI changes, smoke the affected route with browser MCP or `.\dev\dev-test.bat` critical when a spec exists.
 - For OAuth/integrations, exercise the flow on the local stack (browser MCP + edge logs + RPC/DB confirmation).
 - For migrations/RLS/edge functions, run the relevant Supabase or Deno checks when the local stack is healthy.
 
@@ -127,15 +127,15 @@ Summary commands:
 git fetch origin preview
 git switch -c <type>/issue-<number>-<slug> origin/preview
 # ... implement, verify (Fallow, npm ci, lint, test:ci, build, E2E) ...
-.\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts"
+.\dev\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts"
 git push -u origin HEAD
 gh pr create --base preview --head <branch> --title "<title>" --body-file <body-file-with-evidence-markdown>
-.\scripts\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts" -PrNumber <num> -Publish
+.\dev\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts" -PrNumber <num> -Publish
 gh pr checks <num> --watch
 # Poll Get-PrQodoFindings until openCount=0; clear threads — see pr-merge-ready-workflow.mdc
 ```
 
-Accumulate CHANGELOG notes under `[Unreleased]`; **do not** bump `package.json` on feature PRs. Use `Fixes #<number>` or `Closes #<number>` in the commit body or PR body when the issue should close after merge to `preview` (or after promote, if the issue should stay open until production).
+Accumulate CHANGELOG notes under `[Unreleased]` when the change is user-visible. Follow `.cursor/rules/changelog.mdc` (short bullets). **Do not** bump `package.json` on feature PRs. Use `Fixes #<number>` or `Closes #<number>` in the commit body or PR body when the issue should close after merge to `preview` (or after promote, if the issue should stay open until production).
 
 Merge `tmp/pr-evidence/<slug>/evidence-markdown.md` into the PR body. Add `e2e/pr-evidence/<feature>.spec.ts` when no existing spec covers the UI change.
 

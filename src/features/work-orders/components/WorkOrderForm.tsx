@@ -11,8 +11,10 @@ import { useSession } from '@/hooks/useSession';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 import { useWorkOrderForm, WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
+import { workOrderFormSchema } from '@/features/work-orders/schemas/workOrderSchema';
 import { useEquipmentSelection } from '@/features/equipment/components/hooks/useEquipmentSelection';
 import { useWorkOrderSubmission } from '@/features/work-orders/hooks/useWorkOrderSubmission';
+import { toEquipmentSelectorItem } from '@/features/work-orders/utils/toEquipmentSelectorItem';
 import { WorkOrderFormHeader } from './WorkOrderFormHeader';
 import { WorkOrderGeneralInfo } from './WorkOrderGeneralInfo';
 import { WorkOrderScheduling } from './WorkOrderScheduling';
@@ -120,12 +122,17 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
     
     // Check if no working hours were updated during work order creation
     if (!isEditMode && !formData.equipmentWorkingHours) {
-      setPendingSubmission(formData);
-      setShowWorkingHoursWarning(true);
-      return;
+      const parsed = workOrderFormSchema.safeParse(formData);
+      if (parsed.success) {
+        setPendingSubmission(parsed.data);
+        setShowWorkingHoursWarning(true);
+        return;
+      }
     }
     
-    await form.handleSubmit(submitForm);
+    await form.handleSubmit(async (values) => {
+      await submitForm(values);
+    });
   };
 
   const handleConfirmSubmit = async () => {
@@ -201,7 +208,9 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
                     hasPM: form.values.hasPM || false,
                     pmTemplateId: form.values.pmTemplateId,
                   }}
-                  setValue={form.setValue}
+                  setValue={(field, value) => {
+                    form.setValue(field, value);
+                  }}
                   selectedEquipment={selectedEquipmentForPM}
                   allowTemplateOverride={isEditMode}
                   autoDefaultFromEquipment={!isEditMode}
@@ -222,7 +231,11 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
             values={form.values}
             errors={form.errors}
             setValue={form.setValue}
-            preSelectedEquipment={preSelectedEquipment}
+            preSelectedEquipment={
+              preSelectedEquipment
+                ? toEquipmentSelectorItem(preSelectedEquipment)
+                : undefined
+            }
             allEquipment={allEquipment}
             isEditMode={isEditMode}
             isEquipmentPreSelected={isEquipmentPreSelected}

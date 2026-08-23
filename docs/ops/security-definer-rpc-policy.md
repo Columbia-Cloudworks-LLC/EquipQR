@@ -19,20 +19,20 @@ Issue [#762](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/762) lock
 
 1. **Default deny:** New `SECURITY DEFINER` functions must **not** grant `EXECUTE` to `PUBLIC`, `anon`, or `authenticated` unless explicitly reviewed.
 2. **Pin `search_path`:** Use `SET search_path = public, pg_temp` (or `''` for cron helpers) on every definer.
-3. **Add to allowlist:** Client-callable RPCs must be added to `scripts/security-definer-rpc-allowlists.json` and the lockdown migration pattern (or a follow-up migration that only re-grants the new name).
+3. **Add to allowlist:** Client-callable RPCs must be added to `dev/security-definer-rpc-allowlists.json` and the lockdown migration pattern (or a follow-up migration that only re-grants the new name).
 4. **Trigger-only helpers:** Revoke `PUBLIC`, `anon`, and `authenticated`; rely on definer owner + trigger/cron invocation.
 5. **Never expose identity probes to browsers:** Helpers like `is_user_google_oauth_verified` stay `service_role` only (see migration `20260525000000_restrict_google_oauth_verified_to_service_role.sql`).
 
 ## Allowlists (source of truth)
 
-- `scripts/security-definer-rpc-allowlists.json` — names granted back to `authenticated` / `anon` after bulk revoke. Source of truth for the latest re-lockdown migration (`20260719214316_security_advisor_1310_hardening.sql`; originally `20260602120000_lockdown_security_definer_rpc_grants.sql`).
+- `dev/security-definer-rpc-allowlists.json` — names granted back to `authenticated` / `anon` after bulk revoke. Source of truth for the latest re-lockdown migration (`20260719214316_security_advisor_1310_hardening.sql`; originally `20260602120000_lockdown_security_definer_rpc_grants.sql`).
 
 ## Inventory
 
 Regenerate after grant changes (local Supabase must be running):
 
 ```powershell
-node scripts/generate-security-definer-rpc-inventory.mjs
+node dev/generate-security-definer-rpc-inventory.mjs
 ```
 
 Output: `docs/ops/security-definer-rpc-inventory.md`
@@ -47,7 +47,7 @@ Output: `docs/ops/security-definer-rpc-inventory.md`
 Keep allowlists aligned:
 
 ```powershell
-node scripts/validate-security-definer-allowlist-sync.mjs
+node dev/validate-security-definer-allowlist-sync.mjs
 ```
 
 ## Supabase Advisor lints (0025 / 0029 / anon DEFINER)
@@ -62,7 +62,7 @@ node scripts/validate-security-definer-allowlist-sync.mjs
 1. Deploy `20260719214316_security_advisor_1310_hardening.sql` (builds on `20260602120000_lockdown_security_definer_rpc_grants.sql`).
 2. Confirm `ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public` no longer grants new functions to `anon`/`authenticated`.
 3. Regenerate inventory and confirm only allowlisted names have `authenticated EXECUTE = yes`.
-4. Reconcile advisor exports: `node scripts/reconcile-advisor-rpc-warnings.mjs advisor-functions.txt`
+4. Reconcile advisor exports: `node dev/reconcile-advisor-rpc-warnings.mjs advisor-functions.txt`
 5. Authorization evidence for high-risk RPCs: [security-definer-rpc-audit.md](./security-definer-rpc-audit.md)
 
 ## Future refactor (zero advisor warnings)

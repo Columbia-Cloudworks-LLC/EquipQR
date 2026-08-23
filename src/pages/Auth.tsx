@@ -3,9 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useLocation, useNavigate, type NavigateFunction } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
 import { CheckCircle, ExternalLink, Loader2, Mail, QrCode } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useMFA } from '@/hooks/useMFA';
@@ -23,7 +21,8 @@ import SignInForm from '@/components/auth/SignInForm';
 import MFAVerification from '@/components/auth/MFAVerification';
 import LegalFooter from '@/components/layout/LegalFooter';
 import { useAppToast } from '@/hooks/useAppToast';
-import { AuthGoogleSignInButton } from '@/pages/AuthGoogleSignInButton';
+
+type AuthMode = 'signin' | 'signup';
 
 interface SignupSuccessState {
   message: string;
@@ -84,6 +83,32 @@ const Auth = () => {
   const suppressAuthRedirectRef = useRef(false);
   const { error: showErrorToast, success: showSuccessToast } = useAppToast();
 
+  const { parsedMode, prefillEmail, invitedOrgId, invitedOrgName } = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const orgId = params.get('invitedOrgId') || undefined;
+    const orgName = params.get('invitedOrgName') || undefined;
+    const modeParam = params.get('mode');
+    const tabParam = params.get('tab');
+    const parsed: AuthMode =
+      modeParam === 'signin' || modeParam === 'signup'
+        ? modeParam
+        : tabParam === 'signin' || tabParam === 'signup'
+          ? tabParam
+          : 'signin';
+    return {
+      parsedMode: orgId || orgName ? 'signup' : parsed,
+      prefillEmail: params.get('email') || undefined,
+      invitedOrgId: orgId,
+      invitedOrgName: orgName,
+    };
+  }, [location.search]);
+
+  const [mode, setMode] = useState<AuthMode>(parsedMode);
+
+  useEffect(() => {
+    setMode(parsedMode);
+  }, [parsedMode]);
+
   // Detect QR-scan messaging from OAuth `?next=` or existing sessionStorage.
   // Do not copy `next` into sessionStorage — keep the destination in the URL
   // (and any pre-OAuth pendingRedirect already stored by QR/ProtectedRoute).
@@ -98,8 +123,8 @@ const Auth = () => {
     setPendingQRScan(isQrDestination);
   }, [location.search]);
 
-  // Handle pending redirects after authentication
-  // This replaces usePendingRedirectHandler to avoid race conditions with duplicate effects
+  // Handle pending redirects after authentication in one effect
+  // (avoids race conditions from a second redirect hook).
   useEffect(() => {
     if (user && !authLoading) {
       // Keep the post-signup success view visible until the user continues to sign-in.
@@ -151,7 +176,8 @@ const Auth = () => {
   const handleReturnToSignIn = () => {
     suppressAuthRedirectRef.current = false;
     setSuccess(null);
-    navigate('/auth?tab=signin', { replace: true });
+    setMode('signin');
+    navigate('/auth?mode=signin', { replace: true });
   };
 
   const handleError = (errorMessage: string) => {
@@ -165,11 +191,13 @@ const Auth = () => {
     });
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = async (organizationName?: string) => {
     setIsLoading(true);
     setError(null);
 
-    const { error } = await signInWithGoogle();
+    const { error } = await signInWithGoogle(
+      organizationName ? { organizationName } : undefined,
+    );
     
     if (error) {
       handleError(error.message);
@@ -193,21 +221,6 @@ const Auth = () => {
     navigateAfterAuth(location.search, navigate);
   }, [refreshMFAStatus, navigate, location.search]);
 
-  // Parse query params for tab/email/invitation info
-  const { defaultTab, prefillEmail, invitedOrgId, invitedOrgName } = useMemo(() => {
-    const params = new URLSearchParams(location.search);
-    const tab = params.get('tab') || 'signin';
-    const email = params.get('email') || undefined;
-    const orgId = params.get('invitedOrgId') || undefined;
-    const orgName = params.get('invitedOrgName') || undefined;
-    return { 
-      defaultTab: tab, 
-      prefillEmail: email,
-      invitedOrgId: orgId,
-      invitedOrgName: orgName
-    };
-  }, [location.search]);
-
   const inboxUrl = getEmailProviderInboxUrl(success?.email);
 
   if (authLoading) {
@@ -219,15 +232,19 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-info/10 to-primary/20">
+    <div className="min-h-screen flex flex-col bg-linear-to-br from-info/10 to-primary/20">
       <div className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
+          <CardHeader className="text-center px-6 pt-6 pb-4 sm:px-7 sm:pt-7 sm:pb-5">
             <div className="mx-auto mb-4">
               <Logo size="xl" />
             </div>
-            <CardTitle className="text-2xl">
-              {pendingQRScan ? 'Sign in to continue' : 'Welcome to EquipQR™'}
+            <CardTitle as="h1" className="text-2xl">
+              {pendingQRScan
+                ? 'Sign in to continue'
+                : mode === 'signup'
+                  ? 'Create your organization'
+                  : 'Sign in to EquipQR'}
             </CardTitle>
             <CardDescription>
               {pendingQRScan ? (
@@ -235,15 +252,16 @@ const Auth = () => {
                   <QrCode className="h-4 w-4" />
                   <span>Complete sign in to view scanned equipment</span>
                 </span>
+              ) : mode === 'signup' ? (
+                'Create an organization to get started'
               ) : (
-                'Sign in to your account or create a new one to get started'
+                'Sign in to your account to get started'
               )}
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            {/* MFA Verification Screen — shown after password or OAuth sign-in when MFA is required */}
+          <CardContent className="px-6 pb-8 sm:px-7 sm:pb-8">
             {success ? (
-              <div className="space-y-5 text-center" data-testid="signup-success-page">
+              <div className="space-y-5 text-center">
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/15">
                   <CheckCircle className="h-7 w-7 text-success" aria-hidden />
                 </div>
@@ -285,50 +303,61 @@ const Auth = () => {
                 onError={handleError}
               />
             ) : (
-            <Tabs defaultValue={defaultTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="signin">
-                <SignInForm 
+            <div className="w-full">
+              {mode === 'signin' ? (
+                <SignInForm
                   onError={handleError}
                   isLoading={isLoading}
                   setIsLoading={setIsLoading}
+                  onGoogleSignIn={() => {
+                    void handleGoogleSignIn();
+                  }}
                   onMFARequired={handleMFARequired}
                 />
-                
-                <div className="mt-4">
-                  <Separator className="my-4" />
-                  <AuthGoogleSignInButton onClick={handleGoogleSignIn} disabled={isLoading} />
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="signup">
+              ) : (
                 <SignUpForm
                   onBeforeSignupSubmit={() => {
                     suppressAuthRedirectRef.current = true;
                   }}
                   onSuccess={handleSuccess}
                   onError={handleError}
+                  onGoogleSignUp={(organizationName) => {
+                    void handleGoogleSignIn(organizationName);
+                  }}
                   isLoading={isLoading}
                   setIsLoading={setIsLoading}
                   prefillEmail={prefillEmail}
                   invitedOrgId={invitedOrgId}
                   invitedOrgName={invitedOrgName}
                 />
-                
-                <div className="mt-4">
-                  <Separator className="my-4" />
-                  <AuthGoogleSignInButton
-                    onClick={handleGoogleSignIn}
-                    disabled={isLoading}
-                    label="Sign up with Google"
-                  />
-                </div>
-              </TabsContent>
-            </Tabs>
+              )}
+
+              <p className="mt-6 text-center text-sm text-muted-foreground">
+                {mode === 'signin' ? (
+                  <>
+                    New to EquipQR?{' '}
+                    <button
+                      type="button"
+                      className="font-medium text-foreground underline underline-offset-4 hover:text-primary"
+                      onClick={() => setMode('signup')}
+                    >
+                      Create an account
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    Already have an account?{' '}
+                    <button
+                      type="button"
+                      className="font-medium text-foreground underline underline-offset-4 hover:text-primary"
+                      onClick={() => setMode('signin')}
+                    >
+                      Sign in
+                    </button>
+                  </>
+                )}
+              </p>
+            </div>
             )}
             
             {error ? (

@@ -4,7 +4,7 @@
 **Total Items:** 74  
 **Sections:** 10
 
-This document contains the complete scissor lift preventative maintenance checklist with all sections, items, and descriptions.
+74 items. Default EquipQR template for scissor lifts.
 
 ---
 

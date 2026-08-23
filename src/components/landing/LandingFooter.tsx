@@ -63,6 +63,7 @@ const footerSections: FooterSection[] = [
       { href: '/terms-of-service', label: 'Terms', type: 'route' },
       { href: '/privacy-policy', label: 'Privacy', type: 'route' },
       { href: '/do-not-sell-or-share', label: 'Do Not Sell or Share', type: 'route' },
+      { href: '/right-to-repair', label: 'Right to Repair', type: 'route' },
     ],
   },
   {
@@ -83,6 +84,9 @@ const footerSections: FooterSection[] = [
     ],
   },
 ];
+
+const footerLinkDecorationClassName =
+  'text-muted-foreground no-underline transition-colors hover:text-foreground hover:underline motion-reduce:transition-none';
 
 function renderFooterLink(item: FooterLinkItem, className: string) {
   if (item.type === 'route') {
@@ -115,7 +119,7 @@ function renderFooterLink(item: FooterLinkItem, className: string) {
 const LandingFooter = () => {
   const currentYear = new Date().getFullYear();
   const footerLinkClassName =
-    'block min-h-[44px] py-3 text-sm text-muted-foreground transition-colors hover:text-foreground';
+    `flex items-center min-h-[44px] py-3 text-sm ${footerLinkDecorationClassName}`;
 
   return (
     <footer className="border-t border-border bg-background/50 backdrop-blur-sm mt-auto">
@@ -133,7 +137,7 @@ const LandingFooter = () => {
           >
             {footerSections.map((section) => (
               <AccordionItem key={section.title} value={section.title}>
-                <AccordionTrigger className="min-h-[52px] py-4 text-sm font-semibold text-foreground hover:no-underline">
+                <AccordionTrigger className="min-h-13 py-4 text-sm font-semibold text-foreground hover:no-underline">
                   {section.title}
                 </AccordionTrigger>
                 <AccordionContent>
@@ -157,7 +161,7 @@ const LandingFooter = () => {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 {section.links.map((item) => (
                   <li key={`${section.title}-${item.label}`}>
-                    {renderFooterLink(item, 'hover:text-foreground transition-colors')}
+                    {renderFooterLink(item, footerLinkDecorationClassName)}
                   </li>
                 ))}
               </ul>
@@ -169,11 +173,11 @@ const LandingFooter = () => {
           <span>© {currentYear} EquipQR™</span>
           <ExternalLink
             href={COLUMBIA_CLOUDWORKS_URL}
-            className="hover:text-foreground transition-colors flex items-center gap-1.5"
+            className={`flex items-center gap-1.5 ${footerLinkDecorationClassName}`}
             showIcon={false}
           >
             <img
-              src="/icons/Columbia-Cloudworks-Icon-Small.png"
+              src="/images/brand/icons/Columbia-Cloudworks-Icon-Small.png"
               alt=""
               className="w-5 h-5 rounded-sm opacity-90 ring-1 ring-background/10"
             />

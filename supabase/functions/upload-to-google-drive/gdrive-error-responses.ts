@@ -1,8 +1,10 @@
-import { corsHeaders } from "../_shared/cors.ts";
-import { GoogleWorkspaceTokenError } from "../_shared/google-workspace-token.ts";
+import type { GoogleWorkspaceTokenError } from "../_shared/google-workspace-token.ts";
 import type { DriveFileResponse } from "./gdrive-validation.ts";
 
-export function tokenErrorResponse(error: GoogleWorkspaceTokenError): Response {
+export function tokenErrorResponse(
+  error: GoogleWorkspaceTokenError,
+  corsHeaders: Record<string, string>,
+): Response {
   return new Response(
     JSON.stringify({
       error: error.message,
@@ -15,7 +17,7 @@ export function tokenErrorResponse(error: GoogleWorkspaceTokenError): Response {
   );
 }
 
-export function rateLimitResponse(): Response {
+export function rateLimitResponse(corsHeaders: Record<string, string>): Response {
   return new Response(
     JSON.stringify({ error: "Rate limit exceeded. Please wait before uploading another file." }),
     { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -24,6 +26,7 @@ export function rateLimitResponse(): Response {
 
 export function driveUploadSuccessResponse(
   driveFile: DriveFileResponse,
+  corsHeaders: Record<string, string>,
   extras?: { replacedPrevious?: boolean; warnings?: string[] },
 ): Response {
   return new Response(

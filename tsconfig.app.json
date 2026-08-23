@@ -15,16 +15,16 @@
     "jsx": "react-jsx",
 
     /* Linting */
-    "strict": false,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noImplicitAny": false,
     "noFallthroughCasesInSwitch": false,
 
     /* Browser + Vitest + jest-dom only — do not pull in Node ambient types for `src/` */
-    "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"],
+    "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom", "google.maps"],
 
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
       "@vitest-harness/*": ["./vitest/*"]

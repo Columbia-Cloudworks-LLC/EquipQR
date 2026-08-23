@@ -19,6 +19,7 @@ import {
   useFilteredWorkOrders,
   workOrderKeys
 } from './useWorkOrders';
+import { workOrders as workOrderLibKeys } from '@/lib/queryKeys';
 import { workOrders, organizations, teams, equipment } from '@vitest-harness/fixtures/entities';
 import { personas } from '@vitest-harness/fixtures/personas';
 
@@ -339,8 +340,26 @@ describe('useWorkOrders', () => {
         expect(result.current.isSuccess).toBe(true);
       });
 
-      expect(mockService.getById).toHaveBeenCalledWith(workOrders.submitted.id);
+      expect(mockService.getById).toHaveBeenCalledWith(workOrders.submitted.id, {
+        userTeamIds: [],
+        isOrgAdmin: false,
+      });
       expect(result.current.data?.id).toBe(workOrders.submitted.id);
+    });
+
+    it('does not fetch until enabled after team membership resolves', () => {
+      const { result } = renderHook(
+        () =>
+          useWorkOrderById(organizations.acme.id, workOrders.submitted.id, {
+            userTeamIds: ['team-cs'],
+            isOrgAdmin: false,
+            enabled: false,
+          }),
+        { wrapper: createWrapper() },
+      );
+
+      expect(result.current.fetchStatus).toBe('idle');
+      expect(mockService.getById).not.toHaveBeenCalled();
     });
 
     it('returns null for non-existent work order', async () => {
@@ -403,6 +422,11 @@ describe('useWorkOrders', () => {
     it('generates correct detail key', () => {
       const key = workOrderKeys.detail(organizations.acme.id, 'wo-1');
       expect(key).toEqual(['work-orders', 'detail', organizations.acme.id, 'wo-1']);
+    });
+
+    it('detailScoped factory prefixes the detail key', () => {
+      const key = workOrderLibKeys.detailScoped(organizations.acme.id, 'wo-1', 'none');
+      expect(key).toEqual([...workOrderKeys.detail(organizations.acme.id, 'wo-1'), 'none']);
     });
 
     it('generates correct myWorkOrders key', () => {

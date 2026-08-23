@@ -61,7 +61,7 @@ export const SecurityStatus = () => {
         </TooltipProvider>
       </div>
 
-      <div className="flex items-center justify-between min-h-[32px]">
+      <div className="flex items-center justify-between min-h-8">
         <div className="flex items-center gap-2">
           {getStatusIcon(testResult.canFetchOrganizations, testResult.hasErrors)}
           <span className="text-sm">Organization Access</span>
@@ -69,7 +69,7 @@ export const SecurityStatus = () => {
         {getStatusBadge(testResult.canFetchOrganizations, testResult.hasErrors)}
       </div>
 
-      <div className="flex items-center justify-between min-h-[32px]">
+      <div className="flex items-center justify-between min-h-8">
         <div className="flex items-center gap-2">
           {getStatusIcon(testResult.canFetchMembers, testResult.hasErrors)}
           <span className="text-sm">Member Access</span>
@@ -77,7 +77,7 @@ export const SecurityStatus = () => {
         {getStatusBadge(testResult.canFetchMembers, testResult.hasErrors)}
       </div>
 
-      <div className="flex items-center justify-between min-h-[32px]">
+      <div className="flex items-center justify-between min-h-8">
         <div className="flex items-center gap-2">
           {getStatusIcon(testResult.canFetchTeams, testResult.hasErrors)}
           <span className="text-sm">Team Access</span>

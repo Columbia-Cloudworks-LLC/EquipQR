@@ -153,6 +153,38 @@ describe('EquipmentService', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
     });
+
+    it('does not query when the caller has no accessible teams', async () => {
+      const result = await EquipmentService.getById(organizationId, 'eq-1', {
+        userTeamIds: [],
+        isOrgAdmin: false,
+      });
+
+      expect(supabase.from).not.toHaveBeenCalled();
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/not found/i);
+    });
+
+    it('scopes the fetch to the caller accessible teams', async () => {
+      const mockEquipment = { id: 'eq-1', name: 'Equipment 1', organization_id: 'test-org', team_id: 'team-cs' };
+
+      const mockQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        in: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: mockEquipment, error: null }),
+      };
+
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
+
+      const result = await EquipmentService.getById(organizationId, 'eq-1', {
+        userTeamIds: ['team-cs'],
+        isOrgAdmin: false,
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockQuery.in).toHaveBeenCalledWith('team_id', ['team-cs']);
+    });
   });
 
   describe('create', () => {

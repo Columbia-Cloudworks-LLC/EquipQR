@@ -3,7 +3,7 @@ import { APIProvider, AdvancedMarker, Map } from '@vis.gl/react-google-maps';
 import { MapPin, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
-import { useIsDarkTheme } from '@/hooks/useThemeVersion';
+import { useIsDarkTheme, useThemeVersion } from '@/hooks/useThemeVersion';
 import { cn } from '@/lib/utils';
 
 type LocationDirectionsMiniMapProps = {
@@ -69,7 +69,7 @@ function LocationDirectionsMiniMapCanvas({
           <MiniMapPin />
         </AdvancedMarker>
       </Map>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 to-transparent px-3 py-2">
         <p className="text-xs font-medium text-white">Tap for directions in Google Maps</p>
       </div>
       <span className="pointer-events-none absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/5 group-active:bg-black/10" />
@@ -86,7 +86,8 @@ export function LocationDirectionsMiniMap({
   directionsUrl,
   ariaLabel,
 }: LocationDirectionsMiniMapProps) {
-  const isDark = useIsDarkTheme();
+  const themeVersion = useThemeVersion();
+  const isDark = useIsDarkTheme(themeVersion);
   const {
     googleMapsKey,
     mapId,

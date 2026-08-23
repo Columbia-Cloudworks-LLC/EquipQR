@@ -411,7 +411,7 @@ export function AuditExplorer({ organizationId, initialFilters }: AuditExplorerP
 
   return (
     <div
-      className="flex flex-col gap-3 min-h-[640px]"
+      className="flex flex-col gap-3 min-h-160"
       data-testid="audit-explorer"
     >
       <AuditLogToolbar

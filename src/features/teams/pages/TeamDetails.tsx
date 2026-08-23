@@ -89,7 +89,12 @@ const TeamDetails = () => {
   const permissions = usePermissions();
 
   const setPreferredView = useMutation({
-    mutationFn: (view: TeamView) => updateTeam(teamId!, { preferred_view: view }),
+    mutationFn: (view: TeamView) => {
+      if (!teamId || !currentOrganization?.id) {
+        throw new Error('Team could not be updated. You may not have permission to edit this team.');
+      }
+      return updateTeam(teamId, { preferred_view: view }, currentOrganization.id);
+    },
     onSuccess: async (_, view) => {
       await queryClient.invalidateQueries({ queryKey: ['team', teamId] });
       await queryClient.invalidateQueries({ queryKey: ['teams'] });
@@ -134,7 +139,7 @@ const TeamDetails = () => {
     );
   }
 
-  if (!team) {
+  if (!team || team.organization_id !== currentOrganization.id) {
     return (
       <div className="container mx-auto py-6 px-4 sm:px-6 space-y-6">
         <Button
@@ -175,7 +180,10 @@ const TeamDetails = () => {
   const handleDeleteTeam = async () => {
     if (!team) return;
     try {
-      await deleteTeam.mutateAsync(team.id);
+      await deleteTeam.mutateAsync({
+        teamId: team.id,
+        organizationId: currentOrganization.id,
+      });
       navigate('/dashboard/teams');
     } catch {
       // Error is handled by the mutation
@@ -293,7 +301,7 @@ const TeamDetails = () => {
             >
               Teams
             </Link>
-            <ChevronRight className="h-3.5 w-3.5 flex-shrink-0 opacity-50" aria-hidden="true" />
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden="true" />
             <span className="text-foreground font-medium truncate max-w-[20ch] sm:max-w-none" aria-current="page" title={team.name}>
               {team.name}
             </span>

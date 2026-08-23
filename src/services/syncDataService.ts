@@ -34,8 +34,8 @@
  * @see {@link @/features/teams/hooks/useTeamManagement} for team hooks
  */
 import { useQuery } from '@tanstack/react-query';
-import { getEquipmentByOrganization, getEquipmentById, getAllWorkOrdersByOrganization, getWorkOrdersByEquipmentId, getTeamsByOrganization, getScansByEquipmentId, getNotesByEquipmentId, getDashboardStatsByOrganization } from './supabaseDataService';
-import { WorkOrderService } from '@/features/work-orders/services/workOrderService';
+import { Tables } from '@/integrations/supabase/types';
+import { getTeamsByOrganization } from './supabaseDataService';
 
 /**
  * @deprecated Use Tables<'equipment'> from '@/integrations/supabase/types' instead.
@@ -82,7 +82,7 @@ export interface Team {
   id: string;
   name: string;
   description: string;
-  members: TeamMember[];
+  members: Tables<'team_members'>[];
   specializations: string[];
   activeWorkOrders: number;
 }
@@ -124,7 +124,7 @@ export interface Note {
 }
 
 /**
- * @deprecated Use DashboardStats from '@/services/supabaseDataService' or '@/hooks/useQueries' instead.
+ * @deprecated Use TeamBasedDashboardStats from '@/features/teams/services/teamBasedDashboardService' or '@/hooks/useQueries' instead.
  */
 export interface DashboardStats {
   totalEquipment: number;
@@ -136,73 +136,6 @@ export interface DashboardStats {
 }
 
 /**
- * @deprecated Use useEquipment from '@/features/equipment/hooks/useEquipment' instead.
- */
-const useSyncEquipmentByOrganization = (organizationId?: string) => {
-  return useQuery({
-    queryKey: ['equipment', organizationId],
-    queryFn: () => organizationId ? getEquipmentByOrganization(organizationId) : [],
-    enabled: !!organizationId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-};
-
-/**
- * @deprecated Use useEquipmentById from '@/features/equipment/hooks/useEquipment' instead.
- */
-const useSyncEquipmentById = (organizationId: string, equipmentId: string) => {
-  return useQuery({
-    queryKey: ['equipment', organizationId, equipmentId],
-    queryFn: () => getEquipmentById(organizationId, equipmentId),
-    enabled: !!organizationId && !!equipmentId,
-    staleTime: 5 * 60 * 1000,
-  });
-};
-
-/**
- * @deprecated Use useWorkOrders from '@/hooks/useWorkOrders' instead.
- */
-const useSyncWorkOrdersByOrganization = (organizationId?: string) => {
-  return useQuery({
-    queryKey: ['workOrders', organizationId],
-    queryFn: () => organizationId ? getAllWorkOrdersByOrganization(organizationId) : [],
-    enabled: !!organizationId,
-    staleTime: 2 * 60 * 1000, // 2 minutes for work orders
-  });
-};
-
-/**
- * @deprecated Use useWorkOrderById from '@/hooks/useWorkOrders' instead.
- */
-const useSyncWorkOrderById = (organizationId: string, workOrderId: string) => {
-  return useQuery({
-    queryKey: ['workOrder', organizationId, workOrderId],
-    queryFn: async () => {
-      const service = new WorkOrderService(organizationId);
-      const result = await service.getById(workOrderId);
-      if (result.success && result.data) {
-        return result.data;
-      }
-      return null;
-    },
-    enabled: !!organizationId && !!workOrderId,
-    staleTime: 2 * 60 * 1000,
-  });
-};
-
-/**
- * @deprecated Use useEquipmentWorkOrders from '@/features/equipment/hooks/useEquipment' instead.
- */
-const useSyncWorkOrdersByEquipment = (organizationId: string, equipmentId: string) => {
-  return useQuery({
-    queryKey: ['workOrders', 'equipment', organizationId, equipmentId],
-    queryFn: () => getWorkOrdersByEquipmentId(organizationId, equipmentId),
-    enabled: !!organizationId && !!equipmentId,
-    staleTime: 2 * 60 * 1000,
-  });
-};
-
-/**
  * @deprecated Use useTeams from '@/features/teams/hooks/useTeamManagement' instead.
  */
 export const useSyncTeamsByOrganization = (organizationId?: string) => {
@@ -211,92 +144,5 @@ export const useSyncTeamsByOrganization = (organizationId?: string) => {
     queryFn: () => organizationId ? getTeamsByOrganization(organizationId) : [],
     enabled: !!organizationId,
     staleTime: 10 * 60 * 1000, // 10 minutes for teams
-  });
-};
-
-/**
- * @deprecated Use useTeams from '@/features/teams/hooks/useTeamManagement' instead.
- */
-const useSyncTeamById = (organizationId: string, teamId: string) => {
-  return useQuery({
-    queryKey: ['team', organizationId, teamId],
-    queryFn: async () => {
-      const teams = await getTeamsByOrganization(organizationId);
-      return teams.find(team => team.id === teamId) || null;
-    },
-    enabled: !!organizationId && !!teamId,
-    staleTime: 10 * 60 * 1000,
-  });
-};
-
-/**
- * @deprecated Use useTeams from '@/features/teams/hooks/useTeamManagement' instead.
- */
-const useSyncTeamMembersByTeam = (organizationId: string, teamId: string) => {
-  return useQuery({
-    queryKey: ['teamMembers', organizationId, teamId],
-    queryFn: async () => {
-      const teams = await getTeamsByOrganization(organizationId);
-      const team = teams.find(team => team.id === teamId);
-      return team?.members || [];
-    },
-    enabled: !!organizationId && !!teamId,
-    staleTime: 10 * 60 * 1000,
-  });
-};
-
-/**
- * @deprecated Use useEquipmentScans from '@/features/equipment/hooks/useEquipment' instead.
- */
-const useSyncScansByEquipment = (organizationId: string, equipmentId: string) => {
-  return useQuery({
-    queryKey: ['scans', organizationId, equipmentId],
-    queryFn: () => getScansByEquipmentId(organizationId, equipmentId),
-    enabled: !!organizationId && !!equipmentId,
-    staleTime: 5 * 60 * 1000,
-  });
-};
-
-/**
- * @deprecated Use useEquipmentNotes from '@/features/equipment/hooks/useEquipment' instead.
- */
-const useSyncNotesByEquipment = (organizationId: string, equipmentId: string) => {
-  return useQuery({
-    queryKey: ['notes', organizationId, equipmentId],
-    queryFn: () => getNotesByEquipmentId(organizationId, equipmentId),
-    enabled: !!organizationId && !!equipmentId,
-    staleTime: 5 * 60 * 1000,
-  });
-};
-
-/**
- * @deprecated Use useDashboard from '@/hooks/useQueries' instead.
- */
-const useSyncDashboardStats = (organizationId?: string) => {
-  return useQuery({
-    queryKey: ['dashboardStats', organizationId],
-    queryFn: () => organizationId ? getDashboardStatsByOrganization(organizationId) : null,
-    enabled: !!organizationId,
-    staleTime: 2 * 60 * 1000,
-  });
-};
-
-/**
- * @deprecated Use useWorkOrderById from '@/hooks/useWorkOrders' instead.
- */
-const useSyncWorkOrderByIdEnhanced = (organizationId: string, workOrderId: string) => {
-  return useQuery({
-    queryKey: ['workOrder', 'enhanced', organizationId, workOrderId],
-    queryFn: async () => {
-      const service = new WorkOrderService(organizationId);
-      const result = await service.getById(workOrderId);
-      if (result.success && result.data) {
-        return result.data;
-      }
-      return null;
-    },
-    enabled: !!organizationId && !!workOrderId,
-    staleTime: 1 * 60 * 1000, // 1 minute for enhanced queries
-    refetchInterval: 30 * 1000, // Refetch every 30 seconds for real-time updates
   });
 };

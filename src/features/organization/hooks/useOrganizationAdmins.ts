@@ -10,6 +10,10 @@ import type { Database } from '@/integrations/supabase/types';
 import { logger } from '@/utils/logger';
 import type { OrganizationAdmin } from '@/features/organization/types/organization';
 
+type OrganizationAdminRecord = Database['public']['Tables']['organization_members']['Row'] & {
+  profiles: Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'name' | 'email'> | null;
+};
+
 /**
  * Hook for fetching organization admins (owners and admins)
  */
@@ -21,9 +25,7 @@ export const useOrganizationAdmins = (organizationId: string) => {
 
       const { data, error } = await supabase
         .from('organization_members')
-        .select<(Database['public']['Tables']['organization_members']['Row'] & {
-          profiles: Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'name' | 'email'> | null;
-        })>(`
+        .select<string, OrganizationAdminRecord>(`
           user_id,
           role,
           profiles:user_id (

@@ -64,6 +64,11 @@ describe('App', () => {
     expect(screen.getByText('Do Not Sell Or Share')).toBeInTheDocument();
   });
 
+  it('renders right-to-repair page for /right-to-repair path', () => {
+    renderApp(['/right-to-repair']);
+    expect(screen.getByText('Right To Repair')).toBeInTheDocument();
+  });
+
   it('redirects equipment to equipment list', () => {
     renderApp(['/equipment/test-equipment']);
     expect(screen.getByText('Navigating to /dashboard/equipment/test-equipment')).toBeInTheDocument();

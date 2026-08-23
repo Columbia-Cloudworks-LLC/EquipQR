@@ -1,12 +1,15 @@
 import type { WorkOrderServiceFilters } from '@/features/work-orders/types/workOrder';
 
-/** Minimal PostgREST filter builder surface used by work-order list queries. */
-export type WorkOrderFilterQuery<T> = {
-  eq: (column: string, value: unknown) => T;
-  is: (column: string, value: null) => T;
-  lt: (column: string, value: string) => T;
-  gte: (column: string, value: string) => T;
-  not: (column: string, operator: string, value: string) => T;
+/**
+ * Callable filter surface for this helper. Kept off the public generic
+ * constraint so PostgrestFilterBuilder's generic `eq` stays assignable.
+ */
+type WorkOrderFilterQuery<T> = {
+  eq: (column: string, value: string) => WorkOrderFilterQuery<T> & T;
+  is: (column: string, value: null) => WorkOrderFilterQuery<T> & T;
+  lt: (column: string, value: string) => WorkOrderFilterQuery<T> & T;
+  gte: (column: string, value: string) => WorkOrderFilterQuery<T> & T;
+  not: (column: string, operator: string, value: string) => WorkOrderFilterQuery<T> & T;
 };
 
 export type WorkOrderSupabaseFilterOptions = {
@@ -17,7 +20,7 @@ export type WorkOrderSupabaseFilterOptions = {
 /**
  * Applies shared status / priority / assignee / due-date filters to a work_orders query.
  */
-export function applyWorkOrderSupabaseFilters<T extends WorkOrderFilterQuery<T>>(
+export function applyWorkOrderSupabaseFilters<T>(
   query: T,
   filters: Pick<
     WorkOrderServiceFilters,
@@ -26,7 +29,7 @@ export function applyWorkOrderSupabaseFilters<T extends WorkOrderFilterQuery<T>>
   options: WorkOrderSupabaseFilterOptions = {},
 ): T {
   const { overdueExcludeTerminalStatuses = false } = options;
-  let next = query;
+  let next = query as T & WorkOrderFilterQuery<T>;
 
   if (filters.status && filters.status !== 'all') {
     next = next.eq('status', filters.status);

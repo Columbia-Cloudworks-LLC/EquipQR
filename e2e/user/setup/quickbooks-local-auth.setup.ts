@@ -39,7 +39,7 @@ setup('capture QuickBooks local integration @quickbooks-auth-setup', async ({ pa
       [
         '',
         '[quickbooks-auth-setup] Sign in to EquipQR in the browser window.',
-        '[quickbooks-auth-setup] Use Continue with Google or your local test account.',
+        '[quickbooks-auth-setup] Use Login with Google or your local test account.',
         '[quickbooks-auth-setup] Waiting up to 10 minutes for /dashboard ...',
         '',
       ].join('\n'),
@@ -89,7 +89,7 @@ setup('capture QuickBooks local integration @quickbooks-auth-setup', async ({ pa
     [
       `[quickbooks-auth-setup] Saved EquipQR session storage state to ${outputPath}`,
       '[quickbooks-auth-setup] QuickBooks OAuth tokens are in local quickbooks_credentials (Supabase).',
-      '[quickbooks-auth-setup] Verify API access: .\\scripts\\qbo\\Invoke-QboQuery.ps1',
+      '[quickbooks-auth-setup] Verify API access: .\\dev\\qbo\\Invoke-QboQuery.ps1',
       '',
     ].join('\n'),
   );

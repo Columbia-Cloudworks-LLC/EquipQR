@@ -13,11 +13,11 @@ export function PartsManagerMarkIcon({ className }: IconProps) {
       aria-hidden="true"
     >
       <Wrench
-        className="absolute h-4 w-4 -translate-x-[3px] -rotate-[35deg] text-primary"
+        className="absolute h-4 w-4 -translate-x-0.75 rotate-[-35deg] text-primary"
         strokeWidth={2.25}
       />
       <Wrench
-        className="absolute h-4 w-4 translate-x-[3px] rotate-[35deg] text-primary"
+        className="absolute h-4 w-4 translate-x-0.75 rotate-35 text-primary"
         strokeWidth={2.25}
       />
     </span>

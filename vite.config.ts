@@ -3,8 +3,8 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 import fs from "fs";
-import { writeMarketingHtmlFiles } from "./scripts/generate-marketing-html";
-import { buildCsp } from "./scripts/csp";
+import { writeMarketingHtmlFiles } from "./dev/generate-marketing-html";
+import { buildCsp } from "./dev/csp";
 
 // HTTP request logger plugin for dev server
 function httpLogger(): PluginOption {

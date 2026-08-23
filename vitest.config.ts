@@ -38,7 +38,7 @@ const JSDOM_TS_TEST_GLOBS = [
 const coverageExclude = [
   'node_modules/',
   'vitest/',
-  'scripts/**',
+  'dev/**',
   'supabase/**',
   'e2e/**',
   '**/*.d.ts',
@@ -90,8 +90,8 @@ const coverageExclude = [
 const unitInclude = [
   'src/**/*.test.ts',
   'src/**/*.spec.ts',
-  'scripts/**/*.test.ts',
-  'scripts/**/*.test.mjs',
+  'dev/**/*.test.ts',
+  'dev/**/*.test.mjs',
   'e2e/**/*.test.ts',
   'vitest/**/*.test.ts',
   'supabase/functions/_shared/**/*.vitest.test.ts',

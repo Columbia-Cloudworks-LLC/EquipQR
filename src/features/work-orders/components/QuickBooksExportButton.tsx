@@ -31,11 +31,13 @@ import { resolveQuickBooksCustomerId } from '@/features/teams/services/customerA
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 import type { QuickBooksExportLog } from '@/services/quickbooks/quickbooksService';
 import {
-  getQuickBooksExportAvailability,
-  getQuickBooksInvoiceDisplay,
   QuickBooksExportButtonContent,
   QuickBooksExportStatusDetails,
 } from '@/features/work-orders/components/quickBooksExportPresentation';
+import {
+  getQuickBooksExportAvailability,
+  getQuickBooksInvoiceDisplay,
+} from '@/features/work-orders/utils/quickBooksExportPresentation';
 
 interface QuickBooksExportButtonProps {
   workOrderId: string;

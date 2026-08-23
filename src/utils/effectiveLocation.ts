@@ -72,15 +72,6 @@ export interface ScanLocationInput {
   formattedAddress?: string;
 }
 
-export interface LastKnownLocationInput {
-  latitude?: number | null;
-  longitude?: number | null;
-  lat?: number | null;
-  lng?: number | null;
-  name?: string | null;
-  updated_at?: string | null;
-}
-
 export interface EquipmentLocationOption {
   mode: LocationDisplayMode;
   source: LocationSource;
@@ -133,9 +124,7 @@ export function getLocationSourceLabel(source: LocationSource): string {
 }
 
 /** Parse equipment.last_known_location JSON into scan coordinates. */
-export function parseLastKnownLocation(
-  lastKnown: LastKnownLocationInput | Record<string, unknown> | null | undefined,
-): ScanLocationInput | undefined {
+export function parseLastKnownLocation(lastKnown: unknown): ScanLocationInput | undefined {
   if (!lastKnown || typeof lastKnown !== 'object') {
     return undefined;
   }

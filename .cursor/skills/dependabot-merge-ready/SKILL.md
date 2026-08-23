@@ -23,7 +23,7 @@ Invoking this workflow **MUST** include a PR number or a link to a PR that was o
 
 ```powershell
 # Accept -PullRequestNumber <n> or parse number from a github.com/.../pull/<n> URL
-.\scripts\pr-feedback\Get-PrContext.ps1 -PullRequestNumber <number> -Json
+.\dev\pr-feedback\Get-PrContext.ps1 -PullRequestNumber <number> -Json
 gh pr view <number> --json author,title,headRefName,baseRefName,url
 ```
 
@@ -60,7 +60,7 @@ git switch <headRefName>   # from Get-PrContext
 git diff origin/preview...HEAD -- package.json package-lock.json
 
 # CI-parity sync (prefer over npm install on this repo)
-.\dev-stop.bat             # if EPERM/EBUSY risk on Windows
+.\dev\dev-stop.bat             # if EPERM/EBUSY risk on Windows
 npm ci --prefer-offline --no-audit
 ```
 
@@ -74,7 +74,7 @@ Record: dependency name, from-version, to-version, dev vs prod.
 
 ### EquipQR Phase 2 commands
 
-Search `src/`, `supabase/functions/`, `e2e/`, `scripts/` for package name and known import paths.
+Search `src/`, `supabase/functions/`, `e2e/`, `dev/` for package name and known import paths.
 
 ```powershell
 npm run lint
@@ -117,12 +117,14 @@ Skip Phase 4 when there are no debt findings beyond the routine bump.
 
 ## Phase 5: Changelog metadata (preview mode — no version bump)
 
-Dependabot PRs target **`preview`**. Do **not** bump `package.json` / lockfile app version — that happens on `/release` promote to `main`.
+This is **not** a versioned release. Dependabot PRs target **`preview`**. Do **not** bump `package.json` / lockfile app version. Do not add a versioned CHANGELOG section.
+
+Preview release-metadata CI treats `package.json` and `package-lock.json` as release-relevant, so add one short `[Unreleased]` Changed note. Follow `.cursor/rules/changelog.mdc`. At the next `/release`, the curator batches that note into one dependency bullet or drops it.
 
 ### EquipQR release metadata (required for merge-ready to `preview`)
 
 1. Keep the existing root `package.json` version unchanged vs `origin/preview`.
-2. Add at least one bullet under CHANGELOG `## [Unreleased]` (e.g. `### Changed`) describing the dependency update and any minimal remediation.
+2. Add one short Changed bullet under CHANGELOG `## [Unreleased]` for the lockfile or `package.json` diff.
 3. Ensure `package-lock.json` dependency changes from the bump are committed; root app version stays aligned with `package.json` (no bump).
 
 ```powershell
@@ -163,13 +165,13 @@ git push -u origin HEAD
 **CI + Qodo loop** (merge-ready exit criteria per `pr-merge-ready-workflow.mdc`):
 
 ```powershell
-.\scripts\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <number> -Watch -FailFast
+.\dev\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <number> -Watch -FailFast
 
 Start-Sleep -Seconds 90
-.\scripts\pr-feedback\Get-PrQodoFindings.ps1 -PullRequestNumber <number> -Json
+.\dev\pr-feedback\Get-PrQodoFindings.ps1 -PullRequestNumber <number> -Json
 # Wait until reviewInProgress: false, then openCount: 0 (all buckets)
 
-.\scripts\pr-feedback\Get-PrFeedbackThreads.ps1 -PullRequestNumber <number> -Json
+.\dev\pr-feedback\Get-PrFeedbackThreads.ps1 -PullRequestNumber <number> -Json
 # unresolved non-outdated thread count must be 0
 
 gh pr view <number> --json mergeable,mergeStateStatus,url
@@ -180,7 +182,7 @@ gh pr view <number> --json mergeable,mergeStateStatus,url
 When Qodo flags findings, it often opens a **closed** fix PR (`Fix: [for cherry-picking] ...`, author `app/qodo-code-review`) and posts a **Qodo Fixer** comment on the feature PR. Mine it before writing fixes by hand:
 
 ```powershell
-.\scripts\pr-feedback\Get-PrQodoFixPr.ps1 -PullRequestNumber <number> -Json
+.\dev\pr-feedback\Get-PrQodoFixPr.ps1 -PullRequestNumber <number> -Json
 ```
 
 **Comment pattern (stable):**
@@ -213,7 +215,7 @@ Address every unstriked Qodo item and unresolved thread; fix forward → Phase 3
 - CI run link (green)
 - Qodo parent comment URL with `openCount=0`
 - Tech-debt issue link (if Phase 4 created/updated one)
-- Confirmation: no feature regression; Unreleased changelog note; no package.json version bump
+- Confirmation: no feature regression; short Unreleased note; no package.json version bump; not a versioned release
 
 ---
 
@@ -224,7 +226,7 @@ Address every unstriked Qodo item and unresolved thread; fix forward → Phase 3
 - [ ] npm ci + lint + type-check + test:ci + build green locally
 - [ ] Minimal remediation only (if needed)
 - [ ] Tech-debt issues idempotently updated/created (if applicable)
-- [ ] CHANGELOG [Unreleased] updated; package.json version unchanged vs preview
+- [ ] Short CHANGELOG [Unreleased] Changed note (CI requirement, not a versioned release); package.json version unchanged vs preview
 - [ ] verify:release-metadata with RELEASE_METADATA_MODE=preview
 - [ ] Fallow clean; commit pushed
 - [ ] CI green (Get-PrChecks -Watch)

@@ -6,7 +6,7 @@ import {
   resolveRealAuthStorageState,
   resolveVercelAutomationBypassHeaders,
 } from './e2e/user/shared/real-auth-config';
-import { PR_EVIDENCE_VIEWPORT, resolvePrEvidenceViewport } from './scripts/lib/pr-evidence-video.mjs';
+import { PR_EVIDENCE_VIEWPORT, resolvePrEvidenceViewport } from './dev/lib/pr-evidence-video.mjs';
 import { prEvidenceRequiresDocsServer } from './e2e/pr-evidence/shared/pr-evidence-flows';
 
 const repoRoot = process.cwd();

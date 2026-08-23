@@ -44,8 +44,8 @@ export const WorkOrderMobileCard: React.FC<WorkOrderMobileCardProps> = memo(({
 }) => {
   const { formatRelative } = useFormatTimestamp();
   const canViewCosts = useCanViewWorkOrderCostsForWorkOrder(workOrder);
-  const dueDateValue = workOrder.dueDate ?? workOrder.due_date;
-  const createdDateValue = workOrder.createdDate ?? workOrder.created_date;
+  const dueDateValue = workOrder.due_date;
+  const createdDateValue = workOrder.created_date;
   const machineHours = formatWorkOrderMachineHours(workOrder.equipmentWorkingHours);
   const isTerminal = isTerminalStatus(workOrder.status);
 

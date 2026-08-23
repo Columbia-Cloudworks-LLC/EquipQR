@@ -102,7 +102,7 @@ export function GooglePlacesEdgeAutocomplete({
                 }}
               >
                 <div className="flex items-start gap-2">
-                  <MapPin className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+                  <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   <div className="min-w-0">
                     <div className="font-medium truncate">
                       {prediction.structured_formatting.main_text}

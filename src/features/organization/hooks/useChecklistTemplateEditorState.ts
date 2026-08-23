@@ -12,6 +12,7 @@ import type { PMTemplateCompatibilityRuleFormData } from '@/features/pm-template
 import {
   LARGE_TEMPLATE_THRESHOLD,
   buildIntervalPayload,
+  type IntervalPayload,
 } from '@/features/organization/components/checklistTemplateEditorUtils';
 import type { ChecklistTemplateEditorTemplate } from '@/features/organization/components/checklistTemplateEditorTypes';
 import { useChecklistItemMutations } from '@/features/organization/hooks/useChecklistItemMutations';

@@ -12,7 +12,7 @@ interface EquipQRIconProps extends React.SVGProps<SVGSVGElement> {
 /**
  * EquipQR brand icon — the QR scanner mark in brand purple (#7B3EE7).
  *
- * Extracted from public/eqr-logo/vector.svg. Uses an inline SVG so:
+ * Extracted from public/images/brand/eqr-logo/vector.svg. Uses an inline SVG so:
  * - No network request
  * - Scales to any size via CSS width/height or Tailwind classes
  * - Colour can be overridden by passing fill="currentColor" and setting a

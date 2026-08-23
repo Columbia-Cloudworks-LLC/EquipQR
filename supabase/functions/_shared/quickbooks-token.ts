@@ -86,7 +86,7 @@ export async function refreshQuickBooksAccessTokenIfNeeded(
     throw new Error("Failed to refresh QuickBooks access token");
   }
 
-  const tokenData: IntuitTokenResponse = await tokenResponse.json();
+  const tokenData = await tokenResponse.json() as IntuitTokenResponse;
   const newAccessExpiresAt = new Date(now.getTime() + tokenData.expires_in * 1000).toISOString();
   const newRefreshExpiresAt = new Date(
     now.getTime() + tokenData.x_refresh_token_expires_in * 1000,

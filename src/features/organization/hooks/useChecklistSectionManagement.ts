@@ -7,7 +7,7 @@ type UseChecklistSectionManagementArgs = {
   checklistItems: PMChecklistItem[];
   setChecklistItems: React.Dispatch<React.SetStateAction<PMChecklistItem[]>>;
   setHasUnsavedChanges: React.Dispatch<React.SetStateAction<boolean>>;
-  newItemIdRef: React.MutableRefObject<string | null>;
+  newItemIdRef: React.RefObject<string | null>;
   expandSection: (sectionName: string) => void;
   renameSectionInNavigation: (original: string, newName: string) => void;
   removeSectionFromNavigation: (sectionName: string) => void;

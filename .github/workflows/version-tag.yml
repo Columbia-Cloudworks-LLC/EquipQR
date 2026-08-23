@@ -75,8 +75,8 @@ jobs:
           fi
           
           TAG="v$VERSION"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "📦 Version from package.json: $VERSION"
           echo "🏷️  Tag to create: $TAG"
 
@@ -103,10 +103,10 @@ jobs:
           TAG="${{ steps.version.outputs.tag }}"
           git fetch --tags --force
           if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "exists=true" >> "$GITHUB_OUTPUT"
             echo "✅ Tag $TAG already exists, skipping tag creation"
           else
-            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "exists=false" >> "$GITHUB_OUTPUT"
             echo "🆕 Tag $TAG does not exist, will create it"
           fi
 
@@ -168,13 +168,15 @@ jobs:
           TAG="${{ steps.version.outputs.tag }}"
           EXISTS="${{ steps.check-tag.outputs.exists }}"
           
-          echo "## Version Tagging Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Version:** \`$VERSION\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Tag:** \`$TAG\`" >> $GITHUB_STEP_SUMMARY
-          if [ "$EXISTS" = "true" ]; then
-            echo "**Status:** Tag already exists, no action taken" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "**Status:** Tag created and pushed successfully" >> $GITHUB_STEP_SUMMARY
-          fi
+          {
+            echo "## Version Tagging Summary"
+            echo ""
+            echo "**Version:** \`$VERSION\`"
+            echo "**Tag:** \`$TAG\`"
+            if [ "$EXISTS" = "true" ]; then
+              echo "**Status:** Tag already exists, no action taken"
+            else
+              echo "**Status:** Tag created and pushed successfully"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 

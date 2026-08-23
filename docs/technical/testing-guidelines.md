@@ -32,7 +32,7 @@ As the product and test suite scale:
 | Subject | Test file |
 | --- | --- |
 | `src/features/equipment/components/Foo.tsx` | `src/features/equipment/components/Foo.test.tsx` |
-| `scripts/lib/demoScenarioEngine.mjs` | `scripts/lib/demoScenarioEngine.test.ts` |
+| `dev/lib/demoScenarioEngine.mjs` | `dev/lib/demoScenarioEngine.test.ts` |
 | `e2e/pr-evidence/shared/evidence-helpers.ts` | `e2e/pr-evidence/shared/evidence-helpers.test.ts` (or a dedicated helper test beside it) |
 
 Shared Vitest harness (setup, fixtures, mocks, journey renderers) lives at repo-root **`vitest/`** and is imported as `@vitest-harness/...`. It is not a place for product suites.
@@ -47,7 +47,7 @@ Playwright end-to-end specs stay under `e2e/` (separate from Vitest). Deno edge 
 
 | Project | Environment | Scope |
 | --- | --- | --- |
-| `unit` | `node` | Pure-logic `*.test.ts` / `*.spec.ts` under `src/`, `scripts/`, `e2e/**/*.test.ts`, `vitest/`, and `*.vitest.test.ts` beside shared edge helpers |
+| `unit` | `node` | Pure-logic `*.test.ts` / `*.spec.ts` under `src/`, `dev/`, `e2e/**/*.test.ts`, `vitest/`, and `*.vitest.test.ts` beside shared edge helpers |
 | `component` | `jsdom` | `*.test.tsx` / `*.spec.tsx` and browser-dependent co-located `*.test.ts` |
 
 On Windows, `npm test` and `npm run test:component` run component tests in **four sequential shards** (~80 files each) so you get a summary between chunks instead of a long silent stretch. Linux/macOS CI uses the same shard count via GitHub Actions.
@@ -81,7 +81,7 @@ vitest run --project component --reporter=verbose
 
 ### Unit Tests (Primary — ~70%)
 
-**Location**: Sibling `*.test.ts` next to the source (or next to the script under `scripts/`).
+**Location**: Sibling `*.test.ts` next to the source (or next to the script under `dev/`).
 
 Appropriate for:
 
@@ -212,7 +212,7 @@ beforeEach(() => {
 Local browser tests against `http://localhost:8080` with seeded Dev Quick Login users.
 
 ```powershell
-.\dev-test.bat              # headless critical (default)
+.\dev\dev-test.bat              # headless critical (default)
 npm run test:e2e:critical     # headless critical
 npm run test:e2e:full         # headless full suite
 ```
@@ -264,7 +264,7 @@ src/features/equipment/
 ├── components/
 │   ├── Foo.tsx
 │   └── Foo.test.tsx              # Sibling colocation
-scripts/lib/
+dev/lib/
 ├── demoScenarioEngine.mjs
 └── demoScenarioEngine.test.ts
 e2e/user/                         # Playwright (not Vitest)

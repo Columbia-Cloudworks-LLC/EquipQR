@@ -62,7 +62,7 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
 }) => {
   const { formatDateTime } = useFormatTimestamp();
   const { data: historyRows = [], isLoading } = useWorkOrderTimeline(workOrder.id);
-  const isHistorical = Boolean(workOrder.isHistorical ?? workOrder.is_historical);
+  const isHistorical = Boolean(workOrder.is_historical);
 
   const timelineEvents = useMemo(() => {
     const historyEvents: TimelineEvent[] = historyRows.map((history) => {

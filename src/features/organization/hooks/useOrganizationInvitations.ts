@@ -120,7 +120,7 @@ export const useCreateInvitation = (organizationId: string) => {
           p_organization_id: organizationId,
           p_email: requestData.email.toLowerCase().trim(),
           p_role: requestData.role,
-          p_message: requestData.message || null,
+          p_message: requestData.message || undefined,
           p_invited_by: claims.sub
         });
 
@@ -157,6 +157,10 @@ export const useCreateInvitation = (organizationId: string) => {
           throw fetchError;
         }
 
+        if (!createdInvitation) {
+          throw new Error('Failed to load created invitation');
+        }
+
         // Reserve slot if requested (non-blocking)
         if (requestData.reserveSlot) {
           (async () => {
@@ -190,7 +194,7 @@ export const useCreateInvitation = (organizationId: string) => {
           );
         } catch (emailError) {
           logger.error('[INVITATION] Failed to send invitation email', emailError);
-          throw new Error('INVITATION_EMAIL_SEND_FAILED', { cause: emailError });
+          throw Object.assign(new Error('INVITATION_EMAIL_SEND_FAILED'), { cause: emailError });
         }
 
         if (import.meta.env.DEV) {

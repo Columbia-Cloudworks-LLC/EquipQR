@@ -12,6 +12,10 @@ class TestService extends BaseService {
     return this.handleError(error);
   }
 
+  public testHandleErrorTyped<T>(error: unknown): ApiResponse<T> {
+    return this.handleError(error);
+  }
+
   public testHandleSuccess<T>(data: T): ApiResponse<T> {
     return this.handleSuccess(data);
   }
@@ -97,6 +101,16 @@ describe('BaseService', () => {
       expect(result).toEqual({
         data: null,
         error: 'Operation failed',
+        success: false,
+      });
+    });
+
+    it('should return a typed error response matching the caller data type', () => {
+      const result: ApiResponse<string[]> = service.testHandleErrorTyped(new Error('Typed fail'));
+
+      expect(result).toEqual({
+        data: null,
+        error: 'Typed fail',
         success: false,
       });
     });

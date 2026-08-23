@@ -9,16 +9,16 @@ Agents working on EquipQR **must not fight a sick local stack**. Prefer a clean 
 ## Hard rules
 
 1. **Batch files only** for stack lifecycle. Use:
-   - `.\dev-stop.bat` — stop the entire stack (Vite, docs, edge serve, Supabase/Docker).
-   - `.\dev-start.bat` — start the full stack when dependencies and env are already current.
-   - `.\dev-start.bat -Force` — cold start: DB reset, types regen, seed images, then full stack.
+   - `.\dev\dev-stop.bat` — stop the entire stack (Vite, docs, edge serve, Supabase/Docker).
+   - `.\dev\dev-start.bat` — start the full stack when dependencies and env are already current.
+   - `.\dev\dev-start.bat -Force` — cold start: DB reset, types regen, seed images, then full stack.
 
    Do **not** run ad-hoc `npx supabase stop` / `npx supabase start`, individual Docker container restarts, or detached `cmd /k` windows as substitutes for the batch scripts.
 
 2. **Agent autonomy.** When local verification, E2E, Playwright, or dependency work requires it, **stop and restart the whole stack without asking the maintainer**. Authorization to implement includes authorization to cycle the stack.
 
 3. **Prefer full cycles when symptoms appear.** Run `dev-stop.bat` then `dev-start.bat` or `dev-start.bat -Force` when any of these occur:
-   - `npm ci` or `npm install` fails with **EPERM** / **EBUSY** on native binaries (`lightningcss`, `tailwindcss-oxide`, etc.) — Vite, Vitest, ESLint, or the dev stack is holding file locks. Run **`.\npm-ci-safe.bat`** (stops E2E + dev stack, releases locks, deletes stuck `node_modules` when needed). Do not run bare `npm ci` while the stack is up on Windows.
+   - `npm ci` or `npm install` fails with **EPERM** / **EBUSY** on native binaries (`lightningcss`, `tailwindcss-oxide`, etc.) — Vite, Vitest, ESLint, or the dev stack is holding file locks. Run **`.\dev\npm-ci-safe.bat`** (stops E2E + dev stack, releases locks, deletes stuck `node_modules` when needed). Do not run bare `npm ci` while the stack is up on Windows.
    - `'vite' is not recognized` or incomplete `node_modules` (missing `node_modules\.bin\vite.cmd`).
    - Vite crashes watching Playwright output under `tmp/` (mitigated in `vite.config.ts`; still cycle if it recurs).
    - Kong **502** on edge functions after restart (see `local-dev-troubleshoot.mdc`).
@@ -37,9 +37,9 @@ Agents working on EquipQR **must not fight a sick local stack**. Prefer a clean 
 
 | Situation | Command |
 |-----------|---------|
-| Normal restart after code/env edits (no DB change) | `.\dev-stop.bat` then `.\dev-start.bat` |
-| New/changed migrations, seed files, or types regen needed | `.\dev-start.bat -Force` |
-| Unknown dirty DB state or onboarding/E2E fixture drift | `.\dev-start.bat -Force` |
+| Normal restart after code/env edits (no DB change) | `.\dev\dev-stop.bat` then `.\dev\dev-start.bat` |
+| New/changed migrations, seed files, or types regen needed | `.\dev\dev-start.bat -Force` |
+| Unknown dirty DB state or onboarding/E2E fixture drift | `.\dev\dev-start.bat -Force` |
 
 ## Verification after start
 
@@ -49,4 +49,4 @@ Confirm the status report shows **OK** for Supabase API (`54321`), Frontend (`80
 
 - **`local-verify-before-preview-push.mdc`:** E2E gates assume a healthy stack; this rule defines how to get there.
 - **`local-dev-troubleshoot.mdc`:** Symptom-specific fixes; when in doubt, full batch-file cycle first.
-- **`AGENTS.md`:** Secrets and env sync — still use `scripts/sync-local-supabase-env.ps1` when OAuth drift is suspected after a clean start.
+- **`AGENTS.md`:** Secrets and env sync — still use `dev/sync-local-supabase-env.ps1` when OAuth drift is suspected after a clean start.

@@ -233,13 +233,34 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
     }
   }, []);
 
-  const switchOrganization = useCallback((organizationId: string) => {
+  const switchOrganization = useCallback(async (organizationId: string): Promise<boolean> => {
+    const previousOrganizationId = currentOrganizationId;
     setCurrentOrganization(organizationId);
-    // Also update session context to keep them synchronized
-    if (sessionContext?.switchOrganization) {
-      sessionContext.switchOrganization(organizationId);
+    if (!sessionContext?.switchOrganization) {
+      return true;
     }
-  }, [setCurrentOrganization, sessionContext]);
+    try {
+      await sessionContext.switchOrganization(organizationId);
+      return true;
+    } catch (error) {
+      logger.warn('Failed to switch session organization; reverting local org', {
+        organizationId,
+        previousOrganizationId,
+        error,
+      });
+      if (previousOrganizationId) {
+        setCurrentOrganization(previousOrganizationId);
+      } else {
+        setCurrentOrganizationId(null);
+        try {
+          localStorage.removeItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY);
+        } catch (storageError) {
+          logger.warn('Failed to clear current organization from storage', storageError);
+        }
+      }
+      return false;
+    }
+  }, [currentOrganizationId, setCurrentOrganization, sessionContext]);
 
   // Derive currentOrganization from currentOrganizationId + organizations
   // instead of storing it in separate state (avoids extra renders and state drift)

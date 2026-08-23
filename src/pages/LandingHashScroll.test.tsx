@@ -38,10 +38,10 @@ function mockMatchMedia(reducedMotion: boolean) {
 
 describe('Landing hash scroll', () => {
   const origScrollIntoView = Element.prototype.scrollIntoView;
-  let scrollIntoViewMock: ReturnType<typeof vi.fn>;
+  const scrollIntoViewMock = vi.fn<(arg?: boolean | ScrollIntoViewOptions) => void>();
 
   beforeEach(() => {
-    scrollIntoViewMock = vi.fn();
+    scrollIntoViewMock.mockReset();
     Element.prototype.scrollIntoView = scrollIntoViewMock;
     mockMatchMedia(false);
   });
