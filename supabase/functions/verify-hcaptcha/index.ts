@@ -1,4 +1,4 @@
-import { corsHeaders } from '../_shared/cors.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
 import { withCorrelationId } from '../_shared/supabase-clients.ts';
 import { MissingSecretError, requireSecret } from '../_shared/require-secret.ts';
 
@@ -19,7 +19,7 @@ interface HCaptchaVerificationResponse {
 Deno.serve(withCorrelationId(async (req, _ctx) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
@@ -33,7 +33,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
         JSON.stringify({ success: false, error: 'Token is required' }),
         {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         },
       );
     }
@@ -62,7 +62,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       }),
       {
         status: result.success ? 200 : 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       },
     );
   } catch (error) {
@@ -72,7 +72,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
         JSON.stringify({ success: false, error: 'Server configuration error' }),
         {
           status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
         },
       );
     }
@@ -81,7 +81,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       JSON.stringify({ success: false, error: 'Verification failed' }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' },
       },
     );
   }

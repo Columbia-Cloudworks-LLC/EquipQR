@@ -1,4 +1,4 @@
-import { corsHeaders } from "../_shared/cors.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 import {
   createAdminSupabaseClient,
   createErrorResponse,
@@ -64,7 +64,7 @@ function buildDirectoryUrl(domain: string, pageToken?: string): string {
 
 Deno.serve(withCorrelationId(async (req, _ctx) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: getCorsHeaders(req) });
   }
 
   try {
