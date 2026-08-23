@@ -37,7 +37,7 @@ describe('SignUpForm', () => {
       expect(screen.queryByLabelText(/full name/i)).not.toBeInTheDocument();
       expect(screen.queryByLabelText(/email/i)).not.toBeInTheDocument();
       expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('hcaptcha-mock')).not.toBeInTheDocument();
+      expect(screen.queryByRole('img', { name: /hcaptcha/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /create account & organization/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /retry saving legal acceptance/i })).not.toBeInTheDocument();
     });
@@ -51,7 +51,7 @@ describe('SignUpForm', () => {
       expect(screen.getByLabelText(/organization name/i)).toBeInTheDocument();
       expect(screen.getByLabelText('Password')).toBeInTheDocument();
       expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument();
-      expect(screen.getByTestId('hcaptcha-mock')).toBeInTheDocument();
+      expect(screen.getByRole('img', { name: /hcaptcha/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /create account & organization/i })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /sign up with email/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /sign up with google/i })).not.toBeInTheDocument();
