@@ -58,7 +58,7 @@ describe('SingleImageUpload', () => {
   });
 
   it('previews a valid file, uploads it, and clears the pending preview', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     const onUpload = vi.fn().mockResolvedValue(undefined);
     const file = jpegFile();
     render(<SingleImageUpload onUpload={onUpload} />);
@@ -75,7 +75,7 @@ describe('SingleImageUpload', () => {
   });
 
   it('keeps the preview and toasts when upload fails', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     const onUpload = vi.fn().mockRejectedValue(new Error('storage full'));
     render(<SingleImageUpload onUpload={onUpload} />);
 
@@ -91,7 +91,7 @@ describe('SingleImageUpload', () => {
   });
 
   it('removes an existing image on the default variant', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     const onDelete = vi.fn().mockResolvedValue(undefined);
     render(
       <SingleImageUpload
