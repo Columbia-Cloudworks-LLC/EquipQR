@@ -275,7 +275,7 @@ function CompactUploadLayout(props: UploadLayoutProps) {
 
   return (
     <>
-      {thumbnailSrc && (
+      {(thumbnailSrc || session.kind === 'pending') && (
         <div className="space-y-1.5">
           <div className="group relative h-24 w-24 overflow-hidden rounded-lg border bg-muted/50">
             <img
@@ -381,7 +381,7 @@ function DefaultUploadLayout(props: UploadLayoutProps) {
         </div>
       )}
 
-      {session.kind === 'pending' && session.src && (
+      {session.kind === 'pending' && (
         <div className="space-y-2">
           <div className="border rounded-lg p-4 bg-muted/50 flex items-center justify-center min-h-20">
             <img src={session.src} alt="Preview" className={previewClassName} />
