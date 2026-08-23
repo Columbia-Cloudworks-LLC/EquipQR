@@ -11,8 +11,6 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
-## [3.29.0] - 2026-08-23
-
 ### Added
 
 - **Homepage pricing collage** — Four vertical equipment photo strips scroll behind the pricing card on `/`. Reduced motion freezes the first frame.
