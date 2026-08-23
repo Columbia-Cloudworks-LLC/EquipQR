@@ -11,6 +11,8 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+## [3.29.0] - 2026-08-23
+
 ### Added
 
 - **Homepage pricing collage** — Four vertical equipment photo strips scroll behind the pricing card on `/`. Reduced motion freezes the first frame.
@@ -23,7 +25,6 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 - **Google-first sign-in** — Sign-in offers Login with Google first. Email and password stay behind Login with Email & Password, with a way back to Google.
 - **Homepage rental card icon** — The Equipment rental agencies card uses a construction-yellow bulldozer so the glyph reads on the dark card.
 - **Marketing and public docs voice** — Landing, Repair Shops, feature pages, README, and public docs now match the homepage hero.
-- **Changelog content policy** — New notes record customer-visible outcomes only. Sections through 3.28.0 stay as written.
 - **In-repo marketing photos** — Homepage and feature marketing photos now ship with the app so they still load after a local reset. The pricing collage uses a new equipment photo set.
 
 ### Fixed
@@ -2672,7 +2673,8 @@ Update package dependencies and versions
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.28.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.29.0...HEAD
+[3.29.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.28.0...v3.29.0
 [3.28.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.27.0...v3.28.0
 [3.27.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.26.1...v3.27.0
 [3.26.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.26.0...v3.26.1
