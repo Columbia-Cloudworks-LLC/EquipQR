@@ -68,7 +68,6 @@ VALUES
 
 | Secret Name | Description | Where to Find |
 |-------------|-------------|---------------|
-| `service_role_key` | Supabase service role key | Dashboard → Settings → API → Project API keys → service_role (secret) |
 | `supabase_url` | Supabase project URL | Dashboard → Settings → API → Project URL |
 
 Configure separately for each environment (preview, production).
@@ -247,5 +246,8 @@ const { data: customers } = useQuickBooksCustomers(organizationId, searchQuery);
 
 // Export mutation
 const exportMutation = useExportToQuickBooks();
+exportMutation.mutate(workOrderId);
+```
+ortMutation = useExportToQuickBooks();
 exportMutation.mutate(workOrderId);
 ```
