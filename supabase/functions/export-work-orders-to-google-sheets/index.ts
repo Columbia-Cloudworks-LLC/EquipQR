@@ -5,6 +5,7 @@
  * that have connected their Google Workspace.
  */
 
+import { getCorsHeaders } from "../_shared/cors.ts";
 import {
   createErrorResponse,
   handleCorsPreflightIfNeeded,
@@ -17,6 +18,8 @@ import { parseSheetsExportRequest } from "./gw-sheets-request.ts";
 Deno.serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
+
+  const corsHeaders = getCorsHeaders(req);
 
   try {
     const authContext = await requireAuthenticatedPost(req);
@@ -37,6 +40,8 @@ Deno.serve(async (req) => {
       supabase,
       userId: user.id,
       organizationId,
+      corsHeaders,
+      req,
     });
     if (authGate instanceof Response) {
       return authGate;
@@ -49,9 +54,10 @@ Deno.serve(async (req) => {
       filters,
       accessToken: authGate.accessToken,
       organizationFolderId: authGate.organizationFolderId,
+      corsHeaders,
     });
   } catch (error) {
     console.error("[EXPORT-TO-GOOGLE-SHEETS] Export error:", error);
-    return createErrorResponse("An unexpected error occurred", 500);
+    return createErrorResponse("An unexpected error occurred", 500, { req });
   }
 });

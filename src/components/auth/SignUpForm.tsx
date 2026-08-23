@@ -450,7 +450,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
           }
         }}
       >
-        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" data-testid="loading-spinner" />}
+        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-label="Creating account" />}
         Create Account & Organization
       </Button>
 

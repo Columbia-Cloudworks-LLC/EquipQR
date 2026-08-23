@@ -57,18 +57,15 @@ Legacy `VITE_QB_OAUTH_REDIRECT_BASE_URL` / `QB_OAUTH_REDIRECT_BASE_URL` override
 
 ### Vault secrets (token refresh scheduler)
 
-The token refresh scheduler requires vault secrets. Run this SQL in each Supabase environment:
+The token refresh scheduler reads secrets from the Supabase Vault. Configure them with the
+project secret sync scripts (`.\dev\sync-supabase-secrets-from-1password.ps1` or your
+environment's equivalent). Do not paste elevated API keys into tickets, chat, or docs.
 
-```sql
-INSERT INTO vault.secrets (name, secret)
-VALUES 
-  ('service_role_key', '<your-service-role-key>'), 
-  ('supabase_url', 'https://<your-project-ref>.supabase.co');
-```
+Required vault entries (names must match what the scheduler Edge Function expects):
 
-| Secret Name | Description | Where to Find |
-|-------------|-------------|---------------|
-| `service_role_key` | Supabase service role key | Dashboard → Settings → API → Project API keys → service_role (secret) |
+| Secret Name | Description | Where operators load it |
+|-------------|-------------|-------------------------|
+| Project elevated API key vault entry | Used only by approved Edge Functions for scheduled refresh | Dashboard → Settings → API (secret key); inject via 1Password / sync scripts |
 | `supabase_url` | Supabase project URL | Dashboard → Settings → API → Project URL |
 
 Configure separately for each environment (preview, production).

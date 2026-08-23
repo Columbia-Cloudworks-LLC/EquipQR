@@ -69,7 +69,7 @@ export const fillSignUpFormFast = (overrides: SignUpFormData = {}) => {
   }
   fireEvent.click(screen.getByLabelText(/I have read and agree/i));
   if (data.verifyCaptcha) {
-    fireEvent.click(screen.getByTestId('hcaptcha-success'));
+    fireEvent.click(screen.getByRole('button', { name: /verify captcha/i }));
   }
 };
 

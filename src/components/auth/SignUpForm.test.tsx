@@ -37,7 +37,7 @@ describe('SignUpForm', () => {
       expect(screen.queryByLabelText(/full name/i)).not.toBeInTheDocument();
       expect(screen.queryByLabelText(/email/i)).not.toBeInTheDocument();
       expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('hcaptcha-mock')).not.toBeInTheDocument();
+      expect(screen.queryByRole('group', { name: /hcaptcha/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /create account & organization/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /retry saving legal acceptance/i })).not.toBeInTheDocument();
     });
@@ -51,7 +51,7 @@ describe('SignUpForm', () => {
       expect(screen.getByLabelText(/organization name/i)).toBeInTheDocument();
       expect(screen.getByLabelText('Password')).toBeInTheDocument();
       expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument();
-      expect(screen.getByTestId('hcaptcha-mock')).toBeInTheDocument();
+      expect(screen.getByRole('group', { name: /hcaptcha/i })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /create account & organization/i })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /sign up with email/i })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /sign up with google/i })).not.toBeInTheDocument();
@@ -157,7 +157,7 @@ describe('SignUpForm', () => {
       await user.type(confirmPasswordInput, 'SecurePass2!');
 
       expect(screen.getByText(/passwords do not match/i)).toBeInTheDocument();
-      expect(screen.getByTestId('password-match-error')).toBeInTheDocument();
+      expect(screen.getByLabelText(/^passwords do not match$/i)).toBeInTheDocument();
     });
 
     it('should show success icon when passwords match', async () => {
@@ -166,7 +166,7 @@ describe('SignUpForm', () => {
       await user.type(confirmPasswordInput, 'SecurePass1!');
 
       expect(screen.queryByText(/passwords do not match/i)).not.toBeInTheDocument();
-      expect(screen.getByTestId('password-match-success')).toBeInTheDocument();
+      expect(screen.getByLabelText(/^passwords match$/i)).toBeInTheDocument();
     });
 
     it('should validate password match when changing password field', async () => {
@@ -183,8 +183,8 @@ describe('SignUpForm', () => {
       await user.type(confirmPasswordInput, 'SecurePass1!');
       await user.clear(confirmPasswordInput);
 
-      expect(screen.queryByTestId('password-match-success')).not.toBeInTheDocument();
-      expect(screen.queryByTestId('password-match-error')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/^passwords match$/i)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/^passwords do not match$/i)).not.toBeInTheDocument();
     });
   });
 
@@ -265,7 +265,7 @@ describe('SignUpForm', () => {
       withRouter(<SignUpForm {...defaultSignUpFormProps} onError={onError} />);
       revealEmailSignup();
 
-      fireEvent.click(screen.getByTestId('hcaptcha-error'));
+      fireEvent.click(screen.getByRole('button', { name: /trigger error/i }));
 
       expect(onError).toHaveBeenCalledWith('CAPTCHA verification failed. Please try again.');
     });
@@ -275,7 +275,7 @@ describe('SignUpForm', () => {
       withRouter(<SignUpForm {...defaultSignUpFormProps} onError={onError} />);
       revealEmailSignup();
 
-      fireEvent.click(screen.getByTestId('hcaptcha-expire'));
+      fireEvent.click(screen.getByRole('button', { name: /trigger expire/i }));
 
       expect(onError).toHaveBeenCalledWith('CAPTCHA expired. Please complete it again.');
     });
@@ -417,14 +417,14 @@ describe('SignUpForm', () => {
       withRouter(<SignUpForm {...defaultSignUpFormProps} isLoading={true} />);
       revealEmailSignup();
 
-      expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
+      expect(screen.getByLabelText(/creating account/i)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /create account & organization/i })).toBeDisabled();
     });
 
     it('should not show loading spinner when isLoading is false', () => {
       withRouter(<SignUpForm {...defaultSignUpFormProps} isLoading={false} />);
 
-      expect(screen.queryByTestId('loading-spinner')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/creating account/i)).not.toBeInTheDocument();
     });
 
     it('should prevent multiple rapid submissions', async () => {

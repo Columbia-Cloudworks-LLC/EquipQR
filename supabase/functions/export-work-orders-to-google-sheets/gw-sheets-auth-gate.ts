@@ -4,7 +4,6 @@ import {
   createErrorResponse,
   verifyOrgAdmin,
 } from "../_shared/supabase-clients.ts";
-import { corsHeaders } from "../_shared/cors.ts";
 import {
   getGoogleWorkspaceAccessToken,
   GoogleWorkspaceTokenError,
@@ -37,6 +36,8 @@ export interface SheetsAuthGateParams {
   supabase: SupabaseClient;
   userId: string;
   organizationId: string;
+  corsHeaders: Record<string, string>;
+  req: Request;
 }
 
 export function hasRequiredSheetsExportScopes(scopes: string | null | undefined): boolean {
@@ -46,11 +47,15 @@ export function hasRequiredSheetsExportScopes(scopes: string | null | undefined)
 export async function runSheetsAuthGate(
   params: SheetsAuthGateParams,
 ): Promise<Response | SheetsAuthGateSuccess> {
-  const { supabase, userId, organizationId } = params;
+  const { supabase, userId, organizationId, corsHeaders, req } = params;
 
   const isAdmin = await verifyOrgAdmin(supabase, userId, organizationId);
   if (!isAdmin) {
-    return createErrorResponse("Forbidden: Only owners and admins can export reports", 403);
+    return createErrorResponse(
+      "Forbidden: Only owners and admins can export reports",
+      403,
+      { req },
+    );
   }
 
   let rateLimitOk: boolean;
@@ -58,7 +63,7 @@ export async function runSheetsAuthGate(
     rateLimitOk = await checkRateLimit(supabase, userId, organizationId);
   } catch (rateLimitError) {
     console.error("Rate limit check error:", rateLimitError);
-    return createErrorResponse("An internal error occurred", 500);
+    return createErrorResponse("An internal error occurred", 500, { req });
   }
   if (!rateLimitOk) {
     return createWorkOrderExportRateLimitResponse(corsHeaders);
@@ -105,7 +110,7 @@ export async function runSheetsAuthGate(
 
   if (destinationError) {
     console.error(`${LOG_PREFIX} Failed to load organization folder:`, destinationError);
-    return createErrorResponse("An internal error occurred", 500);
+    return createErrorResponse("An internal error occurred", 500, { req });
   }
 
   if (!orgDestination?.parent_id) {

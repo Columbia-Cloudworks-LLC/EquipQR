@@ -27,9 +27,3 @@ export function getFallbackCorsHeaders(): Record<string, string> {
     "Access-Control-Max-Age": "86400",
   };
 }
-
-/**
- * Static CORS headers with a production origin (not wildcard).
- * @deprecated Prefer `getCorsHeaders(req)` for origin-validated responses.
- */
-export const corsHeaders = getFallbackCorsHeaders();

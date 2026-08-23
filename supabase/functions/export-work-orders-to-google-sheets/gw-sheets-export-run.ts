@@ -1,5 +1,4 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
-import { corsHeaders } from "../_shared/cors.ts";
 import { moveGoogleDriveFileToParent } from "../_shared/google-docs-api.ts";
 import { GoogleWorkspaceTokenError } from "../_shared/google-workspace-token.ts";
 import { createAdminSupabaseClient } from "../_shared/supabase-clients.ts";
@@ -28,6 +27,7 @@ export interface SheetsExportRunParams {
   filters: WorkOrderExcelFilters;
   accessToken: string;
   organizationFolderId: string;
+  corsHeaders: Record<string, string>;
 }
 
 interface SheetsExportRunSuccess {
@@ -119,6 +119,7 @@ export async function runSheetsExport(
     filters,
     accessToken,
     organizationFolderId,
+    corsHeaders,
   } = params;
 
   const exportLogId = await createExportLog(supabase, userId, organizationId);

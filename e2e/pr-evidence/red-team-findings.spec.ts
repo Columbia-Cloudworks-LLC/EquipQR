@@ -54,14 +54,18 @@ test.describe('Red-team findings user-visible fixes @pr-evidence', () => {
     await expect(page.getByText(/pre-rental inspection/i)).toHaveCount(0);
 
     await evidencePause(page, 800);
-    await evidenceScreenshot(page, '02-metro-viewer-dashboard-team-scoped');
+    await evidenceScreenshot(page, '02-metro-viewer-dashboard-team-scoped', {
+      target: page.getByText(/total equipment/i).first(),
+    });
 
     await gotoDashboardRoute(page, `/work-orders/${seedWorkOrders.assigned.id}`);
     await expect(page.getByRole('heading', { name: /pre-rental inspection/i })).toHaveCount(0);
     await expect(page).toHaveURL(/\/dashboard\/work-orders\/?(\?|$)/, { timeout: 30_000 });
 
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '03-metro-viewer-rental-fleet-wo-forbidden');
+    await evidenceScreenshot(page, '03-metro-viewer-rental-fleet-wo-forbidden', {
+      target: page.getByRole('main'),
+    });
 
     await context.close();
   });
@@ -130,7 +134,9 @@ test.describe('Red-team findings user-visible fixes @pr-evidence', () => {
     await expect(publicPage.getByText(/submission received/i)).toBeVisible({ timeout: 30_000 });
     await expect(publicPage.getByText(/submit again with the same qr code/i)).toHaveCount(0);
     await evidencePause(publicPage, 600);
-    await evidenceScreenshot(publicPage, '05-quick-form-success-no-resubmit-invite');
+    await evidenceScreenshot(publicPage, '05-quick-form-success-no-resubmit-invite', {
+      target: publicPage.getByText(/submission received/i),
+    });
 
     await publicPage.reload();
     await expect(publicPage.getByRole('heading', { name: FORM_NAME })).toBeVisible({
@@ -147,7 +153,11 @@ test.describe('Red-team findings user-visible fixes @pr-evidence', () => {
       timeout: 15_000,
     });
     await evidencePause(publicPage, 600);
-    await evidenceScreenshot(publicPage, '06-quick-form-cooldown-second-submit');
+    await evidenceScreenshot(publicPage, '06-quick-form-cooldown-second-submit', {
+      target: publicPage
+        .getByText(/too many submissions|try again later|please wait before submitting/i)
+        .first(),
+    });
     await publicContext.close();
 
     await gotoDashboard('/quick-forms');
@@ -206,13 +216,17 @@ test.describe('Red-team findings user-visible fixes @pr-evidence', () => {
       expect(await solveHcaptchaIfPresent(publicPage)).toBe('solved');
       await submitPublicCheckin(publicPage);
       await evidencePause(publicPage, 600);
-      await evidenceScreenshot(publicPage, '07-checkin-first-submit-complete');
+      await evidenceScreenshot(publicPage, '07-checkin-first-submit-complete', {
+        target: publicPage.getByText(/check-in complete/i).first(),
+      });
 
       await publicPage.reload();
       await expect(publicPage.getByText(/check-in complete/i)).toBeVisible({ timeout: 30_000 });
       await expect(publicPage.getByRole('button', { name: /submit daily check-in/i })).toHaveCount(0);
       await evidencePause(publicPage, 600);
-      await evidenceScreenshot(publicPage, '08-checkin-reload-already-submitted');
+      await evidenceScreenshot(publicPage, '08-checkin-reload-already-submitted', {
+        target: publicPage.getByText(/check-in complete/i).first(),
+      });
     } finally {
       await publicContext.close();
     }

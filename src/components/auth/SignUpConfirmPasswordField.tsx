@@ -38,9 +38,9 @@ const SignUpConfirmPasswordField: React.FC<SignUpConfirmPasswordFieldProps> = ({
       {passwordMatch !== null && (
         <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
           {passwordMatch ? (
-            <CheckCircle className="h-4 w-4 text-success" data-testid="password-match-success" />
+            <CheckCircle className="h-4 w-4 text-success" aria-label="Passwords match" />
           ) : (
-            <XCircle className="h-4 w-4 text-destructive" data-testid="password-match-error" />
+            <XCircle className="h-4 w-4 text-destructive" aria-label="Passwords do not match" />
           )}
         </div>
       )}

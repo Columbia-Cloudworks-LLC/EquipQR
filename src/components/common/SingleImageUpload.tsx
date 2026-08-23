@@ -317,6 +317,20 @@ function CompactUploadLayout(props: UploadLayoutProps) {
           ) : null}
         </div>
       )}
+      {session.kind === 'pending' && !thumbnailSrc && (
+        <div className="space-y-1.5">
+          <p className="truncate text-xs text-muted-foreground">{session.file.name}</p>
+          <div className="flex items-center gap-2">
+            <SingleImagePreviewActions
+              disabled={disabled}
+              isProcessing={isProcessing}
+              isUploading={isUploading}
+              onUpload={onUpload}
+              onCancel={onCancelPreview}
+            />
+          </div>
+        </div>
+      )}
       {session.kind === 'empty' && <ImageDropZone {...props} compact />}
     </>
   );
@@ -381,11 +395,17 @@ function DefaultUploadLayout(props: UploadLayoutProps) {
         </div>
       )}
 
-      {session.kind === 'pending' && session.src && (
+      {session.kind === 'pending' && (
         <div className="space-y-2">
-          <div className="border rounded-lg p-4 bg-muted/50 flex items-center justify-center min-h-20">
-            <img src={session.src} alt="Preview" className={previewClassName} />
-          </div>
+          {session.src ? (
+            <div className="border rounded-lg p-4 bg-muted/50 flex items-center justify-center min-h-20">
+              <img src={session.src} alt="Preview" className={previewClassName} />
+            </div>
+          ) : (
+            <div className="border rounded-lg p-4 bg-muted/50 flex items-center justify-center min-h-20 text-sm text-muted-foreground">
+              Preparing preview…
+            </div>
+          )}
           <p className="truncate text-xs text-muted-foreground">{session.file.name}</p>
           <div className="flex gap-2">
             <Button
