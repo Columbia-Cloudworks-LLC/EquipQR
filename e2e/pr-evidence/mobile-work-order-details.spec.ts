@@ -54,12 +54,14 @@ test.describe('Mobile work order details UX @pr-evidence', () => {
     await page.getByRole('button', { name: /show work order qr code/i }).click();
     const downloadQr = page.getByRole('button', { name: /^download$/i });
     await expect(downloadQr).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByAltText('Work order QR code')).toBeVisible({ timeout: 15_000 });
     await expect(downloadQr).toBeEnabled({ timeout: 15_000 });
     await expect(page.getByRole('button', { name: /how to use/i })).toBeVisible();
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '02b-work-order-qr-download', { target: downloadQr });
 
     const pngMenuItem = page.getByRole('menuitem', { name: /png/i });
+    await expect(downloadQr).toBeEnabled({ timeout: 15_000 });
     await downloadQr.click();
     await expect(pngMenuItem).toBeVisible({ timeout: 10_000 });
     await evidenceScreenshot(page, '02c-work-order-qr-formats', { target: pngMenuItem });
