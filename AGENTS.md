@@ -177,3 +177,17 @@ When capturing a new secrets or access lesson, update **this file** and, if deta
 - **Equipment location & maps:** Canonical resolver in `effectiveLocation.ts` — effective order is last-known scan GPS → assigned equipment address → legacy `equipment.location` coordinates → team fallback when `team.override_equipment_location` is enabled (no per-equipment `use_team_location` opt-in). Asset maps use a shared source dropdown (Effective / team / equipment / last scan) and `LocationSourceBadge`; Fleet Map aligns source labels. `ClickableAddress` and map pins open Google Maps directions for displayed coordinates or addresses. One-time GPS saves use shared `LiveLocationCaptureDialog` + center-pin `CenterPinMapPicker` (fixed pin, pan map to adjust, pin lifts with ground shadow while dragging). `equipment_location_history` is authoritative for scan movement; assigned-address and live-capture saves log manual history via `logEquipmentLocationChange`.
 - **Audit logs & team views:** Audit log at `/dashboard/organization/audit-log` (owner/admin only, Organization subnav — not main sidebar; dedicated CSV/JSON export via `AuditExplorer`; legacy `/audit-log` redirects). Do not surface audit timelines on operational/historical work-order pages as primary UX. Team details use `teams.preferred_view` (`internal` | `department` | `customer`) with `TeamViewSwitcher` — session override on TeamDetails, persisted team default via `updateTeam`. PM templates list separates EquipQR bundled vs org templates; team-scoped equipment assignment via `PMTemplateEquipmentAssignmentMenu` + `MultiSelectActionMenu`.
 - **Preview evidence capture on `preview.equipqr.app`:** Vercel Deployment Protection intercepts fresh Playwright sessions — mint a share link via Vercel MCP `get_access_to_vercel_url`, open it **first** to seed the bypass cookie, then run app Google OAuth as the Columbia Cloudworks automation account (password + fresh TOTP from Columbia Cloudworks Agents vault via `Load-GoogleBusinessEnv.ps1`; TOTP via `op read '.../one-time password?attribute=otp'`). Skipping this can leave the app signed in as a personal Gmail account tied to a different org where production team/equipment IDs 404. Scripted Playwright with a persistent profile works for `accounts.google.com` and GCP Console UI edits (e.g. Maps browser-key allowlist). **Intuit sign-in blocks automation** at the passkey "Verify it's you" chooser — prefer the maintainer's logged-in **cursor-ide-browser** session when QBO UI is needed; `dev/qbo/Connect-QboBrowserSession.ps1` exists for scripted retries.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues for Columbia-Cloudworks-LLC/EquipQR. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical roles use matching label strings (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout. See `docs/agents/domain.md`.
