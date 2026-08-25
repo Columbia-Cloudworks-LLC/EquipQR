@@ -50,6 +50,18 @@ test.describe('Mobile work order details UX @pr-evidence', () => {
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '02-mobile-action-sheet');
 
+    await page.getByRole('button', { name: /show work order qr code/i }).click();
+    const downloadQr = page.getByRole('button', { name: /^download$/i });
+    await expect(downloadQr).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('button', { name: /how to use/i })).toBeVisible();
+    await evidencePause(page, 600);
+    await evidenceScreenshot(page, '02b-work-order-qr-download', { target: downloadQr });
+
+    await downloadQr.click();
+    await expect(page.getByRole('menuitem', { name: /png/i })).toBeVisible({ timeout: 10_000 });
+    await evidenceScreenshot(page, '02c-work-order-qr-formats');
+
+    await page.keyboard.press('Escape');
     await page.keyboard.press('Escape');
     await expect(page.getByText(/change status/i)).not.toBeVisible({ timeout: 10_000 });
 
