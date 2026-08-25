@@ -59,7 +59,7 @@ test.describe('Mobile work order details UX @pr-evidence', () => {
 
     await downloadQr.click();
     await expect(page.getByRole('menuitem', { name: /png/i })).toBeVisible({ timeout: 10_000 });
-    await evidenceScreenshot(page, '02c-work-order-qr-formats');
+    await evidenceScreenshot(page, '02c-work-order-qr-formats', { target: downloadQr });
 
     await page.keyboard.press('Escape');
     await page.keyboard.press('Escape');
