@@ -1,8 +1,8 @@
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { WorkOrderDetailsMobileContent } from './WorkOrderDetailsMobileContent';
-import type { WorkOrderDetailsMobileContentProps } from './WorkOrderDetailsMobileContent';
+import { WorkOrderDetailsMobileContent } from '@/features/work-orders/components/WorkOrderDetailsMobileContent';
+import type { WorkOrderDetailsMobileContentProps } from '@/features/work-orders/components/WorkOrderDetailsMobileContent';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 
 vi.mock('@/features/work-orders/hooks/useWorkOrderStatusChangeHandlers', () => ({
