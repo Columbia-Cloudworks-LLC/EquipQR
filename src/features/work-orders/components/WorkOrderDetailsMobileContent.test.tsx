@@ -1,8 +1,10 @@
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { WorkOrderDetailsMobileContent } from './WorkOrderDetailsMobileContent';
-import type { WorkOrderDetailsMobileContentProps } from './WorkOrderDetailsMobileContent';
+import {
+  WorkOrderDetailsMobileContent,
+  type WorkOrderDetailsMobileContentProps,
+} from '@/features/work-orders/components/WorkOrderDetailsMobileContent';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 
 vi.mock('@/features/work-orders/hooks/useWorkOrderStatusChangeHandlers', () => ({
@@ -176,5 +178,17 @@ describe('WorkOrderDetailsMobileContent', () => {
     });
 
     expect(screen.queryByRole('heading', { name: /customer contacts/i })).not.toBeInTheDocument();
+  });
+
+  it('does not show workflow CTAs for requestors on submitted work orders', () => {
+    renderMobileContent({
+      workOrder: { ...workOrder, status: 'submitted' },
+      permissionLevels: { isManager: false, isTechnician: false },
+      footerRoleEligible: true,
+      showMobileActionFooter: false,
+    });
+
+    expect(screen.queryByRole('button', { name: /accept work order/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /start work/i })).not.toBeInTheDocument();
   });
 });

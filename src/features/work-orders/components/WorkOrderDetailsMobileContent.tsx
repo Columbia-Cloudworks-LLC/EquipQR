@@ -354,7 +354,9 @@ export function WorkOrderDetailsMobileContent({
           permissions={{
             canAddNotes,
             canUpload,
-            canWork: footerRoleEligible,
+            canWork:
+              footerRoleEligible &&
+              (permissionLevels.isManager || permissionLevels.isTechnician),
           }}
           sync={syncState}
           hideCaptureActions={showMobileActionFooter}

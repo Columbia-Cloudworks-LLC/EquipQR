@@ -47,8 +47,9 @@ test.describe('Mobile work order details UX @pr-evidence', () => {
     await expect(page.getByRole('dialog').or(page.locator('[role="dialog"]'))).toBeVisible({
       timeout: 15_000,
     });
+    const actionSheet = page.getByRole('dialog').or(page.locator('[role="dialog"]'));
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '02-mobile-action-sheet');
+    await evidenceScreenshot(page, '02-mobile-action-sheet', { target: actionSheet });
 
     await page.getByRole('button', { name: /show work order qr code/i }).click();
     const downloadQr = page.getByRole('button', { name: /^download$/i });
@@ -57,9 +58,10 @@ test.describe('Mobile work order details UX @pr-evidence', () => {
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '02b-work-order-qr-download', { target: downloadQr });
 
+    const pngMenuItem = page.getByRole('menuitem', { name: /png/i });
     await downloadQr.click();
-    await expect(page.getByRole('menuitem', { name: /png/i })).toBeVisible({ timeout: 10_000 });
-    await evidenceScreenshot(page, '02c-work-order-qr-formats');
+    await expect(pngMenuItem).toBeVisible({ timeout: 10_000 });
+    await evidenceScreenshot(page, '02c-work-order-qr-formats', { target: pngMenuItem });
 
     await page.keyboard.press('Escape');
     await page.keyboard.press('Escape');
@@ -73,8 +75,9 @@ test.describe('Mobile work order details UX @pr-evidence', () => {
       await expect(page.getByRole('heading', { name: /change status/i })).toBeVisible({
         timeout: 15_000,
       });
+      const statusSheet = page.getByRole('heading', { name: /change status/i });
       await evidencePause(page, 600);
-      await evidenceScreenshot(page, '03-mobile-status-sheet');
+      await evidenceScreenshot(page, '03-mobile-status-sheet', { target: statusSheet });
     }
   });
 

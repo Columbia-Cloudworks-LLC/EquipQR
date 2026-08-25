@@ -171,10 +171,10 @@ const AssetQRCodePanel: React.FC<AssetQRCodePanelProps> = ({
         onOpenChange={setInstructionsOpen}
         className="text-sm text-muted-foreground bg-muted rounded-lg"
       >
-        <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 p-3 text-left font-medium text-foreground rounded-lg transition-colors hover:bg-muted/80 group">
+        <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 p-3 text-left font-medium text-foreground rounded-lg transition-colors hover:bg-muted/80 motion-reduce:transition-none group">
           How to use
           <ChevronRight
-            className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-90"
+            className="h-4 w-4 shrink-0 text-muted-foreground transition-transform motion-reduce:transition-none group-data-[state=open]:rotate-90"
             aria-hidden
           />
         </CollapsibleTrigger>
