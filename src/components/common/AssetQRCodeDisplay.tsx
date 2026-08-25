@@ -16,7 +16,6 @@ export interface AssetQRCodeDisplayProps {
   /** Used when entityName is absent: `${defaultFilenameStem}-qr.{ext}` */
   defaultFilenameStem: string;
   instructionBullets: string[];
-  formatSelectId?: string;
   imageLoading?: 'lazy';
   headerExtra?: React.ReactNode;
   footerExtra?: React.ReactNode;
@@ -38,7 +37,6 @@ const AssetQRCodeDisplay: React.FC<AssetQRCodeDisplayProps> = ({
   qrImageAlt,
   defaultFilenameStem,
   instructionBullets,
-  formatSelectId = 'qr-code-download-format',
   imageLoading,
   headerExtra,
   footerExtra,
@@ -79,7 +77,6 @@ const AssetQRCodeDisplay: React.FC<AssetQRCodeDisplayProps> = ({
             qrImageAlt={qrImageAlt}
             defaultFilenameStem={defaultFilenameStem}
             instructionBullets={instructionBullets}
-            formatSelectId={formatSelectId}
             imageLoading={imageLoading}
             showCloseButton
             onClose={onClose}

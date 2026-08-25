@@ -1,10 +1,20 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, Copy, CheckCircle, ExternalLink } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Download, Copy, CheckCircle, ExternalLink, ChevronRight, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { generateQRDataUrl } from '@/utils/qr';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+
+type QrDownloadFormat = 'png' | 'jpg';
 
 export interface AssetQRCodePanelProps {
   entityId: string;
@@ -13,7 +23,6 @@ export interface AssetQRCodePanelProps {
   qrImageAlt: string;
   defaultFilenameStem: string;
   instructionBullets: string[];
-  formatSelectId?: string;
   imageLoading?: 'lazy';
   showCloseButton?: boolean;
   onClose?: () => void;
@@ -32,7 +41,6 @@ const AssetQRCodePanel: React.FC<AssetQRCodePanelProps> = ({
   qrImageAlt,
   defaultFilenameStem,
   instructionBullets,
-  formatSelectId = 'qr-code-download-format',
   imageLoading,
   showCloseButton = false,
   onClose,
@@ -41,7 +49,7 @@ const AssetQRCodePanel: React.FC<AssetQRCodePanelProps> = ({
 }) => {
   const [qrCodeDataUrl, setQrCodeDataUrl] = React.useState('');
   const [copied, setCopied] = React.useState(false);
-  const [selectedFormat, setSelectedFormat] = React.useState<'png' | 'jpg'>('png');
+  const [instructionsOpen, setInstructionsOpen] = React.useState(false);
   const isMobile = useIsMobile();
 
   const generateQRCode = React.useCallback(async () => {
@@ -62,7 +70,7 @@ const AssetQRCodePanel: React.FC<AssetQRCodePanelProps> = ({
 
   const baseFilename = entityName ? sanitizeFilename(entityName) : defaultFilenameStem;
 
-  const downloadQRCode = async () => {
+  const downloadQRCode = async (format: QrDownloadFormat) => {
     if (!qrCodeDataUrl) return;
 
     try {
@@ -71,17 +79,17 @@ const AssetQRCodePanel: React.FC<AssetQRCodePanelProps> = ({
         width: 256,
         margin: 2,
         color: { dark: '#000000', light: '#FFFFFF' },
-        type: selectedFormat === 'jpg' ? 'image/jpeg' : 'image/png',
+        type: format === 'jpg' ? 'image/jpeg' : 'image/png',
       });
 
       const link = document.createElement('a');
-      link.download = `${baseFilename}-qr.${selectedFormat}`;
+      link.download = `${baseFilename}-qr.${format}`;
       link.href = dataUrl;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
-      toast.success(`QR code downloaded as ${selectedFormat.toUpperCase()}`);
+      toast.success(`QR code downloaded as ${format.toUpperCase()}`);
     } catch (error) {
       console.error('Error downloading QR code:', error);
       toast.error('Failed to download QR code');
@@ -158,43 +166,67 @@ const AssetQRCodePanel: React.FC<AssetQRCodePanelProps> = ({
         </div>
       </div>
 
-      <div className="space-y-3">
-        <div className="space-y-2">
-          <label htmlFor={formatSelectId} className="text-sm font-medium text-foreground">
-            Download Format:
-          </label>
-          <Select value={selectedFormat} onValueChange={(value: 'png' | 'jpg') => setSelectedFormat(value)}>
-            <SelectTrigger id={formatSelectId} className={isMobile ? 'w-full min-h-11' : 'w-full'}>
-              <SelectValue placeholder="Select format" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="png">PNG</SelectItem>
-              <SelectItem value="jpg">JPG</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      <Collapsible
+        open={instructionsOpen}
+        onOpenChange={setInstructionsOpen}
+        className="text-sm text-muted-foreground bg-muted rounded-lg"
+      >
+        <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 p-3 text-left font-medium text-foreground rounded-lg transition-colors hover:bg-muted/80 group">
+          How to use
+          <ChevronRight
+            className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-90"
+            aria-hidden
+          />
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <ul className="list-disc list-inside space-y-1 px-3 pb-3 text-xs">
+            {instructionBullets.map((bullet) => (
+              <li key={bullet}>{bullet}</li>
+            ))}
+          </ul>
+        </CollapsibleContent>
+      </Collapsible>
 
-        <div className="text-xs text-muted-foreground">
-          <span className="font-medium">Filename:</span> {`${baseFilename}-qr.${selectedFormat}`}
-        </div>
-      </div>
-
-      <div className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
-        <p className="font-medium mb-1 text-foreground">How to use:</p>
-        <ul className="list-disc list-inside space-y-1 text-xs">
-          {instructionBullets.map((bullet) => (
-            <li key={bullet}>{bullet}</li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="flex gap-2 [&>button]:min-h-11">
-        <Button onClick={downloadQRCode} disabled={!qrCodeDataUrl} className="flex-1">
-          <Download className="h-4 w-4" />
-          Download {selectedFormat.toUpperCase()}
-        </Button>
+      <div className="flex gap-2">
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger asChild>
+            <Button disabled={!qrCodeDataUrl} className="flex-1">
+              <Download className="h-4 w-4" />
+              Download
+              <ChevronDown className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+              Download format
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={() => {
+                void downloadQRCode('png');
+              }}
+              className="cursor-pointer"
+            >
+              <div className="flex flex-col">
+                <span>PNG</span>
+                <span className="text-[10px] text-muted-foreground">{`${baseFilename}-qr.png`}</span>
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => {
+                void downloadQRCode('jpg');
+              }}
+              className="cursor-pointer"
+            >
+              <div className="flex flex-col">
+                <span>JPG</span>
+                <span className="text-[10px] text-muted-foreground">{`${baseFilename}-qr.jpg`}</span>
+              </div>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         {showCloseButton && onClose && (
-          <Button variant="outline" onClick={onClose} className="flex-1">
+          <Button variant="outline" onClick={onClose} className="flex-1 min-h-11">
             Close
           </Button>
         )}

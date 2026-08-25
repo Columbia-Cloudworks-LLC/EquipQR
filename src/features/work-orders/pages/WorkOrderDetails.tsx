@@ -455,6 +455,8 @@ const WorkOrderDetails = () => {
               canManagePM={canManagePM}
               onManagePM={() => setShowPMManagementDialog(true)}
               onPMUpdate={handlePMUpdate}
+              baseCanAddNotes={baseCanAddNotes}
+              onStatusUpdate={handleStatusUpdate}
             />
           ) : (
             <WorkOrderDetailsDesktopContent

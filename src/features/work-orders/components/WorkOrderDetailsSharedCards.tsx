@@ -2,8 +2,9 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Clipboard, History } from 'lucide-react';
+import { Clipboard, History, Users } from 'lucide-react';
 import { ORGANIZATION_AUDIT_LOG_PATH } from '@/features/organization/constants/routes';
+import CustomerContactActions from '@/features/teams/components/CustomerContactActions';
 
 export function WorkOrderPMChecklistLoadingCard() {
   return (
@@ -24,6 +25,37 @@ export function WorkOrderPMChecklistLoadingCard() {
 type WorkOrderAuditLogLinkProps = {
   workOrderId: string;
 };
+
+type WorkOrderCustomerContactsCardProps = {
+  customerId?: string | null;
+  canView: boolean;
+};
+
+export function WorkOrderCustomerContactsCard({
+  customerId,
+  canView,
+}: WorkOrderCustomerContactsCardProps) {
+  if (!canView || !customerId) {
+    return null;
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Users className="h-4 w-4" />
+          Customer Contacts
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <CustomerContactActions
+          customerId={customerId}
+          emptyLabel="No QuickBooks contacts synced yet."
+        />
+      </CardContent>
+    </Card>
+  );
+}
 
 /**
  * Audit data is kept off operational pages (#1122). Owners/admins get a deep

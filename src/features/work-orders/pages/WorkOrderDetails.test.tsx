@@ -287,7 +287,7 @@ describe('WorkOrderDetails', () => {
     });
   });
 
-  it('shows mobile action footer with onAddNote for submitted work orders created by current user (suppresses Next action)', async () => {
+  it('shows mobile action footer with onAddNote for submitted work orders created by current user and keeps Next action', async () => {
     vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue({
       workOrder: {
         id: 'wo-1',
@@ -348,7 +348,7 @@ describe('WorkOrderDetails', () => {
       expect(mockMobileWorkOrderActionFooterProps).toHaveBeenCalled();
     });
 
-    expect(screen.queryByText('Next action')).not.toBeInTheDocument();
+    expect(screen.getByText('Next action')).toBeInTheDocument();
     expect(screen.getByTestId('mobile-work-order-action-footer-marker')).toBeInTheDocument();
 
     const footerCalls = mockMobileWorkOrderActionFooterProps.mock.calls;
@@ -403,10 +403,11 @@ describe('WorkOrderDetails', () => {
 
     render(<WorkOrderDetails />);
 
-    expect(screen.queryByText('Next action')).not.toBeInTheDocument();
+    expect(screen.getByText('Next action')).toBeInTheDocument();
 
     const pageText = document.body.textContent ?? '';
-    expect(pageText.indexOf('Compact summary')).toBeLessThan(pageText.indexOf('Job card'));
+    expect(pageText.indexOf('Compact summary')).toBeLessThan(pageText.indexOf('Next action'));
+    expect(pageText.indexOf('Next action')).toBeLessThan(pageText.indexOf('Job card'));
     expect(pageText.indexOf('Job card')).toBeLessThan(pageText.indexOf('PM checklist'));
     expect(pageText.indexOf('Images section')).toBeLessThan(pageText.indexOf('Notes section'));
     expect(pageText.indexOf('Notes section')).toBeLessThan(pageText.indexOf('Costs section'));

@@ -48,7 +48,6 @@ export const QRCodeOnboardingStep: React.FC<QRCodeOnboardingStepProps> = ({
         qrImageAlt={`QR code for ${equipmentName}`}
         defaultFilenameStem={equipmentName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}
         instructionBullets={ONBOARDING_QR_INSTRUCTIONS}
-        formatSelectId="onboarding-qr-format"
       />
 
       <div className="flex justify-end">

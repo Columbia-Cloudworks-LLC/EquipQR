@@ -29,11 +29,16 @@ test.describe('Mobile work order details UX @pr-evidence', () => {
       page.getByRole('button', { name: /status: in progress\. change status/i }),
     ).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText(/^high$/i).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: /^note$/i }).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: /^complete$/i }).first()).toBeVisible();
+
+    const nextStep = page.getByRole('heading', { name: /^next step$/i });
+    await expect(nextStep).toBeVisible({ timeout: 30_000 });
+    await expect(
+      page.getByRole('button', { name: /continue checklist|complete work order|start work|accept work order|resume work/i }),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: /add note/i })).toHaveCount(0);
 
     await evidencePause(page, 800);
-    await evidenceScreenshot(page, '01-mobile-details-overview');
+    await evidenceScreenshot(page, '01-mobile-details-overview', { target: nextStep });
 
     const actionButton = page.getByRole('button', { name: /open actions and settings|export/i }).first();
     await expect(actionButton).toBeVisible();
@@ -59,5 +64,23 @@ test.describe('Mobile work order details UX @pr-evidence', () => {
       await evidencePause(page, 600);
       await evidenceScreenshot(page, '03-mobile-status-sheet');
     }
+  });
+
+  test('shows revert on a locked completed work order', async ({
+    gotoDashboard,
+    assertHealthyShell,
+    page,
+  }) => {
+    await gotoDashboard(`/dashboard/work-orders/${seedWorkOrders.completed.id}`);
+    await assertHealthyShell();
+
+    await expect(
+      page.getByRole('heading', { name: new RegExp(seedWorkOrders.completed.title, 'i') }).first(),
+    ).toBeVisible({ timeout: 60_000 });
+
+    const revert = page.getByRole('button', { name: /revert to accepted/i });
+    await expect(revert).toBeVisible({ timeout: 30_000 });
+    await evidencePause(page, 600);
+    await evidenceScreenshot(page, '04-mobile-locked-revert', { target: revert });
   });
 });

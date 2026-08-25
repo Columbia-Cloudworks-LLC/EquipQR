@@ -21,6 +21,7 @@ import WorkOrderCostsSection from '@/features/work-orders/components/WorkOrderCo
 import { WorkOrderDetailsPMInfo } from '@/features/work-orders/components/WorkOrderDetailsPMInfo';
 import {
   WorkOrderAuditLogLink,
+  WorkOrderCustomerContactsCard,
   WorkOrderPMChecklistLoadingCard,
 } from '@/features/work-orders/components/WorkOrderDetailsSharedCards';
 import { WorkOrderDetailsMobile } from '@/features/work-orders/components/WorkOrderDetailsMobile';
@@ -48,6 +49,8 @@ import type {
   TeamSummary,
 } from '@/features/work-orders/utils/workOrderDetailsViewModel';
 import { WorkOrderPMManagementActions } from '@/features/work-orders/components/WorkOrderPMManagementActions';
+import { WorkOrderDetailsStatusLockWarning } from '@/features/work-orders/components/WorkOrderDetailsStatusLockWarning';
+import type { WorkOrderLike } from '@/features/work-orders/utils/workOrderTypeConversion';
 
 type StaggerProps = (index: number) => {
   className?: string;
@@ -111,6 +114,8 @@ export interface WorkOrderDetailsMobileContentProps {
   canManagePM?: boolean;
   onManagePM?: () => void;
   onPMUpdate?: () => void;
+  baseCanAddNotes?: boolean;
+  onStatusUpdate?: (newStatus: WorkOrderLike['status']) => void;
 }
 
 export function WorkOrderDetailsMobileContent({
@@ -160,6 +165,8 @@ export function WorkOrderDetailsMobileContent({
   canManagePM = false,
   onManagePM,
   onPMUpdate,
+  baseCanAddNotes = false,
+  onStatusUpdate,
 }: WorkOrderDetailsMobileContentProps) {
   const [showStatusSheet, setShowStatusSheet] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -332,6 +339,50 @@ export function WorkOrderDetailsMobileContent({
       </AlertDialog>
 
       <div {...stagger(0)}>
+        <MobileWorkOrderFieldNextAction
+          workOrder={{
+            id: workOrder.id,
+            status: workOrder.status,
+            has_pm: workOrder.has_pm ?? false,
+            updated_at: workOrder.updated_at,
+          }}
+          pm={{
+            status: pmData?.status,
+            progress: pmChecklist.progress,
+            total: pmChecklist.total,
+          }}
+          permissions={{
+            canAddNotes,
+            canUpload,
+            canWork: footerRoleEligible,
+          }}
+          sync={syncState}
+          hideCaptureActions={showMobileActionFooter}
+          onAcceptWorkOrder={onAcceptWorkOrder}
+          onStartWork={onStartWork}
+          onResumeWork={onResumeWork}
+          onContinueChecklist={onContinueChecklist}
+          onAddNote={onAddNote}
+          onAddPhoto={onAddPhoto}
+          onComplete={onComplete}
+          onRetrySync={onRetrySync}
+        />
+      </div>
+
+      <WorkOrderDetailsStatusLockWarning
+        workOrder={workOrder}
+        isWorkOrderLocked={isWorkOrderLocked}
+        baseCanAddNotes={baseCanAddNotes}
+        isAdmin={permissionLevels.isManager}
+        onStatusUpdate={onStatusUpdate}
+      />
+
+      <WorkOrderCustomerContactsCard
+        customerId={equipment?.customer_id}
+        canView={permissionLevels.isManager || permissionLevels.isTechnician}
+      />
+
+      <div {...stagger(1)}>
         <WorkOrderDetailsMobile
           workOrder={{
             ...workOrder,
@@ -356,38 +407,6 @@ export function WorkOrderDetailsMobileContent({
           equipmentLocationEdit={equipmentLocationEdit}
         />
       </div>
-
-      {!showMobileActionFooter ? (
-        <div {...stagger(1)}>
-          <MobileWorkOrderFieldNextAction
-            workOrder={{
-              id: workOrder.id,
-              status: workOrder.status,
-              has_pm: workOrder.has_pm ?? false,
-              updated_at: workOrder.updated_at,
-            }}
-            pm={{
-              status: pmData?.status,
-              progress: pmChecklist.progress,
-              total: pmChecklist.total,
-            }}
-            permissions={{
-              canAddNotes,
-              canUpload,
-              canWork: footerRoleEligible,
-            }}
-            sync={syncState}
-            onAcceptWorkOrder={onAcceptWorkOrder}
-            onStartWork={onStartWork}
-            onResumeWork={onResumeWork}
-            onContinueChecklist={onContinueChecklist}
-            onAddNote={onAddNote}
-            onAddPhoto={onAddPhoto}
-            onComplete={onComplete}
-            onRetrySync={onRetrySync}
-          />
-        </div>
-      ) : null}
 
       <WorkOrderPMManagementActions
         canManage={canManagePM}
