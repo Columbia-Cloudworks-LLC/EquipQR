@@ -84,6 +84,24 @@ describe('MobileWorkOrderFieldNextAction', () => {
     expect(screen.getByRole('button', { name: /resume work/i })).toBeInTheDocument();
   });
 
+  it('field mode hides capture actions and keeps the next job CTA', () => {
+    renderNextAction({
+      workOrder: { id: '1', status: 'accepted' },
+      hideCaptureActions: true,
+    });
+    expect(screen.getByRole('button', { name: /^start work$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /add note/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^photo$/i })).not.toBeInTheDocument();
+  });
+
+  it('keeps capture actions when the FAB is hidden', () => {
+    renderNextAction({
+      workOrder: { id: '1', status: 'accepted' },
+    });
+    expect(screen.getByRole('button', { name: /add note/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^photo$/i })).toBeInTheDocument();
+  });
+
   it('failed queue shows retry when onRetrySync provided', async () => {
     const onRetrySync = vi.fn();
     render(

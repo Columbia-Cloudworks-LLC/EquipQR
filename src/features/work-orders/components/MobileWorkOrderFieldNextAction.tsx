@@ -45,6 +45,7 @@ export interface MobileWorkOrderFieldNextActionProps {
   onAddPhoto: () => void;
   onComplete: () => void;
   onRetrySync?: () => void;
+  hideCaptureActions?: boolean;
 }
 
 function syncBannerCopy(sync: MobileWorkOrderFieldNextActionProps['sync']): {
@@ -79,12 +80,13 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
   onAddPhoto,
   onComplete,
   onRetrySync,
+  hideCaptureActions = false,
 }) => {
   const syncBanner = syncBannerCopy(sync);
   const pmIncomplete =
     !!workOrder.has_pm && pm.status !== 'completed' && (pm.total > 0 ? pm.progress < pm.total : true);
 
-  const noteAndPhotoRow = (
+  const noteAndPhotoRow = hideCaptureActions ? null : (
     <div className="flex flex-wrap gap-2">
       {permissions.canAddNotes ? (
         <Button type="button" variant="outline" className="min-h-11 flex-1" onClick={onAddNote}>
@@ -102,7 +104,7 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
   );
 
   const noteOnlyRow =
-    permissions.canAddNotes ? (
+    !hideCaptureActions && permissions.canAddNotes ? (
       <Button type="button" variant="outline" className="min-h-11 w-full" onClick={onAddNote}>
         <MessageSquare className="mr-2 h-4 w-4 shrink-0" aria-hidden />
         Add note
@@ -216,7 +218,8 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
           </>
         ) : null}
 
-        {!permissions.canWork &&
+        {!hideCaptureActions &&
+        !permissions.canWork &&
         workOrder.status !== 'completed' &&
         workOrder.status !== 'cancelled' &&
         (permissions.canAddNotes || permissions.canUpload) ? (

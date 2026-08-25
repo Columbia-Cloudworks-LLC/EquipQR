@@ -188,7 +188,6 @@ export function QuickFormQrDialog({
         qrImageAlt={`QR code for ${form?.name ?? 'quick form'}`}
         defaultFilenameStem={form?.name?.replace(/\s+/g, '-') ?? 'quick-form'}
         instructionBullets={QUICK_FORM_QR_INSTRUCTIONS}
-        formatSelectId={`quick-form-qr-download-format-${form?.id ?? 'new'}`}
         qrImageTestId="quick-form-qr-image"
         urlTestId="quick-form-public-url"
         preventClose={dismissGuardActive}
