@@ -25,6 +25,17 @@ describe('LegalFooter', () => {
     );
   });
 
+  it('links the visible app version to the public releases page', () => {
+    vi.mocked(useSimpleOrganizationSafe).mockReturnValue(null);
+
+    render(<LegalFooter />);
+
+    expect(screen.getByRole('link', { name: /view release notes for equipqr version/i })).toHaveAttribute(
+      'href',
+      '/releases',
+    );
+  });
+
   it('includes DSR Cockpit in the Legal menu for organization admins', async () => {
     const user = userEvent.setup();
     vi.mocked(useSimpleOrganizationSafe).mockReturnValue(
@@ -53,6 +64,7 @@ describe('LegalFooter', () => {
       'href',
       '/right-to-repair',
     );
+    expect(screen.getByRole('menuitem', { name: 'Releases' })).toHaveAttribute('href', '/releases');
     expect(screen.queryByRole('menuitem', { name: /dsr cockpit/i })).not.toBeInTheDocument();
   });
 });

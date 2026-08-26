@@ -15,6 +15,7 @@ const linkClassName =
   'whitespace-nowrap text-muted-foreground hover:text-foreground transition-colors no-underline hover:underline';
 
 const legalLinks = [
+  { to: '/releases', label: 'Releases' },
   { to: '/terms-of-service', label: 'Terms of Service' },
   { to: '/security', label: 'Security' },
   { to: '/right-to-repair', label: 'Right to Repair' },
@@ -33,9 +34,14 @@ export default function LegalFooter() {
       <div className="container mx-auto px-4 py-2">
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs leading-tight text-muted-foreground">
           <p className="inline-flex min-w-0 flex-wrap items-center gap-x-1">
-            <span className="whitespace-nowrap">
-              © {currentYear} EquipQR™ v{APP_VERSION}
-            </span>
+            <span className="whitespace-nowrap">© {currentYear} EquipQR™</span>
+            <Link
+              to="/releases"
+              className={`${linkClassName} font-medium`}
+              aria-label={`View release notes for EquipQR version ${APP_VERSION}`}
+            >
+              v{APP_VERSION}
+            </Link>
             <span aria-hidden="true" className="text-muted-foreground/40">
               ·
             </span>

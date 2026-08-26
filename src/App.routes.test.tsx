@@ -69,6 +69,11 @@ describe('App', () => {
     expect(screen.getByText('Right To Repair')).toBeInTheDocument();
   });
 
+  it('renders releases page for /releases path', () => {
+    renderApp(['/releases']);
+    expect(screen.getByText('Releases')).toBeInTheDocument();
+  });
+
   it('redirects equipment to equipment list', () => {
     renderApp(['/equipment/test-equipment']);
     expect(screen.getByText('Navigating to /dashboard/equipment/test-equipment')).toBeInTheDocument();
