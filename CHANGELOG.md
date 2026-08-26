@@ -16,6 +16,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 - **Work order next step stays on the phone** — Field technicians see the next job action on the page without opening the quick-actions menu. Managers can revert a locked work order and reach customer contacts on a phone.
 - **QR download menu** — Equipment, work order, and Quick Form QR dialogs use a Download menu for PNG or JPG. How to use starts collapsed.
 
+### Fixed
+
+- **Production promote verification follows the serving build** — Release Readiness now verifies the production deployment created by `vercel promote`, so successful promotes and same-SHA reruns no longer stop before Edge Function deploy.
+
 ## [3.29.0] - 2026-08-23
 
 ### Added
