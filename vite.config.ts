@@ -141,7 +141,8 @@ export default defineConfig(({ mode }) => ({
   ].filter(Boolean),
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@/dev": path.resolve(__dirname, "./dev"),
+        "@": path.resolve(__dirname, "./src"),
     },
   },
   build: {

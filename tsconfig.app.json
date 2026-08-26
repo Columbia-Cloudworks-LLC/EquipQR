@@ -27,7 +27,8 @@
 
     "paths": {
       "@/*": ["./src/*"],
-      "@vitest-harness/*": ["./vitest/*"]
+      "@/dev/*": ["./dev/*"],
+        "@vitest-harness/*": ["./vitest/*"]
     }
   },
   "include": ["src", "vitest"]

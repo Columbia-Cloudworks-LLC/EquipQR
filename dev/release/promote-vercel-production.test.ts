@@ -9,7 +9,7 @@ import {
 const CURRENT_SHA = '74caa4bab501458e80117b7eef0a91ed4f79552e';
 const PREVIOUS_SHA = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
-function makeDeployment(overrides: Record<string, unknown> = {}) {
+function makeDeployment(overrides: Record<string, unknown> = {}): DeploymentFixture {
   const metaOverrides =
     overrides.meta && typeof overrides.meta === 'object' ? (overrides.meta as Record<string, unknown>) : {};
 
@@ -146,6 +146,11 @@ describe('verifyProductionDeployment', () => {
     expect(requestUrl.pathname).toBe('/v7/deployments');
     expect(requestUrl.searchParams.get('target')).toBe('production');
     expect(requestUrl.searchParams.get('projectId')).toBe('prj_123');
+    expect(requestUrl.searchParams.get('teamId')).toBe('team_123');
+    expect(requestUrl.searchParams.get('branch')).toBeNull();
+  });
+});
+arams.get('projectId')).toBe('prj_123');
     expect(requestUrl.searchParams.get('teamId')).toBe('team_123');
     expect(requestUrl.searchParams.get('branch')).toBeNull();
   });
