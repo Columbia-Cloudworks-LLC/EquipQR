@@ -4,7 +4,7 @@ import {
   evaluateProductionDeployment,
   pickProductionDeployment,
   verifyProductionDeployment,
-} from './promote-vercel-production.mjs';
+} from '@/dev/release/promote-vercel-production.mjs';
 
 const CURRENT_SHA = '74caa4bab501458e80117b7eef0a91ed4f79552e';
 const PREVIOUS_SHA = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';

@@ -164,9 +164,10 @@ export default defineConfig({
     ],
   },
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@vitest-harness': path.resolve(__dirname, './vitest'),
-    },
+    alias: [
+      { find: '@/dev', replacement: path.resolve(__dirname, './dev') },
+      { find: '@vitest-harness', replacement: path.resolve(__dirname, './vitest') },
+      { find: '@', replacement: path.resolve(__dirname, './src') },
+    ],
   },
 });
