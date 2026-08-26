@@ -136,7 +136,7 @@ describe('Releases', () => {
     expect(screen.getByText('Added note 3.0.12')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Show 2 older releases' })).toBeInTheDocument();
     expect(screen.queryByText('Changed note 3.0.1')).not.toBeInTheDocument();
-    expect(screen.getByTestId('legal-footer')).toHaveTextContent('Legal Footer Static');
+    expect(screen.getByText('Legal Footer Static')).toBeInTheDocument();
   });
 
   it('shows all cards open and no reveal control when 10 or fewer releases exist', async () => {
