@@ -9,7 +9,19 @@ import {
 const CURRENT_SHA = '74caa4bab501458e80117b7eef0a91ed4f79552e';
 const PREVIOUS_SHA = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
-function makeDeployment(overrides: Record<string, unknown> = {}) {
+type DeploymentFixture = Record<string, unknown> & {
+  uid: string;
+  url: string;
+  createdAt: number;
+  target: string | null;
+  readyState: string;
+  meta: Record<string, unknown> & {
+    githubCommitSha: string;
+    githubCommitRef: string;
+  };
+};
+
+function makeDeployment(overrides: Record<string, unknown> = {}): DeploymentFixture {
   const metaOverrides =
     overrides.meta && typeof overrides.meta === 'object' ? (overrides.meta as Record<string, unknown>) : {};
 
