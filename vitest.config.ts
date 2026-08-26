@@ -165,6 +165,7 @@ export default defineConfig({
   },
   resolve: {
     alias: [
+      // Keep the more specific release-tool alias ahead of the general @ -> src mapping.
       { find: '@/dev', replacement: path.resolve(__dirname, './dev') },
       { find: '@vitest-harness', replacement: path.resolve(__dirname, './vitest') },
       { find: '@', replacement: path.resolve(__dirname, './src') },

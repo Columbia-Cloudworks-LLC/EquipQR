@@ -141,6 +141,7 @@ export default defineConfig(({ mode }) => ({
   ].filter(Boolean),
   resolve: {
     alias: [
+      // Keep the more specific release-tool alias ahead of the general @ -> src mapping.
       { find: '@/dev', replacement: path.resolve(__dirname, './dev') },
       { find: '@', replacement: path.resolve(__dirname, './src') },
     ],
