@@ -6,6 +6,7 @@ import { PageBackButton } from '@/components/layout/PageBackButton';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
+import EmptyState from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion';
@@ -16,7 +17,7 @@ import {
   releaseMatchesPublicReleaseFilter,
   sectionMatchesPublicReleaseFilter,
 } from '@/lib/publicReleases';
-import type { PublicRelease, PublicReleaseFilter } from '@/lib/publicReleaseTypes';
+import type { PublicRelease, PublicReleaseFilter, PublicReleaseSection } from '@/lib/publicReleaseTypes';
 
 const FILTER_ORDER: readonly PublicReleaseFilter[] = ['all', 'features', 'fixes', 'security'];
 const MAX_HASH_SCROLL_ATTEMPTS = 60;
@@ -53,7 +54,7 @@ function getVisibleSections(release: PublicRelease, filter: PublicReleaseFilter)
   return release.sections.filter((section) => sectionMatchesPublicReleaseFilter(section.id, filter));
 }
 
-export default function Releases(): JSX.Element {
+export function Releases(): JSX.Element {
   const location = useLocation();
   const prefersReducedMotion = usePrefersReducedMotion();
   const prefersReducedMotionRef = useRef(prefersReducedMotion);
@@ -141,7 +142,6 @@ export default function Releases(): JSX.Element {
       ),
     [selectedFilter, visibleBaseReleases],
   );
-  const isEmptyFilteredState = selectedFilter !== 'all' && visibleReleases.length === 0;
 
   return (
     <>
@@ -226,7 +226,7 @@ export default function Releases(): JSX.Element {
                   {selectedFilter === 'all' ? '' : ` with ${PUBLIC_RELEASE_FILTER_LABELS[selectedFilter].toLowerCase()} notes`}
                   .
                 </p>
-                {olderReleaseCount > 0 && !isEmptyFilteredState ? (
+                {olderReleaseCount > 0 ? (
                   <Button
                     type="button"
                     variant="outline"
@@ -242,21 +242,8 @@ export default function Releases(): JSX.Element {
 
               {visibleReleases.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-border/70 bg-card/40 px-5 py-6 text-sm text-muted-foreground">
-                  {selectedFilter === 'all' ? (
-                    'No release notes are visible in the current release set.'
-                  ) : (
-                    <div className="flex flex-col items-start gap-3">
-                      <p>{`No ${PUBLIC_RELEASE_FILTER_LABELS[selectedFilter]} notes are visible in the current release set.`}</p>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedFilter('all')}
-                      >
-                        All
-                      </Button>
-                    </div>
-                  )}
+                  No {PUBLIC_RELEASE_FILTER_LABELS[selectedFilter].toLowerCase()} notes are visible in the
+                  current release set.
                 </div>
               ) : (
                 <Accordion
@@ -353,7 +340,12 @@ export default function Releases(): JSX.Element {
             </div>
           </section>
         </main>
-        <LegalFooter contextAware={false} />
+        <LegalFooter />
+      </div>
+    </>
+  );
+}
+alFooter />
       </div>
     </>
   );
