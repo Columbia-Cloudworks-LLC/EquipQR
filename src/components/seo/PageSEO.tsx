@@ -1,4 +1,5 @@
 import { useEffect, type FC } from 'react';
+import { resolveDocumentTitle } from '@/lib/resolveDocumentTitle';
 
 interface PageSEOIndexedProps {
   title: string;
