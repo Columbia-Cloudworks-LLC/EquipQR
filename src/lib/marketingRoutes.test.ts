@@ -16,7 +16,7 @@ function requireMarketingRoute(path: string): MarketingRoute {
 }
 
 describe('MARKETING_ROUTES', () => {
-  it('lists exactly 17 indexable marketing URLs', () => {
+  it('lists exactly 18 indexable marketing URLs', () => {
     expect(MARKETING_ROUTES.length).toBe(EXPECTED_MARKETING_ROUTE_COUNT);
   });
 
@@ -42,5 +42,10 @@ describe('MARKETING_ROUTES', () => {
 
     expect(resolveFullDocumentTitle(landing)).toBe(resolveFullDocumentTitle(home));
     expect(resolveFullDocumentTitle(landing)).not.toMatch(/\| EquipQR \| EquipQR$/);
+  });
+
+  it('keeps explicitly branded public page titles unchanged', () => {
+    const releases = requireMarketingRoute('/releases');
+    expect(resolveFullDocumentTitle(releases)).toBe('Releases · EquipQR');
   });
 });

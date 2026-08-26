@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import { ExternalLink } from '@/components/ui/external-link';
@@ -15,6 +16,7 @@ const linkClassName =
   'whitespace-nowrap text-muted-foreground hover:text-foreground transition-colors no-underline hover:underline';
 
 const legalLinks = [
+  { to: '/releases', label: 'Releases' },
   { to: '/terms-of-service', label: 'Terms of Service' },
   { to: '/security', label: 'Security' },
   { to: '/right-to-repair', label: 'Right to Repair' },
@@ -22,20 +24,30 @@ const legalLinks = [
   { to: '/do-not-sell-or-share', label: 'Do Not Sell or Share' },
 ] as const;
 
-export default function LegalFooter() {
+type LegalFooterProps = {
+  contextAware?: boolean;
+};
+
+type LegalFooterViewProps = {
+  canManageDsr: boolean;
+};
+
+function LegalFooterView({ canManageDsr }: LegalFooterViewProps): JSX.Element {
   const currentYear = new Date().getFullYear();
-  const organization = useSimpleOrganizationSafe();
-  const role = organization?.currentOrganization?.userRole;
-  const canManageDsr = role === 'owner' || role === 'admin';
 
   return (
     <footer className="hidden md:block border-t border-border bg-background/50 backdrop-blur-sm mt-auto">
       <div className="container mx-auto px-4 py-2">
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs leading-tight text-muted-foreground">
           <p className="inline-flex min-w-0 flex-wrap items-center gap-x-1">
-            <span className="whitespace-nowrap">
-              © {currentYear} EquipQR™ v{APP_VERSION}
-            </span>
+            <span className="whitespace-nowrap">© {currentYear} EquipQR™</span>
+            <Link
+              to="/releases"
+              className={`${linkClassName} font-medium`}
+              aria-label={`View release notes for EquipQR version ${APP_VERSION}`}
+            >
+              v{APP_VERSION}
+            </Link>
             <span aria-hidden="true" className="text-muted-foreground/40">
               ·
             </span>
@@ -101,4 +113,20 @@ export default function LegalFooter() {
       </div>
     </footer>
   );
+}
+
+function ContextAwareLegalFooter(): JSX.Element {
+  const organization = useSimpleOrganizationSafe();
+  const role = organization?.currentOrganization?.userRole;
+  const canManageDsr = role === 'owner' || role === 'admin';
+
+  return <LegalFooterView canManageDsr={canManageDsr} />;
+}
+
+export default function LegalFooter({ contextAware = true }: LegalFooterProps): JSX.Element {
+  if (!contextAware) {
+    return <LegalFooterView canManageDsr={false} />;
+  }
+
+  return <ContextAwareLegalFooter />;
 }

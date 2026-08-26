@@ -18,6 +18,7 @@ describe('buildSitemapXml', () => {
     expect(sitemap).toContain('<loc>https://equipqr.app/features/work-order-management</loc>');
     expect(sitemap).toContain('<loc>https://equipqr.app/features/quickbooks</loc>');
     expect(sitemap).toContain('<loc>https://equipqr.app/features/qr-code-integration</loc>');
+    expect(sitemap).toContain('<loc>https://equipqr.app/releases</loc>');
     expect(sitemap).toContain('<loc>https://equipqr.app/right-to-repair</loc>');
   });
 

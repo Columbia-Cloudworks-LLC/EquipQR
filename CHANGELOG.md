@@ -11,6 +11,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Added
+
+- **Public releases page (#1460)** — The Legal footer version link now opens a public `/releases` page with build-time release notes from EquipQR’s changelog.
+
 ### Changed
 
 - **Work order next step stays on the phone** — Field technicians see the next job action on the page without opening the quick-actions menu. Managers can revert a locked work order and reach customer contacts on a phone.

@@ -1,4 +1,5 @@
 import { useEffect, type FC } from 'react';
+import { resolveDocumentTitle } from '@/lib/resolveDocumentTitle';
 
 interface PageSEOIndexedProps {
   title: string;
@@ -91,7 +92,7 @@ export const PageSEO: FC<PageSEOProps> = ({
   noindex = false,
 }) => {
   const canonicalUrl = path !== undefined ? `${BASE_URL}${path}` : undefined;
-  const fullTitle = path === '/' ? title : `${title} | EquipQR`;
+  const fullTitle = resolveDocumentTitle(title, path);
 
   useEffect(() => {
     const previousTitle = document.title;
