@@ -25,13 +25,15 @@ test.describe('PR evidence releases page @pr-evidence', () => {
       page.getByText(/customer-facing changes in each published equipqr release/i),
     ).toBeVisible();
     await evidencePause(page, 300);
-    await evidenceScreenshot({ page, label: '01-releases-hero', target: heading });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      await evidenceScreenshot({ page, label: '01-releases-hero', target: heading });
 
     const securityFilter = page.getByRole('radio', { name: 'Security' });
     await securityFilter.click();
     await expect(page.getByText(/cross-org team idor/i)).toBeVisible();
     await evidencePause(page, 300);
-    await evidenceScreenshot({ page, label: '02-releases-security-filter', target: securityFilter });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      await evidenceScreenshot({ page, label: '02-releases-security-filter', target: securityFilter });
 
     await page.getByRole('radio', { name: 'All' }).click();
     const showOlderButton = page.getByRole('button', { name: /show \d+ older releases/i });
@@ -40,7 +42,8 @@ test.describe('PR evidence releases page @pr-evidence', () => {
     const olderRelease = page.getByRole('button', { name: /v3\.25\.27/i });
     await expect(olderRelease).toBeVisible();
     await evidencePause(page, 300);
-    await evidenceScreenshot({ page, label: '03-releases-older-history', target: olderRelease });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      await evidenceScreenshot({ page, label: '03-releases-older-history', target: olderRelease });
   });
 
   test('legal footer version link opens the public releases page', async ({ page }) => {
@@ -53,7 +56,8 @@ test.describe('PR evidence releases page @pr-evidence', () => {
     await expect(versionLink).toBeVisible({ timeout: 15_000 });
     await expect(versionLink).toHaveAttribute('href', '/releases');
     await evidencePause(page, 300);
-    await evidenceScreenshot({ page, label: '04-legal-footer-version-link', target: versionLink });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      await evidenceScreenshot({ page, label: '04-legal-footer-version-link', target: versionLink });
 
     await versionLink.click();
     await expect(page).toHaveURL(/\/releases$/);
