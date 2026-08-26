@@ -1,4 +1,5 @@
 import { useEffect, type FC } from 'react';
+import { resolveDocumentTitle } from '@/lib/resolveDocumentTitle';
 
 interface PageSEOIndexedProps {
   title: string;
@@ -22,14 +23,6 @@ const BASE_URL = 'https://equipqr.app';
 const DEFAULT_OG_IMAGE = `${BASE_URL}/og-image.png`;
 
 const MANAGED_ATTR = 'data-equipqr-page-seo';
-
-function resolveFullTitle(title: string, path?: string): string {
-  if (path === '/' || /\bEquipQR\b/.test(title)) {
-    return title;
-  }
-
-  return `${title} | EquipQR`;
-}
 
 /** Attribute pairs excluding the managed marker (captured before we set MANAGED_ATTR). */
 type AttrSnapshot = Array<[string, string]>;
@@ -99,7 +92,7 @@ export const PageSEO: FC<PageSEOProps> = ({
   noindex = false,
 }) => {
   const canonicalUrl = path !== undefined ? `${BASE_URL}${path}` : undefined;
-  const fullTitle = resolveFullTitle(title, path);
+  const fullTitle = resolveDocumentTitle(title, path);
 
   useEffect(() => {
     const previousTitle = document.title;

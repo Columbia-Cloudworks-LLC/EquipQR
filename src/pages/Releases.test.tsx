@@ -78,9 +78,9 @@ async function loadReleasesPage(releases: readonly PublicRelease[]) {
     };
   });
 
-  const module = await import('./Releases');
+  const module = await import('@/pages/Releases');
   return {
-    Releases: module.default,
+    Releases: module.Releases,
   };
 }
 

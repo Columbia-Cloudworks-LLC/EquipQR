@@ -27,7 +27,9 @@ export const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
 export const PrivacyRequest = lazy(() => import('@/pages/PrivacyRequest'));
 export const DoNotSellOrShare = lazy(() => import('@/pages/DoNotSellOrShare'));
 export const Security = lazy(() => import('@/pages/Security'));
-export const Releases = lazy(() => import('@/pages/Releases'));
+export const Releases = lazy(() =>
+  import('@/pages/Releases').then((module) => ({ default: module.Releases })),
+);
 export const RightToRepair = lazy(() =>
   import('@/pages/RightToRepair').then((module) => ({ default: module.RightToRepair })),
 );

@@ -10,6 +10,7 @@
 
 import { deriveFeatureMarketingRoute } from './featureMarketingDerivation';
 import type { MarketingRoute } from './marketingRouteTypes';
+import { resolveDocumentTitle } from './resolveDocumentTitle';
 
 export type { MarketingRoute };
 
@@ -17,11 +18,7 @@ export type { MarketingRoute };
 const BASE = 'https://equipqr.app';
 
 export function resolveFullDocumentTitle(route: MarketingRoute): string {
-  if (resolveCanonicalPath(route) === '/' || /\bEquipQR\b/.test(route.title)) {
-    return route.title;
-  }
-
-  return `${route.title} | EquipQR`;
+  return resolveDocumentTitle(route.title, resolveCanonicalPath(route));
 }
 
 export function resolveCanonicalPath(route: MarketingRoute): string {

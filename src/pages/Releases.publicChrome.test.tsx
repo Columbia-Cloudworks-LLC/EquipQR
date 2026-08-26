@@ -80,8 +80,8 @@ async function renderReleasesPage(userRole: 'admin' | null) {
     };
   });
 
-  const module = await import('./Releases');
-  const Releases = module.default;
+  const module = await import('@/pages/Releases');
+  const Releases = module.Releases;
   const user = userEvent.setup({ delay: null });
 
   render(

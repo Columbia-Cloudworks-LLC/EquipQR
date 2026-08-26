@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type JSX } from 'react';
-import { useLocation } from 'react-router-dom';
+import type { JSX } from 'react';
 import LandingHeader from '@/components/landing/LandingHeader';
 import LegalFooter from '@/components/layout/LegalFooter';
 import { PageBackButton } from '@/components/layout/PageBackButton';
@@ -7,23 +6,18 @@ import { PageSEO } from '@/components/seo/PageSEO';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import EmptyState from '@/components/ui/empty-state';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion';
 import {
-  INITIAL_VISIBLE_PUBLIC_RELEASES,
-  PUBLIC_RELEASES,
-  PUBLIC_RELEASE_FILTER_LABELS,
-  releaseMatchesPublicReleaseFilter,
-  sectionMatchesPublicReleaseFilter,
-} from '@/lib/publicReleases';
-import type { PublicRelease, PublicReleaseFilter } from '@/lib/publicReleaseTypes';
+  countVisibleEntries,
+  getVisibleSections,
+  isPublicReleaseFilter,
+  useReleasesPageState,
+} from '@/features/releases/hooks/useReleasesPageState';
+import { PUBLIC_RELEASE_FILTER_LABELS } from '@/lib/publicReleases';
+import type { PublicReleaseFilter } from '@/lib/publicReleaseTypes';
 
 const FILTER_ORDER: readonly PublicReleaseFilter[] = ['all', 'features', 'fixes', 'security'];
-const MAX_HASH_SCROLL_ATTEMPTS = 60;
-
-function isPublicReleaseFilter(value: string): value is PublicReleaseFilter {
-  return FILTER_ORDER.some((filter) => filter === value);
-}
 
 function formatReleaseDate(date: string): string {
   const parsed = new Date(`${date}T00:00:00Z`);
@@ -39,109 +33,18 @@ function formatReleaseDate(date: string): string {
   }).format(parsed);
 }
 
-function countVisibleEntries(release: PublicRelease, filter: PublicReleaseFilter): number {
-  return release.sections.reduce((count, section) => {
-    if (!sectionMatchesPublicReleaseFilter(section.id, filter)) {
-      return count;
-    }
-
-    return count + section.entries.length;
-  }, 0);
-}
-
-function getVisibleSections(release: PublicRelease, filter: PublicReleaseFilter) {
-  return release.sections.filter((section) => sectionMatchesPublicReleaseFilter(section.id, filter));
-}
-
-export default function Releases(): JSX.Element {
-  const location = useLocation();
-  const prefersReducedMotion = usePrefersReducedMotion();
-  const prefersReducedMotionRef = useRef(prefersReducedMotion);
-  prefersReducedMotionRef.current = prefersReducedMotion;
-
-  const [selectedFilter, setSelectedFilter] = useState<PublicReleaseFilter>('all');
-  const [showOlderReleases, setShowOlderReleases] = useState(false);
-  const [openReleases, setOpenReleases] = useState<string[]>(() =>
-    PUBLIC_RELEASES.slice(0, INITIAL_VISIBLE_PUBLIC_RELEASES).map((release) => release.version),
-  );
-
-  const olderReleaseCount = Math.max(0, PUBLIC_RELEASES.length - INITIAL_VISIBLE_PUBLIC_RELEASES);
-
-  useEffect(() => {
-    const rawHash = location.hash;
-    if (!rawHash) {
-      return;
-    }
-
-    const encodedVersion = rawHash.startsWith('#') ? rawHash.slice(1) : rawHash;
-    if (!encodedVersion) {
-      return;
-    }
-
-    let version: string;
-    try {
-      version = decodeURIComponent(encodedVersion);
-    } catch {
-      return;
-    }
-
-    const releaseIndex = PUBLIC_RELEASES.findIndex((release) => release.version === version);
-    if (releaseIndex === -1) {
-      return;
-    }
-
-    setSelectedFilter('all');
-    if (releaseIndex >= INITIAL_VISIBLE_PUBLIC_RELEASES) {
-      setShowOlderReleases(true);
-    }
-    setOpenReleases((currentOpenReleases) =>
-      currentOpenReleases.includes(version)
-        ? currentOpenReleases
-        : [...currentOpenReleases, version],
-    );
-
-    let cancelled = false;
-    let attempts = 0;
-
-    const tryScroll = (): void => {
-      if (cancelled || attempts++ > MAX_HASH_SCROLL_ATTEMPTS) {
-        return;
-      }
-
-      const target = document.getElementById(version);
-      if (!target) {
-        requestAnimationFrame(tryScroll);
-        return;
-      }
-
-      target.scrollIntoView({
-        behavior: prefersReducedMotionRef.current ? 'auto' : 'smooth',
-        block: 'start',
-      });
-    };
-
-    requestAnimationFrame(tryScroll);
-    return () => {
-      cancelled = true;
-    };
-  }, [location.hash]);
-
-  const visibleBaseReleases = useMemo(
-    () =>
-      showOlderReleases
-        ? PUBLIC_RELEASES
-        : PUBLIC_RELEASES.slice(0, INITIAL_VISIBLE_PUBLIC_RELEASES),
-    [showOlderReleases],
-  );
-
-  const visibleReleases = useMemo(
-    () =>
-      visibleBaseReleases.filter((release) =>
-        releaseMatchesPublicReleaseFilter(release, selectedFilter),
-      ),
-    [selectedFilter, visibleBaseReleases],
-  );
-  const isEmptyFilteredState = selectedFilter !== 'all' && visibleReleases.length === 0;
+export function Releases(): JSX.Element {
+  const {
+    isEmptyFilteredState,
+    olderReleaseCount,
+    openReleases,
+    selectedFilter,
+    setOpenReleases,
+    setSelectedFilter,
+    setShowOlderReleases,
+    showOlderReleases,
+    visibleReleases,
+  } = useReleasesPageState();
 
   return (
     <>
@@ -241,12 +144,15 @@ export default function Releases(): JSX.Element {
               </div>
 
               {visibleReleases.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-border/70 bg-card/40 px-5 py-6 text-sm text-muted-foreground">
-                  {selectedFilter === 'all' ? (
-                    'No release notes are visible in the current release set.'
-                  ) : (
-                    <div className="flex flex-col items-start gap-3">
-                      <p>{`No ${PUBLIC_RELEASE_FILTER_LABELS[selectedFilter]} notes are visible in the current release set.`}</p>
+                <EmptyState
+                  className="px-5 py-6"
+                  title={
+                    selectedFilter === 'all'
+                      ? 'No release notes are visible in the current release set.'
+                      : `No ${PUBLIC_RELEASE_FILTER_LABELS[selectedFilter]} notes are visible in the current release set.`
+                  }
+                  action={
+                    selectedFilter === 'all' ? undefined : (
                       <Button
                         type="button"
                         variant="outline"
@@ -255,9 +161,9 @@ export default function Releases(): JSX.Element {
                       >
                         All
                       </Button>
-                    </div>
-                  )}
-                </div>
+                    )
+                  }
+                />
               ) : (
                 <Accordion
                   type="multiple"
