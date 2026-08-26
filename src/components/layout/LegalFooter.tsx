@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import { ExternalLink } from '@/components/ui/external-link';
@@ -31,7 +32,7 @@ type LegalFooterViewProps = {
   canManageDsr: boolean;
 };
 
-function LegalFooterView({ canManageDsr }: LegalFooterViewProps) {
+function LegalFooterView({ canManageDsr }: LegalFooterViewProps): JSX.Element {
   const currentYear = new Date().getFullYear();
 
   return (
@@ -114,7 +115,7 @@ function LegalFooterView({ canManageDsr }: LegalFooterViewProps) {
   );
 }
 
-function ContextAwareLegalFooter() {
+function ContextAwareLegalFooter(): JSX.Element {
   const organization = useSimpleOrganizationSafe();
   const role = organization?.currentOrganization?.userRole;
   const canManageDsr = role === 'owner' || role === 'admin';
@@ -122,7 +123,7 @@ function ContextAwareLegalFooter() {
   return <LegalFooterView canManageDsr={canManageDsr} />;
 }
 
-export default function LegalFooter({ contextAware = true }: LegalFooterProps) {
+export default function LegalFooter({ contextAware = true }: LegalFooterProps): JSX.Element {
   if (!contextAware) {
     return <LegalFooterView canManageDsr={false} />;
   }

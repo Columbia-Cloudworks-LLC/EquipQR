@@ -14,8 +14,8 @@ import {
   isPublicReleaseFilter,
   useReleasesPageState,
 } from '@/features/releases/hooks/useReleasesPageState';
-import { PUBLIC_RELEASE_FILTER_LABELS } from '@/lib/publicReleases';
-import type { PublicReleaseFilter } from '@/lib/publicReleaseTypes';
+import { PUBLIC_RELEASE_FILTER_LABELS } from '@/features/releases/lib/publicReleases';
+import type { PublicReleaseFilter } from '@/features/releases/lib/publicReleaseTypes';
 
 const FILTER_ORDER: readonly PublicReleaseFilter[] = ['all', 'features', 'fixes', 'security'];
 

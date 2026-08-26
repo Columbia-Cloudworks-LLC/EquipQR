@@ -1,16 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   INITIAL_VISIBLE_PUBLIC_RELEASES,
   PUBLIC_RELEASES,
   releaseMatchesPublicReleaseFilter,
   sectionMatchesPublicReleaseFilter,
-} from '@/lib/publicReleases';
+} from '@/features/releases/lib/publicReleases';
 import type {
   PublicRelease,
   PublicReleaseFilter,
   PublicReleaseSection,
-} from '@/lib/publicReleaseTypes';
+} from '@/features/releases/lib/publicReleaseTypes';
 import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion';
 
 const MAX_HASH_SCROLL_ATTEMPTS = 60;
@@ -41,7 +41,19 @@ export function countVisibleEntries(
   }, 0);
 }
 
-export function useReleasesPageState() {
+export type UseReleasesPageStateResult = {
+  isEmptyFilteredState: boolean;
+  olderReleaseCount: number;
+  openReleases: string[];
+  selectedFilter: PublicReleaseFilter;
+  setOpenReleases: Dispatch<SetStateAction<string[]>>;
+  setSelectedFilter: Dispatch<SetStateAction<PublicReleaseFilter>>;
+  setShowOlderReleases: Dispatch<SetStateAction<boolean>>;
+  showOlderReleases: boolean;
+  visibleReleases: readonly PublicRelease[];
+};
+
+export function useReleasesPageState(): UseReleasesPageStateResult {
   const location = useLocation();
   const prefersReducedMotion = usePrefersReducedMotion();
   const prefersReducedMotionRef = useRef(prefersReducedMotion);

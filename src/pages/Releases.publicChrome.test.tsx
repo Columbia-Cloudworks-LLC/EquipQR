@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import type { PublicRelease } from '@/lib/publicReleaseTypes';
+import type { PublicRelease } from '@/features/releases/lib/publicReleaseTypes';
 
 function buildPublicReleases(): PublicRelease[] {
   return [
@@ -63,8 +63,8 @@ async function renderReleasesPage(userRole: 'admin' | null) {
             },
           },
   }));
-  vi.doMock('@/lib/publicReleases', async () => {
-    const actual = await import('@/lib/publicReleaseTypes');
+  vi.doMock('@/features/releases/lib/publicReleases', async () => {
+    const actual = await import('@/features/releases/lib/publicReleaseTypes');
 
     return {
       INITIAL_VISIBLE_PUBLIC_RELEASES: 10,

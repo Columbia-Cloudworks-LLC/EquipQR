@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import type { PublicRelease } from '@/lib/publicReleaseTypes';
+import type { PublicRelease } from '@/features/releases/lib/publicReleaseTypes';
 
 type ReleaseCategory = 'added' | 'changed' | 'fixed' | 'security';
 
@@ -61,8 +61,8 @@ function buildReleases(categories: readonly ReleaseCategory[]): PublicRelease[] 
 
 async function loadReleasesPage(releases: readonly PublicRelease[]) {
   vi.resetModules();
-  vi.doMock('@/lib/publicReleases', async () => {
-    const actual = await import('@/lib/publicReleaseTypes');
+  vi.doMock('@/features/releases/lib/publicReleases', async () => {
+    const actual = await import('@/features/releases/lib/publicReleaseTypes');
 
     return {
       INITIAL_VISIBLE_PUBLIC_RELEASES: 10,
@@ -136,7 +136,7 @@ describe('Releases', () => {
     expect(screen.getByText('Added note 3.0.12')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Show 2 older releases' })).toBeInTheDocument();
     expect(screen.queryByText('Changed note 3.0.1')).not.toBeInTheDocument();
-    expect(screen.getByTestId('legal-footer')).toHaveTextContent('Legal Footer Static');
+    expect(screen.getByText('Legal Footer Static')).toBeInTheDocument();
   });
 
   it('shows all cards open and no reveal control when 10 or fewer releases exist', async () => {

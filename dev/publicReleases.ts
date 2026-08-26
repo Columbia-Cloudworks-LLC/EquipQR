@@ -6,7 +6,7 @@ import {
   type PublicReleaseKnownSectionId,
   type PublicReleaseSection,
   type PublicReleaseSectionId,
-} from '../src/lib/publicReleaseTypes';
+} from '../src/features/releases/lib/publicReleaseTypes';
 
 const RELEASE_HEADING_RE = /^## \[(?<version>[^\]]+)\](?: - (?<date>[^\n]+))?\s*$/gm;
 const SECTION_HEADING_RE = /^### (?<label>[^\n]+)\s*$/;

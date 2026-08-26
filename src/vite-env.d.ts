@@ -2,4 +2,4 @@
 /// <reference types="vitest/client" />
 
 declare const __APP_VERSION__: string;
-declare const __PUBLIC_RELEASES__: readonly import('@/lib/publicReleaseTypes').PublicRelease[];
+declare const __PUBLIC_RELEASES__: readonly import('@/features/releases/lib/publicReleaseTypes').PublicRelease[];
