@@ -31,7 +31,7 @@ type LegalFooterViewProps = {
   canManageDsr: boolean;
 };
 
-function LegalFooterView({ canManageDsr }: LegalFooterViewProps) {
+function LegalFooterView({ canManageDsr }: LegalFooterViewProps): JSX.Element {
   const currentYear = new Date().getFullYear();
 
   return (
@@ -122,10 +122,12 @@ function ContextAwareLegalFooter() {
   return <LegalFooterView canManageDsr={canManageDsr} />;
 }
 
-export default function LegalFooter({ contextAware = true }: LegalFooterProps) {
+export default function LegalFooter({ contextAware = true }: LegalFooterProps): JSX.Element {
   if (!contextAware) {
     return <LegalFooterView canManageDsr={false} />;
   }
 
   return <ContextAwareLegalFooter />;
+}
+areLegalFooter />;
 }
