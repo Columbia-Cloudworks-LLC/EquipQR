@@ -23,11 +23,16 @@ const legalLinks = [
   { to: '/do-not-sell-or-share', label: 'Do Not Sell or Share' },
 ] as const;
 
-export default function LegalFooter() {
+type LegalFooterProps = {
+  contextAware?: boolean;
+};
+
+type LegalFooterViewProps = {
+  canManageDsr: boolean;
+};
+
+function LegalFooterView({ canManageDsr }: LegalFooterViewProps) {
   const currentYear = new Date().getFullYear();
-  const organization = useSimpleOrganizationSafe();
-  const role = organization?.currentOrganization?.userRole;
-  const canManageDsr = role === 'owner' || role === 'admin';
 
   return (
     <footer className="hidden md:block border-t border-border bg-background/50 backdrop-blur-sm mt-auto">
@@ -107,4 +112,20 @@ export default function LegalFooter() {
       </div>
     </footer>
   );
+}
+
+function ContextAwareLegalFooter() {
+  const organization = useSimpleOrganizationSafe();
+  const role = organization?.currentOrganization?.userRole;
+  const canManageDsr = role === 'owner' || role === 'admin';
+
+  return <LegalFooterView canManageDsr={canManageDsr} />;
+}
+
+export default function LegalFooter({ contextAware = true }: LegalFooterProps) {
+  if (!contextAware) {
+    return <LegalFooterView canManageDsr={false} />;
+  }
+
+  return <ContextAwareLegalFooter />;
 }

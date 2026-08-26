@@ -141,6 +141,7 @@ export default function Releases(): JSX.Element {
       ),
     [selectedFilter, visibleBaseReleases],
   );
+  const isEmptyFilteredState = selectedFilter !== 'all' && visibleReleases.length === 0;
 
   return (
     <>
@@ -225,7 +226,7 @@ export default function Releases(): JSX.Element {
                   {selectedFilter === 'all' ? '' : ` with ${PUBLIC_RELEASE_FILTER_LABELS[selectedFilter].toLowerCase()} notes`}
                   .
                 </p>
-                {olderReleaseCount > 0 ? (
+                {olderReleaseCount > 0 && !isEmptyFilteredState ? (
                   <Button
                     type="button"
                     variant="outline"
@@ -241,8 +242,21 @@ export default function Releases(): JSX.Element {
 
               {visibleReleases.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-border/70 bg-card/40 px-5 py-6 text-sm text-muted-foreground">
-                  No {PUBLIC_RELEASE_FILTER_LABELS[selectedFilter].toLowerCase()} notes are visible in the
-                  current release set.
+                  {selectedFilter === 'all' ? (
+                    'No release notes are visible in the current release set.'
+                  ) : (
+                    <div className="flex flex-col items-start gap-3">
+                      <p>{`No ${PUBLIC_RELEASE_FILTER_LABELS[selectedFilter]} notes are visible in the current release set.`}</p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedFilter('all')}
+                      >
+                        All
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <Accordion
@@ -339,7 +353,7 @@ export default function Releases(): JSX.Element {
             </div>
           </section>
         </main>
-        <LegalFooter />
+        <LegalFooter contextAware={false} />
       </div>
     </>
   );

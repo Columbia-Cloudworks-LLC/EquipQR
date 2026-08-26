@@ -2,38 +2,41 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import Releases from './Releases';
 import type { PublicRelease } from '@/lib/publicReleaseTypes';
 
-const mockedReleases = vi.hoisted(() => {
-  const categories = [
-    'added',
-    'fixed',
-    'security',
-    'changed',
-    'fixed',
-    'added',
-    'changed',
-    'fixed',
-    'security',
-    'added',
-    'fixed',
-    'changed',
-  ] as const;
+type ReleaseCategory = 'added' | 'changed' | 'fixed' | 'security';
 
+vi.mock('@/components/landing/LandingHeader', () => ({
+  default: () => <div data-testid="landing-header">Landing Header</div>,
+}));
+
+vi.mock('@/components/layout/LegalFooter', () => ({
+  default: ({ contextAware }: { contextAware?: boolean }) => (
+    <div data-testid="legal-footer">{contextAware === false ? 'Legal Footer Static' : 'Legal Footer'}</div>
+  ),
+}));
+
+function labelForCategory(category: ReleaseCategory): string {
+  switch (category) {
+    case 'added':
+      return 'Added';
+    case 'changed':
+      return 'Changed';
+    case 'fixed':
+      return 'Fixed';
+    case 'security':
+      return 'Security';
+    default: {
+      const exhaustive: never = category;
+      return exhaustive;
+    }
+  }
+}
+
+function buildReleases(categories: readonly ReleaseCategory[]): PublicRelease[] {
   return categories.map((category, index) => {
-    const version = `3.0.${12 - index}`;
-    const label =
-      category === 'added'
-        ? 'Added'
-        : category === 'fixed'
-          ? 'Fixed'
-          : category === 'security'
-            ? 'Security'
-            : 'Changed';
-
-    const entryTitle = `${label} note ${version}`;
-    const entryBody = `Customer-facing summary for ${version}.`;
+    const version = `3.0.${categories.length - index}`;
+    const label = labelForCategory(category);
 
     return {
       version,
@@ -43,37 +46,43 @@ const mockedReleases = vi.hoisted(() => {
         {
           id: category,
           label,
-          entries: [{ title: entryTitle, body: entryBody, issueRefs: [`#${1400 + index}`] }],
+          entries: [
+            {
+              title: `${label} note ${version}`,
+              body: `Customer-facing summary for ${version}.`,
+              issueRefs: [`#${1400 + index}`],
+            },
+          ],
         },
       ],
-    } satisfies PublicRelease;
+    };
   });
-});
+}
 
-vi.mock('@/components/landing/LandingHeader', () => ({
-  default: () => <div data-testid="landing-header">Landing Header</div>,
-}));
+async function loadReleasesPage(releases: readonly PublicRelease[]) {
+  vi.resetModules();
+  vi.doMock('@/lib/publicReleases', async () => {
+    const actual = await import('@/lib/publicReleaseTypes');
 
-vi.mock('@/components/layout/LegalFooter', () => ({
-  default: () => <div data-testid="legal-footer">Legal Footer</div>,
-}));
+    return {
+      INITIAL_VISIBLE_PUBLIC_RELEASES: 10,
+      PUBLIC_RELEASE_FILTER_LABELS: {
+        all: 'All',
+        features: 'Features',
+        fixes: 'Fixes',
+        security: 'Security',
+      },
+      PUBLIC_RELEASES: releases,
+      releaseMatchesPublicReleaseFilter: actual.releaseMatchesPublicReleaseFilter,
+      sectionMatchesPublicReleaseFilter: actual.sectionMatchesPublicReleaseFilter,
+    };
+  });
 
-vi.mock('@/lib/publicReleases', async () => {
-  const actual = await import('@/lib/publicReleaseTypes');
-
+  const module = await import('./Releases');
   return {
-    INITIAL_VISIBLE_PUBLIC_RELEASES: 10,
-    PUBLIC_RELEASE_FILTER_LABELS: {
-      all: 'All',
-      features: 'Features',
-      fixes: 'Fixes',
-      security: 'Security',
-    },
-    PUBLIC_RELEASES: mockedReleases,
-    releaseMatchesPublicReleaseFilter: actual.releaseMatchesPublicReleaseFilter,
-    sectionMatchesPublicReleaseFilter: actual.sectionMatchesPublicReleaseFilter,
+    Releases: module.default,
   };
-});
+}
 
 describe('Releases', () => {
   const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
@@ -89,13 +98,37 @@ describe('Releases', () => {
     cleanup();
   });
 
-  it('renders the latest release expanded and keeps older releases behind one control', () => {
+  async function renderReleasesPage(
+    releases: readonly PublicRelease[],
+    initialEntries: string[] = ['/releases'],
+  ) {
+    const { Releases } = await loadReleasesPage(releases);
+
     render(
-      <MemoryRouter initialEntries={['/releases']}>
+      <MemoryRouter initialEntries={initialEntries}>
         <Routes>
           <Route path="/releases" element={<Releases />} />
         </Routes>
       </MemoryRouter>,
+    );
+  }
+
+  it('renders the latest release expanded and keeps older releases behind one control when more than 10 releases exist', async () => {
+    await renderReleasesPage(
+      buildReleases([
+        'added',
+        'fixed',
+        'security',
+        'changed',
+        'fixed',
+        'added',
+        'changed',
+        'fixed',
+        'security',
+        'added',
+        'fixed',
+        'changed',
+      ]),
     );
 
     expect(screen.getByRole('heading', { name: 'Releases', level: 1 })).toBeInTheDocument();
@@ -103,33 +136,79 @@ describe('Releases', () => {
     expect(screen.getByText('Added note 3.0.12')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Show 2 older releases' })).toBeInTheDocument();
     expect(screen.queryByText('Changed note 3.0.1')).not.toBeInTheDocument();
+    expect(screen.getByTestId('legal-footer')).toHaveTextContent('Legal Footer Static');
   });
 
-  it('filters the currently visible set with category chips', async () => {
-    const user = userEvent.setup({ delay: null });
-
-    render(
-      <MemoryRouter initialEntries={['/releases']}>
-        <Routes>
-          <Route path="/releases" element={<Releases />} />
-        </Routes>
-      </MemoryRouter>,
+  it('shows all cards open and no reveal control when 10 or fewer releases exist', async () => {
+    await renderReleasesPage(
+      buildReleases([
+        'added',
+        'fixed',
+        'changed',
+        'fixed',
+        'added',
+        'changed',
+        'fixed',
+        'added',
+        'fixed',
+        'changed',
+      ]),
     );
 
-    await user.click(screen.getByRole('radio', { name: 'Fixes' }));
+    expect(screen.queryByRole('button', { name: /show \d+ older releases/i })).not.toBeInTheDocument();
+    expect(screen.getByText('Changed note 3.0.1')).toBeInTheDocument();
+  });
 
-    expect(screen.getByText('Fixed note 3.0.11')).toBeInTheDocument();
-    expect(screen.queryByText('Added note 3.0.12')).not.toBeInTheDocument();
-    expect(screen.queryByText('Changed note 3.0.1')).not.toBeInTheDocument();
+  it('shows the exact empty-filter copy and offers All as the next action', async () => {
+    const user = userEvent.setup({ delay: null });
+    await renderReleasesPage(
+      buildReleases([
+        'added',
+        'fixed',
+        'changed',
+        'fixed',
+        'added',
+        'changed',
+        'fixed',
+        'added',
+        'changed',
+        'fixed',
+        'security',
+        'security',
+      ]),
+    );
+
+    await user.click(screen.getByRole('radio', { name: 'Security' }));
+
+    expect(
+      screen.getByText('No Security notes are visible in the current release set.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /show \d+ older releases/i })).not.toBeInTheDocument();
+    expect(screen.queryByText('Security note 3.0.2')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'All' }));
+
+    expect(screen.getByText('Added note 3.0.12')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Show 2 older releases' })).toBeInTheDocument();
   });
 
   it('reveals and scrolls to an older release when loading a hash deep link', async () => {
-    render(
-      <MemoryRouter initialEntries={['/releases#3.0.2']}>
-        <Routes>
-          <Route path="/releases" element={<Releases />} />
-        </Routes>
-      </MemoryRouter>,
+    await renderReleasesPage(
+      buildReleases([
+        'added',
+        'fixed',
+        'security',
+        'changed',
+        'fixed',
+        'added',
+        'changed',
+        'fixed',
+        'security',
+        'added',
+        'fixed',
+        'changed',
+      ]),
+      ['/releases#3.0.2'],
     );
 
     await waitFor(() => {
@@ -140,5 +219,33 @@ describe('Releases', () => {
     await waitFor(() => {
       expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
     });
+  });
+
+  it('keeps the default first paint when the hash does not match a released version', async () => {
+    await renderReleasesPage(
+      buildReleases([
+        'added',
+        'fixed',
+        'security',
+        'changed',
+        'fixed',
+        'added',
+        'changed',
+        'fixed',
+        'security',
+        'added',
+        'fixed',
+        'changed',
+      ]),
+      ['/releases#not-a-release'],
+    );
+
+    expect(screen.getByText('Added note 3.0.12')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Show 2 older releases' })).toBeInTheDocument();
+    expect(screen.queryByText('Changed note 3.0.1')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/No (All|Features|Fixes|Security) notes are visible in the current release set\./),
+    ).not.toBeInTheDocument();
+    expect(scrollIntoViewMock).not.toHaveBeenCalled();
   });
 });

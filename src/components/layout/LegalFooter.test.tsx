@@ -67,4 +67,18 @@ describe('LegalFooter', () => {
     expect(screen.getByRole('menuitem', { name: 'Releases' })).toHaveAttribute('href', '/releases');
     expect(screen.queryByRole('menuitem', { name: /dsr cockpit/i })).not.toBeInTheDocument();
   });
+
+  it('keeps contextual footer links hidden when contextAware is false', async () => {
+    const user = userEvent.setup({ delay: null });
+    vi.mocked(useSimpleOrganizationSafe).mockReturnValue(
+      createMockSimpleOrgValue({ userRole: 'admin' }),
+    );
+
+    render(<LegalFooter contextAware={false} />);
+
+    await user.click(screen.getByRole('button', { name: /legal links/i }));
+
+    expect(screen.getByRole('menuitem', { name: 'Releases' })).toHaveAttribute('href', '/releases');
+    expect(screen.queryByRole('menuitem', { name: /dsr cockpit/i })).not.toBeInTheDocument();
+  });
 });
