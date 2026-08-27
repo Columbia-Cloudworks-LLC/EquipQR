@@ -8,20 +8,21 @@ export interface DevDebugLogPayload {
 }
 
 export function writeDebugLog(payload: DevDebugLogPayload): void {
-  if (typeof window === 'undefined' || !import.meta.env.DEV) {
+  if (typeof window === 'undefined' || !import.meta.env.DEV || import.meta.env.MODE === 'test') {
     return;
   }
 
   try {
     const body = JSON.stringify(payload);
+    const endpoint = new URL('/__cursor-debug-log', window.location.origin).toString();
 
     if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
       const blob = new Blob([body], { type: 'application/json' });
-      navigator.sendBeacon('/__cursor-debug-log', blob);
+      navigator.sendBeacon(endpoint, blob);
       return;
     }
 
-    void fetch('/__cursor-debug-log', {
+    void fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body,
