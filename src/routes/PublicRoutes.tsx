@@ -28,6 +28,7 @@ import {
   PrivacyRequest,
   DoNotSellOrShare,
   Security,
+  NotFound,
   Releases,
   RightToRepair,
   OperatorCheckInPublicPage,
@@ -76,5 +77,6 @@ export const publicRouteElements = (
     <Route path="/security" element={<LazyRoute><Security /></LazyRoute>} />
     <Route path="/releases" element={<LazyRoute><Releases /></LazyRoute>} />
     <Route path="/right-to-repair" element={<LazyRoute><RightToRepair /></LazyRoute>} />
+    <Route path="*" element={<LazyRoute><NotFound /></LazyRoute>} />
   </>
 );
