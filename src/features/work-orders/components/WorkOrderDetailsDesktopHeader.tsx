@@ -15,6 +15,8 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import PageHeader from '@/components/layout/PageHeader';
@@ -152,6 +154,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
   const showActionsMenu = canExport || showQuickBooks || canDelete;
   const actionsMenuLabel = canExport ? 'Export' : 'Actions';
   const showGoogleDrive = isGoogleWorkspaceConnected && Boolean(googleDocsDestination);
+  const showDeleteSeparator = canDelete && (canExport || showQuickBooks);
   const isExportBusy =
     isExportingSingle
     || isExportingSingleToDocs
@@ -199,18 +202,6 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
           }
           actions={
             <>
-              {canDelete && (
-                <Button
-                  variant="outline"
-                  className="text-destructive border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
-                  aria-label="Delete work order"
-                  disabled={deleteWorkOrderMutation.isPending}
-                  onClick={() => setShowDeleteDialog(true)}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-              )}
               {showActionsMenu && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -254,6 +245,19 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
                       isExportingToSheets={isExportingSingleToSheets}
                       isExportBusy={isExportBusy}
                     />
+                    {canDelete ? (
+                      <>
+                        {showDeleteSeparator ? <DropdownMenuSeparator /> : null}
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          disabled={deleteWorkOrderMutation.isPending}
+                          onClick={() => setShowDeleteDialog(true)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete work order
+                        </DropdownMenuItem>
+                      </>
+                    ) : null}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}

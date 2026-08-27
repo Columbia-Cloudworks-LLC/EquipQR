@@ -2,7 +2,7 @@
  * Mobile Work Order Action Sheet
  *
  * Consolidates work order actions for mobile users.
- * Export options mirror the desktop Export menu (Download + Google Drive + QuickBooks + Admin).
+ * Export options mirror the desktop export menu, with delete kept as the last action.
  */
 
 import React, { useState } from 'react';
@@ -93,7 +93,6 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
   const deleteWorkOrderMutation = useDeleteWorkOrder();
   const { data: imageData } = useWorkOrderImageCount(workOrderId);
   const canDelete = permissions.hasRole(['owner', 'admin']);
-  const showAdminSection = canDelete;
 
   const handleAction = (action: () => void) => {
     action();
@@ -117,6 +116,8 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
     quickActions && quickActions.length > 0
       ? groupWorkOrderSheetQuickActions(quickActions)
       : null;
+  const showDeleteSeparator =
+    canDelete && (Boolean(quickActionGroups) || exportAudience !== 'none' || showQuickBooks);
 
   const renderQuickActionButton = (action: WorkOrderSheetQuickAction) => {
     const { variant, className } = getWorkOrderSheetQuickActionButtonProps(action.tone);
@@ -235,30 +236,23 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
               </>
             )}
 
-            {showAdminSection && (
+            {canDelete ? (
               <>
-                <Separator />
-                <div className="space-y-2 rounded-xl border border-destructive/25 bg-destructive/5 p-3">
-                  <p className="text-xs font-medium uppercase tracking-wider text-destructive/80">
-                    Admin
-                  </p>
-                  {canDelete ? (
-                    <Button
-                      variant="destructive"
-                      className="h-12 w-full justify-start gap-2"
-                      onClick={() => {
-                        setDeleteConfirmText('');
-                        setShowDeleteDialog(true);
-                      }}
-                      disabled={deleteWorkOrderMutation.isPending}
-                    >
-                      <Trash2 className="h-5 w-5" aria-hidden />
-                      <span className="text-sm font-medium">Delete work order</span>
-                    </Button>
-                  ) : null}
-                </div>
+                {showDeleteSeparator ? <Separator /> : null}
+                <Button
+                  variant="outline"
+                  className="h-12 w-full justify-start gap-2 border-border/60 bg-background text-destructive hover:bg-destructive/5 hover:text-destructive"
+                  onClick={() => {
+                    setDeleteConfirmText('');
+                    setShowDeleteDialog(true);
+                  }}
+                  disabled={deleteWorkOrderMutation.isPending}
+                >
+                  <Trash2 className="h-5 w-5" aria-hidden />
+                  <span className="text-sm font-medium">Delete work order</span>
+                </Button>
               </>
-            )}
+            ) : null}
             </div>
           </div>
         </SheetContent>
