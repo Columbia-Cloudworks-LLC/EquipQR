@@ -32,15 +32,57 @@ import { __testables } from "./index.ts";
  */
 
 const FAKE_CORRELATION_ID = "00000000-0000-4000-8000-000000000001";
+const PREVIEW_ORIGIN = "https://preview.equipqr.app";
+const PRODUCTION_ORIGIN = "https://equipqr.app";
+const JSON_HEADERS = { "Content-Type": "application/json" } as const;
 
-function buildAnonRequest(): Request {
+function buildRequest(options?: {
+  origin?: string;
+  authorization?: string;
+}): Request {
+  const headers = new Headers({
+    "Content-Type": "application/json",
+    Origin: options?.origin ?? PREVIEW_ORIGIN,
+  });
+  if (options?.authorization) {
+    headers.set("Authorization", options.authorization);
+  }
+
+  return new Request("https://example.test/functions/v1/public-google-maps-key", {
+    method: "POST",
+    headers,
+    body: "{}",
+  });
+}
+
+function buildAnonRequest(origin?: string): Request {
   // Anon-style POST with no Authorization header. The smoke test sends a
   // Bearer anon-key, which `requireUser` rejects identically; using "no
   // header" here keeps the test independent of supabase-js mock state.
-  return new Request("https://example.test/functions/v1/public-google-maps-key", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: "{}",
+  return buildRequest({ origin });
+}
+
+function assertPreviewCors(response: Response, expectedStatus: number): void {
+  assertEquals(response.status, expectedStatus);
+  assertEquals(
+    response.headers.get("Access-Control-Allow-Origin"),
+    PREVIEW_ORIGIN,
+    "Preview-origin requests must echo the preview origin instead of falling back to production CORS headers.",
+  );
+  assert(
+    response.headers.get("Access-Control-Allow-Origin") !== PRODUCTION_ORIGIN,
+    "Preview-origin requests must not receive the production fallback origin.",
+  );
+}
+
+function withMockFetch(
+  stub: typeof fetch,
+  fn: () => Promise<void>,
+): Promise<void> {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = stub;
+  return fn().finally(() => {
+    globalThis.fetch = originalFetch;
   });
 }
 
@@ -95,6 +137,10 @@ Deno.test(
             correlationId: FAKE_CORRELATION_ID,
           });
 
+          assertPreviewCors(
+            res,
+            500,
+          );
           assertEquals(
             res.status,
             500,
@@ -139,6 +185,10 @@ Deno.test(
             correlationId: FAKE_CORRELATION_ID,
           });
 
+          assertPreviewCors(
+            res,
+            401,
+          );
           assertEquals(
             res.status,
             401,
@@ -169,6 +219,65 @@ Deno.test(
             res.status,
             401,
             "Expected 401: the legacy alias should resolve so the secret check passes and requireUser becomes the gate.",
+          );
+        });
+      },
+    );
+  },
+);
+
+Deno.test(
+  "cors: preview origin is preserved on 200 JSON responses",
+  async () => {
+    await withEnv(
+      {
+        GOOGLE_MAPS_BROWSER_KEY: "test-fake-not-a-real-key",
+        GOOGLE_MAPS_MAP_ID: "test-map-id",
+        VITE_GOOGLE_MAPS_BROWSER_KEY: undefined,
+        ...PLATFORM_FAKES,
+      },
+      async () => {
+        await silenceConsole(async () => {
+          await withMockFetch(
+            (input: RequestInfo | URL) => {
+              const url = typeof input === "string"
+                ? input
+                : input instanceof URL
+                ? input.toString()
+                : input.url;
+              if (url.includes("/auth/v1/user")) {
+                return Promise.resolve(
+                  new Response(
+                    JSON.stringify({
+                      id: "user-123",
+                      aud: "authenticated",
+                      role: "authenticated",
+                      email: "map-tester@example.com",
+                    }),
+                    { status: 200, headers: JSON_HEADERS },
+                  ),
+                );
+              }
+
+              return Promise.resolve(
+                new Response(JSON.stringify({ error: `Unexpected fetch: ${url}` }), {
+                  status: 500,
+                  headers: JSON_HEADERS,
+                }),
+              );
+            },
+            async () => {
+              const res = await __testables.handle(
+                buildRequest({ authorization: "Bearer valid-test-token" }),
+                { correlationId: FAKE_CORRELATION_ID },
+              );
+
+              assertPreviewCors(res, 200);
+              assertEquals(await res.json(), {
+                key: "test-fake-not-a-real-key",
+                mapId: "test-map-id",
+              });
+            },
           );
         });
       },
