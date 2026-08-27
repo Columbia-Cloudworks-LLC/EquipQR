@@ -23,6 +23,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 ### Fixed
 
 - **Production promote verification follows the serving build** — Release Readiness now verifies the production deployment created by `vercel promote`, so successful promotes and same-SHA reruns no longer stop before Edge Function deploy.
+- **Public 404 for unknown routes (#1470)** — Unknown public URLs now render a public not-found page with header/footer instead of a blank shell, while `/releases` and legal pages keep their existing routes.
 
 ## [3.29.0] - 2026-08-23
 
