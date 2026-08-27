@@ -241,7 +241,7 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
                 {showDeleteSeparator ? <Separator /> : null}
                 <Button
                   variant="outline"
-                  className="h-12 w-full justify-start gap-2 border-border/60 bg-background text-destructive hover:bg-destructive/5 hover:text-destructive"
+                  className="h-12 w-full justify-start gap-2 rounded-xl border-destructive/40 bg-background text-destructive hover:border-destructive/60 hover:bg-destructive/5 hover:text-destructive"
                   onClick={() => {
                     setDeleteConfirmText('');
                     setShowDeleteDialog(true);

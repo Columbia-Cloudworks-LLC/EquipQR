@@ -167,13 +167,15 @@ describe('MobileWorkOrderActionSheet', () => {
     );
 
     const deleteButton = screen.getByRole('button', { name: /delete work order/i });
+    const separator = deleteButton.previousElementSibling as HTMLElement | null;
 
     expect(screen.queryByText('Admin')).not.toBeInTheDocument();
     expect(deleteButton.parentElement?.lastElementChild).toBe(deleteButton);
-    expect(deleteButton.previousElementSibling).toHaveAttribute('aria-orientation', 'horizontal');
+    expect(separator).not.toBeNull();
+    expect(separator?.className).toContain('bg-border');
     expect(deleteButton.className).toContain('border');
+    expect(deleteButton.className).toContain('border-destructive/40');
     expect(deleteButton.className).toContain('bg-background');
-    expect(deleteButton.className).not.toContain('bg-destructive');
     expect(deleteButton.className).not.toContain('text-destructive-foreground');
 
     await user.click(deleteButton);
