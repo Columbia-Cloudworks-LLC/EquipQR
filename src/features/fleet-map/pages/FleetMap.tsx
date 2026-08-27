@@ -120,17 +120,6 @@ const FleetMap: React.FC = () => {
   const error = teamFleetError || mapsKeyError;
   const hasFirstPaintInputs = Boolean(googleMapsKey) && teamFleetData != null;
   const [hasCompletedInitialLoad, setHasCompletedInitialLoad] = useState(hasFirstPaintInputs);
-  const viewState = error
-    ? 'error'
-    : !hasCompletedInitialLoad && isLoading
-      ? 'initial-loading'
-      : !googleMapsKey && !mapsKeyLoading
-        ? 'no-key'
-        : !hasLocationData && !isLoading
-          ? 'empty'
-          : googleMapsKey
-            ? 'map'
-            : 'map-placeholder';
 
   useEffect(() => {
     if (hasFirstPaintInputs) {

@@ -124,15 +124,10 @@ export const useGoogleMapsKey = (options: UseGoogleMapsKeyOptions = {}): UseGoog
     }
 
     inFlightRef.current = true;
-    let outcome = 'started';
-    let hasSession = false;
-    let receivedMapId = false;
 
     try {
       const session = await resolveAuthenticatedSession();
-      hasSession = Boolean(session?.access_token);
       if (!session?.access_token) {
-        outcome = 'no-session';
         setGoogleMapsKey('');
         setMapId(null);
         setIsLoading(false);
@@ -144,13 +139,10 @@ export const useGoogleMapsKey = (options: UseGoogleMapsKeyOptions = {}): UseGoog
       setError(null);
 
       const data = await invokePublicGoogleMapsKey();
-      outcome = 'success';
-      receivedMapId = Boolean(data.mapId);
       setGoogleMapsKey(data.key!);
       setMapId(data.mapId ?? null);
       setError(null);
     } catch (fetchError) {
-      outcome = 'error';
       const errorMessage =
         fetchError instanceof Error ? fetchError.message : 'Failed to fetch Google Maps key';
       console.error('[FleetMap] Failed to fetch Google Maps key:', fetchError);
