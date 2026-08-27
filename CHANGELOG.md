@@ -22,6 +22,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Fixed
 
+- **Organization settings page alias (#1469)** — Opening `/dashboard/organization/settings` now renders the Settings form and organization tabs for owners and admins instead of a blank main panel.
 - **Production promote verification follows the serving build** — Release Readiness now verifies the production deployment created by `vercel promote`, so successful promotes and same-SHA reruns no longer stop before Edge Function deploy.
 
 ## [3.29.0] - 2026-08-23

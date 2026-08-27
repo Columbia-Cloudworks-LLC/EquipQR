@@ -49,6 +49,7 @@ export const dashboardRouteElements = (
     <Route path="/teams/:teamId" element={<TeamDetails />} />
     <Route path="/fleet-map" element={<FleetMap />} />
     <Route path="/organization" element={<Organization />} />
+    <Route path="/organization/settings" element={<Organization />} />
     <Route path="/organization/members" element={<OrganizationMembers />} />
     <Route path="/organization/integrations" element={<OrganizationIntegrations />} />
     <Route path="/organization/audit-log" element={<AuditLog />} />

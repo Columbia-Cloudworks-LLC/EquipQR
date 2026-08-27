@@ -13,6 +13,7 @@ import { OrganizationSettings } from '@/features/organization/components/Organiz
 import { OrganizationSubnav } from '@/features/organization/components/OrganizationSubnav';
 import RestrictedOrganizationAccess from '@/features/organization/components/RestrictedOrganizationAccess';
 import { WorkspaceMergeRequestsCard } from '@/features/organization/components/WorkspaceMergeRequestsCard';
+import { usePermissions } from '@/hooks/usePermissions';
 import Page from '@/components/layout/Page';
 import { Card, CardContent } from '@/components/ui/card';
 import { Settings } from 'lucide-react';
@@ -20,6 +21,7 @@ import { Settings } from 'lucide-react';
 const Organization = () => {
   const { currentOrganization, isLoading } = useOrganization();
   const navigate = useNavigate();
+  const { canManageOrganization } = usePermissions();
   useOrganizationIntegrationOAuthCallbacks();
 
   useEffect(() => {
@@ -34,8 +36,12 @@ const Organization = () => {
 
   const { data: mergeRequests = [] } = usePendingWorkspaceMergeRequests();
 
-  const currentUserRole: 'owner' | 'admin' | 'member' = currentOrganization?.userRole || 'member';
+  const currentUserRole: 'owner' | 'admin' | 'member' =
+    currentOrganization?.userRole === 'owner' || currentOrganization?.userRole === 'admin'
+      ? currentOrganization.userRole
+      : 'member';
   const currentOrganizationId = currentOrganization?.id;
+  const hasOrganizationSettingsAccess = canManageOrganization();
   const incomingMergeRequests = useMemo(() => {
     if (!currentOrganizationId) {
       return [];
@@ -59,7 +65,7 @@ const Organization = () => {
     );
   }
 
-  if (currentUserRole === 'member') {
+  if (!hasOrganizationSettingsAccess) {
     if (incomingMergeRequests.length > 0) {
       return (
         <Page maxWidth="7xl" padding="responsive">
