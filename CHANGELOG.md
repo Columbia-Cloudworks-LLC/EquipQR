@@ -26,6 +26,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 - **Starter PM template titles stay readable** — EquipQR starter cards on `/dashboard/pm-templates` now keep names readable even when EquipQR and Protected badges are shown together.
 - **Production promote verification follows the serving build** — Release Readiness now verifies the production deployment created by `vercel promote`, so successful promotes and same-SHA reruns no longer stop before Edge Function deploy.
 - **Fleet Map Team HQ marker stays interactive (#1461)** — Clicking a team headquarters marker now keeps the map mounted and opens the team popup instead of dropping the map into a stuck loading state.
+- **Fleet Map key failures stay on the signed error card (#1461)** — Fleet Map key fetch failures now keep the `Fleet Map Error` card on screen without exposing secret names in a toast.
 - **Public 404 for unknown routes (#1470)** — Unknown public URLs now render a public not-found page with header/footer instead of a blank shell, while `/releases` and legal pages keep their existing routes.
 
 ## [3.29.0] - 2026-08-23
