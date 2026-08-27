@@ -23,6 +23,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 ### Fixed
 
 - **Production promote verification follows the serving build** — Release Readiness now verifies the production deployment created by `vercel promote`, so successful promotes and same-SHA reruns no longer stop before Edge Function deploy.
+- **Fleet Map Team HQ marker stays interactive (#1461)** — Clicking a team headquarters marker now keeps the map mounted and opens the team popup instead of dropping the map into a stuck loading state.
 
 ## [3.29.0] - 2026-08-23
 
