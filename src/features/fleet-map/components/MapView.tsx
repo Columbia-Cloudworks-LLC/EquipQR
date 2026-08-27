@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 import { logger } from '@/utils/logger';
 import { useIsDarkTheme, useThemeVersion } from '@/hooks/useThemeVersion';
 import type { EquipmentLocation, TeamHQLocation } from '@/features/fleet-map/types/locations';
+import { writeDebugLog } from '@/lib/devDebugLog';
 
 export type { EquipmentLocation, TeamHQLocation };
 
@@ -379,7 +380,22 @@ const TeamHQMarker: React.FC<TeamHQMarkerProps> = ({
       <AdvancedMarker
         ref={markerRef}
         position={{ lat: hq.lat, lng: hq.lng }}
-        onClick={onSelect}
+        onClick={() => {
+          // #region agent log
+          writeDebugLog({
+            hypothesisId: 'C',
+            location: 'src/features/fleet-map/components/MapView.tsx:384',
+            message: 'Team HQ marker click',
+            data: {
+              hqId: hq.id,
+              markerReady: Boolean(marker),
+              isSelected,
+            },
+            timestamp: Date.now(),
+          });
+          // #endregion
+          onSelect();
+        }}
         title={hq.name}
         zIndex={1000}
       >
@@ -591,6 +607,24 @@ const MapContent: React.FC<{
     }
   }, [selectedHQId, teamHQLocations]);
 
+  useEffect(() => {
+    // #region agent log
+    writeDebugLog({
+      hypothesisId: 'B',
+      location: 'src/features/fleet-map/components/MapView.tsx:608',
+      message: 'Map selection state',
+      data: {
+        selectedMarkerId,
+        selectedHQId,
+        visibleLocationCount: visibleLocations.length,
+        teamHQCount: teamHQLocations.length,
+        hasMap: Boolean(map),
+      },
+      timestamp: Date.now(),
+    });
+    // #endregion
+  }, [map, selectedHQId, selectedMarkerId, teamHQLocations.length, visibleLocations.length]);
+
   return (
     <>
       {visibleLocations.map((location) => {
@@ -701,6 +735,38 @@ export const MapView: React.FC<MapViewProps> = ({
 }) => {
   const totalMarkerCount = filteredLocations.length + teamHQLocations.length;
   const [mapsAuthError, setMapsAuthError] = useState<MapsAuthFailure | null>(null);
+
+  useEffect(() => {
+    // #region agent log
+    writeDebugLog({
+      hypothesisId: 'B',
+      location: 'src/features/fleet-map/components/MapView.tsx:719',
+      message: 'MapView lifecycle',
+      data: {
+        phase: 'mount',
+        totalMarkerCount,
+        equipmentCount: filteredLocations.length,
+        teamHQCount: teamHQLocations.length,
+        hasMapId: Boolean(mapId),
+      },
+      timestamp: Date.now(),
+    });
+    // #endregion
+    return () => {
+      // #region agent log
+      writeDebugLog({
+        hypothesisId: 'B',
+        location: 'src/features/fleet-map/components/MapView.tsx:732',
+        message: 'MapView lifecycle',
+        data: {
+          phase: 'unmount',
+        },
+        timestamp: Date.now(),
+      });
+      // #endregion
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Install Google Maps' documented auth-failure hook so we can swap in a
   // friendly diagnostic instead of letting the downstream `marker.js`

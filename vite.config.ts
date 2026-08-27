@@ -25,6 +25,43 @@ function httpLogger(): PluginOption {
   };
 }
 
+function cursorDebugLogBridge(): PluginOption {
+  return {
+    name: 'cursor-debug-log-bridge',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use('/__cursor-debug-log', (req, res, next) => {
+        if (req.method !== 'POST') {
+          next();
+          return;
+        }
+
+        let body = '';
+        req.on('data', (chunk) => {
+          body += chunk.toString();
+        });
+        req.on('end', () => {
+          try {
+            const line = body.trim();
+            if (line) {
+              fs.appendFileSync('/opt/cursor/logs/debug.log', `${line}\n`, 'utf8');
+            }
+            res.statusCode = 204;
+            res.end();
+          } catch {
+            res.statusCode = 500;
+            res.end();
+          }
+        });
+        req.on('error', () => {
+          res.statusCode = 500;
+          res.end();
+        });
+      });
+    },
+  };
+}
+
 function marketingPrerenderPlugin(): PluginOption {
   return {
     name: 'equipqr-marketing-prerender',
@@ -105,6 +142,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     mode === 'development' && httpLogger(),
+    mode === 'development' && cursorDebugLogBridge(),
     react(),
     marketingPrerenderPlugin(),
     // PWA / service worker. We use `injectManifest` mode so we can keep our

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { writeDebugLog } from '@/lib/devDebugLog';
 
 interface GoogleMapsKeyResponse {
   key?: string;
@@ -124,10 +125,27 @@ export const useGoogleMapsKey = (options: UseGoogleMapsKeyOptions = {}): UseGoog
     }
 
     inFlightRef.current = true;
+    let outcome = 'started';
+    let hasSession = false;
+    let receivedMapId = false;
 
     try {
       const session = await resolveAuthenticatedSession();
+      hasSession = Boolean(session?.access_token);
+      // #region agent log
+      writeDebugLog({
+        hypothesisId: 'A',
+        location: 'src/hooks/useGoogleMapsKey.ts:134',
+        message: 'Maps key fetch start',
+        data: {
+          enabled,
+          hasSession,
+        },
+        timestamp: Date.now(),
+      });
+      // #endregion
       if (!session?.access_token) {
+        outcome = 'no-session';
         setGoogleMapsKey('');
         setMapId(null);
         setIsLoading(false);
@@ -139,15 +157,32 @@ export const useGoogleMapsKey = (options: UseGoogleMapsKeyOptions = {}): UseGoog
       setError(null);
 
       const data = await invokePublicGoogleMapsKey();
+      outcome = 'success';
+      receivedMapId = Boolean(data.mapId);
       setGoogleMapsKey(data.key!);
       setMapId(data.mapId ?? null);
       setError(null);
     } catch (fetchError) {
+      outcome = 'error';
       const errorMessage =
         fetchError instanceof Error ? fetchError.message : 'Failed to fetch Google Maps key';
       console.error('[FleetMap] Failed to fetch Google Maps key:', fetchError);
       setError(errorMessage);
     } finally {
+      // #region agent log
+      writeDebugLog({
+        hypothesisId: 'A',
+        location: 'src/hooks/useGoogleMapsKey.ts:166',
+        message: 'Maps key fetch end',
+        data: {
+          outcome,
+          enabled,
+          hasSession,
+          receivedMapId,
+        },
+        timestamp: Date.now(),
+      });
+      // #endregion
       inFlightRef.current = false;
       setIsLoading(false);
     }
@@ -180,6 +215,19 @@ export const useGoogleMapsKey = (options: UseGoogleMapsKeyOptions = {}): UseGoog
       if (cancelled) {
         return;
       }
+
+      // #region agent log
+      writeDebugLog({
+        hypothesisId: 'A',
+        location: 'src/hooks/useGoogleMapsKey.ts:206',
+        message: 'Maps key auth event',
+        data: {
+          event,
+          hasAccessToken: Boolean(session?.access_token),
+        },
+        timestamp: Date.now(),
+      });
+      // #endregion
 
       if (
         (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') &&
