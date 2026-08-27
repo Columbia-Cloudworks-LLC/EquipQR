@@ -118,6 +118,14 @@ const FleetMap: React.FC = () => {
   const hasLocationData = teamFleetData?.hasLocationData || false;
   const isLoading = teamFleetLoading || mapsKeyLoading;
   const error = teamFleetError || mapsKeyError;
+  const hasFirstPaintInputs = Boolean(googleMapsKey) && teamFleetData != null;
+  const [hasCompletedInitialLoad, setHasCompletedInitialLoad] = useState(hasFirstPaintInputs);
+
+  useEffect(() => {
+    if (hasFirstPaintInputs) {
+      setHasCompletedInitialLoad(true);
+    }
+  }, [hasFirstPaintInputs]);
 
   // Handle equipment select from panel
   const handleEquipmentSelect = (id: string) => {
@@ -151,7 +159,7 @@ const FleetMap: React.FC = () => {
   }
 
   // ── Loading state ──
-  if (isLoading) {
+  if (!hasCompletedInitialLoad && isLoading) {
     return (
       <Page maxWidth="7xl" padding="responsive">
         <div className="space-y-4">

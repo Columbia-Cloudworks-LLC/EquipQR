@@ -379,7 +379,9 @@ const TeamHQMarker: React.FC<TeamHQMarkerProps> = ({
       <AdvancedMarker
         ref={markerRef}
         position={{ lat: hq.lat, lng: hq.lng }}
-        onClick={onSelect}
+        onClick={() => {
+          onSelect();
+        }}
         title={hq.name}
         zIndex={1000}
       >
