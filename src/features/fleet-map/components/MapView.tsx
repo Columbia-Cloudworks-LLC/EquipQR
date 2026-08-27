@@ -5,6 +5,7 @@ import {
   AdvancedMarker,
   InfoWindow,
   useMap,
+  useAdvancedMarkerRef,
 } from '@vis.gl/react-google-maps';
 import { Button } from '@/components/ui/button';
 import {
@@ -207,6 +208,251 @@ interface MapViewProps {
   onMarkerClick?: (id: string) => void;
 }
 
+interface EquipmentMarkerProps {
+  location: EquipmentLocation;
+  colors: MarkerColor;
+  isSelected: boolean;
+  onSelect: () => void;
+  onClose: () => void;
+  onMarkerClick?: (id: string) => void;
+}
+
+const EquipmentMarker: React.FC<EquipmentMarkerProps> = ({
+  location,
+  colors,
+  isSelected,
+  onSelect,
+  onClose,
+  onMarkerClick,
+}) => {
+  const navigate = useNavigate();
+  const [markerRef, marker] = useAdvancedMarkerRef();
+  const sourceType: SourceType = location.source;
+  const sourceConfig = SOURCE_TOKEN_CONFIG[sourceType];
+  const sourceClasses = SOURCE_TOKEN_CLASSES[sourceType];
+
+  return (
+    <>
+      <AdvancedMarker
+        ref={markerRef}
+        position={{ lat: location.lat, lng: location.lng }}
+        onClick={() => {
+          onSelect();
+          onMarkerClick?.(location.id);
+        }}
+        title={location.name}
+      >
+        {/* Inline SVG glyph; the vis.gl AdvancedMarker accepts arbitrary
+            children that are rendered as the marker content. */}
+        <div
+          style={{ transform: 'translateY(-18px)', pointerEvents: 'none' }}
+          dangerouslySetInnerHTML={{ __html: buildMarkerSvg(colors.fill, colors.stroke) }}
+        />
+      </AdvancedMarker>
+
+      {isSelected && marker && (
+        // Anchor the popup to the live marker instance. Using raw lat/lng here
+        // can cause Google Maps to rebuild marker overlays while opening the
+        // popup, which is the remount bug class behind fleet-map HQ clicks.
+        <InfoWindow anchor={marker} onClose={onClose}>
+          <div className="w-[min(92vw,350px)] p-3">
+            {/* Header */}
+            <div className="flex gap-3 mb-3">
+              {location.image_url && (
+                <img
+                  src={location.image_url}
+                  alt={location.name}
+                  className="w-14 h-14 object-cover rounded-lg border flex-shrink-0"
+                  loading="lazy"
+                  decoding="async"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              )}
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-sm text-foreground truncate">{location.name}</h3>
+                <p className="truncate text-xs text-muted-foreground" title={`${location.manufacturer} ${location.model}`}>
+                  {location.manufacturer} {location.model}
+                </p>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                      sourceClasses.badge
+                    )}
+                  >
+                    {sourceConfig.label}
+                  </span>
+                  {location.team_name && (
+                    <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                      <Users className="h-2.5 w-2.5" />
+                      {location.team_name}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Details */}
+            <div className="space-y-1.5 text-xs mb-3">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Serial:</span>
+                <span className="font-mono truncate ml-2 text-foreground">{location.serial_number}</span>
+              </div>
+              {location.working_hours != null && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />Hours:</span>
+                  <span className="text-foreground">{location.working_hours.toLocaleString()}</span>
+                </div>
+              )}
+              {location.last_maintenance && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground flex items-center gap-1"><Wrench className="h-3 w-3" />Maintenance:</span>
+                  <span className="text-foreground">{formatDate(location.last_maintenance)}</span>
+                </div>
+              )}
+              {location.formatted_address && (
+                <div className="pt-1">
+                  <ClickableAddress
+                    address={location.formatted_address}
+                    lat={location.lat}
+                    lng={location.lng}
+                    className="text-xs"
+                  />
+                </div>
+              )}
+              {location.location_updated_at && (
+                <div className="text-[10px] text-muted-foreground">
+                  Updated {getRelativeTime(location.location_updated_at)}
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                size="sm"
+                className="flex-1 min-h-11 text-sm sm:h-8 sm:min-h-0 sm:text-xs"
+                onClick={() => navigate(`/dashboard/equipment/${location.id}`)}
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                Details
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 min-h-11 text-sm sm:h-8 sm:min-h-0 sm:text-xs"
+                onClick={() => {
+                  window.open(buildGoogleMapsUrlFromCoords(location.lat, location.lng), '_blank');
+                }}
+              >
+                <Navigation className="h-3 w-3 mr-1" />
+                Directions
+              </Button>
+            </div>
+          </div>
+        </InfoWindow>
+      )}
+    </>
+  );
+};
+
+interface TeamHQMarkerProps {
+  hq: TeamHQLocation;
+  teamHQColor: MarkerColor;
+  isSelected: boolean;
+  onSelect: () => void;
+  onClose: () => void;
+}
+
+const TeamHQMarker: React.FC<TeamHQMarkerProps> = ({
+  hq,
+  teamHQColor,
+  isSelected,
+  onSelect,
+  onClose,
+}) => {
+  const navigate = useNavigate();
+  const [markerRef, marker] = useAdvancedMarkerRef();
+
+  return (
+    <>
+      <AdvancedMarker
+        ref={markerRef}
+        position={{ lat: hq.lat, lng: hq.lng }}
+        onClick={onSelect}
+        title={hq.name}
+        zIndex={1000}
+      >
+        <div
+          style={{ transform: 'translateY(-20px)', pointerEvents: 'none' }}
+          dangerouslySetInnerHTML={{ __html: buildStarMarkerSvg(teamHQColor.fill, teamHQColor.stroke) }}
+        />
+      </AdvancedMarker>
+
+      {isSelected && marker && (
+        <InfoWindow anchor={marker} onClose={onClose}>
+          <div className="w-[min(88vw,300px)] p-3">
+            {/* Header */}
+            <div className="flex items-center gap-2 mb-2">
+              <div
+                className={cn("p-1.5 rounded-full flex-shrink-0", TEAM_HQ_CLASSES.subtle)}
+              >
+                <Star className={cn("h-4 w-4", TEAM_HQ_CLASSES.icon)} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="font-semibold text-sm text-foreground truncate">{hq.name}</h3>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                    TEAM_HQ_CLASSES.badge
+                  )}
+                >
+                  {teamHQColor.label}
+                </span>
+              </div>
+            </div>
+
+            {/* Address */}
+            {hq.formatted_address && (
+              <div className="mb-3">
+                <ClickableAddress
+                  address={hq.formatted_address}
+                  lat={hq.lat}
+                  lng={hq.lng}
+                  className="text-xs"
+                />
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                size="sm"
+                className="flex-1 min-h-11 text-sm sm:h-8 sm:min-h-0 sm:text-xs"
+                onClick={() => navigate(`/dashboard/teams/${hq.id}`)}
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                View Team
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 min-h-11 text-sm sm:h-8 sm:min-h-0 sm:text-xs"
+                onClick={() => {
+                  window.open(buildGoogleMapsUrlFromCoords(hq.lat, hq.lng), '_blank');
+                }}
+              >
+                <Navigation className="h-3 w-3 mr-1" />
+                Directions
+              </Button>
+            </div>
+          </div>
+        </InfoWindow>
+      )}
+    </>
+  );
+};
+
 // ── Component ─────────────────────────────────────────────────
 
 /**
@@ -225,9 +471,8 @@ const MapContent: React.FC<{
   onMarkerClick,
 }) => {
   const map = useMap();
-  const navigate = useNavigate();
-  const [selectedMarker, setSelectedMarker] = useState<EquipmentLocation | null>(null);
-  const [selectedHQ, setSelectedHQ] = useState<TeamHQLocation | null>(null);
+  const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
+  const [selectedHQId, setSelectedHQId] = useState<string | null>(null);
   const [sourceFilter, setSourceFilter] = useState<SourceType | 'all'>('all');
   const themeVersion = useThemeVersion();
   const hasAutoFitted = useRef(false);
@@ -300,7 +545,7 @@ const MapContent: React.FC<{
     () =>
       [
         ...visibleLocations.map((l) => `e:${l.id}`),
-        ...teamHQLocations.map((h) => `t:${h.teamId}`),
+        ...teamHQLocations.map((h) => `t:${h.id}`),
         sourceFilter,
       ]
         .sort()
@@ -329,225 +574,57 @@ const MapContent: React.FC<{
     if (target) {
       map.panTo({ lat: target.lat, lng: target.lng });
       map.setZoom(15);
-      setSelectedMarker(target);
+      setSelectedHQId(null);
+      setSelectedMarkerId(target.id);
     }
   }, [focusEquipmentId, filteredLocations, map]);
 
-  const sourceConfig = selectedMarker ? sourceColors[selectedMarker.source] || sourceColors.manual : null;
-  const selectedSourceType: SourceType = selectedMarker?.source ?? 'manual';
-  const selectedSourceClasses = SOURCE_TOKEN_CLASSES[selectedSourceType];
+  useEffect(() => {
+    if (selectedMarkerId && !filteredLocations.some((location) => location.id === selectedMarkerId)) {
+      setSelectedMarkerId(null);
+    }
+  }, [filteredLocations, selectedMarkerId]);
+
+  useEffect(() => {
+    if (selectedHQId && !teamHQLocations.some((hq) => hq.id === selectedHQId)) {
+      setSelectedHQId(null);
+    }
+  }, [selectedHQId, teamHQLocations]);
 
   return (
     <>
       {visibleLocations.map((location) => {
         const colors = sourceColors[location.source];
         return (
-          <AdvancedMarker
+          <EquipmentMarker
             key={location.id}
-            position={{ lat: location.lat, lng: location.lng }}
-            onClick={() => {
-              setSelectedHQ(null);
-              setSelectedMarker(location);
-              onMarkerClick?.(location.id);
+            location={location}
+            colors={colors}
+            isSelected={selectedMarkerId === location.id}
+            onSelect={() => {
+              setSelectedHQId(null);
+              setSelectedMarkerId(location.id);
             }}
-            title={location.name}
-          >
-            {/* Inline SVG glyph; the vis.gl AdvancedMarker accepts arbitrary
-                children that are rendered as the marker content. */}
-            <div
-              style={{ transform: 'translateY(-18px)', pointerEvents: 'none' }}
-              dangerouslySetInnerHTML={{ __html: buildMarkerSvg(colors.fill, colors.stroke) }}
-            />
-          </AdvancedMarker>
+            onClose={() => setSelectedMarkerId(null)}
+            onMarkerClick={onMarkerClick}
+          />
         );
       })}
 
       {/* Team HQ star markers */}
       {teamHQLocations.map((hq) => (
-        <AdvancedMarker
+        <TeamHQMarker
           key={`hq-${hq.id}`}
-          position={{ lat: hq.lat, lng: hq.lng }}
-          onClick={() => {
-            setSelectedMarker(null);
-            setSelectedHQ(hq);
+          hq={hq}
+          teamHQColor={teamHQColor}
+          isSelected={selectedHQId === hq.id}
+          onSelect={() => {
+            setSelectedMarkerId(null);
+            setSelectedHQId(hq.id);
           }}
-          title={hq.name}
-          zIndex={1000}
-        >
-          <div
-            style={{ transform: 'translateY(-20px)', pointerEvents: 'none' }}
-            dangerouslySetInnerHTML={{ __html: buildStarMarkerSvg(teamHQColor.fill, teamHQColor.stroke) }}
-          />
-        </AdvancedMarker>
+          onClose={() => setSelectedHQId(null)}
+        />
       ))}
-
-      {/* Team HQ info window */}
-      {selectedHQ && (
-        <InfoWindow
-          position={{ lat: selectedHQ.lat, lng: selectedHQ.lng }}
-          onClose={() => setSelectedHQ(null)}
-        >
-          <div className="w-[min(88vw,300px)] p-3">
-            {/* Header */}
-            <div className="flex items-center gap-2 mb-2">
-              <div
-                className={cn("p-1.5 rounded-full flex-shrink-0", TEAM_HQ_CLASSES.subtle)}
-              >
-                <Star className={cn("h-4 w-4", TEAM_HQ_CLASSES.icon)} />
-              </div>
-              <div className="min-w-0">
-                <h3 className="font-semibold text-sm text-foreground truncate">{selectedHQ.name}</h3>
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                    TEAM_HQ_CLASSES.badge
-                  )}
-                >
-                  {teamHQColor.label}
-                </span>
-              </div>
-            </div>
-
-            {/* Address */}
-            {selectedHQ.formatted_address && (
-              <div className="mb-3">
-                <ClickableAddress
-                  address={selectedHQ.formatted_address}
-                  lat={selectedHQ.lat}
-                  lng={selectedHQ.lng}
-                  className="text-xs"
-                />
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button
-                size="sm"
-                className="flex-1 min-h-11 text-sm sm:h-8 sm:min-h-0 sm:text-xs"
-                onClick={() => navigate(`/dashboard/teams/${selectedHQ.id}`)}
-              >
-                <ExternalLink className="h-3 w-3 mr-1" />
-                View Team
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="flex-1 min-h-11 text-sm sm:h-8 sm:min-h-0 sm:text-xs"
-                onClick={() => {
-                  window.open(buildGoogleMapsUrlFromCoords(selectedHQ.lat, selectedHQ.lng), '_blank');
-                }}
-              >
-                <Navigation className="h-3 w-3 mr-1" />
-                Directions
-              </Button>
-            </div>
-          </div>
-        </InfoWindow>
-      )}
-
-      {selectedMarker && (
-        <InfoWindow
-          position={{ lat: selectedMarker.lat, lng: selectedMarker.lng }}
-          onClose={() => setSelectedMarker(null)}
-        >
-          <div className="w-[min(92vw,350px)] p-3">
-            {/* Header */}
-            <div className="flex gap-3 mb-3">
-              {selectedMarker.image_url && (
-                <img
-                  src={selectedMarker.image_url}
-                  alt={selectedMarker.name}
-                  className="w-14 h-14 object-cover rounded-lg border flex-shrink-0"
-                  loading="lazy"
-                  decoding="async"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                />
-              )}
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-sm text-foreground truncate">{selectedMarker.name}</h3>
-                <p className="truncate text-xs text-muted-foreground" title={`${selectedMarker.manufacturer} ${selectedMarker.model}`}>
-                  {selectedMarker.manufacturer} {selectedMarker.model}
-                </p>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                      selectedSourceClasses.badge
-                    )}
-                  >
-                    {sourceConfig?.label}
-                  </span>
-                  {selectedMarker.team_name && (
-                    <span className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                      <Users className="h-2.5 w-2.5" />
-                      {selectedMarker.team_name}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Details */}
-            <div className="space-y-1.5 text-xs mb-3">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Serial:</span>
-                <span className="font-mono truncate ml-2 text-foreground">{selectedMarker.serial_number}</span>
-              </div>
-              {selectedMarker.working_hours != null && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />Hours:</span>
-                  <span className="text-foreground">{selectedMarker.working_hours.toLocaleString()}</span>
-                </div>
-              )}
-              {selectedMarker.last_maintenance && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground flex items-center gap-1"><Wrench className="h-3 w-3" />Maintenance:</span>
-                  <span className="text-foreground">{formatDate(selectedMarker.last_maintenance)}</span>
-                </div>
-              )}
-              {selectedMarker.formatted_address && (
-                <div className="pt-1">
-                  <ClickableAddress
-                    address={selectedMarker.formatted_address}
-                    lat={selectedMarker.lat}
-                    lng={selectedMarker.lng}
-                    className="text-xs"
-                  />
-                </div>
-              )}
-              {selectedMarker.location_updated_at && (
-                <div className="text-[10px] text-muted-foreground">
-                  Updated {getRelativeTime(selectedMarker.location_updated_at)}
-                </div>
-              )}
-            </div>
-
-            {/* Actions */}
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button
-                size="sm"
-                className="flex-1 min-h-11 text-sm sm:h-8 sm:min-h-0 sm:text-xs"
-                onClick={() => navigate(`/dashboard/equipment/${selectedMarker.id}`)}
-              >
-                <ExternalLink className="h-3 w-3 mr-1" />
-                Details
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="flex-1 min-h-11 text-sm sm:h-8 sm:min-h-0 sm:text-xs"
-                onClick={() => {
-                  window.open(buildGoogleMapsUrlFromCoords(selectedMarker.lat, selectedMarker.lng), '_blank');
-                }}
-              >
-                <Navigation className="h-3 w-3 mr-1" />
-                Directions
-              </Button>
-            </div>
-          </div>
-        </InfoWindow>
-      )}
 
       {/* Fit All button — bottom-left mirrors the legend on the right.
            Visible when the equipment panel is closed; behind the panel when open (z-20). */}

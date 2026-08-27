@@ -1,29 +1,91 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@vitest-harness/utils/test-utils';
+import { render, screen, fireEvent, within } from '@vitest-harness/utils/test-utils';
 import { MapView } from './MapView';
+
+const mapMountSpy = vi.fn();
+const mapUnmountSpy = vi.fn();
+let mapInstanceCounter = 0;
 
 // Mock @vis.gl/react-google-maps. The real package mounts a Google Maps
 // instance via the JS SDK which is not available (and not desirable) in
-// jsdom. We replace the components with thin passthroughs and useMap with
-// a stub that returns null so the auto-fit effect is a no-op.
-vi.mock('@vis.gl/react-google-maps', () => ({
-  APIProvider: ({ children }: { children: React.ReactNode }) => (
+// jsdom. This mock keeps the important contract for this bug: an InfoWindow
+// only renders when it is anchored to the clicked AdvancedMarker instance.
+vi.mock('@vis.gl/react-google-maps', async () => {
+  const React = await import('react');
+
+  const APIProvider = ({ children }: { children: React.ReactNode }) => (
     <div data-testid="api-provider">{children}</div>
-  ),
-  Map: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="google-map">{children}</div>
-  ),
-  AdvancedMarker: ({ children, onClick }: { children?: React.ReactNode; onClick?: () => void }) => (
-    <div data-testid="marker" onClick={onClick}>
+  );
+
+  const Map = ({ children }: { children: React.ReactNode }) => {
+    const instanceIdRef = React.useRef(`map-${++mapInstanceCounter}`);
+
+    React.useEffect(() => {
+      mapMountSpy(instanceIdRef.current);
+      return () => {
+        mapUnmountSpy(instanceIdRef.current);
+      };
+    }, []);
+
+    return (
+      <div data-testid="google-map" data-map-instance-id={instanceIdRef.current}>
+        {children}
+      </div>
+    );
+  };
+
+  const AdvancedMarker = React.forwardRef<
+    HTMLButtonElement,
+    { children?: React.ReactNode; onClick?: () => void; title?: string }
+  >(({ children, onClick, title }, ref) => (
+    <button
+      ref={ref}
+      type="button"
+      data-testid="marker"
+      aria-label={title ?? 'marker'}
+      onClick={onClick}
+    >
       {children}
-    </div>
-  ),
-  InfoWindow: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="info-window">{children}</div>
-  ),
-  useMap: vi.fn(() => null),
-}));
+    </button>
+  ));
+  AdvancedMarker.displayName = 'AdvancedMarker';
+
+  const InfoWindow = ({
+    anchor,
+    children,
+    onClose,
+  }: {
+    anchor?: unknown;
+    children: React.ReactNode;
+    onClose?: () => void;
+  }) => (
+    anchor ? (
+      <div data-testid="info-window">
+        <button type="button" aria-label="Close info window" onClick={onClose} />
+        {children}
+      </div>
+    ) : null
+  );
+
+  const useAdvancedMarkerRef = () => {
+    const [marker, setMarker] = React.useState<HTMLButtonElement | null>(null);
+    const ref = React.useCallback((node: HTMLButtonElement | null) => {
+      setMarker(node);
+    }, []);
+
+    return [ref, marker] as const;
+  };
+
+  return {
+    APIProvider,
+    Map,
+    AdvancedMarker,
+    InfoWindow,
+    useAdvancedMarkerRef,
+    useMap: vi.fn(() => null),
+  };
+});
 
 // Mock react-router-dom
 const mockNavigate = vi.fn();
@@ -116,8 +178,19 @@ describe('MapView', () => {
     },
   ];
 
+  const mockTeamHQLocations = [
+    {
+      id: 'team-1',
+      name: 'Heavy Equipment Team',
+      lat: 32.776664,
+      lng: -96.796988,
+      formatted_address: '123 Main St, Dallas, TX, United States',
+    },
+  ];
+
   beforeEach(() => {
     vi.clearAllMocks();
+    mapInstanceCounter = 0;
   });
 
   describe('Map Rendering', () => {
@@ -212,6 +285,39 @@ describe('MapView', () => {
       const markers = screen.queryAllByTestId('marker');
       expect(markers).toHaveLength(0);
     });
+
+    it('anchors equipment and HQ selection without remounting the map instance', () => {
+      render(
+        <MapView
+          googleMapsKey="test-api-key"
+          mapId="test-map-id"
+          equipmentLocations={mockEquipmentLocations}
+          filteredLocations={mockEquipmentLocations}
+          teamHQLocations={mockTeamHQLocations}
+        />
+      );
+
+      const initialMap = screen.getByTestId('google-map');
+      const initialMapInstanceId = initialMap.getAttribute('data-map-instance-id');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Equipment 1' }));
+      expect(screen.getByRole('button', { name: 'Details' })).toBeInTheDocument();
+      expect(screen.getByText('Equipment 1')).toBeInTheDocument();
+      expect(screen.getByTestId('google-map')).toHaveAttribute('data-map-instance-id', initialMapInstanceId);
+      expect(mapMountSpy).toHaveBeenCalledTimes(1);
+      expect(mapUnmountSpy).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Heavy Equipment Team' }));
+      const hqInfoWindow = screen.getAllByTestId('info-window').at(-1);
+      expect(screen.queryByRole('button', { name: 'Details' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'View Team' })).toBeInTheDocument();
+      expect(hqInfoWindow).toBeDefined();
+      expect(within(hqInfoWindow!).getByText('Team HQ')).toBeInTheDocument();
+      expect(within(hqInfoWindow!).getByText('Heavy Equipment Team')).toBeInTheDocument();
+      expect(screen.getByTestId('google-map')).toHaveAttribute('data-map-instance-id', initialMapInstanceId);
+      expect(mapMountSpy).toHaveBeenCalledTimes(1);
+      expect(mapUnmountSpy).not.toHaveBeenCalled();
+    });
   });
 
   describe('Source controls', () => {
@@ -222,41 +328,15 @@ describe('MapView', () => {
           mapId="test-map-id"
           equipmentLocations={mockEquipmentLocations}
           filteredLocations={mockEquipmentLocations}
+          teamHQLocations={mockTeamHQLocations}
           isMapsLoaded={true}
         />
       );
 
       expect(screen.getByText('Assigned Address')).toBeInTheDocument();
       expect(screen.getByText('QR Scan GPS')).toBeInTheDocument();
+      expect(screen.getByText('Team HQ')).toBeInTheDocument();
       expect(screen.getByLabelText('Filter map markers by location source')).toBeInTheDocument();
-    });
-  });
-
-  describe('Map Options', () => {
-    it('passes stable options object to Map across re-renders', () => {
-      const { rerender } = render(
-        <MapView
-          googleMapsKey="test-api-key"
-          mapId="test-map-id"
-          equipmentLocations={mockEquipmentLocations}
-          filteredLocations={mockEquipmentLocations}
-          isMapsLoaded={true}
-        />
-      );
-
-      // Rerender with same props
-      rerender(
-        <MapView
-          googleMapsKey="test-api-key"
-          mapId="test-map-id"
-          equipmentLocations={mockEquipmentLocations}
-          filteredLocations={mockEquipmentLocations}
-          isMapsLoaded={true}
-        />
-      );
-
-      // Component re-renders without errors and the Map is still in the DOM
-      expect(screen.getByTestId('google-map')).toBeInTheDocument();
     });
   });
 });
