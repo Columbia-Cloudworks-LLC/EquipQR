@@ -27,6 +27,7 @@ export const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
 export const PrivacyRequest = lazy(() => import('@/pages/PrivacyRequest'));
 export const DoNotSellOrShare = lazy(() => import('@/pages/DoNotSellOrShare'));
 export const Security = lazy(() => import('@/pages/Security'));
+export const NotFound = lazy(() => import('@/pages/NotFound'));
 export const Releases = lazy(() =>
   import('@/pages/Releases').then((module) => ({ default: module.Releases })),
 );

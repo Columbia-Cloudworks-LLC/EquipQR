@@ -11,24 +11,29 @@ describe('NotFound Page', () => {
     vi.clearAllMocks();
   });
 
-  it('renders 404 heading', () => {
+  it('renders page not found heading', () => {
     render(<NotFound />);
 
-    expect(screen.getByText('404')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Page not found', level: 1 })).toBeInTheDocument();
   });
 
-  it('renders page not found message', () => {
+  it('renders the missing path copy', () => {
     render(<NotFound />);
 
-    expect(screen.getByText('Oops! Page not found')).toBeInTheDocument();
+    expect(screen.getByText(/we couldn't find the public equipqr page at/i)).toBeInTheDocument();
+    expect(screen.getByText('/')).toBeInTheDocument();
   });
 
-  it('renders return to home link', () => {
+  it('renders return home and releases links', () => {
     render(<NotFound />);
 
-    const homeLink = screen.getByRole('link', { name: /return to home/i });
+    const homeLink = screen.getByRole('link', { name: /return home/i });
     expect(homeLink).toBeInTheDocument();
     expect(homeLink).toHaveAttribute('href', '/');
+
+    const releasesLink = screen.getByRole('link', { name: /view releases/i });
+    expect(releasesLink).toBeInTheDocument();
+    expect(releasesLink).toHaveAttribute('href', '/releases');
   });
 
   it('logs 404 error to console', () => {
