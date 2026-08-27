@@ -2679,8 +2679,8 @@ Update package dependencies and versions
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.29.1...HEAD
 [3.29.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.29.0...v3.29.1
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.29.1...HEAD
 [3.29.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.28.0...v3.29.0
 [3.28.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.27.0...v3.28.0
 [3.27.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.26.1...v3.27.0
