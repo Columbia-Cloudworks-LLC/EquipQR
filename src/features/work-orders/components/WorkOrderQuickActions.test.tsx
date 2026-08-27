@@ -29,6 +29,7 @@ describe('WorkOrderQuickActions', () => {
 
   it('shows delete menu item when admin can delete', async () => {
     const onDeleteClick = vi.fn();
+    const user = userEvent.setup({ delay: null });
     render(
       <WorkOrderQuickActions
         {...baseProps}
@@ -37,16 +38,24 @@ describe('WorkOrderQuickActions', () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Quick actions' }));
-    await userEvent.click(screen.getByRole('menuitem', { name: /delete work order/i }));
+    await user.click(screen.getByRole('button', { name: 'Quick actions' }));
+
+    const menu = screen.getByRole('menu');
+    const deleteItem = screen.getByRole('menuitem', { name: /delete work order/i });
+
+    expect(menu.lastElementChild).toBe(deleteItem);
+    expect(deleteItem.previousElementSibling).toHaveAttribute('role', 'separator');
+
+    await user.click(deleteItem);
 
     expect(onDeleteClick).toHaveBeenCalledTimes(1);
   });
 
   it('hides delete menu item when canDelete is false', async () => {
+    const user = userEvent.setup({ delay: null });
     render(<WorkOrderQuickActions {...baseProps} />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Quick actions' }));
+    await user.click(screen.getByRole('button', { name: 'Quick actions' }));
 
     expect(screen.queryByRole('menuitem', { name: /delete work order/i })).not.toBeInTheDocument();
   });

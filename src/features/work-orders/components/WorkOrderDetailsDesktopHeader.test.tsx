@@ -169,16 +169,27 @@ describe('WorkOrderDetailsDesktopHeader', () => {
     expect(screen.getByText('WO-WO-1')).toBeInTheDocument();
   });
 
-  it('shows grouped export submenus for managers without delete in export menu', async () => {
-    const user = userEvent.setup();
+  it('keeps Export as the header button and moves delete to the end of the dropdown for owners/admins', async () => {
+    const user = userEvent.setup({ delay: null });
     render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
+
+    expect(screen.getByRole('button', { name: 'Export' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /delete work order/i })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Export' }));
 
+    const menu = screen.getByRole('menu');
+    const deleteItem = screen.getByRole('menuitem', { name: /delete work order/i });
+
     expect(screen.getByText('Download')).toBeInTheDocument();
     expect(screen.getByText('Google Drive')).toBeInTheDocument();
-    expect(screen.queryByText('Delete Work Order')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Delete work order', hidden: true })).toBeInTheDocument();
+    expect(menu.lastElementChild).toBe(deleteItem);
+    expect(deleteItem.previousElementSibling).toHaveAttribute('role', 'separator');
+
+    await user.click(deleteItem);
+
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /delete permanently/i })).toBeInTheDocument();
   });
 
   it('hides admin exports when exportAudience is none', () => {
@@ -261,14 +272,75 @@ describe('WorkOrderDetailsDesktopHeader', () => {
     expect(screen.queryByText('QuickBooks')).not.toBeInTheDocument();
   });
 
-  it('hides Delete when user is not owner or admin', () => {
+  it('shows an Actions trigger when delete is the only available action', async () => {
+    const user = userEvent.setup({ delay: null });
+    render(
+      <WorkOrderDetailsDesktopHeader
+        {...baseProps}
+        permissionLevels={{
+          ...baseProps.permissionLevels,
+          isManager: false,
+          exportAudience: 'none',
+        }}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Actions' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /delete work order/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Actions' }));
+
+    expect(screen.getByRole('menuitem', { name: /delete work order/i })).toBeInTheDocument();
+    expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+  });
+
+  it('keeps delete out of the desktop header and menu for technicians', async () => {
+    const user = userEvent.setup({ delay: null });
     mockUseUnifiedPermissions.mockReturnValue({
       hasRole: vi.fn(() => false),
     });
 
-    render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
+    render(
+      <WorkOrderDetailsDesktopHeader
+        {...baseProps}
+        permissionLevels={{
+          ...baseProps.permissionLevels,
+          isManager: false,
+          isTechnician: true,
+          exportAudience: 'customer-safe',
+        }}
+      />,
+    );
 
-    expect(screen.queryByRole('button', { name: 'Delete work order' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /delete work order/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Export' }));
+
+    expect(screen.queryByRole('menuitem', { name: /delete work order/i })).not.toBeInTheDocument();
+  });
+
+  it('keeps delete out of the desktop header and menu for viewers', async () => {
+    const user = userEvent.setup({ delay: null });
+    mockUseUnifiedPermissions.mockReturnValue({
+      hasRole: vi.fn(() => false),
+    });
+
+    render(
+      <WorkOrderDetailsDesktopHeader
+        {...baseProps}
+        permissionLevels={{
+          ...baseProps.permissionLevels,
+          isManager: false,
+          exportAudience: 'customer-safe',
+        }}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: /delete work order/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Export' }));
+
+    expect(screen.queryByRole('menuitem', { name: /delete work order/i })).not.toBeInTheDocument();
   });
 
   it('hides the entire actions menu when no sections are visible', () => {
