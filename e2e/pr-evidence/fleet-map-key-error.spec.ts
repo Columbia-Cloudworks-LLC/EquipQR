@@ -1,10 +1,6 @@
-import { test, expect, quickLogin } from '../user/fixtures/equipqr-test';
+import { test, expect } from '../user/fixtures/equipqr-test';
 import { evidencePause, evidenceScreenshot } from './shared/evidence-helpers';
-import {
-  ensureCookieConsentAccepted,
-  gotoDashboardRoute,
-  pinContextToApex,
-} from '../user/shared/auth-helpers';
+import { pinContextToApex } from '../user/shared/auth-helpers';
 
 const GOOGLE_MAPS_KEY_ROUTE = '**/functions/v1/public-google-maps-key';
 
@@ -12,6 +8,7 @@ test.describe('Fleet map key failure @pr-evidence', () => {
   test('captures the signed error card without a secret-named toast', async ({
     page,
     assertHealthyShell,
+    gotoDashboard,
   }) => {
     await pinContextToApex(page.context());
 
@@ -25,9 +22,7 @@ test.describe('Fleet map key failure @pr-evidence', () => {
       });
     });
 
-    await quickLogin(page, 'owner');
-    await ensureCookieConsentAccepted(page);
-    await gotoDashboardRoute(page, '/fleet-map');
+    await gotoDashboard('/fleet-map');
     await assertHealthyShell();
 
     const tryAgainButton = page.getByRole('button', { name: /try again/i });
