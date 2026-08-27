@@ -68,6 +68,24 @@ const mockTemplates = [
     itemCount: pmFixtures.forklift.itemCount,
   },
   {
+    id: 'template-compact-excavator',
+    name: 'Compact Excavator PM',
+    description: 'Protected starter template for compact excavators',
+    is_protected: true,
+    organization_id: null,
+    sections: pmFixtures.forklift.sections,
+    itemCount: pmFixtures.forklift.itemCount,
+  },
+  {
+    id: 'template-excavator',
+    name: 'Excavator PM',
+    description: 'Protected starter template for excavators',
+    is_protected: true,
+    organization_id: null,
+    sections: pmFixtures.forklift.sections,
+    itemCount: pmFixtures.forklift.itemCount,
+  },
+  {
     id: pmFixtures.customOrgTemplate.id,
     name: pmFixtures.customOrgTemplate.name,
     description: pmFixtures.customOrgTemplate.description,
@@ -409,15 +427,38 @@ describe('PMTemplates Page', () => {
         </TestProviders>
       );
 
-      expect(screen.getByText(pmFixtures.forklift.name)).toBeInTheDocument();
-      expect(screen.getByText(pmFixtures.forklift.description)).toBeInTheDocument();
+      const forkliftCard = screen.getByLabelText(`Open details for template ${pmFixtures.forklift.name}`);
+
+      expect(within(forkliftCard).getByText(pmFixtures.forklift.name)).toBeInTheDocument();
+      expect(within(forkliftCard).getByText(pmFixtures.forklift.description)).toBeInTheDocument();
       expect(
-        screen.getByText(
+        within(forkliftCard).getByText(
           `${pmFixtures.forklift.sections.length} sections · ${pmFixtures.forklift.itemCount} items`,
         ),
       ).toBeInTheDocument();
-      expect(screen.getByText('EquipQR')).toBeInTheDocument();
-      expect(screen.getByText('Protected')).toBeInTheDocument();
+      expect(within(forkliftCard).getByText('EquipQR')).toBeInTheDocument();
+      expect(within(forkliftCard).getByText('Protected')).toBeInTheDocument();
+    });
+
+    it('keeps protected EquipQR starter titles readable when badges are present', () => {
+      render(
+        <TestProviders>
+          <PMTemplates />
+        </TestProviders>
+      );
+
+      for (const templateName of ['Forklift PM Checklist', 'Compact Excavator PM', 'Excavator PM']) {
+        const cardHeader = screen.getByLabelText(`Open details for template ${templateName}`);
+        const title = within(cardHeader).getByText(templateName);
+
+        expect(title).toBeInTheDocument();
+        expect(title).toHaveClass('line-clamp-2');
+
+        const badgeRow = title.nextElementSibling;
+        expect(badgeRow).not.toBeNull();
+        expect(badgeRow).toHaveTextContent('EquipQR');
+        expect(badgeRow).toHaveTextContent('Protected');
+      }
     });
   });
 
@@ -433,7 +474,7 @@ describe('PMTemplates Page', () => {
       expect(
         screen.getByTestId(`assignment-menu-${pmFixtures.customOrgTemplate.id}`),
       ).toBeInTheDocument();
-      expect(screen.getByText('Ready to use — assign directly, no clone needed')).toBeInTheDocument();
+      expect(screen.getAllByText('Ready to use — assign directly, no clone needed')).toHaveLength(3);
     });
 
     it('handles Clone template button click', async () => {
