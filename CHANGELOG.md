@@ -11,6 +11,12 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+## [3.29.1] - 2026-08-26
+
+### Fixed
+
+- **Production promote verification follows the serving build** — Release Readiness now verifies the production deployment created by `vercel promote`, so successful promotes and same-SHA reruns no longer stop before Edge Function deploy.
+
 ## [3.29.0] - 2026-08-23
 
 ### Added
@@ -2673,7 +2679,8 @@ Update package dependencies and versions
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.29.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.29.1...HEAD
+[3.29.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.29.0...v3.29.1
 [3.29.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.28.0...v3.29.0
 [3.28.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.27.0...v3.28.0
 [3.27.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.26.1...v3.27.0
