@@ -79,17 +79,17 @@ async function handle(req: Request, ctx: RequestContext): Promise<Response> {
     const supabase = createUserSupabaseClient(req);
     const auth = await requireUser(req, supabase);
     if ("error" in auth) {
-      return createErrorResponse(auth.error, auth.status);
+      return createErrorResponse(auth.error, auth.status, { req });
     }
 
     logStep("User authenticated", ctx.correlationId, { userId: auth.user.id });
     logStep("Successfully returning API key", ctx.correlationId, { hasMapId: !!mapId });
-    return createJsonResponse({ key: browserKey, mapId });
+    return createJsonResponse({ key: browserKey, mapId }, 200, { req });
   } catch (error) {
     if (error instanceof MissingSecretError) {
       // Structured MISSING_REQUIRED_SECRET log already emitted by the
       // helper. createErrorResponse forces the generic client message.
-      return createErrorResponse(error, 500);
+      return createErrorResponse(error, 500, { req });
     }
     console.error(
       JSON.stringify({
@@ -99,7 +99,7 @@ async function handle(req: Request, ctx: RequestContext): Promise<Response> {
         message: error instanceof Error ? error.message : String(error),
       }),
     );
-    return createErrorResponse("An unexpected error occurred", 500);
+    return createErrorResponse("An unexpected error occurred", 500, { req });
   }
 }
 
