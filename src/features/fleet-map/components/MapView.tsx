@@ -701,6 +701,7 @@ export const MapView: React.FC<MapViewProps> = ({
   focusEquipmentId,
   onMarkerClick,
 }) => {
+  const totalMarkerCount = filteredLocations.length + teamHQLocations.length;
   const [mapsAuthError, setMapsAuthError] = useState<MapsAuthFailure | null>(null);
 
   // Install Google Maps' documented auth-failure hook so we can swap in a
