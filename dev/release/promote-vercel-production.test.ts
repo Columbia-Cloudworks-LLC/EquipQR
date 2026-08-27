@@ -1,22 +1,28 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { evaluateProductionDeployment, pickProductionDeployment, verifyProductionDeployment } from '@/dev/release/promote-vercel-production.mjs';
+import {
+  evaluateProductionDeployment,
+  pickProductionDeployment,
+  verifyProductionDeployment,
+} from '@/dev/release/promote-vercel-production.mjs';
 
 const CURRENT_SHA = '74caa4bab501458e80117b7eef0a91ed4f79552e';
 const PREVIOUS_SHA = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
+type DeploymentMetaFixture = Record<string, unknown> & {
+  githubCommitSha: string;
+  githubCommitRef: string;
+};
+
 // Mirrors the Vercel deployment fields exercised by the production verifier helpers.
-type DeploymentFixture = Record<string, unknown> & {
+interface DeploymentFixture extends Record<string, unknown> {
   uid: string;
   url: string;
   createdAt: number;
   target: string | null;
   readyState: string;
-  meta: Record<string, unknown> & {
-    githubCommitSha: string;
-    githubCommitRef: string;
-  };
-};
+  meta: DeploymentMetaFixture;
+}
 
 function makeDeployment(overrides: Record<string, unknown> = {}): DeploymentFixture {
   const metaOverrides =
