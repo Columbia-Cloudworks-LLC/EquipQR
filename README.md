@@ -4,7 +4,7 @@
 
 <a href="https://equipqr.app"><img src="public/images/brand/icons/EquipQR-Icon-Purple-Medium.png" alt="EquipQR™ Logo" width="150" /></a>
 
-![Version](https://img.shields.io/badge/version-3.29.1-blue?style=for-the-badge)
+[![Version](https://img.shields.io/badge/version-3.29.1-blue?style=for-the-badge)](https://github.com/Columbia-Cloudworks-LLC/EquipQR/releases)
 
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)

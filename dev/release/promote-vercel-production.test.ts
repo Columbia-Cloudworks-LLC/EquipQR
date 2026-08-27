@@ -9,6 +9,7 @@ import {
 const CURRENT_SHA = '74caa4bab501458e80117b7eef0a91ed4f79552e';
 const PREVIOUS_SHA = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
+// Mirrors the Vercel deployment fields exercised by the production verifier helpers.
 type DeploymentFixture = Record<string, unknown> & {
   uid: string;
   url: string;
