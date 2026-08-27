@@ -25,7 +25,6 @@ import PageHeader from '@/components/layout/PageHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSelectedTeam } from '@/hooks/useSelectedTeam';
 import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
-import { writeDebugLog } from '@/lib/devDebugLog';
 
 const FleetMap: React.FC = () => {
   const {
@@ -138,61 +137,6 @@ const FleetMap: React.FC = () => {
       setHasCompletedInitialLoad(true);
     }
   }, [hasFirstPaintInputs]);
-
-  useEffect(() => {
-    // #region agent log
-    writeDebugLog({
-      hypothesisId: 'D',
-      location: 'src/features/fleet-map/pages/FleetMap.tsx:136',
-      message: 'FleetMap lifecycle',
-      data: {
-        phase: 'mount',
-        selectedTeamId: selectedTeamId ?? 'all',
-      },
-      timestamp: Date.now(),
-    });
-    // #endregion
-    return () => {
-      // #region agent log
-      writeDebugLog({
-        hypothesisId: 'D',
-        location: 'src/features/fleet-map/pages/FleetMap.tsx:147',
-        message: 'FleetMap lifecycle',
-        data: {
-          phase: 'unmount',
-        },
-        timestamp: Date.now(),
-      });
-      // #endregion
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    // #region agent log
-    writeDebugLog({
-      hypothesisId: 'D',
-      location: 'src/features/fleet-map/pages/FleetMap.tsx:161',
-      message: 'FleetMap view state',
-      data: {
-        viewState,
-        mapsKeyLoading,
-        teamFleetLoading,
-        hasCompletedInitialLoad,
-        hasGoogleMapsKey: Boolean(googleMapsKey),
-        hasTeamFleetData: teamFleetData != null,
-      },
-      timestamp: Date.now(),
-    });
-    // #endregion
-  }, [
-    googleMapsKey,
-    hasCompletedInitialLoad,
-    mapsKeyLoading,
-    teamFleetData,
-    teamFleetLoading,
-    viewState,
-  ]);
 
   // Handle equipment select from panel
   const handleEquipmentSelect = (id: string) => {
