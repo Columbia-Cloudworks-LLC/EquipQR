@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 interface GoogleMapsKeyResponse {
   key?: string;
@@ -148,10 +147,6 @@ export const useGoogleMapsKey = (options: UseGoogleMapsKeyOptions = {}): UseGoog
         fetchError instanceof Error ? fetchError.message : 'Failed to fetch Google Maps key';
       console.error('[FleetMap] Failed to fetch Google Maps key:', fetchError);
       setError(errorMessage);
-
-      toast.error('Map Configuration Error', {
-        description: `${errorMessage}. Check that the GOOGLE_MAPS_BROWSER_KEY secret is configured on the Supabase project (legacy: VITE_GOOGLE_MAPS_BROWSER_KEY).`,
-      });
     } finally {
       inFlightRef.current = false;
       setIsLoading(false);

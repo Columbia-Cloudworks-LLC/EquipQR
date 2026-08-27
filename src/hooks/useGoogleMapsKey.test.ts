@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { toast } from 'sonner';
 import {
   GOOGLE_MAPS_AUTH_REQUIRED_MESSAGE,
   invokePublicGoogleMapsKey,
@@ -190,6 +191,29 @@ describe('useGoogleMapsKey', () => {
       expect(result.current.mapId).toBe('map-id');
       expect(result.current.error).toBeNull();
     });
+  });
+
+  it('sets the invoke failure on error state without toasting secret names', async () => {
+    installAuthListenerWithInitialSession();
+    mockGetSession.mockResolvedValue({
+      data: { session: validSession },
+      error: null,
+    });
+    mockFunctionsInvoke.mockResolvedValue({
+      data: null,
+      error: { message: 'upstream blew up' },
+    });
+
+    const { result } = renderHook(() => useGoogleMapsKey());
+
+    await waitFor(() => {
+      expect(result.current.error).toBe('Edge function failed: upstream blew up');
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.googleMapsKey).toBe('');
+    expect(result.current.mapId).toBeNull();
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
   it('dedupes concurrent fetch schedules when multiple auth events race', async () => {
