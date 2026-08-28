@@ -1,6 +1,7 @@
 import { test, expect, quickLogin, type Locator, type Page } from '../user/fixtures/equipqr-test';
 import { pinContextToOrg } from '../user/shared/auth-helpers';
-import { apexOrgId, seedWorkOrders } from '../user/shared/seed-data';
+import { apexOrgId, seedEquipment } from '../user/shared/seed-data';
+import { fillWorkOrderBasics } from '../user/shared/ui-form-helpers';
 import { evidencePause, evidenceScreenshot } from './shared/evidence-helpers';
 
 const MOBILE_USER_AGENT =
@@ -31,15 +32,29 @@ test.describe('Mobile work order PM action FAB clearance @pr-evidence', () => {
     }
 
     await quickLogin(page, 'technician');
-    await gotoDashboard(`/dashboard/work-orders/${seedWorkOrders.oilChange.id}`);
-    await assertHealthyShell();
+    const title = `Mobile FAB PM ${Date.now()}`;
+
+    await gotoDashboard(`/equipment/${seedEquipment.cat320.id}?createWorkOrder=1`);
+    const dialog = page.getByRole('dialog', { name: /create work order/i });
+    await expect(dialog).toBeVisible({ timeout: 30_000 });
+    await fillWorkOrderBasics(dialog, {
+      title,
+      description: 'Preview PM/FAB clearance verification',
+    });
+    await dialog.getByRole('button', { name: /create work order/i }).click();
+
+    const confirmHours = page.getByRole('button', { name: /yes, create without hours/i });
+    if (await confirmHours.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      await confirmHours.click();
+    }
 
     const addPmButton = page.getByRole('button', { name: /add pm checklist/i });
     const quickActionsFab = page.getByRole('button', { name: /open work order quick actions/i });
 
     await expect(
-      page.getByRole('heading', { name: new RegExp(seedWorkOrders.oilChange.title, 'i') }).first(),
+      page.getByRole('heading', { name: new RegExp(title, 'i') }).first(),
     ).toBeVisible({ timeout: 60_000 });
+    await assertHealthyShell();
     await expect(addPmButton).toBeVisible({ timeout: 30_000 });
     await expect(quickActionsFab).toBeVisible({ timeout: 30_000 });
 
