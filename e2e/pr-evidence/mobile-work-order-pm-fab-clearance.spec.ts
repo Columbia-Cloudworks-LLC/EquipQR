@@ -224,12 +224,12 @@ async function openTechnicianWorkOrderWithAddPm(
   await expect(page.getByRole('heading', { name: /^work orders$/i })).toBeVisible({ timeout: 60_000 });
 
   for (const titlePattern of PM_BUTTON_WORK_ORDER_TITLES) {
-    const cardHeading = page.getByRole('heading', { name: titlePattern }).first();
-    if (!(await cardHeading.isVisible({ timeout: 2_000 }).catch(() => false))) {
+    const workOrderCard = page.getByRole('button', { name: titlePattern }).first();
+    if (!(await workOrderCard.isVisible({ timeout: 2_000 }).catch(() => false))) {
       continue;
     }
 
-    await cardHeading.locator('xpath=ancestor::button[1]').click();
+    await workOrderCard.click();
 
     const addPmButton = page.getByRole('button', { name: /add pm checklist/i });
     if (await addPmButton.isVisible({ timeout: 8_000 }).catch(() => false)) {
