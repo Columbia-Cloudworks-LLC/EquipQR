@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 
 import { WorkOrderPMManagementActions } from './WorkOrderPMManagementActions';
 
@@ -13,12 +13,19 @@ describe('WorkOrderPMManagementActions', () => {
     expect(screen.queryByRole('button', { name: /manage pm template/i })).not.toBeInTheDocument();
   });
 
-  it('shows Add PM Checklist when PM can be attached', () => {
-    render(<WorkOrderPMManagementActions canManage={true} hasPm={false} onManage={vi.fn()} />);
+  it('left-aligns the mobile PM action clear of the FAB lane while preserving desktop end alignment', () => {
+    const onManage = vi.fn();
+    render(<WorkOrderPMManagementActions canManage={true} hasPm={false} onManage={onManage} />);
 
     const button = screen.getByRole('button', { name: /add pm checklist/i });
     expect(button).toBeInTheDocument();
+    expect(button.parentElement).toHaveClass('justify-start');
+    expect(button.parentElement).toHaveClass('md:justify-end');
     expect(button.parentElement).toHaveClass('pr-12');
+    expect(button.parentElement).toHaveClass('md:pr-0');
+
+    fireEvent.click(button);
+    expect(onManage).toHaveBeenCalledTimes(1);
   });
 
   it('shows Manage PM Template when a checklist already exists', () => {
