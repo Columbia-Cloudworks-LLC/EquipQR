@@ -1,5 +1,14 @@
 
 import React, { useState } from 'react';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +19,7 @@ import { TeamWithMembers } from '@/features/teams/services/teamService';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTeamMembers } from '@/features/teams/hooks/useTeamManagement';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { logger } from '@/utils/logger';
 import RoleChangeDialog from './RoleChangeDialog';
 
 interface TeamMembersListProps {
@@ -23,6 +33,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
   const { removeMember } = useTeamMembers(team.id, currentOrganization?.id);
   const [showRoleDialog, setShowRoleDialog] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMemberWithProfile | null>(null);
+  const [memberPendingRemoval, setMemberPendingRemoval] = useState<TeamMemberWithProfile | null>(null);
   const { canManageTeam } = usePermissions();
   
   const canManage = canManageTeam(team.id);
@@ -62,24 +73,33 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
     setShowRoleDialog(true);
   };
 
-  const handleRemoveMember = async (member: TeamMemberWithProfile) => {
-    const memberName = member.profiles?.name || 'this member';
-    const confirmed = window.confirm(`Are you sure you want to remove ${memberName} from the team?`);
-    
-    if (!confirmed) return;
+  const handleRequestRemoveMember = (member: TeamMemberWithProfile) => {
+    setMemberPendingRemoval(member);
+  };
+
+  const handleRemoveDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      setMemberPendingRemoval(null);
+    }
+  };
+
+  const handleConfirmRemoveMember = async () => {
+    if (!memberPendingRemoval) return;
 
     try {
       await removeMember.mutateAsync({
         teamId: team.id,
-        userId: member.user_id
+        userId: memberPendingRemoval.user_id
       });
+      setMemberPendingRemoval(null);
     } catch (error) {
-      console.error('Failed to remove member:', error);
+      logger.error('Failed to remove member from team', error);
     }
   };
 
   // Ensure members array exists and has the expected structure
   const members = team.members || [];
+  const pendingRemovalName = memberPendingRemoval?.profiles?.name || 'this member';
 
   return (
     <div className="space-y-4">
@@ -142,7 +162,11 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        aria-label={`Actions for ${member.profiles?.name || 'team member'}`}
+                      >
                         <Settings className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -155,7 +179,7 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
                         Change Role
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => handleRemoveMember(member)}
+                        onSelect={() => handleRequestRemoveMember(member)}
                         className="flex items-center gap-2 text-destructive"
                         disabled={removeMember.isPending}
                       >
@@ -187,6 +211,42 @@ const TeamMembersList: React.FC<TeamMembersListProps> = ({ team }) => {
         member={selectedMember}
         team={team}
       />
+
+      <AlertDialog
+        open={memberPendingRemoval !== null}
+        onOpenChange={handleRemoveDialogOpenChange}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove member from team?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  Remove <strong>{pendingRemovalName}</strong> from{' '}
+                  <strong>{team.name}</strong>?
+                </p>
+                <p>
+                  This only removes their membership from this team. Their
+                  organization access stays unchanged.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={removeMember.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={removeMember.isPending}
+              onClick={handleConfirmRemoveMember}
+            >
+              {removeMember.isPending ? 'Removing...' : 'Remove from Team'}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
