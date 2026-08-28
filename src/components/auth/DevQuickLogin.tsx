@@ -55,41 +55,64 @@ export const DEV_USERS = [
   },
 ] as const;
 
+type DevQuickLoginUser = (typeof DEV_USERS)[number];
+type DevQuickLoginGroup = {
+  label: string;
+  users: readonly DevQuickLoginUser[];
+};
+
+const USER_GROUP_DEFINITIONS = [
+  { label: 'Apex Construction (Premium)', org: 'Apex Construction' },
+  { label: 'Metro Equipment (Premium)', org: 'Metro Equipment' },
+  { label: 'Valley Landscaping (Free Tier)', org: 'Valley Landscaping (Free)' },
+  { label: 'Industrial Rentals (Premium)', org: 'Industrial Rentals' },
+  { label: 'Fresh Start (Onboarding)', org: 'Fresh Start Equipment' },
+  { label: 'Multi-Org Testing', org: 'ALL Organizations' },
+  { label: 'Invitation Signup (E2E)', org: 'Invitee Personal Workspace' },
+] as const satisfies ReadonlyArray<{
+  label: string;
+  org: DevQuickLoginUser['org'];
+}>;
+
+const PREVIEW_QA_USER_EMAILS = new Set([
+  'owner@apex.test',
+  'tech@apex.test',
+  'viewer@apex.test',
+  'owner@metro.test',
+] as const);
+
+const buildUserGroups = (users: readonly DevQuickLoginUser[]): DevQuickLoginGroup[] =>
+  USER_GROUP_DEFINITIONS.map(({ label, org }) => ({
+    label,
+    users: users.filter((user) => user.org === org),
+  })).filter((group) => group.users.length > 0);
+
 // Use env var if available, fallback to default for convenience
 // In .env.local: VITE_DEV_TEST_PASSWORD=password123
 const DEV_PASSWORD = import.meta.env.VITE_DEV_TEST_PASSWORD ?? 'password123';
 
-// Group users by organization for the dropdown
-export const USER_GROUPS = [
-  {
-    label: 'Apex Construction (Premium)',
-    users: DEV_USERS.filter((u) => u.org === 'Apex Construction'),
-  },
-  {
-    label: 'Metro Equipment (Premium)',
-    users: DEV_USERS.filter((u) => u.org === 'Metro Equipment'),
-  },
-  {
-    label: 'Valley Landscaping (Free Tier)',
-    users: DEV_USERS.filter((u) => u.org === 'Valley Landscaping (Free)'),
-  },
-  {
-    label: 'Industrial Rentals (Premium)',
-    users: DEV_USERS.filter((u) => u.org === 'Industrial Rentals'),
-  },
-  {
-    label: 'Fresh Start (Onboarding)',
-    users: DEV_USERS.filter((u) => u.org === 'Fresh Start Equipment'),
-  },
-  {
-    label: 'Multi-Org Testing',
-    users: DEV_USERS.filter((u) => u.org === 'ALL Organizations'),
-  },
-  {
-    label: 'Invitation Signup (E2E)',
-    users: DEV_USERS.filter((u) => u.org === 'Invitee Personal Workspace'),
-  },
-];
+// Group users by organization for the dropdown.
+export const USER_GROUPS = buildUserGroups(DEV_USERS);
+
+export const PREVIEW_QA_USERS = DEV_USERS.filter(
+  (user) => PREVIEW_QA_USER_EMAILS.has(user.email) && user.role !== 'Member'
+);
+
+export const PREVIEW_QA_USER_GROUPS = buildUserGroups(PREVIEW_QA_USERS);
+
+export const getQuickLoginUserGroups = ({
+  isDev,
+  isPreviewQuickLoginEnabled,
+}: {
+  isDev: boolean;
+  isPreviewQuickLoginEnabled: boolean;
+}): DevQuickLoginGroup[] => {
+  if (!isDev && isPreviewQuickLoginEnabled) {
+    return PREVIEW_QA_USER_GROUPS;
+  }
+
+  return USER_GROUPS;
+};
 
 const DEV_QUICK_LOGIN_ENABLED =
   import.meta.env.DEV || import.meta.env.VITE_PREVIEW_QUICK_LOGIN === 'true';
@@ -109,6 +132,11 @@ const DevQuickLogin: React.FC<DevQuickLoginProps> = ({ onAuthFailure }) => {
   const [selectedEmail, setSelectedEmail] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const userGroups = getQuickLoginUserGroups({
+    isDev: import.meta.env.DEV,
+    isPreviewQuickLoginEnabled: import.meta.env.VITE_PREVIEW_QUICK_LOGIN === 'true',
+  });
+  const visibleUsers = userGroups.flatMap((group) => group.users);
 
   if (!DEV_QUICK_LOGIN_ENABLED) {
     return null;
@@ -142,7 +170,7 @@ const DevQuickLogin: React.FC<DevQuickLoginProps> = ({ onAuthFailure }) => {
     }
   };
 
-  const selectedUser = DEV_USERS.find((u) => u.email === selectedEmail);
+  const selectedUser = visibleUsers.find((user) => user.email === selectedEmail);
 
   return (
     <div className="rounded-lg border-2 border-dashed border-warning/50 bg-warning/10 p-4 dark:border-warning/50 dark:bg-warning/15">
@@ -157,7 +185,7 @@ const DevQuickLogin: React.FC<DevQuickLoginProps> = ({ onAuthFailure }) => {
             <SelectValue placeholder="Select a test account..." />
           </SelectTrigger>
           <SelectContent>
-            {USER_GROUPS.map((group) => (
+            {userGroups.map((group) => (
               <SelectGroup key={group.label}>
                 <SelectLabel>{group.label}</SelectLabel>
                 {group.users.map((user) => (
