@@ -52,7 +52,7 @@ describe('cloud-agent seed-quick-login helpers', () => {
         expect.objectContaining({ email: 'owner@apex.test', role: 'owner' }),
         expect.objectContaining({ email: 'admin@apex.test', role: 'admin' }),
         expect.objectContaining({ email: 'tech@apex.test', role: 'member' }),
-        expect.objectContaining({ email: 'viewer@apex.test', role: 'viewer' }),
+        expect.objectContaining({ email: 'viewer@apex.test', role: 'member' }),
       ]),
     );
     expect(apex?.teamMemberships).toEqual(

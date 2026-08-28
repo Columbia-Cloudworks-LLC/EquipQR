@@ -485,7 +485,7 @@ export const CLOUD_AGENT_SHARED_ORG_FIXTURES = [
       { email: 'owner@apex.test', role: 'owner', joinedDate: '2024-01-01T00:00:00.000Z' },
       { email: 'admin@apex.test', role: 'admin', joinedDate: '2024-01-02T00:00:00.000Z' },
       { email: 'tech@apex.test', role: 'member', joinedDate: '2024-01-03T00:00:00.000Z' },
-      { email: 'viewer@apex.test', role: 'viewer', joinedDate: '2024-01-04T00:00:00.000Z' },
+      { email: 'viewer@apex.test', role: 'member', joinedDate: '2024-01-04T00:00:00.000Z' },
     ],
     teamMemberships: [
       { email: 'owner@apex.test', role: 'manager', joinedDate: '2024-01-01T00:00:00.000Z' },
