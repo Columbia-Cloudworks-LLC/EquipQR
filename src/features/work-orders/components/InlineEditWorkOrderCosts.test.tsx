@@ -99,6 +99,30 @@ describe('InlineEditWorkOrderCosts inventory RBAC gating', () => {
     mockUseIsMobile.mockReturnValue(false);
   });
 
+  it('keeps viewers in read-only mode without cost, inventory, or labor controls', () => {
+    mockUseInventoryAccess.mockReturnValue({
+      canView: false,
+      canEdit: false,
+      isPartsManager: false,
+      isPartsConsumer: false,
+      isLoading: false,
+    });
+
+    render(
+      <InlineEditWorkOrderCosts
+        costs={[]}
+        workOrderId="wo-1"
+        equipmentIds={['eq-1']}
+        canEdit={false}
+      />,
+    );
+
+    expect(screen.getByText(/no costs recorded/i)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /add cost/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /add labor/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /add from inventory/i })).not.toBeInTheDocument();
+  });
+
   it('shows Add from Inventory when the user has inventory view access', async () => {
     mockUseInventoryAccess.mockReturnValue({
       canView: true,
