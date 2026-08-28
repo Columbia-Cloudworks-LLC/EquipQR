@@ -6,17 +6,34 @@
 
 | Surface | Database |
 |---------|----------|
-| **`preview.equipqr.app`** / **`equipqr.app`** | **Production** Supabase (`https://supabase.equipqr.app`). No perpetual preview DB. |
+| **`preview.equipqr.app`** / **`equipqr.app`** | **Current live:** production Supabase (`https://supabase.equipqr.app`). **Approved target:** move `preview.equipqr.app` to a new persistent dataless branch per [preview-persistent-branch.md](./preview-persistent-branch.md). |
 | **PR touching `supabase/**`** | **Ephemeral** Supabase branch for schema/RLS validation only; deleted when the PR closes. |
 | **Cursor Cloud Agent sessions** | **Per-session** ephemeral branch + cloud-safe Quick Login seed (not Docker-local Supabase). See [cloud-agent-ephemeral-stack.md](./cloud-agent-ephemeral-stack.md). |
 
-Do not assume `preview.equipqr.app` uses a separate long-lived Supabase project. Ordinary (non-schema) QA on that hostname hits production data APIs; exercise risky OAuth/integration paths on the **local stack** before merge.
+Do not assume the persistent preview branch cutover has already happened. Today,
+ordinary (non-schema) QA on `preview.equipqr.app` still hits production data
+APIs. The approved replacement is a new long-lived dataless branch documented in
+[preview-persistent-branch.md](./preview-persistent-branch.md). Exercise risky
+OAuth/integration paths on the **local stack** before merge until that cutover
+lands.
 
 ## What it is
 
-Supabase Database Branching creates a separate, isolated Supabase instance (its own Postgres, its own API, its own auth, its own anon key) per PR. When a PR is opened that touches database schema, Supabase clones the production schema into a new branch, runs the PR's migrations against that branch, and exposes a unique URL + anon key for the branch. When the PR closes (merged or not), the branch is auto-deleted.
+Supabase Database Branching creates a separate, isolated Supabase instance (its
+own Postgres, its own API, its own auth, its own anon key) per PR. When a PR is
+opened that touches database schema, Supabase clones the production schema into
+a new branch, runs the PR's migrations against that branch, and exposes a
+unique URL + anon key for the branch. When the PR closes (merged or not), the
+branch is auto-deleted.
 
-The point: schema migrations are validated against a real Postgres instance — not just locally — before they land on git **`preview`** (and later promote to `main`). This catches Postgres-version drift, RLS-policy interaction bugs, and migration ordering issues that local `supabase db reset` cannot reproduce.
+The point: schema migrations are validated against a real Postgres instance —
+not just locally — before they land on git **`preview`** (and later promote to
+`main`). This catches Postgres-version drift, RLS-policy interaction bugs, and
+migration ordering issues that local `supabase db reset` cannot reproduce.
+
+This doc covers **ephemeral PR branches only**. The separate decision to give
+`preview.equipqr.app` its own persistent dataless backend is tracked in
+[preview-persistent-branch.md](./preview-persistent-branch.md).
 
 ## Trigger policy
 
@@ -44,7 +61,7 @@ Deploy to production: ON    ← auto-deploys to main on push/merge
 
 ## Cost model
 
-Live pricing (https://supabase.com/pricing, validated 2026-05-03):
+Live pricing (<https://supabase.com/pricing>, validated 2026-05-03):
 
 - **Per branch:** $0.01344 / hour.
 - **Typical PR touching `supabase/` (24-hour life):** ~$0.32.
@@ -52,7 +69,13 @@ Live pricing (https://supabase.com/pricing, validated 2026-05-03):
   - This is the realistic estimate with the `Supabase changes only` trigger (broader than the original "migrations only" projection of ~$14/mo). Edge Function changes and `config.toml` tweaks now also trigger branches.
 - **Worst case (50-branch cap × ~$10/branch over multi-day life):** ~$500/mo, bounded by the dashboard's branch limit.
 
-> ⚠ **Branching compute is NOT covered by the organization Spend Cap** (called out explicitly in the GitHub Integration panel as of 2026-05-03). The Pro plan's Spend Cap covers most metered usage but Supabase has carved out branching compute as a separate line item. Glance at https://supabase.com/dashboard/project/ymxkzronkhwxzcdcbnwq/settings/billing → Usage → **Branching** weekly for the first month after enablement to catch runaway branches before they accumulate.
+> ⚠ **Branching compute is NOT covered by the organization Spend Cap** (called
+> out explicitly in the GitHub Integration panel as of 2026-05-03). The Pro
+> plan's Spend Cap covers most metered usage but Supabase has carved out
+> branching compute as a separate line item. Glance at
+> <https://supabase.com/dashboard/project/ymxkzronkhwxzcdcbnwq/settings/billing>
+> → Usage → **Branching** weekly for the first month after enablement to catch
+> runaway branches before they accumulate.
 
 ## Branch lifecycle
 
@@ -65,7 +88,8 @@ Live pricing (https://supabase.com/pricing, validated 2026-05-03):
    - **Migrate** → runs the PR's pending migrations against the branch.
    - **Seed** → optional; only runs if a seed file is registered (we do not seed by default to avoid leaking production data shape).
    - **Deploy** → ships any changed Edge Functions to the branch.
-3. **PR open** → branch URL + anon key visible at https://supabase.com/dashboard/project/ymxkzronkhwxzcdcbnwq/branches.
+3. **PR open** → branch URL + anon key visible at
+   <https://supabase.com/dashboard/project/ymxkzronkhwxzcdcbnwq/branches>.
 4. **PR closed/merged** → Supabase auto-deletes the branch.
 
 ## How to access a branch
@@ -77,7 +101,13 @@ While a PR is open, the Branches page shows each active branch with:
 
 To exercise the branch from a Vite preview:
 - Vercel automatically generates a preview URL per PR (via the existing GitHub integration).
-- The Vercel preview points at the production Supabase project by default (via build-time `VITE_SUPABASE_URL` env var). To point at the branch's Supabase, override the env vars on the Vercel preview deployment, OR use the branch's anon key inline in browser DevTools for a one-off check.
+- Today, the Vercel preview for git `preview` points at the production Supabase
+  project by default (via build-time `VITE_SUPABASE_URL`). The approved target
+  is to move that stable hostname to a persistent dataless branch per
+  [preview-persistent-branch.md](./preview-persistent-branch.md).
+- For ephemeral PR-branch validation, point a Vercel Preview deployment at the
+  branch URL + anon key only when you need that specific schema/RLS check, or
+  use the branch's anon key inline in browser DevTools for a one-off check.
 - For most validation (does the migration apply? does RLS still pass?), the branch's Studio + the branch's SQL Editor are sufficient — no Vite preview needed.
 
 ## What branching does NOT do
@@ -86,12 +116,15 @@ To exercise the branch from a Vite preview:
 - **Branches do not test Edge Function CORS / auth / cron behavior automatically.** Edge Functions deploy to the branch but only run when invoked. Cron jobs in `supabase/migrations` will be scheduled on the branch and start firing — this is mostly fine but worth knowing if a cron job has external side effects.
 - **Branches do not clone Vault secrets.** If your migration depends on a Vault entry (e.g. the Stripe FDW pilot's `stripe_fdw_api_key`), the branch's Vault is empty unless you add the secret manually via the branch's Studio.
 - **Branches don't catch post-deploy / production data issues.** They catch migration syntax, RLS interactions, and Postgres version compatibility. Production-data-shape bugs surface only after merge to `preview`.
+- **Branches are not the same thing as the planned persistent preview backend.**
+  Keep ephemeral PR validation and the future `preview.equipqr.app` branch as
+  separate operational paths.
 
 ## Cleanup if a branch is stuck
 
 If the auto-delete on PR close fails (e.g. PR was force-closed during a deployment workflow run):
 
-1. Open https://supabase.com/dashboard/project/ymxkzronkhwxzcdcbnwq/branches.
+1. Open <https://supabase.com/dashboard/project/ymxkzronkhwxzcdcbnwq/branches>.
 2. Find the stuck branch.
 3. Click the three-dot menu → **Delete branch**.
 4. Confirm. The branch is destroyed within a minute.
@@ -100,7 +133,8 @@ If the auto-delete on PR close fails (e.g. PR was force-closed during a deployme
 
 If branching causes unexpected behavior (e.g. CI workflows break because of branch-creation timing), the rollback is dashboard-only:
 
-1. Open https://supabase.com/dashboard/project/ymxkzronkhwxzcdcbnwq → **Branches** → **Settings**.
+1. Open <https://supabase.com/dashboard/project/ymxkzronkhwxzcdcbnwq> →
+   **Branches** → **Settings**.
 2. Click **Disable branching**.
 3. No code change needed — the comment block in `supabase/config.toml` and this doc are dormant without branching enabled.
 
@@ -114,9 +148,13 @@ PR branching above is **schema/RLS validation only** (dataless, no Quick Login).
 
 ## References
 
-- Supabase docs: https://supabase.com/docs/guides/deployment/branching
-- Branching billing: https://supabase.com/docs/guides/platform/manage-your-usage/branching
-- GitHub integration: https://supabase.com/docs/guides/deployment/branching/github-integration
-- EquipQR Service Request on issue #722: https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/722#issuecomment-4366751122
-- EquipQR Change Record on issue #722: https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/722#issuecomment-4366780373
+- Supabase docs: <https://supabase.com/docs/guides/deployment/branching>
+- Branching billing:
+  <https://supabase.com/docs/guides/platform/manage-your-usage/branching>
+- GitHub integration:
+  <https://supabase.com/docs/guides/deployment/branching/github-integration>
+- EquipQR Service Request on issue #722:
+  <https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/722#issuecomment-4366751122>
+- EquipQR Change Record on issue #722:
+  <https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/722#issuecomment-4366780373>
 - Cloud Agent ephemeral stack (#1249): [cloud-agent-ephemeral-stack.md](./cloud-agent-ephemeral-stack.md)
