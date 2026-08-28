@@ -259,6 +259,7 @@ export function WorkOrderDetailsMobileContent({
     () =>
       buildWorkOrderStatusActions({
         status: workOrder.status,
+        assigneeId: workOrder.assignee_id,
         canPerformStatusActions: canChangeStatus,
         isManager,
         isTechnician,
@@ -271,6 +272,7 @@ export function WorkOrderDetailsMobileContent({
       isManager,
       isTechnician,
       routeStatusChange,
+      workOrder.assignee_id,
       workOrder.status,
     ],
   );

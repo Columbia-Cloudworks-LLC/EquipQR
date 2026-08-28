@@ -4,6 +4,7 @@ import { buildWorkOrderSheetQuickActions } from './buildWorkOrderSheetQuickActio
 const noop = vi.fn();
 
 const baseInput = {
+  assigneeId: 'user-1',
   showMobileActionFooter: true,
   canAddNotes: true,
   canCaptureCosts: false,
@@ -40,6 +41,31 @@ describe('buildWorkOrderSheetQuickActions', () => {
       'add-note-or-photo',
       'wo-qr',
     ]);
+    expect(actions[0]).toMatchObject({
+      id: 'start',
+      disabled: false,
+      description: 'Begin working on this order',
+    });
+  });
+
+  it('keeps Start work visible but disabled for accepted work orders without an assignee', () => {
+    const actions = buildWorkOrderSheetQuickActions({
+      ...baseInput,
+      workOrderStatus: 'accepted',
+      assigneeId: null,
+    });
+
+    expect(actions.map((a) => a.id)).toEqual([
+      'start',
+      'hold-assigned',
+      'add-note-or-photo',
+      'wo-qr',
+    ]);
+    expect(actions[0]).toMatchObject({
+      id: 'start',
+      disabled: true,
+      description: 'Select an assignee to enable starting work',
+    });
   });
 
   it('shows checklist and hold when PM gate is incomplete', () => {

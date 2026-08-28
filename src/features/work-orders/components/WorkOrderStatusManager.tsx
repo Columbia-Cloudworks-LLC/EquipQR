@@ -162,6 +162,7 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
 
   const statusActions = buildWorkOrderStatusActions({
     status: workOrder.status,
+    assigneeId: workOrder.assignee_id,
     canPerformStatusActions: canPerformStatusActions(),
     isManager,
     isTechnician,
@@ -169,7 +170,7 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     onStatusChange: (status) => {
       void handleStatusChange(status);
     },
-  });
+  }).filter((action) => !(workOrder.status === 'accepted' && action.label === 'Start Work'));
 
   return (
     <div className="space-y-4">

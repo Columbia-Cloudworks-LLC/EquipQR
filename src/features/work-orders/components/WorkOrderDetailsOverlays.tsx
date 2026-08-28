@@ -136,6 +136,7 @@ export function WorkOrderDetailsOverlays({
 }: WorkOrderDetailsOverlaysProps) {
   const quickActions = buildWorkOrderSheetQuickActions({
     workOrderStatus: workOrder.status,
+    assigneeId: workOrder.assignee_id,
     showMobileActionFooter,
     canAddNotes,
     canCaptureCosts,

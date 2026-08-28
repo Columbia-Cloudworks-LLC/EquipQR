@@ -95,7 +95,13 @@ describe('MobileWorkOrderActionSheet', () => {
         <MobileWorkOrderActionSheet
           {...baseProps}
           quickActions={[
-            { id: 'complete', label: 'Complete work order', icon: CheckCircle, tone: 'success', onSelect: vi.fn() },
+            {
+              id: 'complete',
+              label: 'Complete work order',
+              icon: CheckCircle,
+              tone: 'success',
+              onSelect: vi.fn(),
+            },
             { id: 'add-note-or-photo', label: 'Add note or photo', icon: Plus, tone: 'capture', onSelect: vi.fn() },
           ]}
         />
@@ -103,6 +109,35 @@ describe('MobileWorkOrderActionSheet', () => {
     );
     expect(screen.getByRole('button', { name: /complete work order/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /add note or photo/i })).toBeInTheDocument();
+  });
+
+  it('renders disabled quick-action guidance beneath the button', () => {
+    render(
+      <MemoryRouter>
+        <MobileWorkOrderActionSheet
+          {...baseProps}
+          quickActions={[
+            {
+              id: 'start',
+              label: 'Start work',
+              icon: CheckCircle,
+              tone: 'primary',
+              onSelect: vi.fn(),
+              disabled: true,
+              description: 'Select an assignee to enable starting work',
+            },
+          ]}
+        />
+      </MemoryRouter>,
+    );
+
+    const startButton = screen.getByRole('button', { name: /start work/i });
+
+    expect(startButton).toBeDisabled();
+    expect(
+      screen.getByText('Select an assignee to enable starting work'),
+    ).toBeInTheDocument();
+    expect(startButton).toHaveAttribute('aria-describedby', 'start-description');
   });
 
   it('does not show a redundant View full details navigation action', () => {

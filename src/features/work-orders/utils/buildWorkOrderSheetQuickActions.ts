@@ -9,9 +9,11 @@ import {
 } from 'lucide-react';
 import type { WorkOrderSheetQuickAction } from '@/features/work-orders/components/MobileWorkOrderActionSheet';
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
+import { getStartWorkActionDescription } from '@/features/work-orders/utils/startWorkActionCopy';
 
 export interface BuildWorkOrderSheetQuickActionsInput {
   workOrderStatus: WorkOrderStatus;
+  assigneeId?: string | null;
   showMobileActionFooter: boolean;
   canAddNotes: boolean;
   canCaptureCosts: boolean;
@@ -37,6 +39,7 @@ export function buildWorkOrderSheetQuickActions(
 ): WorkOrderSheetQuickAction[] {
   const {
     workOrderStatus,
+    assigneeId,
     showMobileActionFooter,
     canAddNotes,
     canCaptureCosts,
@@ -54,6 +57,7 @@ export function buildWorkOrderSheetQuickActions(
   } = input;
 
   const actions: WorkOrderSheetQuickAction[] = [];
+  const hasAssignee = Boolean(assigneeId);
 
   if (showMobileActionFooter) {
     switch (workOrderStatus) {
@@ -76,7 +80,8 @@ export function buildWorkOrderSheetQuickActions(
             icon: Play,
             tone: 'primary',
             onSelect: onStartMobileWorkOrder,
-            disabled: isActionPending,
+            disabled: isActionPending || !hasAssignee,
+            description: getStartWorkActionDescription(hasAssignee),
           },
           {
             id: 'hold-assigned',
