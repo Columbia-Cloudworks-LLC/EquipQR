@@ -1,6 +1,7 @@
 import { CheckCircle, Pause, Play, X } from 'lucide-react';
 import type { ComponentType } from 'react';
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
+import { getStartWorkActionDescription } from '@/features/work-orders/utils/startWorkActionCopy';
 
 export type WorkOrderStatusAction = {
   label: string;
@@ -13,6 +14,7 @@ export type WorkOrderStatusAction = {
 
 type BuildWorkOrderStatusActionsParams = {
   status: WorkOrderStatus;
+  assigneeId?: string | null;
   canPerformStatusActions: boolean;
   isManager: boolean;
   isTechnician: boolean;
@@ -22,6 +24,7 @@ type BuildWorkOrderStatusActionsParams = {
 
 export function buildWorkOrderStatusActions({
   status,
+  assigneeId,
   canPerformStatusActions,
   isManager,
   isTechnician,
@@ -29,6 +32,8 @@ export function buildWorkOrderStatusActions({
   onStatusChange,
 }: BuildWorkOrderStatusActionsParams): WorkOrderStatusAction[] {
   if (!canPerformStatusActions) return [];
+
+  const hasAssignee = Boolean(assigneeId);
 
   switch (status) {
     case 'submitted': {
@@ -56,6 +61,14 @@ export function buildWorkOrderStatusActions({
       if (!isManager && !isTechnician) return [];
       return [
         {
+          label: 'Start Work',
+          action: () => onStatusChange('in_progress'),
+          icon: Play,
+          variant: 'secondary',
+          description: getStartWorkActionDescription(hasAssignee),
+          disabled: !hasAssignee,
+        },
+        {
           label: 'Cancel',
           action: () => onStatusChange('cancelled'),
           icon: X,
@@ -72,7 +85,8 @@ export function buildWorkOrderStatusActions({
           action: () => onStatusChange('in_progress'),
           icon: Play,
           variant: 'secondary',
-          description: 'Begin working on this order',
+          description: getStartWorkActionDescription(hasAssignee),
+          disabled: !hasAssignee,
         },
         {
           label: 'Put on Hold',

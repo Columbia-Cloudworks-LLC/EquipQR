@@ -43,6 +43,7 @@ export interface WorkOrderSheetQuickAction {
   tone: WorkOrderSheetQuickActionTone;
   onSelect: () => void;
   disabled?: boolean;
+  description?: string;
 }
 
 interface MobileWorkOrderActionSheetProps {
@@ -121,17 +122,26 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
 
   const renderQuickActionButton = (action: WorkOrderSheetQuickAction) => {
     const { variant, className } = getWorkOrderSheetQuickActionButtonProps(action.tone);
+    const descriptionId = action.description ? `${action.id}-description` : undefined;
+
     return (
-      <Button
-        key={action.id}
-        variant={variant}
-        className={className}
-        disabled={action.disabled}
-        onClick={() => handleAction(action.onSelect)}
-      >
-        <action.icon className="h-5 w-5 shrink-0" aria-hidden />
-        <span className="text-sm font-medium">{action.label}</span>
-      </Button>
+      <div key={action.id} className="space-y-1">
+        <Button
+          variant={variant}
+          className={className}
+          disabled={action.disabled}
+          aria-describedby={descriptionId}
+          onClick={() => handleAction(action.onSelect)}
+        >
+          <action.icon className="h-5 w-5 shrink-0" aria-hidden />
+          <span className="text-sm font-medium">{action.label}</span>
+        </Button>
+        {action.description ? (
+          <p id={descriptionId} className="pl-7 text-xs text-muted-foreground">
+            {action.description}
+          </p>
+        ) : null}
+      </div>
     );
   };
 

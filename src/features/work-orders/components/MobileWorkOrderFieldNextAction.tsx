@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
-
+import { START_WORK_ASSIGNEE_REQUIRED_COPY } from '@/features/work-orders/utils/startWorkActionCopy';
 export interface MobileWorkOrderFieldNextActionProps {
   workOrder: {
     id: string;
@@ -67,8 +67,6 @@ function syncBannerCopy(sync: MobileWorkOrderFieldNextActionProps['sync']): {
   }
   return null;
 }
-
-const START_WORK_ASSIGNEE_REQUIRED_COPY = 'Select an assignee to enable starting work';
 
 export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextActionProps> = ({
   workOrder,
