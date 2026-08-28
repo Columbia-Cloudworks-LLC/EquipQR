@@ -24,6 +24,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Fixed
 
+- **Mobile overdue invoice badges keep full work-order numbers visible (#1480)** — Phone-width work order details now wrap the overdue invoice pill inside the summary card instead of clipping the invoice or WO number.
 - **Mobile work-order quick actions stop covering detail content (#1479)** — At phone-width work order details, the floating quick-actions button now leaves PM, Timeline, and Events & Times readable and tappable, with extra bottom clearance above the mobile nav.
 - **Work order create errors stay honest** — Preview work-order create now allows blank descriptions and shows the real create failure message instead of a generic toast.
 - **Completed work order edit locks stay honest (#1483)** — Completed work orders now replace the live-looking note composer and PM general notes editor with clear lock messaging, and description edit surfaces explain that the work order must be reopened before edits.
