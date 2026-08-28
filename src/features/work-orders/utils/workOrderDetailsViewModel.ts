@@ -21,6 +21,11 @@ export interface WorkOrderMobileFooterContext {
   footerRoleEligible: boolean;
 }
 
+export interface MobileWorkOrderDetailsBottomPaddingContext {
+  isMobile: boolean;
+  showSyncBanner: boolean;
+}
+
 export interface WorkOrderTeamSource {
   team_id?: string | null;
   teamName?: string | null;
@@ -127,11 +132,20 @@ export function shouldShowMobileActionFooter({
   );
 }
 
+export const MOBILE_WO_CONTENT_BOTTOM_PADDING_CLASS = {
+  default: 'pb-[calc(var(--mobile-bottom-nav-height)+5.5rem)]',
+  withSyncBanner: 'pb-[calc(var(--mobile-bottom-nav-height)+8rem)]',
+} as const;
+
 /** Scroll clearance for mobile work-order details fixed chrome (QAB FAB; optional sync banner). */
-export function getMobileWorkOrderDetailsBottomPaddingClass(isMobile: boolean): string | undefined {
+export function getMobileWorkOrderDetailsBottomPaddingClass({
+  isMobile,
+  showSyncBanner,
+}: MobileWorkOrderDetailsBottomPaddingContext): string | undefined {
   if (!isMobile) return undefined;
-  // FAB uses bottom-[78px] + h-14; --mobile-bottom-nav-height matches that offset (+ safe area).
-  return 'pb-[calc(var(--mobile-bottom-nav-height)+3.5rem+1rem)]';
+  return showSyncBanner
+    ? MOBILE_WO_CONTENT_BOTTOM_PADDING_CLASS.withSyncBanner
+    : MOBILE_WO_CONTENT_BOTTOM_PADDING_CLASS.default;
 }
 
 export function buildWorkOrderPdfInput(workOrder: WorkOrderPdfSource | null | undefined): WorkOrderForPDF {

@@ -40,6 +40,7 @@ import {
   isFooterRoleEligible,
   shouldHideInlineNoteAddButton,
   shouldShowMobileActionFooter,
+  shouldShowMobileSyncBanner,
 } from '@/features/work-orders/utils/workOrderDetailsViewModel';
 import { WorkOrderDetailsMobileContent } from '@/features/work-orders/components/WorkOrderDetailsMobileContent';
 import { WorkOrderDetailsDesktopContent } from '@/features/work-orders/components/WorkOrderDetailsDesktopContent';
@@ -353,6 +354,7 @@ const WorkOrderDetails = () => {
   const canCompletePmGate = !workOrder.has_pm || pmData?.status === 'completed';
   const pmChecklist = getPMChecklistStats(pmData?.checklist_data);
   const syncState = buildOfflineSyncState(offlineQueue);
+  const showMobileSyncBanner = showMobileActionFooter && shouldShowMobileSyncBanner(syncState);
   const teamSummary = buildWorkOrderTeamSummary(workOrder, equipment);
   const assigneeNameSummary = buildWorkOrderAssigneeSummary(workOrder.assigneeName);
   const mobileAssigneeSummary = buildMobileWorkOrderAssigneeSummary(workOrder.assigneeName);
@@ -408,7 +410,10 @@ const WorkOrderDetails = () => {
         <div
           className={cn(
             isMobile ? 'space-y-4' : 'lg:col-span-2 space-y-6',
-            getMobileWorkOrderDetailsBottomPaddingClass(isMobile),
+            getMobileWorkOrderDetailsBottomPaddingClass({
+              isMobile,
+              showSyncBanner: showMobileSyncBanner,
+            }),
           )}
         >
           {linkedEquipment.length > 1 && (
@@ -535,6 +540,7 @@ const WorkOrderDetails = () => {
         canCaptureCosts={canCaptureCosts}
         canCompletePmGate={canCompletePmGate}
         showMobileActionFooter={showMobileActionFooter}
+        showMobileSyncBanner={showMobileSyncBanner}
         syncState={syncState}
         workTimer={workTimer}
         showMobilePDFDialog={showMobilePDFDialog}

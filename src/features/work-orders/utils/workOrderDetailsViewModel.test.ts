@@ -10,6 +10,7 @@ import {
   buildWorkOrderTeamSummary,
   getMobileWorkOrderDetailsBottomPaddingClass,
   isFooterRoleEligible,
+  MOBILE_WO_CONTENT_BOTTOM_PADDING_CLASS,
   shouldHideInlineNoteAddButton,
   shouldShowMobileSyncBanner,
   MOBILE_WO_FAB_BOTTOM_CLASS,
@@ -69,12 +70,33 @@ describe('workOrderDetailsViewModel', () => {
 
   describe('getMobileWorkOrderDetailsBottomPaddingClass', () => {
     it('returns undefined on desktop', () => {
-      expect(getMobileWorkOrderDetailsBottomPaddingClass(false)).toBeUndefined();
+      expect(
+        getMobileWorkOrderDetailsBottomPaddingClass({
+          isMobile: false,
+          showSyncBanner: false,
+        }),
+      ).toBeUndefined();
     });
 
-    it('uses nav-height + FAB clearance on mobile', () => {
-      expect(getMobileWorkOrderDetailsBottomPaddingClass(true)).toBe(
-        'pb-[calc(var(--mobile-bottom-nav-height)+3.5rem+1rem)]',
+    it('uses expanded bottom clearance on mobile when the sync banner is hidden', () => {
+      expect(
+        getMobileWorkOrderDetailsBottomPaddingClass({
+          isMobile: true,
+          showSyncBanner: false,
+        }),
+      ).toBe(
+        MOBILE_WO_CONTENT_BOTTOM_PADDING_CLASS.default,
+      );
+    });
+
+    it('adds extra clearance when the mobile sync banner is visible', () => {
+      expect(
+        getMobileWorkOrderDetailsBottomPaddingClass({
+          isMobile: true,
+          showSyncBanner: true,
+        }),
+      ).toBe(
+        MOBILE_WO_CONTENT_BOTTOM_PADDING_CLASS.withSyncBanner,
       );
     });
   });
