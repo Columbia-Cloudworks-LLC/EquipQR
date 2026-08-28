@@ -56,18 +56,18 @@ describe('SessionStorageService', () => {
 
     it('returns parsed session when version matches and data is fresh', () => {
       const session = buildSession();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...session, authUserId: 'user-1' }));
 
-      expect(SessionStorageService.loadSessionFromStorage()).toEqual(session);
+      expect(SessionStorageService.loadSessionFromStorage('user-1')).toEqual(session);
     });
 
     it('returns stale session without clearing when older than four hours', () => {
       const stale = buildSession({
         lastUpdated: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
       });
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(stale));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...stale, authUserId: 'user-1' }));
 
-      expect(SessionStorageService.loadSessionFromStorage()).toEqual(stale);
+      expect(SessionStorageService.loadSessionFromStorage('user-1')).toEqual(stale);
       expect(localStorage.getItem(STORAGE_KEY)).not.toBeNull();
       expect(logger.info).toHaveBeenCalledWith(
         '⏰ Session data is older than 4 hours, will refresh on next fetch'
@@ -75,12 +75,27 @@ describe('SessionStorageService', () => {
     });
 
     it('clears storage and returns null on version mismatch', () => {
-      const outdated = buildSession({ version: SESSION_VERSION - 1 });
+      const outdated = { ...buildSession({ version: SESSION_VERSION - 1 }), authUserId: 'user-1' };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(outdated));
 
-      expect(SessionStorageService.loadSessionFromStorage()).toBeNull();
+      expect(SessionStorageService.loadSessionFromStorage('user-1')).toBeNull();
       expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
       expect(logger.info).toHaveBeenCalledWith('🔄 Session version updated, clearing stored data');
+    });
+
+    it('clears storage and returns null when the cached user does not match', () => {
+      const session = buildSession();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...session, authUserId: 'user-tech' }));
+      localStorage.setItem('equipqr_current_org', JSON.stringify({ selectedOrgId: 'org-1' }));
+      localStorage.setItem('equipqr_current_organization', 'org-1');
+      localStorage.setItem('equipqr:selectedTeamId:org-1', 'team-1');
+
+      expect(SessionStorageService.loadSessionFromStorage('user-viewer')).toBeNull();
+      expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+      expect(localStorage.getItem('equipqr_current_org')).toBeNull();
+      expect(localStorage.getItem('equipqr_current_organization')).toBeNull();
+      expect(localStorage.getItem('equipqr:selectedTeamId:org-1')).toBeNull();
+      expect(logger.info).toHaveBeenCalledWith('🔄 Session user changed, clearing stored data');
     });
 
     it('clears storage and returns null on invalid JSON', () => {
@@ -110,7 +125,7 @@ describe('SessionStorageService', () => {
         ],
       });
 
-      SessionStorageService.saveSessionToStorage(session);
+      SessionStorageService.saveSessionToStorage(session, 'user-1');
 
       const persisted = JSON.parse(localStorage.getItem(STORAGE_KEY)!) as typeof session;
       expect(persisted.currentOrganizationId).toBe(session.currentOrganizationId);
@@ -118,6 +133,7 @@ describe('SessionStorageService', () => {
       expect(persisted.organizations[0]?.inventoryDefaultLocationName).toBe('Main Yard');
       expect(persisted.organizations[0]).not.toHaveProperty('inventoryDefaultLocationAddress');
       expect(persisted.organizations[0]).not.toHaveProperty('inventoryDefaultLocationLat');
+      expect((persisted as typeof persisted & { authUserId?: string }).authUserId).toBe('user-1');
     });
 
     it('logs when localStorage setItem fails', () => {
@@ -130,7 +146,7 @@ describe('SessionStorageService', () => {
       const instanceSpy = vi.spyOn(localStorage, 'setItem').mockImplementation(throwQuota);
 
       try {
-        SessionStorageService.saveSessionToStorage(session);
+        SessionStorageService.saveSessionToStorage(session, 'user-1');
 
         expect(logger.error).toHaveBeenCalledWith(
           '💾 Error saving session to storage:',
@@ -144,14 +160,20 @@ describe('SessionStorageService', () => {
   });
 
   describe('clearSessionStorage', () => {
-    it('removes session and organization preference keys', () => {
+    it('removes session and organization/team scope keys', () => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(buildSession()));
       localStorage.setItem('equipqr_current_org', JSON.stringify({ selectedOrgId: 'org-1' }));
+      localStorage.setItem('equipqr_current_organization', 'org-1');
+      localStorage.setItem('equipqr:selectedTeamId:org-1', 'team-1');
+      localStorage.setItem('equipqr:selectedTeamId:org-2', 'team-2');
 
       SessionStorageService.clearSessionStorage();
 
       expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
       expect(localStorage.getItem('equipqr_current_org')).toBeNull();
+      expect(localStorage.getItem('equipqr_current_organization')).toBeNull();
+      expect(localStorage.getItem('equipqr:selectedTeamId:org-1')).toBeNull();
+      expect(localStorage.getItem('equipqr:selectedTeamId:org-2')).toBeNull();
     });
   });
 

@@ -56,7 +56,7 @@ export const useSessionManager = ({ user, authLoading, onSessionUpdate, onError 
       onError('');
 
       const userPreference = getOrganizationPreference();
-      const storedData = SessionStorageService.loadSessionFromStorage();
+      const storedData = SessionStorageService.loadSessionFromStorage(user.id);
       const prioritizedOrgId = resolvePrioritizedOrgId(
         preserveOrgSelection,
         storedData?.currentOrganizationId,
@@ -73,7 +73,7 @@ export const useSessionManager = ({ user, authLoading, onSessionUpdate, onError 
       const newSessionData = createSessionData(organizations, currentOrganizationId, teamMemberships);
 
       onSessionUpdate(newSessionData);
-      SessionStorageService.saveSessionToStorage(newSessionData);
+      SessionStorageService.saveSessionToStorage(newSessionData, user.id);
       setLastRefreshTime(new Date().toISOString());
     } catch (err) {
       console.error('Error refreshing session:', err);
@@ -84,7 +84,7 @@ export const useSessionManager = ({ user, authLoading, onSessionUpdate, onError 
         return;
       }
 
-      const cachedData = SessionStorageService.loadSessionFromStorage();
+      const cachedData = SessionStorageService.loadSessionFromStorage(user.id);
       if (cachedData && SessionStorageService.isSessionVersionValid(cachedData)) {
         onSessionUpdate(cachedData);
       }
@@ -117,7 +117,7 @@ export const useSessionManager = ({ user, authLoading, onSessionUpdate, onError 
       );
 
       onSessionUpdate(updatedSessionData);
-      SessionStorageService.saveSessionToStorage(updatedSessionData);
+      SessionStorageService.saveSessionToStorage(updatedSessionData, user.id);
     } catch (error) {
       logger.error('Error switching organization', error);
     }
@@ -142,7 +142,7 @@ export const useSessionManager = ({ user, authLoading, onSessionUpdate, onError 
     }
 
     // Try to load from cache first
-    const cachedData = SessionStorageService.loadSessionFromStorage();
+    const cachedData = SessionStorageService.loadSessionFromStorage(user.id);
     if (cachedData && SessionStorageService.isSessionVersionValid(cachedData)) {
       const needsRefresh = shouldRefreshSession(cachedData.lastUpdated);
       return { shouldLoadFromCache: true, cachedData, needsRefresh };

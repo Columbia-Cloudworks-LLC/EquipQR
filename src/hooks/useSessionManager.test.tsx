@@ -154,6 +154,7 @@ describe('useSessionManager', () => {
         cachedData: mockSessionData,
         needsRefresh: true,
       });
+      expect(SessionStorageService.loadSessionFromStorage).toHaveBeenCalledWith('user-1');
     });
 
     it('loads valid cache without refresh when session is fresh', () => {
@@ -167,6 +168,7 @@ describe('useSessionManager', () => {
         cachedData: mockSessionData,
         needsRefresh: false,
       });
+      expect(SessionStorageService.loadSessionFromStorage).toHaveBeenCalledWith('user-1');
     });
 
     it('returns empty cache when stored session is missing or invalid version', () => {
@@ -236,7 +238,15 @@ describe('useSessionManager', () => {
           version: 2,
         })
       );
-      expect(SessionStorageService.saveSessionToStorage).toHaveBeenCalled();
+      expect(SessionStorageService.saveSessionToStorage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organizations: mockSessionData.organizations,
+          currentOrganizationId: 'org-2',
+          teamMemberships: newTeams,
+          version: 2,
+        }),
+        'user-1',
+      );
     });
 
     it('logs error when team membership fetch fails without throwing', async () => {
@@ -318,6 +328,7 @@ describe('useSessionManager', () => {
         'org-cached',
         'org-cached'
       );
+      expect(SessionStorageService.loadSessionFromStorage).toHaveBeenCalledWith('user-1');
     });
 
     it('fetches session data and persists on success', async () => {
@@ -344,7 +355,13 @@ describe('useSessionManager', () => {
           version: 2,
         })
       );
-      expect(SessionStorageService.saveSessionToStorage).toHaveBeenCalled();
+      expect(SessionStorageService.saveSessionToStorage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          currentOrganizationId: 'org-1',
+          version: 2,
+        }),
+        'user-1',
+      );
     });
 
     it('falls back to valid cached session on non-forced fetch failure', async () => {
@@ -361,6 +378,7 @@ describe('useSessionManager', () => {
         expect(onError).toHaveBeenCalledWith('fetch failed');
       });
       expect(onSessionUpdate).toHaveBeenCalledWith(mockSessionData);
+      expect(SessionStorageService.loadSessionFromStorage).toHaveBeenCalledWith('user-1');
     });
 
     it('does not fall back to cache on forced fetch failure', async () => {

@@ -1,4 +1,5 @@
-import React, { createContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useCallback, useLayoutEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { usePageVisibility } from '@/hooks/usePageVisibility';
 import { useSessionManager } from '@/hooks/useSessionManager';
@@ -6,6 +7,7 @@ import { SessionStorageService } from '@/services/sessionStorageService';
 import { SessionPermissionService } from '@/services/sessionPermissionService';
 import { getOrganizationPreference } from '@/utils/sessionPersistence';
 import type { SessionData, SessionOrganization } from '@/types/session';
+import { permissionEngine } from '@/services/permissions/PermissionEngine';
 
 export type { SessionData, SessionOrganization } from '@/types/session';
 
@@ -29,9 +31,11 @@ export { SessionContext };
 
 export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isLoading: authLoading } = useAuth();
+  const queryClient = useQueryClient();
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const previousUserIdRef = useRef<string | null>(null);
 
   // Destructure stable functions from sessionManager to avoid recreating on every render
   const {
@@ -84,6 +88,22 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setIsLoading(false);
     }
   }, [managerRefresh]);
+
+  useLayoutEffect(() => {
+    const previousUserId = previousUserIdRef.current;
+    const nextUserId = user?.id ?? null;
+
+    if (previousUserId !== null && previousUserId !== nextUserId) {
+      permissionEngine.clearCache();
+      queryClient.clear();
+      SessionStorageService.clearSessionStorage();
+      setSessionData(null);
+      setError(null);
+      setIsLoading(true);
+    }
+
+    previousUserIdRef.current = nextUserId;
+  }, [queryClient, user?.id]);
 
   // Page visibility handling - more conservative approach
   usePageVisibility({
