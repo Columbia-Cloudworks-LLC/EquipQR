@@ -4,6 +4,7 @@ import { render, screen, waitFor } from '@vitest-harness/utils/test-utils';
 import WorkOrderDetails from './WorkOrderDetails';
 import * as useWorkOrderDetailsDataModule from '@/features/work-orders/components/hooks/useWorkOrderDetailsData';
 import * as useWorkOrderDetailsActionsModule from '@/features/work-orders/hooks/useWorkOrderDetailsActions';
+import * as useUnifiedPermissionsModule from '@/hooks/useUnifiedPermissions';
 import {
   createWorkOrderDetailsActionsMock,
   createWorkOrderDetailsDataMock,
@@ -32,6 +33,16 @@ const {
   };
 });
 
+const {
+  mockDetailedPermissions,
+  mockEquipmentPermissions,
+  mockHasRole,
+} = vi.hoisted(() => ({
+  mockDetailedPermissions: vi.fn(() => ({ canEditPM: false })),
+  mockEquipmentPermissions: vi.fn(() => ({ canEdit: false })),
+  mockHasRole: vi.fn(() => false),
+}));
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {
@@ -48,6 +59,10 @@ vi.mock('@/hooks/use-mobile', () => ({
 
 vi.mock('@/features/work-orders/components/hooks/useWorkOrderDetailsData', () => ({
   useWorkOrderDetailsData: vi.fn(),
+}));
+
+vi.mock('@/hooks/useUnifiedPermissions', () => ({
+  useUnifiedPermissions: vi.fn(),
 }));
 
 vi.mock('@/features/work-orders/hooks/useWorkOrderDetailsActions', () => ({
@@ -253,6 +268,12 @@ vi.mock('@/features/work-orders/components/MobileWorkOrderActionFooter', () => (
 describe('WorkOrderDetails', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockDetailedPermissions.mockReset();
+    mockDetailedPermissions.mockReturnValue({ canEditPM: false });
+    mockEquipmentPermissions.mockReset();
+    mockEquipmentPermissions.mockReturnValue({ canEdit: false });
+    mockHasRole.mockReset();
+    mockHasRole.mockReturnValue(false);
     mockMobileWorkOrderActionFooterProps.mockClear();
     mockWorkOrderNotesSectionProps.mockClear();
     mockUseIsMobile.mockReturnValue(true);
@@ -266,6 +287,16 @@ describe('WorkOrderDetails', () => {
     vi.mocked(useWorkOrderDetailsActionsModule.useWorkOrderDetailsActions).mockReturnValue(
       createWorkOrderDetailsActionsMock(),
     );
+
+    vi.mocked(useUnifiedPermissionsModule.useUnifiedPermissions).mockReturnValue({
+      workOrders: {
+        getDetailedPermissions: mockDetailedPermissions,
+      },
+      equipment: {
+        getPermissions: mockEquipmentPermissions,
+      },
+      hasRole: mockHasRole,
+    } as unknown as ReturnType<typeof useUnifiedPermissionsModule.useUnifiedPermissions>);
   });
 
   it('does not pass a delete request handler to mobile details for non-managers', async () => {
@@ -491,6 +522,111 @@ describe('WorkOrderDetails', () => {
     };
     expect(props?.showPrivateNotes).toBe(true);
     expect(props?.primaryImageId).toBe('primary-desktop-1');
+  });
+
+  it('hides Manage PM Template for viewer-scoped access', async () => {
+    vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue(
+      createWorkOrderDetailsDataMock({
+        workOrder: {
+          status: 'in_progress',
+          has_pm: true,
+          team_id: 'team-1',
+          organization_id: 'org-1',
+        },
+        permissionLevels: {
+          isManager: false,
+          isTechnician: false,
+          isRequestor: false,
+        },
+        formMode: 'view_only',
+      }),
+    );
+
+    render(<WorkOrderDetails />);
+
+    await waitFor(() => {
+      expect(mockDetailedPermissions).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 'wo-1',
+          teamId: 'team-1',
+          organizationId: 'org-1',
+        }),
+      );
+    });
+
+    expect(screen.queryByRole('button', { name: /manage pm template/i })).not.toBeInTheDocument();
+  });
+
+  it('hides Add PM Checklist for requestor-scoped access', async () => {
+    vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue(
+      createWorkOrderDetailsDataMock({
+        workOrder: {
+          status: 'submitted',
+          has_pm: false,
+          team_id: 'team-1',
+          organization_id: 'org-1',
+        },
+        permissionLevels: {
+          isManager: false,
+          isTechnician: false,
+          isRequestor: true,
+        },
+        formMode: 'requestor',
+      }),
+    );
+
+    render(<WorkOrderDetails />);
+
+    expect(screen.queryByRole('button', { name: /add pm checklist/i })).not.toBeInTheDocument();
+  });
+
+  it('shows Add PM Checklist for technician-scoped PM management', async () => {
+    mockDetailedPermissions.mockReturnValue({ canEditPM: true });
+    vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue(
+      createWorkOrderDetailsDataMock({
+        workOrder: {
+          status: 'in_progress',
+          has_pm: false,
+          team_id: 'team-1',
+          organization_id: 'org-1',
+        },
+        permissionLevels: {
+          isManager: false,
+          isTechnician: true,
+          isRequestor: false,
+        },
+        formMode: 'manager',
+        canEdit: true,
+      }),
+    );
+
+    render(<WorkOrderDetails />);
+
+    expect(screen.getByRole('button', { name: /add pm checklist/i })).toBeInTheDocument();
+  });
+
+  it('shows Manage PM Template for owner-scoped PM management', async () => {
+    mockDetailedPermissions.mockReturnValue({ canEditPM: true });
+    mockHasRole.mockReturnValue(true);
+    vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue(
+      createManagerWorkOrderDetailsDataMock({
+        workOrder: {
+          status: 'in_progress',
+          has_pm: true,
+          team_id: 'team-1',
+          organization_id: 'org-1',
+        },
+        permissionLevels: {
+          isManager: true,
+          isTechnician: true,
+          isRequestor: false,
+        },
+      }),
+    );
+
+    render(<WorkOrderDetails />);
+
+    expect(screen.getByRole('button', { name: /manage pm template/i })).toBeInTheDocument();
   });
 
   it('scrolls to PM checklist and clears only action=pm on mobile', async () => {
