@@ -1,13 +1,13 @@
-import { test, expect, type Locator, type Page } from '../user/fixtures/equipqr-test';
+import { test, expect, quickLogin, type Locator, type Page } from '../user/fixtures/equipqr-test';
 import { pinContextToOrg } from '../user/shared/auth-helpers';
-import { apexOrgId, authStatePath, seedWorkOrders } from '../user/shared/seed-data';
+import { apexOrgId, seedWorkOrders } from '../user/shared/seed-data';
 import { evidencePause, evidenceScreenshot } from './shared/evidence-helpers';
 
 const MOBILE_USER_AGENT =
   'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36';
 
 test.use({
-  storageState: authStatePath('technician'),
+  storageState: { cookies: [], origins: [] },
   viewport: { width: 390, height: 844 },
   isMobile: true,
   hasTouch: true,
@@ -24,6 +24,7 @@ test.describe('Mobile work order PM action FAB clearance @pr-evidence', () => {
     assertHealthyShell,
     page,
   }) => {
+    await quickLogin(page, 'technician');
     await gotoDashboard(`/dashboard/work-orders/${seedWorkOrders.oilChange.id}`);
     await assertHealthyShell();
 
