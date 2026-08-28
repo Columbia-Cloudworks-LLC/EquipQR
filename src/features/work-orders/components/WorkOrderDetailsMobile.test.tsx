@@ -117,4 +117,25 @@ describe('WorkOrderDetailsMobile', () => {
 
     expect(screen.getByRole('button', { name: /description/i })).toBeInTheDocument();
   });
+
+  it('shows a description lock reason on completed work orders', () => {
+    renderMobile(
+      <WorkOrderDetailsMobile
+        workOrder={{
+          ...baseWorkOrder,
+          status: 'completed',
+          description: 'Closed out in the field.',
+        }}
+        equipment={equipment}
+        organizationId="org-1"
+        descriptionLockMessage="This work order is completed. Reopen it to edit the description."
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /description/i })).toBeInTheDocument();
+    expect(
+      screen.getByText('This work order is completed. Reopen it to edit the description.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /edit description/i })).not.toBeInTheDocument();
+  });
 });
