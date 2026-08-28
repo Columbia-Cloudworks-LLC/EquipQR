@@ -72,6 +72,7 @@ export interface WorkOrderDetailsMobileContentProps {
   pmLoading: boolean;
   isWorkOrderLocked: boolean;
   canAddNotes: boolean;
+  noteComposerLockMessage?: string;
   canUsePrivateNotes: boolean;
   canUpload: boolean;
   canAddCosts: boolean;
@@ -108,6 +109,7 @@ export interface WorkOrderDetailsMobileContentProps {
   onComplete: () => void;
   onRetrySync: () => void;
   canEditInlineFields?: boolean;
+  descriptionLockMessage?: string;
   canEditAssignment?: boolean;
   onSaveDescription?: (description: string) => Promise<void>;
   equipmentLocationEdit?: EquipmentLocationEditProps;
@@ -128,6 +130,7 @@ export function WorkOrderDetailsMobileContent({
   pmLoading,
   isWorkOrderLocked,
   canAddNotes,
+  noteComposerLockMessage,
   canUsePrivateNotes,
   canUpload,
   canAddCosts,
@@ -159,6 +162,7 @@ export function WorkOrderDetailsMobileContent({
   onComplete,
   onRetrySync,
   canEditInlineFields = false,
+  descriptionLockMessage,
   canEditAssignment = false,
   onSaveDescription,
   equipmentLocationEdit,
@@ -405,6 +409,7 @@ export function WorkOrderDetailsMobileContent({
           scanLocationCollectionEnabled={currentOrganization.scanLocationCollectionEnabled}
           effectiveLocation={workOrder.effectiveLocation}
           canEditDescription={canEditInlineFields}
+          descriptionLockMessage={descriptionLockMessage}
           onSaveDescription={onSaveDescription}
           equipmentLocationEdit={equipmentLocationEdit}
         />
@@ -454,6 +459,7 @@ export function WorkOrderDetailsMobileContent({
             workOrderId={workOrder.id}
             workOrderTeamId={workOrder.team_id ?? undefined}
             canAddNotes={canAddNotes}
+            composerLockMessage={noteComposerLockMessage}
             showPrivateNotes={canUsePrivateNotes}
             showLaborHours={canViewWorkOrderCosts}
             isHistorical={Boolean(workOrder.is_historical)}

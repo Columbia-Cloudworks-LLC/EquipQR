@@ -93,6 +93,7 @@ interface WorkOrderDetailsMobileProps {
   /** Resolved effective location for compact summary text */
   effectiveLocation?: EffectiveLocation | null;
   canEditDescription?: boolean;
+  descriptionLockMessage?: string;
   onSaveDescription?: (description: string) => Promise<void>;
   equipmentLocationEdit?: EquipmentLocationEditProps;
 }
@@ -137,6 +138,7 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
   organizationId,
   scanLocationCollectionEnabled,
   canEditDescription = false,
+  descriptionLockMessage,
   onSaveDescription,
   equipmentLocationEdit,
 }) => {
@@ -241,6 +243,9 @@ export const WorkOrderDetailsMobile: React.FC<WorkOrderDetailsMobileProps> = ({
                   )}
                 </button>
               </CollapsibleTrigger>
+              {descriptionLockMessage ? (
+                <p className="mt-2 text-xs text-muted-foreground">{descriptionLockMessage}</p>
+              ) : null}
               <CollapsibleContent className="pm-collapsible-animate mt-3 overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 data-[state=open]:slide-in-from-top-2 data-[state=closed]:slide-out-to-top-2 data-[state=open]:duration-200 data-[state=closed]:duration-150">
                 {canEditDescription && onSaveDescription ? (
                   <InlineEditField

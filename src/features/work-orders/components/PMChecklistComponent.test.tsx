@@ -282,7 +282,10 @@ describe('PMChecklistComponent', () => {
       const pm = createMockPM({ status: 'completed' });
       renderPMChecklist(pm, { onUpdate: mockOnUpdate });
 
-      expect(screen.getByPlaceholderText('Add general notes about this PM...')).toBeDisabled();
+      expect(
+        screen.getByText(/this pm checklist is completed\. general notes are read-only after completion\./i),
+      ).toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('Add general notes about this PM...')).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Start voice input' })).not.toBeInTheDocument();
     });
   });
@@ -300,13 +303,14 @@ describe('PMChecklistComponent', () => {
     } satisfies WorkOrderData;
 
     it('shows helper copy, the new label, and requires confirmation before reverting PM', async () => {
-      const pm = createMockPM({ status: 'completed' });
+      const pm = createMockPM({ status: 'completed', notes: 'Completed PM summary' });
       renderPMChecklist(pm, {
         onUpdate: mockOnUpdate,
         isAdmin: true,
         workOrder: completedWorkOrder,
       });
 
+      expect(screen.getByText('Completed PM summary')).toBeInTheDocument();
       expect(
         screen.getByText(/need to edit the completed checklist\?/i),
       ).toBeInTheDocument();

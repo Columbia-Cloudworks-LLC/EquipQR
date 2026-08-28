@@ -7,6 +7,7 @@ import type { PMChecklistItem } from '@/features/pm-templates/services/preventat
 import { useVoiceTextAppender } from '@/hooks/useVoiceTextAppender';
 import VoiceInputButton from '@/components/common/VoiceInputButton';
 import VoiceInterimTranscript from '@/components/common/VoiceInterimTranscript';
+import { COMPLETED_PM_GENERAL_NOTES_LOCK_MESSAGE } from '@/features/work-orders/utils/workOrderLockCopy';
 
 type PMChecklistFooterProps = {
   pmStatus: string;
@@ -95,31 +96,52 @@ export function PMChecklistFooter({
       )}
 
       <div className="space-y-2">
-        <label htmlFor="pm-general-notes" className="text-base font-semibold">General Notes</label>
-        <div className="relative">
-          <Textarea
-            id="pm-general-notes"
-            placeholder="Add general notes about this PM..."
-            value={notes}
-            onChange={(e) => onNotesChange(e.target.value)}
-            disabled={notesDisabled}
-            rows={3}
-            className="text-[15px] text-foreground placeholder:text-muted-foreground/70 pb-12"
-          />
-          <VoiceInterimTranscript
-            isListening={isListening}
-            interimTranscript={interimTranscript}
-            className="bottom-12 left-2 right-2"
-          />
-          <VoiceInputButton
-            isListening={isListening}
-            onToggle={toggleListening}
-            canUseVoice={canUseVoice}
-            className="absolute bottom-2 left-2"
-          />
-        </div>
-        {speechError && (
-          <p className="text-sm text-destructive">{speechError}</p>
+        {pmStatus === 'completed' ? (
+          <p className="text-base font-semibold">General Notes</p>
+        ) : (
+          <label htmlFor="pm-general-notes" className="text-base font-semibold">
+            General Notes
+          </label>
+        )}
+        {pmStatus === 'completed' ? (
+          <>
+            <p className="text-xs text-muted-foreground">{COMPLETED_PM_GENERAL_NOTES_LOCK_MESSAGE}</p>
+            <div className="rounded-md border bg-muted/30 px-3 py-3 text-[15px] text-foreground">
+              {notes.trim() ? (
+                <p className="whitespace-pre-wrap">{notes}</p>
+              ) : (
+                <p className="text-muted-foreground">No general notes were added before completion.</p>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="relative">
+              <Textarea
+                id="pm-general-notes"
+                placeholder="Add general notes about this PM..."
+                value={notes}
+                onChange={(e) => onNotesChange(e.target.value)}
+                disabled={notesDisabled}
+                rows={3}
+                className="text-[15px] text-foreground placeholder:text-muted-foreground/70 pb-12"
+              />
+              <VoiceInterimTranscript
+                isListening={isListening}
+                interimTranscript={interimTranscript}
+                className="bottom-12 left-2 right-2"
+              />
+              <VoiceInputButton
+                isListening={isListening}
+                onToggle={toggleListening}
+                canUseVoice={canUseVoice}
+                className="absolute bottom-2 left-2"
+              />
+            </div>
+            {speechError && (
+              <p className="text-sm text-destructive">{speechError}</p>
+            )}
+          </>
         )}
       </div>
 

@@ -47,6 +47,10 @@ import { WorkOrderDetailsOverlays } from '@/features/work-orders/components/Work
 import WorkOrderQRCodeDisplay from '@/features/work-orders/components/WorkOrderQRCodeDisplay';
 import { PMChangeWarningDialog } from '@/features/work-orders/components/PMChangeWarningDialog';
 import { WorkOrderPMManagementDialog } from '@/features/work-orders/components/WorkOrderPMManagementDialog';
+import {
+  getWorkOrderDescriptionLockMessage,
+  getWorkOrderNotesLockMessage,
+} from '@/features/work-orders/utils/workOrderLockCopy';
 
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
@@ -352,6 +356,14 @@ const WorkOrderDetails = () => {
   const teamSummary = buildWorkOrderTeamSummary(workOrder, equipment);
   const assigneeNameSummary = buildWorkOrderAssigneeSummary(workOrder.assigneeName);
   const mobileAssigneeSummary = buildMobileWorkOrderAssigneeSummary(workOrder.assigneeName);
+  const noteComposerLockMessage =
+    isWorkOrderLocked && baseCanAddNotes
+      ? getWorkOrderNotesLockMessage(workOrder.status)
+      : undefined;
+  const descriptionLockMessage =
+    isWorkOrderLocked && canEdit
+      ? getWorkOrderDescriptionLockMessage(workOrder.status)
+      : undefined;
 
   const scrollToPMSection = () => {
     pmSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -418,6 +430,7 @@ const WorkOrderDetails = () => {
               pmLoading={pmLoading}
               isWorkOrderLocked={isWorkOrderLocked}
               canAddNotes={canAddNotes}
+              noteComposerLockMessage={noteComposerLockMessage}
               canUsePrivateNotes={canUsePrivateNotes}
               canUpload={canUpload}
               canAddCosts={canAddCosts}
@@ -449,6 +462,7 @@ const WorkOrderDetails = () => {
               onComplete={() => setShowMobileCompleteDialog(true)}
               onRetrySync={offlineQueue.retryFailed}
               canEditInlineFields={canEditInlineFields}
+              descriptionLockMessage={descriptionLockMessage}
               canEditAssignment={canEditAssignment}
               onSaveDescription={handleSaveDescription}
               equipmentLocationEdit={equipmentLocationEdit}
@@ -469,6 +483,7 @@ const WorkOrderDetails = () => {
               pmLoading={pmLoading}
               isWorkOrderLocked={isWorkOrderLocked}
               canAddNotes={canAddNotes}
+              noteComposerLockMessage={noteComposerLockMessage}
               canUsePrivateNotes={canUsePrivateNotes}
               canUpload={canUpload}
               canAddCosts={canAddCosts}
@@ -484,6 +499,7 @@ const WorkOrderDetails = () => {
               stagger={stagger}
               onPMUpdate={handlePMUpdate}
               canEditInlineFields={canEditInlineFields}
+              descriptionLockMessage={descriptionLockMessage}
               onSaveDescription={handleSaveDescription}
               equipmentLocationEdit={equipmentLocationEdit}
               canManagePM={canManagePM}
