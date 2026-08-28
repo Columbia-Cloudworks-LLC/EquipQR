@@ -137,6 +137,12 @@ export const MOBILE_WO_CONTENT_BOTTOM_PADDING_CLASS = {
   withSyncBanner: 'pb-[calc(var(--mobile-bottom-nav-height)+8rem)]',
 } as const;
 
+/**
+ * Reserve a narrow mobile gutter under the fixed work-order FAB so right-edge
+ * labels and timestamps stay tappable instead of sitting under the button.
+ */
+export const MOBILE_WO_FAB_AVOIDANCE_INSET_CLASS = 'pr-12 md:pr-0';
+
 /** Scroll clearance for mobile work-order details fixed chrome (QAB FAB; optional sync banner). */
 export function getMobileWorkOrderDetailsBottomPaddingClass({
   isMobile,

@@ -173,6 +173,12 @@ describe('WorkOrderDetailsMobileContent', () => {
     expect(screen.getByText('No QuickBooks contacts synced yet.')).toBeInTheDocument();
   });
 
+  it('adds a right-side avoid zone to the Events & Times trigger on mobile', () => {
+    renderMobileContent();
+
+    expect(screen.getByRole('button', { name: /events & times/i })).toHaveClass('pr-12');
+  });
+
   it('hides Customer Contacts from requestors', () => {
     renderMobileContent({
       permissionLevels: { isManager: false, isTechnician: false },

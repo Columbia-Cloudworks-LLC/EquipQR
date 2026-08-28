@@ -108,6 +108,8 @@ describe('WorkOrderTimeline', () => {
     expect(screen.getByText('2024-01-05T16:00:00Z')).toBeInTheDocument();
     expect(screen.queryByText('2026-06-29T12:00:00Z')).not.toBeInTheDocument();
     expect(screen.getAllByText('Admin User')).toHaveLength(2);
+    expect(screen.getByText('Timeline').closest('div')).toHaveClass('pr-12');
+    expect(screen.getByText('2024-01-05T16:00:00Z').closest('div')?.parentElement).toHaveClass('pr-12');
   });
 
   it('shows one consolidated creation event for a fresh assigned work order', () => {
