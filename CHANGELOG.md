@@ -22,6 +22,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Fixed
 
+- **Completed work order revert actions are clearly labeled (#1484)** — Completed work orders now separate `Reopen work order` from `Revert PM`, explain what each action changes, and require confirmation before either write runs.
 - **Work order delete stays in the overflow menu (#1485)** — Desktop details keep Export as the header action and move delete into the trailing menu, while the mobile actions sheet leaves delete as the last low-emphasis option behind the existing owner/admin confirm flow.
 - **Organization settings page alias (#1469)** — Opening `/dashboard/organization/settings` now renders the Settings form and organization tabs for owners and admins instead of a blank main panel.
 - **Starter PM template titles stay readable** — EquipQR starter cards on `/dashboard/pm-templates` now keep names readable even when EquipQR and Protected badges are shown together.

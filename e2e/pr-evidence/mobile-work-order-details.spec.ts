@@ -84,7 +84,7 @@ test.describe('Mobile work order details UX @pr-evidence', () => {
     }
   });
 
-  test('shows revert on a locked completed work order', async ({
+  test('shows reopen work order on a locked completed work order', async ({
     gotoDashboard,
     assertHealthyShell,
     page,
@@ -96,7 +96,7 @@ test.describe('Mobile work order details UX @pr-evidence', () => {
       page.getByRole('heading', { name: new RegExp(seedWorkOrders.completed.title, 'i') }).first(),
     ).toBeVisible({ timeout: 60_000 });
 
-    const revert = page.getByRole('button', { name: /revert to accepted/i });
+    const revert = page.getByRole('button', { name: /reopen work order/i });
     await expect(revert).toBeVisible({ timeout: 30_000 });
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '04-mobile-locked-revert', { target: revert });

@@ -57,11 +57,11 @@ export function PMChecklistDialogs({
       <AlertDialog open={showRevertPMDialog} onOpenChange={onRevertPMDialogOpenChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Revert PM Completion?</AlertDialogTitle>
+            <AlertDialogTitle>Revert PM?</AlertDialogTitle>
             <AlertDialogDescription>
               {willReopenWorkOrder
-                ? 'This will revert the PM checklist status from completed back to pending and reopen this work order to accepted so the checklist can be edited again. All checklist item assessments and notes will be preserved. This action can only be performed by an organization owner or administrator.'
-                : 'This will revert the PM checklist status from completed back to pending. All checklist item assessments and notes will be preserved. This action can only be performed by an organization owner or administrator.'}
+                ? 'This will set the PM checklist back to pending and reopen this work order to accepted so the checklist can be edited again. All checklist item assessments and notes will be preserved. This action can only be performed by an organization owner or administrator.'
+                : 'This will set the PM checklist back to pending. All checklist item assessments and notes will be preserved. This action can only be performed by an organization owner or administrator.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -74,7 +74,7 @@ export function PMChecklistDialogs({
               disabled={isReverting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isReverting ? 'Reverting...' : 'Yes, Revert Completion'}
+              {isReverting ? 'Reverting...' : 'Yes, revert PM'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

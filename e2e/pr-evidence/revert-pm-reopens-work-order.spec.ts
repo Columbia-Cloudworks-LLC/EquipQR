@@ -3,8 +3,8 @@ import { newPersonaPage } from '../user/shared/auth-helpers';
 import { seedWorkOrders } from '../user/shared/seed-data';
 import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
 
-test.describe('Revert PM Completion reopens work order @pr-evidence', () => {
-  test('admin reverts completed PM and unlocked work order in one action', async ({ browser }) => {
+test.describe('Revert PM reopens work order @pr-evidence', () => {
+  test('admin cancels once, then reverts the completed PM and reopens the work order', async ({ browser }) => {
     const { context, page } = await newPersonaPage(browser, 'admin');
     const workOrder = seedWorkOrders.apexCompletedPm;
 
@@ -13,7 +13,10 @@ test.describe('Revert PM Completion reopens work order @pr-evidence', () => {
       timeout: 60_000,
     });
 
-    const revertButton = page.getByRole('button', { name: /revert pm completion/i });
+    await expect(page.getByText(/need to edit the completed checklist\?/i)).toBeVisible({
+      timeout: 30_000,
+    });
+    const revertButton = page.getByRole('button', { name: /^revert pm$/i });
     await expect(revertButton).toBeVisible({ timeout: 30_000 });
     await evidenceScreenshot(page, '01-completed-pm-locked-work-order', { target: revertButton });
     await evidencePause(page, 600);
@@ -28,7 +31,13 @@ test.describe('Revert PM Completion reopens work order @pr-evidence', () => {
     });
     await evidencePause(page, 600);
 
-    await confirmDialog.getByRole('button', { name: /yes, revert completion/i }).click();
+    await confirmDialog.getByRole('button', { name: /^cancel$/i }).click();
+    await expect(confirmDialog).toHaveCount(0, { timeout: 30_000 });
+    await expect(revertButton).toBeVisible({ timeout: 30_000 });
+
+    await revertButton.click();
+    await expect(confirmDialog).toBeVisible({ timeout: 30_000 });
+    await confirmDialog.getByRole('button', { name: /yes, revert pm/i }).click();
 
     await expect(page.getByText(/work order reopened to accepted|pm reverted/i).first()).toBeVisible({
       timeout: 30_000,

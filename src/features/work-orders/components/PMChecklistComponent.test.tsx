@@ -299,6 +299,38 @@ describe('PMChecklistComponent', () => {
       organization_id: 'org-1',
     } satisfies WorkOrderData;
 
+    it('shows helper copy, the new label, and requires confirmation before reverting PM', async () => {
+      const pm = createMockPM({ status: 'completed' });
+      renderPMChecklist(pm, {
+        onUpdate: mockOnUpdate,
+        isAdmin: true,
+        workOrder: completedWorkOrder,
+      });
+
+      expect(
+        screen.getByText(/need to edit the completed checklist\?/i),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/set the checklist back to pending and reopen the work order to accepted\./i),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^revert pm$/i })).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /revert pm completion/i }),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /^revert pm$/i }));
+
+      const confirmDialog = screen.getByRole('alertdialog');
+      expect(confirmDialog).toBeInTheDocument();
+      expect(screen.getByText(/set the pm checklist back to pending/i)).toBeInTheDocument();
+      expect(screen.getByText(/reopen this work order to accepted/i)).toBeInTheDocument();
+      expect(workOrderRevertService.revertPMCompletion).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByRole('button', { name: /^cancel$/i }));
+
+      expect(workOrderRevertService.revertPMCompletion).not.toHaveBeenCalled();
+    });
+
     it('passes terminal work order context and explains reopen in confirm dialog', async () => {
       vi.mocked(workOrderRevertService.revertPMCompletion).mockResolvedValue({
         success: true,
@@ -316,14 +348,14 @@ describe('PMChecklistComponent', () => {
         workOrder: completedWorkOrder,
       });
 
-      fireEvent.click(screen.getByRole('button', { name: /revert pm completion/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^revert pm$/i }));
 
       expect(
         screen.getByText(/reopen this work order to accepted/i),
       ).toBeInTheDocument();
-      expect(screen.getByText(/back to pending/i)).toBeInTheDocument();
+      expect(screen.getByText(/set the pm checklist back to pending/i)).toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole('button', { name: /yes, revert completion/i }));
+      fireEvent.click(screen.getByRole('button', { name: /yes, revert pm/i }));
 
       await waitFor(() => {
         expect(workOrderRevertService.revertPMCompletion).toHaveBeenCalledWith('pm-1', {
@@ -339,6 +371,20 @@ describe('PMChecklistComponent', () => {
         );
         expect(mockOnUpdate).toHaveBeenCalled();
       });
+    });
+
+    it('hides the revert PM control for non-admin users', () => {
+      const pm = createMockPM({ status: 'completed' });
+      renderPMChecklist(pm, {
+        onUpdate: mockOnUpdate,
+        isAdmin: false,
+        workOrder: completedWorkOrder,
+      });
+
+      expect(screen.queryByRole('button', { name: /^revert pm$/i })).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/need to edit the completed checklist\?/i),
+      ).not.toBeInTheDocument();
     });
   });
 });
