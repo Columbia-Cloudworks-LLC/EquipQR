@@ -14,26 +14,30 @@ import { Loader2, Bug } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 /**
- * Test users from supabase/seed.sql
+ * Test users from Supabase seed data / cloud preview quick-login seed.
  * All use password: password123
- * 
+ *
  * ⚠️ SECURITY WARNING ⚠️
- * This file contains hardcoded test credentials for local development ONLY.
- * These credentials only work with locally seeded test databases.
- * This component is rendered only when `import.meta.env.DEV === true`.
- * In production builds (Vite), import.meta.env.DEV is statically replaced with `false`,
- * causing the entire component to tree-shake out of the bundle.
- * 
+ * These credentials only work against non-production test Auth.
+ * This component is rendered only when either:
+ * - `import.meta.env.DEV === true` (local dev), or
+ * - `import.meta.env.VITE_PREVIEW_QUICK_LOGIN === 'true'` (preview-only cutover flag)
+ *
+ * In production builds (Vite), both env reads are statically replaced. When the
+ * preview flag is unset, the chrome stays hidden and the import boundary in
+ * `SignInForm.tsx` remains tree-shake friendly for production bundles.
+ *
  * @see https://vitejs.dev/guide/env-and-mode.html#production-replacement
  */
-const DEV_USERS = [
+export const DEV_USERS = [
   // Apex Construction Company
   { email: 'owner@apex.test', name: 'Alex Apex', role: 'Owner', org: 'Apex Construction' },
   { email: 'admin@apex.test', name: 'Amanda Admin', role: 'Admin', org: 'Apex Construction' },
-  { email: 'tech@apex.test', name: 'Tom Technician', role: 'Member', org: 'Apex Construction' },
+  { email: 'tech@apex.test', name: 'Tom Technician', role: 'Technician', org: 'Apex Construction' },
+  { email: 'viewer@apex.test', name: 'Vera Viewer', role: 'Viewer', org: 'Apex Construction' },
   // Metro Equipment Services
   { email: 'owner@metro.test', name: 'Marcus Metro', role: 'Owner', org: 'Metro Equipment' },
-  { email: 'tech@metro.test', name: 'Mike Mechanic', role: 'Member', org: 'Metro Equipment' },
+  { email: 'tech@metro.test', name: 'Mike Mechanic', role: 'Technician', org: 'Metro Equipment' },
   // Valley Landscaping (Free tier)
   { email: 'owner@valley.test', name: 'Victor Valley', role: 'Owner', org: 'Valley Landscaping (Free)' },
   // Industrial Rentals Corp
@@ -56,7 +60,7 @@ const DEV_USERS = [
 const DEV_PASSWORD = import.meta.env.VITE_DEV_TEST_PASSWORD ?? 'password123';
 
 // Group users by organization for the dropdown
-const USER_GROUPS = [
+export const USER_GROUPS = [
   {
     label: 'Apex Construction (Premium)',
     users: DEV_USERS.filter((u) => u.org === 'Apex Construction'),
@@ -87,6 +91,9 @@ const USER_GROUPS = [
   },
 ];
 
+const DEV_QUICK_LOGIN_ENABLED =
+  import.meta.env.DEV || import.meta.env.VITE_PREVIEW_QUICK_LOGIN === 'true';
+
 /**
  * Development-only quick login component.
  * Allows selecting a test user from a dropdown to instantly sign in.
@@ -103,8 +110,7 @@ const DevQuickLogin: React.FC<DevQuickLoginProps> = ({ onAuthFailure }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Only render in development mode
-  if (!import.meta.env.DEV) {
+  if (!DEV_QUICK_LOGIN_ENABLED) {
     return null;
   }
 

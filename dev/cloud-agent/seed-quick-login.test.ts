@@ -7,6 +7,8 @@ import {
   normalizeBranchList,
   parseProjectApiKeys,
   CLOUD_AGENT_EQUIPMENT_SERIAL,
+  CLOUD_AGENT_METRO_EQUIPMENT_SERIAL,
+  CLOUD_AGENT_SHARED_ORG_FIXTURES,
   formatAnonKeyAssignment,
   QUICK_LOGIN_PERSONAS,
   resolveDevPassword,
@@ -37,6 +39,47 @@ describe('cloud-agent seed-quick-login helpers', () => {
     expect(QUICK_LOGIN_PERSONAS.some((p) => p.email === 'owner@freshstart.test')).toBe(
       true,
     );
+    expect(QUICK_LOGIN_PERSONAS.some((p) => p.email === 'viewer@apex.test')).toBe(
+      true,
+    );
+  });
+
+  it('encodes the Apex shared-org viewer and work-order preview contract', () => {
+    const apex = CLOUD_AGENT_SHARED_ORG_FIXTURES.find((fixture) => fixture.key === 'apex');
+    expect(apex).toBeDefined();
+    expect(apex?.organizationMemberships).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ email: 'owner@apex.test', role: 'owner' }),
+        expect.objectContaining({ email: 'admin@apex.test', role: 'admin' }),
+        expect.objectContaining({ email: 'tech@apex.test', role: 'member' }),
+        expect.objectContaining({ email: 'viewer@apex.test', role: 'member' }),
+      ]),
+    );
+    expect(apex?.teamMemberships).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ email: 'owner@apex.test', role: 'manager' }),
+        expect.objectContaining({ email: 'admin@apex.test', role: 'requestor' }),
+        expect.objectContaining({ email: 'tech@apex.test', role: 'technician' }),
+        expect.objectContaining({ email: 'viewer@apex.test', role: 'viewer' }),
+      ]),
+    );
+    expect(apex?.workOrder).toEqual(
+      expect.objectContaining({
+        createdByEmail: 'admin@apex.test',
+        assigneeEmail: 'tech@apex.test',
+      }),
+    );
+  });
+
+  it('seeds an isolated Metro org fixture with its own equipment and work order', () => {
+    const metro = CLOUD_AGENT_SHARED_ORG_FIXTURES.find((fixture) => fixture.key === 'metro');
+    expect(metro).toBeDefined();
+    expect(metro?.organizationMemberships.map((membership) => membership.email)).toEqual([
+      'owner@metro.test',
+      'tech@metro.test',
+    ]);
+    expect(metro?.equipment.serialNumber).toBe(CLOUD_AGENT_METRO_EQUIPMENT_SERIAL);
+    expect(metro?.workOrder.title).toBe('Cloud Preview Seed - Metro Bobcat S770');
   });
 
   it('parses legacy anon and service_role api keys', () => {
@@ -127,8 +170,10 @@ describe('cloud-agent seed-quick-login helpers', () => {
 
   it('uses a cloud-agent equipment serial instead of local fixture UUIDs', () => {
     expect(CLOUD_AGENT_EQUIPMENT_SERIAL).toBe('CAT320GC-CLOUD-AGENT-001');
+    expect(CLOUD_AGENT_METRO_EQUIPMENT_SERIAL).toBe('S770-CLOUD-AGENT-001');
     // Canonical local seed fixture IDs must not be reused (upsert overwrite risk).
     expect(CLOUD_AGENT_EQUIPMENT_SERIAL).not.toMatch(/880e8400|aa0e8400|dd0e8400/);
+    expect(CLOUD_AGENT_METRO_EQUIPMENT_SERIAL).not.toMatch(/880e8400|aa0e8400|dd0e8400/);
   });
 
   it('extracts branch JSON despite ANSI spinner noise', () => {
