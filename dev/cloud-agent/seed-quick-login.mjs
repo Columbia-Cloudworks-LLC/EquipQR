@@ -452,6 +452,7 @@ async function upgradeOrg(admin, orgId, persona, userId) {
 /** Stable serial for idempotent cloud-agent fleet seed (not a local-fixture UUID). */
 export const CLOUD_AGENT_EQUIPMENT_SERIAL = 'CAT320GC-CLOUD-AGENT-001';
 export const CLOUD_AGENT_METRO_EQUIPMENT_SERIAL = 'S770-CLOUD-AGENT-001';
+export const CLOUD_AGENT_WORK_ORDER_LOOKUP_ORDER_COLUMN = 'created_date';
 const CLOUD_AGENT_TEAM_NAME = 'Heavy Equipment Team';
 
 const DEFAULT_JOINED_DATE = '2024-01-01T00:00:00.000Z';
@@ -806,7 +807,7 @@ async function ensureSeedWorkOrder(
       .select('id')
       .eq('organization_id', orgId)
       .eq('title', fixture.workOrder.title)
-      .order('created_at', { ascending: true }),
+      .order(CLOUD_AGENT_WORK_ORDER_LOOKUP_ORDER_COLUMN, { ascending: true }),
     'work_orders',
   );
 

@@ -9,6 +9,7 @@ import {
   CLOUD_AGENT_EQUIPMENT_SERIAL,
   CLOUD_AGENT_METRO_EQUIPMENT_SERIAL,
   CLOUD_AGENT_SHARED_ORG_FIXTURES,
+  CLOUD_AGENT_WORK_ORDER_LOOKUP_ORDER_COLUMN,
   formatAnonKeyAssignment,
   QUICK_LOGIN_PERSONAS,
   resolveDevPassword,
@@ -80,6 +81,10 @@ describe('cloud-agent seed-quick-login helpers', () => {
     ]);
     expect(metro?.equipment.serialNumber).toBe(CLOUD_AGENT_METRO_EQUIPMENT_SERIAL);
     expect(metro?.workOrder.title).toBe('Cloud Preview Seed - Metro Bobcat S770');
+  });
+
+  it('looks up seeded work orders by created_date', () => {
+    expect(CLOUD_AGENT_WORK_ORDER_LOOKUP_ORDER_COLUMN).toBe('created_date');
   });
 
   it('parses legacy anon and service_role api keys', () => {
