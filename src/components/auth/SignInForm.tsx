@@ -7,8 +7,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { isMFAEnabled } from '@/lib/flags';
 import { AuthGoogleSignInButton } from '@/pages/AuthGoogleSignInButton';
-import { DEV_QUICK_LOGIN_ENABLED } from './devQuickLoginGate';
-
+const DEV_QUICK_LOGIN_ENABLED =
+  import.meta.env.DEV || import.meta.env.VITE_PREVIEW_QUICK_LOGIN === 'true';
 const DevQuickLogin = DEV_QUICK_LOGIN_ENABLED
   ? lazy(() => import('./DevQuickLogin'))
   : null;

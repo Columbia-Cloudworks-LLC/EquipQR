@@ -12,7 +12,6 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Bug } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { DEV_QUICK_LOGIN_ENABLED } from './devQuickLoginGate';
 
 /**
  * Test users from Supabase seed data / cloud preview quick-login seed.
@@ -91,6 +90,9 @@ export const USER_GROUPS = [
     users: DEV_USERS.filter((u) => u.org === 'Invitee Personal Workspace'),
   },
 ];
+
+const DEV_QUICK_LOGIN_ENABLED =
+  import.meta.env.DEV || import.meta.env.VITE_PREVIEW_QUICK_LOGIN === 'true';
 
 /**
  * Development-only quick login component.
