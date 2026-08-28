@@ -348,6 +348,7 @@ export function WorkOrderDetailsMobileContent({
           workOrder={{
             id: workOrder.id,
             status: workOrder.status,
+            assignee_id: workOrder.assignee_id,
             has_pm: workOrder.has_pm ?? false,
             updated_at: workOrder.updated_at,
           }}

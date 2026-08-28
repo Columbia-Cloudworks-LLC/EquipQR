@@ -18,6 +18,7 @@ export interface MobileWorkOrderFieldNextActionProps {
   workOrder: {
     id: string;
     status: WorkOrderStatus;
+    assignee_id?: string | null;
     has_pm?: boolean;
     updated_at?: string | null;
   };
@@ -67,6 +68,8 @@ function syncBannerCopy(sync: MobileWorkOrderFieldNextActionProps['sync']): {
   return null;
 }
 
+const START_WORK_ASSIGNEE_REQUIRED_COPY = 'Select an assignee to enable starting work';
+
 export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextActionProps> = ({
   workOrder,
   pm,
@@ -85,6 +88,7 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
   const syncBanner = syncBannerCopy(sync);
   const pmIncomplete =
     !!workOrder.has_pm && pm.status !== 'completed' && (pm.total > 0 ? pm.progress < pm.total : true);
+  const canStartWork = Boolean(workOrder.assignee_id);
 
   const noteAndPhotoRow = hideCaptureActions ? null : (
     <div className="flex flex-wrap gap-2">
@@ -171,10 +175,18 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
 
         {(workOrder.status === 'accepted' || workOrder.status === 'assigned') && permissions.canWork ? (
           <>
-            <Button type="button" className="h-12 min-h-11 w-full text-base font-semibold" onClick={onStartWork}>
+            <Button
+              type="button"
+              className="h-12 min-h-11 w-full text-base font-semibold"
+              onClick={onStartWork}
+              disabled={!canStartWork}
+            >
               <Play className="mr-2 h-5 w-5" aria-hidden />
               Start work
             </Button>
+            {!canStartWork ? (
+              <p className="text-sm text-muted-foreground">{START_WORK_ASSIGNEE_REQUIRED_COPY}</p>
+            ) : null}
             {noteAndPhotoRow}
           </>
         ) : null}

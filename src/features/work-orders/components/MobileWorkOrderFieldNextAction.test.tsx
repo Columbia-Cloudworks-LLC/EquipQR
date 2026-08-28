@@ -52,13 +52,31 @@ describe('MobileWorkOrderFieldNextAction', () => {
     expect(screen.getByRole('button', { name: /accept work order/i })).toBeInTheDocument();
   });
 
-  it('assigned shows Start work', () => {
+  it('assigned shows Start work enabled when an assignee is present', () => {
     const onStartWork = vi.fn();
     renderNextAction({
-      workOrder: { id: '1', status: 'assigned' },
+      workOrder: { id: '1', status: 'assigned', assignee_id: 'user-1' },
       onStartWork,
     });
-    expect(screen.getByRole('button', { name: /^start work$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^start work$/i })).toBeEnabled();
+  });
+
+  it('accepted keeps Start work visible but disabled when no assignee is set', () => {
+    renderNextAction({
+      workOrder: { id: '1', status: 'accepted', assignee_id: null },
+    });
+
+    expect(screen.getByRole('button', { name: /^start work$/i })).toBeDisabled();
+    expect(screen.getByText('Select an assignee to enable starting work')).toBeInTheDocument();
+  });
+
+  it('accepted enables Start work when an assignee is set', () => {
+    renderNextAction({
+      workOrder: { id: '1', status: 'accepted', assignee_id: 'user-1' },
+    });
+
+    expect(screen.getByRole('button', { name: /^start work$/i })).toBeEnabled();
+    expect(screen.queryByText('Select an assignee to enable starting work')).not.toBeInTheDocument();
   });
 
   it('in_progress with incomplete PM shows Continue checklist', () => {
@@ -86,7 +104,7 @@ describe('MobileWorkOrderFieldNextAction', () => {
 
   it('field mode hides capture actions and keeps the next job CTA', () => {
     renderNextAction({
-      workOrder: { id: '1', status: 'accepted' },
+      workOrder: { id: '1', status: 'accepted', assignee_id: 'user-1' },
       hideCaptureActions: true,
     });
     expect(screen.getByRole('button', { name: /^start work$/i })).toBeInTheDocument();
@@ -96,7 +114,7 @@ describe('MobileWorkOrderFieldNextAction', () => {
 
   it('keeps capture actions when the FAB is hidden', () => {
     renderNextAction({
-      workOrder: { id: '1', status: 'accepted' },
+      workOrder: { id: '1', status: 'accepted', assignee_id: 'user-1' },
     });
     expect(screen.getByRole('button', { name: /add note/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^photo$/i })).toBeInTheDocument();

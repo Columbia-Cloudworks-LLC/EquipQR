@@ -144,6 +144,26 @@ function renderMobileContent(
 }
 
 describe('WorkOrderDetailsMobileContent', () => {
+  it('enables mobile Start work when the accepted work order has an assignee', () => {
+    renderMobileContent({
+      workOrder: { ...workOrder, status: 'accepted', assignee_id: 'user-1' },
+      showMobileActionFooter: true,
+    });
+
+    expect(screen.getByRole('button', { name: /^start work$/i })).toBeEnabled();
+    expect(screen.queryByText('Select an assignee to enable starting work')).not.toBeInTheDocument();
+  });
+
+  it('disables mobile Start work with guidance when the accepted work order is unassigned', () => {
+    renderMobileContent({
+      workOrder: { ...workOrder, status: 'accepted', assignee_id: null },
+      showMobileActionFooter: true,
+    });
+
+    expect(screen.getByRole('button', { name: /^start work$/i })).toBeDisabled();
+    expect(screen.getByText('Select an assignee to enable starting work')).toBeInTheDocument();
+  });
+
   it('keeps Next step on the canvas in field mode without capture buttons', () => {
     renderMobileContent({ showMobileActionFooter: true });
 
