@@ -5,6 +5,7 @@ import { evidencePause, evidenceScreenshot } from './shared/evidence-helpers';
 
 const MOBILE_USER_AGENT =
   'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36';
+const VERCEL_SHARE_URL = process.env.VERCEL_SHARE_URL?.trim();
 
 test.use({
   storageState: { cookies: [], origins: [] },
@@ -24,6 +25,11 @@ test.describe('Mobile work order PM action FAB clearance @pr-evidence', () => {
     assertHealthyShell,
     page,
   }) => {
+    if (VERCEL_SHARE_URL) {
+      await page.goto(VERCEL_SHARE_URL);
+      await page.waitForLoadState('domcontentloaded');
+    }
+
     await quickLogin(page, 'technician');
     await gotoDashboard(`/dashboard/work-orders/${seedWorkOrders.oilChange.id}`);
     await assertHealthyShell();
