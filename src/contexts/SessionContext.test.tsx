@@ -1,8 +1,10 @@
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { render, renderHook, waitFor, act, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { SessionProvider, SessionContext } from './SessionContext';
 import type { SessionData, SessionOrganization } from './SessionContext';
+import { createTestQueryClient } from '@vitest-harness/utils/query-client-wrapper';
 
 // Type definitions for mocks
 interface MockVisibilityHook {
@@ -43,6 +45,12 @@ vi.mock('@/services/sessionPermissionService', () => ({
   },
 }));
 
+vi.mock('@/services/permissions/PermissionEngine', () => ({
+  permissionEngine: {
+    clearCache: vi.fn(),
+  },
+}));
+
 // Mock data
 const mockUser = {
   id: 'user-1',
@@ -74,6 +82,34 @@ const mockSessionData: SessionData = {
   ],
   lastUpdated: '2024-01-01T00:00:00Z',
   version: 1,
+};
+
+const SessionChromeProbe = () => {
+  const session = React.useContext(SessionContext);
+  const currentOrganization = session?.sessionData?.organizations.find(
+    (organization) => organization.id === session.sessionData?.currentOrganizationId,
+  );
+  const hasOperationalRole =
+    session?.sessionData?.teamMemberships.some(
+      (membership) => membership.role === 'manager' || membership.role === 'technician',
+    ) ?? false;
+
+  if (session?.isLoading || !currentOrganization) {
+    return <div>Resolving session</div>;
+  }
+
+  if (currentOrganization.userRole === 'member' && !hasOperationalRole) {
+    return <div>Limited View</div>;
+  }
+
+  return (
+    <div>
+      <span>Itemized Costs</span>
+      <span>Add labor</span>
+      <span>Inventory / Part Lookup</span>
+      <span>Create Work Order</span>
+    </div>
+  );
 };
 
 describe('SessionContext', () => {
@@ -119,12 +155,25 @@ describe('SessionContext', () => {
     vi.mocked(getOrganizationPreference).mockReturnValue(null);
   });
 
-  const createWrapper = () => ({ children }: { children: React.ReactNode }) => (
-    <SessionProvider>{children}</SessionProvider>
-  );
+  const createWrapper = () => {
+    const queryClient = createTestQueryClient();
+    return {
+      queryClient,
+      wrapper: ({ children }: { children: React.ReactNode }) => (
+        <QueryClientProvider client={queryClient}>
+          <SessionProvider>{children}</SessionProvider>
+        </QueryClientProvider>
+      ),
+    };
+  };
 
-  const renderSessionHook = () =>
-    renderHook(() => React.useContext(SessionContext), { wrapper: createWrapper() });
+  const renderSessionHook = () => {
+    const testWrapper = createWrapper();
+    return {
+      ...renderHook(() => React.useContext(SessionContext), { wrapper: testWrapper.wrapper }),
+      queryClient: testWrapper.queryClient,
+    };
+  };
 
   const mockCachedSession = (overrides: {
     needsRefresh?: boolean;
@@ -312,6 +361,76 @@ describe('SessionContext', () => {
     });
     
     expect(SessionStorageService.clearSessionStorage).toHaveBeenCalled();
+  });
+
+  it('clears cached session, permission, and query state before paint when auth user changes', async () => {
+    const { SessionStorageService } = await import('@/services/sessionStorageService');
+    const { permissionEngine } = await import('@/services/permissions/PermissionEngine');
+
+    mockCachedSession();
+    mockSessionManager.refreshSession.mockImplementation(() => new Promise(() => {}));
+
+    const hook = renderSessionHook();
+    const clearSpy = vi.spyOn(hook.queryClient, 'clear');
+
+    await waitFor(() => {
+      expect(hook.result.current?.isLoading).toBe(false);
+    });
+
+    mockSessionManager.initializeSession.mockReturnValue({
+      shouldLoadFromCache: false,
+      cachedData: null,
+      needsRefresh: false,
+    });
+    mockUseAuth.mockReturnValue({
+      user: { id: 'user-2', email: 'user2@example.com' },
+      isLoading: false,
+    });
+
+    act(() => {
+      hook.rerender();
+    });
+
+    expect(clearSpy).toHaveBeenCalledTimes(1);
+    expect(permissionEngine.clearCache).toHaveBeenCalledTimes(1);
+    expect(SessionStorageService.clearSessionStorage).toHaveBeenCalledTimes(1);
+    expect(hook.result.current?.sessionData).toBe(null);
+    expect(hook.result.current?.isLoading).toBe(true);
+  });
+
+  it('drops privileged chrome immediately on a technician to viewer switch', async () => {
+    mockCachedSession({ cachedData: mockSessionData });
+    mockSessionManager.refreshSession.mockImplementation(() => new Promise(() => {}));
+
+    const testWrapper = createWrapper();
+    const rendered = render(<SessionChromeProbe />, { wrapper: testWrapper.wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText('Itemized Costs')).toBeInTheDocument();
+      expect(screen.getByText('Add labor')).toBeInTheDocument();
+      expect(screen.getByText('Inventory / Part Lookup')).toBeInTheDocument();
+      expect(screen.getByText('Create Work Order')).toBeInTheDocument();
+    });
+
+    mockSessionManager.initializeSession.mockReturnValue({
+      shouldLoadFromCache: false,
+      cachedData: null,
+      needsRefresh: false,
+    });
+    mockUseAuth.mockReturnValue({
+      user: { id: 'user-2', email: 'viewer@example.com' },
+      isLoading: false,
+    });
+
+    act(() => {
+      rendered.rerender(<SessionChromeProbe />);
+    });
+
+    expect(screen.queryByText('Itemized Costs')).not.toBeInTheDocument();
+    expect(screen.queryByText('Add labor')).not.toBeInTheDocument();
+    expect(screen.queryByText('Inventory / Part Lookup')).not.toBeInTheDocument();
+    expect(screen.queryByText('Create Work Order')).not.toBeInTheDocument();
+    expect(screen.getByText('Resolving session')).toBeInTheDocument();
   });
 
   it('should handle user changes', async () => {

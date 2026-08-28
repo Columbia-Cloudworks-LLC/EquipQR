@@ -208,10 +208,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     clearPendingSignupOrganizationName();
+    setIsLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
+
+    if (error) {
+      setIsLoading(false);
+    }
     
     return { error };
   };
