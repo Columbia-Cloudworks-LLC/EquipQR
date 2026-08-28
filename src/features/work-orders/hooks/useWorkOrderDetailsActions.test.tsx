@@ -531,7 +531,7 @@ describe('useWorkOrderDetailsActions - handleStatusUpdate cache refresh (#1278)'
     invalidateSpy.mockRestore();
   });
 
-  it('invalidates workOrderKeys.detail so Revert to Accepted refreshes the details page', async () => {
+  it('invalidates workOrderKeys.detail so Reopen work order refreshes the details page', async () => {
     let capturedActions: ReturnType<typeof useWorkOrderDetailsActions> | undefined;
 
     render(

@@ -309,7 +309,7 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
     pendingFormDataRef.current = null; // Clear the ref when canceling
   }, []);
 
-  /** Called after admin Revert to Accepted (and similar status side-effects). */
+  /** Called after admin Reopen work order (and similar status side-effects). */
   const handleStatusUpdate = () => {
     // Details page reads workOrderKeys.detail via useWorkOrderById — must not
     // invalidate legacy keys only (#1278 / same class as #599).
@@ -322,7 +322,7 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
   const handlePMUpdate = () => {
     // Don't invalidate PM queries for routine save/complete — mutation hooks update cache.
     // Still refresh the work order record so status/lock state stays in sync (e.g. after
-    // Revert PM Completion also reopens a completed work order).
+    // Revert PM also reopens a completed work order).
     invalidateWorkOrderRecord(queryClient, organizationId, workOrderId);
   };
 

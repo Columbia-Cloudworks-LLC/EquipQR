@@ -22,7 +22,41 @@ describe('WorkOrderDetailsStatusLockWarning', () => {
     vi.clearAllMocks();
   });
 
-  it('calls onStatusUpdate with accepted after a successful revert (#1278)', async () => {
+  it('shows helper copy, the new label, and requires confirmation before reopening', async () => {
+    render(
+      <WorkOrderDetailsStatusLockWarning
+        workOrder={{ id: 'wo-1', status: 'completed' }}
+        isWorkOrderLocked
+        baseCanAddNotes
+        isAdmin
+      />,
+    );
+
+    expect(
+      screen.getByText(/need to edit the work order without changing the pm checklist\?/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/the pm stays completed\./i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /reopen work order/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /revert to accepted/i }),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /reopen work order/i }));
+
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+    expect(screen.getByText(/the pm checklist stays completed\./i)).toBeInTheDocument();
+    expect(mockRevertWorkOrderStatus).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: /^cancel$/i }));
+
+    expect(mockRevertWorkOrderStatus).not.toHaveBeenCalled();
+  });
+
+  it('calls onStatusUpdate with accepted after a successful reopen confirmation (#1278)', async () => {
     const onStatusUpdate = vi.fn();
     mockRevertWorkOrderStatus.mockResolvedValue({
       success: true,
@@ -40,7 +74,8 @@ describe('WorkOrderDetailsStatusLockWarning', () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: /revert to accepted/i }));
+    await userEvent.click(screen.getByRole('button', { name: /reopen work order/i }));
+    await userEvent.click(screen.getByRole('button', { name: /yes, reopen work order/i }));
 
     await waitFor(() => {
       expect(mockRevertWorkOrderStatus).toHaveBeenCalledWith(
@@ -68,7 +103,8 @@ describe('WorkOrderDetailsStatusLockWarning', () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: /revert to accepted/i }));
+    await userEvent.click(screen.getByRole('button', { name: /reopen work order/i }));
+    await userEvent.click(screen.getByRole('button', { name: /yes, reopen work order/i }));
 
     await waitFor(() => {
       expect(mockRevertWorkOrderStatus).toHaveBeenCalled();
@@ -76,7 +112,7 @@ describe('WorkOrderDetailsStatusLockWarning', () => {
     expect(onStatusUpdate).not.toHaveBeenCalled();
   });
 
-  it('hides revert control for non-admins', () => {
+  it('hides reopen control for non-admins', () => {
     render(
       <WorkOrderDetailsStatusLockWarning
         workOrder={{ id: 'wo-1', status: 'completed' }}
@@ -87,6 +123,9 @@ describe('WorkOrderDetailsStatusLockWarning', () => {
     );
 
     expect(screen.getByText(/this work order is completed/i)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /revert to accepted/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /reopen work order/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/need to edit the work order without changing the pm checklist\?/i),
+    ).not.toBeInTheDocument();
   });
 });

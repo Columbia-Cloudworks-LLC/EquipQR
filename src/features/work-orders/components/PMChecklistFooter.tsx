@@ -20,6 +20,7 @@ type PMChecklistFooterProps = {
   isSettingAllOK: boolean;
   completedAt?: string | null;
   formattedCompletedAt?: string;
+  willReopenWorkOrder?: boolean;
   onNotesChange: (value: string) => void;
   onSaveChanges: () => void;
   onCompletePM: () => void;
@@ -39,6 +40,7 @@ export function PMChecklistFooter({
   isSettingAllOK,
   completedAt,
   formattedCompletedAt,
+  willReopenWorkOrder = false,
   onNotesChange,
   onSaveChanges,
   onCompletePM,
@@ -138,15 +140,20 @@ export function PMChecklistFooter({
       )}
 
       {isAdmin && pmStatus === 'completed' && (
-        <div className="flex gap-2 pt-4 border-t">
+        <div className="space-y-3 pt-4 border-t">
+          <p className="text-sm text-muted-foreground">
+            {willReopenWorkOrder
+              ? 'Need to edit the completed checklist? Revert PM to set the checklist back to pending and reopen the work order to accepted.'
+              : 'Need to edit the completed checklist? Revert PM to set the checklist back to pending.'}
+          </p>
           <Button
             onClick={onShowRevertPMDialog}
             disabled={isReverting}
             variant="outline"
-            className="border-destructive/50 text-destructive hover:bg-destructive/10"
+            className="w-full sm:w-auto border-destructive/50 text-destructive hover:bg-destructive/10"
           >
             <RotateCcw className="h-4 w-4 mr-2" />
-            Revert PM Completion
+            Revert PM
           </Button>
         </div>
       )}

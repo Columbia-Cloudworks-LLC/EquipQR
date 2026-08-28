@@ -153,7 +153,7 @@ describe('WorkOrderDetailsMobileContent', () => {
     expect(screen.queryByRole('button', { name: /^photo$/i })).not.toBeInTheDocument();
   });
 
-  it('shows Revert to Accepted on a locked completed work order', () => {
+  it('shows Reopen work order on a locked completed work order', () => {
     renderMobileContent({
       workOrder: { ...workOrder, status: 'completed' },
       isWorkOrderLocked: true,
@@ -162,7 +162,8 @@ describe('WorkOrderDetailsMobileContent', () => {
       footerRoleEligible: false,
     });
 
-    expect(screen.getByRole('button', { name: /revert to accepted/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /reopen work order/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /revert to accepted/i })).not.toBeInTheDocument();
   });
 
   it('shows Customer Contacts for managers when the equipment has a customer', () => {
