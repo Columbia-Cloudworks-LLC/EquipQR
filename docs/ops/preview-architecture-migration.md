@@ -8,17 +8,25 @@ Related: [GitHub #1033](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issue
 
 ---
 
-## Reverse migration (#1282) — current target
+## Reverse migration (#1282) — current live state
 
-**Restored (2026-07):** day-to-day work is again **feat → preview → main**. Git `preview` is the integration branch; `preview.equipqr.app` tracks normal Vercel deploys of that branch. **`preview-domain-alias.yml` is removed** (no fast-forward of `preview` from `main`).
+**Restored (2026-07):** day-to-day work is again **feat → preview → main**.
+Git `preview` is the integration branch; `preview.equipqr.app` tracks normal
+Vercel deploys of that branch. **`preview-domain-alias.yml` is removed** (no
+fast-forward of `preview` from `main`).
 
 | Layer | Pre-production | Production |
 |-------|----------------|------------|
 | Git | Work branches → PR **`preview`** | Controlled **`preview` → `main`** (or `/release`) |
 | Frontend | **`preview.equipqr.app`** (Vercel Preview on git `preview`) + per-PR `*.vercel.app` | **`equipqr.app`** (after `vercel promote`) |
-| Supabase | Production project for cloud QA; ephemeral PR branches for `supabase/**` only | `supabase.equipqr.app` |
+| Supabase | Production project for cloud QA **today**; target replacement is a new persistent dataless preview branch per [preview-persistent-branch.md](./preview-persistent-branch.md); ephemeral PR branches for `supabase/**` stay in place | `supabase.equipqr.app` |
 
 Still retired from #1033 (unchanged by #1282): persistent Supabase branch **`olsdirkvvfegvclbpgrg`**, Vercel custom **`staging`**, duplicate preview edge project as a long-lived DB.
+
+**Next target (approved, not yet live):**
+[preview-persistent-branch.md](./preview-persistent-branch.md) records the
+follow-up decision to move `preview.equipqr.app` off production Supabase again,
+but onto a **new** persistent dataless branch rather than reviving `olsdirk`.
 
 ---
 
@@ -113,7 +121,7 @@ Everything that currently assumes `preview.equipqr.app` and/or `olsdirkvvfegvclb
 
 ---
 
-## Target architecture (approved 2026-06-15)
+## Target architecture (approved 2026-06-15, later superseded)
 
 Maintainer decision: **solo developer, one feature at a time, no persistent git `preview` integration branch.** Feature branches target **`main`** directly; Supabase ephemeral branches validate schema on open PRs.
 

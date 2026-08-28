@@ -37,7 +37,10 @@ EquipQR uses a **feat → preview → main** train (#1282). Authoritative policy
 | **`preview`** | Integration / pre-production train | Vercel **Preview** | preview.equipqr.app |
 | **`feat/*`** | One feature at a time | Vercel **Preview** per PR | Commit-specific `*.vercel.app` URL |
 
-> No perpetual Supabase preview database — cloud hosts use production Supabase. Ephemeral Supabase PR branches validate `supabase/**` changes only.
+> Current live preview still uses production Supabase. The approved target is a
+> new persistent dataless preview branch documented in
+> [`docs/ops/preview-persistent-branch.md`](./docs/ops/preview-persistent-branch.md).
+> Ephemeral Supabase PR branches still validate `supabase/**` changes only.
 
 ### Branch Flow
 

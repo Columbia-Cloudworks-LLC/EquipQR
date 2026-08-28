@@ -17,6 +17,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Changed
 
+- **Preview Supabase target architecture recorded** — Ops docs now capture the approved cutover of `preview.equipqr.app` to a persistent dataless Supabase branch; implementation remains queued.
 - **Work order next step stays on the phone** — Field technicians see the next job action on the page without opening the quick-actions menu. Managers can revert a locked work order and reach customer contacts on a phone.
 - **QR download menu** — Equipment, work order, and Quick Form QR dialogs use a Download menu for PNG or JPG. How to use starts collapsed.
 

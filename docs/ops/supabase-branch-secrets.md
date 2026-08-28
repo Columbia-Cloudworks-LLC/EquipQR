@@ -1,8 +1,15 @@
 # Supabase Branch Secrets Configuration
 
-> **Migration (#1033):** Cloud preview (`preview.equipqr.app`) now uses the **production** Supabase project (`supabase.equipqr.app`) with secrets from `edge-env-prod-secrets`. The persistent preview branch `olsdirkvvfegvclbpgrg` and `edge-env-preview-secrets` are being retired. Sections below that reference **olsdirk** remain accurate until that branch is decommissioned; see `docs/ops/preview-architecture-migration.md`.
+> **Current live vs target:** `preview.equipqr.app` still uses the **production**
+> Supabase project (`supabase.equipqr.app`) today. The approved target is a
+> **new persistent preview branch** with secrets restored from
+> `edge-env-preview-secrets`; see `docs/ops/preview-persistent-branch.md`.
+> This guide should be read as the branch-secrets runbook for that target
+> cutover, not as proof that the cutover is already live.
 
-This guide documents the Edge Function secrets that must be configured for each Supabase branch (production and, until retired, persistent preview).
+This guide documents the Edge Function secrets that must be configured for each
+Supabase branch (production, the planned persistent preview branch, and any
+other branch that intentionally serves Edge traffic).
 
 ## Overview
 
@@ -20,15 +27,16 @@ Secrets are configured in the Supabase Dashboard:
 3. Go to **Project Settings** → **Edge Functions** → **Secrets**
 4. Add or update secrets for that specific branch
 
-## Required Secrets for Preview Branch
+## Required Secrets for the Persistent Preview Branch
 
-The preview branch (`olsdirkvvfegvclbpgrg`) requires the following secrets to be configured:
+The persistent preview branch requires the following secrets to be configured
+once the cutover in `preview-persistent-branch.md` begins.
 
 ### Core Supabase Configuration
 
 | Secret Name | Required For | Example Value | Notes |
 |------------|--------------|---------------|-------|
-| `SUPABASE_URL` | All Edge Functions | `https://olsdirkvvfegvclbpgrg.supabase.co` | **Must be the preview branch URL** |
+| `SUPABASE_URL` | All Edge Functions | `https://<persistent-preview-branch-ref>.supabase.co` | **Must be the persistent preview branch URL** |
 | `SUPABASE_SERVICE_ROLE_KEY` | Most Edge Functions | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` | Service role key for preview branch |
 | `SUPABASE_ANON_KEY` | Some Edge Functions | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` | Anon key for preview branch |
 
@@ -199,19 +207,21 @@ Google Picker values are browser/client configuration and should be stored as cl
 
 Do **not** add Picker values to Supabase Edge Function secrets.
 
-## Configuration Steps for Preview Branch
+## Configuration Steps for the Persistent Preview Branch
 
-### Step 1: Switch to Preview Branch
+### Step 1: Switch to the Persistent Preview Branch
 
 1. Open Supabase Dashboard
 2. Use the branch dropdown in the top navigation
-3. Select the **preview** branch (`olsdirkvvfegvclbpgrg`)
+3. Select the new persistent preview branch created for `preview.equipqr.app`
+   (not production `ymxkzronkhwxzcdcbnwq`, and not retired
+   `olsdirkvvfegvclbpgrg`)
 
 ### Step 2: Get Preview Branch Credentials
 
 1. Navigate to **Settings** → **API**
 2. Copy the following values:
-   - **Project URL**: `https://olsdirkvvfegvclbpgrg.supabase.co`
+   - **Project URL**: `https://<persistent-preview-branch-ref>.supabase.co`
    - **anon/public key**: Use this for `SUPABASE_ANON_KEY`
    - **service_role key**: Use this for `SUPABASE_SERVICE_ROLE_KEY` (⚠️ Keep this secret!)
 
@@ -222,7 +232,7 @@ Do **not** add Picker values to Supabase Edge Function secrets.
 
 ```bash
 # Core Supabase Configuration
-SUPABASE_URL=https://olsdirkvvfegvclbpgrg.supabase.co
+SUPABASE_URL=https://<persistent-preview-branch-ref>.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<preview-branch-service-role-key>
 SUPABASE_ANON_KEY=<preview-branch-anon-key>
 
@@ -268,7 +278,9 @@ After setting secrets, verify they're working:
 
 ### ⚠️ Critical: Branch-Specific Values
 
-- **`SUPABASE_URL`**: Must be the preview branch URL (`https://olsdirkvvfegvclbpgrg.supabase.co`), NOT the production URL
+- **`SUPABASE_URL`**: Must be the persistent preview branch URL
+  (`https://<persistent-preview-branch-ref>.supabase.co`), **not** the
+  production URL
 - **`PUBLIC_SITE_URL`**: For preview branch, this should be `https://preview.equipqr.app` (the preview deployment URL), NOT `https://equipqr.app`
 
 ### 🔄 Secrets Are Not Synced

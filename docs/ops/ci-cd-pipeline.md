@@ -4,7 +4,7 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 
 ## Pipeline Overview
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                           EquipQR CI/CD Pipeline                            │
 ├─────────────────────────────────────────────────────────────────────────────┤
@@ -27,9 +27,9 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 │  │           │                                                              ││
 │  │           ▼                                                              ││
 │  │  ┌──────────────────┐    ┌─────────────────────────────────────────┐   ││
-│  │  │   Live Site      │    │   Shared Supabase (supabase.equipqr.app) │   ││
-│  │  │ equipqr.app or   │    │   + ephemeral PR branches when           │   ││
-│  │  │ preview.equipqr  │    │     supabase/** changes                  │   ││
+│  │  │   Live Site      │    │   Current live: shared production       │   ││
+│  │  │ equipqr.app or   │    │   Supabase + ephemeral PR branches      │   ││
+│  │  │ preview.equipqr  │    │   Target: persistent preview branch     │   ││
 │  │  └──────────────────┘    └─────────────────────────────────────────┘   ││
 │  └─────────────────────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -39,11 +39,16 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 
 | Environment | Git trigger | Frontend URL | Supabase API |
 |-------------|-------------|--------------|--------------|
-| **Production** | Push to `main` (auto-promote via Production Release Readiness) | https://equipqr.app | `https://supabase.equipqr.app` (`ymxkzronkhwxzcdcbnwq`) |
-| **Integration preview** | Push/merge to git **`preview`** | https://preview.equipqr.app | Same production API (`supabase.equipqr.app`) |
+| **Production** | Push to `main` (auto-promote via Production Release Readiness) | `<https://equipqr.app>` | `https://supabase.equipqr.app` (`ymxkzronkhwxzcdcbnwq`) |
+| **Integration preview** | Push/merge to git **`preview`** | `<https://preview.equipqr.app>` | **Current live:** production API (`supabase.equipqr.app`). **Approved target:** persistent dataless branch per `docs/ops/preview-persistent-branch.md` |
 | **PR Preview** | Feature PRs / work-branch pushes | Commit-specific `*.vercel.app` | Prod API by default; ephemeral Supabase when `supabase/**` changes |
 
 > **Train (#1282):** feat → preview → main. Authoritative loop: **`docs/ops/git-and-deploy.md`**. Retired: `preview-domain-alias.yml`, Vercel custom **`staging`**, persistent Supabase **`olsdirkvvfegvclbpgrg`**. History: `docs/ops/preview-architecture-migration.md`.
+>
+> **Target decision (not yet live):** `docs/ops/preview-persistent-branch.md`
+> records the approved move away from production Supabase for
+> `preview.equipqr.app`. Do not document that cutover as complete until the
+> preview env and branch checklist have been executed.
 
 ## GitHub Actions Workflows
 
@@ -108,7 +113,7 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 **Purpose:** Export the database schema from the **production** Supabase project and commit it to the repository
 
 **What it does:**
-- Uses Supabase CLI to dump schema from preview project
+- Uses Supabase CLI to dump schema from the production project
 - Exports `public`, `storage`, `auth`, and `pgmq_public` schemas to `supabase/schema.sql`
 - Queries `pg_policies` / table RLS posture into `supabase/rls-policies.sql`
 - Commits both reference files if changed
@@ -142,6 +147,7 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
    - Assigns domain aliases based on branch
 
 **Branch to Domain Mapping:**
+
 | Git context | Vercel target | Stable alias |
 |-------------|---------------|--------------|
 | `main` | Production | `equipqr.app` (auto-promote after release readiness) |
@@ -189,19 +195,25 @@ Local preview: from repo root, `npm run docs:dev` or `npm run docs:preview` afte
 **Configuration File:** `supabase/config.toml`
 
 **Projects:**
-- **Production (and cloud preview app):** `ymxkzronkhwxzcdcbnwq` — API `https://supabase.equipqr.app`
+- **Production:** `ymxkzronkhwxzcdcbnwq` — API `https://supabase.equipqr.app`
+- **Current live preview app:** still uses the production project above
+- **Approved target preview backend:** a new persistent dataless branch for `preview.equipqr.app` (not yet cut over; see `preview-persistent-branch.md`)
 - **Ephemeral PR branches:** Created automatically when `supabase/**` changes on a PR (schema validation only)
 - **Retired persistent preview branch:** `olsdirkvvfegvclbpgrg` — decommission after #1033 cutover (see `preview-architecture-migration.md`)
 
-#### Auth Site URL (production Supabase)
+#### Auth Site URL (current live vs target)
 
-Cloud preview (`preview.equipqr.app`) uses the **same** Supabase project as production. Auth `site_url` and redirect URIs should include:
+Current live preview uses the **same** Supabase project as production, so
+production Auth `site_url` and redirect URIs should include:
 
 - `https://preview.equipqr.app/**`
 - `https://equipqr.app/**`
 - Local dev URLs (`http://localhost:8080/**`, etc.)
 
-The retired `configure-supabase-auth.yml` workflow (which patched **olsdirk** after each `preview` branch deploy) remains removed; cloud preview uses the production Supabase project.
+The approved target is different: once the persistent preview branch cutover in
+`preview-persistent-branch.md` lands, branch Auth should carry
+`site_url=https://preview.equipqr.app` and the preview-specific redirect
+allowlist, while production Auth remains unchanged.
 
 ---
 
@@ -299,8 +311,12 @@ See [Deployment Guide - Self-Hosted Runner Setup](./deployment.md#self-hosted-ru
 
 **Checks:**
 1. Confirm the latest Vercel Preview deployment for git branch **`preview`** is READY and aliased to `preview.equipqr.app`.
-2. Confirm Vercel Preview env has `VITE_SUPABASE_URL=https://supabase.equipqr.app` (`sync-vercel-from-1password.ps1 -Check -Environment preview`).
-3. Confirm Supabase Auth redirect URIs include `https://preview.equipqr.app/**` on the production project (`ymxkzronkhwxzcdcbnwq`).
+2. Confirm the Vercel Preview env matches the currently active design:
+   - **Today:** `VITE_SUPABASE_URL=https://supabase.equipqr.app`
+   - **After the approved cutover:** the persistent preview branch URL from `preview-persistent-branch.md`
+3. Confirm Supabase Auth redirect URIs include `https://preview.equipqr.app/**` on the backend currently serving preview:
+   - **Today:** production project `ymxkzronkhwxzcdcbnwq`
+   - **After the approved cutover:** the persistent preview branch Auth config
 
 ### CI failing on self-hosted runner
 

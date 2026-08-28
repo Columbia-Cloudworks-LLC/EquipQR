@@ -238,7 +238,7 @@ Keep these database passwords on the `supabase-write` item in sync with **Supaba
 | 1Password field | Supabase project | Typical use |
 |-----------------|------------------|-------------|
 | `prod_db_password` | Production (`ymxkzronkhwxzcdcbnwq`) | **Production Release Readiness** maps this to `SUPABASE_DB_PASSWORD` for `supabase link` / `db push` after merge to `main`. |
-| `preview_db_password` | Preview (`olsdirkvvfegvclbpgrg`) | Local or scripted `supabase link` / `db push` against preview; not used by the current GitHub workflows. |
+| `preview_db_password` | Reserved for the persistent preview branch target | Populate only when the cutover in `docs/ops/preview-persistent-branch.md` is implemented. Do not reuse retired branch `olsdirkvvfegvclbpgrg`. |
 
 Release PRs (`preview` → `main`) run **Schema Drift Check** as a **hard gate** that blocks merge when any of the following conditions exist:
 
@@ -329,7 +329,6 @@ Register this endpoint in **Google Cloud Console → Google Auth Platform → Pr
 Expected verification signal after registration: Google posts a RISC **verification** event and Project Checkup marks Cross-Account Protection as configured (may take a re-scan after deploy).
 
 > **Workspace OAuth audit logs**: Failures in the Workspace OAuth flow (consent, token exchange, Admin SDK directory reads) are captured by the Workspace tenant, not the `equipqr-prod` Cloud project. To make those logs queryable via Cloud Logging at the org tier, see [`docs/ops/observability.md`](observability.md) — it documents the Admin Console toggle, the org-level `gcloud logging read` queries, and the IAM grants required for agent-driven verification.
-
 > **Common mistake**: Setting a secret in Vercel when it should be in Supabase (or vice versa). The `GOOGLE_MAPS_BROWSER_KEY` is a frequent offender — it is served by a Supabase Edge Function at runtime, not baked into the Vercel build.
 
 ### Netlify Deployment
@@ -835,15 +834,26 @@ EquipQR™ is designed to work with Supabase for backend functionality:
 
 ### Supabase Branch Configuration
 
-EquipQR uses Supabase branching for **ephemeral PR validation** and a single production project for cloud runtime:
+EquipQR uses Supabase branching for **ephemeral PR validation** and, today, a
+single production project for cloud runtime:
 
-- **Production (and cloud preview app):** `ymxkzronkhwxzcdcbnwq` — API `https://supabase.equipqr.app`
+- **Production:** `ymxkzronkhwxzcdcbnwq` — API `https://supabase.equipqr.app`
+- **Current live preview app:** still uses the production project above
+- **Approved target preview backend:** a new persistent dataless branch for
+  `preview.equipqr.app` (not yet cut over; see
+  `docs/ops/preview-persistent-branch.md`)
 - **Ephemeral PR branches:** Auto-created when `supabase/**` changes on a PR
 - **Retired persistent preview branch:** `olsdirkvvfegvclbpgrg` — decommission after #1033 cutover
 
-`preview.equipqr.app` (Vercel Preview) uses **`VITE_SUPABASE_URL=https://supabase.equipqr.app`** from `app-env-preview-public`, not the olsdirk project URL.
+`preview.equipqr.app` (Vercel Preview) currently uses
+**`VITE_SUPABASE_URL=https://supabase.equipqr.app`** from
+`app-env-preview-public`, not the retired `olsdirk` project URL. The approved
+replacement is the persistent preview branch above, once its cutover checklist
+is implemented.
 
-See `docs/ops/preview-architecture-migration.md` and `docs/ops/supabase-branch-secrets.md`.
+See `docs/ops/preview-persistent-branch.md`,
+`docs/ops/preview-architecture-migration.md`, and
+`docs/ops/supabase-branch-secrets.md`.
 
 ### Supabase Configuration
 EquipQR™ uses Supabase for all backend functionality. Ensure proper configuration:
@@ -876,7 +886,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 #### Database Migrations
 
 > **⚠️ IMPORTANT: Local-First Development Workflow**
-> 
 > All database migrations must be developed and tested locally before deploying to production.
 
 **Standard workflow:**
