@@ -10,6 +10,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { showErrorToast } from '@/utils/errorHandling';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
 import { attachWorkOrderCreationImages } from '@/features/work-orders/services/workOrderNotesService';
@@ -192,7 +193,7 @@ export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: WorkOrder
     },
     onError: (error) => {
       logger.error('Error creating work order', error);
-      toast.error('Failed to create work order');
+      showErrorToast(error, 'Work Order Creation');
     },
   });
 };

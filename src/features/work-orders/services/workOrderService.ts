@@ -161,7 +161,7 @@ export class WorkOrderService extends BaseService {
   async create(data: WorkOrderCreateData): Promise<ApiResponse<WorkOrder>> {
     try {
       // Validate required fields
-      if (!data.title || !data.description || !data.equipment_id) {
+      if (!data.title || data.description == null || !data.equipment_id) {
         return this.handleError(new Error('Missing required fields: title, description, equipment_id'));
       }
 
