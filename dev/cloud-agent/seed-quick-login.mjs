@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Cloud-safe Quick Login seed for ephemeral Supabase branches.
+ * Cloud-safe Quick Login seed for hosted Supabase branches.
  *
  * Hosted Auth blocks direct auth.users SQL inserts. This script creates the
  * Dev Quick Login personas via Auth Admin API, then upgrades the trigger-created
@@ -8,7 +8,7 @@
  *
  * Safety: refuses parent/production project refs and supabase.equipqr.app.
  *
- * service_role (approved DX exception): Auth Admin on the *ephemeral* branch
+ * service_role (approved DX exception): Auth Admin on a hosted preview branch
  * only — never parent/prod. Same class of CLI exception as upload-screenshot.ts.
  * Do not move this into a production Edge Function (that would widen blast radius).
  */
@@ -66,6 +66,14 @@ export const QUICK_LOGIN_PERSONAS = [
     email: 'tech@apex.test',
     name: 'Tom Technician',
     organizationName: "Tom's Field Services",
+    plan: 'free',
+    seedFleet: false,
+  },
+  {
+    id: 'bb0e8400-e29b-41d4-a716-446655440011',
+    email: 'viewer@apex.test',
+    name: 'Vera Viewer',
+    organizationName: 'Viewer Safety Services',
     plan: 'free',
     seedFleet: false,
   },
@@ -443,7 +451,107 @@ async function upgradeOrg(admin, orgId, persona, userId) {
 
 /** Stable serial for idempotent cloud-agent fleet seed (not a local-fixture UUID). */
 export const CLOUD_AGENT_EQUIPMENT_SERIAL = 'CAT320GC-CLOUD-AGENT-001';
+export const CLOUD_AGENT_METRO_EQUIPMENT_SERIAL = 'S770-CLOUD-AGENT-001';
 const CLOUD_AGENT_TEAM_NAME = 'Heavy Equipment Team';
+
+const DEFAULT_JOINED_DATE = '2024-01-01T00:00:00.000Z';
+
+export const CLOUD_AGENT_SHARED_ORG_FIXTURES = [
+  {
+    key: 'apex',
+    ownerEmail: 'owner@apex.test',
+    team: {
+      name: CLOUD_AGENT_TEAM_NAME,
+      description: 'Cloud-agent preview smoke team',
+      locationCity: 'Dallas',
+      locationState: 'TX',
+      locationCountry: 'United States',
+      locationLat: 32.776664,
+      locationLng: -96.796988,
+      overrideEquipmentLocation: true,
+    },
+    equipment: {
+      name: 'CAT 320 Excavator',
+      manufacturer: 'Caterpillar',
+      model: '320 GC',
+      serialNumber: CLOUD_AGENT_EQUIPMENT_SERIAL,
+      status: 'active',
+      location: 'Dallas, TX',
+      installationDate: '2023-03-15',
+      workingHours: 100,
+      customAttributes: {},
+    },
+    organizationMemberships: [
+      { email: 'owner@apex.test', role: 'owner', joinedDate: '2024-01-01T00:00:00.000Z' },
+      { email: 'admin@apex.test', role: 'admin', joinedDate: '2024-01-02T00:00:00.000Z' },
+      { email: 'tech@apex.test', role: 'member', joinedDate: '2024-01-03T00:00:00.000Z' },
+      { email: 'viewer@apex.test', role: 'viewer', joinedDate: '2024-01-04T00:00:00.000Z' },
+    ],
+    teamMemberships: [
+      { email: 'owner@apex.test', role: 'manager', joinedDate: '2024-01-01T00:00:00.000Z' },
+      { email: 'admin@apex.test', role: 'requestor', joinedDate: '2024-01-02T00:00:00.000Z' },
+      { email: 'tech@apex.test', role: 'technician', joinedDate: '2024-01-03T00:00:00.000Z' },
+      { email: 'viewer@apex.test', role: 'viewer', joinedDate: '2024-01-04T00:00:00.000Z' },
+    ],
+    workOrder: {
+      title: 'Cloud Preview Seed - Apex CAT 320',
+      description:
+        'Seeded preview work order for owner, admin, technician, and viewer QA coverage on the shared Apex org.',
+      status: 'assigned',
+      priority: 'high',
+      createdByEmail: 'admin@apex.test',
+      assigneeEmail: 'tech@apex.test',
+      createdDate: '2026-01-08T00:00:00.000Z',
+      dueDate: '2026-01-12T00:00:00.000Z',
+      estimatedHours: 4,
+    },
+  },
+  {
+    key: 'metro',
+    ownerEmail: 'owner@metro.test',
+    team: {
+      name: 'Rental Fleet Team',
+      description: 'Cloud-agent isolation team',
+      locationCity: 'Fort Worth',
+      locationState: 'TX',
+      locationCountry: 'United States',
+      locationLat: 32.755489,
+      locationLng: -97.330765,
+      overrideEquipmentLocation: true,
+    },
+    equipment: {
+      name: 'Bobcat S770 Skid Steer',
+      manufacturer: 'Bobcat',
+      model: 'S770',
+      serialNumber: CLOUD_AGENT_METRO_EQUIPMENT_SERIAL,
+      status: 'active',
+      location: 'Fort Worth, TX',
+      installationDate: '2023-06-01',
+      workingHours: 250,
+      customAttributes: {},
+    },
+    organizationMemberships: [
+      { email: 'owner@metro.test', role: 'owner', joinedDate: '2024-01-15T00:00:00.000Z' },
+      { email: 'tech@metro.test', role: 'member', joinedDate: '2024-01-16T00:00:00.000Z' },
+    ],
+    teamMemberships: [
+      { email: 'owner@metro.test', role: 'manager', joinedDate: '2024-01-15T00:00:00.000Z' },
+      { email: 'tech@metro.test', role: 'technician', joinedDate: '2024-01-16T00:00:00.000Z' },
+    ],
+    workOrder: {
+      title: 'Cloud Preview Seed - Metro Bobcat S770',
+      description:
+        'Seeded Metro work order for isolation checks so Metro personas never rely on Apex fixtures.',
+      status: 'in_progress',
+      priority: 'medium',
+      createdByEmail: 'owner@metro.test',
+      assigneeEmail: 'tech@metro.test',
+      createdDate: '2026-01-09T00:00:00.000Z',
+      dueDate: '2026-01-14T00:00:00.000Z',
+      estimatedHours: 2,
+    },
+  },
+];
 
 /**
  * Ensure a smoke team + CAT 320 exists for the primary persona org.
@@ -461,89 +569,288 @@ async function findFirstId(query, label) {
   return row?.id ?? null;
 }
 
-async function ensureFleet(admin, orgId, ownerUserId) {
-  const existingEqId = await findFirstId(
-    admin
-      .from('equipment')
-      .select('id')
-      .eq('organization_id', orgId)
-      .eq('serial_number', CLOUD_AGENT_EQUIPMENT_SERIAL)
-      .order('created_at', { ascending: true }),
-    'equipment',
-  );
+function getRequiredMapValue(map, key, label) {
+  const value = map.get(key);
+  if (!value) {
+    throw new Error(`Missing ${label} for ${key}`);
+  }
+  return value;
+}
 
+async function ensureOrganizationMembership(admin, orgId, userId, membership) {
+  const { data: existing, error: lookupError } = await admin
+    .from('organization_members')
+    .select('id')
+    .eq('organization_id', orgId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (lookupError) {
+    throw new Error(`organization_members lookup failed: ${lookupError.message}`);
+  }
+
+  const membershipPayload = {
+    organization_id: orgId,
+    user_id: userId,
+    role: membership.role,
+    status: 'active',
+    joined_date: membership.joinedDate || DEFAULT_JOINED_DATE,
+    product_onboarding_completed_at:
+      membership.role === 'owner' || membership.role === 'admin'
+        ? '2024-01-01T00:00:00.000Z'
+        : null,
+  };
+
+  if (existing?.id) {
+    const { error: updateError } = await admin
+      .from('organization_members')
+      .update(membershipPayload)
+      .eq('id', existing.id);
+    if (updateError) {
+      throw new Error(`organization_members update failed: ${updateError.message}`);
+    }
+    return existing.id;
+  }
+
+  const { error: insertError } = await admin.from('organization_members').insert({
+    id: randomUUID(),
+    ...membershipPayload,
+  });
+  if (insertError) {
+    throw new Error(`organization_members insert failed: ${insertError.message}`);
+  }
+  return null;
+}
+
+async function ensureTeam(admin, orgId, fixture) {
   let teamId = await findFirstId(
     admin
       .from('teams')
       .select('id')
       .eq('organization_id', orgId)
-      .eq('name', CLOUD_AGENT_TEAM_NAME)
+      .eq('name', fixture.team.name)
       .order('created_at', { ascending: true }),
     'teams',
   );
+
+  const teamPayload = {
+    organization_id: orgId,
+    name: fixture.team.name,
+    description: fixture.team.description,
+    location_city: fixture.team.locationCity,
+    location_state: fixture.team.locationState,
+    location_country: fixture.team.locationCountry,
+    location_lat: fixture.team.locationLat,
+    location_lng: fixture.team.locationLng,
+    override_equipment_location: fixture.team.overrideEquipmentLocation,
+  };
 
   if (!teamId) {
     teamId = randomUUID();
     const { error: teamError } = await admin.from('teams').insert({
       id: teamId,
-      organization_id: orgId,
-      name: CLOUD_AGENT_TEAM_NAME,
-      description: 'Cloud-agent smoke team',
-      location_city: 'Dallas',
-      location_state: 'TX',
-      location_country: 'United States',
-      location_lat: 32.776664,
-      location_lng: -96.796988,
-      override_equipment_location: true,
+      ...teamPayload,
     });
     if (teamError) {
       throw new Error(`teams insert failed: ${teamError.message}`);
     }
+    return teamId;
   }
 
-  const existingMemberId = await findFirstId(
-    admin
+  const { error: updateError } = await admin
+    .from('teams')
+    .update(teamPayload)
+    .eq('id', teamId)
+    .eq('organization_id', orgId);
+  if (updateError) {
+    throw new Error(`teams update failed: ${updateError.message}`);
+  }
+  return teamId;
+}
+
+async function ensureTeamMembership(admin, teamId, userId, membership) {
+  const { data: existing, error: lookupError } = await admin
+    .from('team_members')
+    .select('id')
+    .eq('team_id', teamId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (lookupError) {
+    throw new Error(`team_members lookup failed: ${lookupError.message}`);
+  }
+
+  const teamMembershipPayload = {
+    team_id: teamId,
+    user_id: userId,
+    role: membership.role,
+    joined_date: membership.joinedDate || DEFAULT_JOINED_DATE,
+  };
+
+  if (existing?.id) {
+    const { error: updateError } = await admin
       .from('team_members')
+      .update(teamMembershipPayload)
+      .eq('id', existing.id);
+    if (updateError) {
+      throw new Error(`team_members update failed: ${updateError.message}`);
+    }
+    return existing.id;
+  }
+
+  const { error: insertError } = await admin.from('team_members').insert({
+    id: randomUUID(),
+    ...teamMembershipPayload,
+  });
+  if (insertError) {
+    throw new Error(`team_members insert failed: ${insertError.message}`);
+  }
+  return null;
+}
+
+async function ensureEquipmentFixture(admin, orgId, teamId, fixture) {
+  const existingEqId = await findFirstId(
+    admin
+      .from('equipment')
       .select('id')
-      .eq('team_id', teamId)
-      .eq('user_id', ownerUserId)
-      .order('joined_date', { ascending: true }),
-    'team_members',
+      .eq('organization_id', orgId)
+      .eq('serial_number', fixture.equipment.serialNumber)
+      .order('created_at', { ascending: true }),
+    'equipment',
   );
-  if (!existingMemberId) {
-    const { error: tmError } = await admin.from('team_members').insert({
-      id: randomUUID(),
-      team_id: teamId,
-      user_id: ownerUserId,
-      role: 'manager',
-      joined_date: '2024-01-01T00:00:00.000Z',
-    });
-    if (tmError) {
-      throw new Error(`team_members insert failed: ${tmError.message}`);
+
+  const equipmentPayload = {
+    organization_id: orgId,
+    team_id: teamId,
+    name: fixture.equipment.name,
+    manufacturer: fixture.equipment.manufacturer,
+    model: fixture.equipment.model,
+    serial_number: fixture.equipment.serialNumber,
+    status: fixture.equipment.status,
+    location: fixture.equipment.location,
+    installation_date: fixture.equipment.installationDate,
+    working_hours: fixture.equipment.workingHours,
+    custom_attributes: fixture.equipment.customAttributes,
+  };
+
+  if (existingEqId) {
+    const { error: updateError } = await admin
+      .from('equipment')
+      .update(equipmentPayload)
+      .eq('id', existingEqId)
+      .eq('organization_id', orgId);
+    if (updateError) {
+      throw new Error(`equipment update failed: ${updateError.message}`);
     }
+    return existingEqId;
   }
 
-  if (!existingEqId) {
-    const { error: eqError } = await admin.from('equipment').insert({
-      id: randomUUID(),
-      organization_id: orgId,
-      team_id: teamId,
-      name: 'CAT 320 Excavator',
-      manufacturer: 'Caterpillar',
-      model: '320 GC',
-      serial_number: CLOUD_AGENT_EQUIPMENT_SERIAL,
-      status: 'active',
-      location: 'Dallas, TX',
-      installation_date: '2023-03-15',
-      working_hours: 100,
-      custom_attributes: {},
-    });
-    if (eqError) {
-      throw new Error(`equipment insert failed: ${eqError.message}`);
+  const equipmentId = randomUUID();
+  const { error: insertError } = await admin.from('equipment').insert({
+    id: equipmentId,
+    ...equipmentPayload,
+  });
+  if (insertError) {
+    throw new Error(`equipment insert failed: ${insertError.message}`);
+  }
+  return equipmentId;
+}
+
+async function ensureSeedWorkOrder(
+  admin,
+  orgId,
+  teamId,
+  equipmentId,
+  fixture,
+  userIdsByEmail,
+) {
+  const createdByUserId = getRequiredMapValue(
+    userIdsByEmail,
+    fixture.workOrder.createdByEmail,
+    'user id',
+  );
+  const assigneeUserId = getRequiredMapValue(
+    userIdsByEmail,
+    fixture.workOrder.assigneeEmail,
+    'user id',
+  );
+
+  const createdByPersona = QUICK_LOGIN_PERSONAS.find(
+    (persona) => persona.email === fixture.workOrder.createdByEmail,
+  );
+  const assigneePersona = QUICK_LOGIN_PERSONAS.find(
+    (persona) => persona.email === fixture.workOrder.assigneeEmail,
+  );
+
+  const workOrderPayload = {
+    organization_id: orgId,
+    equipment_id: equipmentId,
+    title: fixture.workOrder.title,
+    description: fixture.workOrder.description,
+    status: fixture.workOrder.status,
+    priority: fixture.workOrder.priority,
+    assignee_id: assigneeUserId,
+    assignee_name: assigneePersona?.name ?? fixture.workOrder.assigneeEmail,
+    team_id: teamId,
+    created_by: createdByUserId,
+    created_by_name: createdByPersona?.name ?? fixture.workOrder.createdByEmail,
+    created_date: fixture.workOrder.createdDate,
+    due_date: fixture.workOrder.dueDate,
+    estimated_hours: fixture.workOrder.estimatedHours,
+    updated_at: fixture.workOrder.createdDate,
+  };
+
+  const existingWorkOrderId = await findFirstId(
+    admin
+      .from('work_orders')
+      .select('id')
+      .eq('organization_id', orgId)
+      .eq('title', fixture.workOrder.title)
+      .order('created_at', { ascending: true }),
+    'work_orders',
+  );
+
+  if (existingWorkOrderId) {
+    const { error: updateError } = await admin
+      .from('work_orders')
+      .update(workOrderPayload)
+      .eq('id', existingWorkOrderId)
+      .eq('organization_id', orgId);
+    if (updateError) {
+      throw new Error(`work_orders update failed: ${updateError.message}`);
     }
+    return existingWorkOrderId;
   }
 
-  return { teamId };
+  const workOrderId = randomUUID();
+  const { error: insertError } = await admin.from('work_orders').insert({
+    id: workOrderId,
+    ...workOrderPayload,
+  });
+  if (insertError) {
+    throw new Error(`work_orders insert failed: ${insertError.message}`);
+  }
+  return workOrderId;
+}
+
+async function ensureSharedOrgFixture(admin, fixture, orgIdsByEmail, userIdsByEmail) {
+  const orgId = getRequiredMapValue(orgIdsByEmail, fixture.ownerEmail, 'organization id');
+  const teamId = await ensureTeam(admin, orgId, fixture);
+
+  for (const membership of fixture.organizationMemberships) {
+    const userId = getRequiredMapValue(userIdsByEmail, membership.email, 'user id');
+    await ensureOrganizationMembership(admin, orgId, userId, membership);
+  }
+
+  for (const membership of fixture.teamMemberships) {
+    const userId = getRequiredMapValue(userIdsByEmail, membership.email, 'user id');
+    await ensureTeamMembership(admin, teamId, userId, membership);
+  }
+
+  const equipmentId = await ensureEquipmentFixture(admin, orgId, teamId, fixture);
+  await ensureSeedWorkOrder(admin, orgId, teamId, equipmentId, fixture, userIdsByEmail);
+
+  return { orgId, teamId };
 }
 
 function seedImageMime(ext) {
@@ -745,6 +1052,7 @@ export async function seedQuickLogin({
   });
 
   const orgIdsByEmail = new Map();
+  const userIdsByEmail = new Map();
   let apexUserId = null;
   let apexOrgId = null;
   let apexTeamId = null;
@@ -752,6 +1060,7 @@ export async function seedQuickLogin({
   for (const persona of personas) {
     log(`Ensuring auth user ${persona.email}`);
     const userId = await ensureAuthUser(admin, persona);
+    userIdsByEmail.set(persona.email, userId);
     // Trigger creates profile + personal org asynchronously enough that a short
     // retry helps on brand-new branches.
     let orgId;
@@ -772,15 +1081,23 @@ export async function seedQuickLogin({
 
     await upgradeOrg(admin, orgId, persona, userId);
     orgIdsByEmail.set(persona.email, orgId);
-
-    if (persona.seedFleet) {
-      apexUserId = userId;
-      apexOrgId = orgId;
-      log(`Seeding smoke fleet on ${persona.organizationName}`);
-      const fleet = await ensureFleet(admin, orgId, userId);
-      apexTeamId = fleet.teamId;
-    }
   }
+
+  const fixtureResults = new Map();
+  for (const fixture of CLOUD_AGENT_SHARED_ORG_FIXTURES) {
+    log(`Seeding shared preview fixture for ${fixture.key}`);
+    fixtureResults.set(
+      fixture.key,
+      await ensureSharedOrgFixture(admin, fixture, orgIdsByEmail, userIdsByEmail),
+    );
+  }
+
+  apexUserId = userIdsByEmail.get('owner@apex.test') ?? null;
+  apexOrgId =
+    fixtureResults.get('apex')?.orgId ??
+    orgIdsByEmail.get('owner@apex.test') ??
+    null;
+  apexTeamId = fixtureResults.get('apex')?.teamId ?? null;
 
   if (apexUserId && apexOrgId) {
     await ensureApexCrossMemberships(admin, apexUserId, orgIdsByEmail);
@@ -790,7 +1107,10 @@ export async function seedQuickLogin({
     await ensureWorkspaceBranding(admin, {
       apexOrgId,
       apexTeamId,
-      metroOrgId: orgIdsByEmail.get('owner@metro.test') ?? null,
+      metroOrgId:
+        fixtureResults.get('metro')?.orgId ??
+        orgIdsByEmail.get('owner@metro.test') ??
+        null,
     });
   } catch (error) {
     log(`WARN workspace branding seed: ${error.message}`);
