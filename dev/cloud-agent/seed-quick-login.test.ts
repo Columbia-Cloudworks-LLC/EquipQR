@@ -1,4 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  getPrioritizedOrganizationId,
+  withPersonalOrgFlag,
+} from '@/utils/prioritizeOrganizations';
 import {
   PARENT_PROJECT_REF,
   assertBranchSafeTarget,
@@ -10,6 +14,7 @@ import {
   CLOUD_AGENT_METRO_EQUIPMENT_SERIAL,
   CLOUD_AGENT_SHARED_ORG_FIXTURES,
   CLOUD_AGENT_WORK_ORDER_LOOKUP_ORDER_COLUMN,
+  ensureWorkspaceOrgIsNotPersonal,
   formatAnonKeyAssignment,
   QUICK_LOGIN_PERSONAS,
   resolveDevPassword,
@@ -70,6 +75,59 @@ describe('cloud-agent seed-quick-login helpers', () => {
         assigneeEmail: 'tech@apex.test',
       }),
     );
+  });
+
+  it('removes Alex Apex personal-org flag once Apex becomes a shared workspace', async () => {
+    const selectMaybeSingle = vi.fn().mockResolvedValue({
+      data: { organization_id: 'org-apex' },
+      error: null,
+    });
+    const selectEq = vi.fn(() => ({ maybeSingle: selectMaybeSingle }));
+    const selectSelect = vi.fn(() => ({ eq: selectEq }));
+    const deleteEqOrganization = vi.fn().mockResolvedValue({ error: null });
+    const deleteEqUser = vi.fn(() => ({ eq: deleteEqOrganization }));
+    const deleteDelete = vi.fn(() => ({ eq: deleteEqUser }));
+    const from = vi.fn((table: string) => {
+      if (table === 'personal_organizations') {
+        return {
+          select: selectSelect,
+          delete: deleteDelete,
+        };
+      }
+      throw new Error(`Unexpected table ${table}`);
+    });
+    const admin = { from };
+
+    const changed = await ensureWorkspaceOrgIsNotPersonal(
+      admin,
+      'user-alex',
+      'org-apex',
+    );
+
+    expect(changed).toBe(true);
+    expect(from).toHaveBeenCalledWith('personal_organizations');
+    expect(selectSelect).toHaveBeenCalledWith('organization_id');
+    expect(selectEq).toHaveBeenCalledWith('user_id', 'user-alex');
+    expect(deleteEqUser).toHaveBeenCalledWith('user_id', 'user-alex');
+    expect(deleteEqOrganization).toHaveBeenCalledWith('organization_id', 'org-apex');
+  });
+
+  it('aligns the cloud seed with the app preference path so Apex outranks Metro', () => {
+    const organizations = [
+      { id: 'org-apex', userRole: 'owner' },
+      { id: 'org-metro', userRole: 'member' },
+      { id: 'org-industrial', userRole: 'member' },
+    ];
+
+    const beforeSeedFix = getPrioritizedOrganizationId(
+      withPersonalOrgFlag(organizations, 'org-apex'),
+    );
+    const afterSeedFix = getPrioritizedOrganizationId(
+      withPersonalOrgFlag(organizations, null),
+    );
+
+    expect(beforeSeedFix).toBe('org-metro');
+    expect(afterSeedFix).toBe('org-apex');
   });
 
   it('seeds an isolated Metro org fixture with its own equipment and work order', () => {

@@ -1040,6 +1040,44 @@ async function ensureApexCrossMemberships(admin, apexUserId, orgIdsByEmail) {
   }
 }
 
+/**
+ * Cloud seed upgrades Alex's trigger-created personal org into the shared Apex
+ * workspace. The app intentionally deprioritizes personal orgs beneath invited
+ * workspaces, so once Alex also belongs to Metro/Industrial we must remove the
+ * personal-org flag or first paint will land on another org.
+ */
+export async function ensureWorkspaceOrgIsNotPersonal(admin, userId, organizationId) {
+  const { data: personalOrg, error: personalOrgError } = await admin
+    .from('personal_organizations')
+    .select('organization_id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (personalOrgError) {
+    throw new Error(
+      `personal_organizations lookup failed for ${userId}: ${personalOrgError.message}`,
+    );
+  }
+
+  if (!personalOrg?.organization_id || personalOrg.organization_id !== organizationId) {
+    return false;
+  }
+
+  const { error: deleteError } = await admin
+    .from('personal_organizations')
+    .delete()
+    .eq('user_id', userId)
+    .eq('organization_id', organizationId);
+
+  if (deleteError) {
+    throw new Error(
+      `personal_organizations delete failed for ${userId}: ${deleteError.message}`,
+    );
+  }
+
+  return true;
+}
+
 export async function seedQuickLogin({
   apiUrl,
   serviceRoleKey,
@@ -1102,6 +1140,14 @@ export async function seedQuickLogin({
 
   if (apexUserId && apexOrgId) {
     await ensureApexCrossMemberships(admin, apexUserId, orgIdsByEmail);
+    const apexBecameWorkspaceDefault = await ensureWorkspaceOrgIsNotPersonal(
+      admin,
+      apexUserId,
+      apexOrgId,
+    );
+    if (apexBecameWorkspaceDefault) {
+      log('Removed Alex Apex personal-org flag so Apex remains the default workspace');
+    }
   }
 
   try {
