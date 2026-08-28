@@ -39,7 +39,7 @@ vi.mock('@/features/work-orders/components/WorkOrderNotesSection', () => ({
 }));
 
 vi.mock('@/features/work-orders/components/WorkOrderCostsSection', () => ({
-  default: () => null,
+  default: () => <div>Work order costs</div>,
 }));
 
 vi.mock('@/features/work-orders/components/WorkOrderDetailsPMInfo', () => ({
@@ -191,5 +191,14 @@ describe('WorkOrderDetailsMobileContent', () => {
 
     expect(screen.queryByRole('button', { name: /accept work order/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /start work/i })).not.toBeInTheDocument();
+  });
+
+  it('keeps work order costs hidden when the viewer cannot see shop costs', () => {
+    renderMobileContent({
+      permissionLevels: { isManager: false, isTechnician: false },
+      canViewWorkOrderCosts: false,
+    });
+
+    expect(screen.queryByText('Work order costs')).not.toBeInTheDocument();
   });
 });
