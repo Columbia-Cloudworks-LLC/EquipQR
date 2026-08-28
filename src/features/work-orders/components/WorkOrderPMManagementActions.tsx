@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Wrench } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MOBILE_WO_FAB_AVOIDANCE_INSET_CLASS } from '@/features/work-orders/utils/workOrderDetailsViewModel';
 
 interface WorkOrderPMManagementActionsProps {
   canManage: boolean;
@@ -21,7 +22,7 @@ export function WorkOrderPMManagementActions({
   }
 
   return (
-    <div className={cn('flex justify-end', className)}>
+    <div className={cn('flex justify-end', MOBILE_WO_FAB_AVOIDANCE_INSET_CLASS, className)}>
       <Button type="button" variant="outline" size="sm" onClick={onManage}>
         <Wrench className="h-4 w-4 mr-2" aria-hidden="true" />
         {hasPm ? 'Manage PM Template' : 'Add PM Checklist'}

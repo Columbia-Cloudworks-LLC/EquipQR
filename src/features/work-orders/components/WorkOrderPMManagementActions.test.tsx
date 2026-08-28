@@ -16,7 +16,9 @@ describe('WorkOrderPMManagementActions', () => {
   it('shows Add PM Checklist when PM can be attached', () => {
     render(<WorkOrderPMManagementActions canManage={true} hasPm={false} onManage={vi.fn()} />);
 
-    expect(screen.getByRole('button', { name: /add pm checklist/i })).toBeInTheDocument();
+    const button = screen.getByRole('button', { name: /add pm checklist/i });
+    expect(button).toBeInTheDocument();
+    expect(button.parentElement).toHaveClass('pr-12');
   });
 
   it('shows Manage PM Template when a checklist already exists', () => {

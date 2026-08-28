@@ -12,6 +12,8 @@ import { Clock, CheckCircle, Play, Pause, XCircle, FileText, User, Pencil } from
 import type { WorkOrder as EnhancedWorkOrder } from '@/features/work-orders/types/workOrder';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { useWorkOrderTimeline } from '@/features/work-orders/hooks/useHistoricalWorkOrders';
+import { cn } from '@/lib/utils';
+import { MOBILE_WO_FAB_AVOIDANCE_INSET_CLASS } from '@/features/work-orders/utils/workOrderDetailsViewModel';
 import {
   buildCreationDescription,
   getCreationTitle,
@@ -191,7 +193,7 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
   return (
     <Card className="shadow-elevation-2">
       <CardHeader>
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className={cn('flex flex-wrap items-center justify-between gap-3', MOBILE_WO_FAB_AVOIDANCE_INSET_CLASS)}>
           <CardTitle className="flex flex-wrap items-center gap-2">
             <Clock className="h-5 w-5" />
             Timeline
@@ -256,7 +258,7 @@ const WorkOrderTimeline: React.FC<WorkOrderTimelineProps> = ({
                     {!isLast && <div className="mt-2 h-8 w-px bg-border" />}
                   </div>
 
-                  <div className="min-w-0 flex-1 space-y-1 pb-1">
+                  <div className={cn('min-w-0 flex-1 space-y-1 pb-1', MOBILE_WO_FAB_AVOIDANCE_INSET_CLASS)}>
                     <div className="flex items-start justify-between gap-3">
                       <h4 className="min-w-0 font-medium">{event.title}</h4>
                       <time className="whitespace-nowrap text-sm text-muted-foreground">

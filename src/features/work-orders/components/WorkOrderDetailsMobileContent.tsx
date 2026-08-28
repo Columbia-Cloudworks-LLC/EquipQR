@@ -49,6 +49,7 @@ import type {
   TeamSummary,
 } from '@/features/work-orders/utils/workOrderDetailsViewModel';
 import { WorkOrderPMManagementActions } from '@/features/work-orders/components/WorkOrderPMManagementActions';
+import { MOBILE_WO_FAB_AVOIDANCE_INSET_CLASS } from '@/features/work-orders/utils/workOrderDetailsViewModel';
 import { WorkOrderDetailsStatusLockWarning } from '@/features/work-orders/components/WorkOrderDetailsStatusLockWarning';
 import type { WorkOrderLike } from '@/features/work-orders/utils/workOrderTypeConversion';
 
@@ -424,21 +425,23 @@ export function WorkOrderDetailsMobileContent({
 
       {workOrder.has_pm && (permissionLevels.isManager || permissionLevels.isTechnician) && (
         <div {...stagger(2)}>
-          <div ref={pmSectionRef}>
-            {pmData && (
-              <PMChecklistComponent
-                pm={pmData}
-                onUpdate={onPMUpdate ?? (() => undefined)}
-                readOnly={isWorkOrderLocked || (!permissionLevels.isManager && !permissionLevels.isTechnician)}
-                isAdmin={permissionLevels.isManager}
-                workOrder={workOrder}
-                equipment={equipment}
-                team={teamSummary}
-                organization={currentOrganization}
-                assignee={mobileAssigneeSummary}
-              />
-            )}
-            {pmLoading && <WorkOrderPMChecklistLoadingCard />}
+          <div className={MOBILE_WO_FAB_AVOIDANCE_INSET_CLASS}>
+            <div ref={pmSectionRef}>
+              {pmData && (
+                <PMChecklistComponent
+                  pm={pmData}
+                  onUpdate={onPMUpdate ?? (() => undefined)}
+                  readOnly={isWorkOrderLocked || (!permissionLevels.isManager && !permissionLevels.isTechnician)}
+                  isAdmin={permissionLevels.isManager}
+                  workOrder={workOrder}
+                  equipment={equipment}
+                  team={teamSummary}
+                  organization={currentOrganization}
+                  assignee={mobileAssigneeSummary}
+                />
+              )}
+              {pmLoading && <WorkOrderPMChecklistLoadingCard />}
+            </div>
           </div>
         </div>
       )}
@@ -454,33 +457,37 @@ export function WorkOrderDetailsMobileContent({
       </div>
 
       <div {...stagger(4)}>
-        <div ref={notesSectionRef}>
-          <WorkOrderNotesSection
-            workOrderId={workOrder.id}
-            workOrderTeamId={workOrder.team_id ?? undefined}
-            canAddNotes={canAddNotes}
-            composerLockMessage={noteComposerLockMessage}
-            showPrivateNotes={canUsePrivateNotes}
-            showLaborHours={canViewWorkOrderCosts}
-            isHistorical={Boolean(workOrder.is_historical)}
-            canEditNoteTimestamps={permissionLevels.isManager}
-            hideInlineAddButton={hideInlineNoteAddButton}
-            autoOpenForm={shouldAutoOpenNoteForm}
-            openFormTrigger={openNoteFormTrigger}
-            openCaptureTrigger={openCaptureTrigger}
-          />
+        <div className={MOBILE_WO_FAB_AVOIDANCE_INSET_CLASS}>
+          <div ref={notesSectionRef}>
+            <WorkOrderNotesSection
+              workOrderId={workOrder.id}
+              workOrderTeamId={workOrder.team_id ?? undefined}
+              canAddNotes={canAddNotes}
+              composerLockMessage={noteComposerLockMessage}
+              showPrivateNotes={canUsePrivateNotes}
+              showLaborHours={canViewWorkOrderCosts}
+              isHistorical={Boolean(workOrder.is_historical)}
+              canEditNoteTimestamps={permissionLevels.isManager}
+              hideInlineAddButton={hideInlineNoteAddButton}
+              autoOpenForm={shouldAutoOpenNoteForm}
+              openFormTrigger={openNoteFormTrigger}
+              openCaptureTrigger={openCaptureTrigger}
+            />
+          </div>
         </div>
       </div>
 
       {canViewWorkOrderCosts && (
         <div {...stagger(5)} ref={costsSectionRef}>
-          <WorkOrderCostsSection
-            workOrderId={workOrder.id}
-            canAddCosts={canAddCosts && !isWorkOrderLocked}
-            canEditCosts={canEditCosts && !isWorkOrderLocked}
-            primaryEquipmentId={workOrder.equipment_id}
-            variant="mobileField"
-          />
+          <div className={MOBILE_WO_FAB_AVOIDANCE_INSET_CLASS}>
+            <WorkOrderCostsSection
+              workOrderId={workOrder.id}
+              canAddCosts={canAddCosts && !isWorkOrderLocked}
+              canEditCosts={canEditCosts && !isWorkOrderLocked}
+              primaryEquipmentId={workOrder.equipment_id}
+              variant="mobileField"
+            />
+          </div>
         </div>
       )}
 
@@ -491,7 +498,10 @@ export function WorkOrderDetailsMobileContent({
               <CollapsibleTrigger asChild>
                 <button
                   type="button"
-                  className="flex min-h-11 w-full items-center justify-between gap-3 text-left"
+                  className={cn(
+                    'flex min-h-11 w-full items-center justify-between gap-3 text-left',
+                    MOBILE_WO_FAB_AVOIDANCE_INSET_CLASS,
+                  )}
                 >
                   <CardTitle className="text-lg">Events & Times</CardTitle>
                   <ChevronDown
