@@ -320,6 +320,55 @@ describe('WorkOrderService', () => {
       expect(result.data?.status).toBe('submitted');
     });
 
+    it('allows an empty description when creating a work order', async () => {
+      const workOrderData = {
+        title: 'Test Work Order',
+        description: '',
+        equipment_id: 'eq-1',
+        priority: 'medium' as const,
+        status: 'submitted' as const,
+        created_by: 'user-1',
+      };
+
+      const mockCreatedWorkOrder = {
+        id: 'wo-empty-desc',
+        ...workOrderData,
+        organization_id: 'test-org',
+      };
+
+      const mockInsertQuery = {
+        insert: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: mockCreatedWorkOrder, error: null }),
+      };
+
+      const mockSelectQuery = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: {
+            ...mockCreatedWorkOrder,
+            equipment: null,
+            assignee: null,
+            creator: null,
+          },
+          error: null,
+        }),
+      };
+
+      (supabase.from as ReturnType<typeof vi.fn>)
+        .mockReturnValueOnce(mockInsertQuery)
+        .mockReturnValueOnce(mockSelectQuery);
+
+      const result = await service.create(workOrderData);
+
+      expect(result.success).toBe(true);
+      expect(mockInsertQuery.insert).toHaveBeenCalledWith(
+        expect.objectContaining({ description: '' }),
+      );
+      expect(result.data?.description).toBe('');
+    });
+
     it('should validate required fields', async () => {
       interface IncompleteWorkOrderData {
         title: string;
