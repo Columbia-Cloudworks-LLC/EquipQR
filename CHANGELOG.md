@@ -24,6 +24,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Fixed
 
+- **Viewer and requestor PM controls stay hidden on work orders (#1495)** — Viewer and requestor team roles no longer see Add PM Checklist or Manage PM Template on work order details, while technicians and owners keep the existing PM management access.
 - **Quick Login drops stale work-order access on persona switch (#1490)** — Switching from a stronger QA persona to a viewer now clears cached session and work-order state before the next paint, so cost, labor, inventory, and other elevated chrome do not flash until the new session resolves.
 - **Team member removal confirm works on team details** — Owners and existing team managers now get a real confirmation dialog before removing a teammate, and confirming runs the existing team-membership removal flow.
 - **Completed work order revert actions are clearly labeled (#1484)** — Completed work orders now separate `Reopen work order` from `Revert PM`, explain what each action changes, and require confirmation before either write runs.

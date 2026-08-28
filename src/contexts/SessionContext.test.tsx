@@ -5,6 +5,9 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { SessionProvider, SessionContext } from './SessionContext';
 import type { SessionData, SessionOrganization } from './SessionContext';
 import { createTestQueryClient } from '@vitest-harness/utils/query-client-wrapper';
+import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
+import { WorkOrderPMManagementActions } from '@/features/work-orders/components/WorkOrderPMManagementActions';
+import type { WorkOrderData } from '@/features/work-orders/types/workOrder';
 
 // Type definitions for mocks
 interface MockVisibilityHook {
@@ -47,6 +50,7 @@ vi.mock('@/services/sessionPermissionService', () => ({
 
 vi.mock('@/services/permissions/PermissionEngine', () => ({
   permissionEngine: {
+    hasPermission: vi.fn(),
     clearCache: vi.fn(),
   },
 }));
@@ -84,6 +88,22 @@ const mockSessionData: SessionData = {
   version: 1,
 };
 
+const pmManagementWorkOrder = {
+  id: 'wo-1',
+  title: 'Hydraulic repair',
+  description: 'Repair a leaking hydraulic line',
+  equipmentId: 'eq-1',
+  organizationId: 'org-1',
+  priority: 'high',
+  status: 'in_progress',
+  assigneeId: 'user-1',
+  teamId: 'team-1',
+  createdDate: '2026-01-01T00:00:00Z',
+  created_date: '2026-01-01T00:00:00Z',
+  createdBy: 'requestor-1',
+  hasPM: true,
+} satisfies WorkOrderData;
+
 const SessionChromeProbe = () => {
   const session = React.useContext(SessionContext);
   const currentOrganization = session?.sessionData?.organizations.find(
@@ -112,6 +132,30 @@ const SessionChromeProbe = () => {
   );
 };
 
+const PMManagementChromeProbe = () => {
+  const session = React.useContext(SessionContext);
+  const permissions = useUnifiedPermissions();
+  const currentOrganization = session?.sessionData?.organizations.find(
+    (organization) => organization.id === session.sessionData?.currentOrganizationId,
+  );
+
+  if (session?.isLoading || !currentOrganization) {
+    return <div>Resolving session</div>;
+  }
+
+  const canManagePM = permissions.workOrders.getDetailedPermissions(pmManagementWorkOrder).canEditPM;
+
+  return (
+    <div>
+      <WorkOrderPMManagementActions
+        canManage={canManagePM}
+        hasPm={true}
+        onManage={() => undefined}
+      />
+    </div>
+  );
+};
+
 describe('SessionContext', () => {
   let mockSessionManager: {
     switchOrganization: ReturnType<typeof vi.fn>;
@@ -130,6 +174,8 @@ describe('SessionContext', () => {
     const { usePageVisibility } = await import('@/hooks/usePageVisibility');
     const { useSessionManager } = await import('@/hooks/useSessionManager');
     const { getOrganizationPreference } = await import('@/utils/sessionPersistence');
+    const { permissionEngine } = await import('@/services/permissions/PermissionEngine');
+    const { SessionPermissionService } = await import('@/services/sessionPermissionService');
     
     mockUseAuth = vi.mocked(useAuth);
     mockUsePageVisibility = vi.mocked(usePageVisibility) as typeof mockUsePageVisibility;
@@ -153,6 +199,67 @@ describe('SessionContext', () => {
     });
     mockUseSessionManager.mockReturnValue(mockSessionManager);
     vi.mocked(getOrganizationPreference).mockReturnValue(null);
+    vi.mocked(SessionPermissionService.getCurrentOrganization).mockImplementation((sessionData) => {
+      if (!sessionData?.currentOrganizationId) {
+        return null;
+      }
+
+      return (
+        sessionData.organizations.find(
+          (organization) => organization.id === sessionData.currentOrganizationId,
+        ) ?? null
+      );
+    });
+    vi.mocked(SessionPermissionService.hasTeamRole).mockImplementation((sessionData, teamId, role) => {
+      return sessionData?.teamMemberships.some(
+        (membership) => membership.teamId === teamId && membership.role === role,
+      ) ?? false;
+    });
+    vi.mocked(SessionPermissionService.hasTeamAccess).mockImplementation((sessionData, teamId) => {
+      return sessionData?.teamMemberships.some((membership) => membership.teamId === teamId) ?? false;
+    });
+    vi.mocked(SessionPermissionService.canManageTeam).mockImplementation(
+      (sessionData, currentOrganization, teamId) => {
+        if (!currentOrganization) {
+          return false;
+        }
+
+        return (
+          currentOrganization.userRole === 'owner' ||
+          currentOrganization.userRole === 'admin' ||
+          sessionData?.teamMemberships.some(
+            (membership) => membership.teamId === teamId && membership.role === 'manager',
+          ) === true
+        );
+      },
+    );
+    vi.mocked(SessionPermissionService.getUserTeamIds).mockImplementation((sessionData) => {
+      return sessionData?.teamMemberships.map((membership) => membership.teamId) ?? [];
+    });
+    vi.mocked(permissionEngine.hasPermission).mockImplementation((permission, context, entityContext) => {
+      const teamId = entityContext?.teamId;
+      const teamMembership = context.teamMemberships.find((membership) => membership.teamId === teamId);
+      const isOperationalTeamMember =
+        teamMembership?.role === 'owner' ||
+        teamMembership?.role === 'manager' ||
+        teamMembership?.role === 'technician';
+
+      switch (permission) {
+        case 'workorder.view':
+          return ['owner', 'admin'].includes(context.userRole) || Boolean(teamMembership);
+        case 'workorder.edit':
+        case 'workorder.assign':
+          return ['owner', 'admin'].includes(context.userRole) || teamMembership?.role === 'manager';
+        case 'workorder.changestatus':
+          return (
+            ['owner', 'admin'].includes(context.userRole) ||
+            Boolean(isOperationalTeamMember) ||
+            entityContext?.assigneeId === context.userId
+          );
+        default:
+          return false;
+      }
+    });
   });
 
   const createWrapper = () => {
@@ -430,6 +537,53 @@ describe('SessionContext', () => {
     expect(screen.queryByText('Add labor')).not.toBeInTheDocument();
     expect(screen.queryByText('Inventory / Part Lookup')).not.toBeInTheDocument();
     expect(screen.queryByText('Create Work Order')).not.toBeInTheDocument();
+    expect(screen.getByText('Resolving session')).toBeInTheDocument();
+  });
+
+  it('drops PM management chrome immediately on a technician to viewer switch', async () => {
+    const technicianSessionData: SessionData = {
+      ...mockSessionData,
+      organizations: [
+        {
+          ...mockOrganization,
+          userRole: 'member',
+        },
+      ],
+      teamMemberships: [
+        {
+          teamId: 'team-1',
+          teamName: 'Test Team',
+          role: 'technician',
+          joinedDate: '2024-01-01',
+        },
+      ],
+    };
+
+    mockCachedSession({ cachedData: technicianSessionData });
+    mockSessionManager.refreshSession.mockImplementation(() => new Promise(() => {}));
+
+    const testWrapper = createWrapper();
+    const rendered = render(<PMManagementChromeProbe />, { wrapper: testWrapper.wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /manage pm template/i })).toBeInTheDocument();
+    });
+
+    mockSessionManager.initializeSession.mockReturnValue({
+      shouldLoadFromCache: false,
+      cachedData: null,
+      needsRefresh: false,
+    });
+    mockUseAuth.mockReturnValue({
+      user: { id: 'user-2', email: 'viewer@example.com' },
+      isLoading: false,
+    });
+
+    act(() => {
+      rendered.rerender(<PMManagementChromeProbe />);
+    });
+
+    expect(screen.queryByRole('button', { name: /manage pm template/i })).not.toBeInTheDocument();
     expect(screen.getByText('Resolving session')).toBeInTheDocument();
   });
 
