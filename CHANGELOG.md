@@ -11,38 +11,36 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+## [3.30.0] - 2026-08-29
+
 ### Added
 
-- **Public releases page (#1460)** — The Legal footer version link now opens a public `/releases` page with build-time release notes from EquipQR’s changelog.
+- **Public releases page (#1460)** — The Legal footer version link now opens a public `/releases` page with build-time release notes from the EquipQR changelog.
 
 ### Changed
 
-- **Preview Supabase target architecture recorded** — Ops docs now capture the approved cutover of `preview.equipqr.app` to a persistent dataless Supabase branch; implementation remains queued.
-- **Preview QA quick login picker (#1490)** — When the preview-only Quick Login flag is enabled outside local dev, the auth picker now shows only Apex owner/technician/viewer plus Metro owner and never any Member persona.
-- **Work order next step stays on the phone** — Field technicians see the next job action on the page without opening the quick-actions menu. Managers can revert a locked work order and reach customer contacts on a phone.
-- **QR download menu** — Equipment, work order, and Quick Form QR dialogs use a Download menu for PNG or JPG. How to use starts collapsed.
+- **Work order next steps stay on the phone** — Field technicians can act from the page without opening quick actions, and managers can revert locked work orders or reach customer contacts on phone-width layouts.
+- **QR download menu** — Equipment, work order, and Quick Form QR dialogs now offer PNG or JPG downloads from a single menu, with How to use collapsed by default.
 
 ### Fixed
 
-- **PM checklist section headers stay scannable on work orders (#1482)** — Multi-section PM checklists now render each section as a clear header row with progress and flagged-count summary instead of a wall of striped cells.
-- **Dashboard hard loads keep the app shell visible (#1472)** — Reloading or directly opening dashboard routes now keeps the sidebar and header frame on screen with loading skeletons in the main content area instead of a bare full-viewport spinner.
-- **Mobile overdue invoice badges keep full work-order numbers visible (#1480)** — Phone-width work order details now wrap the overdue invoice pill inside the summary card instead of clipping the invoice or WO number.
-- **Mobile work-order quick actions stop covering detail content (#1479)** — At phone-width work order details, the floating quick-actions button now leaves PM, Timeline, and Events & Times readable and tappable, with extra bottom clearance above the mobile nav.
-- **Work order create errors stay honest** — Preview work-order create now allows blank descriptions and shows the real create failure message instead of a generic toast.
-- **Completed work order edit locks stay honest (#1483)** — Completed work orders now replace the live-looking note composer and PM general notes editor with clear lock messaging, and description edit surfaces explain that the work order must be reopened before edits.
-- **Accepted work orders honor existing assignees when starting work (#1481)** — Status Management now enables Start Work from the saved assignee instead of blocking owners and admins behind an empty assignee picker.
-- **Mobile Start work follows unassign state (#1481)** — On phone-width work order details, Next step, Change status, and Work order actions all keep Start work visible but disabled with assignee guidance when an accepted or assigned work order has no assignee.
-- **Viewer and requestor PM controls stay hidden on work orders (#1495)** — Viewer and requestor team roles no longer see Add PM Checklist or Manage PM Template on work order details, while technicians and owners keep the existing PM management access.
-- **Quick Login drops stale work-order access on persona switch (#1490)** — Switching from a stronger QA persona to a viewer now clears cached session and work-order state before the next paint, so cost, labor, inventory, and other elevated chrome do not flash until the new session resolves.
-- **Team member removal confirm works on team details** — Owners and existing team managers now get a real confirmation dialog before removing a teammate, and confirming runs the existing team-membership removal flow.
-- **Completed work order revert actions are clearly labeled (#1484)** — Completed work orders now separate `Reopen work order` from `Revert PM`, explain what each action changes, and require confirmation before either write runs.
-- **Work order delete stays in the overflow menu (#1485)** — Desktop details keep Export as the header action and move delete into the trailing menu, while the mobile actions sheet leaves delete as the last low-emphasis option behind the existing owner/admin confirm flow.
-- **Organization settings page alias (#1469)** — Opening `/dashboard/organization/settings` now renders the Settings form and organization tabs for owners and admins instead of a blank main panel.
-- **Starter PM template titles stay readable** — EquipQR starter cards on `/dashboard/pm-templates` now keep names readable even when EquipQR and Protected badges are shown together.
-- **Production promote verification follows the serving build** — Release Readiness now verifies the production deployment created by `vercel promote`, so successful promotes and same-SHA reruns no longer stop before Edge Function deploy.
-- **Fleet Map Team HQ marker stays interactive (#1461)** — Clicking a team headquarters marker now keeps the map mounted and opens the team popup instead of dropping the map into a stuck loading state.
+- **PM checklist section headers stay scannable on work orders (#1482)** — Multi-section PM checklists now show clear section headers with progress and flagged counts.
+- **Dashboard hard loads keep the app shell visible (#1472)** — Reloading or directly opening dashboard routes now preserves the sidebar and header while content skeletons load.
+- **Mobile overdue invoice badges keep work-order numbers visible (#1480)** — Phone-width work order details now wrap overdue invoice badges instead of clipping invoice or work-order numbers.
+- **Mobile work-order quick actions stop covering details (#1479)** — Phone-width work order details now leave PM, Timeline, and Events & Times readable and tappable above the mobile nav.
+- **Work order create errors stay honest** — Creating a work order now accepts blank descriptions and surfaces the real failure message instead of a generic toast.
+- **Completed work order edit locks stay honest (#1483)** — Completed work orders now show clear lock messaging for notes, PM general notes, and description edits.
+- **Accepted work orders honor existing assignees when starting work (#1481)** — Status Management now enables Start Work from the saved assignee instead of forcing a second picker step.
+- **Mobile Start work follows unassigned state (#1481)** — Next step, Change status, and Work order actions now keep Start work visible but disabled with assignee guidance when no assignee is set.
+- **Viewer and requestor PM controls stay hidden on work orders (#1495)** — Viewer and requestor team roles no longer see PM management controls on work order details.
+- **Team member removal confirm works on team details** — Owners and team managers now get a real confirmation dialog before removing a teammate.
+- **Completed work order revert actions are clearly labeled (#1484)** — Completed work orders now separate `Reopen work order` from `Revert PM`, explain each action, and require confirmation.
+- **Work order delete stays in the overflow menu (#1485)** — Desktop details keep Export as the primary header action and move delete into the overflow menu, while mobile leaves delete last and low-emphasis.
+- **Organization settings page alias (#1469)** — Opening `/dashboard/organization/settings` now renders the Settings form and organization tabs instead of a blank main panel.
+- **Starter PM template titles stay readable** — EquipQR starter cards now keep template names readable even when both EquipQR and Protected badges are present.
+- **Fleet Map Team HQ marker stays interactive (#1461)** — Clicking a team headquarters marker now keeps the map mounted and opens the team popup.
 - **Fleet Map key failures stay on the signed error card (#1461)** — Fleet Map key fetch failures now keep the `Fleet Map Error` card on screen without exposing secret names in a toast.
-- **Public 404 for unknown routes (#1470)** — Unknown public URLs now render a public not-found page with header/footer instead of a blank shell, while `/releases` and legal pages keep their existing routes.
+- **Public 404 for unknown routes (#1470)** — Unknown public URLs now render a public not-found page with header and footer instead of a blank shell.
 
 ## [3.29.1] - 2026-08-26
 
