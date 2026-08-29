@@ -20,6 +20,72 @@ vi.mock('@/services/imageUploadService', async () => {
   };
 });
 
+vi.mock('@/components/ui/select', async () => {
+  const React = await import('react');
+  const SelectContext = React.createContext<{
+    value: string;
+    onValueChange?: (value: string) => void;
+  } | null>(null);
+
+  const Select = ({
+    value,
+    onValueChange,
+    children,
+  }: {
+    value: string;
+    onValueChange?: (value: string) => void;
+    children: React.ReactNode;
+  }) => (
+    <SelectContext.Provider value={{ value, onValueChange }}>
+      <div>{children}</div>
+    </SelectContext.Provider>
+  );
+
+  const SelectTrigger = React.forwardRef<
+    HTMLButtonElement,
+    React.ComponentPropsWithoutRef<'button'>
+  >(({ children, ...props }, ref) => (
+    <button ref={ref} type="button" role="combobox" {...props}>
+      {children}
+    </button>
+  ));
+  SelectTrigger.displayName = 'SelectTrigger';
+
+  const SelectValue = ({ placeholder }: { placeholder?: string }) => <span>{placeholder ?? ''}</span>;
+
+  const SelectContent = ({ children }: { children: React.ReactNode }) => <div>{children}</div>;
+
+  const SelectItem = ({
+    value,
+    children,
+  }: {
+    value: string;
+    children: React.ReactNode;
+  }) => {
+    const context = React.useContext(SelectContext);
+    if (!context) throw new Error('SelectItem used outside mocked Select');
+
+    return (
+      <button
+        type="button"
+        role="option"
+        aria-selected={context.value === value}
+        onClick={() => context.onValueChange?.(value)}
+      >
+        {children}
+      </button>
+    );
+  };
+
+  return {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+  };
+});
+
 // Mock @vis.gl/react-google-maps. The real package mounts a Google Maps
 // instance via the JS SDK which is not available (and not desirable) in
 // jsdom. This mock keeps the important contract for this bug: an InfoWindow
@@ -385,9 +451,9 @@ describe('MapView', () => {
         />
       );
 
-      expect(screen.getByText('Assigned Address')).toBeInTheDocument();
-      expect(screen.getByText('QR Scan GPS')).toBeInTheDocument();
-      expect(screen.getByText('Team HQ')).toBeInTheDocument();
+      expect(screen.getAllByText('Assigned Address').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('QR Scan GPS').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Team HQ').length).toBeGreaterThan(0);
       expect(screen.getByLabelText('Filter map markers by location source')).toBeInTheDocument();
     });
 
