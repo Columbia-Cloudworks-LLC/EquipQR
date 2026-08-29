@@ -237,6 +237,7 @@ const EquipmentMarker: React.FC<EquipmentMarkerProps> = ({
   const sourceType: SourceType = location.source;
   const sourceConfig = SOURCE_TOKEN_CONFIG[sourceType];
   const sourceClasses = SOURCE_TOKEN_CLASSES[sourceType];
+  const popupImageSrc = displayableImageSrc(location.image_url);
 
   return (
     <>
@@ -265,9 +266,9 @@ const EquipmentMarker: React.FC<EquipmentMarkerProps> = ({
           <div className="w-[min(92vw,350px)] p-3">
             {/* Header */}
             <div className="flex gap-3 mb-3">
-              {location.image_url && (
+              {popupImageSrc && (
                 <img
-                  src={location.image_url}
+                  src={popupImageSrc}
                   alt={location.name}
                   className="w-14 h-14 object-cover rounded-lg border flex-shrink-0"
                   loading="lazy"
