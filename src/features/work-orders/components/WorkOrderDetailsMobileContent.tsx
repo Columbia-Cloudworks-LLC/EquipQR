@@ -346,6 +346,7 @@ export function WorkOrderDetailsMobileContent({
       </AlertDialog>
 
       <div {...stagger(0)}>
+        {/* Keep the primary workflow CTA visible in field mode; only note/photo move to the FAB sheet. */}
         <MobileWorkOrderFieldNextAction
           workOrder={{
             id: workOrder.id,

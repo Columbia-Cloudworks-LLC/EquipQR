@@ -7,7 +7,7 @@ interface DashboardLoadingShellProps {
   message?: string;
 }
 
-export default function DashboardLoadingShell({
+export function DashboardLoadingShell({
   statusLabel = 'Loading dashboard',
   message = 'Loading dashboard content.',
 }: DashboardLoadingShellProps) {

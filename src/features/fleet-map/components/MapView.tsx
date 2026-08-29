@@ -30,8 +30,15 @@ import { cn } from '@/lib/utils';
 import { logger } from '@/utils/logger';
 import { useIsDarkTheme, useThemeVersion } from '@/hooks/useThemeVersion';
 import type { EquipmentLocation, TeamHQLocation } from '@/features/fleet-map/types/locations';
+import { displayableImageSrc, withResolvedEquipmentImages } from '@/services/imageUploadService';
 
 export type { EquipmentLocation, TeamHQLocation };
+
+function buildResolvedImageUrlById(locations: EquipmentLocation[]): Record<string, string | null> {
+  return Object.fromEntries(
+    locations.map((location) => [location.id, displayableImageSrc(location.image_url) ?? null]),
+  );
+}
 
 function formatDate(dateString: string): string {
   try {
@@ -476,15 +483,53 @@ const MapContent: React.FC<{
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
   const [selectedHQId, setSelectedHQId] = useState<string | null>(null);
   const [sourceFilter, setSourceFilter] = useState<SourceType | 'all'>('all');
+  const [resolvedImageUrlsById, setResolvedImageUrlsById] = useState<Record<string, string | null>>(
+    () => buildResolvedImageUrlById(filteredLocations),
+  );
   const themeVersion = useThemeVersion();
   const hasAutoFitted = useRef(false);
 
+  useEffect(() => {
+    let cancelled = false;
+    const fallbackImageUrlsById = buildResolvedImageUrlById(filteredLocations);
+
+    setResolvedImageUrlsById(fallbackImageUrlsById);
+
+    void withResolvedEquipmentImages(filteredLocations)
+      .then((resolvedLocations) => {
+        if (cancelled) return;
+        setResolvedImageUrlsById(
+          Object.fromEntries(
+            resolvedLocations.map((location) => [location.id, location.image_url ?? null]),
+          ),
+        );
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setResolvedImageUrlsById(fallbackImageUrlsById);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [filteredLocations]);
+
+  const resolvedLocations = useMemo(
+    () =>
+      filteredLocations.map((location) => ({
+        ...location,
+        image_url:
+          resolvedImageUrlsById[location.id] ?? displayableImageSrc(location.image_url) ?? null,
+      })),
+    [filteredLocations, resolvedImageUrlsById],
+  );
+
   const visibleLocations = useMemo(() => {
     if (sourceFilter === 'all') {
-      return filteredLocations;
+      return resolvedLocations;
     }
-    return filteredLocations.filter((location) => location.source === sourceFilter);
-  }, [filteredLocations, sourceFilter]);
+    return resolvedLocations.filter((location) => location.source === sourceFilter);
+  }, [resolvedLocations, sourceFilter]);
 
   const sourceColors = useMemo<Record<SourceType, MarkerColor>>(() => {
     return (Object.keys(SOURCE_TOKEN_CONFIG) as SourceType[]).reduce((accumulator, sourceType) => {
@@ -582,10 +627,10 @@ const MapContent: React.FC<{
   }, [focusEquipmentId, filteredLocations, map]);
 
   useEffect(() => {
-    if (selectedMarkerId && !filteredLocations.some((location) => location.id === selectedMarkerId)) {
+    if (selectedMarkerId && !visibleLocations.some((location) => location.id === selectedMarkerId)) {
       setSelectedMarkerId(null);
     }
-  }, [filteredLocations, selectedMarkerId]);
+  }, [selectedMarkerId, visibleLocations]);
 
   useEffect(() => {
     if (selectedHQId && !teamHQLocations.some((hq) => hq.id === selectedHQId)) {

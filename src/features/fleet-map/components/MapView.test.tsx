@@ -1,11 +1,24 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, within } from '@vitest-harness/utils/test-utils';
+import { render, screen, fireEvent, waitFor, within } from '@vitest-harness/utils/test-utils';
+import userEvent from '@testing-library/user-event';
 import { MapView } from './MapView';
 
 const mapMountSpy = vi.fn();
 const mapUnmountSpy = vi.fn();
+const mockWithResolvedEquipmentImages = vi.hoisted(() => vi.fn(async (rows: unknown[]) => rows));
 let mapInstanceCounter = 0;
+
+vi.mock('@/services/imageUploadService', async () => {
+  const actual = await vi.importActual<typeof import('@/services/imageUploadService')>(
+    '@/services/imageUploadService',
+  );
+
+  return {
+    ...actual,
+    withResolvedEquipmentImages: (...args: unknown[]) => mockWithResolvedEquipmentImages(...args),
+  };
+});
 
 // Mock @vis.gl/react-google-maps. The real package mounts a Google Maps
 // instance via the JS SDK which is not available (and not desirable) in
@@ -190,6 +203,7 @@ describe('MapView', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockWithResolvedEquipmentImages.mockImplementation(async (rows: unknown[]) => rows);
     mapInstanceCounter = 0;
   });
 
@@ -318,6 +332,44 @@ describe('MapView', () => {
       expect(mapMountSpy).toHaveBeenCalledTimes(1);
       expect(mapUnmountSpy).not.toHaveBeenCalled();
     });
+
+    it('renders popup images from resolved display URLs instead of raw storage paths', async () => {
+      mockWithResolvedEquipmentImages.mockImplementation(async (rows: unknown[]) =>
+        (rows as Array<{ id: string; image_url?: string | null }>).map((row) =>
+          row.id === 'eq-1'
+            ? { ...row, image_url: 'https://signed.example/storage/v1/object/sign/work-order-images/org/eq-1/photo.jpg?token=test' }
+            : row,
+        ),
+      );
+
+      render(
+        <MapView
+          googleMapsKey="test-api-key"
+          mapId="test-map-id"
+          equipmentLocations={[
+            {
+              ...mockEquipmentLocations[0],
+              image_url: 'org/eq-1/photo.jpg',
+            },
+          ]}
+          filteredLocations={[
+            {
+              ...mockEquipmentLocations[0],
+              image_url: 'org/eq-1/photo.jpg',
+            },
+          ]}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Equipment 1' }));
+
+      const image = await screen.findByRole('img', { name: 'Equipment 1' });
+      expect(image).toHaveAttribute(
+        'src',
+        'https://signed.example/storage/v1/object/sign/work-order-images/org/eq-1/photo.jpg?token=test',
+      );
+      expect(mockWithResolvedEquipmentImages).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('Source controls', () => {
@@ -337,6 +389,35 @@ describe('MapView', () => {
       expect(screen.getByText('QR Scan GPS')).toBeInTheDocument();
       expect(screen.getByText('Team HQ')).toBeInTheDocument();
       expect(screen.getByLabelText('Filter map markers by location source')).toBeInTheDocument();
+    });
+
+    it('clears marker selection when the source filter hides the selected marker', async () => {
+      const user = userEvent.setup({ delay: null });
+
+      render(
+        <MapView
+          googleMapsKey="test-api-key"
+          mapId="test-map-id"
+          equipmentLocations={mockEquipmentLocations}
+          filteredLocations={mockEquipmentLocations}
+          teamHQLocations={mockTeamHQLocations}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Equipment 1' }));
+      expect(screen.getByRole('button', { name: 'Details' })).toBeInTheDocument();
+
+      await user.click(screen.getByRole('combobox', { name: 'Filter map markers by location source' }));
+      await user.click(screen.getByRole('option', { name: 'QR Scan GPS' }));
+
+      await waitFor(() => {
+        expect(screen.queryByRole('button', { name: 'Details' })).not.toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('combobox', { name: 'Filter map markers by location source' }));
+      await user.click(screen.getByRole('option', { name: 'All sources' }));
+
+      expect(screen.queryByRole('button', { name: 'Details' })).not.toBeInTheDocument();
     });
   });
 });

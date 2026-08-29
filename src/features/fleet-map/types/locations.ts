@@ -12,7 +12,7 @@ export interface EquipmentLocation {
   formatted_address?: string;
   working_hours?: number;
   last_maintenance?: string;
-  image_url?: string;
+  image_url?: string | null;
   location_updated_at?: string;
   team_id?: string | null;
   team_name?: string;
