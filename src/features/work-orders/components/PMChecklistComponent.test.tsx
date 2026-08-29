@@ -1,4 +1,4 @@
-import { screen, fireEvent, waitFor } from '@vitest-harness/utils/test-utils';
+import { screen, fireEvent, waitFor, within } from '@vitest-harness/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import type { WorkOrderData } from '@/features/work-orders/types/workOrderDetails';
@@ -113,6 +113,36 @@ const mockOnUpdate = vi.fn();
 describe('PMChecklistComponent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('section headers', () => {
+    it('renders each section as one readable trigger row with a decorative progress strip', () => {
+      const pm = createMockPM({
+        checklist_data: [
+          { id: 'item-1', title: 'Check oil level', section: 'Engine', required: true, condition: 1, notes: undefined },
+          { id: 'item-2', title: 'Inspect belts', section: 'Engine', required: true, condition: 2, notes: undefined },
+          { id: 'item-3', title: 'Look for leaks', section: 'Engine', required: true, condition: 5, notes: undefined },
+          { id: 'item-4', title: 'Test horn', section: 'Safety', required: true, condition: null, notes: undefined },
+        ] as unknown as PreventativeMaintenance['checklist_data'],
+      });
+
+      renderPMChecklist(pm, { onUpdate: mockOnUpdate });
+
+      const engineTrigger = screen.getByRole('button', { name: /engine/i });
+
+      expect(within(engineTrigger).getByText('Engine')).toBeInTheDocument();
+      expect(within(engineTrigger).getByText('3/3 items completed (100%)')).toBeInTheDocument();
+      const flaggedSummary = within(engineTrigger).getByText('2 flagged');
+      expect(flaggedSummary).toBeInTheDocument();
+      expect(flaggedSummary).toHaveClass('bg-warning/15', 'text-warning');
+      expect(engineTrigger.closest('.rounded-lg')).toHaveClass('border-warning/40');
+
+      const decorativeProgress = engineTrigger.querySelector('[aria-hidden="true"] .relative');
+      expect(decorativeProgress).toBeInTheDocument();
+      expect(decorativeProgress).toHaveClass('h-1.5');
+      expect(decorativeProgress).not.toHaveClass('absolute');
+      expect(engineTrigger.querySelector('.absolute.inset-0.h-full')).toBeNull();
+    });
   });
 
   describe('notes auto-expand behavior', () => {
