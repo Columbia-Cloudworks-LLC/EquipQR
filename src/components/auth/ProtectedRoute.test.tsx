@@ -36,7 +36,7 @@ describe('ProtectedRoute', () => {
     );
   };
 
-  it('should show loading spinner when auth is loading', () => {
+  it('should show a page skeleton when auth is loading', () => {
     mockUseAuth.mockReturnValue({
       user: null,
       isLoading: true,
@@ -44,7 +44,10 @@ describe('ProtectedRoute', () => {
 
     renderProtectedRoute();
 
-    expect(screen.getByRole('status', { hidden: true })).toBeInTheDocument();
+    expect(
+      screen.getByRole('status', { name: /checking authentication/i, hidden: true })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: /loading page content/i })).toBeInTheDocument();
     expect(screen.queryByText('Protected Content')).not.toBeInTheDocument();
   });
 
@@ -162,7 +165,10 @@ describe('ProtectedRoute', () => {
 
     const { rerender } = renderProtectedRoute();
 
-    expect(screen.getByRole('status', { hidden: true })).toBeInTheDocument();
+    expect(
+      screen.getByRole('status', { name: /checking authentication/i, hidden: true })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: /loading page content/i })).toBeInTheDocument();
 
     // Transition to authenticated
     mockUseAuth.mockReturnValue({
@@ -191,7 +197,10 @@ describe('ProtectedRoute', () => {
 
     const { rerender } = renderProtectedRoute();
 
-    expect(screen.getByRole('status', { hidden: true })).toBeInTheDocument();
+    expect(
+      screen.getByRole('status', { name: /checking authentication/i, hidden: true })
+    ).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: /loading page content/i })).toBeInTheDocument();
 
     // Transition to unauthenticated
     mockUseAuth.mockReturnValue({

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2 } from 'lucide-react';
+import { PageSkeleton } from '@/components/ui/PageSkeleton';
 import { logger } from '@/utils/logger';
 
 interface ProtectedRouteProps {
@@ -28,11 +28,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, loadingFallba
       return <>{loadingFallback}</>;
     }
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div role="status" aria-label="Checking authentication" className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">Verifying access...</p>
+      <div className="min-h-screen bg-background">
+        <div role="status" aria-label="Checking authentication" className="sr-only">
+          Verifying access before opening protected content.
         </div>
+        <PageSkeleton />
       </div>
     );
   }

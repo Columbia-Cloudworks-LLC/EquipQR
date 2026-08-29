@@ -124,16 +124,20 @@ vi.mock('@/routes/lazyDashboardPages', () => ({
 }));
 
 vi.mock('@/routes/DashboardRoutes', async () => {
+  const React = await vi.importActual<typeof import('react')>('react');
   const { Route } = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
 
   return {
-    dashboardRouteElements: (
-      <>
-        <Route path="/" element={<div>Dashboard content</div>} />
-        <Route path="/equipment" element={<div>Equipment content</div>} />
-        <Route path="/notifications" element={<div>Notifications content</div>} />
-        <Route path="/organization/settings" element={<div>Organization settings content</div>} />
-      </>
+    dashboardRouteElements: React.createElement(
+      React.Fragment,
+      null,
+      React.createElement(Route, { path: '/', element: React.createElement('div', null, 'Dashboard content') }),
+      React.createElement(Route, { path: '/equipment', element: React.createElement('div', null, 'Equipment content') }),
+      React.createElement(Route, { path: '/notifications', element: React.createElement('div', null, 'Notifications content') }),
+      React.createElement(Route, {
+        path: '/organization/settings',
+        element: React.createElement('div', null, 'Organization settings content'),
+      }),
     ),
   };
 });
@@ -206,6 +210,7 @@ describe('DashboardRouteLayout loading shell', () => {
     expect(
       screen.getByRole('status', { name: /checking authentication/i, hidden: true })
     ).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: /loading page content/i })).toBeInTheDocument();
     expect(screen.queryByText(/content$/i)).not.toBeInTheDocument();
   });
 
@@ -218,6 +223,7 @@ describe('DashboardRouteLayout loading shell', () => {
     expect(
       screen.getByRole('status', { name: /checking security requirements/i, hidden: true })
     ).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: /loading page content/i })).toBeInTheDocument();
     expect(screen.queryByText('Organization settings content')).not.toBeInTheDocument();
   });
 
@@ -235,6 +241,7 @@ describe('DashboardRouteLayout loading shell', () => {
     expect(
       screen.getByRole('status', { name: /checking workspace access/i, hidden: true })
     ).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: /loading page content/i })).toBeInTheDocument();
     expect(screen.queryByText('Notifications content')).not.toBeInTheDocument();
   });
 
@@ -249,6 +256,7 @@ describe('DashboardRouteLayout loading shell', () => {
     expect(
       screen.getByRole('status', { name: /checking onboarding status/i, hidden: true })
     ).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: /loading page content/i })).toBeInTheDocument();
     expect(screen.queryByText('Dashboard content')).not.toBeInTheDocument();
   });
 });
