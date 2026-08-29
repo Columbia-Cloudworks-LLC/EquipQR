@@ -47,6 +47,7 @@ export interface MobileWorkOrderFieldNextActionProps {
   onComplete: () => void;
   onRetrySync?: () => void;
   hideCaptureActions?: boolean;
+  hideWorkflowActions?: boolean;
 }
 
 function syncBannerCopy(sync: MobileWorkOrderFieldNextActionProps['sync']): {
@@ -82,11 +83,19 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
   onComplete,
   onRetrySync,
   hideCaptureActions = false,
+  hideWorkflowActions = false,
 }) => {
   const syncBanner = syncBannerCopy(sync);
   const pmIncomplete =
     !!workOrder.has_pm && pm.status !== 'completed' && (pm.total > 0 ? pm.progress < pm.total : true);
   const canStartWork = Boolean(workOrder.assignee_id);
+  const quickActionsHelper =
+    workOrder.status !== 'completed' &&
+    workOrder.status !== 'cancelled' &&
+    ((hideWorkflowActions && permissions.canWork) ||
+      (hideCaptureActions && !permissions.canWork && (permissions.canAddNotes || permissions.canUpload)))
+      ? 'Use Quick actions for tappable work-order actions on phone layouts.'
+      : null;
 
   const noteAndPhotoRow = hideCaptureActions ? null : (
     <div className="flex flex-wrap gap-2">
@@ -162,7 +171,7 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
           </div>
         ) : null}
 
-        {workOrder.status === 'submitted' && permissions.canWork ? (
+        {workOrder.status === 'submitted' && permissions.canWork && !hideWorkflowActions ? (
           <>
             <Button type="button" className="h-12 min-h-11 w-full text-base font-semibold" onClick={onAcceptWorkOrder}>
               Accept work order
@@ -171,7 +180,9 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
           </>
         ) : null}
 
-        {(workOrder.status === 'accepted' || workOrder.status === 'assigned') && permissions.canWork ? (
+        {(workOrder.status === 'accepted' || workOrder.status === 'assigned') &&
+        permissions.canWork &&
+        !hideWorkflowActions ? (
           <>
             <Button
               type="button"
@@ -189,7 +200,7 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
           </>
         ) : null}
 
-        {workOrder.status === 'in_progress' && permissions.canWork ? (
+        {workOrder.status === 'in_progress' && permissions.canWork && !hideWorkflowActions ? (
           <>
             {pmIncomplete ? (
               <>
@@ -218,7 +229,7 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
           </>
         ) : null}
 
-        {workOrder.status === 'on_hold' && permissions.canWork ? (
+        {workOrder.status === 'on_hold' && permissions.canWork && !hideWorkflowActions ? (
           <>
             <Button type="button" className="h-12 min-h-11 w-full text-base font-semibold" onClick={onResumeWork}>
               <Play className="mr-2 h-5 w-5" aria-hidden />
@@ -236,6 +247,12 @@ export const MobileWorkOrderFieldNextAction: React.FC<MobileWorkOrderFieldNextAc
           <div className="space-y-2">
             <p className="text-sm font-medium text-muted-foreground">View-only — capture only</p>
             {noteAndPhotoRow}
+          </div>
+        ) : null}
+
+        {quickActionsHelper ? (
+          <div className="rounded-lg border border-dashed border-border/70 bg-muted/25 px-3 py-2 text-sm text-muted-foreground">
+            {quickActionsHelper}
           </div>
         ) : null}
       </CardContent>

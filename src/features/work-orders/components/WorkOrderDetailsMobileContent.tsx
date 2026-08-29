@@ -368,6 +368,7 @@ export function WorkOrderDetailsMobileContent({
           }}
           sync={syncState}
           hideCaptureActions={showMobileActionFooter}
+          hideWorkflowActions={showMobileActionFooter}
           onAcceptWorkOrder={onAcceptWorkOrder}
           onStartWork={onStartWork}
           onResumeWork={onResumeWork}

@@ -147,7 +147,7 @@ describe('WorkOrderDetailsMobileContent', () => {
   it('enables mobile Start work when the accepted work order has an assignee', () => {
     renderMobileContent({
       workOrder: { ...workOrder, status: 'accepted', assignee_id: 'user-1' },
-      showMobileActionFooter: true,
+      showMobileActionFooter: false,
     });
 
     expect(screen.getByRole('button', { name: /^start work$/i })).toBeEnabled();
@@ -157,20 +157,21 @@ describe('WorkOrderDetailsMobileContent', () => {
   it('disables mobile Start work with guidance when the accepted work order is unassigned', () => {
     renderMobileContent({
       workOrder: { ...workOrder, status: 'accepted', assignee_id: null },
-      showMobileActionFooter: true,
+      showMobileActionFooter: false,
     });
 
     expect(screen.getByRole('button', { name: /^start work$/i })).toBeDisabled();
     expect(screen.getByText('Select an assignee to enable starting work')).toBeInTheDocument();
   });
 
-  it('keeps Next step on the canvas in field mode without capture buttons', () => {
+  it('keeps Next step on the canvas in field mode without duplicate workflow CTAs', () => {
     renderMobileContent({ showMobileActionFooter: true });
 
     expect(screen.getByRole('heading', { name: /next step/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /continue checklist/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /continue checklist/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /add note/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^photo$/i })).not.toBeInTheDocument();
+    expect(screen.getByText('Use Quick actions for tappable work-order actions on phone layouts.')).toBeInTheDocument();
   });
 
   it('shows Reopen work order on a locked completed work order', () => {

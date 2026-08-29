@@ -112,6 +112,18 @@ describe('MobileWorkOrderFieldNextAction', () => {
     expect(screen.queryByRole('button', { name: /^photo$/i })).not.toBeInTheDocument();
   });
 
+  it('keeps the card visible but moves workflow CTAs into Quick actions when requested', () => {
+    renderNextAction({
+      workOrder: { id: '1', status: 'accepted', assignee_id: 'user-1' },
+      hideCaptureActions: true,
+      hideWorkflowActions: true,
+    });
+
+    expect(screen.getByRole('heading', { name: /next step/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^start work$/i })).not.toBeInTheDocument();
+    expect(screen.getByText('Use Quick actions for tappable work-order actions on phone layouts.')).toBeInTheDocument();
+  });
+
   it('keeps capture actions when the FAB is hidden', () => {
     renderNextAction({
       workOrder: { id: '1', status: 'accepted', assignee_id: 'user-1' },
