@@ -26,6 +26,7 @@
     "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom", "google.maps"],
 
     "paths": {
+      "@/dev/*": ["./dev/*"],
       "@/*": ["./src/*"],
       "@vitest-harness/*": ["./vitest/*"]
     }

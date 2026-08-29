@@ -42,6 +42,12 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 - **Fleet Map key failures stay on the signed error card (#1461)** — Fleet Map key fetch failures now keep the `Fleet Map Error` card on screen without exposing secret names in a toast.
 - **Public 404 for unknown routes (#1470)** — Unknown public URLs now render a public not-found page with header/footer instead of a blank shell, while `/releases` and legal pages keep their existing routes.
 
+## [3.29.1] - 2026-08-26
+
+### Fixed
+
+- **Production promote verification follows the serving build** — Release Readiness now verifies the production deployment created by `vercel promote`, so successful promotes and same-SHA reruns no longer stop before Edge Function deploy.
+
 ## [3.29.0] - 2026-08-23
 
 ### Added
@@ -2704,7 +2710,8 @@ Update package dependencies and versions
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.29.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.29.1...HEAD
+[3.29.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.29.0...v3.29.1
 [3.29.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.28.0...v3.29.0
 [3.28.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.27.0...v3.28.0
 [3.27.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.26.1...v3.27.0
