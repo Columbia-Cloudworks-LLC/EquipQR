@@ -12,6 +12,7 @@ const MFA_REQUIRED_ROLES = ['owner', 'admin'] as const;
 
 interface MFAEnforcementGuardProps {
   children: React.ReactNode;
+  loadingFallback?: React.ReactNode;
 }
 
 /**
@@ -26,7 +27,10 @@ interface MFAEnforcementGuardProps {
  * - If admin/owner and MFA enrolled but session is AAL1 → show verification
  * - Otherwise → render children
  */
-const MFAEnforcementGuard: React.FC<MFAEnforcementGuardProps> = ({ children }) => {
+const MFAEnforcementGuard: React.FC<MFAEnforcementGuardProps> = ({
+  children,
+  loadingFallback,
+}) => {
   const { isEnrolled, isVerified, isLoading: mfaLoading, refreshMFAStatus } = useMFA();
   const orgContext = useSimpleOrganizationSafe();
 
@@ -48,6 +52,9 @@ const MFAEnforcementGuard: React.FC<MFAEnforcementGuardProps> = ({ children }) =
   // This prevents a brief window where admin/owner routes render before
   // the role is known and MFA can be enforced.
   if (orgLoading || mfaLoading) {
+    if (loadingFallback) {
+      return <>{loadingFallback}</>;
+    }
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div role="status" aria-label="Checking security requirements" className="text-center">

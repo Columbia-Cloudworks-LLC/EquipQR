@@ -8,13 +8,17 @@ const GETTING_STARTED_PATH = '/dashboard/onboarding/getting-started';
 
 interface ProductOnboardingGuardProps {
   children: React.ReactNode;
+  loadingFallback?: React.ReactNode;
 }
 
 /**
  * Redirects org owners/admins who have not completed product onboarding
  * to the getting-started wizard. Non-admins bypass this guard.
  */
-const ProductOnboardingGuard: React.FC<ProductOnboardingGuardProps> = ({ children }) => {
+const ProductOnboardingGuard: React.FC<ProductOnboardingGuardProps> = ({
+  children,
+  loadingFallback,
+}) => {
   const location = useLocation();
   const { organizationId, isLoading: orgContextLoading } = useOrganization();
   const { data: status, isLoading, isError, isPending, isFetched } = useProductOnboardingStatus();
@@ -28,6 +32,9 @@ const ProductOnboardingGuard: React.FC<ProductOnboardingGuardProps> = ({ childre
     (Boolean(organizationId) && (isPending || isLoading || (!isFetched && !isError)));
 
   if (onboardingCheckPending) {
+    if (loadingFallback) {
+      return <>{loadingFallback}</>;
+    }
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <Loader2
