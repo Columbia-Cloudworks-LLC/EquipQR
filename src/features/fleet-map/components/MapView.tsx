@@ -582,7 +582,7 @@ const MapContent: React.FC<{
   }, [focusEquipmentId, filteredLocations, map]);
 
   useEffect(() => {
-    if (selectedMarkerId && !filteredLocations.some((location) => location.id === selectedMarkerId)) {
+    if (selectedMarkerId && !visibleLocations.some((location) => location.id === selectedMarkerId)) {
       setSelectedMarkerId(null);
     }
   }, [filteredLocations, selectedMarkerId]);
