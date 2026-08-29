@@ -48,6 +48,27 @@ describe('ProtectedRoute', () => {
     expect(screen.queryByText('Protected Content')).not.toBeInTheDocument();
   });
 
+  it('should render a custom loading fallback when provided', () => {
+    mockUseAuth.mockReturnValue({
+      user: null,
+      isLoading: true,
+    });
+
+    render(
+      <MemoryRouter>
+        <ProtectedRoute loadingFallback={<div>Dashboard shell loading</div>}>
+          <div>Protected Content</div>
+        </ProtectedRoute>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Dashboard shell loading')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: /checking authentication/i, hidden: true })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Protected Content')).not.toBeInTheDocument();
+  });
+
   it('should redirect to auth when user is not authenticated', () => {
     mockUseAuth.mockReturnValue({
       user: null,

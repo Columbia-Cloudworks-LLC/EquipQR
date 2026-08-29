@@ -25,6 +25,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 ### Fixed
 
 - **PM checklist section headers stay scannable on work orders (#1482)** — Multi-section PM checklists now render each section as a clear header row with progress and flagged-count summary instead of a wall of striped cells.
+- **Dashboard hard loads keep the app shell visible (#1472)** — Reloading or directly opening dashboard routes now keeps the sidebar and header frame on screen with loading skeletons in the main content area instead of a bare full-viewport spinner.
 - **Mobile overdue invoice badges keep full work-order numbers visible (#1480)** — Phone-width work order details now wrap the overdue invoice pill inside the summary card instead of clipping the invoice or WO number.
 - **Mobile work-order quick actions stop covering detail content (#1479)** — At phone-width work order details, the floating quick-actions button now leaves PM, Timeline, and Events & Times readable and tappable, with extra bottom clearance above the mobile nav.
 - **Work order create errors stay honest** — Preview work-order create now allows blank descriptions and shows the real create failure message instead of a generic toast.

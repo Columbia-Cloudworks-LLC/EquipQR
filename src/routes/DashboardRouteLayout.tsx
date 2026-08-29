@@ -9,6 +9,7 @@ import WorkspaceOnboardingGuard from '@/components/auth/WorkspaceOnboardingGuard
 import ProductOnboardingGuard from '@/components/auth/ProductOnboardingGuard';
 import MFAEnforcementGuard from '@/components/auth/MFAEnforcementGuard';
 import IdleSessionTimeoutGuard from '@/components/auth/IdleSessionTimeoutGuard';
+import DashboardLoadingShell from '@/components/layout/DashboardLoadingShell';
 import { BugReportProvider } from '@/features/tickets/context/BugReportContext';
 import { PendingSyncBanner } from '@/features/offline-queue/components/PendingSyncBanner';
 import { OFFLINE_QUEUE_ENABLED } from '@/lib/flags';
@@ -20,12 +21,40 @@ import { dashboardRouteElements } from '@/routes/DashboardRoutes';
 
 const BrandedTopBar = () => <TopBar />;
 
+const authLoadingFallback = (
+  <DashboardLoadingShell
+    statusLabel="Checking authentication"
+    message="Verifying access before opening the dashboard."
+  />
+);
+
+const securityLoadingFallback = (
+  <DashboardLoadingShell
+    statusLabel="Checking security requirements"
+    message="Verifying security requirements before opening the dashboard."
+  />
+);
+
+const workspaceLoadingFallback = (
+  <DashboardLoadingShell
+    statusLabel="Checking workspace access"
+    message="Checking workspace access before opening the dashboard."
+  />
+);
+
+const onboardingLoadingFallback = (
+  <DashboardLoadingShell
+    statusLabel="Checking onboarding status"
+    message="Checking onboarding status before opening the dashboard."
+  />
+);
+
 export const DashboardRouteLayout = () => (
-  <ProtectedRoute>
+  <ProtectedRoute loadingFallback={authLoadingFallback}>
     <SimpleOrganizationProvider>
-      <MFAEnforcementGuard>
-        <WorkspaceOnboardingGuard>
-          <ProductOnboardingGuard>
+      <MFAEnforcementGuard loadingFallback={securityLoadingFallback}>
+        <WorkspaceOnboardingGuard loadingFallback={workspaceLoadingFallback}>
+          <ProductOnboardingGuard loadingFallback={onboardingLoadingFallback}>
           <OptionalOfflineQueueProvider>
             <TeamProvider>
               <SelectedTeamProvider>

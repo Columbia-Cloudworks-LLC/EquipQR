@@ -7,6 +7,7 @@ import WorkspaceAccessGate from '@/components/auth/WorkspaceAccessGate';
 
 interface WorkspaceOnboardingGuardProps {
   children: React.ReactNode;
+  loadingFallback?: React.ReactNode;
 }
 
 /**
@@ -14,7 +15,10 @@ interface WorkspaceOnboardingGuardProps {
  * explicit authorization via workspace membership, invitation, import claim, or
  * active membership in another organization.
  */
-const WorkspaceOnboardingGuard: React.FC<WorkspaceOnboardingGuardProps> = ({ children }) => {
+const WorkspaceOnboardingGuard: React.FC<WorkspaceOnboardingGuardProps> = ({
+  children,
+  loadingFallback,
+}) => {
   const { user } = useAuth();
   const { data: onboardingState, isLoading, isError, refetch } = useWorkspaceOnboardingState();
 
@@ -23,6 +27,9 @@ const WorkspaceOnboardingGuard: React.FC<WorkspaceOnboardingGuardProps> = ({ chi
   }
 
   if (isLoading) {
+    if (loadingFallback) {
+      return <>{loadingFallback}</>;
+    }
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-label="Checking workspace access" />

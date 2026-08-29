@@ -7,9 +7,10 @@ import { logger } from '@/utils/logger';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  loadingFallback?: React.ReactNode;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, loadingFallback }) => {
   const { user, isLoading } = useAuth();
   const location = useLocation();
 
@@ -23,6 +24,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   if (isLoading) {
+    if (loadingFallback) {
+      return <>{loadingFallback}</>;
+    }
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div role="status" aria-label="Checking authentication" className="text-center">
