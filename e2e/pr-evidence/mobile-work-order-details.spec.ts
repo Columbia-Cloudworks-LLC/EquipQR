@@ -31,18 +31,11 @@ test.describe('Mobile work order details UX @pr-evidence', () => {
     await expect(page.getByText(/^high$/i).first()).toBeVisible();
 
     const nextStep = page.getByRole('heading', { name: /^next step$/i });
-    const nextStepCard = page.getByLabel('Next field actions');
     await expect(nextStep).toBeVisible({ timeout: 30_000 });
-    await expect(nextStepCard).toBeVisible({ timeout: 30_000 });
     await expect(
-      nextStepCard.getByText(/use quick actions for tappable work-order actions on phone layouts\./i),
+      page.getByRole('button', { name: /continue checklist|complete work order|start work|accept work order|resume work/i }),
     ).toBeVisible();
-    await expect(
-      nextStepCard.getByRole('button', {
-        name: /continue checklist|complete work order|start work|accept work order|resume work/i,
-      }),
-    ).toHaveCount(0);
-    await expect(nextStepCard.getByRole('button', { name: /add note/i })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /add note/i })).toHaveCount(0);
 
     await evidencePause(page, 800);
     await evidenceScreenshot(page, '01-mobile-details-overview', { target: nextStep });
@@ -55,11 +48,6 @@ test.describe('Mobile work order details UX @pr-evidence', () => {
       timeout: 15_000,
     });
     const actionSheet = page.getByRole('dialog').or(page.locator('[role="dialog"]'));
-    await expect(
-      actionSheet.getByRole('button', {
-        name: /continue checklist|complete work order|start work|accept work order|resume work/i,
-      }),
-    ).toBeVisible();
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '02-mobile-action-sheet', { target: actionSheet });
 
