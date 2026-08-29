@@ -46,7 +46,6 @@ export interface MobileWorkOrderFieldNextActionProps {
   onAddPhoto: () => void;
   onComplete: () => void;
   onRetrySync?: () => void;
-  /** Field mode moves note/photo to the FAB sheet but keeps the primary workflow CTA on-canvas (#1481). */
   hideCaptureActions?: boolean;
 }
 

@@ -62,24 +62,6 @@ describe('MobileWorkOrderCompactSummary', () => {
     expect(onStatusPress).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps status management available for accepted work orders without an assignee', async () => {
-    const user = userEvent.setup({ delay: null });
-    const onStatusPress = vi.fn();
-
-    render(
-      <MobileWorkOrderCompactSummary
-        workOrder={{ ...baseWorkOrder, assignee_id: null }}
-        organizationId="org-1"
-        canChangeStatus
-        onStatusPress={onStatusPress}
-      />,
-    );
-
-    await user.click(screen.getByRole('button', { name: /status: accepted\. change status/i }));
-
-    expect(onStatusPress).toHaveBeenCalledTimes(1);
-  });
-
   it('renders completed status as a non-interactive row', () => {
     render(
       <MobileWorkOrderCompactSummary

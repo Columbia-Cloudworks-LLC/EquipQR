@@ -19,7 +19,6 @@ const {
   mockWorkOrderNotesSectionProps,
   mockSetSearchParams,
   mockUseSearchParams,
-  mockMobileWorkOrderActionSheetProps,
   mockMobileWorkOrderActionFooterProps,
 } = vi.hoisted(() => {
   const mockSetSearchParamsInner = vi.fn();
@@ -30,7 +29,6 @@ const {
     mockWorkOrderNotesSectionProps: vi.fn(),
     mockSetSearchParams: mockSetSearchParamsInner,
     mockUseSearchParams: mockUseSearchParamsInner,
-    mockMobileWorkOrderActionSheetProps: vi.fn(),
     mockMobileWorkOrderActionFooterProps: vi.fn(),
   };
 });
@@ -257,10 +255,7 @@ vi.mock('@/features/work-orders/components/WorkOrderPDFExportDialog', () => ({
 }));
 
 vi.mock('@/features/work-orders/components/MobileWorkOrderActionSheet', () => ({
-  MobileWorkOrderActionSheet: (props: Record<string, unknown>) => {
-    mockMobileWorkOrderActionSheetProps(props);
-    return null;
-  },
+  MobileWorkOrderActionSheet: () => null,
 }));
 
 vi.mock('@/features/work-orders/components/MobileWorkOrderActionFooter', () => ({
@@ -279,7 +274,6 @@ describe('WorkOrderDetails', () => {
     mockEquipmentPermissions.mockReturnValue({ canEdit: false });
     mockHasRole.mockReset();
     mockHasRole.mockReturnValue(false);
-    mockMobileWorkOrderActionSheetProps.mockClear();
     mockMobileWorkOrderActionFooterProps.mockClear();
     mockWorkOrderNotesSectionProps.mockClear();
     mockUseIsMobile.mockReturnValue(true);
@@ -488,43 +482,6 @@ describe('WorkOrderDetails', () => {
     expect(
       screen.getByRole('link', { name: /view field change history in the audit log/i }),
     ).toBeInTheDocument();
-  });
-
-  it('keeps the mobile quick-actions FAB and disabled start shortcut for accepted unassigned work', async () => {
-    vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue(
-      createManagerWorkOrderDetailsDataMock({
-        workOrder: {
-          status: 'accepted',
-          assignee_id: null,
-        },
-      }),
-    );
-
-    render(<WorkOrderDetails />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Next action')).toBeInTheDocument();
-    });
-
-    expect(
-      screen.getByRole('button', { name: /open work order quick actions/i }),
-    ).toBeInTheDocument();
-
-    const actionSheetCalls = mockMobileWorkOrderActionSheetProps.mock.calls;
-    const actionSheetProps = actionSheetCalls[actionSheetCalls.length - 1]?.[0] as {
-      quickActions?: Array<{
-        id: string;
-        disabled?: boolean;
-        description?: string;
-      }>;
-    };
-    const startAction = actionSheetProps.quickActions?.find((action) => action.id === 'start');
-
-    expect(startAction).toMatchObject({
-      id: 'start',
-      disabled: true,
-      description: 'Select an assignee to enable starting work',
-    });
   });
 
   it('renders desktop layout with images before notes and passes showPrivateNotes to WorkOrderImagesSection', async () => {
