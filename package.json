@@ -211,7 +211,7 @@
     "istanbul-lib-report": "^3.0.1",
     "istanbul-reports": "^3.2.0",
     "jsdom": "29.1.1",
-    "markdownlint-cli2": "0.23.0",
+    "markdownlint-cli2": "0.23.2",
     "postcss": "^8.5.14",
     "size-limit": "^12.1.0",
     "supabase": "2.103.0",
