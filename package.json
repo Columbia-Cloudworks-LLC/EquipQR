@@ -214,7 +214,7 @@
     "markdownlint-cli2": "0.23.0",
     "postcss": "^8.5.14",
     "size-limit": "^12.1.0",
-    "supabase": "2.103.0",
+    "supabase": "2.116.0",
     "tailwindcss": "4.3.2",
     "topojson-client": "3.1.0",
     "tsx": "4.22.4",
