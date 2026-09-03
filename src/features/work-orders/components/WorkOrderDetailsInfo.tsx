@@ -30,6 +30,7 @@ interface WorkOrderDetailsInfoProps {
   organizationId: string;
   scanLocationCollectionEnabled?: boolean;
   canEditDescription?: boolean;
+  descriptionLockMessage?: string;
   onSaveDescription?: (description: string) => Promise<void>;
   equipmentLocationEdit?: EquipmentLocationEditProps;
 }
@@ -40,6 +41,7 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
   organizationId,
   scanLocationCollectionEnabled,
   canEditDescription = false,
+  descriptionLockMessage,
   onSaveDescription,
   equipmentLocationEdit,
 }) => {
@@ -65,22 +67,30 @@ const WorkOrderDetailsInfo: React.FC<WorkOrderDetailsInfoProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Description */}
-        {canEditDescription && onSaveDescription ? (
-          <InlineEditField
-            value={workOrder.description ?? ''}
-            onSave={onSaveDescription}
-            canEdit={canEditDescription}
-            type="textarea"
-            placeholder="Add a work order description"
-            className="text-sm text-muted-foreground leading-relaxed"
-            editAriaLabel="Edit description"
-          />
-        ) : (
-          <p className="text-muted-foreground leading-relaxed text-sm">
-            {workOrder.description}
-          </p>
-        )}
+        <div className="space-y-2">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-sm font-semibold text-foreground">Description</h3>
+            {descriptionLockMessage ? (
+              <p className="text-xs text-muted-foreground">{descriptionLockMessage}</p>
+            ) : null}
+          </div>
+
+          {canEditDescription && onSaveDescription ? (
+            <InlineEditField
+              value={workOrder.description ?? ''}
+              onSave={onSaveDescription}
+              canEdit={canEditDescription}
+              type="textarea"
+              placeholder="Add a work order description"
+              className="text-sm text-muted-foreground leading-relaxed"
+              editAriaLabel="Edit description"
+            />
+          ) : (
+            <p className="text-muted-foreground leading-relaxed text-sm">
+              {workOrder.description}
+            </p>
+          )}
+        </div>
 
         {/* Equipment Information - Collapsible on mobile */}
         {equipment && (

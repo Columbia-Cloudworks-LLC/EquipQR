@@ -1,6 +1,17 @@
-import { test, expect } from '../fixtures/equipqr-test';
+import { test, expect, quickLogin } from '../fixtures/equipqr-test';
 
 const INTEGRATIONS_PATH = '/dashboard/organization/integrations';
+
+async function gotoOrganizationSettingsDirectRoute(
+  gotoDashboard: (route: string) => Promise<void>,
+  page: import('@playwright/test').Page,
+) {
+  await gotoDashboard('/organization/settings');
+  if (/\/auth(?:[?#]|$)/i.test(page.url())) {
+    await quickLogin(page, 'owner');
+    await gotoDashboard('/organization/settings');
+  }
+}
 
 test.describe('organization and integrations @full', () => {
   test('organization settings page loads', async ({ gotoDashboard, page, assertHealthyShell }) => {
@@ -9,6 +20,27 @@ test.describe('organization and integrations @full', () => {
     await expect(page.getByRole('heading', { name: /organization settings/i })).toBeVisible({
       timeout: 60_000,
     });
+  });
+
+  test('direct organization settings route loads', async ({
+    gotoDashboard,
+    page,
+    assertHealthyShell,
+  }) => {
+    await gotoOrganizationSettingsDirectRoute(gotoDashboard, page);
+    await assertHealthyShell();
+    const organizationSubnav = page.getByRole('navigation', { name: 'Organization sections' });
+
+    await expect(page).toHaveURL(/\/dashboard\/organization\/settings$/i, {
+      timeout: 60_000,
+    });
+    await expect(page.getByRole('heading', { name: /organization settings/i })).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(organizationSubnav.getByRole('link', { name: /^members$/i })).toBeVisible();
+    await expect(organizationSubnav.getByRole('link', { name: /^settings$/i })).toBeVisible();
+    await expect(organizationSubnav.getByRole('link', { name: /^integrations$/i })).toBeVisible();
+    await expect(page.getByLabel(/organization name/i)).toBeVisible();
   });
 
   test('organization members page loads', async ({ gotoDashboard, page, assertHealthyShell }) => {

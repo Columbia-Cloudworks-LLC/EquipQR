@@ -40,6 +40,7 @@ import {
   isFooterRoleEligible,
   shouldHideInlineNoteAddButton,
   shouldShowMobileActionFooter,
+  shouldShowMobileSyncBanner,
 } from '@/features/work-orders/utils/workOrderDetailsViewModel';
 import { WorkOrderDetailsMobileContent } from '@/features/work-orders/components/WorkOrderDetailsMobileContent';
 import { WorkOrderDetailsDesktopContent } from '@/features/work-orders/components/WorkOrderDetailsDesktopContent';
@@ -47,6 +48,10 @@ import { WorkOrderDetailsOverlays } from '@/features/work-orders/components/Work
 import WorkOrderQRCodeDisplay from '@/features/work-orders/components/WorkOrderQRCodeDisplay';
 import { PMChangeWarningDialog } from '@/features/work-orders/components/PMChangeWarningDialog';
 import { WorkOrderPMManagementDialog } from '@/features/work-orders/components/WorkOrderPMManagementDialog';
+import {
+  getWorkOrderDescriptionLockMessage,
+  getWorkOrderNotesLockMessage,
+} from '@/features/work-orders/utils/workOrderLockCopy';
 
 const WorkOrderDetails = () => {
   const { workOrderId } = useParams<{ workOrderId: string }>();
@@ -349,9 +354,18 @@ const WorkOrderDetails = () => {
   const canCompletePmGate = !workOrder.has_pm || pmData?.status === 'completed';
   const pmChecklist = getPMChecklistStats(pmData?.checklist_data);
   const syncState = buildOfflineSyncState(offlineQueue);
+  const showMobileSyncBanner = showMobileActionFooter && shouldShowMobileSyncBanner(syncState);
   const teamSummary = buildWorkOrderTeamSummary(workOrder, equipment);
   const assigneeNameSummary = buildWorkOrderAssigneeSummary(workOrder.assigneeName);
   const mobileAssigneeSummary = buildMobileWorkOrderAssigneeSummary(workOrder.assigneeName);
+  const noteComposerLockMessage =
+    isWorkOrderLocked && baseCanAddNotes
+      ? getWorkOrderNotesLockMessage(workOrder.status)
+      : undefined;
+  const descriptionLockMessage =
+    isWorkOrderLocked && canEdit
+      ? getWorkOrderDescriptionLockMessage(workOrder.status)
+      : undefined;
 
   const scrollToPMSection = () => {
     pmSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -396,7 +410,10 @@ const WorkOrderDetails = () => {
         <div
           className={cn(
             isMobile ? 'space-y-4' : 'lg:col-span-2 space-y-6',
-            getMobileWorkOrderDetailsBottomPaddingClass(isMobile),
+            getMobileWorkOrderDetailsBottomPaddingClass({
+              isMobile,
+              showSyncBanner: showMobileSyncBanner,
+            }),
           )}
         >
           {linkedEquipment.length > 1 && (
@@ -418,6 +435,7 @@ const WorkOrderDetails = () => {
               pmLoading={pmLoading}
               isWorkOrderLocked={isWorkOrderLocked}
               canAddNotes={canAddNotes}
+              noteComposerLockMessage={noteComposerLockMessage}
               canUsePrivateNotes={canUsePrivateNotes}
               canUpload={canUpload}
               canAddCosts={canAddCosts}
@@ -449,12 +467,15 @@ const WorkOrderDetails = () => {
               onComplete={() => setShowMobileCompleteDialog(true)}
               onRetrySync={offlineQueue.retryFailed}
               canEditInlineFields={canEditInlineFields}
+              descriptionLockMessage={descriptionLockMessage}
               canEditAssignment={canEditAssignment}
               onSaveDescription={handleSaveDescription}
               equipmentLocationEdit={equipmentLocationEdit}
               canManagePM={canManagePM}
               onManagePM={() => setShowPMManagementDialog(true)}
               onPMUpdate={handlePMUpdate}
+              baseCanAddNotes={baseCanAddNotes}
+              onStatusUpdate={handleStatusUpdate}
             />
           ) : (
             <WorkOrderDetailsDesktopContent
@@ -467,6 +488,7 @@ const WorkOrderDetails = () => {
               pmLoading={pmLoading}
               isWorkOrderLocked={isWorkOrderLocked}
               canAddNotes={canAddNotes}
+              noteComposerLockMessage={noteComposerLockMessage}
               canUsePrivateNotes={canUsePrivateNotes}
               canUpload={canUpload}
               canAddCosts={canAddCosts}
@@ -482,6 +504,7 @@ const WorkOrderDetails = () => {
               stagger={stagger}
               onPMUpdate={handlePMUpdate}
               canEditInlineFields={canEditInlineFields}
+              descriptionLockMessage={descriptionLockMessage}
               onSaveDescription={handleSaveDescription}
               equipmentLocationEdit={equipmentLocationEdit}
               canManagePM={canManagePM}
@@ -517,6 +540,7 @@ const WorkOrderDetails = () => {
         canCaptureCosts={canCaptureCosts}
         canCompletePmGate={canCompletePmGate}
         showMobileActionFooter={showMobileActionFooter}
+        showMobileSyncBanner={showMobileSyncBanner}
         syncState={syncState}
         workTimer={workTimer}
         showMobilePDFDialog={showMobilePDFDialog}

@@ -73,4 +73,28 @@ describe('MobileWorkOrderCompactSummary', () => {
     expect(screen.getByLabelText('Status: Completed')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /status/i })).not.toBeInTheDocument();
   });
+
+  it('lets the overdue invoice badge wrap within the invoice row', () => {
+    render(
+      <MobileWorkOrderCompactSummary
+        workOrder={{
+          ...baseWorkOrder,
+          invoice_status: 'overdue',
+          quickbooks_invoice_number: 'WO-4C387D1F',
+          invoice_balance_cents: 100000,
+        }}
+        organizationId="org-1"
+      />,
+    );
+
+    const badge = screen.getByText('Invoice Overdue - $1000.00 - #WO-4C387D1F');
+    expect(badge).toHaveClass(
+      'min-w-0',
+      'max-w-full',
+      'whitespace-normal',
+      'text-left',
+      'leading-4',
+    );
+    expect(badge.parentElement).toHaveClass('flex-wrap', 'items-start');
+  });
 });

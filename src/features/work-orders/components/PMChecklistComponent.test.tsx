@@ -1,4 +1,4 @@
-import { screen, fireEvent, waitFor } from '@vitest-harness/utils/test-utils';
+import { screen, fireEvent, waitFor, within } from '@vitest-harness/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import type { WorkOrderData } from '@/features/work-orders/types/workOrderDetails';
@@ -113,6 +113,36 @@ const mockOnUpdate = vi.fn();
 describe('PMChecklistComponent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('section headers', () => {
+    it('renders each section as one readable trigger row with a decorative progress strip', () => {
+      const pm = createMockPM({
+        checklist_data: [
+          { id: 'item-1', title: 'Check oil level', section: 'Engine', required: true, condition: 1, notes: undefined },
+          { id: 'item-2', title: 'Inspect belts', section: 'Engine', required: true, condition: 2, notes: undefined },
+          { id: 'item-3', title: 'Look for leaks', section: 'Engine', required: true, condition: 5, notes: undefined },
+          { id: 'item-4', title: 'Test horn', section: 'Safety', required: true, condition: null, notes: undefined },
+        ] as unknown as PreventativeMaintenance['checklist_data'],
+      });
+
+      renderPMChecklist(pm, { onUpdate: mockOnUpdate });
+
+      const engineTrigger = screen.getByRole('button', { name: /engine/i });
+
+      expect(within(engineTrigger).getByText('Engine')).toBeInTheDocument();
+      expect(within(engineTrigger).getByText('3/3 items completed (100%)')).toBeInTheDocument();
+      const flaggedSummary = within(engineTrigger).getByText('2 flagged');
+      expect(flaggedSummary).toBeInTheDocument();
+      expect(flaggedSummary).toHaveClass('bg-warning/15', 'text-warning');
+      expect(engineTrigger.closest('.rounded-lg')).toHaveClass('border-warning/40');
+
+      const decorativeProgress = engineTrigger.querySelector('[aria-hidden="true"] .relative');
+      expect(decorativeProgress).toBeInTheDocument();
+      expect(decorativeProgress).toHaveClass('h-1.5');
+      expect(decorativeProgress).not.toHaveClass('absolute');
+      expect(engineTrigger.querySelector('.absolute.inset-0.h-full')).toBeNull();
+    });
   });
 
   describe('notes auto-expand behavior', () => {
@@ -282,7 +312,10 @@ describe('PMChecklistComponent', () => {
       const pm = createMockPM({ status: 'completed' });
       renderPMChecklist(pm, { onUpdate: mockOnUpdate });
 
-      expect(screen.getByPlaceholderText('Add general notes about this PM...')).toBeDisabled();
+      expect(
+        screen.getByText(/this pm checklist is completed\. general notes are read-only after completion\./i),
+      ).toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('Add general notes about this PM...')).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Start voice input' })).not.toBeInTheDocument();
     });
   });
@@ -298,6 +331,39 @@ describe('PMChecklistComponent', () => {
       equipment_id: 'eq-1',
       organization_id: 'org-1',
     } satisfies WorkOrderData;
+
+    it('shows helper copy, the new label, and requires confirmation before reverting PM', async () => {
+      const pm = createMockPM({ status: 'completed', notes: 'Completed PM summary' });
+      renderPMChecklist(pm, {
+        onUpdate: mockOnUpdate,
+        isAdmin: true,
+        workOrder: completedWorkOrder,
+      });
+
+      expect(screen.getByText('Completed PM summary')).toBeInTheDocument();
+      expect(
+        screen.getByText(/need to edit the completed checklist\?/i),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/set the checklist back to pending and reopen the work order to accepted\./i),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /^revert pm$/i })).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /revert pm completion/i }),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /^revert pm$/i }));
+
+      const confirmDialog = screen.getByRole('alertdialog');
+      expect(confirmDialog).toBeInTheDocument();
+      expect(screen.getByText(/set the pm checklist back to pending/i)).toBeInTheDocument();
+      expect(screen.getByText(/reopen this work order to accepted/i)).toBeInTheDocument();
+      expect(workOrderRevertService.revertPMCompletion).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByRole('button', { name: /^cancel$/i }));
+
+      expect(workOrderRevertService.revertPMCompletion).not.toHaveBeenCalled();
+    });
 
     it('passes terminal work order context and explains reopen in confirm dialog', async () => {
       vi.mocked(workOrderRevertService.revertPMCompletion).mockResolvedValue({
@@ -316,14 +382,14 @@ describe('PMChecklistComponent', () => {
         workOrder: completedWorkOrder,
       });
 
-      fireEvent.click(screen.getByRole('button', { name: /revert pm completion/i }));
+      fireEvent.click(screen.getByRole('button', { name: /^revert pm$/i }));
 
       expect(
         screen.getByText(/reopen this work order to accepted/i),
       ).toBeInTheDocument();
-      expect(screen.getByText(/back to pending/i)).toBeInTheDocument();
+      expect(screen.getByText(/set the pm checklist back to pending/i)).toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole('button', { name: /yes, revert completion/i }));
+      fireEvent.click(screen.getByRole('button', { name: /yes, revert pm/i }));
 
       await waitFor(() => {
         expect(workOrderRevertService.revertPMCompletion).toHaveBeenCalledWith('pm-1', {
@@ -339,6 +405,20 @@ describe('PMChecklistComponent', () => {
         );
         expect(mockOnUpdate).toHaveBeenCalled();
       });
+    });
+
+    it('hides the revert PM control for non-admin users', () => {
+      const pm = createMockPM({ status: 'completed' });
+      renderPMChecklist(pm, {
+        onUpdate: mockOnUpdate,
+        isAdmin: false,
+        workOrder: completedWorkOrder,
+      });
+
+      expect(screen.queryByRole('button', { name: /^revert pm$/i })).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/need to edit the completed checklist\?/i),
+      ).not.toBeInTheDocument();
     });
   });
 });

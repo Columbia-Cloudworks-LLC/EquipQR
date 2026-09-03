@@ -47,6 +47,7 @@ interface WorkOrderNotesSectionProps {
   workOrderId: string;
   workOrderTeamId?: string;
   canAddNotes: boolean;
+  composerLockMessage?: string;
   showPrivateNotes: boolean;
   /** Hide labor hours on notes from customer-facing roles (requestor/viewer) */
   showLaborHours?: boolean;
@@ -66,6 +67,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
   workOrderId,
   workOrderTeamId,
   canAddNotes,
+  composerLockMessage,
   showPrivateNotes,
   showLaborHours = false,
   isHistorical = false,
@@ -275,6 +277,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
         noteCount={visibleNotes.length}
         showForm={showForm}
         canAddNotes={canAddNotes}
+        lockedMessage={composerLockMessage}
         onShowForm={() => setShowForm(true)}
         onCancelForm={() => {
           setShowForm(false);

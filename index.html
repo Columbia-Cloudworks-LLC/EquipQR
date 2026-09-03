@@ -49,6 +49,24 @@
     <meta name="twitter:description" content="QR-tracked work orders for heavy equipment repair shops with QuickBooks draft invoicing. Free to start." />
     <meta name="twitter:image" content="https://equipqr.app/og-image.png" />
 
+    <!-- Keep the browser's initial canvas aligned with the app's forced dark theme
+         so hard reloads do not flash the default white document background. -->
+    <style>
+      html, body {
+        min-height: 100%;
+        background: #0a0a0a;
+        color: #fafafa;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      #root {
+        min-height: 100vh;
+      }
+    </style>
+
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",

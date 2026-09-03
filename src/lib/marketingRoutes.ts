@@ -10,6 +10,7 @@
 
 import { deriveFeatureMarketingRoute } from './featureMarketingDerivation';
 import type { MarketingRoute } from './marketingRouteTypes';
+import { resolveDocumentTitle } from './resolveDocumentTitle';
 
 export type { MarketingRoute };
 
@@ -17,7 +18,7 @@ export type { MarketingRoute };
 const BASE = 'https://equipqr.app';
 
 export function resolveFullDocumentTitle(route: MarketingRoute): string {
-  return resolveCanonicalPath(route) === '/' ? route.title : `${route.title} | EquipQR`;
+  return resolveDocumentTitle(route.title, resolveCanonicalPath(route));
 }
 
 export function resolveCanonicalPath(route: MarketingRoute): string {
@@ -218,6 +219,19 @@ export const MARKETING_ROUTES: readonly MarketingRoute[] = [
       'It explains common post-sale lock-in patterns in software, hardware, and physical repair, and states what EquipQR will and will not do with customer data and equipment control.',
     ],
   },
+  {
+    path: '/releases',
+    priority: '0.5',
+    changefreq: 'weekly',
+    title: 'Releases · EquipQR',
+    description: 'Customer-facing changes in each published EquipQR release.',
+    heading: 'Releases',
+    navLabel: 'Releases',
+    bodyParagraphs: [
+      'Customer-facing changes in each published EquipQR release.',
+      'This page is generated from the project changelog at build time, omits the in-progress Unreleased section, and collapses internal-only maintenance notes.',
+    ],
+  },
 ];
 
-export const EXPECTED_MARKETING_ROUTE_COUNT = 17;
+export const EXPECTED_MARKETING_ROUTE_COUNT = 18;

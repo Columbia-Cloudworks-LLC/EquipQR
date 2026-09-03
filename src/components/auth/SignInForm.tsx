@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +7,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { isMFAEnabled } from '@/lib/flags';
 import { AuthGoogleSignInButton } from '@/pages/AuthGoogleSignInButton';
-import DevQuickLogin from './DevQuickLogin';
+const DEV_QUICK_LOGIN_ENABLED =
+  import.meta.env.DEV || import.meta.env.VITE_PREVIEW_QUICK_LOGIN === 'true';
+const DevQuickLogin = DEV_QUICK_LOGIN_ENABLED
+  ? lazy(() => import('./DevQuickLogin'))
+  : null;
 
 interface SignInFormProps {
   onError: (error: string) => void;
@@ -102,8 +105,11 @@ const SignInForm: React.FC<SignInFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Dev-only quick login - tree-shaken out of production builds */}
-      <DevQuickLogin onAuthFailure={onError} />
+      {DevQuickLogin ? (
+        <Suspense fallback={null}>
+          <DevQuickLogin onAuthFailure={onError} />
+        </Suspense>
+      ) : null}
       {emailSignInOpen ? null : (
         <>
           <AuthGoogleSignInButton

@@ -33,6 +33,7 @@ EquipQR is a QR-first work order app for heavy equipment repair shops, built wit
 * Public `/privacy-request` intake plus a DSR case workflow.
 * Scan and location flows honor the user-level "Limit sensitive personal information" setting.
 * Public `/right-to-repair` stance: independent repair is supported, and EquipQR will not hold shop records hostage.
+* Public `/releases` page summarizes published release notes from `CHANGELOG.md`.
 
 ## Documentation
 

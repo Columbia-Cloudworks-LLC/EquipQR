@@ -98,8 +98,8 @@ export const workOrderRevertService = {
         return {
           success: false,
           error: woError
-            ? `PM was reverted, but the work order could not be reopened (${woError}). Use Revert to Accepted.`
-            : 'PM was reverted, but the work order could not be reopened. Use Revert to Accepted.',
+            ? `PM was reverted, but the work order could not be reopened (${woError}). Use Reopen work order.`
+            : 'PM was reverted, but the work order could not be reopened. Use Reopen work order.',
           old_status: pmResult.old_status,
           new_status: pmResult.new_status,
           work_order_reopened: false,

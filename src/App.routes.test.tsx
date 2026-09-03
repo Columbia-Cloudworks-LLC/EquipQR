@@ -69,6 +69,16 @@ describe('App', () => {
     expect(screen.getByText('Right To Repair')).toBeInTheDocument();
   });
 
+  it('renders releases page for /releases path', () => {
+    renderApp(['/releases']);
+    expect(screen.getByText('Releases')).toBeInTheDocument();
+  });
+
+  it('renders the public not-found page for unknown paths', () => {
+    renderApp(['/this-is-not-a-route']);
+    expect(screen.getByText('Page not found')).toBeInTheDocument();
+  });
+
   it('redirects equipment to equipment list', () => {
     renderApp(['/equipment/test-equipment']);
     expect(screen.getByText('Navigating to /dashboard/equipment/test-equipment')).toBeInTheDocument();

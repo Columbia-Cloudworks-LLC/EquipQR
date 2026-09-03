@@ -160,6 +160,20 @@ describe('PageSEO', () => {
     });
   });
 
+  it('keeps explicitly branded public page titles unchanged', async () => {
+    render(
+      <PageSEO
+        title="Releases · EquipQR"
+        description="Release history"
+        path="/releases"
+      />
+    );
+
+    await waitFor(() => {
+      expect(document.title).toBe('Releases · EquipQR');
+    });
+  });
+
   it('restores original title after StrictMode mount/unmount cycle', async () => {
     document.title = 'StrictOriginal';
 

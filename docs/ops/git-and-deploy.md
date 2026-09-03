@@ -21,9 +21,9 @@ Open day-to-day PRs with `--base preview`. Production ships via **`preview` → 
 
 | URL | Meaning |
 |-----|---------|
-| **https://equipqr.app** | Production (after Production Release Readiness + `vercel promote`) |
+| **<https://equipqr.app>** | Production (after Production Release Readiness + `vercel promote`) |
 | **`https://<project>-<hash>-columbia-cloudworks-llc.vercel.app`** | Commit-specific Vercel Preview URL for every work-branch / PR deploy |
-| **https://preview.equipqr.app** | Stable hostname for the **integration** git branch **`preview`** — Vercel Preview deploys on merges/pushes to that branch (branch-bound custom domain). Not fast-forwarded from `main`. |
+| **<https://preview.equipqr.app>** | Stable hostname for the **integration** git branch **`preview`** — Vercel Preview deploys on merges/pushes to that branch (branch-bound custom domain). Not fast-forwarded from `main`. |
 
 Do **not** confuse git branch **`preview`** (integration train) with Vercel environment **Preview** (all non-production deploys).
 
@@ -49,7 +49,11 @@ Retired: `preview-domain-alias.yml` (fast-forward `preview` from `main` + deploy
 
 ## Supabase
 
-- **Cloud app (`preview.equipqr.app` and `equipqr.app`):** single production project (`https://supabase.equipqr.app`). No perpetual Supabase preview database.
+- **Cloud app (`preview.equipqr.app` and `equipqr.app`):** current live state is a
+  single production project (`https://supabase.equipqr.app`). The approved
+  target is to move `preview.equipqr.app` to a new persistent dataless branch
+  per `docs/ops/preview-persistent-branch.md`; do not assume that cutover is
+  live yet.
 - **PR branches:** ephemeral Supabase branches when `supabase/**` changes (schema/RLS validation only).
 - **OAuth:** vendor callbacks stay on production edge URLs; test integrations on the **local stack** before merge.
 

@@ -136,7 +136,6 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
         qrImageAlt: `${checklistName} QR for ${equipmentName ?? equipmentId}`,
         defaultFilenameStem: `${equipmentName ?? equipmentId}-${checklistName}`.replace(/\s+/g, '-'),
         instructionBullets: OPERATOR_CHECKIN_QR_INSTRUCTIONS,
-        formatSelectId: `operator-checkin-qr-download-format-${selectedAssignment.id}`,
       };
     }
 
@@ -146,7 +145,6 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
       qrImageAlt: 'Equipment QR Code',
       defaultFilenameStem: `equipment-${equipmentId}`,
       instructionBullets: EQUIPMENT_QR_INSTRUCTIONS,
-      formatSelectId: 'qr-code-download-format',
     };
   }, [
     selectedAssignment,
@@ -172,7 +170,6 @@ const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
       qrImageAlt={activeConfig.qrImageAlt}
       defaultFilenameStem={activeConfig.defaultFilenameStem}
       instructionBullets={activeConfig.instructionBullets}
-      formatSelectId={activeConfig.formatSelectId}
       imageLoading="lazy"
       headerExtra={
         hasAssignmentOptions ? (

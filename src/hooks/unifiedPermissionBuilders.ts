@@ -18,6 +18,11 @@ type HasPermission = (
 type HasRole = (roles: string | string[]) => boolean;
 type TeamCheck = (teamId: string) => boolean;
 type CurrentOrganizationSummary = { memberCount?: number } | null | undefined;
+const OPERATIONAL_TEAM_ROLES = new Set<UserContext['teamMemberships'][number]['role']>([
+  'owner',
+  'manager',
+  'technician',
+]);
 
 export function buildOrganizationPermissions(
   hasPermission: HasPermission,
@@ -88,6 +93,16 @@ function buildWorkOrderNotePermissionInput(
   };
 }
 
+function hasOperationalTeamRole(
+  userContext: UserContext | null,
+  teamId: string | undefined,
+): boolean {
+  if (!teamId) return false;
+  return (userContext?.teamMemberships ?? []).some(
+    (membership) => membership.teamId === teamId && OPERATIONAL_TEAM_ROLES.has(membership.role),
+  );
+}
+
 export function buildWorkOrderPermissions(
   hasPermission: HasPermission,
   hasRole: HasRole,
@@ -121,6 +136,7 @@ export function buildWorkOrderPermissions(
       const teamId = workOrder?.teamId;
       const isManagerOfWorkOrderTeam = teamId ? isTeamManager(teamId) : false;
       const isMemberOfWorkOrderTeam = teamId ? isTeamMember(teamId) : false;
+      const isOperationalMemberOfWorkOrderTeam = hasOperationalTeamRole(userContext, teamId);
 
       return {
         canEdit: canEdit && !isLocked,
@@ -134,7 +150,7 @@ export function buildWorkOrderPermissions(
         canAddCosts: (hasRole(['owner', 'admin']) || isManagerOfWorkOrderTeam) && !isLocked,
         canEditCosts: (hasRole(['owner', 'admin']) || isManagerOfWorkOrderTeam) && !isLocked,
         canViewPM: hasRole(['owner', 'admin']) || isMemberOfWorkOrderTeam,
-        canEditPM: (hasRole(['owner', 'admin']) || isMemberOfWorkOrderTeam) && !isLocked,
+        canEditPM: (hasRole(['owner', 'admin']) || isOperationalMemberOfWorkOrderTeam) && !isLocked,
       };
     },
     canViewAll: hasRole(['owner', 'admin']),

@@ -190,13 +190,19 @@ export const MobileWorkOrderCompactSummary: React.FC<MobileWorkOrderCompactSumma
 
         {workOrder.invoice_status ? (
           <div className={mobileInlineEditRowClassName}>
-            <div className={cn('flex min-w-0 items-center gap-2 text-base', mobileInlineEditValueClassName)}>
-              <span className="font-medium text-foreground">Invoice</span>
+            <div
+              className={cn(
+                'flex min-w-0 flex-wrap items-start gap-2 text-base',
+                mobileInlineEditValueClassName,
+              )}
+            >
+              <span className="shrink-0 font-medium text-foreground">Invoice</span>
               <QuickBooksInvoiceStatusBadge
                 status={workOrder.invoice_status}
                 invoiceNumber={workOrder.quickbooks_invoice_number}
                 balanceCents={workOrder.invoice_balance_cents}
                 paidAt={workOrder.invoice_paid_at}
+                className="min-w-0 max-w-full whitespace-normal text-left leading-4 [overflow-wrap:anywhere]"
               />
             </div>
           </div>

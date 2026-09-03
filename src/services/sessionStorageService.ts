@@ -5,9 +5,15 @@ import {
   getSessionVersion,
   clearOrganizationPreference 
 } from '@/utils/sessionPersistence';
+import { DASHBOARD_CURRENT_ORG_STORAGE_KEY } from '@/utils/organizationSelection';
 
 const SESSION_STORAGE_KEY = getSessionStorageKey();
 const SESSION_VERSION = getSessionVersion();
+const SELECTED_TEAM_STORAGE_KEY_PREFIX = 'equipqr:selectedTeamId:';
+
+type PersistedSessionData = SessionData & {
+  authUserId?: string;
+};
 
 /**
  * Strip inventory default location fields before writing SessionData to
@@ -44,18 +50,40 @@ function toPersistedSessionData(data: SessionData): SessionData {
   };
 }
 
+function clearScopedSelectionStorage(): void {
+  clearOrganizationPreference();
+  localStorage.removeItem(DASHBOARD_CURRENT_ORG_STORAGE_KEY);
+
+  const selectedTeamKeys: string[] = [];
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    if (key?.startsWith(SELECTED_TEAM_STORAGE_KEY_PREFIX)) {
+      selectedTeamKeys.push(key);
+    }
+  }
+  for (const key of selectedTeamKeys) {
+    localStorage.removeItem(key);
+  }
+}
+
 export class SessionStorageService {
-  static loadSessionFromStorage(): SessionData | null {
+  static loadSessionFromStorage(expectedUserId?: string): SessionData | null {
     try {
       const stored = localStorage.getItem(SESSION_STORAGE_KEY);
       if (!stored) return null;
       
-      const parsed = JSON.parse(stored);
+      const parsed = JSON.parse(stored) as PersistedSessionData;
       
       // Check version compatibility - force refresh due to RLS changes
       if (parsed.version !== SESSION_VERSION) {
         logger.info('🔄 Session version updated, clearing stored data');
         localStorage.removeItem(SESSION_STORAGE_KEY);
+        return null;
+      }
+
+      if (expectedUserId && parsed.authUserId !== expectedUserId) {
+        logger.info('🔄 Session user changed, clearing stored data');
+        this.clearSessionStorage();
         return null;
       }
       
@@ -66,10 +94,12 @@ export class SessionStorageService {
       if (lastUpdated < fourHoursAgo) {
         logger.info('⏰ Session data is older than 4 hours, will refresh on next fetch');
         // Don't clear immediately, but mark for refresh
-        return parsed;
+        const { authUserId: _authUserId, ...sessionData } = parsed;
+        return sessionData;
       }
       
-      return parsed;
+      const { authUserId: _authUserId, ...sessionData } = parsed;
+      return sessionData;
     } catch (error) {
       logger.error('💥 Error loading session from storage:', error);
       localStorage.removeItem(SESSION_STORAGE_KEY);
@@ -77,11 +107,15 @@ export class SessionStorageService {
     }
   }
 
-  static saveSessionToStorage(data: SessionData): void {
+  static saveSessionToStorage(data: SessionData, authUserId?: string): void {
     try {
       // Strictly necessary session cache (not preference-gated). Never persist
       // inventory default location / address fields.
-      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(toPersistedSessionData(data)));
+      const persisted: PersistedSessionData = {
+        ...toPersistedSessionData(data),
+        authUserId,
+      };
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(persisted));
     } catch (error) {
       logger.error('💾 Error saving session to storage:', error);
     }
@@ -89,7 +123,7 @@ export class SessionStorageService {
 
   static clearSessionStorage(): void {
     localStorage.removeItem(SESSION_STORAGE_KEY);
-    clearOrganizationPreference();
+    clearScopedSelectionStorage();
   }
 
   static isSessionVersionValid(sessionData: SessionData): boolean {

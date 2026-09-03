@@ -67,7 +67,6 @@ const WorkOrderQRCodeDisplay: React.FC<WorkOrderQRCodeDisplayProps> = ({
             qrImageAlt="Work order QR code"
             defaultFilenameStem={filenameStem}
             instructionBullets={instructionBullets}
-            formatSelectId="work-order-qr-download-format"
             imageLoading="lazy"
           />
 

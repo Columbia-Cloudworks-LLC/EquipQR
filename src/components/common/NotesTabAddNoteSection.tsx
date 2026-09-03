@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
 import { InlineNoteComposerCard } from '@/components/common/InlineNoteComposerCard';
 import type { NoteSubmitPayload } from '@/components/common/noteSubmitTypes';
@@ -23,6 +24,7 @@ type NotesTabAddNoteSectionProps = {
   cardClassName?: string;
   requestAttachTrigger?: number;
   hideInlineAddButton?: boolean;
+  lockedMessage?: string;
 };
 
 export function NotesTabAddNoteSection({
@@ -44,7 +46,21 @@ export function NotesTabAddNoteSection({
   cardClassName,
   requestAttachTrigger,
   hideInlineAddButton,
+  lockedMessage,
 }: NotesTabAddNoteSectionProps) {
+  if (lockedMessage) {
+    return (
+      <Card className={cardClassName}>
+        <CardHeader>
+          <CardTitle>Notes locked</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">{lockedMessage}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (!canAddNotes) return null;
 
   return (

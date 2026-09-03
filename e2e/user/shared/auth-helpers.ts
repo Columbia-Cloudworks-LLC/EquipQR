@@ -40,8 +40,8 @@ export async function signInWithEmailPassword(
 
   const emailField = page.getByLabel(/^email$/i).or(page.locator('#signin-email')).first();
   const emailPath = page.getByRole('button', { name: /login with email & password/i });
-  await expect(emailPath.or(emailField)).toBeVisible({ timeout: 30_000 });
   if (!(await emailField.isVisible().catch(() => false))) {
+    await expect(emailPath).toBeVisible({ timeout: 30_000 });
     await emailPath.click();
   }
   await expect(emailField).toBeVisible({ timeout: 15_000 });

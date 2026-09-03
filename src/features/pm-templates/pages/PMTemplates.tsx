@@ -73,6 +73,10 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
     intervalLabel,
   ].filter(Boolean);
 
+  const showStarterBadge = !isOrgTemplate;
+  const showProtectedBadge = template.is_protected;
+  const showTemplateBadges = showStarterBadge || showProtectedBadge;
+
   return (
     <Card className="h-full flex flex-col hover:bg-muted/50 transition-colors">
       <CardHeader
@@ -88,22 +92,26 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
         }}
         aria-label={`Open details for template ${template.name}`}
       >
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-base line-clamp-1 min-w-0">{template.name}</CardTitle>
-          <div className="flex shrink-0 flex-wrap justify-end gap-1">
-            {!isOrgTemplate && (
+        <div className="space-y-2">
+          <CardTitle className="min-w-0 text-base leading-tight line-clamp-2 break-words">
+            {template.name}
+          </CardTitle>
+          {showTemplateBadges && (
+            <div className="flex flex-wrap items-center gap-1">
+              {showStarterBadge && (
               <Badge className="text-xs">
                 <Globe className="w-3 h-3 mr-1" />
                 EquipQR
               </Badge>
-            )}
-            {template.is_protected && (
-              <Badge variant="outline" className="text-xs">
-                <Shield className="w-3 h-3 mr-1" />
-                Protected
-              </Badge>
-            )}
-          </div>
+              )}
+              {showProtectedBadge && (
+                <Badge variant="outline" className="text-xs">
+                  <Shield className="w-3 h-3 mr-1" />
+                  Protected
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
 
         {template.description && (

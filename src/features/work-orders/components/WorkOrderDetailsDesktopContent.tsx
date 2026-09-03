@@ -36,6 +36,7 @@ export interface WorkOrderDetailsDesktopContentProps {
   pmLoading: boolean;
   isWorkOrderLocked: boolean;
   canAddNotes: boolean;
+  noteComposerLockMessage?: string;
   canUsePrivateNotes: boolean;
   canUpload: boolean;
   canAddCosts: boolean;
@@ -51,6 +52,7 @@ export interface WorkOrderDetailsDesktopContentProps {
   stagger: StaggerProps;
   onPMUpdate: () => void;
   canEditInlineFields?: boolean;
+  descriptionLockMessage?: string;
   onSaveDescription?: (description: string) => Promise<void>;
   equipmentLocationEdit?: EquipmentLocationEditProps;
   canManagePM?: boolean;
@@ -67,6 +69,7 @@ export function WorkOrderDetailsDesktopContent({
   pmLoading,
   isWorkOrderLocked,
   canAddNotes,
+  noteComposerLockMessage,
   canUsePrivateNotes,
   canUpload,
   canAddCosts,
@@ -82,6 +85,7 @@ export function WorkOrderDetailsDesktopContent({
   stagger,
   onPMUpdate,
   canEditInlineFields = false,
+  descriptionLockMessage,
   onSaveDescription,
   equipmentLocationEdit,
   canManagePM = false,
@@ -96,6 +100,7 @@ export function WorkOrderDetailsDesktopContent({
           organizationId={currentOrganization.id}
           scanLocationCollectionEnabled={currentOrganization.scanLocationCollectionEnabled}
           canEditDescription={canEditInlineFields}
+          descriptionLockMessage={descriptionLockMessage}
           onSaveDescription={onSaveDescription}
           equipmentLocationEdit={equipmentLocationEdit}
         />
@@ -173,6 +178,7 @@ export function WorkOrderDetailsDesktopContent({
             workOrderId={workOrder.id}
             workOrderTeamId={workOrder.team_id ?? undefined}
             canAddNotes={canAddNotes}
+            composerLockMessage={noteComposerLockMessage}
             showPrivateNotes={canUsePrivateNotes}
             showLaborHours={canViewWorkOrderCosts}
             isHistorical={Boolean(workOrder.is_historical)}

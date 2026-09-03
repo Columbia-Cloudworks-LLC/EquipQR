@@ -43,6 +43,12 @@ describe('SignInForm', () => {
     mockSignIn.mockResolvedValue({ error: null });
   });
 
+  it('hides Dev Quick Login when neither DEV nor the preview flag is set', () => {
+    render(<SignInForm {...defaultProps} />);
+
+    expect(screen.queryByText('Dev Quick Login')).not.toBeInTheDocument();
+  });
+
   it('keeps email credentials hidden until login with email and password', () => {
     render(<SignInForm {...defaultProps} />);
 

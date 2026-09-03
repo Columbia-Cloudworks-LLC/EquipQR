@@ -4,6 +4,7 @@ import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 import fs from "fs";
 import { writeMarketingHtmlFiles } from "./dev/generate-marketing-html";
+import { loadPublicReleases } from "./dev/publicReleases";
 import { buildCsp } from "./dev/csp";
 
 // HTTP request logger plugin for dev server
@@ -37,6 +38,7 @@ function marketingPrerenderPlugin(): PluginOption {
 // Read package.json version safely at config time
 const pkg = JSON.parse(fs.readFileSync(new URL("./package.json", import.meta.url), "utf-8"));
 const PKG_VERSION = pkg.version || "0.0.0";
+const PUBLIC_RELEASES = loadPublicReleases();
 
 const vendorChunkModules: Record<string, string[]> = {
   'vendor-react': ['react', 'react-dom', 'react-router-dom'],
@@ -86,6 +88,7 @@ export default defineConfig(({ mode }) => ({
   define: {
     // Expose version to the client (prefers env var, falls back to package.json)
     __APP_VERSION__: JSON.stringify(process.env.VITE_APP_VERSION || PKG_VERSION),
+    __PUBLIC_RELEASES__: JSON.stringify(PUBLIC_RELEASES),
   },
   server: {
     host: "::",

@@ -870,6 +870,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
           isSettingAllOK={isSettingAllOK}
           completedAt={pm.completed_at}
           formattedCompletedAt={pm.completed_at ? formatDateTime(pm.completed_at) : undefined}
+          willReopenWorkOrder={willReopenWorkOrder}
           onNotesChange={handleNotesChange}
           onSaveChanges={saveChanges}
           onCompletePM={completePM}

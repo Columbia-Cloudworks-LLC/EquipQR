@@ -53,36 +53,40 @@ export function WorkOrderDeleteConfirmDialog({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Work Order</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to delete this work order? This action is irreversible and will permanently remove:
-            <ul className="mt-2 space-y-1 text-sm">
-              <li>• Work order details and description</li>
-              <li>• All notes and comments</li>
-              <li>• Cost records and estimates</li>
-              <li>• Status history</li>
-              <li>• Preventative maintenance records</li>
-              {imageData && imageData.count > 0 && (
-                <li className="flex items-center gap-2">
-                  • All uploaded images
-                  <Badge variant="destructive" className="text-xs">
-                    {imageData.count} image{imageData.count !== 1 ? 's' : ''}
-                  </Badge>
-                </li>
-              )}
-            </ul>
-            {requireTypedConfirm && onConfirmTextChange ? (
-              <div className="mt-4 space-y-2">
-                <Label htmlFor={confirmInputId}>Type DELETE to confirm</Label>
-                <Input
-                  id={confirmInputId}
-                  autoComplete="off"
-                  value={confirmText}
-                  onChange={(e) => onConfirmTextChange(e.target.value)}
-                  placeholder="DELETE"
-                  className="font-mono"
-                />
-              </div>
-            ) : null}
+          <AlertDialogDescription asChild>
+            <div className="space-y-4">
+              <p>
+                Are you sure you want to delete this work order? This action is irreversible and will permanently remove:
+              </p>
+              <ul className="space-y-1 text-sm">
+                <li>• Work order details and description</li>
+                <li>• All notes and comments</li>
+                <li>• Cost records and estimates</li>
+                <li>• Status history</li>
+                <li>• Preventative maintenance records</li>
+                {imageData && imageData.count > 0 && (
+                  <li className="flex items-center gap-2">
+                    • All uploaded images
+                    <Badge variant="destructive" className="text-xs">
+                      {imageData.count} image{imageData.count !== 1 ? 's' : ''}
+                    </Badge>
+                  </li>
+                )}
+              </ul>
+              {requireTypedConfirm && onConfirmTextChange ? (
+                <div className="space-y-2">
+                  <Label htmlFor={confirmInputId}>Type DELETE to confirm</Label>
+                  <Input
+                    id={confirmInputId}
+                    autoComplete="off"
+                    value={confirmText}
+                    onChange={(e) => onConfirmTextChange(e.target.value)}
+                    placeholder="DELETE"
+                    className="font-mono"
+                  />
+                </div>
+              ) : null}
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

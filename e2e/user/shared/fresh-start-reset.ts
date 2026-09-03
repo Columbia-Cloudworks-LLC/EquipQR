@@ -173,7 +173,7 @@ export async function seedFreshStartOneTeamOnly(): Promise<void> {
 const REVERT_TO_ACCEPTED_EVIDENCE_REASON = 'Reverted to accepted status by admin';
 
 /**
- * Restores the seeded completed work order so Revert to Accepted evidence is idempotent (#1278).
+ * Restores the seeded completed work order so Reopen work order evidence is idempotent (#1278).
  * Also removes status-history rows inserted by prior revert runs so fixture state stays deterministic.
  */
 export async function resetCompletedWorkOrderForRevertEvidence(): Promise<void> {

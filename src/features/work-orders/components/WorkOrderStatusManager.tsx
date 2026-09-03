@@ -113,6 +113,9 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
   };
   const { assignmentOptions, isLoading: assignmentLoading, equipmentHasNoTeam } = useWorkOrderContextualAssignment(assignmentContext);
   const startAssigneeFieldId = `work-order-start-assignee-${workOrder.id}`;
+  const currentAssigneeId = workOrder.assignee_id ?? null;
+  const effectiveStartAssigneeId = selectedAssigneeForStart || currentAssigneeId || '';
+  const needsStartAssigneeSelection = !currentAssigneeId;
 
   const handleConfirmCancel = async () => {
     try {
@@ -142,14 +145,14 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
 
   // Handler for assigning and starting work order from accepted status
   const handleAssignAndStart = async () => {
-    if (!selectedAssigneeForStart) return;
+    if (!effectiveStartAssigneeId) return;
     
     try {
       await updateStatusMutation.mutateAsync({
         workOrderId: workOrder.id,
         status: 'in_progress',
         organizationId,
-        assigneeId: selectedAssigneeForStart
+        assigneeId: effectiveStartAssigneeId
       });
       setSelectedAssigneeForStart(''); // Reset after successful update
     } catch (error) {
@@ -159,6 +162,7 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
 
   const statusActions = buildWorkOrderStatusActions({
     status: workOrder.status,
+    assigneeId: workOrder.assignee_id,
     canPerformStatusActions: canPerformStatusActions(),
     isManager,
     isTechnician,
@@ -166,7 +170,7 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     onStatusChange: (status) => {
       void handleStatusChange(status);
     },
-  });
+  }).filter((action) => !(workOrder.status === 'accepted' && action.label === 'Start Work'));
 
   return (
     <div className="space-y-4">
@@ -231,41 +235,45 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
           {/* Inline Assignment + Start for Accepted Status */}
           {workOrder.status === 'accepted' && (isManager || isTechnician) && (
             <div className="space-y-3 p-3 border rounded-lg bg-muted/30">
-              <div className="space-y-2">
-                <Label htmlFor={startAssigneeFieldId} className="text-sm font-medium">Assign to start work</Label>
-                {equipmentHasNoTeam && (
-                  <p className="text-xs text-muted-foreground">
-                    Equipment has no team. Showing organization admins.
-                  </p>
-                )}
-                <Select
-                  value={selectedAssigneeForStart}
-                  onValueChange={setSelectedAssigneeForStart}
-                  disabled={assignmentLoading || updateStatusMutation.isPending}
-                >
-                  <SelectTrigger id={startAssigneeFieldId} className="w-full" aria-label="Select assignee to start work">
-                    <SelectValue placeholder={assignmentLoading ? "Loading..." : "Select assignee..."} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <WorkOrderAssigneeSelectItems options={assignmentOptions} />
-                  </SelectContent>
-                </Select>
-              </div>
+              {needsStartAssigneeSelection && (
+                <div className="space-y-2">
+                  <Label htmlFor={startAssigneeFieldId} className="text-sm font-medium">Assign to start work</Label>
+                  {equipmentHasNoTeam && (
+                    <p className="text-xs text-muted-foreground">
+                      Equipment has no team. Showing organization admins.
+                    </p>
+                  )}
+                  <Select
+                    value={selectedAssigneeForStart}
+                    onValueChange={setSelectedAssigneeForStart}
+                    disabled={assignmentLoading || updateStatusMutation.isPending}
+                  >
+                    <SelectTrigger id={startAssigneeFieldId} className="w-full" aria-label="Select assignee to start work">
+                      <SelectValue placeholder={assignmentLoading ? "Loading..." : "Select assignee..."} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <WorkOrderAssigneeSelectItems options={assignmentOptions} />
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <Button
                 variant="secondary"
                 size="sm"
                 className="w-full"
                 onClick={handleAssignAndStart}
-                disabled={!selectedAssigneeForStart || updateStatusMutation.isPending}
+                disabled={!effectiveStartAssigneeId || updateStatusMutation.isPending}
               >
                 <Play className="h-4 w-4 mr-2" />
                 {updateStatusMutation.isPending ? 'Starting...' : 'Start Work'}
               </Button>
-              <p className="text-xs text-muted-foreground">
-                {selectedAssigneeForStart 
-                  ? 'Click "Start Work" to assign and begin working on this order'
-                  : 'Select an assignee to enable starting work'}
-              </p>
+              {needsStartAssigneeSelection && (
+                <p className="text-xs text-muted-foreground">
+                  {selectedAssigneeForStart 
+                    ? 'Click "Start Work" to assign and begin working on this order'
+                    : 'Select an assignee to enable starting work'}
+                </p>
+              )}
             </div>
           )}
 

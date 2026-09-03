@@ -72,13 +72,13 @@ EquipQR has two role layers: organization roles (Owner, Admin, Member) and team 
 | View Work Orders | ✅ | ✅ | ✅***** | ✅ | ✅***** | ✅***** | ✅***** |
 | Complete Work Orders | ✅ | ✅ | ❌ | ✅ | ✅**** | ❌ | ❌ |
 | Cancel Work Orders | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Revert Work Order to Accepted (completed/cancelled) | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Revert PM Completion | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Reopen Work Order (completed/cancelled) | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Revert PM | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 ****Only assigned work orders
 *****Limited to relevant work orders (assigned, created by user, or team-related)
 
-**Admin revert notes.** **Revert PM Completion** (completed PM checklist) and **Revert to Accepted** (completed/cancelled work order) are org owner/admin only (`is_org_admin`). On a completed work order with a completed PM, **Revert PM Completion** also reopens the work order to `accepted` in the same action so the checklist becomes editable again. **Revert to Accepted** remains available for work-order-only reopen without changing the PM.
+**Admin revert notes.** **Revert PM** (completed PM checklist) and **Reopen work order** (completed/cancelled work order) are org owner/admin only (`is_org_admin`). On a completed work order with a completed PM, **Revert PM** also reopens the work order to `accepted` in the same action so the checklist becomes editable again. **Reopen work order** remains available for work-order-only reopen without changing the PM.
 
 ### Inventory and internal costing visibility
 

@@ -9,7 +9,6 @@ import { MobileWorkOrderActionFooter } from '@/features/work-orders/components/M
 import { buildWorkOrderSheetQuickActions } from '@/features/work-orders/utils/buildWorkOrderSheetQuickActions';
 import {
   MOBILE_WO_FAB_BOTTOM_CLASS,
-  shouldShowMobileSyncBanner,
 } from '@/features/work-orders/utils/workOrderDetailsViewModel';
 import type { WorkOrderExportAudience } from '@/features/work-orders/utils/workOrderExportAccess';
 import WorkOrderAcceptanceModal from '@/features/work-orders/components/WorkOrderAcceptanceModal';
@@ -31,6 +30,7 @@ type WorkOrderDetailsOverlaysProps = {
   canCaptureCosts: boolean;
   canCompletePmGate: boolean;
   showMobileActionFooter: boolean;
+  showMobileSyncBanner: boolean;
   syncState: ReturnType<typeof import('@/features/work-orders/utils/workOrderDetailsViewModel').buildOfflineSyncState>;
   workTimer: {
     displayTime: string;
@@ -85,6 +85,7 @@ export function WorkOrderDetailsOverlays({
   canCaptureCosts,
   canCompletePmGate,
   showMobileActionFooter,
+  showMobileSyncBanner,
   syncState,
   workTimer,
   showMobilePDFDialog,
@@ -133,10 +134,9 @@ export function WorkOrderDetailsOverlays({
   onRetrySync,
   onShowWorkOrderQr,
 }: WorkOrderDetailsOverlaysProps) {
-  const showSyncBanner = showMobileActionFooter && shouldShowMobileSyncBanner(syncState);
-
   const quickActions = buildWorkOrderSheetQuickActions({
     workOrderStatus: workOrder.status,
+    assigneeId: workOrder.assignee_id,
     showMobileActionFooter,
     canAddNotes,
     canCaptureCosts,
@@ -272,7 +272,7 @@ export function WorkOrderDetailsOverlays({
           aria-label="Open work order quick actions"
           className={cn(
             'fixed right-4 z-fixed h-14 w-14 rounded-full shadow-elevation-3',
-            showSyncBanner
+            showMobileSyncBanner
               ? MOBILE_WO_FAB_BOTTOM_CLASS.withSyncBanner
               : MOBILE_WO_FAB_BOTTOM_CLASS.default,
             'touch-manipulation transition-transform duration-100 active:scale-[0.97]',

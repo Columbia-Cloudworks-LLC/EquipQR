@@ -4,8 +4,8 @@ import { seedWorkOrders } from '../user/shared/seed-data';
 import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
 import { resetCompletedWorkOrderForRevertEvidence } from '../user/shared/fresh-start-reset';
 
-test.describe('Revert to Accepted refreshes work order details @pr-evidence', () => {
-  test('admin revert updates status and unlocks UI without browser refresh', async ({ browser }) => {
+test.describe('Reopen work order refreshes work order details @pr-evidence', () => {
+  test('admin confirms reopen after cancel keeps the work order unchanged', async ({ browser }) => {
     await resetCompletedWorkOrderForRevertEvidence();
 
     const { context, page } = await newPersonaPage(browser, 'admin');
@@ -19,7 +19,10 @@ test.describe('Revert to Accepted refreshes work order details @pr-evidence', ()
     const lockWarning = page.getByText(/this work order is completed/i);
     await expect(lockWarning).toBeVisible({ timeout: 30_000 });
 
-    const revertButton = page.getByRole('button', { name: /revert to accepted/i });
+    await expect(
+      page.getByText(/need to edit the work order without changing the pm checklist\?/i),
+    ).toBeVisible({ timeout: 30_000 });
+    const revertButton = page.getByRole('button', { name: /reopen work order/i });
     await expect(revertButton).toBeVisible({ timeout: 30_000 });
     await evidenceScreenshot(page, '01-completed-lock-warning-revert-control', {
       target: revertButton,
@@ -27,8 +30,26 @@ test.describe('Revert to Accepted refreshes work order details @pr-evidence', ()
     await evidencePause(page, 600);
 
     await revertButton.click();
+    const confirmDialog = page.getByRole('alertdialog');
+    await expect(confirmDialog).toBeVisible({ timeout: 30_000 });
+    await expect(confirmDialog.getByText(/the pm checklist stays completed\./i)).toBeVisible({
+      timeout: 30_000,
+    });
+    await evidenceScreenshot(page, '02-reopen-work-order-confirm-dialog', {
+      target: confirmDialog,
+    });
+    await evidencePause(page, 600);
 
-    await expect(page.getByText(/work order reverted/i).first()).toBeVisible({
+    await confirmDialog.getByRole('button', { name: /^cancel$/i }).click();
+    await expect(confirmDialog).toHaveCount(0, { timeout: 30_000 });
+    await expect(lockWarning).toBeVisible({ timeout: 30_000 });
+    await expect(revertButton).toBeVisible({ timeout: 30_000 });
+
+    await revertButton.click();
+    await expect(confirmDialog).toBeVisible({ timeout: 30_000 });
+    await confirmDialog.getByRole('button', { name: /yes, reopen work order/i }).click();
+
+    await expect(page.getByText(/work order reopened/i).first()).toBeVisible({
       timeout: 30_000,
     });
     await expect(page.getByText(/status changed from completed to accepted/i).first()).toBeVisible({
@@ -41,7 +62,7 @@ test.describe('Revert to Accepted refreshes work order details @pr-evidence', ()
 
     const acceptedBadge = page.getByText(/^accepted$/i).first();
     await expect(acceptedBadge).toBeVisible({ timeout: 30_000 });
-    await evidenceScreenshot(page, '02-accepted-unlocked-after-revert-no-refresh', {
+    await evidenceScreenshot(page, '03-accepted-unlocked-after-reopen-no-refresh', {
       target: acceptedBadge,
     });
     await evidencePause(page, 800);

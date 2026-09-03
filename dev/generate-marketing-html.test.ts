@@ -69,6 +69,17 @@ describe('prerenderMarketingHtmlTemplate', () => {
     expect(html).not.toContain('href="/landing"');
   });
 
+  it('keeps branded releases metadata without appending a second EquipQR suffix', () => {
+    const route = requireMarketingRoute('/releases');
+
+    const html = prerenderMarketingHtmlTemplate(MINIMAL_DIST_TEMPLATE, route);
+
+    expect(html).toContain('<title>Releases · EquipQR</title>');
+    expect(html).toContain('<link rel="canonical" href="https://equipqr.app/releases" />');
+    expect(html).toContain('Customer-facing changes in each published EquipQR release.');
+    expect(html).not.toContain('Releases · EquipQR | EquipQR');
+  });
+
   it('uses canonical home metadata for the /landing compatibility route', () => {
     const route = requireMarketingRoute('/landing');
 

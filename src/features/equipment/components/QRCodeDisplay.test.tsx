@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@vitest-harness/utils/test-utils';
+import { render, screen, fireEvent, waitFor } from '@vitest-harness/utils/test-utils';
+import userEvent from '@testing-library/user-event';
 import QRCodeDisplay from './QRCodeDisplay';
 
 // Mock QRCode library
@@ -231,57 +232,69 @@ describe('QRCodeDisplay', () => {
       vi.mocked(document.createElement).mockRestore();
     });
 
-    it('shows download format selector', () => {
+    it('opens download formats from the Download button', async () => {
+      const user = userEvent.setup({ delay: null });
       render(<QRCodeDisplay {...defaultProps} />);
-      
-      expect(screen.getByText('Download Format:')).toBeInTheDocument();
-      const combobox = screen.getByRole('combobox');
-      expect(combobox).toBeInTheDocument();
-    });
 
-    it('allows changing download format', async () => {
-      render(<QRCodeDisplay {...defaultProps} />);
-      
-      const combobox = screen.getByRole('combobox');
-      fireEvent.click(combobox);
-      
-      // Wait for the dropdown to appear and use within() to scope queries
-      const listbox = await screen.findByRole('listbox');
-      const jpgOption = within(listbox).getByRole('option', { name: 'JPG' });
-      fireEvent.click(jpgOption);
-      
       await waitFor(() => {
-        expect(screen.getByText('test_equipment-qr.jpg')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Download' })).toBeEnabled();
       });
+
+      await user.click(screen.getByRole('button', { name: 'Download' }));
+
+      expect(await screen.findByRole('menuitem', { name: /PNG/ })).toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: /JPG/ })).toBeInTheDocument();
     });
 
-    it('downloads QR code when download button is clicked', async () => {
+    it('downloads as JPG when that format is selected', async () => {
+      const user = userEvent.setup({ delay: null });
       render(<QRCodeDisplay {...defaultProps} />);
-      
-      // Wait for QR code to be generated and displayed
+
       await waitFor(() => {
         expect(screen.getByRole('img', { name: 'Equipment QR Code' })).toBeInTheDocument();
       });
 
-      const downloadButton = screen.getByRole('button', { name: /download/i });
-      fireEvent.click(downloadButton);
-      
+      await user.click(screen.getByRole('button', { name: 'Download' }));
+      await user.click(await screen.findByRole('menuitem', { name: /JPG/ }));
+
       await waitFor(() => {
-        expect(mockQRCode.default.toDataURL).toHaveBeenCalledTimes(2); // Once for display, once for download
+        expect(mockQRCode.default.toDataURL).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({ type: 'image/jpeg' }),
+        );
+        expect(mockToast.toast.success).toHaveBeenCalledWith('QR code downloaded as JPG');
+      });
+    });
+
+    it('downloads QR code when PNG is selected', async () => {
+      const user = userEvent.setup({ delay: null });
+      render(<QRCodeDisplay {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('img', { name: 'Equipment QR Code' })).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Download' }));
+      await user.click(await screen.findByRole('menuitem', { name: /PNG/ }));
+
+      await waitFor(() => {
+        expect(mockQRCode.default.toDataURL).toHaveBeenCalledTimes(2);
         expect(mockToast.toast.success).toHaveBeenCalledWith('QR code downloaded as PNG');
       });
     });
 
-    it('shows correct filename preview', () => {
-      render(<QRCodeDisplay {...defaultProps} />);
-      
-      expect(screen.getByText('test_equipment-qr.png')).toBeInTheDocument();
-    });
-
-    it('sanitizes equipment name for filename', () => {
+    it('shows sanitized filename in the download menu', async () => {
+      const user = userEvent.setup({ delay: null });
       render(<QRCodeDisplay {...defaultProps} equipmentName="Test Equipment #1 @$%" />);
-      
-      expect(screen.getByText('test_equipment__1____-qr.png')).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Download' })).toBeEnabled();
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Download' }));
+
+      expect(await screen.findByText('test_equipment__1____-qr.png')).toBeInTheDocument();
+      expect(screen.getByText('test_equipment__1____-qr.jpg')).toBeInTheDocument();
     });
 
     it('handles download error', async () => {
@@ -305,9 +318,10 @@ describe('QRCodeDisplay', () => {
         expect(screen.getByRole('img', { name: 'Equipment QR Code' })).toBeInTheDocument();
       });
 
-      const downloadButton = screen.getByRole('button', { name: /download/i });
-      fireEvent.click(downloadButton);
-      
+      const user = userEvent.setup({ delay: null });
+      await user.click(screen.getByRole('button', { name: 'Download' }));
+      await user.click(await screen.findByRole('menuitem', { name: /PNG/ }));
+
       await waitFor(() => {
         expect(mockToast.toast.error).toHaveBeenCalledWith('Failed to download QR code');
       });
@@ -315,10 +329,18 @@ describe('QRCodeDisplay', () => {
   });
 
   describe('Instructions', () => {
-    it('displays usage instructions', () => {
+    it('hides usage instructions until the section is expanded', () => {
       render(<QRCodeDisplay {...defaultProps} />);
-      
-      expect(screen.getByText('How to use:')).toBeInTheDocument();
+
+      const trigger = screen.getByRole('button', { name: 'How to use' });
+      expect(trigger).toHaveAttribute('aria-expanded', 'false');
+      expect(
+        screen.queryByText(/Copy the URL and paste it into your preferred QR app/),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(trigger);
+
+      expect(trigger).toHaveAttribute('aria-expanded', 'true');
       expect(screen.getByText(/Copy the URL and paste it into your preferred QR app/)).toBeInTheDocument();
       expect(screen.getByText(/Or download the PNG\/JPG image and print it/)).toBeInTheDocument();
       expect(screen.getByText(/Print this QR code and attach it to the equipment/)).toBeInTheDocument();
@@ -408,10 +430,17 @@ describe('QRCodeDisplay', () => {
   });
 
   describe('Props Handling', () => {
-    it('handles missing equipment name', () => {
+    it('handles missing equipment name', async () => {
+      const user = userEvent.setup({ delay: null });
       render(<QRCodeDisplay {...defaultProps} equipmentName={undefined} />);
-      
-      expect(screen.getByText('equipment-test-equipment-id-qr.png')).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Download' })).toBeEnabled();
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Download' }));
+
+      expect(await screen.findByText('equipment-test-equipment-id-qr.png')).toBeInTheDocument();
     });
 
     it('generates URL with correct equipment ID', () => {
