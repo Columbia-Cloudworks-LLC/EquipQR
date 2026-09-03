@@ -11,10 +11,11 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+## [3.31.0] - 2026-09-02
+
 ### Changed
 
-- **Dependency refresh for preview CI** — Updated the React pair, Supabase CLI, Vitest, Tailwind, and related tooling so preview dependency and security checks stay aligned.
-- **Dependency metadata stays release-safe** — The preview dependency train now ships with a matching npm lockfile and real `[Unreleased]` notes without changing the app version from `3.30.0`.
+- **Dependency and security refresh** — Production now ships with the latest vetted dependency maintenance from the preview train.
 
 ## [3.30.0] - 2026-08-29
 
@@ -2715,7 +2716,9 @@ Update package dependencies and versions
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.29.1...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.31.0...HEAD
+[3.31.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.30.0...v3.31.0
+[3.30.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.29.1...v3.30.0
 [3.29.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.29.0...v3.29.1
 [3.29.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.28.0...v3.29.0
 [3.28.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.27.0...v3.28.0
