@@ -11,6 +11,11 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Changed
+
+- **Dependency refresh for preview CI** — Updated the React pair, Supabase CLI, Vitest, Tailwind, and related tooling so preview dependency and security checks stay aligned.
+- **Dependency metadata stays release-safe** — The preview dependency train now ships with a matching npm lockfile and real `[Unreleased]` notes without changing the app version from `3.30.0`.
+
 ## [3.30.0] - 2026-08-29
 
 ### Added
