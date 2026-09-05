@@ -17,8 +17,8 @@ function isTruncated(outer: HTMLElement, inner: HTMLElement): boolean {
 }
 
 export function startTitleMarquee(eventEl: HTMLElement): TitleMarquee {
-  const outer = eventEl.querySelector<HTMLElement>('.eq-cal-event-title');
-  const inner = eventEl.querySelector<HTMLElement>('.eq-cal-event-title-inner');
+  const outer = eventEl.querySelector<HTMLElement>('.eq-cal-event-title, .fc-event-title');
+  const inner = eventEl.querySelector<HTMLElement>('.eq-cal-event-title-inner') ?? outer;
   const timers: number[] = [];
 
   const stop = () => {

@@ -73,15 +73,16 @@
 @media (prefers-reduced-motion: no-preference) {
   .eq-work-order-calendar:not(.eq-cal-dragging) .eq-cal-event:not(.fc-event-dragging):not(.fc-event-mirror):hover:not(:active) {
     z-index: 30;
+    overflow: visible;
     box-shadow: var(--shadow-sm);
   }
 
-  .eq-work-order-calendar:not(.eq-cal-dragging) .eq-cal-chip:not(.fc-event-dragging):not(.fc-event-mirror):hover:not(:active) {
+  .eq-work-order-calendar:not(.eq-cal-dragging) .eq-cal-chip:not(.fc-event-dragging):not(.fc-event-mirror):hover:not(:active) .fc-event-title {
     transform: scale(1.05);
     transform-origin: left center;
   }
 
-  .eq-work-order-calendar:not(.eq-cal-dragging) .eq-cal-block:not(.fc-event-dragging):not(.fc-event-mirror):hover:not(:active) {
+  .eq-work-order-calendar:not(.eq-cal-dragging) .eq-cal-block:not(.fc-event-dragging):not(.fc-event-mirror):hover:not(:active) .fc-event-title {
     transform: scale(1.05);
     transform-origin: center;
   }

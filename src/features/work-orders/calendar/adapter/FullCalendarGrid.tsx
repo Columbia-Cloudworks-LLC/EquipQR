@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import type { EventContentArg } from '@fullcalendar/core';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -36,17 +35,6 @@ function civilDayFromDate(date: Date): CalendarDay {
 
 function daysEqual(a: CalendarDay, b: CalendarDay): boolean {
   return a.y === b.y && a.m === b.m && a.d === b.d;
-}
-
-function renderEventContent(arg: EventContentArg) {
-  return (
-    <div className="eq-cal-event-body">
-      {arg.timeText ? <span className="eq-cal-event-time">{arg.timeText}</span> : null}
-      <div className="eq-cal-event-title">
-        <span className="eq-cal-event-title-inner">{arg.event.title}</span>
-      </div>
-    </div>
-  );
 }
 
 function jumpLabel(range: CalendarRange, direction: 'previous' | 'next'): string {
@@ -181,6 +169,7 @@ export function FullCalendarGrid({
         timeZone="local"
         snapDuration="00:15:00"
         eventDurationEditable={false}
+        eventDragMinDistance={1}
         editable
         selectable
         selectMirror
@@ -188,7 +177,6 @@ export function FullCalendarGrid({
         firstDay={localeFirstDay()}
         headerToolbar={false}
         events={events}
-        eventContent={renderEventContent}
         eventClassNames={(arg) => (arg.event.allDay ? ['eq-cal-chip'] : ['eq-cal-block'])}
         eventDragStart={() => rootRef.current?.classList.add('eq-cal-dragging')}
         eventDragStop={() => rootRef.current?.classList.remove('eq-cal-dragging')}
