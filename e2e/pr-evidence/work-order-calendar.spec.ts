@@ -64,7 +64,9 @@ test.describe('Work order calendar @pr-evidence', () => {
     await expect(panel.getByRole('heading', { name: seedWorkOrders.oilChange.title })).toBeVisible();
     await expect(panel.getByRole('textbox', { name: 'Due date' })).toBeVisible();
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '04-calendar-side-panel', { target: panel });
+    await evidenceScreenshot(page, '04-calendar-side-panel', {
+      target: panel.getByRole('textbox', { name: 'Due date' }),
+    });
 
     await page.getByRole('radio', { name: 'Day' }).click();
     await expect(page).toHaveURL(/range=day/);
@@ -102,7 +104,9 @@ test.describe('Work order calendar @pr-evidence', () => {
     ).toHaveCount(0);
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '07-calendar-locked-cancelled', {
-      target: page.getByTestId('work-order-calendar-panel'),
+      target: page.getByTestId('work-order-calendar-panel').getByRole('heading', {
+        name: seedWorkOrders.cancelled.title,
+      }),
     });
 
     await gotoDashboard(januaryCreateDay);
@@ -140,7 +144,9 @@ test.describe('Work order calendar @pr-evidence', () => {
     await expect(page.getByRole('heading', { name: createTitle })).toBeVisible();
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '09-calendar-created-stays-on-grid', {
-      target: page.getByTestId('work-order-calendar-panel'),
+      target: page.getByTestId('work-order-calendar-panel').getByRole('heading', {
+        name: createTitle,
+      }),
     });
   });
 
