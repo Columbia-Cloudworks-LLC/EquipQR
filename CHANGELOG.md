@@ -11,6 +11,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Added
+
+- **Work order calendar** — Desktop planners can switch Work Orders to a calendar, drag dues, and set optional due times. (#1530)
+
 ## [3.31.0] - 2026-09-02
 
 ### Changed
