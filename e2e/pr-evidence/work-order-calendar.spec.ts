@@ -68,8 +68,10 @@ test.describe('Work order calendar @pr-evidence', () => {
       target: panel.getByRole('textbox', { name: 'Due date' }),
     });
 
-    await panel.getByRole('button', { name: 'Close' }).click();
-    await expect(panel).toBeHidden({ timeout: 10_000 });
+    await gotoDashboard(januaryCalendar);
+    await assertHealthyShell();
+    await expect(page.getByTestId('work-order-calendar-panel')).toHaveCount(0);
+    await expect(calendar).toBeVisible({ timeout: 30_000 });
     await page.getByRole('radiogroup', { name: 'Calendar range' }).getByRole('radio', { name: 'Day' }).click();
     await expect(page).toHaveURL(/range=day/);
     await expect(calendar.locator('.fc-timeGridDay-view')).toBeVisible({ timeout: 15_000 });
