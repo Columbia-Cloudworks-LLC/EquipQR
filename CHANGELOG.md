@@ -13,6 +13,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Added
 
+- **Work order list pages** — The Work Orders list now pages on the server, so large organizations no longer load every work order just to show a card page.
 - **Work order calendar** — Desktop planners can switch Work Orders to a calendar, drag dues, and set optional due times. Month, week, and day live in the toolbar; search, sort, and the result count stay on the list. Empty slots show a create-plus on hover; work-order chips grow and scroll long titles. (#1530)
 
 ### Fixed

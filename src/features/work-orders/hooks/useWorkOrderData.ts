@@ -102,6 +102,7 @@ export const useUpdateWorkOrderStatus = () => {
       // Also invalidate legacy query keys for backward compatibility
       queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', variables.organizationId] });
       queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.list(variables.organizationId) });
+      queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.pagedList(variables.organizationId) });
       queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.optimized(variables.organizationId) });
       queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.byId(variables.organizationId, variables.workOrderId) });
       

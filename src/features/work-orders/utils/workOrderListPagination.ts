@@ -1,0 +1,3 @@
+export const MAX_LIST_PAGE_SIZE = 200
+export const DEFAULT_WORK_ORDER_CARD_PAGE_SIZE = 12
+export const WORK_ORDER_CARD_PAGE_SIZE_OPTIONS = [12, 24, 36, 48] as const

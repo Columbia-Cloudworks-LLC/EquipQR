@@ -113,6 +113,17 @@ describe('queryKeys', () => {
       expect(key).toEqual(['work-orders', 'org-123', 'filtered', filters]);
     });
 
+    it('should create workOrders pagedList prefix and spec keys', () => {
+      expect(workOrders.pagedList('org-123')).toEqual(['work-orders', 'org-123', 'paged']);
+      const spec = { contract: { organizationId: 'org-123' }, pagination: { page: 1 } };
+      expect(workOrders.pagedList('org-123', spec as never)).toEqual([
+        'work-orders',
+        'org-123',
+        'paged',
+        spec,
+      ]);
+    });
+
     it('should create workOrders enhanced key', () => {
       const key = workOrders.enhanced('org-123');
       expect(key).toEqual(['work-orders', 'org-123', 'enhanced']);

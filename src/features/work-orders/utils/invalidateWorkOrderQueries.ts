@@ -39,6 +39,7 @@ export function invalidateWorkOrderLists(
   void queryClient.invalidateQueries({ queryKey: workOrders.optimized(organizationId) });
   void queryClient.invalidateQueries({ queryKey: workOrders.enhanced(organizationId) });
   void queryClient.invalidateQueries({ queryKey: workOrders.teamBasedList(organizationId) });
+  void queryClient.invalidateQueries({ queryKey: workOrders.pagedList(organizationId) });
   void queryClient.invalidateQueries({ queryKey: organization(organizationId).dashboardStats() });
   void queryClient.invalidateQueries({ queryKey: workOrders.root, exact: false });
 }

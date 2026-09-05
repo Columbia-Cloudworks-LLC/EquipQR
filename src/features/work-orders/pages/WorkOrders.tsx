@@ -7,10 +7,10 @@ import { useTeamBasedWorkOrders, useTeamBasedAccess } from '@/features/teams/hoo
 import { useUpdateWorkOrderStatus } from '@/features/work-orders/hooks/useWorkOrderData';
 import { useWorkOrderAcceptance } from '@/features/work-orders/hooks/useWorkOrderAcceptance';
 import { useBatchAssignUnassignedWorkOrders } from '@/features/work-orders/hooks/useBatchAssignUnassignedWorkOrders';
-import { useWorkOrderFilters } from '@/features/work-orders/hooks/useWorkOrderFilters';
+import { useWorkOrderFiltering } from '@/features/work-orders/hooks/useWorkOrderFiltering';
+import ListPaginationFooter from '@/components/common/ListPaginationFooter';
 import { useUser } from '@/contexts/useUser';
 import { useSelectedTeam } from '@/hooks/useSelectedTeam';
-import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
 import type { WorkOrder, WorkOrderAcceptanceModalState, WorkOrderData } from '@/features/work-orders/types/workOrder';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -86,14 +86,32 @@ const WorkOrders = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const initializedFromUrl = useRef(false);
-  const { selectedTeamId, setSelectedTeamId } = useSelectedTeam();
+  const { setSelectedTeamId } = useSelectedTeam();
 
-  // Use team-based access control
   const { userTeamIds, isManager, isLoading: teamAccessLoading } = useTeamBasedAccess();
-  
-  // Use team-based work orders hook with proper admin flag
-  const { data: allWorkOrders = [], isLoading: workOrdersLoading } = useTeamBasedWorkOrders();
-  
+  const {
+    workOrders,
+    totalFilteredCount,
+    totalAccessibleCount,
+    currentPage,
+    pageSize,
+    pageSizeOptions,
+    filters,
+    sortField,
+    sortDirection,
+    activePresets,
+    isLoading: workOrdersLoading,
+    hasActiveFilters,
+    unassignedSubmittedCount,
+    updateFilter,
+    updateSort,
+    toggleQuickFilter,
+    clearAllFilters,
+    setCurrentPage,
+    setPageSize,
+    getActiveFilterCount,
+  } = useWorkOrderFiltering();
+
   const updateStatusMutation = useUpdateWorkOrderStatus();
   const acceptanceMutation = useWorkOrderAcceptance();
   const batchAssignMutation = useBatchAssignUnassignedWorkOrders();
@@ -107,24 +125,6 @@ const WorkOrders = () => {
   // small on Slow 4G for large fleets.
   useEquipmentSummaries(currentOrganization?.id);
   usePMTemplates();
-
-  // Merge server work orders with any pending offline queue items
-  const mergedWorkOrders = useOfflineMergedWorkOrders(allWorkOrders);
-
-  // Use custom filters hook
-  const {
-    filters,
-    filteredWorkOrders,
-    totalCount,
-    activePresets,
-    sortField,
-    sortDirection,
-    getActiveFilterCount,
-    clearAllFilters,
-    toggleQuickFilter,
-    updateFilter,
-    updateSort
-  } = useWorkOrderFilters(mergedWorkOrders, currentUser?.id);
 
   const updateWorkOrder = useUpdateWorkOrder();
 
@@ -143,14 +143,19 @@ const WorkOrders = () => {
       ? chrome.selectedWorkOrderId
       : null;
 
+  const { data: calendarServerRows = [] } = useTeamBasedWorkOrders(
+    {},
+    { enabled: chrome.surface === 'calendar' },
+  );
+  const calendarMerged = useOfflineMergedWorkOrders(calendarServerRows);
   const calendarRows = useMemo(() => {
-    if (chrome.surface !== 'calendar') return filteredWorkOrders;
+    if (chrome.surface !== 'calendar') return [];
     return filterWorkOrders(
-      mergedWorkOrders as WorkOrderData[],
+      calendarMerged as WorkOrderData[],
       { ...filters, dueDateFilter: 'all' },
       currentUser?.id,
     );
-  }, [chrome.surface, currentUser?.id, filteredWorkOrders, filters, mergedWorkOrders]);
+  }, [calendarMerged, chrome.surface, currentUser?.id, filters]);
 
   const calendarItems = useMemo(() => {
     return calendarRows.map((wo) => {
@@ -244,19 +249,6 @@ const WorkOrders = () => {
     }
   }, [searchParams, toggleQuickFilter, updateFilter, updateSort, setSelectedTeamId]);
 
-  // Mirror the global TopBar team selection onto the page-local filter.
-  // `null` (= "All teams") and `UNASSIGNED_TEAM_ID` are translated to the
-  // sentinel values `useWorkOrderFilters` understands.
-  useEffect(() => {
-    const value =
-      selectedTeamId === null
-        ? 'all'
-        : selectedTeamId === UNASSIGNED_TEAM_ID
-          ? 'unassigned'
-          : selectedTeamId;
-    updateFilter('teamFilter', value);
-  }, [selectedTeamId, updateFilter]);
-
   useEffect(() => {
     const defaultSortParam = 'created:desc';
     const nextSortParam = `${sortField}:${sortDirection}`;
@@ -276,9 +268,6 @@ const WorkOrders = () => {
   }, [searchParams, setSearchParams, sortDirection, sortField]);
 
   // Check for unassigned work orders in single-user organization
-  const unassignedCount = allWorkOrders.filter(order => 
-    order.status === 'submitted' && !order.assigneeName && !order.teamName
-  ).length;
   const isSingleUserOrg = currentOrganization?.memberCount === 1;
 
   const handleStatusUpdate = async (workOrderId: string, newStatus: string) => {
@@ -375,8 +364,6 @@ const WorkOrders = () => {
   }
 
 
-  const hasActiveFilters = getActiveFilterCount() > 0 || filters.searchQuery.length > 0;
-
   const accessDescription =
     !isManager && userTeamIds.length === 0
       ? 'No team assignments - contact your administrator for access'
@@ -435,7 +422,7 @@ const WorkOrders = () => {
 
         {isSingleUserOrg && (
           <AutoAssignmentBanner
-            unassignedCount={unassignedCount}
+            unassignedCount={unassignedSubmittedCount}
             onAssignAll={() => currentOrganization && batchAssignMutation.mutate(currentOrganization.id)}
             isAssigning={batchAssignMutation.isPending}
           />
@@ -461,8 +448,8 @@ const WorkOrders = () => {
               sortField={sortField}
               sortDirection={sortDirection}
               onSortChange={updateSort}
-              resultCount={filteredWorkOrders.length}
-              totalCount={totalCount}
+              resultCount={totalFilteredCount}
+              totalCount={totalAccessibleCount}
               hideDueDateFilter={chrome.surface === 'calendar'}
               showSearchAndSort={chrome.surface === 'list'}
               rangeToggle={
@@ -488,8 +475,9 @@ const WorkOrders = () => {
           </div>
 
           {chrome.surface === 'list' ? (
+            <>
             <WorkOrdersList
-              workOrders={filteredWorkOrders}
+              workOrders={workOrders}
               onAcceptClick={handleAcceptClick}
               onStatusUpdate={handleStatusUpdate}
               isUpdating={updateStatusMutation.isPending}
@@ -503,6 +491,16 @@ const WorkOrders = () => {
               canDelete={canDeleteWorkOrders}
               onDeleteClick={handleDeleteClick}
             />
+            <ListPaginationFooter
+              totalItems={totalFilteredCount}
+              page={currentPage}
+              pageSize={pageSize}
+              pageSizeOptions={pageSizeOptions}
+              itemLabel="work order"
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+            />
+            </>
           ) : (
             <Suspense fallback={<div className="min-h-[24rem]" aria-busy="true" />}>
               <WorkOrderCalendar
@@ -531,10 +529,10 @@ const WorkOrders = () => {
             </Suspense>
           )}
 
-          {isMobile && totalCount > 0 && (
+          {isMobile && totalAccessibleCount > 0 && (
             <MobileListGlanceCount
-              resultCount={filteredWorkOrders.length}
-              totalCount={totalCount}
+              resultCount={totalFilteredCount}
+              totalCount={totalAccessibleCount}
               hasActiveFilters={hasActiveFilters}
               singularLabel="work order"
               pluralLabel="work orders"

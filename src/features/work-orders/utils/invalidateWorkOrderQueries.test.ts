@@ -42,6 +42,9 @@ describe('invalidateWorkOrderQueries', () => {
     expect(invalidateQueries).toHaveBeenCalledWith({
       queryKey: ['workOrders', 'org-1'],
     });
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: ['work-orders', 'org-1', 'paged'],
+    });
   });
 
   it('invalidates record and list caches together', () => {
