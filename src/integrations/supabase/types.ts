@@ -4523,6 +4523,7 @@ export type Database = {
           created_date: string
           description: string
           due_date: string | null
+          due_date_has_time: boolean
           equipment_id: string
           equipment_working_hours_at_creation: number | null
           estimated_hours: number | null
@@ -4562,6 +4563,7 @@ export type Database = {
           created_date?: string
           description: string
           due_date?: string | null
+          due_date_has_time?: boolean
           equipment_id: string
           equipment_working_hours_at_creation?: number | null
           estimated_hours?: number | null
@@ -4601,6 +4603,7 @@ export type Database = {
           created_date?: string
           description?: string
           due_date?: string | null
+          due_date_has_time?: boolean
           equipment_id?: string
           equipment_working_hours_at_creation?: number | null
           estimated_hours?: number | null
