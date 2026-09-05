@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { synthesizeDefaultTimeline, eventsToRpcPayload } from '@/features/work-orders/utils/historicalTimeline';
+import { historicalDueFollowUp } from '@/features/work-orders/hooks/useHistoricalWorkOrders';
 
 describe('historical work order submission payload', () => {
   it('builds RPC payload from synthesized timeline events when custom events are absent', () => {
@@ -27,5 +28,23 @@ describe('historical work order submission payload', () => {
     expect(customEvents).toHaveLength(5);
     const payload = eventsToRpcPayload(customEvents);
     expect(payload[payload.length - 1]?.new_status).toBe('completed');
+  });
+});
+
+describe('historicalDueFollowUp', () => {
+  it('is null when the historical create is all-day or has no due', () => {
+    expect(historicalDueFollowUp({ dueDate: '2026-01-10', dueDateHasTime: false })).toBeNull();
+    expect(historicalDueFollowUp({ dueDateHasTime: true })).toBeNull();
+  });
+
+  it('rewrites a timed due so the RPC default cannot leave the flag false', () => {
+    const epochMs = new Date(2026, 0, 10, 14, 30).getTime();
+    expect(historicalDueFollowUp({
+      dueDate: new Date(epochMs).toISOString(),
+      dueDateHasTime: true,
+    })).toEqual({
+      dueDate: new Date(epochMs).toISOString(),
+      dueDateHasTime: true,
+    });
   });
 });

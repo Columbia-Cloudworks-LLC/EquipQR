@@ -12,6 +12,7 @@ import {
   isOverdue,
   isTerminalStatus,
 } from '@/features/work-orders/utils/workOrderHelpers';
+import { formatDueDisplay, parseDue } from '@/features/work-orders/calendar';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { getWorkOrderStatusBorderWithOverdue } from '@/lib/status-colors';
 import PMProgressIndicator from '../PMProgressIndicator';
@@ -25,18 +26,22 @@ export const WorkOrderCompactCard: React.FC<WorkOrderCardProps> = memo(({
   workOrder,
   onNavigate,
 }) => {
-  const { formatDate } = useFormatTimestamp();
+  const { formatDate, formatDateTime } = useFormatTimestamp();
 
   const computedData = useMemo(() => {
     const fmtDate = (v?: string | null) => (v ? formatDate(v) : '—');
+    const due = parseDue(workOrder);
     const overdueStatus = isOverdue(workOrder.due_date, workOrder.status);
     return {
       isOverdue: overdueStatus,
-      formattedDueDate: fmtDate(workOrder.due_date),
+      formattedDueDate: formatDueDisplay(due, {
+        formatDay: formatDate,
+        formatTimed: formatDateTime,
+      }) || '—',
       formattedCreatedDate: fmtDate(workOrder.created_date),
       statusBorderClass: getWorkOrderStatusBorderWithOverdue(workOrder.status, overdueStatus),
     };
-  }, [workOrder.status, workOrder.due_date, workOrder.created_date, formatDate]);
+  }, [workOrder, formatDate, formatDateTime]);
 
   const isTerminal = isTerminalStatus(workOrder.status);
   const navigationProps = getWorkOrderCardNavigationProps(workOrder.id, onNavigate);

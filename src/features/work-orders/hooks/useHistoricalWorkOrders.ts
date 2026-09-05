@@ -14,6 +14,7 @@ import {
   eventsToRpcPayload,
   type HistoricalTimelineEvent,
 } from '@/features/work-orders/utils/historicalTimeline';
+import { parseDue, persistDue, type DuePersist } from '@/features/work-orders/calendar';
 
 export interface HistoricalWorkOrderData {
   equipmentId: string;
@@ -26,6 +27,7 @@ export interface HistoricalWorkOrderData {
   assigneeId?: string;
   teamId?: string;
   dueDate?: string;
+  dueDateHasTime?: boolean;
   completedDate?: string;
   hasPM?: boolean;
   pmStatus?: string;
@@ -50,6 +52,18 @@ function assertHistoricalTimelineAdminRole(
   if (role !== 'owner' && role !== 'admin') {
     throw new Error('Permission denied');
   }
+}
+
+export function historicalDueFollowUp(
+  data: Pick<HistoricalWorkOrderData, 'dueDate' | 'dueDateHasTime'>,
+): DuePersist | null {
+  if (!data.dueDateHasTime || data.dueDate == null || data.dueDate === '') {
+    return null;
+  }
+  return persistDue(parseDue({
+    dueDate: data.dueDate,
+    dueDateHasTime: true,
+  }));
 }
 
 type HistoricalTimelineMutationVariables = {
@@ -177,6 +191,21 @@ export const useCreateHistoricalWorkOrder = (options?: {
       const resultData = result as HistoricalWorkOrderMutationResult | null;
       if (!resultData?.success) {
         throw new Error(resultData?.error || 'Failed to create historical work order');
+      }
+
+      const dueFollowUp = historicalDueFollowUp(data);
+      if (dueFollowUp && resultData.work_order_id) {
+        const { error: dueError } = await supabase
+          .from('work_orders')
+          .update({
+            due_date: dueFollowUp.dueDate,
+            due_date_has_time: dueFollowUp.dueDateHasTime,
+          })
+          .eq('id', resultData.work_order_id)
+          .eq('organization_id', currentOrganization.id);
+        if (dueError) {
+          throw dueError;
+        }
       }
 
       return resultData;

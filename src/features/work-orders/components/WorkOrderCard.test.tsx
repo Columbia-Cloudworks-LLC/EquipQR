@@ -22,10 +22,32 @@ vi.mock('@/features/work-orders/hooks/useCanViewWorkOrderCosts', () => ({
   useCanViewWorkOrderCostsForWorkOrder: () => mockUseCanViewWorkOrderCosts(),
 }));
 
+function pad2(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+function mockDateStamp(value?: Date | string | null): string {
+  if (value == null || value === '') return '—';
+  if (value instanceof Date) {
+    return `${value.getFullYear()}-${pad2(value.getMonth() + 1)}-${pad2(value.getDate())}`;
+  }
+  return String(value).slice(0, 10);
+}
+
+function mockTimeStamp(value?: Date | string | null): string {
+  if (value == null || value === '') return '—';
+  if (value instanceof Date) {
+    return `${mockDateStamp(value)} ${pad2(value.getHours())}:${pad2(value.getMinutes())}`;
+  }
+  return `time:${String(value)}`;
+}
+
 vi.mock('@/hooks/useFormatTimestamp', () => ({
   useFormatTimestamp: () => ({
-    formatDate: (value?: string | null) => (value ? value.slice(0, 10) : '—'),
-    formatRelative: (value?: string | null) => (value ? `relative:${value.slice(0, 10)}` : '—'),
+    formatDate: mockDateStamp,
+    formatDateTime: mockTimeStamp,
+    formatRelative: (value?: Date | string | null) =>
+      value instanceof Date ? `relative:${mockTimeStamp(value)}` : (value ? `relative:${String(value).slice(0, 10)}` : '—'),
   }),
 }));
 
@@ -71,7 +93,8 @@ const baseWorkOrder: WorkOrder = {
   organization_id: 'org-1',
   created_by: 'user-1',
   created_date: '2026-04-01T00:00:00Z',
-  due_date: '2026-12-10T00:00:00Z',
+  due_date: '2026-12-10',
+  due_date_has_time: false,
   updated_at: '2026-04-01T00:00:00Z',
   has_pm: false,
   is_historical: false,
@@ -117,6 +140,28 @@ describe('WorkOrderCard', () => {
   });
 
   describe('desktop variant', () => {
+    it('shows a clock only when the due is timed', () => {
+      render(
+        <WorkOrderCard
+          workOrder={{
+            ...baseWorkOrder,
+            due_date: new Date(2026, 11, 10, 11, 0).toISOString(),
+            due_date_has_time: true,
+          }}
+          onNavigate={mockOnNavigate}
+        />,
+      );
+
+      expect(screen.getByText(/Due 2026-12-10 11:00/)).toBeInTheDocument();
+    });
+
+    it('does not render 12:00 AM for an all-day due', () => {
+      render(<WorkOrderCard workOrder={baseWorkOrder} onNavigate={mockOnNavigate} />);
+
+      expect(screen.getByText(/Due 2026-12-10/)).toBeInTheDocument();
+      expect(screen.queryByText(/12:00 AM/i)).not.toBeInTheDocument();
+    });
+
     it('renders title, status, priority, and metadata strip', () => {
       render(<WorkOrderCard workOrder={baseWorkOrder} onNavigate={mockOnNavigate} />);
 
@@ -198,6 +243,22 @@ describe('WorkOrderCard', () => {
   });
 
   describe('mobile variant', () => {
+    it('shows a relative time only when the due is timed', () => {
+      render(
+        <WorkOrderCard
+          workOrder={{
+            ...baseWorkOrder,
+            due_date: new Date(2026, 11, 10, 11, 0).toISOString(),
+            due_date_has_time: true,
+          }}
+          variant="mobile"
+          onNavigate={mockOnNavigate}
+        />,
+      );
+
+      expect(screen.getByText(/Due relative:2026-12-10 11:00/)).toBeInTheDocument();
+    });
+
     it('renders compact mobile layout with assignee and date label', () => {
       render(
         <WorkOrderCard
@@ -209,7 +270,8 @@ describe('WorkOrderCard', () => {
 
       expect(screen.getByText('Replace hydraulic line')).toBeInTheDocument();
       expect(screen.getByText('Alex Tech')).toBeInTheDocument();
-      expect(screen.getByText(/Due relative:2026-12-10/)).toBeInTheDocument();
+      expect(screen.getByText(/Due 2026-12-10/)).toBeInTheDocument();
+      expect(screen.queryByText(/12:00 AM/i)).not.toBeInTheDocument();
       expect(screen.getByTestId('quick-actions')).toBeInTheDocument();
     });
 
@@ -260,7 +322,7 @@ describe('WorkOrderCard', () => {
         <WorkOrderCard
           workOrder={{
             ...baseWorkOrder,
-            due_date: '2020-01-01T00:00:00Z',
+            due_date: '2020-01-01',
             status: 'in_progress',
           }}
           variant="mobile"
@@ -268,7 +330,8 @@ describe('WorkOrderCard', () => {
         />,
       );
 
-      expect(screen.getByText(/Overdue relative:2020-01-01/)).toBeInTheDocument();
+      expect(screen.getByText(/Overdue 2020-01-01/)).toBeInTheDocument();
+      expect(screen.queryByText(/12:00 AM/i)).not.toBeInTheDocument();
     });
 
     it('shows the cost subtotal for users with cost visibility', () => {
@@ -303,6 +366,7 @@ describe('WorkOrderCard', () => {
       expect(screen.getByText('Repair the leaking boom hose')).toBeInTheDocument();
       expect(screen.getByText(/Created: 2026-04-01/)).toBeInTheDocument();
       expect(screen.getByText(/Due: 2026-12-10/)).toBeInTheDocument();
+      expect(screen.queryByText(/12:00 AM/i)).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'View Details' })).toBeInTheDocument();
     });
   });

@@ -12,6 +12,7 @@ export const WORK_ORDER_UPDATE_FIELD_MAP: Record<string, keyof WorkOrderServerSn
   description: 'description',
   priority: 'priority',
   dueDate: 'due_date',
+  dueDateHasTime: 'due_date_has_time',
   estimatedHours: 'estimated_hours',
   hasPM: 'has_pm',
 };
@@ -22,6 +23,7 @@ type WorkOrderMergeRow = {
   description: string | null;
   priority: string | null;
   due_date: string | null;
+  due_date_has_time: boolean | null;
   estimated_hours: number | null;
   has_pm: boolean | null;
 };
@@ -70,6 +72,9 @@ function applyMergedSnapshotValue(
       return;
     case 'due_date':
       target.due_date = value as WorkOrderTableUpdate['due_date'];
+      return;
+    case 'due_date_has_time':
+      target.due_date_has_time = value as WorkOrderTableUpdate['due_date_has_time'];
       return;
     case 'estimated_hours':
       target.estimated_hours = value as WorkOrderTableUpdate['estimated_hours'];
@@ -135,7 +140,7 @@ export async function syncWorkOrderOfflineUpdate(
   if (serverUpdatedAt && changedFields && changedFields.length > 0) {
     const { data: current, error: fetchErr } = await supabase
       .from('work_orders')
-      .select('updated_at, title, description, priority, due_date, estimated_hours, has_pm')
+      .select('updated_at, title, description, priority, due_date, due_date_has_time, estimated_hours, has_pm')
       .eq('id', workOrderId)
       .eq('organization_id', organizationId)
       .single();

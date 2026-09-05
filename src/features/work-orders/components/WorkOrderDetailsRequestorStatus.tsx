@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Clock, Wrench, Clipboard } from 'lucide-react';
 import { WorkOrderData, EquipmentData, PermissionLevels, PMData } from '@/features/work-orders/types/workOrderDetails';
+import { formatDueDisplay, parseDue } from '@/features/work-orders/calendar';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { formatStatus, getStatusColor } from '@/features/work-orders/utils/workOrderHelpers';
 import { getWorkOrderAssignmentDisplay } from '@/features/work-orders/utils/workOrderAssignmentDisplay';
@@ -27,7 +28,11 @@ export const WorkOrderDetailsRequestorStatus: React.FC<WorkOrderDetailsRequestor
   pmData,
   canViewInternalLabor = false,
 }) => {
-  const { formatDate } = useFormatTimestamp();
+  const { formatDate, formatDateTime } = useFormatTimestamp();
+  const dueLabel = formatDueDisplay(parseDue(workOrder), {
+    formatDay: formatDate,
+    formatTimed: formatDateTime,
+  });
 
   // Only show for non-managers
   if (permissionLevels.isManager) {
@@ -62,10 +67,10 @@ export const WorkOrderDetailsRequestorStatus: React.FC<WorkOrderDetailsRequestor
 
         {/* Timing Information */}
         <div className="space-y-2 pt-2 border-t">
-          {workOrder.due_date && (
+          {dueLabel && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="h-4 w-4" />
-              <span>Due {formatDate(workOrder.due_date)}</span>
+              <span>Due {dueLabel}</span>
             </div>
           )}
 

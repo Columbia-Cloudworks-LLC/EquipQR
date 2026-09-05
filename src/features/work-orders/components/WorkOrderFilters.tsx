@@ -20,6 +20,8 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersToolbarProps> = ({
   onSortChange,
   resultCount,
   totalCount,
+  hideDueDateFilter = false,
+  viewToggle,
 }) => {
   const isMobile = useIsMobile();
 
@@ -37,6 +39,7 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersToolbarProps> = ({
         sortField={sortField}
         sortDirection={sortDirection}
         onSortChange={onSortChange}
+        hideDueDateFilter={hideDueDateFilter}
       />
     );
   }
@@ -54,6 +57,8 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersToolbarProps> = ({
       onSortChange={onSortChange}
       resultCount={resultCount}
       totalCount={totalCount}
+      hideDueDateFilter={hideDueDateFilter}
+      viewToggle={viewToggle}
     />
   );
 };

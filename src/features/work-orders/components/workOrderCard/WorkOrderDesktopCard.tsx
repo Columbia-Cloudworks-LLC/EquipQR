@@ -28,7 +28,7 @@ export const WorkOrderDesktopCard: React.FC<WorkOrderCardProps> = memo(({
   canDelete = false,
   onDeleteClick,
 }) => {
-  const { formatDate } = useFormatTimestamp();
+  const { formatDate, formatDateTime } = useFormatTimestamp();
   const fmtDate = (v?: string | null) => (v ? formatDate(v) : '—');
   const permissions = useUnifiedPermissions();
   const workOrderData = mapToWorkOrderData(workOrder);
@@ -60,6 +60,8 @@ export const WorkOrderDesktopCard: React.FC<WorkOrderCardProps> = memo(({
           workOrder={workOrder}
           assignmentContext={assignmentContext}
           fmtDate={fmtDate}
+          formatDay={formatDate}
+          formatDateTime={formatDateTime}
           isWorkOrderOverdue={isWorkOrderOverdue}
           canEditAssignment={detailedPermissions.canEditAssignment}
           canEdit={detailedPermissions.canEdit}

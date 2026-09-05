@@ -23,6 +23,7 @@ export interface CreateWorkOrderData {
   equipmentId: string;
   priority: 'low' | 'medium' | 'high';
   dueDate?: string;
+  dueDateHasTime?: boolean;
   estimatedHours?: number;
   equipmentWorkingHours?: number;
   hasPM?: boolean;
@@ -161,7 +162,9 @@ export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: WorkOrder
         toast.info('Saved offline', {
           description: 'This work order will sync when your connection returns.',
         });
-        navigate('/dashboard/work-orders');
+        if (!options?.onSuccess) {
+          navigate('/dashboard/work-orders');
+        }
         return;
       }
 

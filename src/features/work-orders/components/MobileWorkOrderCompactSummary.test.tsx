@@ -1,12 +1,18 @@
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MobileWorkOrderCompactSummary } from './MobileWorkOrderCompactSummary';
 
+const { saveField, savePatch } = vi.hoisted(() => ({
+  saveField: vi.fn(),
+  savePatch: vi.fn(),
+}));
+
 vi.mock('@/features/work-orders/hooks/useWorkOrderInlineFieldSave', () => ({
   useWorkOrderInlineFieldSave: () => ({
-    saveField: vi.fn(),
+    saveField,
+    savePatch,
   }),
 }));
 
@@ -15,11 +21,17 @@ vi.mock('@/features/work-orders/components/InlineEditWorkOrderAssignee', () => (
 }));
 
 describe('MobileWorkOrderCompactSummary', () => {
+  beforeEach(() => {
+    saveField.mockClear();
+    savePatch.mockClear();
+  });
+
   const baseWorkOrder = {
     id: 'wo-1',
     status: 'accepted' as const,
     priority: 'low' as const,
     due_date: '2026-06-23T12:00:00Z',
+    due_date_has_time: false,
     assignee_id: 'user-1',
     updated_at: '2026-06-01T12:00:00Z',
     equipment_id: 'eq-1',
@@ -96,5 +108,37 @@ describe('MobileWorkOrderCompactSummary', () => {
       'leading-4',
     );
     expect(badge.parentElement).toHaveClass('flex-wrap', 'items-start');
+  });
+
+  it('saves a date-only edit without dropping a timed clock', async () => {
+    const user = userEvent.setup({ delay: null });
+    const dueAt = new Date(2026, 5, 23, 12, 0, 0, 0);
+
+    render(
+      <MobileWorkOrderCompactSummary
+        workOrder={{
+          ...baseWorkOrder,
+          due_date: dueAt.toISOString(),
+          due_date_has_time: true,
+        }}
+        organizationId="org-1"
+        canEditFields
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Edit due date' }));
+    fireEvent.change(screen.getByDisplayValue('2026-06-23'), { target: { value: '2026-06-25' } });
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(savePatch).toHaveBeenCalledWith(expect.objectContaining({
+      dueDateHasTime: true,
+    }));
+    const saved = savePatch.mock.calls[0]?.[0] as { dueDate?: string };
+    const next = new Date(String(saved.dueDate));
+    expect(next.getFullYear()).toBe(2026);
+    expect(next.getMonth()).toBe(5);
+    expect(next.getDate()).toBe(25);
+    expect(next.getHours()).toBe(12);
+    expect(next.getMinutes()).toBe(0);
   });
 });

@@ -6,23 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import WorkOrderFilterPopover from './WorkOrderFilterPopover';
 import WorkOrderSortPopover from './WorkOrderSortPopover';
-import { WorkOrderFilters } from '@/features/work-orders/types/workOrder';
-import type { QuickFilterPreset, SortField, SortDirection } from '@/features/work-orders/hooks/useWorkOrderFilters';
+import type { WorkOrderFiltersToolbarProps } from '@/features/work-orders/types/workOrderFiltersToolbarTypes';
 import { formatInvoiceFilterLabel } from '@/features/work-orders/utils/invoiceFilterLabels';
 
-interface WorkOrderToolbarProps {
-  filters: WorkOrderFilters;
-  activeFilterCount: number;
-  activePresets: Set<QuickFilterPreset>;
-  onFilterChange: (key: keyof WorkOrderFilters, value: string) => void;
-  onClearFilters: () => void;
-  onQuickFilter: (preset: QuickFilterPreset) => void;
-  sortField: SortField;
-  sortDirection: SortDirection;
-  onSortChange: (field: SortField, direction: SortDirection) => void;
-  resultCount: number;
-  totalCount: number;
-}
+type WorkOrderToolbarProps = Omit<
+  WorkOrderFiltersToolbarProps,
+  'showMobileFilters' | 'onShowMobileFiltersChange'
+>;
 
 const WorkOrderToolbar: React.FC<WorkOrderToolbarProps> = ({
   filters,
@@ -36,6 +26,8 @@ const WorkOrderToolbar: React.FC<WorkOrderToolbarProps> = ({
   onSortChange,
   resultCount,
   totalCount,
+  hideDueDateFilter = false,
+  viewToggle,
 }) => {
   const hasActiveFilters = activeFilterCount > 0 || filters.searchQuery.length > 0;
 
@@ -74,6 +66,7 @@ const WorkOrderToolbar: React.FC<WorkOrderToolbarProps> = ({
           onFilterChange={onFilterChange}
           onClearFilters={onClearFilters}
           onQuickFilter={onQuickFilter}
+          hideDueDateFilter={hideDueDateFilter}
         />
 
         {/* Sort popover */}
@@ -96,6 +89,13 @@ const WorkOrderToolbar: React.FC<WorkOrderToolbarProps> = ({
           {' / '}
           <span className="font-medium text-foreground">{totalCount}</span>
         </span>
+
+        {viewToggle ? (
+          <>
+            <Separator orientation="vertical" className="h-5 hidden md:block" />
+            {viewToggle}
+          </>
+        ) : null}
       </div>
 
       {/* Active filter badges row */}
@@ -142,7 +142,7 @@ const WorkOrderToolbar: React.FC<WorkOrderToolbarProps> = ({
             </Badge>
           )}
 
-          {filters.dueDateFilter !== 'all' && (
+          {!hideDueDateFilter && filters.dueDateFilter !== 'all' && (
             <Badge variant="secondary" className="flex items-center gap-1 text-xs h-5 px-2">
               Due: {filters.dueDateFilter.replace('_', ' ')}
               <button

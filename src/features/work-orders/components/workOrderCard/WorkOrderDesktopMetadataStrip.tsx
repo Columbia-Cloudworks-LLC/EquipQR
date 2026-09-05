@@ -5,6 +5,7 @@ import ClickableAddress from '@/components/ui/ClickableAddress';
 import { cn } from '@/lib/utils';
 import { WorkOrderAssignmentHover } from '../WorkOrderAssignmentHover';
 import WorkOrderCostSubtotal from '../WorkOrderCostSubtotal';
+import { formatDueDisplay, parseDue } from '@/features/work-orders/calendar';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 import type { AssignmentWorkOrderContext } from '@/features/work-orders/hooks/useWorkOrderContextualAssignment';
 
@@ -12,6 +13,8 @@ type WorkOrderDesktopMetadataStripProps = {
   workOrder: WorkOrder;
   assignmentContext: AssignmentWorkOrderContext;
   fmtDate: (value?: string | null) => string;
+  formatDay: (value: Date) => string;
+  formatDateTime: (value: Date) => string;
   isWorkOrderOverdue: boolean;
   canEditAssignment: boolean;
   canEdit: boolean;
@@ -21,13 +24,19 @@ export const WorkOrderDesktopMetadataStrip: React.FC<WorkOrderDesktopMetadataStr
   workOrder,
   assignmentContext,
   fmtDate,
+  formatDay,
+  formatDateTime,
   isWorkOrderOverdue,
   canEditAssignment,
   canEdit,
 }) => {
   const equipmentTeamName = workOrder.equipmentTeamName ?? workOrder.teamName;
   const createdDateValue = workOrder.created_date;
-  const dueDateValue = workOrder.due_date;
+  const due = parseDue(workOrder);
+  const dueLabel = formatDueDisplay(due, {
+    formatDay,
+    formatTimed: formatDateTime,
+  });
   const estimatedHoursValue = workOrder.estimated_hours;
   const completedDateValue = workOrder.completed_date;
 
@@ -38,10 +47,10 @@ export const WorkOrderDesktopMetadataStrip: React.FC<WorkOrderDesktopMetadataStr
         {fmtDate(createdDateValue)}
       </span>
 
-      {dueDateValue && (
+      {dueLabel && (
         <span className={cn('inline-flex items-center gap-1', isWorkOrderOverdue && 'text-destructive font-medium')}>
           <Clock className="h-3.5 w-3.5 shrink-0" />
-          Due {fmtDate(dueDateValue)}
+          Due {dueLabel}
           {isWorkOrderOverdue && (
             <Tooltip>
               <TooltipTrigger asChild>

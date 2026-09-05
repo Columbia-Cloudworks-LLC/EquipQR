@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Plus, ShieldCheck, Users } from 'lucide-react';
 import { toast } from 'sonner';
@@ -35,12 +34,39 @@ import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { MobileListGlanceCount } from '@/components/common/MobileListGlanceCount';
+import {
+  applyCalendarDrag,
+  applyDueWrite,
+  calendarEditability,
+  parseDue,
+  parseUrlDate,
+  persistDue,
+  resolveWorkOrdersChrome,
+  serializeChromeParams,
+  toCalendarItem,
+  WORK_ORDERS_VIEW_MODE_KEY,
+  WorkOrdersViewToggle,
+  type CreateDuePrefill,
+} from '@/features/work-orders/calendar';
+import { WorkOrderCalendarPanel } from '@/features/work-orders/calendar/WorkOrderCalendarPanel';
+
+const WorkOrderCalendar = lazy(async () => {
+  const { WorkOrderCalendar: Calendar } = await import(
+    '@/features/work-orders/calendar/WorkOrderCalendar'
+  );
+  return { default: Calendar };
+});
+import { useUpdateWorkOrder } from '@/features/work-orders/hooks/useWorkOrderUpdate';
+import { filterWorkOrders } from '@/features/work-orders/hooks/workOrderFilterUtils';
+import { getPreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
 
 const VALID_SORT_FIELDS: readonly SortField[] = ['created', 'due_date', 'priority', 'status'];
 const VALID_SORT_DIRECTIONS: readonly SortDirection[] = ['asc', 'desc'];
 
 const WorkOrders = () => {
   const [showForm, setShowForm] = useState(false);
+  const [createPrefill, setCreatePrefill] = useState<CreateDuePrefill | null>(null);
+  const [calendarEpoch, setCalendarEpoch] = useState(0);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [qrWorkOrder, setQrWorkOrder] = useState<WorkOrder | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<WorkOrder | null>(null);
@@ -98,6 +124,76 @@ const WorkOrders = () => {
     updateFilter,
     updateSort
   } = useWorkOrderFilters(mergedWorkOrders, currentUser?.id);
+
+  const updateWorkOrder = useUpdateWorkOrder();
+
+  const chrome = useMemo(() => resolveWorkOrdersChrome({
+    urlDate: parseUrlDate(searchParams.get('date')),
+    viewParam: searchParams.get('view'),
+    rangeParam: searchParams.get('range'),
+    woParam: searchParams.get('wo'),
+    persist: getPreferenceLocalStorage(WORK_ORDERS_VIEW_MODE_KEY),
+    isMobile,
+  }), [isMobile, searchParams]);
+
+  const creatingFromCalendar = showForm || createPrefill != null;
+  const selectedWorkOrderId =
+    chrome.surface === 'calendar' && !creatingFromCalendar
+      ? chrome.selectedWorkOrderId
+      : null;
+
+  const calendarRows = useMemo(() => {
+    if (chrome.surface !== 'calendar') return filteredWorkOrders;
+    return filterWorkOrders(
+      mergedWorkOrders as WorkOrderData[],
+      { ...filters, dueDateFilter: 'all' },
+      currentUser?.id,
+    );
+  }, [chrome.surface, currentUser?.id, filteredWorkOrders, filters, mergedWorkOrders]);
+
+  const calendarItems = useMemo(() => {
+    return calendarRows.map((wo) => {
+      const row = wo as MergedWorkOrder & WorkOrderData;
+      return toCalendarItem(row, calendarEditability({
+        engineCanEdit: permissions.workOrders.getPermissions(row).canEdit,
+        status: row.status,
+        isOfflinePending: Boolean(row._isPendingSync) || row.id.startsWith('offline-'),
+      }));
+    });
+  }, [calendarRows, permissions]);
+
+  const writeChrome = useCallback((patch: Parameters<typeof serializeChromeParams>[1]) => {
+    setSearchParams(serializeChromeParams(chrome, patch, searchParams), { replace: true });
+  }, [chrome, searchParams, setSearchParams]);
+
+  const openCreate = useCallback((prefill: CreateDuePrefill | null = null) => {
+    setCreatePrefill(prefill);
+    setShowForm(true);
+    if (chrome.surface === 'calendar') {
+      writeChrome({ selectedWorkOrderId: null });
+    }
+  }, [chrome.surface, writeChrome]);
+
+  const persistCalendarDue = useCallback((workOrder: MergedWorkOrder, write: Parameters<typeof applyCalendarDrag>[2]) => {
+    const editability = calendarEditability({
+      engineCanEdit: permissions.workOrders.getPermissions(workOrder as WorkOrderData).canEdit,
+      status: workOrder.status,
+      isOfflinePending: Boolean(workOrder._isPendingSync) || workOrder.id.startsWith('offline-'),
+    });
+    const result = applyCalendarDrag(editability, parseDue(workOrder), write);
+    if (result.kind === 'rejected') return;
+    const nextDue = persistDue(result.due);
+    updateWorkOrder.mutate(
+      {
+        workOrderId: workOrder.id,
+        data: {
+          dueDate: nextDue.dueDate ?? '',
+          dueDateHasTime: nextDue.dueDateHasTime,
+        },
+      },
+      { onError: () => setCalendarEpoch((epoch) => epoch + 1) },
+    );
+  }, [permissions, updateWorkOrder]);
 
   // Apply URL parameter filters on initial load.
   // The `team` parameter writes to the GLOBAL `useSelectedTeam` selection (not
@@ -318,6 +414,13 @@ const WorkOrders = () => {
     return null;
   };
 
+  const selectedCalendarWorkOrder = selectedWorkOrderId
+    ? calendarRows.find((row) => row.id === selectedWorkOrderId) as MergedWorkOrder | undefined
+    : undefined;
+  const createDuePersist = createPrefill
+    ? persistDue(applyDueWrite({ kind: 'none' }, createPrefill))
+    : null;
+
   return (
     <Page maxWidth="7xl" padding="responsive">
       <div className="space-y-4">
@@ -332,7 +435,7 @@ const WorkOrders = () => {
               <Button
                 type="button"
                 data-testid="create-work-order-button"
-                onClick={() => setShowForm(true)}
+                onClick={() => openCreate(null)}
                 className="w-full sm:w-auto"
               >
                 <Plus className="mr-2 h-4 w-4" />
@@ -372,24 +475,64 @@ const WorkOrders = () => {
               onSortChange={updateSort}
               resultCount={filteredWorkOrders.length}
               totalCount={totalCount}
+              hideDueDateFilter={chrome.surface === 'calendar'}
+              viewToggle={
+                isMobile ? undefined : (
+                  <WorkOrdersViewToggle
+                    surface={chrome.surface}
+                    onChange={(surface) => {
+                      setPreferenceLocalStorage(WORK_ORDERS_VIEW_MODE_KEY, surface);
+                      writeChrome({ surface, selectedWorkOrderId: surface === 'list' ? null : selectedWorkOrderId });
+                    }}
+                  />
+                )
+              }
             />
           </div>
 
-          <WorkOrdersList
-            workOrders={filteredWorkOrders}
-            onAcceptClick={handleAcceptClick}
-            onStatusUpdate={handleStatusUpdate}
-            isUpdating={updateStatusMutation.isPending}
-            isAccepting={acceptanceMutation.isPending}
-            hasActiveFilters={hasActiveFilters}
-            activePresets={activePresets}
-            onCreateClick={() => setShowForm(true)}
-            onAssignClick={handleAssignClick}
-            onReopenClick={() => undefined}
-            onShowQR={handleShowQR}
-            canDelete={canDeleteWorkOrders}
-            onDeleteClick={handleDeleteClick}
-          />
+          {chrome.surface === 'list' ? (
+            <WorkOrdersList
+              workOrders={filteredWorkOrders}
+              onAcceptClick={handleAcceptClick}
+              onStatusUpdate={handleStatusUpdate}
+              isUpdating={updateStatusMutation.isPending}
+              isAccepting={acceptanceMutation.isPending}
+              hasActiveFilters={hasActiveFilters}
+              activePresets={activePresets}
+              onCreateClick={() => openCreate(null)}
+              onAssignClick={handleAssignClick}
+              onReopenClick={() => undefined}
+              onShowQR={handleShowQR}
+              canDelete={canDeleteWorkOrders}
+              onDeleteClick={handleDeleteClick}
+            />
+          ) : (
+            <Suspense fallback={<div className="min-h-[24rem]" aria-busy="true" />}>
+              <WorkOrderCalendar
+                key={calendarEpoch}
+                items={calendarItems}
+                range={chrome.range}
+                anchor={chrome.anchor}
+                selectedWorkOrderId={selectedWorkOrderId}
+                onIntent={(intent) => {
+                  if (intent.type === 'select') {
+                    setShowForm(false);
+                    setCreatePrefill(null);
+                    writeChrome({ selectedWorkOrderId: intent.workOrderId });
+                    return;
+                  }
+                  if (intent.type === 'create') {
+                    openCreate(intent.prefill);
+                    return;
+                  }
+                  const wo = calendarRows.find((row) => row.id === intent.workOrderId);
+                  if (!wo) return;
+                  persistCalendarDue(wo as MergedWorkOrder, intent.write);
+                }}
+                onChromeChange={(next) => writeChrome(next)}
+              />
+            </Suspense>
+          )}
 
           {isMobile && totalCount > 0 && (
             <MobileListGlanceCount
@@ -409,17 +552,42 @@ const WorkOrders = () => {
             data-testid="create-work-order-button"
             size="icon"
             className="fixed bottom-[78px] right-4 z-fixed h-14 w-14 rounded-full shadow-elevation-3"
-            onClick={() => setShowForm(true)}
+            onClick={() => openCreate(null)}
             aria-label="Create work order"
           >
             <Plus className="h-6 w-6" />
           </Button>
         )}
 
-      {/* Work Order Form Modal */}
-      <WorkOrderForm 
-        open={showForm} 
-        onClose={() => setShowForm(false)} 
+      {selectedCalendarWorkOrder ? (
+        <WorkOrderCalendarPanel
+          workOrder={selectedCalendarWorkOrder}
+          editability={calendarEditability({
+            engineCanEdit: permissions.workOrders.getPermissions(selectedCalendarWorkOrder as WorkOrderData).canEdit,
+            status: selectedCalendarWorkOrder.status,
+            isOfflinePending:
+              Boolean(selectedCalendarWorkOrder._isPendingSync)
+              || selectedCalendarWorkOrder.id.startsWith('offline-'),
+          })}
+          onClose={() => writeChrome({ selectedWorkOrderId: null })}
+          onDueWrite={(write) => persistCalendarDue(selectedCalendarWorkOrder, write)}
+        />
+      ) : null}
+
+      <WorkOrderForm
+        open={showForm}
+        onClose={() => {
+          setShowForm(false);
+          setCreatePrefill(null);
+        }}
+        prefillDueDate={createDuePersist?.dueDate}
+        prefillHasTime={createDuePersist?.dueDateHasTime ?? false}
+        stayOnList={chrome.surface === 'calendar'}
+        onCreated={(workOrderId) => {
+          setShowForm(false);
+          setCreatePrefill(null);
+          writeChrome({ selectedWorkOrderId: workOrderId });
+        }}
       />
 
       {/* Work Order Acceptance Modal */}

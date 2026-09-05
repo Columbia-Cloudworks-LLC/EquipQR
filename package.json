@@ -115,6 +115,11 @@
   },
   "dependencies": {
     "@fontsource/jetbrains-mono": "5.2.8",
+    "@fullcalendar/core": "6.1.21",
+    "@fullcalendar/daygrid": "6.1.21",
+    "@fullcalendar/interaction": "6.1.21",
+    "@fullcalendar/react": "6.1.21",
+    "@fullcalendar/timegrid": "6.1.21",
     "@gsap/react": "2.1.2",
     "@hcaptcha/react-hcaptcha": "^2.2.0",
     "@hookform/resolvers": "^5.4.0",

@@ -1,5 +1,7 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@vitest-harness/utils/test-utils';
+import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render } from '@vitest-harness/utils/test-utils';
+import { TestProviders } from '@vitest-harness/utils/TestProviders';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WorkOrderData } from '@/features/work-orders/types/workOrder';
 import WorkOrders from '@/features/work-orders/pages/WorkOrders';
@@ -141,10 +143,20 @@ vi.mock('@/features/work-orders/components/AutoAssignmentBanner', () => ({
   AutoAssignmentBanner: () => <div data-testid="auto-assignment-banner">Auto Assignment Banner</div>
 }));
 
+vi.mock('@/features/work-orders/hooks/useWorkOrderUpdate', () => ({
+  useUpdateWorkOrder: vi.fn(() => ({
+    mutate: vi.fn(),
+    mutateAsync: vi.fn(),
+    isPending: false,
+  })),
+}));
+
 vi.mock('@/features/work-orders/components/WorkOrderFilters', () => ({
-  WorkOrderFilters: ({ filters, onFilterChange }: {
+  WorkOrderFilters: ({ filters, onFilterChange, hideDueDateFilter, viewToggle }: {
     filters: { searchQuery: string };
     onFilterChange: (key: string, value: string) => void;
+    hideDueDateFilter?: boolean;
+    viewToggle?: React.ReactNode;
   }) => (
     <div data-testid="work-order-filters">
       <input
@@ -152,8 +164,16 @@ vi.mock('@/features/work-orders/components/WorkOrderFilters', () => ({
         value={filters.searchQuery}
         onChange={(e) => onFilterChange('searchQuery', e.target.value)}
       />
+      {!hideDueDateFilter && (
+        <div data-testid="due-date-filter">Due date filter</div>
+      )}
+      {viewToggle}
     </div>
   )
+}));
+
+vi.mock('@/features/work-orders/calendar/WorkOrderCalendar', () => ({
+  WorkOrderCalendar: () => <div data-testid="work-order-calendar">Calendar</div>,
 }));
 
 vi.mock('@/features/work-orders/components/WorkOrdersList', () => ({
@@ -202,6 +222,14 @@ function configureAccess(options: {
     hasTeamAccess: options.hasTeamAccess,
     isManager: options.isManager,
     isLoading: options.isLoading ?? false
+  });
+}
+
+function renderAt(path: string) {
+  return rtlRender(<WorkOrders />, {
+    wrapper: ({ children }) => (
+      <TestProviders initialEntries={[path]}>{children}</TestProviders>
+    ),
   });
 }
 
@@ -411,6 +439,34 @@ describe('WorkOrders Page', () => {
       render(<WorkOrders />);
       expect(screen.getByText('No work orders found')).toBeInTheDocument();
       expect(screen.getByText(/get started by creating/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('list and calendar chrome', () => {
+    it('shows the desktop view toggle', () => {
+      render(<WorkOrders />);
+      expect(screen.getByRole('radiogroup', { name: 'Work orders view' })).toBeInTheDocument();
+    });
+
+    it('hides the view toggle on phones', () => {
+      vi.mocked(useMobileModule.useIsMobile).mockReturnValue(true);
+      renderAt('/dashboard/work-orders?view=calendar');
+      expect(screen.queryByRole('radiogroup', { name: 'Work orders view' })).not.toBeInTheDocument();
+      expect(screen.queryByTestId('work-order-calendar')).not.toBeInTheDocument();
+      expect(screen.getByTestId('work-orders-list')).toBeInTheDocument();
+    });
+
+    it('hides the due-date bucket in calendar mode', async () => {
+      renderAt('/dashboard/work-orders?view=calendar');
+      expect(await screen.findByTestId('work-order-calendar')).toBeInTheDocument();
+      expect(screen.queryByTestId('due-date-filter')).not.toBeInTheDocument();
+    });
+
+    it('keeps date=overdue on the list with the due-date filter visible', () => {
+      renderAt('/dashboard/work-orders?date=overdue&view=calendar');
+      expect(screen.getByTestId('work-orders-list')).toBeInTheDocument();
+      expect(screen.queryByTestId('work-order-calendar')).not.toBeInTheDocument();
+      expect(screen.getByTestId('due-date-filter')).toBeInTheDocument();
     });
   });
 });
