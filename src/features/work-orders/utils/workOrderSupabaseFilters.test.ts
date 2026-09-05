@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { applyWorkOrderSupabaseFilters } from './workOrderSupabaseFilters';
+import { applyWorkOrderListContract, applyWorkOrderSupabaseFilters } from './workOrderSupabaseFilters';
+import { parseWorkOrderListContract } from '@/features/work-orders/utils/workOrderListContract';
+import { LIST_CONTRACT_NOW, parseInput } from '@/features/work-orders/utils/workOrderListContract.fixtures';
 
 function createMockQuery() {
   const calls: Array<{ method: string; args: unknown[] }> = [];
@@ -16,12 +18,24 @@ function createMockQuery() {
       calls.push({ method: 'lt', args });
       return query;
     }),
+    lte: vi.fn((...args: unknown[]) => {
+      calls.push({ method: 'lte', args });
+      return query;
+    }),
     gte: vi.fn((...args: unknown[]) => {
       calls.push({ method: 'gte', args });
       return query;
     }),
     not: vi.fn((...args: unknown[]) => {
       calls.push({ method: 'not', args });
+      return query;
+    }),
+    or: vi.fn((...args: unknown[]) => {
+      calls.push({ method: 'or', args });
+      return query;
+    }),
+    in: vi.fn((...args: unknown[]) => {
+      calls.push({ method: 'in', args });
       return query;
     }),
     calls,
@@ -63,5 +77,91 @@ describe('applyWorkOrderSupabaseFilters', () => {
     result.order('created_date', { ascending: false });
 
     expect(result.order).toHaveBeenCalledWith('created_date', { ascending: false });
+  });
+});
+
+describe('applyWorkOrderListContract', () => {
+  it('searches title, assignee, equipment, and equipment team name', () => {
+    const query = createMockQuery();
+    applyWorkOrderListContract(
+      query,
+      parseWorkOrderListContract(parseInput({ filters: { searchQuery: 'yard' } })),
+      LIST_CONTRACT_NOW,
+    );
+
+    expect(query.or).toHaveBeenCalledWith(
+      'title.ilike.%yard%,assignee.name.ilike.%yard%,equipment.name.ilike.%yard%,equipment.teams.name.ilike.%yard%',
+    );
+  });
+
+  it('applies assignee unassigned as no assignee and no effective team', () => {
+    const query = createMockQuery();
+    applyWorkOrderListContract(
+      query,
+      parseWorkOrderListContract(parseInput({ filters: { assigneeFilter: 'unassigned' } })),
+      LIST_CONTRACT_NOW,
+    );
+
+    expect(query.is).toHaveBeenCalledWith('assignee_id', null);
+    expect(query.or).toHaveBeenCalledWith('and(team_id.is.null,equipment.team_id.is.null)');
+  });
+
+  it('applies Sunday this_week bounds at fetch time', () => {
+    const query = createMockQuery();
+    applyWorkOrderListContract(
+      query,
+      parseWorkOrderListContract(parseInput({ filters: { dueDateFilter: 'this_week' } })),
+      LIST_CONTRACT_NOW,
+    );
+
+    expect(query.gte).toHaveBeenCalledWith('due_date', expect.stringContaining('2026-08-30'));
+    const endIso = query.lte.mock.calls[0]?.[1] as string;
+    expect(new Date(endIso).getTime()).toBeGreaterThan(
+      new Date('2026-09-05T00:00:00.000Z').getTime(),
+    );
+    expect(new Date(endIso).getTime()).toBeLessThan(
+      new Date('2026-09-07T00:00:00.000Z').getTime(),
+    );
+  });
+
+  it('applies unpaid invoices as exported plus null or collectible status', () => {
+    const query = createMockQuery();
+    applyWorkOrderListContract(
+      query,
+      parseWorkOrderListContract(parseInput({ filters: { invoiceFilter: 'unpaid' } })),
+      LIST_CONTRACT_NOW,
+    );
+
+    expect(query.not).toHaveBeenCalledWith('quickbooks_invoice_id', 'is', null);
+    expect(query.or).toHaveBeenCalledWith(
+      expect.stringContaining('invoice_status.is.null'),
+    );
+    expect(query.or).toHaveBeenCalledWith(expect.stringContaining('draft'));
+  });
+
+  it('applies TopBar team as COALESCE on work_orders.team_id then equipment.team_id', () => {
+    const query = createMockQuery();
+    applyWorkOrderListContract(
+      query,
+      parseWorkOrderListContract(parseInput({ selectedTeamId: 'team-topbar' })),
+      LIST_CONTRACT_NOW,
+    );
+
+    expect(query.or).toHaveBeenCalledWith(
+      'team_id.eq.team-topbar,and(team_id.is.null,equipment.team_id.eq.team-topbar)',
+    );
+  });
+
+  it('filters member access on equipment.team_id, not effective team', () => {
+    const query = createMockQuery();
+    applyWorkOrderListContract(
+      query,
+      parseWorkOrderListContract(
+        parseInput({ isOrgAdmin: false, userTeamIds: ['team-access'] }),
+      ),
+      LIST_CONTRACT_NOW,
+    );
+
+    expect(query.in).toHaveBeenCalledWith('equipment.team_id', ['team-access']);
   });
 });

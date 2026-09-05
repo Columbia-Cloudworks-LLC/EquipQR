@@ -78,7 +78,8 @@ function matchesDueDate(order: WorkOrderData, dueDateFilter: string): boolean {
     dueDateFilter === 'all' ||
     (dueDateFilter === 'overdue' && isOverdue(order.dueDate, order.status)) ||
     (dueDateFilter === 'today' && Boolean(order.dueDate && isToday(new Date(order.dueDate)))) ||
-    (dueDateFilter === 'this_week' && Boolean(order.dueDate && isThisWeek(new Date(order.dueDate))))
+    (dueDateFilter === 'this_week' &&
+      Boolean(order.dueDate && isThisWeek(new Date(order.dueDate), { weekStartsOn: 0 })))
   );
 }
 
@@ -157,4 +158,20 @@ export function countActiveWorkOrderFilters(filters: WorkOrderFilters): number {
     filters.dueDateFilter,
     filters.invoiceFilter,
   ].filter(value => value !== 'all').length;
+}
+
+export function nextPresetsAfterFilterChange(
+  presets: Set<QuickFilterPreset>,
+  key: keyof WorkOrderFilters,
+  value: string,
+): Set<QuickFilterPreset> {
+  const next = new Set(presets);
+  let changed = false;
+  for (const [presetKey, mapping] of Object.entries(PRESET_FILTER_MAP)) {
+    if (mapping.key === key && next.has(presetKey as QuickFilterPreset) && mapping.value !== value) {
+      next.delete(presetKey as QuickFilterPreset);
+      changed = true;
+    }
+  }
+  return changed ? next : presets;
 }
