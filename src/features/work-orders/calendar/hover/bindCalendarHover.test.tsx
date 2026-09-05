@@ -62,7 +62,7 @@ describe('bindCalendarHover', () => {
     unbind();
   });
 
-  it('marks the calendar as dragging on event pointerdown so hover scale cannot cancel a drag', () => {
+  it('marks the calendar as dragging on event pointerdown so hover expand cannot cancel a drag', () => {
     const { root, cue, eventEl } = mount();
     const unbind = bindCalendarHover(root, cue);
 

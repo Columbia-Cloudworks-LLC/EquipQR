@@ -202,6 +202,57 @@ test.describe('Work order calendar @pr-evidence', () => {
     await evidenceScreenshot(page, '13-calendar-create-cancel-clears-ghost', { target: calendar });
   });
 
+  test('hovering a long work-order title expands the chip from the center', async ({
+    gotoDashboard,
+    assertHealthyShell,
+    page,
+  }) => {
+    await gotoDashboard('/dashboard/work-orders?view=calendar&range=month&date=2026-01-21');
+    await assertHealthyShell();
+    const calendar = page.getByTestId('work-order-calendar');
+    await expect(calendar).toBeVisible({ timeout: 30_000 });
+
+    const longTitle = 'Undercarriage Rebuild - Komatsu PC210 Unit 101';
+    await page.locator('.fc-daygrid-day[data-date="2026-01-21"]').click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByRole('heading', { name: /create work order/i })).toBeVisible({
+      timeout: 15_000,
+    });
+    await fillWorkOrderBasics(dialog, {
+      title: longTitle,
+      description: 'Long title used to prove calendar chips expand on hover.',
+    });
+    await selectWorkOrderEquipment(
+      page,
+      dialog,
+      seedEquipment.cat320.name,
+      /CAT 320 Excavator/i,
+    );
+    await dialog.getByTestId('submit-button').or(
+      dialog.getByRole('button', { name: /create work order/i }),
+    ).click();
+    const confirmHours = page.getByRole('button', { name: /yes, create without hours/i });
+    if (await confirmHours.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await confirmHours.click();
+    }
+    await expect(dialog).toBeHidden({ timeout: 60_000 });
+    const panel = page.getByTestId('work-order-calendar-panel');
+    await expect(panel).toBeVisible({ timeout: 30_000 });
+    await panel.getByRole('button', { name: 'Close' }).click();
+    await expect(page.getByTestId('work-order-calendar-panel')).toHaveCount(0);
+
+    const longTitleChip = page.locator('.fc-event').filter({ hasText: longTitle }).first();
+    await expect(longTitleChip).toBeVisible();
+    const restBox = await longTitleChip.boundingBox();
+    await longTitleChip.hover();
+    await expect(longTitleChip).toHaveClass(/is-expanded/);
+    const hoverBox = await longTitleChip.boundingBox();
+    expect(hoverBox?.width ?? 0).toBeGreaterThan(restBox?.width ?? 0);
+    await expect(longTitleChip).toContainText(longTitle);
+    await evidencePause(page, 500);
+    await evidenceScreenshot(page, '14-calendar-chip-title-expand', { target: longTitleChip });
+  });
+
   test('phones stay on the work-order list without a calendar toggle', async ({
     gotoDashboard,
     assertHealthyShell,

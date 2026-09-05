@@ -2,7 +2,7 @@ import {
   classifyCalendarHover,
   createCueRect,
 } from '@/features/work-orders/calendar/hover/hoverTarget';
-import { startTitleMarquee, type TitleMarquee } from '@/features/work-orders/calendar/hover/titleMarquee';
+import { startTitleExpand, type TitleExpand } from '@/features/work-orders/calendar/hover/titleExpand';
 
 function hideCue(cue: HTMLElement): void {
   cue.hidden = true;
@@ -21,23 +21,27 @@ function showCue(cue: HTMLElement, rect: { top: number; left: number; width: num
 }
 
 export function bindCalendarHover(root: HTMLElement, cue: HTMLElement): () => void {
-  let marquee: TitleMarquee | null = null;
+  let expand: TitleExpand | null = null;
   let last: { target: EventTarget | null; x: number; y: number } | null = null;
+
+  const stopExpand = () => {
+    expand?.stop();
+    expand = null;
+  };
 
   const sync = (target: EventTarget | null, x: number, y: number) => {
     last = { target, x, y };
     const kind = classifyCalendarHover(target, root, { clientX: x, clientY: y });
     if (kind.kind === 'event') {
       hideCue(cue);
-      if (marquee?.eventEl !== kind.eventEl) {
-        marquee?.stop();
-        marquee = startTitleMarquee(kind.eventEl);
+      if (expand?.eventEl !== kind.eventEl) {
+        expand?.stop();
+        expand = startTitleExpand(kind.eventEl);
       }
       return;
     }
 
-    marquee?.stop();
-    marquee = null;
+    stopExpand();
 
     const rect = createCueRect(kind, root);
     if (rect) {
@@ -59,6 +63,7 @@ export function bindCalendarHover(root: HTMLElement, cue: HTMLElement): () => vo
     });
     if (kind.kind === 'event') {
       root.classList.add('eq-cal-dragging');
+      stopExpand();
     }
   };
 
@@ -71,8 +76,7 @@ export function bindCalendarHover(root: HTMLElement, cue: HTMLElement): () => vo
   const onLeave = (event: PointerEvent) => {
     if (event.relatedTarget instanceof Node && root.contains(event.relatedTarget)) return;
     last = null;
-    marquee?.stop();
-    marquee = null;
+    stopExpand();
     hideCue(cue);
   };
 
@@ -99,7 +103,7 @@ export function bindCalendarHover(root: HTMLElement, cue: HTMLElement): () => vo
     root.removeEventListener('pointercancel', onPointerUp);
     root.removeEventListener('pointerleave', onLeave);
     root.removeEventListener('scroll', onScroll, true);
-    marquee?.stop();
+    stopExpand();
     hideCue(cue);
   };
 }
