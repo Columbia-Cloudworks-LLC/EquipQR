@@ -81,7 +81,7 @@ describe('applyWorkOrderSupabaseFilters', () => {
 });
 
 describe('applyWorkOrderListContract', () => {
-  it('searches title, assignee, equipment, and equipment team name', () => {
+  it('leaves search to the parent-column or() clause', () => {
     const query = createMockQuery();
     applyWorkOrderListContract(
       query,
@@ -89,9 +89,7 @@ describe('applyWorkOrderListContract', () => {
       LIST_CONTRACT_NOW,
     );
 
-    expect(query.or).toHaveBeenCalledWith(
-      'title.ilike.%yard%,assignee.name.ilike.%yard%,equipment.name.ilike.%yard%,equipment.teams.name.ilike.%yard%',
-    );
+    expect(query.or).not.toHaveBeenCalled();
   });
 
   it('applies assignee unassigned as no assignee and no effective team', () => {

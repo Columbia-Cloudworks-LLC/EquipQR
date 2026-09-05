@@ -61,7 +61,6 @@ export function requiresContractEquipmentInnerJoin(contract: WorkOrderListContra
   return (
     contract.access.kind === 'teams' ||
     contract.team.kind !== 'all' ||
-    contract.assignee.kind === 'unassigned' ||
-    Boolean(contract.search)
+    contract.assignee.kind === 'unassigned'
   );
 }

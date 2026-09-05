@@ -92,11 +92,6 @@ export function applyWorkOrderSupabaseFilters<T>(
   return next;
 }
 
-function getWorkOrderSearchPattern(search: string | undefined): string | null {
-  const term = search?.trim().replace(/[,()]/g, ' ');
-  return term ? `%${term}%` : null;
-}
-
 export function applyEffectiveTeamFilter<T>(query: T, team: WorkOrderListTeam): T {
   const next = query as T & WorkOrderFilterQuery<T>;
 
@@ -142,18 +137,6 @@ export function applyWorkOrderListContract<T>(
 
   next = applyWorkOrderListAccess(next, contract.access) as T & WorkOrderFilterQuery<T>;
   next = applyEffectiveTeamFilter(next, contract.team) as T & WorkOrderFilterQuery<T>;
-
-  const searchPattern = getWorkOrderSearchPattern(contract.search);
-  if (searchPattern) {
-    next = next.or(
-      [
-        `title.ilike.${searchPattern}`,
-        `assignee.name.ilike.${searchPattern}`,
-        `equipment.name.ilike.${searchPattern}`,
-        `equipment.teams.name.ilike.${searchPattern}`,
-      ].join(','),
-    );
-  }
 
   if (contract.status) {
     next = next.eq('status', contract.status);

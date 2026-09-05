@@ -25,7 +25,7 @@ describe('workOrderListQueryHelpers', () => {
     expect(withWorkOrderEquipmentInnerJoin(WORK_ORDER_LIST_SELECT)).toBe(select);
   });
 
-  it('inner-joins equipment for contract access, TopBar team, unassigned, or search', () => {
+  it('inner-joins equipment for contract access, TopBar team, or unassigned', () => {
     const base = parseWorkOrderListContract(parseInput());
     expect(requiresContractEquipmentInnerJoin(base)).toBe(false);
     expect(
@@ -37,7 +37,7 @@ describe('workOrderListQueryHelpers', () => {
     expect(
       requiresContractEquipmentInnerJoin({ ...base, assignee: { kind: 'unassigned' } }),
     ).toBe(true);
-    expect(requiresContractEquipmentInnerJoin({ ...base, search: 'pump' })).toBe(true);
+    expect(requiresContractEquipmentInnerJoin({ ...base, search: 'pump' })).toBe(false);
   });
 
   it('resolves team scope from filters', () => {

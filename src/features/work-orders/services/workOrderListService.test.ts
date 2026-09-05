@@ -8,6 +8,10 @@ vi.mock('@/integrations/supabase/client', () => ({
   },
 }))
 
+vi.mock('@/features/work-orders/utils/workOrderListSearch', () => ({
+  resolveWorkOrderListSearchOr: vi.fn(async () => null),
+}))
+
 vi.mock('@/utils/logger', () => ({
   logger: {
     error: vi.fn(),
@@ -24,6 +28,9 @@ vi.mock('@/services/imageUploadService', () => ({
 }))
 
 const { supabase } = await import('@/integrations/supabase/client')
+const { resolveWorkOrderListSearchOr } = await import(
+  '@/features/work-orders/utils/workOrderListSearch'
+)
 const { getAccessibleWorkOrderCount, getFilteredList, getUnassignedSubmittedCount } = await import(
   './workOrderListService'
 )
@@ -52,6 +59,7 @@ function createFilterChain(result: { data: unknown[] | null; count: number; erro
 describe('getFilteredList', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    vi.mocked(resolveWorkOrderListSearchOr).mockResolvedValue(null)
   })
 
   it('returns an empty page without querying when access is none', async () => {
@@ -75,8 +83,25 @@ describe('getFilteredList', () => {
     )
 
     expect(query.select).toHaveBeenCalledWith(expect.any(String), { count: 'exact' })
+    expect(query.order).toHaveBeenCalledWith('created_date', { ascending: false })
+    expect(query.order).toHaveBeenCalledWith('id', { ascending: true })
     expect(query.range).toHaveBeenCalledWith(12, 23)
     expect(result.count).toBe(37)
+  })
+
+  it('applies the resolved parent-column search or() on work_orders', async () => {
+    const query = createFilterChain({ data: [], count: 2, error: null })
+    ;(supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(query)
+    vi.mocked(resolveWorkOrderListSearchOr).mockResolvedValueOnce(
+      'title.ilike.%yard%,assignee_id.in.(user-1)',
+    )
+
+    await getFilteredList(
+      parseWorkOrderListContract(parseInput({ filters: { searchQuery: 'yard' } })),
+      { page: 1, pageSize: 12 },
+    )
+
+    expect(query.or).toHaveBeenCalledWith('title.ilike.%yard%,assignee_id.in.(user-1)')
   })
 
   it('clamps page size to 200', async () => {
@@ -95,6 +120,7 @@ describe('getFilteredList', () => {
 describe('work order list head counts', () => {
   beforeEach(() => {
     vi.resetAllMocks()
+    vi.mocked(resolveWorkOrderListSearchOr).mockResolvedValue(null)
   })
 
   it('returns zero accessible rows without querying when access is none', async () => {

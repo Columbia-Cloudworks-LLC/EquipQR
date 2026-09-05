@@ -7,6 +7,7 @@ import {
   requiresContractEquipmentInnerJoin,
 } from '@/features/work-orders/services/workOrderListQueryHelpers'
 import { applyWorkOrderListContract } from '@/features/work-orders/utils/workOrderSupabaseFilters'
+import { resolveWorkOrderListSearchOr } from '@/features/work-orders/utils/workOrderListSearch'
 import {
   normalizeWorkOrderListPagination,
   type WorkOrderListContract,
@@ -39,6 +40,27 @@ function getListRange(page: number, pageSize: number): { from: number; to: numbe
   return { from, to: from + pageSize - 1 }
 }
 
+type ListContractQuery<T> = {
+  eq: (column: string, value: string) => T
+  not: (column: string, operator: string, value: null) => T
+  or: (filters: string) => T
+}
+
+function applyListContractToQuery<T>(
+  query: T,
+  contract: WorkOrderListContract,
+  searchOr: string | null,
+): T {
+  let next = query as T & ListContractQuery<T>
+  next = next.eq('organization_id', contract.organizationId) as T & ListContractQuery<T>
+  next = next.not('equipment_id', 'is', null) as T & ListContractQuery<T>
+  next = applyWorkOrderListContract(next, contract) as T & ListContractQuery<T>
+  if (searchOr) {
+    next = next.or(searchOr) as T & ListContractQuery<T>
+  }
+  return next
+}
+
 async function mapListRows(
   data: unknown[] | null,
 ): Promise<WorkOrderListResult['data']> {
@@ -66,19 +88,22 @@ export async function getFilteredList(
   const normalized = normalizeWorkOrderListPagination(pagination)
   const needsInnerJoin = requiresContractEquipmentInnerJoin(contract)
 
-  let query = supabase
-    .from('work_orders')
-    .select(buildWorkOrderListSelect(needsInnerJoin), { count: 'exact' })
-    .eq('organization_id', contract.organizationId)
-    .not('equipment_id', 'is', null)
-
-  query = applyWorkOrderListContract(query, contract)
+  const searchOr = await resolveWorkOrderListSearchOr(contract)
+  let query = applyListContractToQuery(
+    supabase
+      .from('work_orders')
+      .select(buildWorkOrderListSelect(needsInnerJoin), { count: 'exact' }),
+    contract,
+    searchOr,
+  )
 
   const sort = getListSort(normalized)
-  query = query.order(sort.column, {
-    ascending: sort.ascending,
-    ...(sort.nullsFirst === undefined ? {} : { nullsFirst: sort.nullsFirst }),
-  })
+  query = query
+    .order(sort.column, {
+      ascending: sort.ascending,
+      ...(sort.nullsFirst === undefined ? {} : { nullsFirst: sort.nullsFirst }),
+    })
+    .order('id', { ascending: true })
 
   const { from, to } = getListRange(normalized.page, normalized.pageSize)
   query = query.range(from, to)
@@ -103,13 +128,14 @@ async function countMatchingContract(
   }
 
   const needsInnerJoin = requiresContractEquipmentInnerJoin(contract)
-  let query = supabase
-    .from('work_orders')
-    .select(buildWorkOrderListSelect(needsInnerJoin), { count: 'exact', head: true })
-    .eq('organization_id', contract.organizationId)
-    .not('equipment_id', 'is', null)
-
-  query = applyWorkOrderListContract(query, contract)
+  const searchOr = await resolveWorkOrderListSearchOr(contract)
+  const query = applyListContractToQuery(
+    supabase
+      .from('work_orders')
+      .select(buildWorkOrderListSelect(needsInnerJoin), { count: 'exact', head: true }),
+    contract,
+    searchOr,
+  )
 
   const { error, count } = await query
   if (error) {
