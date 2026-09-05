@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { getAuthClaims } from '@/lib/authClaims';
+import { workOrders } from '@/lib/queryKeys';
 
 export const useBatchAssignUnassignedWorkOrders = () => {
   const queryClient = useQueryClient();
@@ -62,7 +63,7 @@ export const useBatchAssignUnassignedWorkOrders = () => {
         toast.info('No unassigned work orders found');
       }
       
-      // Invalidate relevant queries with standardized keys
+      queryClient.invalidateQueries({ queryKey: workOrders.pagedList(organizationId) });
       queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', organizationId] });
       queryClient.invalidateQueries({ queryKey: ['workOrders', organizationId] });
       queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', organizationId] });

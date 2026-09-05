@@ -72,6 +72,7 @@ export const useWorkOrderAcceptance = () => {
       queryClient.invalidateQueries({ queryKey: workOrderKeys.lists() });
       queryClient.invalidateQueries({ queryKey: workOrderKeys.all });
       // Legacy / alternate key shapes for backward compatibility
+      queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.pagedList(organizationId) });
       queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.enhancedList(organizationId) });
       queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.legacyList(organizationId) });
       queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.optimized(organizationId) });

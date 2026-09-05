@@ -9,7 +9,7 @@ import { personas } from '@vitest-harness/fixtures/personas';
 import { workOrders as woFixtures, organizations } from '@vitest-harness/fixtures/entities';
 import * as useTeamBasedWorkOrdersModule from '@/features/teams/hooks/useTeamBasedWorkOrders';
 import '@/contexts/OrganizationContext';
-import * as useWorkOrderFiltersModule from '@/features/work-orders/hooks/useWorkOrderFilters';
+import * as useWorkOrderFilteringModule from '@/features/work-orders/hooks/useWorkOrderFiltering';
 import type { QuickFilterPreset } from '@/features/work-orders/hooks/useWorkOrderFilters';
 import * as useMobileModule from '@/hooks/use-mobile';
 
@@ -107,11 +107,17 @@ vi.mock('@/features/work-orders/hooks/useBatchAssignUnassignedWorkOrders', () =>
   }))
 }));
 
-const { createWorkOrderFiltersMock } = vi.hoisted(() => ({
-  createWorkOrderFiltersMock: (
+const { createWorkOrderFilteringMock } = vi.hoisted(() => ({
+  createWorkOrderFilteringMock: (
     workOrders: WorkOrderData[] = [],
     updateFilter = vi.fn(),
   ) => ({
+    workOrders,
+    totalFilteredCount: workOrders.length,
+    totalAccessibleCount: workOrders.length,
+    currentPage: 1,
+    pageSize: 12,
+    pageSizeOptions: [12, 24, 36, 48] as const,
     filters: {
       searchQuery: '',
       statusFilter: 'all',
@@ -121,21 +127,24 @@ const { createWorkOrderFiltersMock } = vi.hoisted(() => ({
       dueDateFilter: 'all',
       invoiceFilter: 'all',
     },
-    filteredWorkOrders: workOrders,
-    totalCount: workOrders.length,
-    activePresets: new Set<QuickFilterPreset>(),
     sortField: 'created' as const,
     sortDirection: 'desc' as const,
-    getActiveFilterCount: vi.fn(() => 0),
-    clearAllFilters: vi.fn(),
-    toggleQuickFilter: vi.fn(),
+    activePresets: new Set<QuickFilterPreset>(),
+    isLoading: false,
+    hasActiveFilters: false,
+    unassignedSubmittedCount: 0,
     updateFilter,
     updateSort: vi.fn(),
+    toggleQuickFilter: vi.fn(),
+    clearAllFilters: vi.fn(),
+    setCurrentPage: vi.fn(),
+    setPageSize: vi.fn(),
+    getActiveFilterCount: vi.fn(() => 0),
   }),
 }));
 
-vi.mock('@/features/work-orders/hooks/useWorkOrderFilters', () => ({
-  useWorkOrderFilters: vi.fn(() => createWorkOrderFiltersMock())
+vi.mock('@/features/work-orders/hooks/useWorkOrderFiltering', () => ({
+  useWorkOrderFiltering: vi.fn(() => createWorkOrderFilteringMock()),
 }));
 
 // Mock components
@@ -238,10 +247,16 @@ function renderAt(path: string) {
   });
 }
 
-function setWorkOrders(workOrders: WorkOrderData[]) {
-  vi.mocked(useWorkOrderFiltersModule.useWorkOrderFilters).mockReturnValue(
-    createWorkOrderFiltersMock(workOrders),
+function setWorkOrders(workOrders: WorkOrderData[], extra?: { totalFilteredCount?: number }) {
+  vi.mocked(useWorkOrderFilteringModule.useWorkOrderFiltering).mockReturnValue(
+    createWorkOrderFilteringMock(workOrders),
   );
+  if (extra?.totalFilteredCount !== undefined) {
+    vi.mocked(useWorkOrderFilteringModule.useWorkOrderFiltering).mockReturnValue({
+      ...createWorkOrderFilteringMock(workOrders),
+      totalFilteredCount: extra.totalFilteredCount,
+    });
+  }
 }
 
 // ============================================
@@ -375,8 +390,8 @@ describe('WorkOrders Page', () => {
 
     it('responds to search input', () => {
       const mockUpdateFilter = vi.fn();
-      vi.mocked(useWorkOrderFiltersModule.useWorkOrderFilters).mockReturnValue(
-        createWorkOrderFiltersMock([], mockUpdateFilter),
+      vi.mocked(useWorkOrderFilteringModule.useWorkOrderFiltering).mockReturnValue(
+        createWorkOrderFilteringMock([], mockUpdateFilter),
       );
 
       render(<WorkOrders />);
@@ -444,6 +459,28 @@ describe('WorkOrders Page', () => {
       render(<WorkOrders />);
       expect(screen.getByText('No work orders found')).toBeInTheDocument();
       expect(screen.getByText(/get started by creating/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('server-paged list', () => {
+    it('shows ListPaginationFooter when the filtered total is above a page', () => {
+      const many = Array.from({ length: 12 }, (_, index) => ({
+        id: `wo-${index}`,
+        title: `Work order ${index}`,
+        description: '',
+        equipmentId: 'eq-1',
+        organizationId: organizations.acme.id,
+        status: 'submitted' as const,
+        priority: 'medium' as const,
+        createdDate: '2026-01-01T00:00:00Z',
+        created_date: '2026-01-01T00:00:00Z',
+      }));
+      setWorkOrders(many, { totalFilteredCount: 37 });
+
+      render(<WorkOrders />);
+
+      expect(screen.getByTestId('list-pagination-footer')).toBeInTheDocument();
+      expect(screen.getByText(/of 37 work orders/i)).toBeInTheDocument();
     });
   });
 

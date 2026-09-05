@@ -175,6 +175,9 @@ export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: WorkOrder
           'Work order created, but photos did not attach. Open the work order to retry.',
         );
       }
+      if (currentOrganization?.id) {
+        queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.pagedList(currentOrganization.id) });
+      }
       queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', currentOrganization?.id] });
       queryClient.invalidateQueries({ queryKey: ['workOrders', currentOrganization?.id] });
       queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', currentOrganization?.id] });
