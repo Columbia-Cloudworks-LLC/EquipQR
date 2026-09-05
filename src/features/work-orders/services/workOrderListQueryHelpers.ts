@@ -1,4 +1,5 @@
 import { WORK_ORDER_LIST_SELECT } from '@/features/work-orders/services/workOrderRowMapper';
+import type { WorkOrderListContract } from '@/features/work-orders/utils/workOrderListContract';
 
 export type WorkOrderTeamScope = {
   userTeams?: string[];
@@ -53,5 +54,14 @@ export function resolveWorkOrderTeamScope(
 export function requiresEquipmentInnerJoin(teamScope: WorkOrderTeamScope): boolean {
   return Boolean(
     (teamScope.userTeams && teamScope.userTeams.length > 0) || teamScope.teamFilter,
+  );
+}
+
+export function requiresContractEquipmentInnerJoin(contract: WorkOrderListContract): boolean {
+  return (
+    contract.access.kind === 'teams' ||
+    contract.team.kind !== 'all' ||
+    contract.assignee.kind === 'unassigned' ||
+    Boolean(contract.search)
   );
 }

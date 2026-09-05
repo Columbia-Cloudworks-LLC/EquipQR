@@ -1,7 +1,7 @@
 import { logger } from '@/utils/logger';
 
 import { supabase } from '@/integrations/supabase/client';
-import type { WorkOrder } from '@/features/work-orders/types/workOrder';
+import type { TeamBasedWorkOrder } from '@/features/work-orders/utils/workOrderListContract';
 import { EquipmentService } from '@/features/equipment/services/EquipmentService';
 import { batchResolveEquipmentDisplayImageUrls } from '@/services/imageUploadService';
 import { applyWorkOrderSupabaseFilters } from '@/features/work-orders/utils/workOrderSupabaseFilters';
@@ -15,22 +15,7 @@ import {
   resolveDashboardEquipmentIdScope,
 } from '@/features/dashboard/utils/dashboardTeamScope';
 
-/**
- * TeamBasedWorkOrder extends WorkOrder with camelCase aliases for backward compatibility.
- * These aliases map to the snake_case database fields.
- */
-type TeamBasedWorkOrder = WorkOrder & {
-  equipmentId?: string;
-  organizationId?: string;
-  assigneeId?: string | null;
-  teamId?: string | null;
-  createdDate?: string;
-  dueDate?: string | null;
-  estimatedHours?: number | null;
-  completedDate?: string | null;
-};
-
-function toTeamBasedWorkOrder(
+export function toTeamBasedWorkOrder(
   wo: Record<string, unknown>,
   signedEquipmentImageUrl: string | null | undefined,
 ): TeamBasedWorkOrder {

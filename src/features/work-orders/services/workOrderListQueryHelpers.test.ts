@@ -1,11 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildWorkOrderListSelect,
+  requiresContractEquipmentInnerJoin,
   requiresEquipmentInnerJoin,
   resolveWorkOrderTeamScope,
   withWorkOrderEquipmentInnerJoin,
 } from './workOrderListQueryHelpers';
 import { WORK_ORDER_LIST_SELECT } from './workOrderRowMapper';
+import { parseWorkOrderListContract } from '@/features/work-orders/utils/workOrderListContract';
+import { parseInput } from '@/features/work-orders/utils/workOrderListContract.fixtures';
 
 describe('workOrderListQueryHelpers', () => {
   it('keeps the default list select when no team scope is required', () => {
@@ -20,6 +23,21 @@ describe('workOrderListQueryHelpers', () => {
     expect(requiresEquipmentInnerJoin({ userTeams: ['team-1'] })).toBe(true);
     expect(requiresEquipmentInnerJoin({ teamFilter: 'team-1' })).toBe(true);
     expect(withWorkOrderEquipmentInnerJoin(WORK_ORDER_LIST_SELECT)).toBe(select);
+  });
+
+  it('inner-joins equipment for contract access, TopBar team, unassigned, or search', () => {
+    const base = parseWorkOrderListContract(parseInput());
+    expect(requiresContractEquipmentInnerJoin(base)).toBe(false);
+    expect(
+      requiresContractEquipmentInnerJoin({ ...base, access: { kind: 'teams', teamIds: ['t1'] } }),
+    ).toBe(true);
+    expect(
+      requiresContractEquipmentInnerJoin({ ...base, team: { kind: 'team', teamId: 't1' } }),
+    ).toBe(true);
+    expect(
+      requiresContractEquipmentInnerJoin({ ...base, assignee: { kind: 'unassigned' } }),
+    ).toBe(true);
+    expect(requiresContractEquipmentInnerJoin({ ...base, search: 'pump' })).toBe(true);
   });
 
   it('resolves team scope from filters', () => {
