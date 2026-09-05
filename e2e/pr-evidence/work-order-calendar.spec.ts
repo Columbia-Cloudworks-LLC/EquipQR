@@ -68,7 +68,7 @@ test.describe('Work order calendar @pr-evidence', () => {
       target: panel.getByRole('textbox', { name: 'Due date' }),
     });
 
-    await page.keyboard.press('Escape');
+    await panel.getByRole('button', { name: 'Close' }).click();
     await expect(panel).toBeHidden({ timeout: 10_000 });
     await page.getByRole('radiogroup', { name: 'Calendar range' }).getByRole('radio', { name: 'Day' }).click();
     await expect(page).toHaveURL(/range=day/);
@@ -78,7 +78,6 @@ test.describe('Work order calendar @pr-evidence', () => {
 
     await page.getByRole('radiogroup', { name: 'Calendar range' }).getByRole('radio', { name: 'Month' }).click();
     await expect(calendar.locator('.fc-dayGridMonth-view')).toBeVisible({ timeout: 15_000 });
-    await page.keyboard.press('Escape');
     await expect(panel).toBeHidden({ timeout: 10_000 });
 
     const oilEvent = page.locator('.fc-event').filter({ hasText: seedWorkOrders.oilChange.title }).first();
