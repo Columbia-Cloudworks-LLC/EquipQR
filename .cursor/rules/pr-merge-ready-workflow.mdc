@@ -1,10 +1,10 @@
 ---
-description: "Authoritative feature-branch PR workflow — open through merge-ready (CI green, Qodo openCount=0, evidence, threads clear). Same standard every time."
+description: "Authoritative feature-branch PR workflow — open through merge (CI green, Supabase green or skipped, evidence). Same standard every time."
 alwaysApply: true
 ---
 # PR Merge-Ready Workflow (authoritative)
 
-Every **product/runtime PR into `preview`** (day-to-day) follows this end-to-end standard. **Opening a PR is not handoff** — the agent owns the branch until merge-ready exit criteria pass.
+Every **product/runtime PR into `preview`** (day-to-day) follows this end-to-end standard. **Opening a PR is not handoff** — the agent owns the branch until the merge gate passes, then **merges**.
 
 **Release PRs** (`preview` → `main`, or `chore/release-v*` from the curated preview tip) use the same babysit gates with `--base main`.
 
@@ -12,19 +12,27 @@ Applies to: linked worktrees, explicit user PR requests, `itil-issue-resolver` i
 
 Direct push to `main` and `preview` is blocked by branch protection; merge via PR after `local-verify-before-preview-push.mdc`.
 
-## Merge-ready exit criteria (all required)
+## Merge gate (preview)
+
+Merge when **all** of the following are true. Do **not** wait for Qodo (retired — pricing). Review threads are not a merge blocker unless the user asks to address them.
 
 | Gate | Verify |
 |------|--------|
 | Local verify | Fallow clean, lint, type-check, targeted/`test:ci`, build when relevant, local E2E per change type |
 | PR visual evidence | Screenshots + MP4 demo in PR body; `-Publish` comment when product UI changed; when help/docs discovery changed, include proof from each surfaced entry point to the guide |
-| CI green | `gh pr checks <num> --watch` — all required jobs pass |
-| Qodo complete | `Get-PrQodoFindings.ps1 -Json` → `reviewInProgress: false` |
-| Qodo resolved | Same JSON → `openCount: 0` (action required, review recommended, **and** optional — all buckets) |
-| Threads clear | `Get-PrFeedbackThreads.ps1 -Json` → zero unresolved non-outdated threads |
-| Mergeable | `gh pr view <num> --json mergeable,mergeStateStatus` → mergeable |
+| CI green | `gh pr checks <num> --watch` — every required job is success. Expected skips (for example Release Metadata on a `preview` base) are fine |
+| Supabase | `Validate Supabase Migrations` and `Supabase Preview` are **success**, **or** skipped / absent because the PR has no related `supabase/**` (or validator) changes |
+| Mergeable | `gh pr view <num> --json mergeable,mergeStateStatus` → `MERGEABLE` / `CLEAN` |
 
-Do **not** report "PR opened" or walk away while any row is failing or pending.
+Then merge:
+
+```powershell
+gh pr merge <num> --merge
+```
+
+Do not pass `--delete-branch` while the PR head is checked out in this worktree (`git-powershell.mdc`).
+
+Do **not** report "PR opened" or walk away while CI or Supabase is failing or pending.
 
 ## Phase 1 — Branch and implement
 
@@ -66,9 +74,9 @@ Release / promote PR (`preview` → `main` or `chore/release-v*`):
 gh pr create --base main --head preview --title "Release vX.Y.Z" --body-file "$env:TEMP\pr-release-body.md"
 ```
 
-## Phase 4 — Babysit until merge-ready
+## Phase 4 — Babysit until merge
 
-Repeat until all exit criteria pass:
+Repeat until the merge gate passes, then merge:
 
 ### 4a — CI first
 
@@ -78,53 +86,35 @@ gh pr checks <num> --watch
 
 If red: fix on branch, Fallow + local verify, push, return to 4a. CI failures outrank review comments.
 
-### 4b — Qodo
+### 4b — Supabase
 
-Poll after green CI on latest push:
+Confirm `Validate Supabase Migrations` and `Supabase Preview` are success, or skipped / not scheduled because this PR does not touch related Supabase paths. A red Supabase job blocks merge even when GitHub Actions CI is otherwise green.
 
-```powershell
-Start-Sleep -Seconds 90
-.\dev\pr-feedback\Get-PrQodoFindings.ps1 -PullRequestNumber <num> -Json
-```
-
-Wait until `reviewInProgress: false`, then until `openCount: 0`. Address **every** unstriked finding in all three buckets — not only "action required." Push fixes, re-watch CI, re-poll Qodo.
-
-### 4c — Inline threads
-
-```powershell
-.\dev\pr-feedback\Get-PrFeedbackThreads.ps1 -PullRequestNumber <num> -Json
-```
-
-Resolve or reply; push code fixes when needed. Audit resolved threads for regressions from post-open commits.
-
-### 4d — Final snapshot
+### 4c — Merge
 
 ```powershell
 .\dev\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <num> -Json
-.\dev\pr-feedback\Get-PrQodoFindings.ps1 -PullRequestNumber <num> -Json
-.\dev\pr-feedback\Get-PrFeedbackThreads.ps1 -PullRequestNumber <num> -Json
 gh pr view <num> --json mergeable,mergeStateStatus,url
+gh pr merge <num> --merge
 ```
 
-Post a merge-ready handoff comment citing CI run URL, Qodo parent comment URL with `openCount=0`, and evidence links.
+Post a short merge comment citing the green CI run URL and the Supabase result (pass or skipped / not applicable).
 
 ## Fix-forward patterns (from production PRs)
 
 - **Migration validator:** register RPCs in `dev/security-definer-rpc-allowlists.json`; add `-- rpc-authenticated-grant-allowed:` markers per function.
 - **CodeQL:** fix findings on changed files; avoid dynamic `RegExp` construction from user/path input in E2E specs when a literal pattern suffices.
-- **Qodo product bugs:** implement fix, push, wait for strikethrough — do not hand off with open items.
 - **E2E fixture drift:** reset idempotent test org state (e.g. `e2e/user/shared/fresh-start-reset.ts`) before evidence capture; ensure seed cleanup allowlists include fixture orgs.
 
 ## Relationship to other rules
 
 - **`pr-ci-gate-before-open.mdc`:** CI parity install + green checks — subset of this workflow.
 - **`pr-visual-evidence.mdc`:** capture and publish requirements.
-- **`address-pr-feedback/SKILL.md`:** triage loop for review rounds after open — same exit criteria; use when user asks to address feedback on an existing PR.
+- **`address-pr-feedback/SKILL.md`:** triage loop when the user asks to address review comments — not a preview merge gate.
 - **`branching.mdc`:** when to PR vs direct-push; feat → preview → main.
 
 ## Stop conditions (escalate, do not abandon PR)
 
-- Qodo never posts within 30 minutes after green CI — report PR number and head SHA.
 - Finding requires product decision outside scope — post question on PR, stop babysit loop.
-- CI failure unrelated to PR scope persists after merging latest `origin/preview` (feature) or `origin/main` (release) — report with failing job link.
+- CI or Supabase failure unrelated to PR scope persists after merging latest `origin/preview` (feature) or `origin/main` (release) — report with failing job link.
 - Merge conflict — merge/rebase the PR base (`origin/preview` or `origin/main`), re-verify, push, restart Phase 4.

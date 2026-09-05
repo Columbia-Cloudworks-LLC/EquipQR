@@ -4,9 +4,8 @@ description: >-
   Triage, implement, and respond to pull request review feedback end-to-end in
   Agent Mode. Waits for CI to finish and prioritizes red checks over comments.
   Fetches unresolved review threads and review bodies, audits resolved threads
-  for post-open regressions, parses the Qodo persistent Code Review comment for
-  unstriked findings (action required, review recommended, and optional),
-  implements fixes directly when scope is clear, and only switches to Plan Mode
+  for post-open regressions, implements fixes directly when scope is clear,
+  and only switches to Plan Mode
   for overly complex or assumption-heavy feedback. Verifies with lint,
   type-check, Fallow, and targeted tests; commits, pushes, posts inline replies
   and a summary comment with visual evidence when UI changed; watches CI until
@@ -19,19 +18,17 @@ description: >-
 
 End-to-end workflow for triaging PR review comments, implementing fixes, and posting structured responses. Optimized for **Agent Mode + Composer 2.5** from the start — no mandatory Plan Mode gate unless the feedback round is genuinely complex or ambiguous.
 
-**Same merge-ready standard as new PRs:** exit criteria match **`.cursor/rules/pr-merge-ready-workflow.mdc`** (CI green, Qodo `openCount=0`, threads clear). This skill covers the **feedback loop** on an already-open PR; opening a PR for the first time also follows that rule end-to-end.
+**Same merge gate as new PRs:** **`.cursor/rules/pr-merge-ready-workflow.mdc`** — CI green plus Supabase green or skipped. **Do not wait for Qodo** (retired). This skill covers the **feedback loop** when the user asks to address review comments; it is not a preview merge blocker.
 
 ## Priority order (mandatory)
 
-Before triaging human or bot comments, establish CI and Qodo state:
+Before triaging human or bot comments, establish CI and Supabase state:
 
 | Priority | Signal | Action |
 |----------|--------|--------|
 | **1 — CI pending** | Any PR check still running | **Wait** (`Get-PrChecks.ps1 -Watch`) until all checks finish. Pending CI can surface new failures that change the work queue. |
-| **2 — CI failed** | Any check in `fail` bucket | **Fix CI first** — higher priority than review comments, Qodo findings, or deferrals. Re-watch after each push. |
-| **3 — Qodo in progress** | Status comment says check back / reviewing, or parent review not updated for latest `headSha` | **Wait or poll** `Get-PrQodoFindings.ps1` until the persistent **Code Review by Qodo** comment reflects the latest commit. |
-| **4 — Open Qodo findings** | Unstriked items in the persistent Qodo parent comment | Triage and address every open item (all three buckets) before treating the PR as merge-ready. |
-| **5 — Inline / review-body feedback** | Unresolved threads, `CHANGES_REQUESTED`, review bodies | Triage after CI is green and Qodo open items are handled. |
+| **2 — CI or Supabase failed** | Any required check in `fail`, or Supabase Preview / Validate Supabase Migrations red | **Fix CI/Supabase first** — higher priority than review comments or deferrals. Re-watch after each push. |
+| **3 — Inline / review-body feedback** | Unresolved threads, `CHANGES_REQUESTED`, review bodies | Triage after CI is green, when the user asked to address feedback. |
 
 Do **not** implement comment fixes while required CI is red or still pending. Do **not** hand off while CI is red or pending.
 
@@ -55,11 +52,10 @@ If none apply, **do not** stop for a plan — proceed directly to implementation
 ```text
 - [ ] Step 1: Identify the PR and preflight the working tree
 - [ ] Step 1b: CI gate — inspect checks; if pending, watch until complete; if failed, fix CI before comments
-- [ ] Step 2: Fetch all feedback (threads, review bodies, Qodo parent comment, resolved-thread audit)
-- [ ] Step 2b: If Qodo review still in progress for latest commit, wait/poll before triaging findings
+- [ ] Step 2: Fetch all feedback (threads, review bodies, resolved-thread audit)
 - [ ] Step 3: Triage each item; stop and ask if direction is unclear
 - [ ] Step 3b: (Conditional) Switch to Plan Mode only if the round is complex or assumption-heavy
-- [ ] Step 4: Implement fixes (CI failures first, then Qodo open items, then other feedback)
+- [ ] Step 4: Implement fixes (CI/Supabase failures first, then other feedback)
 - [ ] Step 5: Self-review changes for regressions; verify locally (lint, type-check, Fallow, tests)
 - [ ] Step 6: Capture PR visual evidence when UI remediation is relevant
 - [ ] Step 7: Commit and push to the PR branch
