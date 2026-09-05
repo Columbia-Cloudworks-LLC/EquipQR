@@ -49,7 +49,7 @@ git push -u origin HEAD
 gh pr create --base preview --head feat/<short-name> --title "feat: ..." --body-file "$env:TEMP\pr-body.md"
 ```
 
-Requirements: CI green, visual evidence for UI changes, Qodo/threads clear per team policy. Release-metadata mode is **preview** (Unreleased notes; no version bump).
+Requirements: CI green, visual evidence for UI changes, Supabase green or skipped when the PR has no related changes. Release-metadata mode is **preview** (Unreleased notes; no version bump).
 
 ### 5) Promote to production
 

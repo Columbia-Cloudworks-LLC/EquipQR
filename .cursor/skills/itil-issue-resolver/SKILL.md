@@ -119,7 +119,7 @@ If verification fails outside the change scope, report the blocker instead of br
 
 **Prerequisite:** Section 5 completed; cite verification commands and outcomes in the handoff.
 
-**Default exit:** Always follow **`.cursor/rules/pr-merge-ready-workflow.mdc`** end-to-end — branch, Fallow, `npm ci`, lint, `test:ci`, build, local E2E, PR visual evidence when UI or user-visible behavior changed (including help/docs discovery), push, open PR, babysit CI + Qodo + threads until merge-ready. **Do not** hand off after commit-only, after push-only, or immediately after `gh pr create`.
+**Default exit:** Always follow **`.cursor/rules/pr-merge-ready-workflow.mdc`** end-to-end — branch, Fallow, `npm ci`, lint, `test:ci`, build, local E2E, PR visual evidence when UI or user-visible behavior changed (including help/docs discovery), push, open PR, babysit CI + Supabase until green or skipped, then merge. **Do not** wait for Qodo. **Do not** hand off after commit-only, after push-only, or immediately after `gh pr create`.
 
 Summary commands:
 
@@ -132,7 +132,7 @@ git push -u origin HEAD
 gh pr create --base preview --head <branch> --title "<title>" --body-file <body-file-with-evidence-markdown>
 .\dev\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts" -PrNumber <num> -Publish
 gh pr checks <num> --watch
-# Poll Get-PrQodoFindings until openCount=0; clear threads — see pr-merge-ready-workflow.mdc
+# Confirm Supabase green or skipped; merge — see pr-merge-ready-workflow.mdc
 ```
 
 Accumulate CHANGELOG notes under `[Unreleased]` when the change is user-visible. Follow `.cursor/rules/changelog.mdc` (short bullets). **Do not** bump `package.json` on feature PRs. Use `Fixes #<number>` or `Closes #<number>` in the commit body or PR body when the issue should close after merge to `preview` (or after promote, if the issue should stay open until production).

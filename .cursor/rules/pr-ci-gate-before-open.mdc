@@ -65,7 +65,7 @@ Run **in order** after dependency changes or before first PR open:
 3. `npm run lint`, `npm run type-check`, `npm run test:ci`, `npm run build`, `npm run verify:spa-routing`
 4. Local E2E per `local-verify-before-preview-push.mdc`
 5. PR visual evidence per `pr-visual-evidence.mdc` when UI changed
-6. Push → **`gh pr checks --watch`** until required jobs pass, then complete **`pr-merge-ready-workflow.mdc`** (Qodo `openCount=0`, threads clear) before handoff.
+6. Push → **`gh pr checks --watch`** until required jobs pass and Supabase is green or skipped, then merge per **`pr-merge-ready-workflow.mdc`**. Do not wait for Qodo.
 
 ## Relationship to other rules
 
