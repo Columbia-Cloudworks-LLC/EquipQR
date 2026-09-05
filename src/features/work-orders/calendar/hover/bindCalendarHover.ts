@@ -51,6 +51,23 @@ export function bindCalendarHover(root: HTMLElement, cue: HTMLElement): () => vo
     sync(event.target, event.clientX, event.clientY);
   };
 
+  const onPointerDown = (event: PointerEvent) => {
+    if (event.button !== 0) return;
+    const kind = classifyCalendarHover(event.target, root, {
+      clientX: event.clientX,
+      clientY: event.clientY,
+    });
+    if (kind.kind === 'event') {
+      root.classList.add('eq-cal-dragging');
+    }
+  };
+
+  const onPointerUp = () => {
+    if (!root.querySelector('.fc-event-dragging, .fc-event-mirror')) {
+      root.classList.remove('eq-cal-dragging');
+    }
+  };
+
   const onLeave = (event: PointerEvent) => {
     if (event.relatedTarget instanceof Node && root.contains(event.relatedTarget)) return;
     last = null;
@@ -68,12 +85,18 @@ export function bindCalendarHover(root: HTMLElement, cue: HTMLElement): () => vo
   hideCue(cue);
   root.addEventListener('pointermove', onPointer);
   root.addEventListener('pointerover', onPointer);
+  root.addEventListener('pointerdown', onPointerDown);
+  root.addEventListener('pointerup', onPointerUp);
+  root.addEventListener('pointercancel', onPointerUp);
   root.addEventListener('pointerleave', onLeave);
   root.addEventListener('scroll', onScroll, true);
 
   return () => {
     root.removeEventListener('pointermove', onPointer);
     root.removeEventListener('pointerover', onPointer);
+    root.removeEventListener('pointerdown', onPointerDown);
+    root.removeEventListener('pointerup', onPointerUp);
+    root.removeEventListener('pointercancel', onPointerUp);
     root.removeEventListener('pointerleave', onLeave);
     root.removeEventListener('scroll', onScroll, true);
     marquee?.stop();

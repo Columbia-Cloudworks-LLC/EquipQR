@@ -61,4 +61,22 @@ describe('bindCalendarHover', () => {
     expect(cue.hidden).toBe(true);
     unbind();
   });
+
+  it('marks the calendar as dragging on event pointerdown so hover scale cannot cancel a drag', () => {
+    const { root, cue, eventEl } = mount();
+    const unbind = bindCalendarHover(root, cue);
+
+    eventEl.dispatchEvent(new PointerEvent('pointerdown', {
+      bubbles: true,
+      button: 0,
+      clientX: 12,
+      clientY: 12,
+    }));
+    expect(root.classList.contains('eq-cal-dragging')).toBe(true);
+
+    eventEl.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0 }));
+    expect(root.classList.contains('eq-cal-dragging')).toBe(false);
+
+    unbind();
+  });
 });
