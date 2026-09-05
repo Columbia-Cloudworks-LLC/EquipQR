@@ -1,14 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
+import type { EventContentArg } from '@fullcalendar/core';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import timeGridPlugin from '@fullcalendar/timegrid';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Plus } from 'lucide-react';
+import { bindCalendarHover } from '@/features/work-orders/calendar/hover/bindCalendarHover';
+import '@/features/work-orders/calendar/hover/calendarHover.css';
 import { Button } from '@/components/ui/button';
 import { calendarDayToIso, type CalendarDay } from '@/features/work-orders/calendar/dueDate';
 import type { CalendarIntent } from '@/features/work-orders/calendar/intent';
 import type { CalendarItem } from '@/features/work-orders/calendar/placement';
 import { shiftCalendarAnchor, type CalendarRange } from '@/features/work-orders/calendar/url';
+import { applyCalendarPointerIntent } from '@/features/work-orders/calendar/adapter/applyCalendarPointerIntent';
 import { parseFullCalendarIntent } from '@/features/work-orders/calendar/adapter/parseFullCalendar';
 import {
   localeFirstDay,
@@ -32,6 +36,17 @@ function civilDayFromDate(date: Date): CalendarDay {
 
 function daysEqual(a: CalendarDay, b: CalendarDay): boolean {
   return a.y === b.y && a.m === b.m && a.d === b.d;
+}
+
+function renderEventContent(arg: EventContentArg) {
+  return (
+    <div className="eq-cal-event-body">
+      {arg.timeText ? <span className="eq-cal-event-time">{arg.timeText}</span> : null}
+      <div className="eq-cal-event-title">
+        <span className="eq-cal-event-title-inner">{arg.event.title}</span>
+      </div>
+    </div>
+  );
 }
 
 function jumpLabel(range: CalendarRange, direction: 'previous' | 'next'): string {
@@ -59,6 +74,8 @@ export function FullCalendarGrid({
   onMoreLinkDay,
 }: FullCalendarGridProps) {
   const calendarRef = useRef<FullCalendar>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const cueRef = useRef<HTMLDivElement>(null);
   const [viewTitle, setViewTitle] = useState('');
   const [todayDisabled, setTodayDisabled] = useState(false);
   const events = items.map((item) => {
@@ -72,6 +89,13 @@ export function FullCalendarGrid({
       extendedProps: { placementKind: event.placementKind },
     };
   });
+
+  useEffect(() => {
+    const root = rootRef.current;
+    const cue = cueRef.current;
+    if (!root || !cue) return;
+    return bindCalendarHover(root, cue);
+  }, []);
 
   useEffect(() => {
     const api = calendarRef.current?.getApi();
@@ -88,7 +112,10 @@ export function FullCalendarGrid({
   }, [anchor, range]);
 
   return (
-    <div className="eq-work-order-calendar min-h-[36rem] [&_.fc]:h-full [&_.eq-cal-readonly]:cursor-not-allowed">
+    <div
+      ref={rootRef}
+      className="eq-work-order-calendar min-h-[36rem] [&_.fc]:h-full [&_.eq-cal-readonly]:cursor-not-allowed"
+    >
       <div className="relative mb-2 flex min-h-9 items-center justify-center">
         <div className="absolute left-0 flex items-center gap-1">
           <Button
@@ -161,21 +188,22 @@ export function FullCalendarGrid({
         firstDay={localeFirstDay()}
         headerToolbar={false}
         events={events}
+        eventContent={renderEventContent}
+        eventClassNames={(arg) => (arg.event.allDay ? ['eq-cal-chip'] : ['eq-cal-block'])}
+        eventDragStart={() => rootRef.current?.classList.add('eq-cal-dragging')}
+        eventDragStop={() => rootRef.current?.classList.remove('eq-cal-dragging')}
         moreLinkClick={(info) => {
           onMoreLinkDay(civilDayFromDate(info.date));
           return 'timeGridDay';
         }}
         dateClick={(info) => {
-          const intent = parseFullCalendarIntent(info);
-          if (intent) onIntent(intent);
+          applyCalendarPointerIntent(info.view.calendar, info, onIntent);
         }}
         select={(info) => {
-          const intent = parseFullCalendarIntent(info);
-          if (intent) onIntent(intent);
+          applyCalendarPointerIntent(info.view.calendar, info, onIntent);
         }}
         eventClick={(info) => {
-          const intent = parseFullCalendarIntent(info);
-          if (intent) onIntent(intent);
+          applyCalendarPointerIntent(info.view.calendar, info, onIntent);
         }}
         eventDrop={(info) => {
           const intent = parseFullCalendarIntent(info);
@@ -197,6 +225,15 @@ export function FullCalendarGrid({
           }
         }}
       />
+      <div
+        ref={cueRef}
+        className="eq-cal-create-cue"
+        data-testid="calendar-create-cue"
+        hidden
+        aria-hidden
+      >
+        <Plus className="h-4 w-4 text-muted-foreground" />
+      </div>
     </div>
   );
 }

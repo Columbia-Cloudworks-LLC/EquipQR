@@ -17,5 +17,7 @@ export type WorkOrderFiltersToolbarProps = {
   resultCount: number;
   totalCount: number;
   hideDueDateFilter?: boolean;
+  showSearchAndSort?: boolean;
+  rangeToggle?: ReactNode;
   viewToggle?: ReactNode;
 };

@@ -1,0 +1,94 @@
+.eq-work-order-calendar {
+  position: relative;
+}
+
+.eq-work-order-calendar .fc-daygrid-day,
+.eq-work-order-calendar .fc-timegrid-col:not(.fc-timegrid-axis):not(.fc-timegrid-col-axis) {
+  cursor: pointer;
+}
+
+.eq-work-order-calendar .eq-cal-event {
+  cursor: pointer;
+}
+
+.eq-work-order-calendar .eq-cal-readonly {
+  cursor: not-allowed;
+}
+
+.eq-work-order-calendar .fc-daygrid-day-frame,
+.eq-work-order-calendar .fc-daygrid-day-events,
+.eq-work-order-calendar .fc-daygrid-event-harness:has(.eq-cal-event:hover),
+.eq-work-order-calendar .fc-timegrid-event-harness:has(.eq-cal-event:hover) {
+  overflow: visible;
+}
+
+.eq-work-order-calendar .fc-daygrid-event-harness:has(.eq-cal-event:hover),
+.eq-work-order-calendar .fc-timegrid-event-harness:has(.eq-cal-event:hover) {
+  z-index: 30;
+}
+
+.eq-cal-create-cue {
+  position: absolute;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: hsl(var(--primary) / 0.1);
+}
+
+.eq-cal-create-cue[hidden] {
+  display: none;
+}
+
+.eq-cal-event-body {
+  display: flex;
+  min-width: 0;
+  width: 100%;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.eq-cal-event-time {
+  flex: none;
+}
+
+.eq-cal-event-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eq-cal-event-title.is-marquee {
+  text-overflow: clip;
+}
+
+.eq-cal-event-title-inner {
+  display: inline-block;
+  max-width: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .eq-work-order-calendar:not(.eq-cal-dragging) .eq-cal-event:not(.fc-event-dragging):not(.fc-event-mirror):hover {
+    z-index: 30;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .eq-work-order-calendar:not(.eq-cal-dragging) .eq-cal-chip:not(.fc-event-dragging):not(.fc-event-mirror):hover {
+    transform: scale(1.05);
+    transform-origin: left center;
+  }
+
+  .eq-work-order-calendar:not(.eq-cal-dragging) .eq-cal-block:not(.fc-event-dragging):not(.fc-event-mirror):hover {
+    transform: scale(1.05);
+    transform-origin: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eq-work-order-calendar .eq-cal-event:hover {
+    z-index: 30;
+  }
+}
