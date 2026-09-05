@@ -456,9 +456,9 @@ describe('WorkOrders Page', () => {
       expect(screen.getByTestId('work-orders-list')).toBeInTheDocument();
     });
 
-    it('hides the due-date bucket in calendar mode', () => {
+    it('hides the due-date bucket in calendar mode', async () => {
       renderAt('/dashboard/work-orders?view=calendar');
-      expect(screen.getByTestId('work-order-calendar')).toBeInTheDocument();
+      expect(await screen.findByTestId('work-order-calendar')).toBeInTheDocument();
       expect(screen.queryByTestId('due-date-filter')).not.toBeInTheDocument();
     });
 

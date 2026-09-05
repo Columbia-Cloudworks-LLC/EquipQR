@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Plus, ShieldCheck, Users } from 'lucide-react';
 import { toast } from 'sonner';
@@ -45,11 +45,17 @@ import {
   serializeChromeParams,
   toCalendarItem,
   WORK_ORDERS_VIEW_MODE_KEY,
-  WorkOrderCalendar,
   WorkOrdersViewToggle,
   type CreateDuePrefill,
 } from '@/features/work-orders/calendar';
 import { WorkOrderCalendarPanel } from '@/features/work-orders/calendar/WorkOrderCalendarPanel';
+
+const WorkOrderCalendar = lazy(async () => {
+  const { WorkOrderCalendar: Calendar } = await import(
+    '@/features/work-orders/calendar/WorkOrderCalendar'
+  );
+  return { default: Calendar };
+});
 import { useUpdateWorkOrder } from '@/features/work-orders/hooks/useWorkOrderUpdate';
 import { filterWorkOrders } from '@/features/work-orders/hooks/workOrderFilterUtils';
 import { getPreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
@@ -501,29 +507,31 @@ const WorkOrders = () => {
               onDeleteClick={handleDeleteClick}
             />
           ) : (
-            <WorkOrderCalendar
-              key={calendarEpoch}
-              items={calendarItems}
-              range={chrome.range}
-              anchor={chrome.anchor}
-              selectedWorkOrderId={selectedWorkOrderId}
-              onIntent={(intent) => {
-                if (intent.type === 'select') {
-                  setShowForm(false);
-                  setCreatePrefill(null);
-                  writeChrome({ selectedWorkOrderId: intent.workOrderId });
-                  return;
-                }
-                if (intent.type === 'create') {
-                  openCreate(intent.prefill);
-                  return;
-                }
-                const wo = calendarRows.find((row) => row.id === intent.workOrderId);
-                if (!wo) return;
-                persistCalendarDue(wo as MergedWorkOrder, intent.write);
-              }}
-              onChromeChange={(next) => writeChrome(next)}
-            />
+            <Suspense fallback={<div className="min-h-[24rem]" aria-busy="true" />}>
+              <WorkOrderCalendar
+                key={calendarEpoch}
+                items={calendarItems}
+                range={chrome.range}
+                anchor={chrome.anchor}
+                selectedWorkOrderId={selectedWorkOrderId}
+                onIntent={(intent) => {
+                  if (intent.type === 'select') {
+                    setShowForm(false);
+                    setCreatePrefill(null);
+                    writeChrome({ selectedWorkOrderId: intent.workOrderId });
+                    return;
+                  }
+                  if (intent.type === 'create') {
+                    openCreate(intent.prefill);
+                    return;
+                  }
+                  const wo = calendarRows.find((row) => row.id === intent.workOrderId);
+                  if (!wo) return;
+                  persistCalendarDue(wo as MergedWorkOrder, intent.write);
+                }}
+                onChromeChange={(next) => writeChrome(next)}
+              />
+            </Suspense>
           )}
 
           {isMobile && totalCount > 0 && (
