@@ -177,6 +177,7 @@ export class WorkOrderService extends BaseService {
           assignee_id: data.assignee_id || null,
           team_id: data.team_id || null,
           due_date: data.due_date || null,
+          due_date_has_time: data.due_date_has_time ?? false,
           estimated_hours: data.estimated_hours || null,
           created_by: data.created_by,
           is_historical: data.is_historical || false,
@@ -214,7 +215,12 @@ export class WorkOrderService extends BaseService {
       if (data.status !== undefined) updateData.status = data.status;
       if (data.assignee_id !== undefined) updateData.assignee_id = data.assignee_id;
       if (data.team_id !== undefined) updateData.team_id = data.team_id;
-      if (data.due_date !== undefined) updateData.due_date = data.due_date;
+      if (data.due_date !== undefined) {
+        updateData.due_date = data.due_date;
+        updateData.due_date_has_time = data.due_date_has_time ?? false;
+      } else if (data.due_date_has_time !== undefined) {
+        updateData.due_date_has_time = data.due_date_has_time;
+      }
       if (data.estimated_hours !== undefined) updateData.estimated_hours = data.estimated_hours;
       if (data.completed_date !== undefined) updateData.completed_date = data.completed_date;
 

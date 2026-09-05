@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { WorkOrderFilters as FiltersType } from '@/features/work-orders/types/workOrder';
 import type { QuickFilterPreset, SortField, SortDirection } from '@/features/work-orders/hooks/useWorkOrderFilters';
 
@@ -15,4 +16,6 @@ export type WorkOrderFiltersToolbarProps = {
   onSortChange: (field: SortField, direction: SortDirection) => void;
   resultCount: number;
   totalCount: number;
+  hideDueDateFilter?: boolean;
+  viewToggle?: ReactNode;
 };

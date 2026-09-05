@@ -1,11 +1,13 @@
 
 
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
-import { useCreateWorkOrder, CreateWorkOrderData } from '@/features/work-orders/hooks/useWorkOrderCreation';
+import { useCreateWorkOrder } from '@/features/work-orders/hooks/useWorkOrderCreation';
 import { useUpdateWorkOrder, UpdateWorkOrderData } from '@/features/work-orders/hooks/useWorkOrderUpdate';
 import { useCreateHistoricalWorkOrder, HistoricalWorkOrderData } from '@/features/work-orders/hooks/useHistoricalWorkOrders';
 import type { WorkOrder as EnhancedWorkOrder } from '@/features/work-orders/types/workOrder';
 import { WorkOrderFormData } from './useWorkOrderForm';
+import { parseDue, persistDue } from '@/features/work-orders/calendar';
+import { buildCreateWorkOrderData } from '@/features/work-orders/utils/buildCreateWorkOrderData';
 import { dateToISOString } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -45,6 +47,11 @@ export const useWorkOrderSubmission = ({
     [data: WorkOrderFormData]
   >(
     async (data) => {
+      const persistedDue = persistDue(parseDue({
+        dueDate: data.dueDate,
+        dueDateHasTime: data.dueDateHasTime,
+      }));
+
       if (onSubmit) {
         await onSubmit(data);
         onSuccess();
@@ -54,7 +61,8 @@ export const useWorkOrderSubmission = ({
           title: data.title,
           description: data.description,
           priority: data.priority,
-          dueDate: data.dueDate || undefined,
+          dueDate: persistedDue.dueDate ?? undefined,
+          dueDateHasTime: persistedDue.dueDateHasTime,
           estimatedHours: data.estimatedHours || undefined,
           hasPM: data.hasPM,
         };
@@ -91,7 +99,8 @@ export const useWorkOrderSubmission = ({
           // Simplified assignment: just pass the assigneeId (null = unassigned)
           assigneeId: data.assigneeId || undefined,
           teamId: undefined, // Work orders are not assigned to teams
-          dueDate: data.dueDate || undefined,
+          dueDate: persistedDue.dueDate ?? undefined,
+          dueDateHasTime: persistedDue.dueDateHasTime,
           completedDate: dateToISOString(data.completedDate) || undefined,
           hasPM: data.hasPM || false,
           pmStatus: 'pending',
@@ -105,25 +114,9 @@ export const useWorkOrderSubmission = ({
         // Navigation and success handled by the hook's onSuccess callback
       } else {
         // Create new regular work order - handle UUID fields properly
-        const workOrderData: CreateWorkOrderData = {
-          title: data.title,
-          description: data.description,
-          equipmentId: data.equipmentId,
-          priority: data.priority,
-          dueDate: data.dueDate || undefined,
-          estimatedHours: data.estimatedHours || undefined,
-          equipmentWorkingHours: data.equipmentWorkingHours || undefined,
-          hasPM: data.hasPM || false,
-          pmTemplateId: data.pmTemplateId || undefined,
-          // Simplified assignment: just pass the assigneeId (null = unassigned)
-          assigneeId: data.assigneeId || undefined,
-          images: creationImages.length ? creationImages : undefined,
-          creationPhotoNote: creationImages.length
-            ? `Photos from new work order: ${data.title}`
-            : undefined,
-        };
-        
-        const result = await createWorkOrderMutation.mutateAsync(workOrderData);
+        const result = await createWorkOrderMutation.mutateAsync(
+          buildCreateWorkOrderData(data, creationImages),
+        );
         // Close the dialog for offline queued creates (navigate stays on same page
         // so dialog won't unmount by itself). For online creates the hook navigates
         // to the new work order detail page which unmounts the dialog automatically.

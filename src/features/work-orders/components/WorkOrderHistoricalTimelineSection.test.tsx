@@ -34,6 +34,7 @@ const baseWorkOrder: WorkOrder = {
   created_date: '2026-06-20T12:00:00Z',
   completed_date: '2026-06-21T16:00:00Z',
   due_date: null,
+  due_date_has_time: false,
   updated_at: '2026-06-21T16:00:00Z',
   has_pm: false,
   pm_required: false,

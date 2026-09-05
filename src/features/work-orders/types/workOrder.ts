@@ -275,6 +275,7 @@ export interface WorkOrderCreateData {
   assignee_id?: string;
   team_id?: string;
   due_date?: string;
+  due_date_has_time?: boolean;
   estimated_hours?: number;
   created_by: string;
   is_historical?: boolean;
@@ -292,6 +293,7 @@ export interface WorkOrderUpdateData {
   assignee_id?: string | null;
   team_id?: string | null;
   due_date?: string | null;
+  due_date_has_time?: boolean;
   estimated_hours?: number | null;
   completed_date?: string | null;
 }

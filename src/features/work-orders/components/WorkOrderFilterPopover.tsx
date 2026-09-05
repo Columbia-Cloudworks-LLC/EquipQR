@@ -35,6 +35,7 @@ interface WorkOrderFilterPopoverProps {
   onFilterChange: (key: keyof WorkOrderFilters, value: string) => void;
   onClearFilters: () => void;
   onQuickFilter: (preset: QuickFilterPreset) => void;
+  hideDueDateFilter?: boolean;
 }
 
 const WorkOrderFilterPopover: React.FC<WorkOrderFilterPopoverProps> = ({
@@ -44,6 +45,7 @@ const WorkOrderFilterPopover: React.FC<WorkOrderFilterPopoverProps> = ({
   onFilterChange,
   onClearFilters,
   onQuickFilter,
+  hideDueDateFilter = false,
 }) => {
   return (
     <FilterPopoverShell ariaSubject="work orders" activeFilterCount={activeFilterCount}>
@@ -85,14 +87,15 @@ const WorkOrderFilterPopover: React.FC<WorkOrderFilterPopoverProps> = ({
             />
           </div>
 
-          {/* Due Date */}
-          <div className="flex flex-col gap-1.5">
-            <span className="text-xs text-muted-foreground">Due Date</span>
-            <WorkOrderDueDateFilterSelect
-              value={filters.dueDateFilter}
-              onValueChange={(v) => onFilterChange('dueDateFilter', v)}
-            />
-          </div>
+          {!hideDueDateFilter && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs text-muted-foreground">Due Date</span>
+              <WorkOrderDueDateFilterSelect
+                value={filters.dueDateFilter}
+                onValueChange={(v) => onFilterChange('dueDateFilter', v)}
+              />
+            </div>
+          )}
 
           {/* Invoice */}
           <div className="flex flex-col gap-1.5">
@@ -109,7 +112,7 @@ const WorkOrderFilterPopover: React.FC<WorkOrderFilterPopoverProps> = ({
           <div className="flex flex-col gap-1.5">
             <p className="text-xs text-muted-foreground">Quick filters</p>
             <div className="flex flex-wrap gap-1.5">
-              {quickFilters.map((preset) => {
+              {quickFilters.filter((preset) => !hideDueDateFilter || preset.value !== 'overdue').map((preset) => {
                 const isActive = activePresets.has(preset.value);
                 return (
                   <Tooltip key={preset.value}>

@@ -28,8 +28,9 @@ import { useWorkOrderContextualAssignment, type AssignmentWorkOrderContext } fro
 import {
   formatStatus,
   getStatusColor,
-  isOverdue as checkIsOverdue,
 } from '@/features/work-orders/utils/workOrderHelpers';
+import { formatDueDisplay, isDueOverdue, parseDue } from '@/features/work-orders/calendar';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { buildWorkOrderStatusActions } from '@/features/work-orders/utils/buildWorkOrderStatusActions';
 import WorkOrderAcceptanceModal from './WorkOrderAcceptanceModal';
 import WorkOrderAssigneeDisplay from './WorkOrderAssigneeDisplay';
@@ -60,6 +61,7 @@ interface WorkOrderStatusManagerProps {
   /** Optional context data previously shown in QuickInfo */
   contextData?: {
     dueDate?: string;
+    dueDateHasTime?: boolean;
     estimatedHours?: number;
     equipmentId?: string;
     equipmentName?: string;
@@ -82,6 +84,7 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
   hideStatusActions = false,
   contextData,
 }) => {
+  const { formatDate, formatDateTime } = useFormatTimestamp();
   const [showAcceptanceModal, setShowAcceptanceModal] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
@@ -325,9 +328,18 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
               <Separator />
               <div className="space-y-3">
                 {contextData.dueDate && (() => {
-                  const due = new Date(contextData.dueDate);
-                  const hoursUntilDue = (due.getTime() - Date.now()) / (1000 * 60 * 60);
-                  const isOverdue = checkIsOverdue(contextData.dueDate, workOrder.status);
+                  const due = parseDue({
+                    dueDate: contextData.dueDate,
+                    dueDateHasTime: contextData.dueDateHasTime ?? false,
+                  });
+                  const dueLabel = formatDueDisplay(due, {
+                    formatDay: formatDate,
+                    formatTimed: formatDateTime,
+                  });
+                  const hoursUntilDue = due.kind === 'timed'
+                    ? (due.at.epochMs - Date.now()) / (1000 * 60 * 60)
+                    : Number.POSITIVE_INFINITY;
+                  const isOverdue = isDueOverdue(due, workOrder.status);
                   const isDueSoon = !isOverdue && hoursUntilDue > 0 && hoursUntilDue < 24;
                   return (
                     <div className={`flex items-center gap-2 text-sm ${isOverdue ? 'text-destructive' : isDueSoon ? 'text-warning' : ''}`}>
@@ -340,7 +352,7 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
                           {contextData.formMode === 'requestor' && workOrder.status === 'submitted' ? 'Preferred Due:' : 'Due:'}
                         </span>
                         <span className={isOverdue || isDueSoon ? '' : 'text-muted-foreground'}>
-                          {due.toLocaleDateString()}
+                          {dueLabel}
                         </span>
                         {isOverdue && (
                           <Badge variant="outline" className="text-xs bg-destructive/10 text-destructive border-destructive/30">

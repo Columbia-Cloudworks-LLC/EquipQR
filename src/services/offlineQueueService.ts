@@ -108,6 +108,7 @@ export interface WorkOrderServerSnapshot {
   description?: string | null;
   priority?: string | null;
   due_date?: string | null;
+  due_date_has_time?: boolean | null;
   estimated_hours?: number | null;
   has_pm?: boolean | null;
 }

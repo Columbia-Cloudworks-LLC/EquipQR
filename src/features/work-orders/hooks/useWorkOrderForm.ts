@@ -9,6 +9,7 @@ import {
   getDefaultWorkOrderFormValues,
   type WorkOrderFormData 
 } from '@/features/work-orders/schemas/workOrderSchema';
+import { hydrateDueFormFields } from '@/features/work-orders/calendar';
 import { showErrorToast } from '@/utils/errorHandling';
 
 // Re-export for backward compatibility
@@ -36,6 +37,8 @@ interface UseWorkOrderFormProps {
   isOpen: boolean;
   initialIsHistorical?: boolean;
   pmData?: { template_id?: string | null } | null;
+  prefillDueDate?: string | null;
+  prefillHasTime?: boolean;
 }
 
 export const useWorkOrderForm = ({
@@ -44,6 +47,8 @@ export const useWorkOrderForm = ({
   isOpen,
   initialIsHistorical = false,
   pmData,
+  prefillDueDate,
+  prefillHasTime = false,
 }: UseWorkOrderFormProps) => {
   const isEditMode = !!workOrder;
   const initializationRef = useRef<{
@@ -66,7 +71,17 @@ export const useWorkOrderForm = ({
       description: workOrder?.description || defaults.description,
       equipmentId: workOrder?.equipment_id || equipmentId || defaults.equipmentId,
       priority: workOrder?.priority || defaults.priority,
-      dueDate: workOrder?.due_date ? new Date(workOrder.due_date).toISOString().split('T')[0] : defaults.dueDate,
+      ...hydrateDueFormFields(
+        workOrder
+          ? {
+              dueDate: workOrder.due_date,
+              dueDateHasTime: workOrder.due_date_has_time ?? false,
+            }
+          : {
+              dueDate: prefillDueDate,
+              dueDateHasTime: prefillHasTime,
+            },
+      ),
       estimatedHours: workOrder?.estimated_hours ?? defaults.estimatedHours,
       hasPM: workOrder?.has_pm ?? (pmData?.template_id ? true : defaults.hasPM),
       // Set PM template ID from PM data if editing
@@ -74,7 +89,7 @@ export const useWorkOrderForm = ({
       // Preserve assignee when editing (snake_case from DB -> camelCase for form)
       assigneeId: workOrder?.assignee_id ?? defaults.assigneeId,
     };
-  }, [workOrder, equipmentId, initialIsHistorical, pmData]);
+  }, [workOrder, equipmentId, initialIsHistorical, pmData, prefillDueDate, prefillHasTime]);
 
   // Zod .default() / .transform() make input and output types differ.
   // Pin both so zodResolver matches useForm (see @hookform/resolvers docs).
@@ -136,7 +151,7 @@ export const useWorkOrderForm = ({
     // This avoids reading from stale closure-captured formState.errors
     const currentErrors: Record<string, string> = {};
     const fieldNames: (keyof WorkOrderFormData)[] = [
-      'title', 'description', 'equipmentId', 'priority', 'dueDate',
+      'title', 'description', 'equipmentId', 'priority', 'dueDate', 'dueDateHasTime',
       'estimatedHours', 'hasPM', 'pmTemplateId', 'assigneeId', 
       'isHistorical', 'status', 'historicalStartDate', 'historicalNotes', 'completedDate'
     ];
@@ -219,6 +234,7 @@ export const useWorkOrderForm = ({
           equipmentId: initialValues.equipmentId || '',
           priority: initialValues.priority || 'medium',
           dueDate: initialValues.dueDate || undefined,
+          dueDateHasTime: initialValues.dueDateHasTime ?? false,
           estimatedHours: initialValues.estimatedHours || undefined,
           hasPM: initialValues.hasPM || false,
           pmTemplateId: initialValues.pmTemplateId || null,

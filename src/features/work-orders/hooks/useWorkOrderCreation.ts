@@ -23,6 +23,7 @@ export interface CreateWorkOrderData {
   equipmentId: string;
   priority: 'low' | 'medium' | 'high';
   dueDate?: string;
+  dueDateHasTime?: boolean;
   estimatedHours?: number;
   equipmentWorkingHours?: number;
   hasPM?: boolean;
