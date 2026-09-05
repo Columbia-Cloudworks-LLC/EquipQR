@@ -68,13 +68,15 @@ test.describe('Work order calendar @pr-evidence', () => {
       target: panel.getByRole('textbox', { name: 'Due date' }),
     });
 
-    await page.getByRole('radio', { name: 'Day' }).click();
+    await page.keyboard.press('Escape');
+    await expect(panel).toBeHidden({ timeout: 10_000 });
+    await page.getByRole('radiogroup', { name: 'Calendar range' }).getByRole('radio', { name: 'Day' }).click();
     await expect(page).toHaveURL(/range=day/);
     await expect(calendar.locator('.fc-timeGridDay-view')).toBeVisible({ timeout: 15_000 });
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '05-calendar-day-range', { target: calendar });
 
-    await page.getByRole('radio', { name: 'Month' }).click();
+    await page.getByRole('radiogroup', { name: 'Calendar range' }).getByRole('radio', { name: 'Month' }).click();
     await expect(calendar.locator('.fc-dayGridMonth-view')).toBeVisible({ timeout: 15_000 });
     await page.keyboard.press('Escape');
     await expect(panel).toBeHidden({ timeout: 10_000 });
