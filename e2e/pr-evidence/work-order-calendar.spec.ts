@@ -86,7 +86,15 @@ test.describe('Work order calendar @pr-evidence', () => {
     const dropDay = page.locator('.fc-daygrid-day[data-date="2026-01-16"] .fc-daygrid-day-frame');
     await expect(oilEvent).toBeVisible();
     await expect(dropDay).toBeVisible();
-    await oilEvent.dragTo(dropDay, { targetPosition: { x: 12, y: 48 } });
+    const sourceBox = await oilEvent.boundingBox();
+    const destBox = await dropDay.boundingBox();
+    if (!sourceBox || !destBox) {
+      throw new Error('Calendar drag source or drop day is not visible');
+    }
+    await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(destBox.x + 24, destBox.y + 56, { steps: 24 });
+    await page.mouse.up();
     await expect(page.locator('.fc-daygrid-day[data-date="2026-01-16"]')).toContainText(
       seedWorkOrders.oilChange.title,
       { timeout: 15_000 },
