@@ -83,11 +83,11 @@ test.describe('Work order calendar @pr-evidence', () => {
     await expect(panel).toBeHidden({ timeout: 10_000 });
 
     const oilEvent = page.locator('.fc-event').filter({ hasText: seedWorkOrders.oilChange.title }).first();
-    const dropDay = page.locator('.fc-daygrid-day[data-date="2026-01-14"] .fc-daygrid-day-frame');
+    const dropDay = page.locator('.fc-daygrid-day[data-date="2026-01-16"] .fc-daygrid-day-frame');
     await expect(oilEvent).toBeVisible();
     await expect(dropDay).toBeVisible();
-    await oilEvent.dragTo(dropDay);
-    await expect(page.locator('.fc-daygrid-day[data-date="2026-01-14"]')).toContainText(
+    await oilEvent.dragTo(dropDay, { targetPosition: { x: 12, y: 48 } });
+    await expect(page.locator('.fc-daygrid-day[data-date="2026-01-16"]')).toContainText(
       seedWorkOrders.oilChange.title,
       { timeout: 15_000 },
     );
