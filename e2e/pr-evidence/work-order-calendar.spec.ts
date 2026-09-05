@@ -250,7 +250,9 @@ test.describe('Work order calendar @pr-evidence', () => {
     expect(hoverBox?.width ?? 0).toBeGreaterThan(restBox?.width ?? 0);
     await expect(longTitleChip).toContainText(longTitle);
     await evidencePause(page, 500);
-    await evidenceScreenshot(page, '14-calendar-chip-title-expand', { target: longTitleChip });
+    await longTitleChip.hover();
+    await expect(longTitleChip).toHaveClass(/is-expanded/);
+    await evidenceScreenshot(page, '14-calendar-chip-title-expand');
   });
 
   test('phones stay on the work-order list without a calendar toggle', async ({
