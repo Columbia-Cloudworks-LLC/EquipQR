@@ -46,3 +46,4 @@ export { applyCalendarDrag, toCalendarItem } from '@/features/work-orders/calend
 export type { CreateDuePrefill } from '@/features/work-orders/calendar/intent';
 
 export { WorkOrdersViewToggle } from '@/features/work-orders/calendar/WorkOrdersViewToggle';
+export { CalendarRangeToggle } from '@/features/work-orders/calendar/CalendarRangeToggle';

@@ -13,7 +13,12 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Added
 
-- **Work order calendar** — Desktop planners can switch Work Orders to a calendar, drag dues, and set optional due times. (#1530)
+- **Work order calendar** — Desktop planners can switch Work Orders to a calendar, drag dues, and set optional due times. Month, week, and day live in the toolbar; search, sort, and the result count stay on the list. Empty slots show a create-plus on hover; work-order chips grow and scroll long titles. (#1530)
+
+### Fixed
+
+- **Calendar panel close** — The work-order side panel X now dismisses the panel instead of leaving it open.
+- **Calendar create leftover** — Cancelling a new work order from a calendar slot no longer leaves a ghost event on the grid.
 
 ## [3.31.0] - 2026-09-02
 

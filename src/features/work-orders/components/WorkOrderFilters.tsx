@@ -21,6 +21,8 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersToolbarProps> = ({
   resultCount,
   totalCount,
   hideDueDateFilter = false,
+  showSearchAndSort = true,
+  rangeToggle,
   viewToggle,
 }) => {
   const isMobile = useIsMobile();
@@ -58,6 +60,8 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersToolbarProps> = ({
       resultCount={resultCount}
       totalCount={totalCount}
       hideDueDateFilter={hideDueDateFilter}
+      showSearchAndSort={showSearchAndSort}
+      rangeToggle={rangeToggle}
       viewToggle={viewToggle}
     />
   );

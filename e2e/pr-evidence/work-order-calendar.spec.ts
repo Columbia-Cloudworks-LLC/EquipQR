@@ -161,6 +161,47 @@ test.describe('Work order calendar @pr-evidence', () => {
     });
   });
 
+  test('desktop calendar hover plus, panel X, and cancel leave a clean grid', async ({
+    gotoDashboard,
+    assertHealthyShell,
+    page,
+  }) => {
+    await gotoDashboard(januaryCalendar);
+    await assertHealthyShell();
+    const calendar = page.getByTestId('work-order-calendar');
+    await expect(calendar).toBeVisible({ timeout: 30_000 });
+
+    const emptyHoverDay = page.locator('.fc-daygrid-day[data-date="2026-01-18"]');
+    await emptyHoverDay.hover();
+    await expect(page.getByTestId('calendar-create-cue')).toBeVisible();
+    await evidencePause(page, 400);
+    await evidenceScreenshot(page, '11-calendar-create-plus-hover', { target: emptyHoverDay });
+
+    await page.getByText(seedWorkOrders.oilChange.title).first().click();
+    const panel = page.getByTestId('work-order-calendar-panel');
+    await expect(panel).toBeVisible({ timeout: 15_000 });
+    await panel.getByRole('button', { name: 'Close' }).click();
+    await expect(page.getByTestId('work-order-calendar-panel')).toHaveCount(0);
+    await expect(page).not.toHaveURL(/[?&]wo=/);
+    await evidencePause(page, 400);
+    await evidenceScreenshot(page, '12-calendar-panel-closed', { target: calendar });
+
+    await page.locator('.fc-daygrid-day[data-date="2026-01-19"]').click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByRole('heading', { name: /create work order/i })).toBeVisible({
+      timeout: 15_000,
+    });
+    page.once('dialog', (confirmDialog) => {
+      void confirmDialog.accept();
+    });
+    await dialog.getByRole('button', { name: /^cancel$/i }).click();
+    await expect(dialog).toBeHidden({ timeout: 15_000 });
+    await expect(page.locator('.fc-event-mirror, .fc-highlight')).toHaveCount(0);
+    await expect(page.locator('.fc-daygrid-day[data-date="2026-01-19"] .fc-event')).toHaveCount(0);
+    await evidencePause(page, 400);
+    await evidenceScreenshot(page, '13-calendar-create-cancel-clears-ghost', { target: calendar });
+  });
+
   test('phones stay on the work-order list without a calendar toggle', async ({
     gotoDashboard,
     assertHealthyShell,

@@ -175,7 +175,11 @@ function writeCalendarKeys(
   params.set('view', 'calendar');
   if (range) params.set('range', range);
   if (anchor) params.set('date', calendarDayToIso(anchor));
-  if (workOrderId) params.set('wo', workOrderId);
+  if (workOrderId) {
+    params.set('wo', workOrderId);
+  } else {
+    params.delete('wo');
+  }
 }
 
 function deleteCalendarKeys(params: URLSearchParams): void {

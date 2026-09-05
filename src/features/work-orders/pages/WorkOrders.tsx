@@ -45,6 +45,7 @@ import {
   serializeChromeParams,
   toCalendarItem,
   WORK_ORDERS_VIEW_MODE_KEY,
+  CalendarRangeToggle,
   WorkOrdersViewToggle,
   type CreateDuePrefill,
 } from '@/features/work-orders/calendar';
@@ -376,23 +377,10 @@ const WorkOrders = () => {
 
   const hasActiveFilters = getActiveFilterCount() > 0 || filters.searchQuery.length > 0;
 
-  const getSubtitle = () => {
-    if (!isManager && userTeamIds.length === 0) {
-      return 'No team assignments - contact your administrator for access';
-    }
-
-    const total = mergedWorkOrders.length;
-    const shown = filteredWorkOrders.length;
-    const scope = isManager ? '' : ` across your ${userTeamIds.length} team${userTeamIds.length === 1 ? '' : 's'}`;
-
-    if (filters.searchQuery) {
-      return `${shown} result${shown === 1 ? '' : 's'} for "${filters.searchQuery}"`;
-    }
-    if (hasActiveFilters) {
-      return `Showing ${shown} of ${total} work orders${scope}`;
-    }
-    return `Showing all ${total} work orders${scope}`;
-  };
+  const accessDescription =
+    !isManager && userTeamIds.length === 0
+      ? 'No team assignments - contact your administrator for access'
+      : undefined;
 
   // Generate meta badge based on access level
   const getAccessBadge = () => {
@@ -426,9 +414,9 @@ const WorkOrders = () => {
       <div className="space-y-4">
         <PageHeader 
           title="Work Orders" 
-          description={getSubtitle()}
+          description={accessDescription}
           meta={getAccessBadge()}
-          hideDescriptionOnMobile
+          hideDescriptionOnMobile={Boolean(accessDescription)}
           inlineMetaOnMobile
           actions={
             !isMobile ? (
@@ -476,6 +464,15 @@ const WorkOrders = () => {
               resultCount={filteredWorkOrders.length}
               totalCount={totalCount}
               hideDueDateFilter={chrome.surface === 'calendar'}
+              showSearchAndSort={chrome.surface === 'list'}
+              rangeToggle={
+                chrome.surface === 'calendar' ? (
+                  <CalendarRangeToggle
+                    range={chrome.range}
+                    onChange={(range) => writeChrome({ range })}
+                  />
+                ) : undefined
+              }
               viewToggle={
                 isMobile ? undefined : (
                   <WorkOrdersViewToggle

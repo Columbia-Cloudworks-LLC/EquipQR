@@ -152,21 +152,26 @@ vi.mock('@/features/work-orders/hooks/useWorkOrderUpdate', () => ({
 }));
 
 vi.mock('@/features/work-orders/components/WorkOrderFilters', () => ({
-  WorkOrderFilters: ({ filters, onFilterChange, hideDueDateFilter, viewToggle }: {
+  WorkOrderFilters: ({ filters, onFilterChange, hideDueDateFilter, showSearchAndSort = true, rangeToggle, viewToggle }: {
     filters: { searchQuery: string };
     onFilterChange: (key: string, value: string) => void;
     hideDueDateFilter?: boolean;
+    showSearchAndSort?: boolean;
+    rangeToggle?: React.ReactNode;
     viewToggle?: React.ReactNode;
   }) => (
     <div data-testid="work-order-filters">
-      <input
-        placeholder="Search work orders..."
-        value={filters.searchQuery}
-        onChange={(e) => onFilterChange('searchQuery', e.target.value)}
-      />
+      {showSearchAndSort ? (
+        <input
+          placeholder="Search work orders..."
+          value={filters.searchQuery}
+          onChange={(e) => onFilterChange('searchQuery', e.target.value)}
+        />
+      ) : null}
       {!hideDueDateFilter && (
         <div data-testid="due-date-filter">Due date filter</div>
       )}
+      {rangeToggle}
       {viewToggle}
     </div>
   )
@@ -264,9 +269,9 @@ describe('WorkOrders Page', () => {
       expect(adminBadges.length).toBeGreaterThan(0);
     });
 
-    it('shows "Showing all work orders" subtitle', () => {
+    it('does not show a work-order count subtitle', () => {
       render(<WorkOrders />);
-      expect(screen.getByText(/showing all \d+ work orders/i)).toBeInTheDocument();
+      expect(screen.queryByText(/showing all \d+ work orders/i)).not.toBeInTheDocument();
     });
 
     it('displays the create work order button', () => {
@@ -320,9 +325,9 @@ describe('WorkOrders Page', () => {
       });
     });
 
-    it('shows team-scoped subtitle', () => {
+    it('shows a one-team access badge', () => {
       render(<WorkOrders />);
-      expect(screen.getByText(/across your 1 team/i)).toBeInTheDocument();
+      expect(screen.getByText(/1 team$/i)).toBeInTheDocument();
     });
 
     it('does NOT show the Admin badge', () => {
@@ -394,7 +399,7 @@ describe('WorkOrders Page', () => {
 
     it('shows team count for 2 teams', () => {
       render(<WorkOrders />);
-      expect(screen.getByText(/across your 2 teams/i)).toBeInTheDocument();
+      expect(screen.getByText(/2 teams/i)).toBeInTheDocument();
     });
   });
 
@@ -460,6 +465,13 @@ describe('WorkOrders Page', () => {
       renderAt('/dashboard/work-orders?view=calendar');
       expect(await screen.findByTestId('work-order-calendar')).toBeInTheDocument();
       expect(screen.queryByTestId('due-date-filter')).not.toBeInTheDocument();
+    });
+
+    it('moves calendar range into the toolbar and hides search', async () => {
+      renderAt('/dashboard/work-orders?view=calendar');
+      expect(await screen.findByTestId('work-order-calendar')).toBeInTheDocument();
+      expect(screen.getByRole('radiogroup', { name: 'Calendar range' })).toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('Search work orders...')).not.toBeInTheDocument();
     });
 
     it('keeps date=overdue on the list with the due-date filter visible', () => {

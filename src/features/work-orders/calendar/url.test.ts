@@ -85,6 +85,25 @@ describe('resolveWorkOrdersChrome', () => {
     expect(params.get('date')).toBe('2026-09-04');
   });
 
+  it('clears the wo query param when the calendar panel closes', () => {
+    const chrome = resolveWorkOrdersChrome({
+      urlDate: parseUrlDate('2026-08-01'),
+      viewParam: 'calendar',
+      rangeParam: 'month',
+      woParam: 'wo-1',
+      persist: null,
+      isMobile: false,
+    });
+
+    const current = new URLSearchParams('view=calendar&range=month&date=2026-08-01&wo=wo-1');
+    const params = serializeChromeParams(chrome, { selectedWorkOrderId: null }, current);
+
+    expect(params.get('wo')).toBeNull();
+    expect(params.get('view')).toBe('calendar');
+    expect(params.get('range')).toBe('month');
+    expect(params.get('date')).toBe('2026-08-01');
+  });
+
   it('lets a list bucket win over a persisted calendar view', () => {
     const chrome = resolveWorkOrdersChrome({
       urlDate: parseUrlDate('overdue'),
