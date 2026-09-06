@@ -268,7 +268,7 @@ test.describe('Work order calendar @pr-evidence', () => {
     });
     await expect(page.getByRole('radiogroup', { name: 'Work orders view' })).toHaveCount(0);
     await expect(page.getByTestId('work-order-calendar')).toHaveCount(0);
-    await expect(page.getByTestId('create-work-order-button')).toBeVisible();
+    await expect(page.getByRole('button', { name: /create work order/i })).toBeVisible();
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '10-mobile-list-no-calendar-toggle');
   });
