@@ -1,6 +1,6 @@
 ---
 description: "IronBee DevTools for enabled platforms only. Browser driving is Cursor Browser (`cursor-browser-only.mdc`), not IronBee. Node and backend platforms are off unless enabled."
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Use IronBee DevTools to drive and verify the running application

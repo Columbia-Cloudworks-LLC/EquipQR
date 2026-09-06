@@ -124,6 +124,6 @@ After the user approves, execute with `itil-issue-resolver` for issue-tied work 
 
 - Do not require Plan mode, `CreatePlan`, GitHub comments, or model recommendations.
 - Do not post to GitHub unless the user asks or the active workflow requires an audit comment.
-- Do not force a PR when the repo's current branching rule allows direct push, except when the user explicitly wants the formal issue workflow.
+- Do not force a PR. Local-iterate is the default (`branching.mdc`). Open a PR only when the user asked to publish.
 - Keep vendor setup explicit when required; do not hide it inside prose.
 - Never include secrets or token values.

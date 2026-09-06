@@ -8,7 +8,7 @@ Every **product/runtime PR into `preview`** (day-to-day) follows this end-to-end
 
 **Release PRs** (`preview` → `main`, or `chore/release-v*` from the curated preview tip) use the same babysit gates with `--base main`.
 
-Applies to: linked worktrees, explicit user PR requests, `itil-issue-resolver` integrate-via-PR path, plans that authorize a feature branch, and any skill that says "open a PR."
+Applies when the user or an invoked publish skill asked to open or land a PR (`branching.mdc` publish mode). Does **not** apply because a linked worktree exists. Does **not** apply to local-iterate work on the current checkout.
 
 Direct push to `main` and `preview` is blocked by branch protection; merge via PR after `local-verify-before-preview-push.mdc`.
 
@@ -35,6 +35,8 @@ Do not pass `--delete-branch` while the PR head is checked out in this worktree 
 Do **not** report "PR opened" or walk away while CI or Supabase is failing or pending.
 
 ## Phase 1 — Branch and implement
+
+Only after publish mode is on (`branching.mdc`). If you are already on a matching `feat/*` or `fix/*` branch, keep it. Otherwise:
 
 ```powershell
 git fetch origin preview
@@ -111,7 +113,7 @@ Post a short merge comment citing the green CI run URL and the Supabase result (
 - **`pr-ci-gate-before-open.mdc`:** CI parity install + green checks — subset of this workflow.
 - **`pr-visual-evidence.mdc`:** capture and publish requirements.
 - **`address-pr-feedback/SKILL.md`:** triage loop when the user asks to address review comments — not a preview merge gate.
-- **`branching.mdc`:** when to PR vs direct-push; feat → preview → main.
+- **`branching.mdc`:** local-iterate vs publish; feat → preview → main. Never direct-push to `main` or `preview`.
 
 ## Stop conditions (escalate, do not abandon PR)
 

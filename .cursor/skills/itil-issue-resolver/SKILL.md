@@ -1,6 +1,6 @@
 ---
 name: itil-issue-resolver
-description: Primary EquipQR implementation workflow for one approved issue or small change. Use when the user asks to resolve, implement, execute, or fix a single issue after the scope is clear. Always integrates via merge-ready PR to preview per pr-merge-ready-workflow.mdc — never stop at commit-only or open-and-walk-away handoff. Production promote (preview → main) is a separate /release step.
+description: Primary EquipQR implementation workflow for one approved issue or small change. Use when the user asks to resolve, implement, execute, or fix a single issue after the scope is clear. Default is local-iterate on the current checkout (branching.mdc). Integrate via merge-ready PR only when the user asked to publish, land the issue on preview, or open a PR. Production promote (preview → main) is a separate /release step.
 ---
 
 # ITIL Issue Resolver
@@ -28,8 +28,8 @@ If the request is still unclear, use:
 1. Work on one issue or change only.
 2. Check idempotency before creating branches, comments, or PRs.
 3. Respect `.cursor/rules/branching.mdc`:
-   - Main worktree: push work branch after local verify; open PR to `preview` when ready.
-   - Linked worktree: branch from `origin/preview`, push the branch, and open a PR into `preview`.
+   - Default is local-iterate. Stay on the current checkout. Do not create a branch or PR unless the user asked to publish.
+   - A linked worktree is not publish authorization. Prefer the canonical clone.
    - Never direct-push to `main` or `preview`. Production ships via a separate `preview` → `main` (or `/release`) promote.
 4. Use subagents only when they reduce uncertainty:
    - `explore` for broad impact discovery.
@@ -115,18 +115,20 @@ Choose the smallest credible gate:
 
 If verification fails outside the change scope, report the blocker instead of broadening the work silently. If E2E cannot be automated locally, **stop before integrate** — do not push.
 
-### 6. Integrate (merge-ready PR — mandatory)
+### 6. Integrate (publish mode only)
+
+**Skip this section** unless the user asked to publish, open a PR, merge, or land the issue on `preview` (`branching.mdc`). For local-iterate work, stop after Section 5 and report what changed.
 
 **Prerequisite:** Section 5 completed; cite verification commands and outcomes in the handoff.
 
-**Default exit:** Always follow **`.cursor/rules/pr-merge-ready-workflow.mdc`** end-to-end — branch, Fallow, `npm ci`, lint, `test:ci`, build, local E2E, PR visual evidence when UI or user-visible behavior changed (including help/docs discovery), push, open PR, babysit CI + Supabase until green or skipped, then merge. **Do not** wait for Qodo. **Do not** hand off after commit-only, after push-only, or immediately after `gh pr create`.
+**Publish exit:** Follow **`.cursor/rules/pr-merge-ready-workflow.mdc`** end-to-end — branch (or reuse the existing work branch), Fallow, Windows `npm-ci-safe.bat` / Linux `npm ci`, lint, `test:ci`, build, local E2E, PR visual evidence when UI or user-visible behavior changed (including help/docs discovery), push, open PR, babysit CI + Supabase until green or skipped, then merge. **Do not** wait for Qodo. **Do not** hand off after commit-only, after push-only, or immediately after `gh pr create`.
 
-Summary commands:
+Summary commands (publish mode only; reuse an existing work branch when one already covers the issue):
 
 ```powershell
 git fetch origin preview
 git switch -c <type>/issue-<number>-<slug> origin/preview
-# ... implement, verify (Fallow, npm ci, lint, test:ci, build, E2E) ...
+# ... implement, verify (Fallow, npm-ci-safe.bat, lint, test:ci, build, E2E) ...
 .\dev\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts"
 git push -u origin HEAD
 gh pr create --base preview --head <branch> --title "<title>" --body-file <body-file-with-evidence-markdown>
