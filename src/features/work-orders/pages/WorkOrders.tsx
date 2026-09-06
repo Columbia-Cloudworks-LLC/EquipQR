@@ -448,8 +448,6 @@ const WorkOrders = () => {
               sortField={sortField}
               sortDirection={sortDirection}
               onSortChange={updateSort}
-              resultCount={totalFilteredCount}
-              totalCount={totalAccessibleCount}
               hideDueDateFilter={chrome.surface === 'calendar'}
               showSearchAndSort={chrome.surface === 'list'}
               rangeToggle={

@@ -18,8 +18,6 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersToolbarProps> = ({
   sortField,
   sortDirection,
   onSortChange,
-  resultCount,
-  totalCount,
   hideDueDateFilter = false,
   showSearchAndSort = true,
   rangeToggle,
@@ -57,8 +55,6 @@ export const WorkOrderFilters: React.FC<WorkOrderFiltersToolbarProps> = ({
       sortField={sortField}
       sortDirection={sortDirection}
       onSortChange={onSortChange}
-      resultCount={resultCount}
-      totalCount={totalCount}
       hideDueDateFilter={hideDueDateFilter}
       showSearchAndSort={showSearchAndSort}
       rangeToggle={rangeToggle}

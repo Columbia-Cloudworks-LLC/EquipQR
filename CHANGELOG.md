@@ -14,7 +14,12 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 ### Added
 
 - **Work order list pages** — The Work Orders list now pages on the server, so large organizations no longer load every work order just to show a card page.
-- **Work order calendar** — Desktop planners can switch Work Orders to a calendar, drag dues, and set optional due times. Month, week, and day live in the toolbar; search, sort, and the result count stay on the list. Empty slots show a create-plus on hover; hovering a chip expands it from the center so the full title is readable at once. (#1530)
+- **Work order calendar** — Desktop planners can switch Work Orders to a calendar, drag dues, and set optional due times. Month, week, and day live in the toolbar; search and sort stay on the list. Empty slots show a create-plus on hover; hovering a chip expands it from the center so the full title is readable at once. (#1530)
+- **PM template groups** — EquipQR and organization template sections on PM Templates can collapse. EquipQR starts closed when the organization already has a custom template.
+
+### Changed
+
+- **Work order list toolbar** — The desktop list no longer shows a filtered/total count beside search; paging still shows how many work orders are in view.
 
 ### Fixed
 

@@ -37,15 +37,10 @@ import {
 } from '@/features/work-orders/components/WorkOrderFilterSelectFields';
 import { formatInvoiceFilterLabel } from '@/features/work-orders/utils/invoiceFilterLabels';
 
-export type MobileWorkOrderToolbarProps = Omit<
-  WorkOrderFiltersToolbarProps,
-  'resultCount' | 'totalCount'
->;
-
 const DEFAULT_SORT_FIELD: SortField = 'created';
 const DEFAULT_SORT_DIRECTION: SortDirection = 'desc';
 
-const MobileWorkOrderToolbar: React.FC<MobileWorkOrderToolbarProps> = ({
+const MobileWorkOrderToolbar: React.FC<WorkOrderFiltersToolbarProps> = ({
   filters,
   activeFilterCount,
   activePresets,
