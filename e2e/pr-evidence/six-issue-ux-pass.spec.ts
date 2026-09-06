@@ -2,7 +2,7 @@ import { test, expect } from '../user/fixtures/equipqr-test';
 import { newPersonaPage, pinContextToApex, gotoDashboardRoute } from '../user/shared/auth-helpers';
 import { expectNavigationLinkHidden } from '../user/shared/page-helpers';
 import { seedEquipment, seedTeams, seedWorkOrders } from '../user/shared/seed-data';
-import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
+import { evidenceScreenshot, evidencePause, expandEquipQrTemplatesIfCollapsed } from './shared/evidence-helpers';
 
 function requireBoundingBox(
   box: { x: number; y: number; width: number; height: number } | null,
@@ -66,6 +66,7 @@ test.describe('Six-issue UX pass — desktop @pr-evidence', () => {
     await expect(page.getByRole('heading', { name: /equipqr templates/i })).toBeVisible({
       timeout: 30_000,
     });
+    await expandEquipQrTemplatesIfCollapsed(page);
     await expect(
       page.getByText(/ready to use — assign directly, no clone needed/i).first(),
     ).toBeVisible();

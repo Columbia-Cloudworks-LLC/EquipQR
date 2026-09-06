@@ -1,5 +1,5 @@
 import { test, expect, quickLogin } from '../user/fixtures/equipqr-test';
-import { evidencePause, evidenceScreenshot } from './shared/evidence-helpers';
+import { evidencePause, evidenceScreenshot, expandEquipQrTemplatesIfCollapsed } from './shared/evidence-helpers';
 
 const starterTemplateMatchers = [
   { cardName: /open details for template .*forklift/i, titleName: /forklift/i },
@@ -17,6 +17,7 @@ test.describe('PM template starter title readability @pr-evidence', () => {
     await gotoDashboard('/pm-templates');
     await assertHealthyShell();
 
+    await expandEquipQrTemplatesIfCollapsed(page);
     const equipQrHeading = page.getByRole('heading', { name: /equipqr templates/i });
     await expect(equipQrHeading).toBeVisible({ timeout: 30_000 });
 

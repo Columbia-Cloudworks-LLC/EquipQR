@@ -102,6 +102,15 @@ export async function evidencePause(page: Page, ms: number): Promise<void> {
   await page.waitForTimeout(ms);
 }
 
+/** Expand the EquipQR Templates section when an org already has custom templates. */
+export async function expandEquipQrTemplatesIfCollapsed(page: Page): Promise<void> {
+  const trigger = page.getByRole('button', { name: /equipqr templates/i });
+  await trigger.waitFor({ state: 'visible', timeout: 30_000 });
+  if ((await trigger.getAttribute('aria-expanded')) === 'false') {
+    await trigger.click();
+  }
+}
+
 const DEFAULT_DOCS_BASE = process.env.PR_EVIDENCE_DOCS_URL ?? 'http://localhost:5174';
 const OPERATOR_GUIDE_PATH = '/support/administration/operator-daily-check-ins';
 

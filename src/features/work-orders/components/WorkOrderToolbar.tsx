@@ -24,8 +24,6 @@ const WorkOrderToolbar: React.FC<WorkOrderToolbarProps> = ({
   sortField,
   sortDirection,
   onSortChange,
-  resultCount,
-  totalCount,
   hideDueDateFilter = false,
   showSearchAndSort = true,
   rangeToggle,
@@ -84,18 +82,6 @@ const WorkOrderToolbar: React.FC<WorkOrderToolbarProps> = ({
         {rangeToggle}
 
         <div className="flex-1" />
-
-        {showSearchAndSort ? (
-          <span
-            className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block"
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            <span className="font-medium text-foreground">{resultCount}</span>
-            {' / '}
-            <span className="font-medium text-foreground">{totalCount}</span>
-          </span>
-        ) : null}
 
         {viewToggle ? (
           <>

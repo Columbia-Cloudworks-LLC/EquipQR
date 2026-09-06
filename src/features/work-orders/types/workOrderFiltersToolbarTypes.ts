@@ -14,8 +14,6 @@ export type WorkOrderFiltersToolbarProps = {
   sortField: SortField;
   sortDirection: SortDirection;
   onSortChange: (field: SortField, direction: SortDirection) => void;
-  resultCount: number;
-  totalCount: number;
   hideDueDateFilter?: boolean;
   showSearchAndSort?: boolean;
   rangeToggle?: ReactNode;
