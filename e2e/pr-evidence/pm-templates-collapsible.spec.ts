@@ -88,8 +88,7 @@ test.describe('PM template collapsible sections @pr-evidence', () => {
 
     const search = page.getByRole('textbox', { name: /search work orders/i });
     await expect(search).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByRole('button', { name: /sort work orders/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /^filter$/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /filter work orders/i })).toBeVisible();
     await expect(page.locator('span[aria-live="polite"]').filter({ hasText: '/' })).toHaveCount(0);
 
     await evidencePause(page, 500);
