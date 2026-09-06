@@ -11,11 +11,13 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+## [3.32.0] - 2026-09-06
+
 ### Added
 
-- **Work order list pages** — The Work Orders list now pages on the server, so large organizations no longer load every work order just to show a card page.
-- **Work order calendar** — Desktop planners can switch Work Orders to a calendar, drag dues, and set optional due times. Month, week, and day live in the toolbar; search and sort stay on the list. Empty slots show a create-plus on hover; hovering a chip expands it from the center so the full title is readable at once. (#1530)
-- **PM template groups** — EquipQR and organization template sections on PM Templates can collapse. EquipQR starts closed when the organization already has a custom template.
+- **Work order calendar (#1530)** — Desktop planners can switch Work Orders to a month, week, or day calendar, drag due dates, and set optional due times.
+- **Work order list pages (#1534)** — The Work Orders list now pages on the server so large organizations no longer load every work order at once.
+- **PM template groups (#1536)** — EquipQR and organization sections on PM Templates can collapse. EquipQR starts closed when the organization already has a custom template.
 
 ### Changed
 
@@ -23,7 +25,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Fixed
 
-- **Calendar panel close** — The work-order side panel X now dismisses the panel instead of leaving it open.
+- **Calendar panel close (#1533)** — The work-order side panel X now dismisses the panel.
 - **Calendar create leftover** — Cancelling a new work order from a calendar slot no longer leaves a ghost event on the grid.
 
 ## [3.31.0] - 2026-09-02
@@ -2731,7 +2733,8 @@ Update package dependencies and versions
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.31.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.32.0...HEAD
+[3.32.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.31.0...v3.32.0
 [3.31.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.30.0...v3.31.0
 [3.30.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.29.1...v3.30.0
 [3.29.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.29.0...v3.29.1
