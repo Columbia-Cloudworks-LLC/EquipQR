@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { deleteWorkOrderCascade } from '@/features/work-orders/services/deleteWorkOrderService';
 import { useToast } from '@/hooks/use-toast';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { workOrders } from '@/lib/queryKeys';
 
 export const useDeleteWorkOrder = () => {
   const queryClient = useQueryClient();
@@ -13,6 +14,7 @@ export const useDeleteWorkOrder = () => {
     onSuccess: () => {
       if (currentOrganization?.id) {
         // Invalidate all work order related queries with comprehensive pattern matching
+        queryClient.invalidateQueries({ queryKey: workOrders.pagedList(currentOrganization.id) });
         queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', currentOrganization.id] });
         queryClient.invalidateQueries({ queryKey: ['workOrders', currentOrganization.id] });
         queryClient.invalidateQueries({ queryKey: ['work-orders-filtered-optimized', currentOrganization.id] });

@@ -56,6 +56,7 @@ export const workOrderFormSchema = z.object({
     .min(1, "Equipment is required"),
   priority: workOrderPrioritySchema,
   dueDate: z.string().optional().nullable(),
+  dueDateHasTime: z.boolean().default(false),
   estimatedHours: z.number()
     .min(0, "Estimated hours cannot be negative")
     .max(10000, "Estimated hours seems too high")
@@ -107,6 +108,7 @@ export const getDefaultWorkOrderFormValues = (
   equipmentId: options.equipmentId || '',
   priority: 'medium',
   dueDate: undefined,
+  dueDateHasTime: false,
   estimatedHours: undefined,
   hasPM: false,
   pmTemplateId: null,

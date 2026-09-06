@@ -1,5 +1,7 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@vitest-harness/utils/test-utils';
+import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render } from '@vitest-harness/utils/test-utils';
+import { TestProviders } from '@vitest-harness/utils/TestProviders';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WorkOrderData } from '@/features/work-orders/types/workOrder';
 import WorkOrders from '@/features/work-orders/pages/WorkOrders';
@@ -7,7 +9,7 @@ import { personas } from '@vitest-harness/fixtures/personas';
 import { workOrders as woFixtures, organizations } from '@vitest-harness/fixtures/entities';
 import * as useTeamBasedWorkOrdersModule from '@/features/teams/hooks/useTeamBasedWorkOrders';
 import '@/contexts/OrganizationContext';
-import * as useWorkOrderFiltersModule from '@/features/work-orders/hooks/useWorkOrderFilters';
+import * as useWorkOrderFilteringModule from '@/features/work-orders/hooks/useWorkOrderFiltering';
 import type { QuickFilterPreset } from '@/features/work-orders/hooks/useWorkOrderFilters';
 import * as useMobileModule from '@/hooks/use-mobile';
 
@@ -105,11 +107,17 @@ vi.mock('@/features/work-orders/hooks/useBatchAssignUnassignedWorkOrders', () =>
   }))
 }));
 
-const { createWorkOrderFiltersMock } = vi.hoisted(() => ({
-  createWorkOrderFiltersMock: (
+const { createWorkOrderFilteringMock } = vi.hoisted(() => ({
+  createWorkOrderFilteringMock: (
     workOrders: WorkOrderData[] = [],
     updateFilter = vi.fn(),
   ) => ({
+    workOrders,
+    totalFilteredCount: workOrders.length,
+    totalAccessibleCount: workOrders.length,
+    currentPage: 1,
+    pageSize: 12,
+    pageSizeOptions: [12, 24, 36, 48] as const,
     filters: {
       searchQuery: '',
       statusFilter: 'all',
@@ -119,21 +127,24 @@ const { createWorkOrderFiltersMock } = vi.hoisted(() => ({
       dueDateFilter: 'all',
       invoiceFilter: 'all',
     },
-    filteredWorkOrders: workOrders,
-    totalCount: workOrders.length,
-    activePresets: new Set<QuickFilterPreset>(),
     sortField: 'created' as const,
     sortDirection: 'desc' as const,
-    getActiveFilterCount: vi.fn(() => 0),
-    clearAllFilters: vi.fn(),
-    toggleQuickFilter: vi.fn(),
+    activePresets: new Set<QuickFilterPreset>(),
+    isLoading: false,
+    hasActiveFilters: false,
+    unassignedSubmittedCount: 0,
     updateFilter,
     updateSort: vi.fn(),
+    toggleQuickFilter: vi.fn(),
+    clearAllFilters: vi.fn(),
+    setCurrentPage: vi.fn(),
+    setPageSize: vi.fn(),
+    getActiveFilterCount: vi.fn(() => 0),
   }),
 }));
 
-vi.mock('@/features/work-orders/hooks/useWorkOrderFilters', () => ({
-  useWorkOrderFilters: vi.fn(() => createWorkOrderFiltersMock())
+vi.mock('@/features/work-orders/hooks/useWorkOrderFiltering', () => ({
+  useWorkOrderFiltering: vi.fn(() => createWorkOrderFilteringMock()),
 }));
 
 // Mock components
@@ -141,19 +152,42 @@ vi.mock('@/features/work-orders/components/AutoAssignmentBanner', () => ({
   AutoAssignmentBanner: () => <div data-testid="auto-assignment-banner">Auto Assignment Banner</div>
 }));
 
+vi.mock('@/features/work-orders/hooks/useWorkOrderUpdate', () => ({
+  useUpdateWorkOrder: vi.fn(() => ({
+    mutate: vi.fn(),
+    mutateAsync: vi.fn(),
+    isPending: false,
+  })),
+}));
+
 vi.mock('@/features/work-orders/components/WorkOrderFilters', () => ({
-  WorkOrderFilters: ({ filters, onFilterChange }: {
+  WorkOrderFilters: ({ filters, onFilterChange, hideDueDateFilter, showSearchAndSort = true, rangeToggle, viewToggle }: {
     filters: { searchQuery: string };
     onFilterChange: (key: string, value: string) => void;
+    hideDueDateFilter?: boolean;
+    showSearchAndSort?: boolean;
+    rangeToggle?: React.ReactNode;
+    viewToggle?: React.ReactNode;
   }) => (
     <div data-testid="work-order-filters">
-      <input
-        placeholder="Search work orders..."
-        value={filters.searchQuery}
-        onChange={(e) => onFilterChange('searchQuery', e.target.value)}
-      />
+      {showSearchAndSort ? (
+        <input
+          placeholder="Search work orders..."
+          value={filters.searchQuery}
+          onChange={(e) => onFilterChange('searchQuery', e.target.value)}
+        />
+      ) : null}
+      {!hideDueDateFilter && (
+        <div data-testid="due-date-filter">Due date filter</div>
+      )}
+      {rangeToggle}
+      {viewToggle}
     </div>
   )
+}));
+
+vi.mock('@/features/work-orders/calendar/WorkOrderCalendar', () => ({
+  WorkOrderCalendar: () => <div data-testid="work-order-calendar">Calendar</div>,
 }));
 
 vi.mock('@/features/work-orders/components/WorkOrdersList', () => ({
@@ -205,10 +239,24 @@ function configureAccess(options: {
   });
 }
 
-function setWorkOrders(workOrders: WorkOrderData[]) {
-  vi.mocked(useWorkOrderFiltersModule.useWorkOrderFilters).mockReturnValue(
-    createWorkOrderFiltersMock(workOrders),
+function renderAt(path: string) {
+  return rtlRender(<WorkOrders />, {
+    wrapper: ({ children }) => (
+      <TestProviders initialEntries={[path]}>{children}</TestProviders>
+    ),
+  });
+}
+
+function setWorkOrders(workOrders: WorkOrderData[], extra?: { totalFilteredCount?: number }) {
+  vi.mocked(useWorkOrderFilteringModule.useWorkOrderFiltering).mockReturnValue(
+    createWorkOrderFilteringMock(workOrders),
   );
+  if (extra?.totalFilteredCount !== undefined) {
+    vi.mocked(useWorkOrderFilteringModule.useWorkOrderFiltering).mockReturnValue({
+      ...createWorkOrderFilteringMock(workOrders),
+      totalFilteredCount: extra.totalFilteredCount,
+    });
+  }
 }
 
 // ============================================
@@ -236,9 +284,9 @@ describe('WorkOrders Page', () => {
       expect(adminBadges.length).toBeGreaterThan(0);
     });
 
-    it('shows "Showing all work orders" subtitle', () => {
+    it('does not show a work-order count subtitle', () => {
       render(<WorkOrders />);
-      expect(screen.getByText(/showing all \d+ work orders/i)).toBeInTheDocument();
+      expect(screen.queryByText(/showing all \d+ work orders/i)).not.toBeInTheDocument();
     });
 
     it('displays the create work order button', () => {
@@ -292,9 +340,9 @@ describe('WorkOrders Page', () => {
       });
     });
 
-    it('shows team-scoped subtitle', () => {
+    it('shows a one-team access badge', () => {
       render(<WorkOrders />);
-      expect(screen.getByText(/across your 1 team/i)).toBeInTheDocument();
+      expect(screen.getByText(/1 team$/i)).toBeInTheDocument();
     });
 
     it('does NOT show the Admin badge', () => {
@@ -342,8 +390,8 @@ describe('WorkOrders Page', () => {
 
     it('responds to search input', () => {
       const mockUpdateFilter = vi.fn();
-      vi.mocked(useWorkOrderFiltersModule.useWorkOrderFilters).mockReturnValue(
-        createWorkOrderFiltersMock([], mockUpdateFilter),
+      vi.mocked(useWorkOrderFilteringModule.useWorkOrderFiltering).mockReturnValue(
+        createWorkOrderFilteringMock([], mockUpdateFilter),
       );
 
       render(<WorkOrders />);
@@ -366,7 +414,7 @@ describe('WorkOrders Page', () => {
 
     it('shows team count for 2 teams', () => {
       render(<WorkOrders />);
-      expect(screen.getByText(/across your 2 teams/i)).toBeInTheDocument();
+      expect(screen.getByText(/2 teams/i)).toBeInTheDocument();
     });
   });
 
@@ -411,6 +459,63 @@ describe('WorkOrders Page', () => {
       render(<WorkOrders />);
       expect(screen.getByText('No work orders found')).toBeInTheDocument();
       expect(screen.getByText(/get started by creating/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('server-paged list', () => {
+    it('shows ListPaginationFooter when the filtered total is above a page', () => {
+      const many = Array.from({ length: 12 }, (_, index) => ({
+        id: `wo-${index}`,
+        title: `Work order ${index}`,
+        description: '',
+        equipmentId: 'eq-1',
+        organizationId: organizations.acme.id,
+        status: 'submitted' as const,
+        priority: 'medium' as const,
+        createdDate: '2026-01-01T00:00:00Z',
+        created_date: '2026-01-01T00:00:00Z',
+      }));
+      setWorkOrders(many, { totalFilteredCount: 37 });
+
+      render(<WorkOrders />);
+
+      expect(screen.getByTestId('list-pagination-footer')).toBeInTheDocument();
+      expect(screen.getByText(/of 37 work orders/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('list and calendar chrome', () => {
+    it('shows the desktop view toggle', () => {
+      render(<WorkOrders />);
+      expect(screen.getByRole('radiogroup', { name: 'Work orders view' })).toBeInTheDocument();
+    });
+
+    it('hides the view toggle on phones', () => {
+      vi.mocked(useMobileModule.useIsMobile).mockReturnValue(true);
+      renderAt('/dashboard/work-orders?view=calendar');
+      expect(screen.queryByRole('radiogroup', { name: 'Work orders view' })).not.toBeInTheDocument();
+      expect(screen.queryByTestId('work-order-calendar')).not.toBeInTheDocument();
+      expect(screen.getByTestId('work-orders-list')).toBeInTheDocument();
+    });
+
+    it('hides the due-date bucket in calendar mode', async () => {
+      renderAt('/dashboard/work-orders?view=calendar');
+      expect(await screen.findByTestId('work-order-calendar')).toBeInTheDocument();
+      expect(screen.queryByTestId('due-date-filter')).not.toBeInTheDocument();
+    });
+
+    it('moves calendar range into the toolbar and hides search', async () => {
+      renderAt('/dashboard/work-orders?view=calendar');
+      expect(await screen.findByTestId('work-order-calendar')).toBeInTheDocument();
+      expect(screen.getByRole('radiogroup', { name: 'Calendar range' })).toBeInTheDocument();
+      expect(screen.queryByPlaceholderText('Search work orders...')).not.toBeInTheDocument();
+    });
+
+    it('keeps date=overdue on the list with the due-date filter visible', () => {
+      renderAt('/dashboard/work-orders?date=overdue&view=calendar');
+      expect(screen.getByTestId('work-orders-list')).toBeInTheDocument();
+      expect(screen.queryByTestId('work-order-calendar')).not.toBeInTheDocument();
+      expect(screen.getByTestId('due-date-filter')).toBeInTheDocument();
     });
   });
 });

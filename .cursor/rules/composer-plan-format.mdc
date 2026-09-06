@@ -1,6 +1,6 @@
 ---
-description: "Composer 2.5 executable plan format"
-alwaysApply: true
+description: "Composer 2.5 executable plan format. Apply when creating a plan, Change Plan, or switching to Plan Mode."
+alwaysApply: false
 ---
 
 # Composer 2.5 Executable Plans

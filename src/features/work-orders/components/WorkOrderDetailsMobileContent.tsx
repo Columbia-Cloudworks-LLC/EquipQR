@@ -298,6 +298,7 @@ export function WorkOrderDetailsMobileContent({
           status: workOrder.status,
           priority: workOrder.priority,
           due_date: workOrder.due_date ?? undefined,
+          due_date_has_time: workOrder.due_date_has_time ?? false,
           assignee_id: workOrder.assignee_id,
           updated_at: workOrder.updated_at,
           equipment_id: workOrder.equipment_id,

@@ -4,9 +4,8 @@ description: >-
   Triage, implement, and respond to pull request review feedback end-to-end in
   Agent Mode. Waits for CI to finish and prioritizes red checks over comments.
   Fetches unresolved review threads and review bodies, audits resolved threads
-  for post-open regressions, parses the Qodo persistent Code Review comment for
-  unstriked findings (action required, review recommended, and optional),
-  implements fixes directly when scope is clear, and only switches to Plan Mode
+  for post-open regressions, implements fixes directly when scope is clear,
+  and only switches to Plan Mode
   for overly complex or assumption-heavy feedback. Verifies with lint,
   type-check, Fallow, and targeted tests; commits, pushes, posts inline replies
   and a summary comment with visual evidence when UI changed; watches CI until
@@ -19,19 +18,17 @@ description: >-
 
 End-to-end workflow for triaging PR review comments, implementing fixes, and posting structured responses. Optimized for **Agent Mode + Composer 2.5** from the start — no mandatory Plan Mode gate unless the feedback round is genuinely complex or ambiguous.
 
-**Same merge-ready standard as new PRs:** exit criteria match **`.cursor/rules/pr-merge-ready-workflow.mdc`** (CI green, Qodo `openCount=0`, threads clear). This skill covers the **feedback loop** on an already-open PR; opening a PR for the first time also follows that rule end-to-end.
+**Same merge gate as new PRs:** **`.cursor/rules/pr-merge-ready-workflow.mdc`** — CI green plus Supabase green or skipped. **Do not wait for Qodo** (retired). This skill covers the **feedback loop** when the user asks to address review comments; it is not a preview merge blocker.
 
 ## Priority order (mandatory)
 
-Before triaging human or bot comments, establish CI and Qodo state:
+Before triaging human or bot comments, establish CI and Supabase state:
 
 | Priority | Signal | Action |
 |----------|--------|--------|
 | **1 — CI pending** | Any PR check still running | **Wait** (`Get-PrChecks.ps1 -Watch`) until all checks finish. Pending CI can surface new failures that change the work queue. |
-| **2 — CI failed** | Any check in `fail` bucket | **Fix CI first** — higher priority than review comments, Qodo findings, or deferrals. Re-watch after each push. |
-| **3 — Qodo in progress** | Status comment says check back / reviewing, or parent review not updated for latest `headSha` | **Wait or poll** `Get-PrQodoFindings.ps1` until the persistent **Code Review by Qodo** comment reflects the latest commit. |
-| **4 — Open Qodo findings** | Unstriked items in the persistent Qodo parent comment | Triage and address every open item (all three buckets) before treating the PR as merge-ready. |
-| **5 — Inline / review-body feedback** | Unresolved threads, `CHANGES_REQUESTED`, review bodies | Triage after CI is green and Qodo open items are handled. |
+| **2 — CI or Supabase failed** | Any required check in `fail`, or Supabase Preview / Validate Supabase Migrations red | **Fix CI/Supabase first** — higher priority than review comments or deferrals. Re-watch after each push. |
+| **3 — Inline / review-body feedback** | Unresolved threads, `CHANGES_REQUESTED`, review bodies | Triage after CI is green, when the user asked to address feedback. |
 
 Do **not** implement comment fixes while required CI is red or still pending. Do **not** hand off while CI is red or pending.
 
@@ -55,11 +52,10 @@ If none apply, **do not** stop for a plan — proceed directly to implementation
 ```text
 - [ ] Step 1: Identify the PR and preflight the working tree
 - [ ] Step 1b: CI gate — inspect checks; if pending, watch until complete; if failed, fix CI before comments
-- [ ] Step 2: Fetch all feedback (threads, review bodies, Qodo parent comment, resolved-thread audit)
-- [ ] Step 2b: If Qodo review still in progress for latest commit, wait/poll before triaging findings
+- [ ] Step 2: Fetch all feedback (threads, review bodies, resolved-thread audit)
 - [ ] Step 3: Triage each item; stop and ask if direction is unclear
 - [ ] Step 3b: (Conditional) Switch to Plan Mode only if the round is complex or assumption-heavy
-- [ ] Step 4: Implement fixes (CI failures first, then Qodo open items, then other feedback)
+- [ ] Step 4: Implement fixes (CI/Supabase failures first, then other feedback)
 - [ ] Step 5: Self-review changes for regressions; verify locally (lint, type-check, Fallow, tests)
 - [ ] Step 6: Capture PR visual evidence when UI remediation is relevant
 - [ ] Step 7: Commit and push to the PR branch
@@ -77,8 +73,6 @@ From the repo root, prefer the shared PowerShell drivers:
 | 1b, 9 | [`dev/pr-feedback/Get-PrChecks.ps1`](../../../dev/pr-feedback/Get-PrChecks.ps1) — use `-Json` for structured status; `-Watch` (and `-FailFast` when diagnosing) to block until checks finish |
 | 2 (inline threads) | [`dev/pr-feedback/Get-PrFeedbackThreads.ps1`](../../../dev/pr-feedback/Get-PrFeedbackThreads.ps1) |
 | 2b (review bodies) | [`dev/pr-feedback/Get-PrReviewBodies.ps1`](../../../dev/pr-feedback/Get-PrReviewBodies.ps1) |
-| 2c (Qodo findings) | [`dev/pr-feedback/Get-PrQodoFindings.ps1`](../../../dev/pr-feedback/Get-PrQodoFindings.ps1) — parses the **persistent parent** comment; open items lack `<s>` / `✓ Resolved` strikethrough |
-| 2c-fix (Qodo auto-fix PR) | [`dev/pr-feedback/Get-PrQodoFixPr.ps1`](../../../dev/pr-feedback/Get-PrQodoFixPr.ps1) — mines **Qodo Fixer** cherry-pick comment for closed fix PR link |
 | 5 | [`dev/pr-feedback/Invoke-PrVerification.ps1`](../../../dev/pr-feedback/Invoke-PrVerification.ps1) (supplement with Fallow — see Step 5) |
 | 6 | [`dev/pr-evidence/Invoke-PrEvidence.ps1`](../../../dev/pr-evidence/Invoke-PrEvidence.ps1) |
 | 8 | [`dev/pr-feedback/Publish-PrFeedbackResponses.ps1`](../../../dev/pr-feedback/Publish-PrFeedbackResponses.ps1) |
@@ -149,7 +143,7 @@ Interpret the JSON:
 .\dev\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <number> -Watch
 ```
 
-**After a fix push**, repeat Step 1b before re-reading Qodo or inline threads — a green local verify does not substitute for green PR checks (per `.cursor/rules/pr-ci-gate-before-open.mdc`).
+**After a fix push**, repeat Step 1b before re-reading inline threads — a green local verify does not substitute for green PR checks (per `.cursor/rules/pr-ci-gate-before-open.mdc`).
 
 ### Step 2: Fetch All Feedback
 
@@ -189,67 +183,11 @@ resolvedSet     = threads where isResolved == true
 
 Fetch PR reviews and top-level issue comments. Triage each review with meaningful `body` or `state` of `CHANGES_REQUESTED` like any inline thread.
 
-#### 2c — Qodo Code Review (mandatory — persistent parent comment)
+#### 2c — Leftover bot comments (optional)
 
-Qodo posts **two** comment types on every re-push:
+Qodo is retired. Do not wait for a Qodo parent comment, poll `Get-PrQodoFindings.ps1`, or cherry-pick Qodo Fixer PRs. If a leftover Qodo, Copilot, or CodeRabbit comment is already on the PR, treat it as a normal review thread. Assess it on its merits. Skip it when the user did not ask to address review comments.
 
-1. **Status comment** (short, updated on each push) — e.g. `[Code review](<parent-url>) by qodo was updated up to the latest commit <sha>`, or an in-progress message asking you to check back later.
-2. **Parent / persistent comment** (`Code Review by Qodo` heading) — the authoritative checklist. Qodo updates this comment in place (`persistent_comment = true` in `.pr_agent.toml`). **All** action-required, review-recommended, and optional findings live here.
-
-**Script (recommended):**
-
-```powershell
-.\dev\pr-feedback\Get-PrQodoFindings.ps1 -PullRequestNumber <number> -Json
-```
-
-**Procedure:**
-
-1. If `reviewInProgress: true`, **wait** (poll every few minutes or after CI completes) until the parent comment reflects the latest `headSha`. Do not triage stale findings.
-2. Open `parentCommentUrl` from the JSON output — this is the comment to read.
-3. Treat `openFindings` as the mandatory work queue. Each item lacks strikethrough (`<s>…</s>`, `~~…~~`) and lacks the `✓ Resolved` badge.
-4. `resolvedFindings` are already struck through — confirm fixes still hold in current code; do not re-implement unless regressed.
-5. Parse only the **current** section of the parent comment (above `<!-- FOLDED_SECTION_START -->` / `### Previous review results`). Ignore folded historical results unless auditing regressions.
-
-| Qodo bucket (`openFindings[].bucket`) | Required action |
-|-------------|-----------------|
-| **actionRequired** | Implement or explicitly reject with technical rationale |
-| **reviewRecommended** | Implement or explicitly reject — do not skip as "optional noise" |
-| **optional** | Implement or explicitly reject — still must appear in the PR summary |
-
-Cross-check each open Qodo item against inline threads and review bodies so nothing is missed when Qodo grouped findings in its summary comment rather than inline.
-
-For automated reviewer comments (Qodo, Copilot, CodeRabbit, etc.), verify against the actual codebase before accepting — but **default to addressing** when the suggestion is technically valid.
-
-#### 2c-fix — Qodo Fixer auto-fix PR (cherry-pick before hand-implementing)
-
-Qodo often opens a **closed** remediation PR (`Fix: [for cherry-picking] ...`, author `app/qodo-code-review`) and posts a separate **Qodo Fixer** issue comment on the feature PR. The fix is **not** applied automatically — cherry-pick selective hunks into the feature branch so Qodo can track `Merged (N)` vs `Fixed (M)`.
-
-**Script:**
-
-```powershell
-.\dev\pr-feedback\Get-PrQodoFixPr.ps1 -PullRequestNumber <number> -Json
-```
-
-**Stable comment pattern:**
-
-| Signal | Pattern |
-|--------|---------|
-| Kind | `### Qodo Fixer` + `🍒 Ready to be cherry-picked` |
-| Counts | `✅ Merged (N) · ☑ Fixed (M)` — `pendingCount = M - N` |
-| Link | `🔗 Fix PR: [#<num>](url)` |
-| Items | `- ☑ Fixed: <title>` under `Process — M fixed` |
-| Fix PR title | `Fix: [for cherry-picking] ...` |
-| Fix branch | `fix/remediation-<hash>` |
-
-**When `needsAction: true`:**
-
-1. `gh pr diff <fixPrNumber>` — review each change; reject incorrect hunks.
-2. `git fetch origin <fixPr.headRefName>`
-3. Apply selectively (`git cherry-pick <sha>`, or `git checkout origin/<fix-head> -- <paths>` + edit).
-4. Re-run local verify (Step 5); push.
-5. Re-poll `Get-PrQodoFixPr` — `mergedCount` should rise as fixes land.
-
-**Only hand-implement** when no fix PR exists, cherry-pick is incomplete, or open findings remain in `Get-PrQodoFindings` after apply.
+For automated reviewer comments, verify against the actual codebase before accepting.
 
 #### 2d — Resolved-thread regression audit (avoid fix-and-regress cycles)
 
@@ -267,7 +205,7 @@ Procedure:
 
 This audit prevents going back and forth on issues that were "fixed" once but broken again by subsequent pushes.
 
-**If CI is green, Qodo `openCount` is 0, `workingSet` and review-body feedback are empty after audit,** post one short comment that there is no actionable feedback; still confirm resolved-thread audit found no regressions.
+**If CI is green and `workingSet` plus review-body feedback are empty after audit,** post one short comment that there is no actionable feedback; still confirm resolved-thread audit found no regressions.
 
 ### Step 3: Triage Each Comment
 
@@ -285,7 +223,6 @@ Categorize every distinct feedback item into exactly one bucket:
 - Verify each suggestion against the actual codebase before categorizing.
 - Check whether a suggestion would break functionality or tests.
 - Group related comments that address the same concern (one issue per theme for deferred work).
-- **Every open Qodo item** (all three buckets) must land in Address, Defer, Reject, or Question — none may be silently dropped.
 - **CI failures** are always **Address** unless clearly flaky infrastructure — fix or re-run once with evidence.
 
 **Stop and ask** when any **Question** item remains or when implementation would require an assumption the user has not authorized. Do not proceed to edits until direction is clear.
@@ -298,7 +235,7 @@ If scope is straightforward (typical case), **skip this step** and continue to S
 
 ### Step 4: Implement Fixes
 
-**Implementation order:** CI failures → Qodo open findings (action required → review recommended → optional) → security/correctness from inline threads → quick fixes → larger refactors.
+**Implementation order:** CI failures → security/correctness from inline threads → quick fixes → larger refactors.
 
 For each **Address** item:
 
@@ -449,13 +386,6 @@ Post via `--body-file`. Include every triaged item in exactly one section. Embed
 
 ### Rejected
 - **{summary}**: {why this feedback does not apply}
-
-### Qodo Code Review
-- Parent comment: {parentCommentUrl}
-- **Action required**: {addressed} / {open + addressed total}
-- **Review recommended**: {addressed} / {total}
-- **Optional**: {addressed} / {total}
-- Open items remaining: {openCount after push — should be 0 at handoff}
 
 ### Visual evidence
 {paste evidence-markdown.md section when UI changed}

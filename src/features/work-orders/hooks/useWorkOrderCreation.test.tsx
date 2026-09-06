@@ -170,4 +170,33 @@ describe('useCreateWorkOrder', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/work-orders/wo-1');
     expect(toast.error).not.toHaveBeenCalled();
   });
+
+  it('does not navigate away when an offline calendar create provides onSuccess', async () => {
+    const onSuccess = vi.fn();
+    mockCreateWorkOrder.mockResolvedValueOnce({
+      data: null,
+      queuedOffline: true,
+    });
+
+    const { result } = renderHook(() => useCreateWorkOrder({ onSuccess }), {
+      wrapper: createRouterQueryClientWrapper(),
+    });
+
+    await expect(result.current.mutateAsync(makeCreateData())).resolves.toMatchObject({
+      queuedOffline: true,
+      workOrder: null,
+    });
+
+    await waitFor(() => {
+      expect(toast.info).toHaveBeenCalledWith(
+        'Saved offline',
+        expect.objectContaining({
+          description: 'This work order will sync when your connection returns.',
+        }),
+      );
+    });
+
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
 });

@@ -1,5 +1,5 @@
 import { test, expect } from '../user/fixtures/equipqr-test';
-import { evidenceScreenshot, evidencePause } from './shared/evidence-helpers';
+import { evidenceScreenshot, evidencePause, expandEquipQrTemplatesIfCollapsed } from './shared/evidence-helpers';
 
 /**
  * PR evidence for #1208 — dark-themed scrollbars on overflow surfaces.
@@ -17,6 +17,7 @@ test.describe('Dark scrollbar theme @pr-evidence', () => {
       timeout: 60_000,
     });
 
+    await expandEquipQrTemplatesIfCollapsed(page);
     const equipQrHeading = page.getByRole('heading', { name: /equipqr templates/i });
     await expect(equipQrHeading).toBeVisible({ timeout: 30_000 });
 

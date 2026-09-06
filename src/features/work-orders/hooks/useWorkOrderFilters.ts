@@ -4,6 +4,7 @@ import {
   countActiveWorkOrderFilters,
   DEFAULT_WORK_ORDER_FILTERS,
   filterWorkOrders,
+  nextPresetsAfterFilterChange,
   PRESET_FILTER_MAP,
   sortWorkOrders,
 } from './workOrderFilterUtils';
@@ -66,17 +67,7 @@ export const useWorkOrderFilters = (workOrders: WorkOrderData[], currentUserId?:
 
   const updateFilter = useCallback((key: keyof WorkOrderFilters, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
-    setActivePresets(prev => {
-      const next = new Set(prev);
-      let changed = false;
-      for (const [presetKey, mapping] of Object.entries(PRESET_FILTER_MAP)) {
-        if (mapping.key === key && next.has(presetKey as QuickFilterPreset) && mapping.value !== value) {
-          next.delete(presetKey as QuickFilterPreset);
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
+    setActivePresets(prev => nextPresetsAfterFilterChange(prev, key, value));
   }, []);
 
   const updateSort = useCallback((field: SortField, direction?: SortDirection) => {

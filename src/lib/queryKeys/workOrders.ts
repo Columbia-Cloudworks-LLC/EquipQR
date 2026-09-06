@@ -1,9 +1,15 @@
+import type { WorkOrderPagedListKeySpec } from '@/features/work-orders/utils/workOrderListContract';
+
 // Work Order keys
 export const workOrders = {
   root: ['work-orders'] as const,
   list: (orgId: string, filters?: Record<string, unknown>) =>
     filters ? ['work-orders', orgId, 'filtered', filters] as const
             : ['work-orders', orgId] as const,
+  pagedList: (orgId: string, spec?: WorkOrderPagedListKeySpec) =>
+    spec
+      ? (['work-orders', orgId, 'paged', spec] as const)
+      : (['work-orders', orgId, 'paged'] as const),
   enhanced: (orgId: string) => ['work-orders', orgId, 'enhanced'] as const,
   enhancedById: (orgId: string, workOrderId: string) => ['workOrder', 'enhanced', orgId, workOrderId] as const,
   optimized: (orgId: string) => ['work-orders', orgId, 'optimized'] as const,

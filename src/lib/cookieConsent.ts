@@ -27,6 +27,7 @@ export type CookieConsentDecision = 'accepted' | 'rejected';
 
 const OPTIONAL_LOCAL_STORAGE_EXACT = new Set([
   'equipqr:equipment-view-mode',
+  'equipqr:work-orders-view-mode',
   'equipqr:alternate-groups-table-column-sizing',
   'equipqr:equipment-table-column-sizing:v2',
   'equipqr-user-settings',

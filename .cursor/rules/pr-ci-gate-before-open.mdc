@@ -4,16 +4,17 @@ alwaysApply: true
 ---
 # PR CI Gate (mandatory before open and handoff)
 
+This file is a **publish** gate (`branching.mdc`). It does not apply to local-iterate work.
+
 Local lint/tests/build are **necessary but not sufficient** for feature-branch PRs. CI runs a **clean `npm ci`** on Linux runners; that path must pass before `gh pr create` and before the agent marks the PR workflow complete.
 
 ## Hard rules
 
 1. **Never run `gh pr create` until CI-parity install succeeds locally:**
    ```powershell
-   .\dev\dev-stop.bat   # on Windows when Vite/stack may hold native binary locks
-   npm ci --prefer-offline --no-audit
+   .\dev\npm-ci-safe.bat
    ```
-   If this fails, fix lockfile / `.npmrc` / dependency peers **before** push or PR open. On Windows EPERM/EBUSY during `npm ci`, stop the stack per `dev-stack-lifecycle.mdc` and retry; if still blocked locally, ensure CI passes on push (Linux clean install). Do **not** rely on `npm install --legacy-peer-deps` alone when `npm ci` would fail — if you needed `--legacy-peer-deps`, ensure `.npmrc` sets `legacy-peer-deps=true` and re-run `npm ci`.
+   That script stops the stack, then runs `npm ci --prefer-offline --no-audit`. Do not run bare `npm ci` while Vite or the stack is up on Windows (`dev-stack-lifecycle.mdc`). If this fails, fix lockfile / `.npmrc` / dependency peers **before** push or PR open. If still blocked locally after a lock release, ensure CI passes on push (Linux clean install). Do **not** rely on `npm install --legacy-peer-deps` alone when `npm ci` would fail — if you needed `--legacy-peer-deps`, ensure `.npmrc` sets `legacy-peer-deps=true` and re-run `.\dev\npm-ci-safe.bat`.
 
 2. **After `git push` to the PR branch, wait for required checks before handoff:**
    ```powershell
@@ -65,7 +66,7 @@ Run **in order** after dependency changes or before first PR open:
 3. `npm run lint`, `npm run type-check`, `npm run test:ci`, `npm run build`, `npm run verify:spa-routing`
 4. Local E2E per `local-verify-before-preview-push.mdc`
 5. PR visual evidence per `pr-visual-evidence.mdc` when UI changed
-6. Push → **`gh pr checks --watch`** until required jobs pass, then complete **`pr-merge-ready-workflow.mdc`** (Qodo `openCount=0`, threads clear) before handoff.
+6. Push → **`gh pr checks --watch`** until required jobs pass and Supabase is green or skipped, then merge per **`pr-merge-ready-workflow.mdc`**. Do not wait for Qodo.
 
 ## Relationship to other rules
 

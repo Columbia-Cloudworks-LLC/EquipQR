@@ -131,6 +131,7 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
         equipment_id: resolvedEquipmentId,
         priority: payload.priority,
         due_date: payload.dueDate,
+        due_date_has_time: payload.dueDateHasTime ?? false,
         estimated_hours: payload.estimatedHours,
         assignee_id: assigneeId,
         team_id: undefined,

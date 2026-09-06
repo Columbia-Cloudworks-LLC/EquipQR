@@ -35,6 +35,7 @@ export function buildOfflineQueuedWorkOrder({
     created_by_name: userDisplayName ?? null,
     created_date: new Date(item.timestamp).toISOString(),
     due_date: payload.dueDate ?? null,
+    due_date_has_time: payload.dueDateHasTime ?? false,
     estimated_hours: payload.estimatedHours ?? null,
     completed_date: null,
     acceptance_date: null,

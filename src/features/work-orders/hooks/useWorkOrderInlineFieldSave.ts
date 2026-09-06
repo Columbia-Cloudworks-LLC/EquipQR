@@ -23,8 +23,20 @@ export function useWorkOrderInlineFieldSave(
     [serverUpdatedAt, updateWorkOrderMutation, workOrderId],
   );
 
+  const savePatch = useCallback(
+    async (data: UpdateWorkOrderData) => {
+      await updateWorkOrderMutation.mutateAsync({
+        workOrderId,
+        data,
+        serverUpdatedAt: serverUpdatedAt ?? undefined,
+      });
+    },
+    [serverUpdatedAt, updateWorkOrderMutation, workOrderId],
+  );
+
   return {
     saveField,
+    savePatch,
     isSaving: updateWorkOrderMutation.isPending,
   };
 }

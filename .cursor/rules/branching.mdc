@@ -1,10 +1,20 @@
 ---
-description: "Git branching model for EquipQR — apply when creating branches, committing, pushing, or opening PRs. feat → preview → main; version bumps only on preview → main."
+description: "When to stay local vs when to publish. feat → preview → main. Apply when editing, branching, committing, pushing, or opening PRs."
 alwaysApply: true
 ---
 # Branching Model (authoritative)
 
 See **`docs/ops/git-and-deploy.md`** for the full solo-developer deploy loop.
+
+## Work mode (read this first)
+
+Default is **local-iterate**. Stay on the current checkout. Do not create a branch, spawn a worktree, push, open a PR, or merge.
+
+Switch to **publish** only when the user asks to publish, open a PR, merge, ship, or land an issue on `preview`, or when they invoke a skill whose job is a PR (`/itil-issue-resolver` with an issue to land, `/release`, `/dependabot-merge-ready`, or address-pr-feedback on an existing PR).
+
+A Cursor-linked worktree is **not** publish authorization. Prefer the canonical clone. Do not treat `%USERPROFILE%\.cursor\worktrees\...` as a reason to branch or open a PR. Do not spawn a worktree for a local edit.
+
+When publishing, follow `pr-merge-ready-workflow.mdc`. When not publishing, stop after local implementation. Do not run the merge-ready loop.
 
 ## Branches
 
@@ -18,31 +28,33 @@ There is **no `dev` branch**. Git **`preview`** is the default merge target for 
 
 ## Rules for agents
 
-1. **Branch off `preview`** for new feature, fix, refactor, chore, or experimental work.
+1. **Default: stay on this checkout.** Implement and wait. Do not run `git switch -c` unless publish mode is on.
 2. **Day-to-day PRs target `preview`.** Production ships via a controlled **`preview` → `main`** PR (or `/release` promote path).
 3. When GitHub defaults or old docs disagree, **this rule wins** for day-to-day work.
-4. Before creating a branch:
+4. **When publishing**, create the branch (or reuse the existing work branch / PR that already covers the change):
    ```powershell
    git fetch origin preview
    git switch -c feat/<short-name> origin/preview
    ```
-5. When opening a feature/fix PR:
+5. When opening a feature/fix PR, use `--body-file` on Windows (`git-powershell.mdc`):
    ```powershell
-   gh pr create --base preview --head feat/<short-name> --title "<conventional-commit title>"
+   gh pr create --base preview --head feat/<short-name> --title "<conventional-commit title>" --body-file "$env:TEMP\pr-<slug>-body.md"
    ```
 6. **Changelog / version discipline:**
    - Notes follow `.cursor/rules/changelog.mdc` (short customer-facing outcomes).
    - PRs into **`preview`**: accumulate under CHANGELOG `[Unreleased]` only. **Do not** bump `package.json` / lockfile app version.
    - PRs into **`main`** (from `preview` / release): one SemVer bump, versioned CHANGELOG section, empty `[Unreleased]` after cut.
-7. **Pre-production testing:**
+7. **Pre-production testing** (publish mode only):
    - **Primary:** commit-specific Vercel Preview URL after pushing a work branch, and/or **`preview.equipqr.app`** after merge to `preview`.
    - **Supabase:** no perpetual preview database. Cloud `preview.equipqr.app` uses **production** Supabase for ordinary (non-schema) QA. Use a properly seeded **ephemeral** Supabase PR branch only when actively testing `supabase/**` schema/RLS/migrations.
    - OAuth (Google Workspace, QuickBooks): verify on the **local stack** before merge.
 8. **Hotfix:** Prefer `fix/*` → `preview` then promote; for production-only emergencies, branch off `origin/main`, PR into `main`, then back-merge/rebase `preview` so the train does not diverge permanently.
 9. **Local E2E before push/PR.** No push and no PR open until `local-verify-before-preview-push.mdc` passes with zero user manual steps.
-10. **Worktree tempo:**
-    - Feature work: merge-ready PR into **`preview`** per `pr-merge-ready-workflow.mdc`.
-    - Production: merge-ready **`preview` → `main`** (or `chore/release-v*` from curated preview tip).
+10. **Worktrees:**
+    - Do not spawn a worktree for local-iterate work.
+    - A linked worktree does not start the merge-ready loop.
+    - Feature publish: merge-ready PR into **`preview`** per `pr-merge-ready-workflow.mdc`.
+    - Production: merge-ready **`preview` → `main`** (or `/release`).
     - **Never force-push to `main` or `preview`.**
 
 See git-powershell.mdc for Windows worktree cleanup gotchas.

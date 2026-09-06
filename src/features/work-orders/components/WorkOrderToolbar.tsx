@@ -6,23 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import WorkOrderFilterPopover from './WorkOrderFilterPopover';
 import WorkOrderSortPopover from './WorkOrderSortPopover';
-import { WorkOrderFilters } from '@/features/work-orders/types/workOrder';
-import type { QuickFilterPreset, SortField, SortDirection } from '@/features/work-orders/hooks/useWorkOrderFilters';
+import type { WorkOrderFiltersToolbarProps } from '@/features/work-orders/types/workOrderFiltersToolbarTypes';
 import { formatInvoiceFilterLabel } from '@/features/work-orders/utils/invoiceFilterLabels';
 
-interface WorkOrderToolbarProps {
-  filters: WorkOrderFilters;
-  activeFilterCount: number;
-  activePresets: Set<QuickFilterPreset>;
-  onFilterChange: (key: keyof WorkOrderFilters, value: string) => void;
-  onClearFilters: () => void;
-  onQuickFilter: (preset: QuickFilterPreset) => void;
-  sortField: SortField;
-  sortDirection: SortDirection;
-  onSortChange: (field: SortField, direction: SortDirection) => void;
-  resultCount: number;
-  totalCount: number;
-}
+type WorkOrderToolbarProps = Omit<
+  WorkOrderFiltersToolbarProps,
+  'showMobileFilters' | 'onShowMobileFiltersChange'
+>;
 
 const WorkOrderToolbar: React.FC<WorkOrderToolbarProps> = ({
   filters,
@@ -34,8 +24,10 @@ const WorkOrderToolbar: React.FC<WorkOrderToolbarProps> = ({
   sortField,
   sortDirection,
   onSortChange,
-  resultCount,
-  totalCount,
+  hideDueDateFilter = false,
+  showSearchAndSort = true,
+  rangeToggle,
+  viewToggle,
 }) => {
   const hasActiveFilters = activeFilterCount > 0 || filters.searchQuery.length > 0;
 
@@ -43,30 +35,32 @@ const WorkOrderToolbar: React.FC<WorkOrderToolbarProps> = ({
     <div className="flex flex-col gap-2">
       {/* Single toolbar row */}
       <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
-        {/* Search */}
-        <div className="relative flex-1 max-w-65">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-          <Input
-            placeholder="Search work orders..."
-            value={filters.searchQuery}
-            onChange={(e) => onFilterChange('searchQuery', e.target.value)}
-            className="h-8 pl-8 text-sm bg-transparent"
-            aria-label="Search work orders"
-          />
-          {filters.searchQuery && (
-            <button
-              onClick={() => onFilterChange('searchQuery', '')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              aria-label="Clear search"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
+        {showSearchAndSort ? (
+          <>
+            <div className="relative flex-1 max-w-65">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="Search work orders..."
+                value={filters.searchQuery}
+                onChange={(e) => onFilterChange('searchQuery', e.target.value)}
+                className="h-8 pl-8 text-sm bg-transparent"
+                aria-label="Search work orders"
+              />
+              {filters.searchQuery && (
+                <button
+                  onClick={() => onFilterChange('searchQuery', '')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label="Clear search"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
 
-        <Separator orientation="vertical" className="h-5" />
+            <Separator orientation="vertical" className="h-5" />
+          </>
+        ) : null}
 
-        {/* Filter popover */}
         <WorkOrderFilterPopover
           filters={filters}
           activeFilterCount={activeFilterCount}
@@ -74,28 +68,27 @@ const WorkOrderToolbar: React.FC<WorkOrderToolbarProps> = ({
           onFilterChange={onFilterChange}
           onClearFilters={onClearFilters}
           onQuickFilter={onQuickFilter}
+          hideDueDateFilter={hideDueDateFilter}
         />
 
-        {/* Sort popover */}
-        <WorkOrderSortPopover
-          sortField={sortField}
-          sortDirection={sortDirection}
-          onSortChange={onSortChange}
-        />
+        {showSearchAndSort ? (
+          <WorkOrderSortPopover
+            sortField={sortField}
+            sortDirection={sortDirection}
+            onSortChange={onSortChange}
+          />
+        ) : null}
 
-        {/* Spacer */}
+        {rangeToggle}
+
         <div className="flex-1" />
 
-        {/* Result count */}
-        <span
-          className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block"
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          <span className="font-medium text-foreground">{resultCount}</span>
-          {' / '}
-          <span className="font-medium text-foreground">{totalCount}</span>
-        </span>
+        {viewToggle ? (
+          <>
+            <Separator orientation="vertical" className="h-5 hidden md:block" />
+            {viewToggle}
+          </>
+        ) : null}
       </div>
 
       {/* Active filter badges row */}
@@ -142,7 +135,7 @@ const WorkOrderToolbar: React.FC<WorkOrderToolbarProps> = ({
             </Badge>
           )}
 
-          {filters.dueDateFilter !== 'all' && (
+          {!hideDueDateFilter && filters.dueDateFilter !== 'all' && (
             <Badge variant="secondary" className="flex items-center gap-1 text-xs h-5 px-2">
               Due: {filters.dueDateFilter.replace('_', ' ')}
               <button

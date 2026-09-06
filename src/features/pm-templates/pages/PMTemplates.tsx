@@ -9,12 +9,13 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Copy, Edit, Trash2, Wrench, Users, Shield, Globe, Lock, Settings2, Search } from 'lucide-react';
+import { Plus, Copy, Edit, Trash2, Wrench, Users, Shield, Globe, Lock, Settings2, Search, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { PMTemplateEquipmentAssignmentMenu } from '@/features/pm-templates/components/PMTemplateEquipmentAssignmentMenu';
 import { PMTemplateRulesDialog } from '@/features/pm-templates/components/PMTemplateRulesDialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import Page from '@/components/layout/Page';
@@ -216,6 +217,70 @@ const TemplateCard: React.FC<TemplateCardProps> = ({
   );
 };
 
+interface CollapsibleTemplateSectionProps {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  count: number;
+  defaultOpen: boolean;
+  forceOpen?: boolean;
+  children: React.ReactNode;
+}
+
+const CollapsibleTemplateSection: React.FC<CollapsibleTemplateSectionProps> = ({
+  title,
+  description,
+  icon,
+  count,
+  defaultOpen,
+  forceOpen = false,
+  children,
+}) => {
+  const [open, setOpen] = useState(defaultOpen);
+  const isOpen = forceOpen || open;
+  const contentId = `${title.toLowerCase().replace(/\s+/g, '-')}-content`;
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setOpen}>
+      <h2>
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            className="group flex w-full items-start justify-between gap-3 rounded-md text-left -mx-2 px-2 py-1 hover:bg-muted/50 transition-colors"
+            aria-expanded={isOpen}
+            aria-controls={contentId}
+          >
+            <span className="min-w-0 flex-1">
+              <span className="flex flex-wrap items-center gap-2 text-xl font-semibold">
+                {icon}
+                {title}
+                <Badge variant="secondary" className="font-normal">
+                  {count}
+                </Badge>
+              </span>
+              <span className="mt-1 block text-sm font-normal text-muted-foreground">
+                {description}
+              </span>
+            </span>
+            <ChevronDown
+              className={cn(
+                'mt-1 h-5 w-5 shrink-0 text-muted-foreground transition-transform',
+                isOpen && 'rotate-180',
+              )}
+              aria-hidden
+            />
+          </button>
+        </CollapsibleTrigger>
+      </h2>
+      <CollapsibleContent id={contentId}>
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          {children}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+};
+
 const PMTemplates = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -319,6 +384,10 @@ const PMTemplates = () => {
 
   const globalTemplates = templates?.filter(t => !t.organization_id).filter(filterBySearch) || [];
   const orgTemplates = templates?.filter(t => t.organization_id === currentOrganization?.id).filter(filterBySearch) || [];
+  const hasVisibleOrgTemplates =
+    (templates?.some((t) => t.organization_id === currentOrganization.id) ?? false) &&
+    canCreateCustomTemplates;
+  const searchForcesOpen = Boolean(searchQuery.trim());
   
   const showUpgradeMessage = !canCreateCustomTemplates && isAdmin;
 
@@ -394,60 +463,54 @@ const PMTemplates = () => {
         <div className="space-y-8">
           {/* Global Templates */}
           {globalTemplates.length > 0 && (
-            <div>
-              <h2 className="text-xl font-semibold flex items-center">
-                <Globe className="mr-2 h-5 w-5" />
-                EquipQR Templates
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1 mb-4">
-                Best-in-class PM checklists included with EquipQR for heavy equipment, machinery,
-                and vehicles. Assign them to equipment directly — clone only when you want to
-                customize.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                {globalTemplates.map((template) => (
-                  <TemplateCard
-                    key={template.id}
-                    template={template}
-                    isOrgTemplate={false}
-                    isAdmin={isAdmin}
-                    canCreateCustomTemplates={canCreateCustomTemplates}
-                    onEdit={handleEditTemplate}
-                    onClone={handleCloneTemplate}
-                    onDelete={handleDeleteTemplate}
-                    onConfigureRules={handleConfigureRules}
-                  />
-                ))}
-              </div>
-            </div>
+            <CollapsibleTemplateSection
+              title="EquipQR Templates"
+              description="Best-in-class PM checklists included with EquipQR for heavy equipment, machinery, and vehicles. Assign them to equipment directly — clone only when you want to customize."
+              icon={<Globe className="h-5 w-5" aria-hidden />}
+              count={globalTemplates.length}
+              defaultOpen={!hasVisibleOrgTemplates}
+              forceOpen={searchForcesOpen}
+            >
+              {globalTemplates.map((template) => (
+                <TemplateCard
+                  key={template.id}
+                  template={template}
+                  isOrgTemplate={false}
+                  isAdmin={isAdmin}
+                  canCreateCustomTemplates={canCreateCustomTemplates}
+                  onEdit={handleEditTemplate}
+                  onClone={handleCloneTemplate}
+                  onDelete={handleDeleteTemplate}
+                  onConfigureRules={handleConfigureRules}
+                />
+              ))}
+            </CollapsibleTemplateSection>
           )}
 
           {/* Organization Templates */}
           {orgTemplates.length > 0 && canCreateCustomTemplates && (
-            <div>
-              <h2 className="text-xl font-semibold flex items-center">
-                <Users className="mr-2 h-5 w-5" />
-                Organization Templates
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1 mb-4">
-                Custom templates created by your organization.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                {orgTemplates.map((template) => (
-                  <TemplateCard
-                    key={template.id}
-                    template={template}
-                    isOrgTemplate={true}
-                    isAdmin={isAdmin}
-                    canCreateCustomTemplates={canCreateCustomTemplates}
-                    onEdit={handleEditTemplate}
-                    onClone={handleCloneTemplate}
-                    onDelete={handleDeleteTemplate}
-                    onConfigureRules={handleConfigureRules}
-                  />
-                ))}
-              </div>
-            </div>
+            <CollapsibleTemplateSection
+              title="Organization Templates"
+              description="Custom templates created by your organization."
+              icon={<Users className="h-5 w-5" aria-hidden />}
+              count={orgTemplates.length}
+              defaultOpen
+              forceOpen={searchForcesOpen}
+            >
+              {orgTemplates.map((template) => (
+                <TemplateCard
+                  key={template.id}
+                  template={template}
+                  isOrgTemplate={true}
+                  isAdmin={isAdmin}
+                  canCreateCustomTemplates={canCreateCustomTemplates}
+                  onEdit={handleEditTemplate}
+                  onClone={handleCloneTemplate}
+                  onDelete={handleDeleteTemplate}
+                  onConfigureRules={handleConfigureRules}
+                />
+              ))}
+            </CollapsibleTemplateSection>
           )}
         </div>
       ) : (

@@ -57,6 +57,7 @@ describe('cookieConsent', () => {
     expect(setPreferenceLocalStorage('unknown-preference-key', 'x')).toBe(false);
     expect(localStorage.getItem('unknown-preference-key')).toBeNull();
     expect(setPreferenceLocalStorage('equipqr:equipment-view-mode', 'grid')).toBe(true);
+    expect(setPreferenceLocalStorage('equipqr:work-orders-view-mode', 'calendar')).toBe(true);
   });
 
   it('returns false when preference setItem throws instead of crashing', () => {

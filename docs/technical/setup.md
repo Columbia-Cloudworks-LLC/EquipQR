@@ -275,25 +275,30 @@ npm run build
 
 #### Git Workflow
 
-1. **Create Feature Branch**
+Stay on the current checkout for local work. Create a branch only when you are ready to publish.
+
+1. **Create a publish branch** (from `origin/preview`):
    ```bash
-   git checkout -b feature/your-feature-name
+   git fetch origin preview
+   git switch -c feat/your-feature-name origin/preview
    ```
 
-2. **Make Changes and Commit**
+2. **Commit focused paths** (do not `git add .`):
    ```bash
-   git add .
+   git add path/to/changed-files
    git commit -m "feat: add new feature description"
    ```
 
-3. **Push and Create PR**
+3. **Push and create a PR** into `preview`:
    ```bash
-   git push origin feature/your-feature-name
+   git push -u origin HEAD
    ```
 
 #### Git worktrees and Cursor
 
 A [git worktree](https://git-scm.com/docs/git-worktree) is a second checkout of the same repository. Cursor may create worktrees under a path like `%USERPROFILE%\.cursor\worktrees\...`. Those folders get **tracked** files only: ignored secrets (`.env`, `.env.local`, `supabase/functions/.env`) and `node_modules` are **not** copied. Worktrees also often do not have your 1Password-authenticated environment available by default.
+
+A Cursor-linked worktree is **not** a request to publish. Prefer the canonical clone for local iteration. Do not open a PR just because the session landed in a worktree.
 
 **Workflow:** Keep one canonical clone (for example `C:\Users\viral\EquipQR`) where you run `.\dev\dev-start.bat` so env files exist on disk. In any other worktree, bootstrap once:
 

@@ -14,6 +14,7 @@ import {
   isOverdue,
   isTerminalStatus,
 } from '@/features/work-orders/utils/workOrderHelpers';
+import { formatDueDisplay, parseDue } from '@/features/work-orders/calendar';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { getPriorityBadgeClass, getWorkOrderStatusBorderWithOverdue, getStatusBackgroundTint } from '@/lib/status-colors';
 import WorkOrderCostSubtotal from '../WorkOrderCostSubtotal';
@@ -42,7 +43,7 @@ export const WorkOrderMobileCard: React.FC<WorkOrderMobileCardProps> = memo(({
   canDelete = false,
   onDeleteClick,
 }) => {
-  const { formatRelative } = useFormatTimestamp();
+  const { formatDate, formatRelative } = useFormatTimestamp();
   const canViewCosts = useCanViewWorkOrderCostsForWorkOrder(workOrder);
   const dueDateValue = workOrder.due_date;
   const createdDateValue = workOrder.created_date;
@@ -62,8 +63,13 @@ export const WorkOrderMobileCard: React.FC<WorkOrderMobileCardProps> = memo(({
   const statusBorderClass = getWorkOrderStatusBorderWithOverdue(workOrder.status, isWorkOrderOverdue);
   const statusTintClass = getStatusBackgroundTint(workOrder.status, isWorkOrderOverdue);
 
-  const dateLabel = dueDateValue
-    ? (isWorkOrderOverdue ? `Overdue ${formatRelative(dueDateValue)}` : `Due ${formatRelative(dueDateValue)}`)
+  const due = parseDue(workOrder);
+  const dueLabel = formatDueDisplay(due, {
+    formatDay: formatDate,
+    formatTimed: formatRelative,
+  });
+  const dateLabel = dueLabel
+    ? (isWorkOrderOverdue ? `Overdue ${dueLabel}` : `Due ${dueLabel}`)
     : formatRelative(createdDateValue);
 
   const isPendingSync = Boolean((workOrder as MergedWorkOrder)._isPendingSync);

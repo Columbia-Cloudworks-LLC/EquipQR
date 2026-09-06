@@ -6,6 +6,7 @@ export interface WorkOrderData {
   priority: 'low' | 'medium' | 'high';
   created_date: string;
   due_date?: string | null;
+  due_date_has_time?: boolean;
   completed_date?: string | null;
   estimated_hours?: number | null;
   assignee_id?: string | null;

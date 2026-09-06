@@ -1,5 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { AlertCircle, AlertTriangle, ChevronRight, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -7,8 +9,19 @@ import {
   formatStatus,
   getPriorityTextColor,
   getWorkOrderStatusTextColor,
-  isOverdue as checkIsOverdue,
 } from '@/features/work-orders/utils/workOrderHelpers';
+import {
+  applyDueWrite,
+  dueDateTimeInputWrite,
+  dueDayInputValue,
+  dueDayInputWrite,
+  dueTimeInputValue,
+  formatDueDisplay,
+  isDueOverdue,
+  parseCalendarDay,
+  parseDue,
+  persistDue,
+} from '@/features/work-orders/calendar';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import InlineEditField from '@/features/equipment/components/InlineEditField';
 import {
@@ -60,6 +73,7 @@ export interface MobileWorkOrderCompactSummaryProps {
     status: WorkOrderStatus;
     priority: 'low' | 'medium' | 'high';
     due_date?: string;
+    due_date_has_time?: boolean;
     assignee_id?: string | null;
     updated_at?: string | null;
     equipment_id?: string;
@@ -87,17 +101,49 @@ export const MobileWorkOrderCompactSummary: React.FC<MobileWorkOrderCompactSumma
   canChangeStatus = false,
   onStatusPress,
 }) => {
-  const { formatDate } = useFormatTimestamp();
-  const { saveField } = useWorkOrderInlineFieldSave(workOrder.id, workOrder.updated_at);
+  const { formatDate, formatDateTime } = useFormatTimestamp();
+  const { saveField, savePatch } = useWorkOrderInlineFieldSave(workOrder.id, workOrder.updated_at);
+  const due = parseDue({
+    dueDate: workOrder.due_date,
+    dueDateHasTime: workOrder.due_date_has_time ?? false,
+  });
   const dueDate = workOrder.due_date;
-  const overdue = !!(dueDate && checkIsOverdue(dueDate, workOrder.status));
+  const overdue = isDueOverdue(due, workOrder.status);
   const dueSoon =
-    !!(dueDate && !overdue && (() => {
-      const due = new Date(dueDate);
-      const hoursUntilDue = (due.getTime() - Date.now()) / (1000 * 60 * 60);
+    !overdue &&
+    due.kind === 'timed' &&
+    (() => {
+      const hoursUntilDue = (due.at.epochMs - Date.now()) / (1000 * 60 * 60);
       return hoursUntilDue > 0 && hoursUntilDue < 24;
-    })());
+    })();
   const statusPressEnabled = Boolean(canChangeStatus && onStatusPress);
+  const formattedDueDate = formatDueDisplay(due, {
+    formatDay: formatDate,
+    formatTimed: formatDateTime,
+  });
+
+  const persistDueWrite = async (write: Parameters<typeof applyDueWrite>[1]) => {
+    const persisted = persistDue(applyDueWrite(due, write));
+    await savePatch({
+      dueDate: persisted.dueDate ?? '',
+      dueDateHasTime: persisted.dueDateHasTime,
+    });
+  };
+
+  const handleDueTimeChange = async (raw: string) => {
+    if (raw === '') {
+      await persistDueWrite(dueDateTimeInputWrite(null));
+      return;
+    }
+
+    const day = parseCalendarDay(dueDayInputValue(due));
+    if (!day) return;
+
+    const [hours, minutes] = raw.split(':').map(Number);
+    await persistDueWrite(dueDateTimeInputWrite({
+      epochMs: new Date(day.y, day.m - 1, day.d, hours, minutes, 0, 0).getTime(),
+    }));
+  };
 
   const priorityDisplayNode = (
     <span className="inline-flex min-w-0 flex-wrap items-center gap-2 text-base">
@@ -118,7 +164,7 @@ export const MobileWorkOrderCompactSummary: React.FC<MobileWorkOrderCompactSumma
       aria-live="polite"
     >
       <MobileDueDateStatusContent
-        formattedDueDate={formatDate(dueDate)}
+        formattedDueDate={formattedDueDate}
         overdue={overdue}
         dueSoon={dueSoon}
       />
@@ -142,7 +188,7 @@ export const MobileWorkOrderCompactSummary: React.FC<MobileWorkOrderCompactSumma
     >
       <div className={cn('flex min-w-0 flex-wrap items-center gap-2 text-base', mobileInlineEditValueClassName)}>
         <MobileDueDateStatusContent
-          formattedDueDate={formatDate(dueDate)}
+          formattedDueDate={formattedDueDate}
           overdue={overdue}
           dueSoon={dueSoon}
         />
@@ -231,17 +277,30 @@ export const MobileWorkOrderCompactSummary: React.FC<MobileWorkOrderCompactSumma
 
         {(dueDate || canEditFields) &&
           (canEditFields ? (
-            <InlineEditField
-              value={dueDate ?? ''}
-              onSave={async (value) => {
-                await saveField('dueDate', value || undefined);
-              }}
-              canEdit={canEditFields}
-              type="date"
-              className="w-full"
-              editAriaLabel="Edit due date"
-              displayNode={dueDateDisplayNode}
-            />
+            <div className="space-y-2">
+              <InlineEditField
+                value={dueDayInputValue(due)}
+                onSave={async (value) => {
+                  await persistDueWrite(dueDayInputWrite(due, value));
+                }}
+                canEdit={canEditFields}
+                type="date"
+                className="w-full"
+                editAriaLabel="Edit due date"
+                displayNode={dueDateDisplayNode}
+              />
+              <div className="space-y-1.5">
+                <Label htmlFor="mobile-work-order-due-time">Due time</Label>
+                <Input
+                  id="mobile-work-order-due-time"
+                  type="time"
+                  value={dueTimeInputValue(due)}
+                  onChange={(e) => {
+                    void handleDueTimeChange(e.target.value);
+                  }}
+                />
+              </div>
+            </div>
           ) : (
             dueDateReadOnlyNode
           ))}

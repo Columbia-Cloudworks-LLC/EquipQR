@@ -20,6 +20,7 @@ import {
   invalidateWorkOrderRecord,
 } from '@/features/work-orders/utils/invalidateWorkOrderQueries';
 import { preventiveMaintenance } from '@/lib/queryKeys';
+import { parseDue, persistDue } from '@/features/work-orders/calendar';
 
 interface PMData {
   id: string;
@@ -103,11 +104,17 @@ export const useWorkOrderDetailsActions = (workOrderId: string, organizationId: 
       throw new Error('organizationId is required for PM operations');
     }
 
+    const persistedDue = persistDue(parseDue({
+      dueDate: data.dueDate,
+      dueDateHasTime: data.dueDateHasTime,
+    }));
+
     const updateData: UpdateWorkOrderData = {
       title: data.title,
       description: data.description,
       priority: data.priority,
-      dueDate: data.dueDate || undefined,
+      dueDate: persistedDue.dueDate ?? undefined,
+      dueDateHasTime: persistedDue.dueDateHasTime,
       hasPM: data.hasPM,
     };
     

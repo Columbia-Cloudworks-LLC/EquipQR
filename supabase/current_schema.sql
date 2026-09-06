@@ -17940,6 +17940,7 @@ CREATE TABLE IF NOT EXISTS "public"."work_orders" (
     "invoice_due_date" "date",
     "invoice_last_synced_at" timestamp with time zone,
     "invoice_sync_error" "text",
+    "due_date_has_time" boolean DEFAULT false NOT NULL,
     CONSTRAINT "work_orders_invoice_status_check" CHECK ((("invoice_status" IS NULL) OR ("invoice_status" = ANY (ARRAY['draft'::"text", 'sent'::"text", 'viewed'::"text", 'paid'::"text", 'partially_paid'::"text", 'overdue'::"text", 'voided'::"text"])))),
     CONSTRAINT "work_orders_quickbooks_invoice_environment_check" CHECK ((("quickbooks_invoice_environment" IS NULL) OR ("quickbooks_invoice_environment" = ANY (ARRAY['sandbox'::"text", 'production'::"text"]))))
 );
@@ -17989,6 +17990,10 @@ COMMENT ON COLUMN "public"."work_orders"."invoice_last_synced_at" IS 'Timestamp 
 
 
 COMMENT ON COLUMN "public"."work_orders"."invoice_sync_error" IS 'Last non-secret invoice status sync error, cleared on successful sync.';
+
+
+
+COMMENT ON COLUMN "public"."work_orders"."due_date_has_time" IS 'When false, due_date is a calendar day (all-day). When true, due_date includes a local clock time.';
 
 
 
@@ -22324,10 +22329,6 @@ ALTER TABLE "public"."workspace_personal_org_merge_requests" ENABLE ROW LEVEL SE
 ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
 
 
-
-
-
-
 ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."organization_members";
 
 
@@ -22350,6 +22351,15 @@ GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
+
+
+
+
+
+
+
+
+
 
 
 

@@ -15,6 +15,7 @@ export interface UpdateWorkOrderData {
   description?: string;
   priority?: 'low' | 'medium' | 'high';
   dueDate?: string;
+  dueDateHasTime?: boolean;
   estimatedHours?: number;
   hasPM?: boolean;
 }

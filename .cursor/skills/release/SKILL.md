@@ -3,8 +3,8 @@ name: release
 description: >-
   Cut a production release via preview → main: align with origin/preview, run
   changelog-version-curator (bump only on promote), push release metadata onto
-  preview, open preview→main PR, babysit until merge-ready (CI green, Qodo
-  openCount=0). Merge triggers Production Release Readiness and vercel promote.
+  preview, open preview→main PR, babysit until CI and Supabase are green
+  (or skipped). Merge triggers Production Release Readiness and vercel promote.
   Use when the user runs /release or asks to release, bump version, or ship to
   production.
 disable-model-invocation: true
@@ -148,11 +148,10 @@ Follow `.cursor/rules/pr-merge-ready-workflow.mdc` and `.cursor/skills/address-p
 | Gate | Verify |
 |------|--------|
 | CI green | `gh pr checks <num> --watch` |
-| Qodo | `Get-PrQodoFindings.ps1 -Json` → `reviewInProgress: false`, `openCount: 0` |
-| Threads | `Get-PrFeedbackThreads.ps1 -Json` → zero unresolved non-outdated |
+| Supabase | Validate Supabase Migrations and Supabase Preview success, or skipped / absent |
 | Mergeable | `gh pr view <num> --json mergeable,mergeStateStatus` |
 
-Fix on **`preview`**, push `origin/preview`, re-watch CI, re-poll Qodo.
+Fix on **`preview`**, push `origin/preview`, re-watch CI. Do not wait for Qodo.
 
 ---
 
@@ -164,7 +163,7 @@ Report only when Step 8 passes:
 |------|-------|
 | Release version | `X.Y.Z` |
 | Release PR | URL — merge-ready (`preview` → `main`) |
-| CI / Qodo / threads | green / openCount=0 / clear |
+| CI / Supabase | green / green or skipped |
 
 Remind: merge to `main` triggers **Production Release Readiness** and automatic **`vercel promote`**.
 
@@ -178,4 +177,4 @@ Remind: merge to `main` triggers **Production Release Readiness** and automatic 
 - Push to `origin/preview` failed
 - Scoped Vitest failure
 - Evidence capture failure when required
-- CI red, Qodo open, or unresolved threads after reasonable polling
+- CI or Supabase red after reasonable polling

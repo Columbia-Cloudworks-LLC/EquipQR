@@ -37,15 +37,10 @@ import {
 } from '@/features/work-orders/components/WorkOrderFilterSelectFields';
 import { formatInvoiceFilterLabel } from '@/features/work-orders/utils/invoiceFilterLabels';
 
-export type MobileWorkOrderToolbarProps = Omit<
-  WorkOrderFiltersToolbarProps,
-  'resultCount' | 'totalCount'
->;
-
 const DEFAULT_SORT_FIELD: SortField = 'created';
 const DEFAULT_SORT_DIRECTION: SortDirection = 'desc';
 
-const MobileWorkOrderToolbar: React.FC<MobileWorkOrderToolbarProps> = ({
+const MobileWorkOrderToolbar: React.FC<WorkOrderFiltersToolbarProps> = ({
   filters,
   activeFilterCount,
   activePresets,
@@ -57,6 +52,7 @@ const MobileWorkOrderToolbar: React.FC<MobileWorkOrderToolbarProps> = ({
   sortField,
   sortDirection,
   onSortChange,
+  hideDueDateFilter = false,
 }) => {
   const mobileSearchInputId = 'work-order-search-mobile';
   const mobileStatusFilterId = 'work-order-status-filter-mobile';
@@ -224,16 +220,18 @@ const MobileWorkOrderToolbar: React.FC<MobileWorkOrderToolbarProps> = ({
                   />
                 </div>
 
-                <div>
-                  <label htmlFor={mobileDueDateFilterId} className="mb-2 block text-sm font-medium">
-                    Due Date
-                  </label>
-                  <WorkOrderDueDateFilterSelect
-                    value={filters.dueDateFilter}
-                    onValueChange={(value) => onFilterChange('dueDateFilter', value)}
-                    triggerId={mobileDueDateFilterId}
-                  />
-                </div>
+                {!hideDueDateFilter && (
+                  <div>
+                    <label htmlFor={mobileDueDateFilterId} className="mb-2 block text-sm font-medium">
+                      Due Date
+                    </label>
+                    <WorkOrderDueDateFilterSelect
+                      value={filters.dueDateFilter}
+                      onValueChange={(value) => onFilterChange('dueDateFilter', value)}
+                      triggerId={mobileDueDateFilterId}
+                    />
+                  </div>
+                )}
 
                 <div>
                   <label htmlFor={mobileInvoiceFilterId} className="mb-2 block text-sm font-medium">
@@ -309,7 +307,7 @@ const MobileWorkOrderToolbar: React.FC<MobileWorkOrderToolbarProps> = ({
               </button>
             </Badge>
           )}
-          {filters.dueDateFilter !== 'all' && (
+          {!hideDueDateFilter && filters.dueDateFilter !== 'all' && (
             <Badge variant="secondary" className="flex max-w-full items-center gap-1">
               <span className="truncate" title={`Due: ${filters.dueDateFilter}`}>
                 Due: {filters.dueDateFilter}

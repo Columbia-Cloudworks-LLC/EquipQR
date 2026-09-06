@@ -3,7 +3,7 @@ name: dependabot-merge-ready
 description: >-
   Resolves Dependabot pull requests to merge-ready state with minimal remediation,
   Unreleased changelog notes (no package version bump on preview), tech-debt GitHub
-  issue triage, and CI/Qodo monitoring.
+  issue triage, and CI/Supabase monitoring.
   Use when the user provides a Dependabot PR number or link, invokes
   /dependabot-merge-ready, or asks to make a dependabot dependency update
   merge-ready. Do not use for non-Dependabot PRs.
@@ -140,8 +140,8 @@ Remove-Item Env:RELEASE_METADATA_MODE, Env:RELEASE_METADATA_BASE_SHA -ErrorActio
 2. Commit with the message: `fix: minimal remediation for <Dependency Name> update`
 3. Push changes to the current remote branch.
 4. Run `gh pr checks` or monitor the repository's CI pipeline.
-5. Review any Qodo/linter findings generated on the PR.
-6. If the CI fails or Qodo flags regressions, return to Phase 3. If all CIs report green and no automated findings remain, halt execution and report success.
+5. Review linter or review-thread findings only when the user asked to address feedback.
+6. If CI or Supabase fails, return to Phase 3. If all CIs are green and Supabase is green or skipped, merge per `pr-merge-ready-workflow.mdc`. Do not wait for Qodo.
 
 ### EquipQR Phase 6 extensions
 
@@ -162,58 +162,21 @@ git commit -m "fix: minimal remediation for <Dependency Name> update" -m "Fallow
 git push -u origin HEAD
 ```
 
-**CI + Qodo loop** (merge-ready exit criteria per `pr-merge-ready-workflow.mdc`):
+**CI + Supabase loop** (merge gate per `pr-merge-ready-workflow.mdc`):
 
 ```powershell
 .\dev\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <number> -Watch -FailFast
-
-Start-Sleep -Seconds 90
-.\dev\pr-feedback\Get-PrQodoFindings.ps1 -PullRequestNumber <number> -Json
-# Wait until reviewInProgress: false, then openCount: 0 (all buckets)
-
-.\dev\pr-feedback\Get-PrFeedbackThreads.ps1 -PullRequestNumber <number> -Json
-# unresolved non-outdated thread count must be 0
-
 gh pr view <number> --json mergeable,mergeStateStatus,url
 ```
 
-### Qodo Fixer auto-fix PRs (prefer before hand-implementing)
+Confirm `Validate Supabase Migrations` and `Supabase Preview` are success, or skipped / absent because the PR has no related Supabase changes. Then merge. Do not wait for Qodo.
 
-When Qodo flags findings, it often opens a **closed** fix PR (`Fix: [for cherry-picking] ...`, author `app/qodo-code-review`) and posts a **Qodo Fixer** comment on the feature PR. Mine it before writing fixes by hand:
-
-```powershell
-.\dev\pr-feedback\Get-PrQodoFixPr.ps1 -PullRequestNumber <number> -Json
-```
-
-**Comment pattern (stable):**
-
-- Heading: `### Qodo Fixer`
-- Status line: `🍒 Ready to be cherry-picked — ✅ Merged (N) · ☑ Fixed (M)`
-- Link: `🔗 Fix PR: [#<fix>](https://github.com/.../pull/<fix>)`
-- Items: `- ☑ Fixed: <finding title>` under `Process — M fixed`
-- Instruction block: review fix PR, cherry-pick selective changes, do not accept blindly
-
-**When `needsAction: true` (`pendingCount > 0`):**
-
-1. `gh pr diff <fixPrNumber>` — review each hunk against local context.
-2. `git fetch origin <fixPr.headRefName>`
-3. Apply selectively:
-   - Whole commit: `git cherry-pick <fix-commit-sha>`
-   - Partial: `git checkout origin/<fix-head> -- <paths>` then edit
-   - Avoid blind `git merge` of the entire fix branch when only some items are correct.
-4. Re-run Phase 2 verification.
-5. Push; Qodo updates `Merged (N)` when fixes land on the feature branch.
-
-**Only hand-implement** findings with no fix PR, rejected fix hunks, or items still open in `Get-PrQodoFindings` after cherry-pick.
-
-Address every unstriked Qodo item and unresolved thread; fix forward → Phase 3 → re-commit → re-watch.
-
-**Handoff comment** on the PR when merge-ready:
+**Handoff comment** on the PR when merging:
 
 - PR URL and dependency bump summary
 - Local verify commands run (pass/fail)
 - CI run link (green)
-- Qodo parent comment URL with `openCount=0`
+- Supabase result (pass or skipped / not applicable)
 - Tech-debt issue link (if Phase 4 created/updated one)
 - Confirmation: no feature regression; short Unreleased note; no package.json version bump; not a versioned release
 
@@ -230,9 +193,8 @@ Address every unstriked Qodo item and unresolved thread; fix forward → Phase 3
 - [ ] verify:release-metadata with RELEASE_METADATA_MODE=preview
 - [ ] Fallow clean; commit pushed
 - [ ] CI green (Get-PrChecks -Watch)
-- [ ] Qodo openCount=0
-- [ ] Unresolved threads clear
-- [ ] PR mergeable
+- [ ] Supabase green or skipped / not applicable
+- [ ] PR mergeable; merged per pr-merge-ready-workflow.mdc
 ```
 
 ## Stop conditions
@@ -244,5 +206,5 @@ Address every unstriked Qodo item and unresolved thread; fix forward → Phase 3
 
 ## Related skills
 
-- [`address-pr-feedback`](../address-pr-feedback/SKILL.md) — thread/Qodo reply patterns after Phase 6 flags items
-- `babysit` (Cursor built-in) — optional long CI/Qodo poll handoff
+- [`address-pr-feedback`](../address-pr-feedback/SKILL.md) — review-thread replies when the user asks
+- `babysit` (Cursor built-in) — optional long CI poll handoff

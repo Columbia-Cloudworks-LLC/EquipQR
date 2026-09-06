@@ -16,11 +16,13 @@ As of 2026-06-13, the local dev stack has **production parity** (Auth, Edge Func
 
 **Exception:** workflow-only paths (`.cursor/**`, `AGENTS.md`, `dev/mcp.template.json`) still follow `workflow-artifacts.mdc` — Fallow clean, no product E2E required.
 
-## Minimum gate (every product/runtime change)
+## Minimum gate (before an authorized commit, push, or PR)
 
-Run in order; all must pass:
+This gate is **not** for unpublished local-iterate work (`branching.mdc`). For local-iterate edits, rely on after-edit hooks unless the user asked to commit.
 
-0. **CI-parity install** — `npm ci --prefer-offline --no-audit` (same as GitHub Actions). Required after any `package.json` / lockfile / `.npmrc` change and before opening a feature-branch PR. See `pr-ci-gate-before-open.mdc`.
+Run in order when a commit, push, or PR was requested; all must pass:
+
+0. **CI-parity install** — required after any `package.json` / lockfile / `.npmrc` change and before opening a feature-branch PR. On Windows use `.\dev\npm-ci-safe.bat` (`dev-stack-lifecycle.mdc`), not bare `npm ci` while the stack is up. Linux/CI still uses `npm ci --prefer-offline --no-audit`. See `pr-ci-gate-before-open.mdc`.
 1. **Fallow** — both scans per `fallow-before-commit.mdc` (before commit).
 2. **Static checks** — `npm run lint`, `npm run type-check`.
 3. **Targeted tests** — Vitest for touched behavior; add/update tests when behavior changed.

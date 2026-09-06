@@ -122,6 +122,7 @@ export function mapBaseWorkOrderFields(wo: Record<string, unknown>): Partial<Wor
     created_by_name: wo.created_by_name as string | null,
     created_date: wo.created_date as string,
     due_date: wo.due_date as string | null,
+    due_date_has_time: (wo.due_date_has_time as boolean | undefined) ?? false,
     estimated_hours: wo.estimated_hours as number | null,
     completed_date: wo.completed_date as string | null,
     acceptance_date: wo.acceptance_date as string | null,

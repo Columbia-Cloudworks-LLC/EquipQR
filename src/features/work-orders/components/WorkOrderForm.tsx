@@ -13,7 +13,9 @@ import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 import { useWorkOrderForm, WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
 import { workOrderFormSchema } from '@/features/work-orders/schemas/workOrderSchema';
 import { useEquipmentSelection } from '@/features/equipment/components/hooks/useEquipmentSelection';
+import { useCreateWorkOrder } from '@/features/work-orders/hooks/useWorkOrderCreation';
 import { useWorkOrderSubmission } from '@/features/work-orders/hooks/useWorkOrderSubmission';
+import { buildCreateWorkOrderData } from '@/features/work-orders/utils/buildCreateWorkOrderData';
 import { toEquipmentSelectorItem } from '@/features/work-orders/utils/toEquipmentSelectorItem';
 import { WorkOrderFormHeader } from './WorkOrderFormHeader';
 import { WorkOrderGeneralInfo } from './WorkOrderGeneralInfo';
@@ -38,6 +40,10 @@ interface WorkOrderFormProps {
   isUpdating?: boolean;
   /** PM data for edit mode to default template selection */
   pmData?: { template_id?: string | null } | null;
+  prefillDueDate?: string | null;
+  prefillHasTime?: boolean;
+  stayOnList?: boolean;
+  onCreated?: (workOrderId: string) => void;
 }
 
 const WorkOrderForm: React.FC<WorkOrderFormProps> = ({ 
@@ -49,6 +55,10 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
   initialIsHistorical = false,
   isUpdating = false,
   pmData,
+  prefillDueDate,
+  prefillHasTime = false,
+  stayOnList = false,
+  onCreated,
 }) => {
   const { currentOrganization } = useOrganization();
   const { getUserTeamIds } = useSession();
@@ -70,6 +80,8 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
     isOpen: open,
     initialIsHistorical,
     pmData,
+    prefillDueDate,
+    prefillHasTime,
   });
 
   const { allEquipment, preSelectedEquipment, isEquipmentPreSelected } = useEquipmentSelection({
@@ -104,9 +116,19 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
     return undefined;
   }, [form.values.equipmentId, allEquipment, preSelectedEquipment]);
 
+  const createFromCalendar = useCreateWorkOrder({
+    onSuccess: (created) => {
+      onCreated?.(created.id);
+    },
+  });
+
   const { submitForm, isLoading } = useWorkOrderSubmission({
     workOrder,
-    onSubmit,
+    onSubmit: stayOnList
+      ? async (data) => {
+          await createFromCalendar.mutateAsync(buildCreateWorkOrderData(data, creationImages));
+        }
+      : onSubmit,
     creationImages,
     onSuccess: () => {
       form.reset();
@@ -261,6 +283,7 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
           <WorkOrderScheduling
             values={{
               dueDate: form.values.dueDate,
+              dueDateHasTime: form.values.dueDateHasTime ?? false,
               estimatedHours: form.values.estimatedHours
             }}
             errors={{

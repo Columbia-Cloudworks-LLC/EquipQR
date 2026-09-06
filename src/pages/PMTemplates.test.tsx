@@ -357,6 +357,13 @@ describe('PMTemplates Page', () => {
     });
   });
 
+  function expandEquipQrTemplates() {
+    const trigger = screen.getByRole('button', { name: /EquipQR Templates/i });
+    if (trigger.getAttribute('aria-expanded') === 'false') {
+      fireEvent.click(trigger);
+    }
+  }
+
   it('navigates to details when clicking a template title', () => {
     render(
       <TestProviders>
@@ -364,6 +371,7 @@ describe('PMTemplates Page', () => {
       </TestProviders>
     );
 
+    expandEquipQrTemplates();
     const title = screen.getByText(pmFixtures.forklift.name);
     expect(title).toBeInTheDocument();
   });
@@ -377,8 +385,81 @@ describe('PMTemplates Page', () => {
       );
 
       expect(screen.getByText('EquipQR Templates')).toBeInTheDocument();
+      expandEquipQrTemplates();
       expect(screen.getByText(pmFixtures.forklift.name)).toBeInTheDocument();
       expect(screen.getByText(pmFixtures.forklift.description)).toBeInTheDocument();
+    });
+
+    it('collapses EquipQR templates by default when the org already has a template', () => {
+      render(
+        <TestProviders>
+          <PMTemplates />
+        </TestProviders>
+      );
+
+      expect(screen.getByRole('button', { name: /EquipQR Templates/i })).toHaveAttribute(
+        'aria-expanded',
+        'false',
+      );
+      expect(screen.queryByText(pmFixtures.forklift.name)).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Organization Templates/i })).toHaveAttribute(
+        'aria-expanded',
+        'true',
+      );
+      expect(screen.getByText(pmFixtures.customOrgTemplate.name)).toBeInTheDocument();
+    });
+
+    it('expands EquipQR templates by default when the org has no templates of its own', () => {
+      vi.mocked(usePMTemplates).mockReturnValue({
+        ...mockHooks.usePMTemplates,
+        data: mockTemplates.filter((template) => template.organization_id == null),
+      } as unknown as ReturnType<typeof usePMTemplates>);
+
+      render(
+        <TestProviders>
+          <PMTemplates />
+        </TestProviders>
+      );
+
+      expect(screen.getByRole('button', { name: /EquipQR Templates/i })).toHaveAttribute(
+        'aria-expanded',
+        'true',
+      );
+      expect(screen.getByText(pmFixtures.forklift.name)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Organization Templates/i })).not.toBeInTheDocument();
+    });
+
+    it('toggles EquipQR and organization template sections from their headers', () => {
+      render(
+        <TestProviders>
+          <PMTemplates />
+        </TestProviders>
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: /EquipQR Templates/i }));
+      expect(screen.getByText(pmFixtures.forklift.name)).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /Organization Templates/i }));
+      expect(screen.queryByText(pmFixtures.customOrgTemplate.name)).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /Organization Templates/i }));
+      expect(screen.getByText(pmFixtures.customOrgTemplate.name)).toBeInTheDocument();
+    });
+
+    it('reveals matching EquipQR templates when searching a collapsed section', () => {
+      render(
+        <TestProviders>
+          <PMTemplates />
+        </TestProviders>
+      );
+
+      expect(screen.queryByText(pmFixtures.forklift.name)).not.toBeInTheDocument();
+
+      fireEvent.change(screen.getByPlaceholderText('Search templates...'), {
+        target: { value: 'Forklift' },
+      });
+
+      expect(screen.getByText(pmFixtures.forklift.name)).toBeInTheDocument();
     });
 
     it('renders organization templates section for licensed users', () => {
@@ -427,6 +508,7 @@ describe('PMTemplates Page', () => {
         </TestProviders>
       );
 
+      expandEquipQrTemplates();
       const forkliftCard = screen.getByLabelText(`Open details for template ${pmFixtures.forklift.name}`);
 
       expect(within(forkliftCard).getByText(pmFixtures.forklift.name)).toBeInTheDocument();
@@ -447,6 +529,7 @@ describe('PMTemplates Page', () => {
         </TestProviders>
       );
 
+      expandEquipQrTemplates();
       for (const templateName of ['Forklift PM Checklist', 'Compact Excavator PM', 'Excavator PM']) {
         const cardHeader = screen.getByLabelText(`Open details for template ${templateName}`);
         const title = within(cardHeader).getByText(templateName);
@@ -470,6 +553,7 @@ describe('PMTemplates Page', () => {
         </TestProviders>
       );
 
+      expandEquipQrTemplates();
       expect(screen.getByTestId(`assignment-menu-${pmFixtures.forklift.id}`)).toBeInTheDocument();
       expect(
         screen.getByTestId(`assignment-menu-${pmFixtures.customOrgTemplate.id}`),
@@ -484,6 +568,7 @@ describe('PMTemplates Page', () => {
         </TestProviders>
       );
 
+      expandEquipQrTemplates();
       const cloneButtons = screen.getAllByRole('button', { name: 'Clone' });
       fireEvent.click(cloneButtons[0]);
 
@@ -578,6 +663,7 @@ describe('PMTemplates Page', () => {
         </TestProviders>
       );
 
+      expandEquipQrTemplates();
       const cloneButtons = screen.getAllByRole('button', { name: 'Clone' });
       fireEvent.click(cloneButtons[0]);
 

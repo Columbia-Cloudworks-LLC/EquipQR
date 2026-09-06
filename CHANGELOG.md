@@ -11,6 +11,23 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+## [3.32.0] - 2026-09-06
+
+### Added
+
+- **Work order calendar (#1530)** — Desktop planners can switch Work Orders to a month, week, or day calendar, drag due dates, and set optional due times.
+- **Work order list pages (#1534)** — The Work Orders list now pages on the server so large organizations no longer load every work order at once.
+- **PM template groups (#1536)** — EquipQR and organization sections on PM Templates can collapse. EquipQR starts closed when the organization already has a custom template.
+
+### Changed
+
+- **Work order list toolbar** — The desktop list no longer shows a filtered/total count beside search; paging still shows how many work orders are in view.
+
+### Fixed
+
+- **Calendar panel close (#1533)** — The work-order side panel X now dismisses the panel.
+- **Calendar create leftover** — Cancelling a new work order from a calendar slot no longer leaves a ghost event on the grid.
+
 ## [3.31.0] - 2026-09-02
 
 ### Changed
@@ -2716,7 +2733,8 @@ Update package dependencies and versions
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.31.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.32.0...HEAD
+[3.32.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.31.0...v3.32.0
 [3.31.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.30.0...v3.31.0
 [3.30.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.29.1...v3.30.0
 [3.29.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.29.0...v3.29.1
