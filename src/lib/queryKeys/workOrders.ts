@@ -10,7 +10,11 @@ export const workOrders = {
     spec
       ? (['work-orders', orgId, 'paged', spec] as const)
       : (['work-orders', orgId, 'paged'] as const),
-  enhanced: (orgId: string) => ['work-orders', orgId, 'enhanced'] as const,
+  accessibleCount: (orgId: string, team: unknown, access: unknown) =>
+      ['work-orders', orgId, 'accessible-count', team, access] as const,
+    unassignedCount: (orgId: string, access: unknown) =>
+      ['work-orders', orgId, 'unassigned-count', access] as const,
+    enhanced: (orgId: string) => ['work-orders', orgId, 'enhanced'] as const,
   enhancedById: (orgId: string, workOrderId: string) => ['workOrder', 'enhanced', orgId, workOrderId] as const,
   optimized: (orgId: string) => ['work-orders', orgId, 'optimized'] as const,
   byId: (orgId: string, workOrderId: string) => ['work-orders', orgId, workOrderId] as const,

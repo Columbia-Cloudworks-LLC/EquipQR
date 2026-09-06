@@ -82,6 +82,8 @@ export function useWorkOrderFiltering() {
   const sortDirectionRef = useRef(sortDirection)
   sortDirectionRef.current = sortDirection
   const selectedTeamIdRef = useRef(selectedTeamId)
+    const organizationIdRef = useRef(currentOrganization?.id)
+    const organizationIdRef = useRef(currentOrganization?.id)
   const resetPagination = useCallback(() => {
     setCurrentPageState(1)
   }, [])
@@ -140,7 +142,7 @@ export function useWorkOrderFiltering() {
 
   const unassignedQuery = useQuery({
     queryKey: contract
-      ? [...workOrders.pagedList(contract.organizationId), 'unassigned-submitted', contract.access]
+      ? workOrders.unassignedCount(contract.organizationId, contract.access)
       : workOrders.pagedList('unknown'),
     queryFn: () => {
       if (!contract) {
