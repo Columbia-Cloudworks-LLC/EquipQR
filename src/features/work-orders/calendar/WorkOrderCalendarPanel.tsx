@@ -80,7 +80,11 @@ export function WorkOrderCalendarPanel({
               />
               {due.kind === 'timed' || showTime ? (
                 <DateTimePicker
-                  date={due.kind === 'timed' ? new Date(due.at.epochMs) : undefined}
+                  date={due.kind === 'timed'
+                      ? new Date(due.at.epochMs)
+                      : due.kind === 'day'
+                        ? new Date(due.day.y, due.day.m - 1, due.day.d)
+                        : undefined}
                   onDateChange={(date) => onDueWrite(dueDateTimeInputWrite(
                     date ? { epochMs: date.getTime() } : null,
                   ))}
