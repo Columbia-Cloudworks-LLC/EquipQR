@@ -4,7 +4,8 @@ import { Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
-import { isOverdue, isTerminalStatus } from '@/features/work-orders/utils/workOrderHelpers';
+import { isTerminalStatus } from '@/features/work-orders/utils/workOrderHelpers';
+import { isDueOverdue, parseDue } from '@/features/work-orders/calendar';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { getWorkOrderStatusBorderWithOverdue, getStatusBackgroundTint } from '@/lib/status-colors';
 import PMProgressIndicator from '../PMProgressIndicator';
@@ -37,7 +38,7 @@ export const WorkOrderDesktopCard: React.FC<WorkOrderCardProps> = memo(({
 
   const dueDateValue = workOrder.due_date ?? workOrder.dueDate;
   const isTerminal = isTerminalStatus(workOrder.status);
-  const isWorkOrderOverdue = isOverdue(dueDateValue, workOrder.status);
+  const isWorkOrderOverdue = isDueOverdue(parseDue(workOrder), workOrder.status);
   const statusBorderClass = getWorkOrderStatusBorderWithOverdue(workOrder.status, isWorkOrderOverdue);
   const statusTintClass = getStatusBackgroundTint(workOrder.status, isWorkOrderOverdue);
   const navigationProps = getWorkOrderCardNavigationProps(workOrder.id, onNavigate);

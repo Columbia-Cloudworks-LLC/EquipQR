@@ -11,10 +11,9 @@ import { cn } from '@/lib/utils';
 import {
   getStatusColor,
   formatStatus,
-  isOverdue,
   isTerminalStatus,
 } from '@/features/work-orders/utils/workOrderHelpers';
-import { formatDueDisplay, parseDue } from '@/features/work-orders/calendar';
+import { formatDueDisplay, isDueOverdue, parseDue } from '@/features/work-orders/calendar';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { getPriorityBadgeClass, getWorkOrderStatusBorderWithOverdue, getStatusBackgroundTint } from '@/lib/status-colors';
 import WorkOrderCostSubtotal from '../WorkOrderCostSubtotal';
@@ -59,7 +58,7 @@ export const WorkOrderMobileCard: React.FC<WorkOrderMobileCardProps> = memo(({
   const initials = useMemo(() => getAssigneeInitials(assigneeName), [assigneeName]);
 
   const isInteractive = Boolean(onNavigate);
-  const isWorkOrderOverdue = isOverdue(dueDateValue, workOrder.status);
+  const isWorkOrderOverdue = isDueOverdue(parseDue(workOrder), workOrder.status);
   const statusBorderClass = getWorkOrderStatusBorderWithOverdue(workOrder.status, isWorkOrderOverdue);
   const statusTintClass = getStatusBackgroundTint(workOrder.status, isWorkOrderOverdue);
 
