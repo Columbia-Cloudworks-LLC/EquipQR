@@ -38,6 +38,27 @@ Constants and helpers: `dev/op/columbia-cloudworks-agents-vault.ps1`.
 
 Cloud Agents and GitHub Actions use the read-only token as a repo/org secret. Never commit either token.
 
+**Token rules**
+
+- Never use the read-only token for vault writes.
+- Never store write-tier vendor PATs (`github-write`, `vercel-write`, `supabase-write`, and similar) in `HKCU\Environment`. Materialize with `op read` in-session when needed.
+- The only long-lived User-scope exception is read-only `OP_SERVICE_ACCOUNT_TOKEN` for headless reads.
+
+### Env and vendor item patterns
+
+Naming convention for MCP-backed items: `<service>-<access-tier>` (not env tier).
+
+| Item pattern | Purpose |
+| --- | --- |
+| `app-env-local-dev` | Local Vite `.env` (via `.\dev\dev-start.bat`) |
+| `edge-env-local-dev` | Local edge `supabase/functions/.env` |
+| `app-env-preview-public` / `app-env-prod-public` | Public `VITE_*` vars synced to Vercel |
+| `edge-env-preview-secrets` / `edge-env-prod-secrets` | Supabase Edge Function secrets |
+| `github-read` / `github-write` | GitHub MCP tiers |
+| `gcp-read` / editor impersonation | GCP viewer + `gcloud-write` MCP |
+| `supabase-write`, `vercel-write` | Vendor CLI write tokens |
+| `Google (Business)` (Columbia Cloudworks Agents, item id `ukvy6bzwb2ikq5cfeambgcq5u4`) | Workspace admin + GCP Console browser sign-in |
+
 ---
 
 ## Cursor shell vs 1Password writes
@@ -78,6 +99,8 @@ Assignment rules ([official docs](https://www.1password.dev/cli/reference/manage
 - For multi-field or sensitive bulk edits: `-Action Edit -TemplatePath C:\path\to\item.json` after `op item get ... --format json`
 
 Interactive maintainer terminals (`PS D:\EquipQR>`) can run `op` directly; agents should not rely on that.
+
+Omit `-Vault "EquipQR Agents"` on `op-item-mutate.ps1`. Use the script default vault UUID — spaced vault names break detached `op item edit`.
 
 ---
 
@@ -160,6 +183,50 @@ See also `docs/ops/preview-architecture-migration.md` (#1033) for consolidating 
 
 ---
 
+## Agent access tiers
+
+Default to the lowest tier that completes the task. When blocked, **stop
+and ask the maintainer** with a concrete approval request — do not loop
+on failing commands.
+
+### Tier A — Read-only (no approval needed)
+
+- `op read` / `op item get` with read SAT (EquipQR Agents **and** Columbia Cloudworks Agents vaults)
+- `github-read` MCP, `gcloud` viewer MCP, Supabase MCP reads, Datadog/Better Stack read tools
+- Local `npm test`, lint, scoped verification
+- Google Admin / GCP Console browser sign-in via `.\dev\e2e\Load-GoogleBusinessEnv.ps1` when fixing Workspace or OAuth client blockers
+
+### Tier B — Maintainer User-scope env (already granted on the dev machine)
+
+- `OP_SAT_EquipQR` for 1Password vault writes (via `op-item-mutate.ps1` only)
+- `OP_SERVICE_ACCOUNT_TOKEN` for headless reads
+- `FIRECRAWL_API_KEY` (bounded quota risk)
+
+If a shell was opened before these were set, refresh:
+
+```powershell
+$env:OP_SERVICE_ACCOUNT_TOKEN = [Environment]::GetEnvironmentVariable('OP_SERVICE_ACCOUNT_TOKEN','User')
+$env:OP_SAT_EquipQR = [Environment]::GetEnvironmentVariable('OP_SAT_EquipQR','User')
+```
+
+### Tier C — Browser / OAuth approval (human in the loop)
+
+| Situation | What to ask the maintainer |
+| --- | --- |
+| MCP server not authenticated | Authorize the server in Cursor → MCP (browser OAuth). Then retry once. |
+| Google Workspace connect/disconnect on **preview cloud** only | Complete **Connect Google Workspace** on preview.equipqr.app; the agent watches edge logs / DB row count. Local GW flows are agent-automated via browser MCP. |
+| Google Admin Console (2SV, OAuth clients, user security) | Prefer agent browser sign-in with `Load-GoogleBusinessEnv.ps1` first; ask only if Columbia Cloudworks Agents read fails or the change needs personal approval. |
+| GCP mutation needed | Approve **gcloud-write** / editor SA impersonation for the exact change. Use `Load-GoogleBusinessEnv.ps1` for Console UI edits when impersonation is blocked. Never `gcloud config set account`. |
+| GitHub mutation beyond agent PAT | Approve **github-write** MCP or run the exact `gh` command. |
+| Supabase production promotion | Explicit `/release` or hotfix language only. |
+| Cursor Smart Mode blocks a command | User approves via the native approval card; agent retries with `request_smart_mode_approval` when applicable. |
+
+When blocked:
+
+1. State the **exact** missing capability (not "1Password broken").
+2. Propose the **smallest** approval path (one MCP auth, one browser click, one detached script).
+3. After approval, **verify** with a read-only check before claiming success.
+
 ## MCP and vendor access tiers
 
 Rendered in `~/.cursor/mcp.json` from `dev/mcp.template.json`:
@@ -191,5 +258,7 @@ When blocked, post:
 ## Related docs
 
 - `docs/ops/cloud-admin-access.md` — GCP org posture
+- `docs/ops/google-workspace.md` — Connect contract and OAuth redirects
 - `.cursor/skills/secrets-rotation/SKILL.md` — rotation procedures (when present)
 - `docs/technical/setup.md` — human developer onboarding
+- `AGENTS.md` — slim index only; do not copy this runbook back there

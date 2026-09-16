@@ -167,8 +167,15 @@ CREATE TRIGGER validate_invitation_expiration
 1. **Create the migration file**:
 
    ```bash
-   npx supabase migration new your_migration_name
+   npm run db:migration:new -- your_migration_name
    ```
+
+   Do **not** run bare `npx supabase migration new` in Cursor agent
+   terminals. The CLI reads SQL from stdin; agent shells keep stdin open
+   and the command can hang. `db:migration:new` wraps
+   `dev/db/New-SupabaseMigration.ps1` (30s timeout, immediate EOF). If a
+   hang occurs, kill stray `supabase.exe` processes before retrying. Do
+   not hand-create migration timestamps as a workaround.
 
 2. **Write your migration SQL** in the generated file
 
@@ -481,8 +488,8 @@ The standard deployment workflow is:
 1. **Develop and test locally** (REQUIRED):
 
    ```bash
-   # Create migration
-   npx supabase migration new your_migration_name
+   # Create migration (agent-safe wrapper — not bare `npx supabase migration new`)
+   npm run db:migration:new -- your_migration_name
    
    # Test locally
    npx supabase db reset

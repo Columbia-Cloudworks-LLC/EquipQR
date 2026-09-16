@@ -30,6 +30,30 @@ Keep **`equipqr.info` off the SPA project (`equipqr`)** — only the docs projec
 
 **Local footer testing:** Run `.\dev\dev-start.bat` to start the product app and docs site together. In local Vite dev mode, the app footer’s Documentation link defaults to `http://localhost:5174`; production builds default to `https://equipqr.info`. Set `VITE_DOCUMENTATION_URL` when you need to test a different docs preview URL, such as `http://localhost:4173` after running `npm run docs:build` and then `npm run docs:preview`.
 
+**`docs:build` CSP:** the build runs `externalize-docs-inline-scripts.mjs`
+so VitePress inline bootstrap scripts become content-addressed
+`/assets/inline.*.js` files. Committed `docs/vercel.json` keeps static
+`script-src 'self'` (Vercel serves committed headers, so post-build
+sha256 hashes from older flows drifted and broke hydration).
+
+**docs-media publishing:** upload curated captures via
+`npx tsx dev/upload-screenshot.ts <local> <storage-path> docs-media`
+with env from `Set-PrEvidenceUploadEnvironment`. Docs embed images as
+`https://supabase.equipqr.app/storage/v1/object/public/docs-media/...`
+and videos as bare URLs in angle brackets. Public marketing media uses
+Supabase `landing-page-images` / `landing-page-videos` via
+`landingImage()` / `landingVideo()`. App image buckets stay private with
+signed URLs except organization logos.
+
+**App PWA:** the service worker is disabled on Vite dev
+(`localhost:8080`). SW / offline-shell verification requires
+`npm run build` + `vite preview`. Stale chunk 404s recover through
+chunk-load reload handling.
+
+**Public legal:** `/right-to-repair` (Legal footer; stance, not a
+contract) — keep with Terms / Privacy / Security under `src/pages`.
+App links to Help Center resolve through `documentationUrl.ts`.
+
 **Related domains:** During domain migration, **`equipqr.support`** / **`www.equipqr.support`** on the SPA project may temporarily redirect to **`equipqr.app`** instead of **`equipqr.info`** because Vercel only allows same-project redirect targets; revisit in the dashboard if those URLs should land on the public docs site again.
 
 ## Build Process
@@ -892,8 +916,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 
 1. **Develop and test locally** (REQUIRED):
    ```bash
-   # Create migration
-   npx supabase migration new your_migration_name
+   # Create migration (agent-safe wrapper)
+   npm run db:migration:new -- your_migration_name
    
    # Test locally with complete database reset
    npx supabase db reset

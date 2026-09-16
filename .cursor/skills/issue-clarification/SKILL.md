@@ -304,7 +304,7 @@ Confirm with `gh issue view <number> --web` or re-fetch JSON and verify triage l
 - Do not expose secrets, tokens, or PII in the issue body or draft file.
 - Do not guess affected users or matrix cells — mark uncertainty; use `AskQuestion` before finalizing the draft.
 - Do not skip `gh issue edit` when clarification is complete — invoking the skill is the authorization to publish.
-- Prefer `AGENTS.md` and `.cursor/rules/*.mdc` for stack conventions when interpreting findings.
+- Prefer `AGENTS.md` as an index, then the one relevant official `docs/` file and `.cursor/rules/*.mdc` for stack conventions when interpreting findings.
 
 ## Handoff
 

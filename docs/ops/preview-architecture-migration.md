@@ -106,7 +106,7 @@ Everything that currently assumes `preview.equipqr.app` and/or `olsdirkvvfegvclb
 
 - `docs/ops/playwright-real-auth-integrations.md` — target `https://preview.equipqr.app`
 - `e2e/user/shared/real-auth-config.ts` — default base URL `preview.equipqr.app`
-- `AGENTS.md` — preview GW/QB testing on Columbia Cloudworks org
+- `docs/ops/google-workspace.md` / `docs/ops/quickbooks-oauth.md` — preview GW/QB testing on Columbia Cloudworks org
 
 ### External vendor consoles
 

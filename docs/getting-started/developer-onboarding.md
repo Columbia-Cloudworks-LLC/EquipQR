@@ -398,7 +398,7 @@ describe('EquipmentCard', () => {
 
 1. **Create Migration** (if needed)
    ```bash
-   npx supabase migration new add_new_feature_table
+   npm run db:migration:new -- add_new_feature_table
    ```
 
 2. **Write Migration SQL**
