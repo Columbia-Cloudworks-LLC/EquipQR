@@ -13,7 +13,7 @@ globs: "supabase/functions/**/*.ts"
 - **Shared Code:** Put shared business logic in `supabase/functions/_shared/`.
 
 ## Best Practices
-- **CORS:** Always handle `OPTIONS` requests and standard CORS headers for browser compatibility.
+- **CORS:** Always handle `OPTIONS` requests. Use `getCorsHeaders(req)` / `createJsonResponse` with `{ req }` — see `docs/edge-functions/auth-patterns.md`.
 - **Supabase Client:** Create the client *inside* the handler using `createClient` from `@supabase/supabase-js` with `Authorization` header context.
 - **Type Safety:** Share types with the frontend via `supabase/functions/_shared/types` or by importing generated database types.
 - **Error Handling:** Return proper HTTP status codes (400 for bad input, 401 for auth, 500 for server errors) and JSON error messages.

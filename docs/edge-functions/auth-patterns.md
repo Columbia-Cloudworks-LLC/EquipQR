@@ -2,6 +2,20 @@
 
 This document describes the authentication patterns used in Supabase Edge Functions and which functions are authorized to use the service role key.
 
+## Handler contract
+
+Wrap handlers with `Deno.serve(withCorrelationId(async (req, _ctx) => { ... }))`.
+Return JSON via `createJsonResponse` / `createErrorResponse` (pass `{ req }`
+for CORS), not handcrafted `Response` bodies. Use `getCorsHeaders(req)`
+instead of the deprecated wildcard `corsHeaders`. Best-effort `finally`
+cleanup must be wrapped in its own `try/catch` so it cannot override the
+primary success response.
+
+Invitation emails: member invites call `send-invitation-email`
+synchronously. Resend via `_shared/resend-send-email.ts` native fetch —
+do **not** import `npm:resend` in Deno (react-dom crash). Details:
+[auth-signup-email-workflow.md](../ops/auth-signup-email-workflow.md).
+
 ## Overview
 
 Edge Functions can create Supabase clients in two modes:

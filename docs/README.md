@@ -158,6 +158,9 @@ To avoid redundancy and ensure consistency, each topic has a single **source of 
 | Deployment | `ops/deployment.md` | — |
 | Coding standards | `technical/standards.md` | `.github/instructions/*.md` (reviewer checklists) |
 | Testing | `technical/testing-guidelines.md` | — |
+| Agent secrets / access tiers | `ops/agent-secrets-and-access.md` | `AGENTS.md` (index pointer only) |
+| Google Workspace Connect | `ops/google-workspace.md` | Support article `support/admin-integrations/google-workspace-connect.md` |
+| Product implementation notes | `technical/product-conventions.md` | Support / guides (customer copy) |
 
 **For AI/reviewer checklists** (`.github/instructions/*`, `.github/copilot-instructions.md`):
 - These are short checklists for code review, not a second copy of the docs above
@@ -174,6 +177,22 @@ Use this when authoring or reviewing documentation:
 | **`equipqr.app/dashboard/support`** | Signed-in users | Report issues and track tickets only; guides live on equipqr.info. |
 
 Do not add real org IDs, project IDs, tenant domains, service account emails, or copy-paste admin keys to public-facing pages. Prefer placeholders (for example `<GCP_ORG_ID>`) or point readers at internal ops docs in the repo.
+
+## Agent handbook
+
+`AGENTS.md` is a short index (product blurb plus references). Official
+process and lessons live in this `docs/` tree and in `.cursor/rules/`.
+
+When a process is new or changes:
+
+1. Update the official document that owns the topic (reuse an existing
+   runbook; do not start a second copy).
+2. Add or adjust a one-line pointer in `AGENTS.md` only if a new topic
+   needs discovery.
+
+Do not grow `AGENTS.md` with full write-ups, learned-preference dumps, or
+workspace-fact piles. Changelog, branching, and workflow-artifact rules
+stay in `.cursor/rules/` — do not invent a parallel policy in the index.
 
 ## Contributing to documentation
 

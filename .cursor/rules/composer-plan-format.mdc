@@ -12,7 +12,7 @@ Whenever an agent creates a plan file, Change Plan, implementation plan, PR-feed
 - Use semantic XML-style boundary tags with standard markdown headers. Required core top-level sections are `<context-anchor>`, `<execution-steps>`, `<authorized-commands>`, `<verification-plan>`, `<summary-checkpoints>`, and `<stop-conditions>`.
 - Additional optional top-level sections are allowed only when a skill or workflow explicitly defines them in its plan template. Any optional section must be named and described in that template so authors know when to include it.
 - Start with `<context-anchor>` and explicitly state the EquipQR stack: React, TypeScript, Vite, Tailwind, shadcn/ui, Supabase, TanStack Query, Vitest, React Testing Library, and PowerShell on Windows.
-- In `<context-anchor>`, require the execution agent to ingest relevant `.cursor/rules/*.mdc`, `.cursor/skills/**/SKILL.md`, and `AGENTS.md` before modifying files.
+- In `<context-anchor>`, require the execution agent to read `AGENTS.md` as an index, then ingest the one relevant official `docs/` file plus applicable `.cursor/rules/*.mdc` and `.cursor/skills/**/SKILL.md` before modifying files.
 - Never wrap nested code snippets, schemas, SQL, JSON, PowerShell, bash, or commands in triple backticks inside the generated plan. Use plain indented text with exactly four leading spaces for nested snippet/example lines.
 - Boundary tags and markdown headers must start at column 0 (no leading spaces). Only nested snippet/example lines inside a section use four-space indentation.
 - Reserve angle brackets for real section boundary tags only. Use double-curly placeholders such as {{plan title}} or {{exact test command}} for generic fill-in text inside plan content.
@@ -32,7 +32,7 @@ Whenever an agent creates a plan file, Change Plan, implementation plan, PR-feed
 
 <context-anchor>
 Stack: React + TypeScript + Vite + Tailwind + shadcn/ui + Supabase + TanStack Query + Vitest + React Testing Library on Windows PowerShell.
-Before edits: read and follow AGENTS.md plus relevant .cursor/rules/*.mdc and .cursor/skills/**/SKILL.md.
+Before edits: read AGENTS.md as an index, then the one relevant official docs/ file plus applicable .cursor/rules/*.mdc and .cursor/skills/**/SKILL.md.
 Composer target: Composer 2.5 should be able to execute this without inferring missing files, commands, tests, or stop conditions.
 Formatting rule: boundary tags and headers at column 0; nested snippets/examples at exactly four leading spaces; no triple backticks anywhere in this plan; use {{placeholder text}} for generic fill-in values.
 </context-anchor>

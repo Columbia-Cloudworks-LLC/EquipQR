@@ -74,9 +74,59 @@ Retired: `preview-domain-alias.yml` (fast-forward `preview` from `main` + deploy
 
 See `docs/ops/preview-architecture-migration.md` for #1033 history and the #1282 reverse-migration note.
 
+## Agent work mode
+
+Default is **local-iterate** (`.cursor/rules/branching.mdc`). Stay on the
+current checkout. Do not create a branch, spawn a worktree, push, open a
+PR, or merge until the user asks to publish, land the issue on `preview`,
+or invokes a publish skill (`/itil-issue-resolver` with an issue to land,
+`/release`, `/dependabot-merge-ready`, or address-pr-feedback on an
+existing PR). A linked Cursor worktree is not publish authorization.
+
+When publishing, feature-branch PRs into `preview` follow open → evidence
+published → CI green → Supabase green or skipped → **merge**. Do **not**
+wait for Qodo (retired). GitHub Copilot review is `main`-only — do not
+run or block preview/feature PRs on Copilot. Review threads are not a
+merge blocker unless the user asks to address them. After merge, switch
+the checkout back to `preview`, pull, and delete leftover EquipQR
+worktrees.
+
+**Stash caution:** `git stash pop` after a `git stash -u` that created no
+entry can pop a years-old stash from another branch and conflict. Check
+`git stash list` before popping.
+
+## Preview QA notes
+
+- Cloud preview (`preview.equipqr.app` and `equipqr.app`) uses production
+  Supabase `https://supabase.equipqr.app` today. Schema/RLS validation
+  uses ephemeral Supabase PR branches when `supabase/**` changes.
+- **Validate Supabase Migrations** green means the SQL is fine.
+  `TenantNotFound` / storage-config 404 while a branch status is
+  `COMING_UP` is usually platform provisioning. Unset
+  `SUPABASE_AUTH_EXTERNAL_GOOGLE_*` on ephemeral branches is expected.
+- Schema reference dump: regenerate `supabase/current_schema.sql` after
+  DDL migrations. See [migrations.md](./migrations.md).
+- Preview evidence on `preview.equipqr.app`: Vercel Deployment Protection
+  intercepts fresh Playwright. Mint a share link via Vercel MCP
+  `get_access_to_vercel_url` first, then Google OAuth as the Columbia
+  Cloudworks automation account. Skipping this can sign in a personal
+  Gmail/org and 404 production IDs. See
+  [playwright-real-auth-integrations.md](./playwright-real-auth-integrations.md).
+
+## Production Release Readiness
+
+On promote to `main`, Production Release Readiness applies prod
+migrations, runs strict schema drift, waits for the Vercel build,
+promotes **equipqr.app**, then runs `supabase functions deploy` for all
+Edge Functions (last step so a failed promote cannot leave prod edge
+ahead of the frontend). Do not ask the maintainer for a manual edge
+deploy after merge.
+
 ## Related docs
 
 - `.cursor/rules/branching.mdc` — agent branching rules
 - `docs/ops/ci-cd-pipeline.md` — GitHub Actions
 - `docs/ops/deployment.md` — Vercel/Supabase operations detail
+- `docs/ops/google-workspace.md` — Workspace Connect and OAuth redirects
+- `docs/ops/quickbooks-oauth.md` — Intuit sandbox vs production
 - `CONTRIBUTING.md` — contributor onboarding

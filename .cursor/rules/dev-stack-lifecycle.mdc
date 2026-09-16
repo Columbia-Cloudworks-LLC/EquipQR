@@ -28,7 +28,7 @@ Agents working on EquipQR **must not fight a sick local stack**. Prefer a clean 
 
 4. **Never corrupt the session mid-work.**
    - Do **not** run `npm ci` while Vite, docs, edge serve, Vitest watch, or Playwright is running on Windows — stop the stack first (`dev-stop.bat` or `dev-stop-all.bat`), then use **`npm-ci-safe.bat`** / **`npm run ci:install`**.
-   - Do **not** assume a failed probe means the stack is down if logic is wrong (e.g. `fetch().ok` on **304 Not Modified**); see `AGENTS.md` learned preference.
+   - Do **not** assume a failed probe means the stack is down if logic is wrong (e.g. `fetch().ok` on **304 Not Modified**); verify the probe (HTTP 304 is success) before restarting.
    - `dev-start.ps1` validates `node_modules` health before skipping install; trust repair paths there instead of hand-patching half-installed deps.
 
 5. **Background processes, not popup terminals.** Vite, docs, and edge-functions serve run as hidden background processes with logs under `tmp\dev-logs\` (`vite.*.log`, `docs.*.log`, `edge-functions.*.log`). Do not reintroduce detached terminal windows.
@@ -49,4 +49,4 @@ Confirm the status report shows **OK** for Supabase API (`54321`), Frontend (`80
 
 - **`local-verify-before-preview-push.mdc`:** E2E gates assume a healthy stack; this rule defines how to get there.
 - **`local-dev-troubleshoot.mdc`:** Symptom-specific fixes; when in doubt, full batch-file cycle first.
-- **`AGENTS.md`:** Secrets and env sync — still use `dev/sync-local-supabase-env.ps1` when OAuth drift is suspected after a clean start.
+- **`docs/ops/agent-secrets-and-access.md`:** Secrets and env sync — still use `dev/sync-local-supabase-env.ps1` when OAuth drift is suspected after a clean start.

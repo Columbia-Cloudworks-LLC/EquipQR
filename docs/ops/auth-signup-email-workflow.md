@@ -100,7 +100,8 @@ Use this checklist after any Auth, SMTP, DNS, or signup-flow change.
 
 ## Important Boundaries
 
-- Resend SMTP for Supabase Auth is separate from Edge Function email sending. Edge Functions use `RESEND_API_KEY` from Supabase secrets and currently send invitations through `supabase/functions/send-invitation-email`.
+- Resend SMTP for Supabase Auth is separate from Edge Function email sending. Edge Functions use `RESEND_API_KEY` from Supabase secrets (`edge-env-prod-secrets`).
+- Member invitations call `send-invitation-email` **synchronously** (not pgmq / `queue-worker`). Send via `_shared/resend-send-email.ts` native fetch — do **not** import `npm:resend` in Deno (react-dom crash). From address: `EquipQR™ <invite@equipqr.app>`.
 - Do not paste confirmation links, signup tokens, SMTP passwords, or Resend API keys into chat, commits, screenshots, or documentation.
 - A Resend bounce is not the same as a Supabase signup failure. If Supabase returns `200` and Resend records the message, the signup system is functioning and the issue is recipient deliverability.
 - Do not turn on `mailer_autoconfirm` for production. Email confirmation is part of the intended account verification flow.

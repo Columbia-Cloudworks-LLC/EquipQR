@@ -187,6 +187,21 @@ Spec file: `e2e/user/full/real-auth-integrations.spec.ts`
 | Tests skipped | Missing env vars | Set variables per table above |
 | QBO OAuth sends the browser to `olsdirk` or `supabase.preview.equipqr.app` | Stale Vercel build or retired hostname | Ensure `VITE_SUPABASE_URL` is `https://supabase.equipqr.app` on Vercel Preview and Intuit redirect URI matches `https://supabase.equipqr.app/functions/v1/quickbooks-oauth-callback` |
 
+## Capture vs replay
+
+Local Playwright Google and QuickBooks E2E use captured storage state
+(`npm run e2e:google-auth:capture` / `e2e:quickbooks-auth:capture` with
+`Load-GoogleLocalAuthEnv.ps1` / `Load-QuickBooksLocalAuthEnv.ps1`).
+Replay headlessly. Complete OAuth only during capture runs.
+
+## Preview.equipqr.app evidence
+
+Vercel Deployment Protection intercepts a fresh Playwright browser.
+Mint a share link via Vercel MCP `get_access_to_vercel_url` first to seed
+the bypass cookie, then Google OAuth as the Columbia Cloudworks
+automation account (TOTP from Columbia Cloudworks Agents). Skipping this
+can sign in a personal Gmail/org and 404 production IDs.
+
 ## Safety rails
 
 - No Google or Intuit passwords in repo config, env files, or test code

@@ -13,7 +13,7 @@ description: >-
 
 Automated PR remediation for **Dependabot-originating PRs only**. Objective: resolve the current Dependabot PR with minimal necessary changes, ensure zero feature regression, manage technical debt via GitHub issues, document under CHANGELOG `[Unreleased]` (**no** `package.json` bump on preview), and monitor the CI pipeline to a green state.
 
-**Before starting:** read `AGENTS.md` and relevant `.cursor/rules/*.mdc` (especially `pr-merge-ready-workflow.mdc`, `pr-ci-gate-before-open.mdc`, `fallow-before-commit.mdc`, `git-powershell.mdc`, `workflow-artifacts.mdc`).
+**Before starting:** read `AGENTS.md` as an index, then the one relevant official doc plus `.cursor/rules/*.mdc` (especially `pr-merge-ready-workflow.mdc`, `pr-ci-gate-before-open.mdc`, `fallow-before-commit.mdc`, `git-powershell.mdc`, `workflow-artifacts.mdc`).
 
 ## Entry gate (mandatory — do not skip)
 
@@ -202,7 +202,7 @@ Confirm `Validate Supabase Migrations` and `Supabase Preview` are success, or sk
 - PR is not from `app/dependabot` → stop; use `address-pr-feedback` instead.
 - Remediation requires product/architecture decisions outside dependency scope → post question on PR; stop.
 - CI failure unrelated to the bump persists after merging latest `origin/preview` → report with failing job link.
-- Secrets or maintainer-only OAuth needed → escalate per `AGENTS.md` §2.
+- Secrets or maintainer-only OAuth needed → escalate per `docs/ops/agent-secrets-and-access.md` (access tiers).
 
 ## Related skills
 

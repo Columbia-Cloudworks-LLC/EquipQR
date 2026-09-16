@@ -34,6 +34,11 @@ Cursor plugins (for example continual-learning / `agents-memory-updater`) may up
 
 ## Lesson capture
 
+When a process is new or changes, update the official `docs/` file that
+owns the topic, then add or adjust a one-line pointer in `AGENTS.md` only
+if a new topic needs discovery. Do not append write-ups to `AGENTS.md`
+(`.cursor/rules/agents-handbook.mdc`).
+
 Prefer the custom `reflect` skill when present (explicit approval before write). Do not reinstall the Cursor `continual-learning` plugin — its `agents-memory-updater` subagent is slow and rewrites `AGENTS.md` without approval. When plugin-driven updates still land, commit them under this rule rather than reverting or endlessly re-triaging.
 
 ## Changelog
