@@ -1,11 +1,15 @@
 ﻿# EquipQR
 
-EquipQR is a multi-tenant fleet maintenance app for equipment QR codes, work orders, preventative maintenance, inventory, and field teams. The stack is React, TypeScript, Vite, Supabase, and TanStack Query. Operators use [equipqr.app](https://equipqr.app); the Help Center is [equipqr.info](https://equipqr.info). Agents work on Windows with PowerShell; the local stack is `.\dev\dev-start.bat`. This file is an index only — open the one official document that matches the task.
+EquipQR is a multi-tenant fleet maintenance app for equipment QR codes, work orders, preventative maintenance, inventory, and field teams. The stack is React, TypeScript, Vite, Supabase, and TanStack Query. Operators use [equipqr.app](https://equipqr.app); the Help Center is [equipqr.info](https://equipqr.info); the repository shortcut is [github.equipqr.app](https://github.equipqr.app).
+
+This file is an index only. Open the one official document that matches the task. Change guidance in that document first. Change this file only to add, remove, or correct a reference.
 
 ## References
 
 | Topic | Document |
 | --- | --- |
+| Documentation map and maintenance | [docs/README.md](docs/README.md) |
+| GitHub shortcut | [docs/ops/github-shortcut.md](docs/ops/github-shortcut.md) |
 | Secrets, vaults, access tiers | [docs/ops/agent-secrets-and-access.md](docs/ops/agent-secrets-and-access.md) |
 | Git, deploy, preview → main | [docs/ops/git-and-deploy.md](docs/ops/git-and-deploy.md), [.cursor/rules/branching.mdc](.cursor/rules/branching.mdc) |
 | Changelog | [.cursor/rules/changelog.mdc](.cursor/rules/changelog.mdc) |
@@ -33,6 +37,5 @@ EquipQR is a multi-tenant fleet maintenance app for equipment QR codes, work ord
 | Git / PowerShell | [.cursor/rules/git-powershell.mdc](.cursor/rules/git-powershell.mdc) |
 | Workflow artifacts | [.cursor/rules/workflow-artifacts.mdc](.cursor/rules/workflow-artifacts.mdc) |
 | Browser (Cursor only) | [.cursor/rules/cursor-browser-only.mdc](.cursor/rules/cursor-browser-only.mdc) |
-| Handbook maintenance | [docs/README.md](docs/README.md) (Agent handbook) |
 | Implement an issue | [.cursor/skills/itil-issue-resolver/SKILL.md](.cursor/skills/itil-issue-resolver/SKILL.md) |
 | PR feedback | [.cursor/skills/address-pr-feedback/SKILL.md](.cursor/skills/address-pr-feedback/SKILL.md) |

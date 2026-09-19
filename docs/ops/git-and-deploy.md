@@ -24,6 +24,7 @@ Open day-to-day PRs with `--base preview`. Production ships via **`preview` → 
 | **<https://equipqr.app>** | Production (after Production Release Readiness + `vercel promote`) |
 | **`https://<project>-<hash>-columbia-cloudworks-llc.vercel.app`** | Commit-specific Vercel Preview URL for every work-branch / PR deploy |
 | **<https://preview.equipqr.app>** | Stable hostname for the **integration** git branch **`preview`** — Vercel Preview deploys on merges/pushes to that branch (branch-bound custom domain). Not fast-forwarded from `main`. |
+| **<https://github.equipqr.app>** | Permanent HTTPS redirect to the canonical GitHub repository. Owned on the EquipQR Vercel project + `equipqr.app` DNS. See [github-shortcut.md](./github-shortcut.md). |
 
 Do **not** confuse git branch **`preview`** (integration train) with Vercel environment **Preview** (all non-production deploys).
 
@@ -129,4 +130,5 @@ deploy after merge.
 - `docs/ops/deployment.md` — Vercel/Supabase operations detail
 - `docs/ops/google-workspace.md` — Workspace Connect and OAuth redirects
 - `docs/ops/quickbooks-oauth.md` — Intuit sandbox vs production
+- `docs/ops/github-shortcut.md` — `github.equipqr.app` redirect
 - `CONTRIBUTING.md` — contributor onboarding

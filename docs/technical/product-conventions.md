@@ -1,157 +1,135 @@
-# Product conventions (agent)
+# Product conventions
 
-Implementation notes for EquipQR product surfaces. Customer help lives
-under `docs/support/` and `docs/guides/`. Update **this file** when
-product behavior changes; add a pointer in `AGENTS.md` only if a new
-topic needs discovery.
+Durable product behavior for EquipQR. Customer how-tos live in the Help
+Center (`docs/support/` and `docs/guides/`). Update **this file** when
+product behavior changes. Do not inventory current files, symbols, or
+line numbers here — look those up in the checkout when a task needs them.
+Add a pointer in `AGENTS.md` only if a new topic needs discovery.
 
 ## Product onboarding
 
-Active owners and admins only — members are never redirected. Wizard
-route: `/dashboard/onboarding/getting-started` while
-`get_product_onboarding_status` returns `needs_onboarding` (null
-`product_onboarding_completed_at` and the org is missing a team **or**
-equipment). Established orgs that already have both skip the wizard even
-when the timestamp is null. Steps: team → equipment → QR. Equipment
-`team_id` links QuickBooks customer invoicing.
+Only active owners and admins enter product onboarding. Members are never
+redirected into the wizard. The wizard runs while the organization still
+needs a team **or** equipment and onboarding is incomplete. Organizations
+that already have both skip the wizard even if the completion timestamp is
+empty. Steps: team → equipment → QR. Equipment team assignment is what
+links QuickBooks customer invoicing.
 
 ## Dashboard, equipment, and public QR
 
-Dashboard stat widgets and `get_dashboard_trends` respect TopBar
-`useSelectedTeam` (including unassigned-only).
+Dashboard stats follow the selected team in the top bar, including
+unassigned-only. Organization realtime subscriptions are refcounted and
+must unsubscribe on unmount.
 
-**Org realtime:** `backgroundSync.ts` refcounts org channels and
-unsubscribes on unmount. `equipment_notes` realtime filters use
-denormalized `organization_id`.
+Public equipment QR pages work without the signed-in organization
+provider. Duplicate organization serials warn with a link but do not
+block create. Offline creates queue locally; a persistent conflict on
+sync usually means the record already exists.
 
-Public `/qr/equipment/:id` uses `useSimpleOrganizationSafe()` — not
-`useOrganization()` outside `SimpleOrganizationProvider`. Duplicate org
-equipment serials warn with a link but do not block create. Offline
-creates queue in localStorage; persistent 409 sync failures usually mean
-the record already exists.
-
-**Equipment details desktop layout:** Details tab — Basic Information +
-Lifecycle & Warranty share a two-column row. Work Orders tab —
-Preventative Maintenance (`EquipmentPMInfo`) with PM Template nested
-above PM Schedule (two-column, aligned control rows). Check-Ins tab —
-operator check-in assignment + ledger.
+On desktop equipment details: Basic Information and Lifecycle & Warranty
+share a two-column row. The Work Orders tab nests PM Template above PM
+Schedule. The Check-Ins tab holds operator check-in assignment and the
+ledger.
 
 ## Operator daily check-ins and Quick Forms
 
-Operator daily check-ins are a separate append-only domain from PM and
-scans. Org admins define templates on **Operations → Daily Check-Ins**.
-Equipment assignment lives on the equipment **Check-Ins** tab via
-`EquipmentOperatorCheckinTemplateAssignmentMenu` (`MultiSelectActionMenu`).
-Daily-check-in QR lives there (not bulk Equipment QR admin). Equipment QR
-becomes a dropdown when any check-ins are assigned.
+Daily check-ins are a separate append-only domain from preventative
+maintenance and scans. Org admins define templates under **Operations →
+Daily Check-Ins**. Assignment lives on the equipment **Check-Ins** tab
+(searchable multi-select). Daily-check-in QR lives there, not on bulk
+Equipment QR admin. Equipment QR becomes a dropdown when any check-ins
+are assigned.
 
-Captured fields are admin-defined (operator input, optional client
-context, labeled equipment-record snapshots). There is no hard-coded
-mileage/odometer and no auto-filled equipment assumptions. Starter
-catalog presets are clone-only (client-side, collapsible). Template
-delete/deactivate via `delete_operator_checklist_template` disables
-assignments but preserves ledger submissions.
+Captured fields are admin-defined: operator input, optional client
+context, labeled equipment-record snapshots. There is no hard-coded
+mileage or odometer and no auto-filled equipment assumptions. Starter
+catalog presets are clone-only. Deleting or deactivating a template
+disables assignments but preserves ledger submissions.
 
-Public `/qr/operator-check-in/{token}` stores a SHA-256 hash in Postgres.
-The raw token persists in `operator_checkin_token_secrets` (admin-only
-RLS; written only by `create_operator_checkin_assignment` /
-`rotate_operator_checkin_token`) so QR links print from any device.
-Legacy assignments created before persistence (bulk/direct inserts with
-`token_rotated_by` null and no secret row) show a missing-token notice;
-owners/admins mint via **Generate QR link**
-(`rotate_operator_checkin_token`).
+Public check-in links store a hash; the raw token is kept so QR links
+print from any device. Legacy assignments created before token
+persistence show a missing-token notice; owners and admins mint a link
+with **Generate QR link**. Public load uses the assignment token; submit
+uses the service role only after hCaptcha when configured. The Daily
+Ledger is template-scoped with equipment multi-select; PDF and Excel
+exports use that scope.
 
-`operator-check-in` edge: `requireOperatorCheckinAssignmentToken` + anon
-RPC `resolve_operator_checkin_by_token` for load; service_role submit RPC
-only after hCaptcha when configured. Daily Ledger is template-scoped with
-equipment multi-select; PDF/Excel exports use that scope.
-
-**Quick Forms** are standalone public QR data-collection (not
-equipment/team-linked). Owners/admins on **Operations → Quick Forms**;
-public `/qr/quick-form/{token}` via `quick-form` edge; tokens in
-`quick_form_token_secrets` with anon `resolve_quick_form_by_token`;
-append-only ledger + CSV/Excel/PDF exports.
+**Quick Forms** are standalone public QR data collection (not linked to
+equipment or teams). Owners and admins manage them under **Operations →
+Quick Forms**. Public submit is append-only; exports cover the ledger
+(CSV, Excel, PDF).
 
 Customer steps: [operator daily check-ins](../support/administration/operator-daily-check-ins.md).
 
 ## Work orders
 
-**Create:** single flow — PM template `<Select>` directly below title
-(None + clear control; defaults to the equipment-assigned template). No
-generic vs PM type split. Equipment QR, card, details, and dialog entry
-points all use `createWorkOrder=1`. Create-form equipment picker is
-scrollable Radix Select + Search dialog — not a cmdk combobox.
+**Create:** one flow. The PM template control sits directly below the
+title (None plus a clear control; default is the equipment-assigned
+template). There is no generic vs PM type split. Equipment QR, card,
+details, and dialog entry points all open the same create intent. The
+equipment picker is a scrollable select plus a search dialog, not a
+command palette combobox.
 
-**Details:** read `workOrderKeys.detail` (`useWorkOrderById`). Mutation
-hooks call `invalidateWorkOrderCaches` in `invalidateWorkOrderQueries.ts`,
-not list-only invalidation. Inline edit on the details page (assignment,
-priority, due date, description) — not a separate edit dialog.
-Owner/admin delete via `delete_work_order_cascade` (list + details;
-storage cleanup inside the RPC).
+**Details:** mutations must refresh the work-order detail cache, not
+list-only caches. Inline edit covers assignment, priority, due date, and
+description — not a separate edit dialog. Owners and admins delete with
+cascade cleanup (list and details).
 
-**List and calendar:** the list is paginated; search/sort stay on list
-only. Calendar is Month/Week/Day with Today and jump increments (year /
-4 weeks / 7 days). Event chips grow to show the full title. Canceling
-create-from-slot must not leave a ghost event.
+**List and calendar:** the list is paginated; search and sort stay on
+the list. Calendar is Month / Week / Day with Today and jump increments
+(year / 4 weeks / 7 days). Event chips grow to show the full title.
+Canceling create-from-slot must not leave a ghost event.
 
-**Mobile:** contextual FAB + bottom sheet on work order details
-(`MobileWorkOrderActionFooter` / `MobileWorkOrderActionSheet`). Reserve
-bottom padding so content clears the fixed FAB.
+**Mobile:** contextual FAB plus bottom sheet on work-order details.
+Reserve bottom padding so content clears the fixed FAB.
 
 **Notes:** requestors and work-order creators add public-only notes on
-viewable WOs including completed. Managers/technicians/team owners keep
-full notes (including private) and may note after completion. Cancelled
-WOs stay note-locked. RLS enforces requestor public-only on insert.
+viewable work orders, including completed. Managers, technicians, and
+team owners keep full notes (including private) and may note after
+completion. Cancelled work orders stay note-locked. The database
+enforces requestor public-only on insert.
 
-**Exports:** work-order/report exports are org owner/admin today
-(`verifyOrgAdmin` on edge; UI `permissionLevels.isManager`). Team
-visibility is application-layer. Opening requestor/viewer export needs
-server-side team scope, customer-safe formats, and no private notes or
-costs. Bulk fetch already filters `is_private = false` on notes.
+**Exports:** work-order and report exports are org owner/admin today.
+Team visibility is application-layer. Opening requestor/viewer export
+needs server-side team scope, customer-safe formats, and no private
+notes or costs. Bulk fetch already omits private notes.
 
-**Historical:** create/edit/convert is owner/admin-only via org-scoped
-RPCs (`create_historical_work_order_with_pm`,
-`replace_historical_work_order_timeline` with explicit
-`p_organization_id`, `convert_work_order_to_historical`).
-`HistoricalTimelineEditorDialog` seeds from frozen `editorSeedEvents` on
-open. Edit mode waits for `historyReady`; save disabled when incomplete
-rows are visible. PDF/Docs exports read `created_date`, `completed_date`,
-and status history. Operational timeline (`WorkOrderTimeline`) stays
-separate from the audit log. Chained lifecycle in `historicalTimeline.ts`
-— an upstream status change clears downstream rows.
+**Historical:** create, edit, and convert are owner/admin-only and
+org-scoped. The historical editor seeds from a frozen snapshot on open;
+save stays disabled while incomplete rows are visible. PDF and Docs
+exports read created, completed, and status-history dates. The
+operational timeline stays separate from the audit log. An upstream
+status change clears downstream historical rows.
 
-Customer lifecycle: [docs/guides/workflows.md](../guides/workflows.md).
+Customer lifecycle: [work order workflows](../guides/workflows.md).
 
 ## Equipment location and maps
 
-Canonical resolver: `effectiveLocation.ts`. Effective order is last-known
-scan GPS → assigned equipment address → legacy `equipment.location`
-coordinates → team fallback when `team.override_equipment_location` is
-enabled (no per-equipment `use_team_location` opt-in).
+Effective location order is last-known scan GPS → assigned equipment
+address → legacy stored coordinates → team fallback when the team
+overrides equipment location. There is no per-equipment opt-in to team
+location.
 
-Asset maps use a shared source dropdown (Effective / team / equipment /
-last scan) and `LocationSourceBadge`. Fleet Map aligns source labels.
-`ClickableAddress` and map pins open Google Maps directions.
-One-time GPS saves use `LiveLocationCaptureDialog` + center-pin
-`CenterPinMapPicker` (fixed pin, pan map to adjust, pin lifts with ground
-shadow while dragging). `equipment_location_history` is authoritative for
-scan movement; assigned-address and live-capture saves log manual history
-via `logEquipmentLocationChange`.
+Asset maps share a source dropdown (Effective / team / equipment / last
+scan) and a source badge. Fleet Map uses the same labels. Addresses and
+map pins open Google Maps directions. One-time GPS saves use a
+center-pin picker (fixed pin, pan the map to adjust, pin lifts while
+dragging). Scan movement history is authoritative; assigned-address and
+live-capture saves log a manual history row.
 
 ## Audit logs and team views
 
-Audit log: `/dashboard/organization/audit-log` (owner/admin only,
-Organization subnav — not the main sidebar). Dedicated CSV/JSON export
-via `AuditExplorer`. Legacy `/audit-log` redirects. Do not surface audit
-timelines on operational or historical work-order pages as primary UX.
+The audit log lives under Organization (owner/admin only), not the main
+sidebar. Export is dedicated CSV/JSON from that explorer. The legacy
+audit-log path redirects. Do not surface audit timelines on operational
+or historical work-order pages as primary UX.
 
-Team details use `teams.preferred_view` (`internal` | `department` |
-`customer`) with `TeamViewSwitcher` — session override on TeamDetails,
-persisted team default via `updateTeam`.
+Team details have a preferred view (internal, department, or customer)
+with a session override on the team page and a persisted team default.
 
-PM templates list separates EquipQR bundled vs org templates (both
-collapsible; EquipQR starts collapsed when the org has at least one
-custom template). Team-scoped equipment assignment via
-`PMTemplateEquipmentAssignmentMenu` + `MultiSelectActionMenu`.
+PM templates list separates EquipQR bundled templates from organization
+templates (both collapsible; EquipQR starts collapsed when the org has
+at least one custom template). Equipment assignment is team-scoped
+multi-select.
 
-Visibility rules: [docs/guides/permissions.md](../guides/permissions.md).
+Visibility rules: [permissions](../guides/permissions.md).

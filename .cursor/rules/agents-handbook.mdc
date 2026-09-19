@@ -14,4 +14,6 @@ When a process is new or changes:
 
 Do not append learned preferences, workspace facts, or full write-ups to `AGENTS.md`. Do not invent a second policy there — changelog, branching, and workflow-artifact rules stay where they are.
 
+Agent-facing guidance must stay topic-oriented. Do not paste current file paths, symbols, line numbers, or code inventories into handbook-style docs. Discover those details from the checkout when a task needs them. The exception is `AGENTS.md` itself: its reference table must name the authoritative documents clearly enough to open them.
+
 Prefer the custom `reflect` skill when present (explicit approval before write). Do not reinstall the Cursor `continual-learning` plugin; its `agents-memory-updater` rewrites `AGENTS.md` without approval.

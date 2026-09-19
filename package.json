@@ -39,6 +39,7 @@
     "verify:preview-access": "node dev/verify-preview-access.mjs",
     "verify:spa-routing": "node dev/verify-spa-shell.mjs",
     "verify:node-policy": "node dev/verify-node-policy.mjs",
+    "verify:docs-index": "node dev/verify-docs-index.mjs",
     "verify:release-metadata": "node dev/verify-release-metadata.mjs",
     "verify:schema-reference": "node dev/check-schema-reference.mjs",
     "verify:root-layout": "node dev/check-root-layout.mjs",
