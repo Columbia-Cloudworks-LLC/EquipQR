@@ -34,6 +34,7 @@ const FUNCTION_NAME = "send-push-notification";
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
+  // eslint-disable-next-line no-console -- Edge Function operational logs.
   console.log(`[SEND-PUSH] ${step}${detailsStr}`);
 };
 
@@ -66,6 +67,7 @@ function initializeVapid(): boolean {
   const subject = optionalSecret("VAPID_SUBJECT") ?? "mailto:support@equipqr.app";
 
   if (!publicKey || !privateKey) {
+    // eslint-disable-next-line no-console -- Structured warning consumed by operations.
     console.log(
       JSON.stringify({
         level: "warn",
@@ -108,8 +110,12 @@ async function sendToSubscription(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     
-    // Check for common push errors
-    if (errorMessage.includes("410") || errorMessage.includes("404")) {
+    // web-push exposes the provider's HTTP status separately from its message.
+    // A network error mentioning these digits must not delete a valid device.
+    const statusCode = typeof error === "object" && error !== null && "statusCode" in error
+      ? error.statusCode
+      : undefined;
+    if (statusCode === 410 || statusCode === 404) {
       // Subscription has expired or is invalid - should be cleaned up
       return { 
         success: false, 
@@ -153,7 +159,7 @@ function validateServiceRoleAuth(req: Request): boolean {
   return expectedServiceRoleKey !== undefined && token === expectedServiceRoleKey;
 }
 
-Deno.serve(withCorrelationId(async (req, _ctx) => {
+export async function handlePushNotification(req: Request): Promise<Response> {
   // Handle CORS preflight
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
@@ -162,7 +168,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     logStep("Function started");
 
     if (req.method !== "POST") {
-      return createErrorResponse("Method not allowed", 405);
+      return createErrorResponse("Method not allowed", 405, { req });
     }
 
     // Security: Validate that request is authenticated with service role key
@@ -170,7 +176,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     // This prevents unauthorized external callers from triggering push notifications
     if (!validateServiceRoleAuth(req)) {
       logStep("Authentication failed - invalid or missing service role key");
-      return createErrorResponse("Unauthorized", 401);
+      return createErrorResponse("Unauthorized", 401, { req });
     }
 
     // Initialize VAPID
@@ -180,7 +186,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
         success: true, 
         message: "Push notifications not configured",
         sent: 0 
-      });
+      }, 200, { req });
     }
 
     // Parse request body
@@ -188,7 +194,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     const { user_id, title, body: messageBody, data, url } = body;
 
     if (!user_id || !title || !messageBody) {
-      return createErrorResponse("Missing required fields: user_id, title, body", 400);
+      return createErrorResponse("Missing required fields: user_id, title, body", 400, { req });
     }
 
     logStep("Processing push notification", { user_id, title });
@@ -197,11 +203,16 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     const supabase = createAdminSupabaseClient();
 
     // Check user's notification preferences
-    const { data: preferences } = await supabase
+    const { data: preferences, error: preferencesError } = await supabase
       .from("notification_preferences")
       .select("push_notifications")
       .eq("user_id", user_id)
       .maybeSingle();
+
+    // An unavailable preference store is not consent to send. Retry later.
+    if (preferencesError) {
+      return createErrorResponse("Failed to fetch notification preferences", 503, { req });
+    }
 
     // If user has explicitly disabled push notifications, skip
     if (preferences && preferences.push_notifications === false) {
@@ -210,7 +221,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
         success: true, 
         message: "Push notifications disabled by user",
         sent: 0 
-      });
+      }, 200, { req });
     }
 
     // Get user's push subscriptions
@@ -221,7 +232,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
 
     if (subError) {
       logStep("Error fetching subscriptions", { error: subError.message });
-      return createErrorResponse("Failed to fetch push subscriptions", 500);
+      return createErrorResponse("Failed to fetch push subscriptions", 500, { req });
     }
 
     if (!subscriptions || subscriptions.length === 0) {
@@ -230,7 +241,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
         success: true, 
         message: "No push subscriptions registered",
         sent: 0 
-      });
+      }, 200, { req });
     }
 
     logStep("Found subscriptions", { count: subscriptions.length });
@@ -257,10 +268,13 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
 
     if (expiredSubscriptions.length > 0) {
       logStep("Cleaning up expired subscriptions", { count: expiredSubscriptions.length });
-      await supabase
+      const { error: cleanupError } = await supabase
         .from("push_subscriptions")
         .delete()
         .in("id", expiredSubscriptions);
+      if (cleanupError) {
+        return createErrorResponse("Failed to clean up expired push subscriptions", 503, { req });
+      }
     }
 
     const successCount = results.filter((r) => r.success).length;
@@ -272,17 +286,37 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       cleaned: expiredSubscriptions.length 
     });
 
+    // The worker ACKs HTTP 200 responses. Keep the message queued if any device
+    // failed without expiring, including partial delivery. Delivery is at least
+    // once; existing notification IDs keep browser notification tags stable.
+    if (failedCount > expiredSubscriptions.length) {
+      return createJsonResponse({
+        success: false,
+        permanent: false,
+        sent: successCount,
+        failed: failedCount,
+        cleaned: expiredSubscriptions.length,
+      }, 503, { req });
+    }
+
     return createJsonResponse({
       success: true,
       sent: successCount,
       failed: failedCount,
       cleaned: expiredSubscriptions.length,
-    });
+    }, 200, { req });
   } catch (error: unknown) {
     logStep("ERROR", {
       message: error instanceof Error ? error.message : "Unknown error",
       stack: error instanceof Error ? error.stack : undefined,
     });
-    return createErrorResponse("Failed to send push notification", 500);
+    return createErrorResponse("Failed to send push notification", 500, { req });
   }
-}));
+}
+
+if (import.meta.main) {
+  Deno.serve(withCorrelationId(async (req, _ctx) => {
+    void _ctx;
+    return handlePushNotification(req);
+  }));
+}

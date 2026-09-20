@@ -34,6 +34,7 @@ const NOTIFICATIONS_QUEUE = "notifications";
 const VISIBILITY_TIMEOUT_SECONDS = 60;
 const BATCH_SIZE = 10;
 const MAX_BATCHES_PER_INVOCATION = 50;
+const MAX_NOTIFICATION_DELIVERY_ATTEMPTS = 5;
 
 const QUEUE_TARGETS: Record<string, string> = {
   [NOTIFICATIONS_QUEUE]: "send-push-notification",
@@ -44,6 +45,7 @@ const logStep = (
   step: string,
   details?: Record<string, unknown>,
 ): void => {
+  // eslint-disable-next-line no-console -- Structured queue delivery logs for operations.
   console.log(
     JSON.stringify({
       level: "info",
@@ -102,6 +104,9 @@ export interface DrainClient {
   deleteMessage: (queueName: string, msgId: number) => Promise<{
     error: { message: string } | null;
   }>;
+  archiveMessage: (queueName: string, msgId: number) => Promise<{
+    error: { message: string } | null;
+  }>;
 }
 
 function buildSupabaseDrainClient(
@@ -154,6 +159,17 @@ function buildSupabaseDrainClient(
       });
       return {
         error: result.error ? { message: result.error.message } : null,
+      };
+    },
+    archiveMessage: async (queueName, msgId) => {
+      const result = await pgmqClient.rpc("archive", {
+        queue_name: queueName,
+        message_id: msgId,
+      });
+      return {
+        error: result.error
+          ? { message: result.error.message }
+          : result.data === true ? null : { message: "Message was not archived" },
       };
     },
   };
@@ -211,6 +227,21 @@ export async function runDrainLoopForQueue(
       const payload = msg.message ?? {};
 
       try {
+        // Bound notification retries, including partial deliveries, so a bad
+        // device cannot repeatedly alert healthy devices forever. Preserve the
+        // original payload in pgmq's archive for operator investigation/replay.
+        // Export jobs retain their existing independent retry policy.
+        if (queueName === NOTIFICATIONS_QUEUE && msg.read_ct > MAX_NOTIFICATION_DELIVERY_ATTEMPTS) {
+          const { error: archiveError } = await client.archiveMessage(queueName, msg.msg_id);
+          failed += 1;
+          log(archiveError ? "notification-archive-failed" : "notification-retries-exhausted", {
+            queue: queueName,
+            msg_id: msg.msg_id,
+            read_ct: msg.read_ct,
+            ...(archiveError ? { error: archiveError.message } : {}),
+          });
+          continue;
+        }
         const invokeResult = await client.invoke(queueName, payload);
 
         if (invokeResult.error && !invokeResult.permanentFailure) {
