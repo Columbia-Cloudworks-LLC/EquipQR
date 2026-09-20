@@ -1,0 +1,126 @@
+{
+  "generatedBy": "compose-column-strips",
+  "columns": 4,
+  "entries": [
+    {
+      "sourcePath": "public/images/marketing/Toyota_forklift.jpg",
+      "storageKey": "homepage-collage/col-0.webp",
+      "license": "CC BY-SA 3.0",
+      "attribution": "David Benbennick (Dbenbenn)",
+      "pageUrl": "https://commons.wikimedia.org/wiki/File:Toyota_forklift.jpg",
+      "columnIndex": 0,
+      "tileIndex": 0,
+      "grade": "worn"
+    },
+    {
+      "sourcePath": "public/images/marketing/construction-site-forklift.jpg",
+      "storageKey": "homepage-collage/col-0.webp",
+      "license": "unknown",
+      "attribution": "Local harvest; replace with a verified Openverse or Wikimedia record before public credit",
+      "pageUrl": null,
+      "columnIndex": 0,
+      "tileIndex": 1,
+      "grade": "clean"
+    },
+    {
+      "sourcePath": "public/images/marketing/IMG_8366-scaled.jpeg",
+      "storageKey": "homepage-collage/col-0.webp",
+      "license": "unknown",
+      "attribution": "Local harvest; replace with a verified Openverse or Wikimedia record before public credit",
+      "pageUrl": null,
+      "columnIndex": 0,
+      "tileIndex": 2,
+      "grade": "worn"
+    },
+    {
+      "sourcePath": "public/images/marketing/Narva_mine_bulldozer.jpg",
+      "storageKey": "homepage-collage/col-1.webp",
+      "license": "unknown",
+      "attribution": "Local harvest labeled Narva mine; replace with a verified Wikimedia record before public credit",
+      "pageUrl": null,
+      "columnIndex": 1,
+      "tileIndex": 0,
+      "grade": "clean"
+    },
+    {
+      "sourcePath": "public/images/marketing/16172995678_a48b6a2ae1_b.jpg",
+      "storageKey": "homepage-collage/col-1.webp",
+      "license": "unknown",
+      "attribution": "Flickr-style harvest id 16172995678; replace with a verified Openverse record before public credit",
+      "pageUrl": null,
+      "columnIndex": 1,
+      "tileIndex": 1,
+      "grade": "worn"
+    },
+    {
+      "sourcePath": "public/images/marketing/heavy-construction-equipment-1417014388C8F.jpg",
+      "storageKey": "homepage-collage/col-1.webp",
+      "license": "unknown",
+      "attribution": "Local harvest; replace with a verified Openverse or Wikimedia record before public credit",
+      "pageUrl": null,
+      "columnIndex": 1,
+      "tileIndex": 2,
+      "grade": "clean"
+    },
+    {
+      "sourcePath": "public/images/marketing/Hitchhiker_3660R_forklift.jpg",
+      "storageKey": "homepage-collage/col-2.webp",
+      "license": "CC BY-SA 3.0",
+      "attribution": "Wikimedia Commons File:Hitchhiker 3660R forklift.jpg",
+      "pageUrl": "https://commons.wikimedia.org/wiki/File:Hitchhiker_3660R_forklift.jpg",
+      "columnIndex": 2,
+      "tileIndex": 0,
+      "grade": "clean"
+    },
+    {
+      "sourcePath": "public/images/marketing/cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDIyLTExL2ZsNTI1MDcyODk0MjgtaW1hZ2UuanBn.jpg",
+      "storageKey": "homepage-collage/col-2.webp",
+      "license": "unknown",
+      "attribution": "Encoded stock-path harvest; replace with a verified licensed original before public credit",
+      "pageUrl": null,
+      "columnIndex": 2,
+      "tileIndex": 1,
+      "grade": "worn"
+    },
+    {
+      "sourcePath": "public/images/marketing/maintenance1.jpg",
+      "storageKey": "homepage-collage/col-2.webp",
+      "license": "unknown",
+      "attribution": "Local harvest; replace with a verified Openverse or Wikimedia record before public credit",
+      "pageUrl": null,
+      "columnIndex": 2,
+      "tileIndex": 2,
+      "grade": "worn"
+    },
+    {
+      "sourcePath": "public/images/marketing/a-fleet-of-915a2-line-haul-tractor-trucks-await-their-7fcc76-1024.jpg",
+      "storageKey": "homepage-collage/col-3.webp",
+      "license": "unknown",
+      "attribution": "Local harvest; replace with a verified Openverse or Wikimedia record before public credit",
+      "pageUrl": null,
+      "columnIndex": 3,
+      "tileIndex": 0,
+      "grade": "clean"
+    },
+    {
+      "sourcePath": "public/images/marketing/sgt-andre-burnett-from-the-california-army-national-0990fb-1024.jpg",
+      "storageKey": "homepage-collage/col-3.webp",
+      "license": "unknown",
+      "attribution": "Likely U.S. Army photograph; confirm public-domain status before public credit",
+      "pageUrl": null,
+      "columnIndex": 3,
+      "tileIndex": 1,
+      "grade": "clean"
+    },
+    {
+      "sourcePath": "public/images/marketing/Skid-steer_bulldozer.webp",
+      "storageKey": "homepage-collage/col-3.webp",
+      "license": "CC0 1.0",
+      "attribution": "Wikideas1",
+      "pageUrl": "https://commons.wikimedia.org/wiki/File:Skid-steer_bulldozer.webp",
+      "columnIndex": 3,
+      "tileIndex": 2,
+      "grade": "worn"
+    }
+  ]
+}
