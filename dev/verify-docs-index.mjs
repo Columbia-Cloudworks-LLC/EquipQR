@@ -20,6 +20,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 
 export const GITHUB_SHORTCUT_HOST = 'github.equipqr.app';
 export const GITHUB_REPO_URL = 'https://github.com/Columbia-Cloudworks-LLC/EquipQR';
+const GITHUB_SHORTCUT_ROOT_SOURCES = Object.freeze(['/', '/(.*)', '/:path*']);
 
 const MARKDOWN_LINK_RE = /\[[^\]]*]\(([^)]+)\)/g;
 
@@ -61,12 +62,25 @@ export function resolveLocalMarkdownHref(href, fromFile) {
 /**
  * @param {{ redirects?: Array<{ source?: string; destination?: string; permanent?: boolean; has?: Array<{ type?: string; value?: string }> }> }} vercel
  */
+/**
+ * @param {string | undefined} source
+ */
+export function isGithubShortcutRootSource(source) {
+  return GITHUB_SHORTCUT_ROOT_SOURCES.includes(String(source ?? '').trim());
+}
+
+/**
+ * @param {{ redirects?: Array<{ source?: string; destination?: string; permanent?: boolean; has?: Array<{ type?: string; value?: string }> }> }} vercel
+ */
 export function findGithubShortcutRedirect(vercel) {
   return (vercel.redirects ?? []).find((entry) => {
     if (entry.destination !== GITHUB_REPO_URL) {
       return false;
     }
     if (entry.permanent !== true) {
+      return false;
+    }
+    if (!isGithubShortcutRootSource(entry.source)) {
       return false;
     }
     return (entry.has ?? []).some(

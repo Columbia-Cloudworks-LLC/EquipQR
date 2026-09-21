@@ -96,6 +96,17 @@ describe('sources join-manifest', () => {
     expect(manifest.entries.every((entry) => entry.sourcePath.startsWith('public/images/marketing/'))).toBe(true);
   });
 
+  it('keeps the committed sources-manifest.json aligned with recipe.json', () => {
+    const recipe = loadCollageRecipe();
+    const generated = buildSourcesJoinManifest(recipe.columns);
+    const committedPath = join(dirname(fileURLToPath(import.meta.url)), 'sources-manifest.json');
+    const committedText = readFileSync(committedPath, 'utf8');
+    const committed = JSON.parse(committedText) as typeof generated;
+
+    expect(committed).toEqual(generated);
+    expect(committedText).toBe(`${JSON.stringify(generated, null, 2)}\n`);
+  });
+
   it('rejects a recipe tile that omits license or attribution', () => {
     const result = validateCollageRecipe([
       [
