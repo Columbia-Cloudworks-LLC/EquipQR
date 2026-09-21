@@ -1,6 +1,10 @@
 export type SitePath = `/${string}`;
 
 export const LANDING_IMAGE_KEYS = [
+  'stock/equipment-yard-640.webp',
+  'stock/equipment-yard-1200.webp',
+  'stock/workshop-tools-640.webp',
+  'stock/workshop-tools-1200.webp',
   'homepage-collage/col-0.webp',
   'homepage-collage/col-1.webp',
   'homepage-collage/col-2.webp',
