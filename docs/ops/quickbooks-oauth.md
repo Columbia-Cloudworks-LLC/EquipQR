@@ -210,10 +210,31 @@ deno test --allow-env --allow-net=quickbooks.api.intuit.com ./quickbooks-export-
 
 Live QBO connections and team→customer mappings are org-specific (exact
 IDs live in the private ops runbook / 1Password, not in this repo).
-EquipQR exports **draft-only** invoices from work order details via
+EquipQR creates invoices for review from work order details via
 Export → QuickBooks (**Create New Invoice** / **Update Invoice #…** /
 **Open Invoice**). Export is gated on a completed work order +
 team→customer mapping + `can_manage_quickbooks`.
+
+Invoice export requires a review/confirmation exchange. `action: "review"`
+returns customer terms, persisted business dates, current QuickBooks values,
+service amounts, and a source fingerprint without creating QuickBooks items or
+invoices. `action: "export"` requires explicit calendar dates, that fingerprint,
+and the reviewed invoice ID/SyncToken. Unknown business dates have no clock or
+work-order scheduling fallback. Billing inputs are persisted separately in
+`work_order_invoice_details`; authenticated column grants exclude the protected
+QuickBooks line mapping.
+
+PM exports as a distinct zero-priced service line; public findings and parts
+detail go in CustomerMemo. Sparse updates preserve QuickBooks prices and
+service dates using a server-owned mapping bound to company and invoice IDs.
+Unmapped legacy invoices and invoices with online payments enabled require
+updates directly in QuickBooks. Header date/term replacements require explicit
+confirmation; clearing existing payment terms must be done in QuickBooks.
+
+Creation sets online credit-card and ACH payment flags false and EmailStatus
+NotSet, and never invokes the send endpoint. Intuit's imported-invoice delivery
+behavior depends on company settings: an API create is not inherently a draft
+state. Price review and deliberate sending remain separate user steps.
 
 **Intuit passkey chooser blocks automation.** Use the logged-in
 `cursor-ide-browser` session. `dev/qbo/Connect-QboBrowserSession.ps1`
@@ -241,7 +262,8 @@ const status = await getConnectionStatus(organizationId);
 const { customers } = await searchCustomers(organizationId, 'search query');
 
 // Export invoice
-const result = await exportInvoice(workOrderId);
+// confirmation comes from the reviewed invoice details, never the current clock.
+const result = await exportInvoice(workOrderId, confirmation);
 ```
 
 ### React hooks
@@ -259,5 +281,5 @@ const { data: customers } = useQuickBooksCustomers(organizationId, searchQuery);
 
 // Export mutation
 const exportMutation = useExportToQuickBooks();
-exportMutation.mutate(workOrderId);
+exportMutation.mutate({ workOrderId, confirmation });
 ```

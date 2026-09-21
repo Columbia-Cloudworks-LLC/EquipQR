@@ -5,6 +5,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useExportToQuickBooks } from './useExportToQuickBooks';
 
 const mockFunctionsInvoke = vi.fn();
+const confirmedRequest = (workOrderId: string) => ({ workOrderId, confirmation: {
+  source_fingerprint: 'source-v1',
+  invoice_date: '2020-09-21', due_date: '2020-10-21', payment_term_id: null,
+  service_dates: { labor: '2020-08-05' }, existing_invoice_id: null,
+  existing_sync_token: null, overwrite_existing_dates: false,
+} });
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
@@ -60,7 +66,7 @@ describe('useExportToQuickBooks', () => {
       wrapper: createWrapper(),
     });
 
-    await expect(result.current.mutateAsync('wo-missing')).rejects.toThrow('Work order not found');
+    await expect(result.current.mutateAsync(confirmedRequest('wo-missing'))).rejects.toThrow('Work order not found');
   });
 
   it('falls back to invoke error message when response body has no error field', async () => {
@@ -75,7 +81,7 @@ describe('useExportToQuickBooks', () => {
       wrapper: createWrapper(),
     });
 
-    await expect(result.current.mutateAsync('wo-missing')).rejects.toThrow(
+    await expect(result.current.mutateAsync(confirmedRequest('wo-missing'))).rejects.toThrow(
       'Edge Function returned a non-2xx status code',
     );
   });
@@ -98,7 +104,7 @@ describe('useExportToQuickBooks', () => {
       wrapper: createWrapper(),
     });
 
-    await expect(result.current.mutateAsync('wo-missing')).rejects.toThrow('Failed to load work order');
+    await expect(result.current.mutateAsync(confirmedRequest('wo-missing'))).rejects.toThrow('Failed to load work order');
   });
 
   it('returns mapped export result on success', async () => {
@@ -117,7 +123,7 @@ describe('useExportToQuickBooks', () => {
       wrapper: createWrapper(),
     });
 
-    const exportResult = await result.current.mutateAsync('wo-123');
+    const exportResult = await result.current.mutateAsync(confirmedRequest('wo-123'));
     expect(exportResult).toEqual({
       success: true,
       invoiceId: 'inv-123',

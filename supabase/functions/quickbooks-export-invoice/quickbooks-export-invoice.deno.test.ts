@@ -348,7 +348,7 @@ Deno.test("buildInvoiceCustomFields maps equipment and machine hours", () => {
   assertEquals(fields.find((f) => f.Name === "Machine Hours")?.StringValue, "Intake 123 / Checkout 130");
 });
 
-Deno.test("buildCustomerMemo formats public timeline entries with z timestamps", () => {
+Deno.test("buildCustomerMemo retains public findings without automatic status timestamps", () => {
   const memo = buildCustomerMemo(
     { ...minimalWorkOrder, title: "Hydraulic repair", description: "Lift leaking" },
     [{
@@ -366,9 +366,7 @@ Deno.test("buildCustomerMemo formats public timeline entries with z timestamps",
     }],
   );
 
-  assertMatch(memo, /Initial request: Lift leaking\./);
-  assertMatch(memo, /2026-05-17T12:34z - \[Replaced seal kit\]/);
-  assertMatch(memo, /2026-05-17T13:45z - \[Status changed to Completed - Ready for pickup\]/);
+  assertEquals(memo, "Lift leaking\nReplaced seal kit");
 });
 
 Deno.test("applyInvoiceTaxState applies NON tax code to tax-exempt sales lines", () => {
@@ -512,7 +510,7 @@ Deno.test("buildInvoiceLines emits one Parts line for multiple inventory-backed 
 
     const partsLines = lines.filter((l) => (l.Description ?? "").startsWith("Parts"));
     assertEquals(partsLines.length, 1);
-    assertEquals(partsLines[0]!.Description, "Parts:\n- Bolt A\n- Bolt B");
+    assertEquals(partsLines[0]!.Description, "Parts");
     assertEquals(partsLines[0]!.Amount, 5); // $5.00 total (100 + 400 cents)
     assertEquals(partsLines[0]!.SalesItemLineDetail.Qty, 1);
     assertEquals(partsLines[0]!.SalesItemLineDetail.UnitPrice, 5);
@@ -607,7 +605,7 @@ Deno.test("buildInvoiceLines produces Labor and Parts rows when both totals are 
 
     assertEquals(lines.length, 2);
     assertMatch(lines[0]!.Description ?? "", /Labor/);
-    assertEquals(lines[1]!.Description, "Parts:\n- Seal kit");
+    assertEquals(lines[1]!.Description, "Parts");
 
     const parsedPosts = postBodies.map((p) => JSON.parse(p) as { Name: string; Type: string });
     const laborCreate = parsedPosts.find((p) => p.Name === QBO_INVOICE_ITEM_NAMES.labor);
@@ -666,7 +664,7 @@ Deno.test(
       assertEquals(lines.length, 2);
       assertEquals(lines[0]!.Description, "Labor");
       assertEquals(lines[0]!.Amount, 60);
-      assertEquals(lines[1]!.Description, "Parts:\n- Seal kit\n- Shop supplies (manual)");
+      assertEquals(lines[1]!.Description, "Parts");
       // $25 + $15 = $40
       assertEquals(lines[1]!.Amount, 40);
 
@@ -702,7 +700,7 @@ Deno.test("buildInvoiceLines folds Truck Supplies cost row into summarized Parts
     });
 
     assertEquals(lines.length, 1);
-    assertEquals(lines[0]!.Description, "Parts:\n- Truck Supplies");
+    assertEquals(lines[0]!.Description, "Parts");
     assertEquals(lines[0]!.Amount, 35);
 
     const parsedPosts = postBodies.map((p) => JSON.parse(p) as { Name: string; Type: string });
@@ -919,7 +917,7 @@ Deno.test("buildInvoiceLines emits zero-dollar labor line when no billable total
 
     assertEquals(lines.length, 1);
     assertEquals(lines[0].Amount, 0);
-    assertEquals(lines[0].Description, "Technician-Created WO");
+    assertEquals(lines[0].Description, "Labor");
     assertEquals(lines[0].SalesItemLineDetail.Qty, 1);
     assertEquals(lines[0].SalesItemLineDetail.UnitPrice, 0);
   } finally {

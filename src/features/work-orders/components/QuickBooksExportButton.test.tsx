@@ -7,6 +7,9 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor, fireEvent } from '@testing-library/react';
+vi.mock('./InvoiceReviewDialog', () => ({
+  InvoiceReviewDialog: ({ open }: { open: boolean }) => open ? <div role="dialog">Review invoice details</div> : null,
+}));
 
 function invokeMock<TReturn>(mockFn: (...args: never[]) => TReturn, args: unknown[]): TReturn {
   return (mockFn as (...mockArgs: unknown[]) => TReturn)(...args);
@@ -282,7 +285,7 @@ describe('QuickBooksExportButton Component', () => {
       });
     });
 
-    it('should call mutate on click', async () => {
+    it('opens review before creating an invoice', async () => {
       renderComponent();
       
       // Wait for button to be enabled (queries resolved)
@@ -296,9 +299,8 @@ describe('QuickBooksExportButton Component', () => {
       
       // Wait for the mutation to be called with correct parameters
       await waitFor(() => {
-        expect(mockMutate).toHaveBeenCalledWith('wo-123', expect.objectContaining({
-          onSuccess: expect.any(Function),
-        }));
+        expect(screen.getByRole('dialog')).toHaveTextContent('Review invoice details');
+        expect(mockMutate).not.toHaveBeenCalled();
       }, { timeout: 3000 });
     });
   });
@@ -323,7 +325,7 @@ describe('QuickBooksExportButton Component', () => {
       });
     });
 
-    it('should call mutate when updating existing export', async () => {
+    it('opens review before updating an existing invoice', async () => {
       renderComponent();
       
       // Wait for button to be visible and enabled (queries resolved)
@@ -336,9 +338,8 @@ describe('QuickBooksExportButton Component', () => {
       fireEvent.click(button);
       
       await waitFor(() => {
-        expect(mockMutate).toHaveBeenCalledWith('wo-123', expect.objectContaining({
-          onSuccess: expect.any(Function),
-        }));
+        expect(screen.getByRole('dialog')).toHaveTextContent('Review invoice details');
+        expect(mockMutate).not.toHaveBeenCalled();
       });
     });
 

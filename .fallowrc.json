@@ -36,6 +36,7 @@
     ]
   },
   "entry": [
+    "dev/invoice-export-smoke.deno.ts",
     "playwright.user.config.ts",
     "src/sw.ts",
     "dev/check-root-layout.mjs",

@@ -1,4 +1,5 @@
 import React from 'react';
+import { InvoiceReviewDialog } from './InvoiceReviewDialog';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,6 +38,8 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
   onDeleteClick,
 }) => {
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const [invoiceReviewOpen, setInvoiceReviewOpen] = React.useState(false);
   
   // Check if user has QuickBooks access (billing admin permission)
   const { data: canManageQuickBooks = false } = useQuickBooksAccess();
@@ -60,7 +63,7 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
   };
 
   return (
-    <DropdownMenu>
+    <><DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
       <DropdownMenuTrigger asChild>
         <Button 
           variant="ghost" 
@@ -73,7 +76,7 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
           <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuContent align="end" className="w-48" onClick={stopCardNavigation}>
         <DropdownMenuItem onClick={handleAddNote}>
           <Plus className="h-4 w-4 mr-2" />
           Add Note
@@ -94,6 +97,10 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
               teamId={equipmentTeamId ?? null}
               workOrderStatus={workOrderStatus}
               asMenuItem
+              onReviewInvoice={() => {
+                setMenuOpen(false);
+                window.setTimeout(() => setInvoiceReviewOpen(true), 0);
+              }}
             />
           </>
         )}
@@ -114,5 +121,7 @@ export const WorkOrderQuickActions: React.FC<WorkOrderQuickActionsProps> = ({
         ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
+      {invoiceReviewOpen && <InvoiceReviewDialog workOrderId={workOrderId} open onOpenChange={setInvoiceReviewOpen} />}
+    </>
   );
 };

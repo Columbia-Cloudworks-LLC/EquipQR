@@ -55,6 +55,23 @@ const ALLOWED_FIELDS_PATTERN = ALLOWED_VALIDATION_FIELDS.join("|");
  * only known-safe messages reach clients.
  */
 export const SAFE_ERROR_PATTERNS: RegExp[] = [
+  /^Confirm whether invoice dates should be replaced\.$/,
+  /^Could not read QuickBooks billing details\. Try again before exporting\.$/,
+  /^Invoice export history changed\. Reload and review again\.$/,
+  /^Invoice lines changed\. Review again before exporting\.$/,
+  /^Keep the existing payment terms or select replacement terms\. Clear terms directly in QuickBooks\.$/,
+  /^Online payments are enabled on this invoice\. Review\/update it in QuickBooks to avoid automatic customer delivery\.$/,
+  /^QuickBooks could not provide billing details\.$/,
+  /^QuickBooks dates differ\. Choose to preserve them or explicitly replace them after review\.$/,
+  /^Review and confirm invoice details before exporting\.$/,
+  /^Select a Service date for every invoice line before exporting\.$/,
+  /^Select and confirm Invoice date and Due date before exporting\.$/,
+  /^Select valid QuickBooks payment terms or an explicit Due date\.$/,
+  /^The mapped customer differs from the existing invoice\. Review this invoice in QuickBooks\.$/,
+  /^The QuickBooks invoice changed since review\. Reload and review again\.$/,
+  /^The QuickBooks invoice changed since review\. Reload and review it again before exporting\.$/,
+  /^This invoice does not have a complete saved line association\. Review\/update it in QuickBooks to preserve its existing charges\.$/,
+  /^Work order billing details changed since review\. Reload and review the invoice again\.$/,
   // Authentication/Authorization errors (from requireUser)
   /^No authorization header provided$/,
   /^Invalid authorization header format$/,
@@ -221,4 +238,3 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
 function isErrorAllowlisted(errorMessage: string): boolean {
   return SAFE_ERROR_PATTERNS.some((pattern) => pattern.test(errorMessage));
 }
-
