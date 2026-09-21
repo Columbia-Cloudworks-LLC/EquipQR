@@ -36,13 +36,13 @@ Configure these secrets in Supabase Dashboard → Edge Functions → Secrets:
 
 After switching preview to sandbox, **disconnect and reconnect** QuickBooks on preview.equipqr.app so stored tokens match the sandbox realm.
 
-Client-side: align `VITE_INTUIT_CLIENT_ID` in `app-env-preview-public` with `INTUIT_CLIENT_ID` in `edge-env-preview-secrets` (same Development client ID).
+Client-side: align the deployed `VITE_INTUIT_CLIENT_ID` with `INTUIT_CLIENT_ID` in `edge-env-preview-secrets` (same Development client ID). The persistent preview uses an isolated Supabase project. Verify live branch-scoped Vercel values before syncing the public vault item; an older vault snapshot may still point at production.
 
-**OAuth redirect URI (derived — do not set separate redirect base secrets)**
+**OAuth redirect URI**
 
 EquipQR derives the QuickBooks OAuth callback from the canonical Supabase URL:
 
-- Browser: `VITE_SUPABASE_URL`
+- Browser: `VITE_QB_OAUTH_REDIRECT_BASE_URL` when present, otherwise `VITE_SUPABASE_URL`
 - Edge token exchange: `SUPABASE_URL`
 
 Register the derived callback URI in the Intuit Developer Portal:
@@ -50,10 +50,10 @@ Register the derived callback URI in the Intuit Developer Portal:
 | Environment | Intuit redirect URI |
 |-------------|---------------------|
 | Production | `https://supabase.equipqr.app/functions/v1/quickbooks-oauth-callback` |
-| Preview | `https://supabase.equipqr.app/functions/v1/quickbooks-oauth-callback` |
+| Preview | `https://<preview-project-ref>.supabase.co/functions/v1/quickbooks-oauth-callback` |
 | Local | `http://localhost:54321/functions/v1/quickbooks-oauth-callback` |
 
-Legacy `VITE_QB_OAUTH_REDIRECT_BASE_URL` / `QB_OAUTH_REDIRECT_BASE_URL` overrides are deprecated. Remove them from Vercel and Supabase secrets if still present; OAuth callbacks are derived from the Supabase URL as described above.
+For the persistent preview branch, both the Supabase URL and callback must address its isolated backend. The Vercel `preview` environment's `preview` Git branch has an explicit callback override to prevent an inherited retired custom domain from resolving to production. Register that exact callback under Intuit **Development** keys. Never use `supabase.preview.equipqr.app` as the callback: legacy normalization redirects that retired hostname to production. Keep production settings separate.
 
 ### Vault secrets (token refresh scheduler)
 
