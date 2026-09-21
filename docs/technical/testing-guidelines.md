@@ -292,3 +292,29 @@ npm run test -- src/features/dsr/api/dsrApi.spec.ts
 deno test --allow-env --allow-net supabase/functions/manage-dsr-request/manage-dsr-request.deno.test.ts
 npm run test:db
 ```
+
+## PII redaction before publishing captures
+
+Before publishing docs-media or PR evidence taken from production data,
+rewrite page text nodes in-browser:
+
+| Kind | Replacement |
+| --- | --- |
+| Phone | `+1 (555) 867-5309` |
+| Email | `local@example.com` |
+| Street | `123 Main St` |
+| City | `Springfield` |
+| ZIP | `12345` |
+
+Keep US states. Names of public business partners (for example Matt,
+Nick) are OK to show.
+
+PR visual evidence also requires `GH_SESSION_TOKEN` (GitHub
+`user_session` browser cookie — not a PAT) to upload the demo MP4. Setup:
+`dev/pr-evidence/README.md`. On Windows, `gh image extract-token` often
+picks a stale browser profile — run `gh image check-token` before
+trusting it. If it fails, copy `user_session` from DevTools on the
+browser where github.com is logged in and set `$env:GH_SESSION_TOKEN` in
+the **current shell only**. Do not persist write-tier session cookies to
+User-scope env vars or commit them.
+See `.cursor/rules/pr-visual-evidence.mdc`.

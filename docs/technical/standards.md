@@ -30,6 +30,24 @@ const EquipmentCard = ({ equipment }: any) => {
 
 Follow `eslint.config.js` – no unused vars/explicit any (warn), React hooks rules. Run `npm run lint` before commits. Use `typescript-eslint` for TS-specific rules.
 
+### Lint catalog (edited files)
+
+Edited `.ts` / `.tsx`, `.md` / `.mdc`, `.ps1`, and `.github/workflows`
+files must pass the lint catalog (`etc/lint/targets.json` via Cursor
+`lint-on-edit` → `dev/lint-catalog.mjs`). Hook mode is fail-closed and
+uses the per-file argv on each row (ESLint `--max-warnings 0`,
+markdownlint `--no-globs`, PSScriptAnalyzer, actionlint). Fallow is
+project-only (`npm run lint:all`).
+
+**Markdown policy:** high-signal rules only in `.markdownlint-cli2.jsonc`
+— fix enabled rules (fenced-code language `MD040`, bare URLs `MD034`,
+reference links `MD052`, trailing whitespace `MD009`). Do **not** churn
+suppressed rules: `MD013` / `MD024` / `MD025` / `MD033` / `MD036` /
+`MD041` (pre-existing), plus `MD060` (compact tables), `MD022` / `MD032`
+/ `MD031` (spacing around headings/lists/fences in tight `.mdc` layouts).
+`npm run lint:md` scopes to `.cursor/**` and `AGENTS.md`; legacy
+`docs/**` is out of enforced scope until migrated.
+
 ### Naming Conventions
 
 - **Variables/Functions**: camelCase (e.g., `fetchEquipment`)

@@ -46,7 +46,7 @@ Use this compact shape and fill every placeholder with concrete repo details:
 Request: #{{number}} - {{request_title}} (or ad-hoc)
 Goal: {{one paragraph}}
 Stack: React + TypeScript + Vite + Tailwind + shadcn/ui + Supabase + TanStack Query + Vitest + React Testing Library on Windows PowerShell.
-Required reading before edits: AGENTS.md, relevant .cursor/rules/*.mdc, relevant .cursor/skills/**/SKILL.md, and {{task-specific files}}.
+Required reading before edits: AGENTS.md (index only — open the one official doc for the topic), relevant .cursor/rules/*.mdc, relevant .cursor/skills/**/SKILL.md, and {{task-specific files}}.
 Composer target: Composer 2.5 should be able to execute this without inferring missing files, commands, tests, or stop conditions.
 Formatting rule: boundary tags and headers at column 0; nested snippets/examples at exactly four leading spaces; no triple backticks anywhere in this plan; use {{placeholder text}} for generic fill-in values.
 

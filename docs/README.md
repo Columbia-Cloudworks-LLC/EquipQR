@@ -1,6 +1,27 @@
 # EquipQR documentation
 
-This tree holds Technical and Guides content for the public docs site, plus Operations runbooks that stay in the repository (not published on `equipqr.info`).
+This tree is the documentation system for people and agents. Product,
+engineering, operations, and agent guidance share these sources of truth.
+Publication boundaries are below. The agent entry point is the root
+`AGENTS.md` index — not a second handbook.
+
+## Information architecture
+
+| Audience | Home | Published? |
+| --- | --- | --- |
+| **Product** — customers, technicians, operators | `support/`, `guides/`, `how-to/`, `integrations/`, `pm-templates/` | Yes — [equipqr.info](https://equipqr.info) |
+| **Engineering** — developers and reviewers | `getting-started/`, `technical/`, `edge-functions/`, `database/` | No (repository only) |
+| **Operations** — org owners, admins, maintainers | `ops/` | No (repository only) |
+| **Agents** | Root `AGENTS.md` (index) → the rows above | No. `AGENTS.md` only names documents; it does not duplicate them |
+
+Prefer durable topics and workflows over inventories of the current
+implementation. Agent-facing pages must not list exact file paths,
+symbols, or line numbers. The exception is `AGENTS.md` reference links,
+which must identify the official document clearly enough to open it.
+
+The repository shortcut [github.equipqr.app](https://github.equipqr.app)
+redirects to GitHub. Ownership and verification:
+[ops/github-shortcut.md](./ops/github-shortcut.md).
 
 ## Documentation structure
 
@@ -64,6 +85,7 @@ Browse them on GitHub or in your local checkout:
 - **[Migration Rules Quick Reference](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/migration-rules-quick-reference.md)** - Quick reference for migration best practices
 - **[Local Supabase Development](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/local-supabase-development.md)** - Complete guide for local Supabase setup, edge function development, and migration synchronization
 - **[QuickBooks OAuth](./ops/quickbooks-oauth.md).** Intuit OAuth, vault secrets, and sandbox wiring. Unpublished on equipqr.info.
+- **[GitHub shortcut](./ops/github-shortcut.md)** — `github.equipqr.app` redirect ownership and verification.
 - **[Disaster Recovery](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/disaster-recovery.md)** - Database backup and point-in-time recovery procedures
 
 ## Quick navigation
@@ -158,6 +180,11 @@ To avoid redundancy and ensure consistency, each topic has a single **source of 
 | Deployment | `ops/deployment.md` | — |
 | Coding standards | `technical/standards.md` | `.github/instructions/*.md` (reviewer checklists) |
 | Testing | `technical/testing-guidelines.md` | — |
+| Agent secrets / access tiers | `ops/agent-secrets-and-access.md` | `AGENTS.md` (index pointer only) |
+| Google Workspace Connect | `ops/google-workspace.md` | Support article `support/admin-integrations/google-workspace-connect.md` |
+| Product conventions | `technical/product-conventions.md` | Support / guides (customer copy) |
+| GitHub shortcut | `ops/github-shortcut.md` | `AGENTS.md` (index pointer only) |
+| Agent handbook maintenance | this file (Agent handbook) | `.cursor/rules/agents-handbook.mdc` (always-apply reminder) |
 
 **For AI/reviewer checklists** (`.github/instructions/*`, `.github/copilot-instructions.md`):
 - These are short checklists for code review, not a second copy of the docs above
@@ -174,6 +201,28 @@ Use this when authoring or reviewing documentation:
 | **`equipqr.app/dashboard/support`** | Signed-in users | Report issues and track tickets only; guides live on equipqr.info. |
 
 Do not add real org IDs, project IDs, tenant domains, service account emails, or copy-paste admin keys to public-facing pages. Prefer placeholders (for example `<GCP_ORG_ID>`) or point readers at internal ops docs in the repo.
+
+## Agent handbook
+
+`AGENTS.md` is a short index (product blurb plus references). Official
+process and lessons live in this `docs/` tree and in `.cursor/rules/`.
+
+**Maintenance rule:** guidance changes update the authoritative document
+first. `AGENTS.md` changes only when its references must be added,
+removed, or corrected.
+
+When a process is new or changes:
+
+1. Update the official document that owns the topic (reuse an existing
+   runbook; do not start a second copy).
+2. Add or adjust a one-line pointer in `AGENTS.md` only if a new topic
+   needs discovery.
+
+Do not grow `AGENTS.md` with full write-ups, learned-preference dumps, or
+workspace-fact piles. Do not paste current implementation paths or
+symbols into agent-facing docs. Changelog, branching, and
+workflow-artifact rules stay in `.cursor/rules/` — do not invent a
+parallel policy in the index.
 
 ## Contributing to documentation
 

@@ -11,6 +11,21 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+## [3.33.0] - 2026-09-21
+
+### Added
+
+- **Real-world photography (#1550)** — Equipment-yard and workshop photos bring repair-shop and inventory workflows to life across the marketing pages.
+- **GitHub shortcut (#1541)** — [github.equipqr.app](https://github.equipqr.app) redirects to the EquipQR GitHub repository.
+
+### Fixed
+
+- **Push notification retries (#1438)** — Temporary delivery failures are retried instead of silently dropping work-order alerts.
+
+### Security
+
+- **Dependency updates** — Updated dependencies to address published security advisories.
+
 ## [3.32.0] - 2026-09-06
 
 ### Added
@@ -2733,7 +2748,8 @@ Update package dependencies and versions
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.32.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.33.0...HEAD
+[3.33.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.32.0...v3.33.0
 [3.32.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.31.0...v3.32.0
 [3.31.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.30.0...v3.31.0
 [3.30.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.29.1...v3.30.0

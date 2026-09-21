@@ -1,12 +1,15 @@
 {
   "name": "equipqr",
   "private": true,
-  "version": "3.32.0",
+  "version": "3.33.0",
   "type": "module",
   "engines": {
     "node": "24.x"
   },
   "overrides": {
+    "workbox-build": {
+      "glob": "13.0.6"
+    },
     "vite": "^8.0.13",
     "esbuild": "^0.25.0",
     "node-domexception": "^1.0.0",
@@ -37,8 +40,10 @@
     "lint:actions": "node dev/lint-catalog.mjs --mode project --only actionlint",
     "preview": "vite preview",
     "verify:preview-access": "node dev/verify-preview-access.mjs",
+    "verify:push-delivery": "deno run --config supabase/functions/deno.json --node-modules-dir=none --allow-env --allow-net --allow-run --allow-read dev/push-delivery-smoke.deno.ts",
     "verify:spa-routing": "node dev/verify-spa-shell.mjs",
     "verify:node-policy": "node dev/verify-node-policy.mjs",
+    "verify:docs-index": "node dev/verify-docs-index.mjs",
     "verify:release-metadata": "node dev/verify-release-metadata.mjs",
     "verify:schema-reference": "node dev/check-schema-reference.mjs",
     "verify:root-layout": "node dev/check-root-layout.mjs",
@@ -216,7 +221,7 @@
     "istanbul-lib-report": "^3.0.1",
     "istanbul-reports": "^3.2.0",
     "jsdom": "29.1.1",
-    "markdownlint-cli2": "0.23.2",
+    "markdownlint-cli2": "0.23.3",
     "postcss": "^8.5.14",
     "size-limit": "13.0.3",
     "supabase": "2.116.0",

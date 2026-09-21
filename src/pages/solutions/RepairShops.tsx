@@ -10,6 +10,7 @@ import { repairShopWorkflows } from '@/pages/solutions/repairShopsWorkflows';
 import { PageSEO } from '@/components/seo/PageSEO';
 import LandingHeader from '@/components/landing/LandingHeader';
 import LegalFooter from '@/components/layout/LegalFooter';
+import { MarketingPhoto } from '@/components/landing/MarketingPhoto';
 
 const RepairShops = () => {
   return (
@@ -28,8 +29,8 @@ const RepairShops = () => {
       >
         {/* Hero Section */}
         <section className="relative pt-32 pb-24 bg-linear-to-br from-background via-background to-primary/5">
-          <div className="container px-4 mx-auto">
-            <div className="text-center max-w-4xl mx-auto">
+          <div className="container mx-auto grid items-center gap-10 px-4 lg:grid-cols-2 lg:gap-12">
+            <div className="max-w-4xl text-left">
               <h1
                 data-route-heading="true"
                 tabIndex={-1}
@@ -40,7 +41,7 @@ const RepairShops = () => {
               <p className="text-xl sm:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto">
                 A loader hits the lot. You scan the sticker. Last service, open issues, and photos are on the phone. Nobody walks back to the office to hunt a folder.
               </p>
-              <div className="flex flex-col items-center gap-3">
+              <div className="flex flex-col items-start gap-3">
                 <Button asChild size="lg" className="text-lg px-8 py-6">
                   <Link to="/auth?tab=signup">
                     Get Started Free
@@ -50,6 +51,7 @@ const RepairShops = () => {
                 <p className="text-sm text-muted-foreground">No credit card. First scan in 20 minutes.</p>
               </div>
             </div>
+            <MarketingPhoto photo="equipment" priority />
           </div>
         </section>
 
@@ -190,4 +192,3 @@ const RepairShops = () => {
 };
 
 export default RepairShops;
-

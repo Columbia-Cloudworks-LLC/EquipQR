@@ -11,6 +11,11 @@ When gcloud MCP impersonation is insufficient (OAuth client redirect URIs, Works
 ```
 
 See `docs/ops/agent-secrets-and-access.md` for vault UUID, item IDs, and `op://` rules.
+Use the Columbia Cloudworks Workspace tenant (`columbiacloudworks.com`)
+and Google account for GCP Console OAuth edits on `equipqr-prod`. Use the
+real EquipQR Connect flow for Google Workspace integration validation.
+Do not provision parallel Google orgs unless explicitly asked. Workspace
+Connect contract: [google-workspace.md](./google-workspace.md).
 
 ## Two-SA model
 

@@ -25,5 +25,5 @@ globs: "{dev-start.ps1,dev-stop.ps1,dev-start.bat,dev-stop.bat,dev/**/*.ps1,supa
 **Reference:** `vite.config.ts`, `vercel.json`; `b42326b0`.
 ## 6. `supabase start` WSAEACCES on 543xx
 **Signature:** WSAEACCES bind on 543xx; no listener/containers; `netsh excludedportrange` overlaps 54321-54328 (no `*`).
-**Root cause:** Ephemeral-range / WinNAT - **not Docker**; AGENTS.md.
-**Fix:** `.\dev\reserve-supabase-ports.ps1` (elevated). Alt: `net stop winnat`; `netsh int ipv4 add excludedportrange protocol=tcp startport=54321 numberofports=8 store=persistent`; `net start winnat`. Verify `54321  54328  *`. Green dev-start before fix claims; AGENTS.md.
+**Root cause:** Ephemeral-range / WinNAT - **not Docker**; `docs/ops/local-supabase-development.md`.
+**Fix:** `.\dev\reserve-supabase-ports.ps1` (elevated). Alt: `net stop winnat`; `netsh int ipv4 add excludedportrange protocol=tcp startport=54321 numberofports=8 store=persistent`; `net start winnat`. Verify `54321  54328  *`. Green dev-start before fix claims.

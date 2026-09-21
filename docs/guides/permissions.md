@@ -115,6 +115,17 @@ in the QuickBooks invoicing phase.
 
 Both grants are managed from the **Parts Access** panel on the Inventory page (or per member on Organization → Members). Only owners/admins can grant or revoke either role.
 
+**List metadata:** `get_inventory_list_metadata` returns health-summary
+aggregates in one bounded SQL query. There is no backfill on rollout —
+plain active members are denied until explicitly granted Parts Consumer
+or Parts Manager. Route guards and nav must hide direct URLs, not just
+sidebar links.
+
+**Part storage locations:** org `inventory_default_location_*` fields
+plus per-item structured geo in `inventoryLocationUtils.ts` (part
+overrides org default; part QR scans do not capture storage location).
+Customer steps: [inventory storage locations](../support/inventory-parts/inventory-storage-locations.md).
+
 ### Audit log visibility (#1122)
 
 The organization audit log is restricted to **owners and admins** at every layer: the page lives under **Organization → Audit Log** with an in-page role guard, `audit_log` SELECT RLS requires an active owner/admin membership, and the `get_audit_log_timeline` RPC re-checks `is_org_admin`. Audit entries never appear on operational pages (work order or inventory detail) and are never included in data exports outside the dedicated audit CSV/JSON export path, which notifies admins on every export.

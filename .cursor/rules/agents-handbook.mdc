@@ -1,0 +1,19 @@
+---
+description: AGENTS.md is a slim docs index. Update official docs, not this file.
+alwaysApply: true
+---
+
+# Agent handbook
+
+`AGENTS.md` is an index only (short product blurb plus references). It is not the lesson pile.
+
+When a process is new or changes:
+
+1. Update the official `docs/` file that owns the topic (reuse an existing runbook when one already covers it).
+2. Add or adjust a one-line pointer in `AGENTS.md` only if a new topic needs discovery.
+
+Do not append learned preferences, workspace facts, or full write-ups to `AGENTS.md`. Do not invent a second policy there — changelog, branching, and workflow-artifact rules stay where they are.
+
+Agent-facing guidance must stay topic-oriented. Do not paste current file paths, symbols, line numbers, or code inventories into handbook-style docs. Discover those details from the checkout when a task needs them. The exception is `AGENTS.md` itself: its reference table must name the authoritative documents clearly enough to open them.
+
+Prefer the custom `reflect` skill when present (explicit approval before write). Do not reinstall the Cursor `continual-learning` plugin; its `agents-memory-updater` rewrites `AGENTS.md` without approval.

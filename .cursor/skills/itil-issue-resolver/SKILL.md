@@ -88,7 +88,7 @@ Work in focused chunks:
 2. Generated Supabase types, if required.
 3. Product implementation.
 4. Tests.
-5. Docs/support copy only when required by the issue.
+5. Docs/support copy only when required by the issue. When a process is new or changes, update the official `docs/` file that owns it and add a pointer in `AGENTS.md` only if a new topic needs discovery (`.cursor/rules/agents-handbook.mdc`). Do not append lessons to `AGENTS.md`.
 
 Follow local patterns and existing service boundaries. Preserve organization scoping, RBAC, and RLS expectations.
 

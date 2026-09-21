@@ -25,7 +25,9 @@ On **Windows**, if `npm ci` fails with **EPERM** / **EBUSY** on `tailwindcss-oxi
 npm run ci:install
 ```
 
-This runs `stop-dev-and-e2e`, kills repo-scoped Vite/Vitest tooling, retries `npm ci`, and deletes a stuck `node_modules` tree when needed (legacy `node_modules.bak-*` scrap in the repo is removed automatically).
+This runs `stop-dev-and-e2e`, kills repo-scoped Vite/Vitest tooling, retries `npm ci`, and deletes a stuck `node_modules` tree when needed (legacy `node_modules.bak-*` scrap in the repo is removed automatically). If delete is still blocked, move scrap to `%TEMP%\equipqr-nm-scrap\` — never leave backup folders in the repo. Do not run bare `npm ci` while native binaries are locked. Linux/CI uses `npm ci --prefer-offline --no-audit`. Reload Cursor after install so the Vitest extension finds `node_modules`.
+
+Address deprecation warnings and `npm audit` findings immediately — do not defer; target `npm audit` → 0. If an install needed `--legacy-peer-deps`, commit `.npmrc` so CI can install too.
 
 > **Note**: We use `npm ci` for consistent, reproducible installs. Never use other package managers.
 
@@ -40,7 +42,7 @@ op --version
 # Optional (Cursor agents / headless terminals): set User-scope OP_SERVICE_ACCOUNT_TOKEN
 # for the read-only op-svc-equipqr-agents service account, then refresh in-session:
 #   $env:OP_SERVICE_ACCOUNT_TOKEN = [Environment]::GetEnvironmentVariable('OP_SERVICE_ACCOUNT_TOKEN', 'User')
-# Never echo the token. See AGENTS.md and .cursor/skills/toolbelt/SKILL.md.
+# Never echo the token. See docs/ops/agent-secrets-and-access.md.
 
 # Start local stack + sync env files from 1Password early in startup
 .\dev\dev-start.bat
@@ -521,7 +523,7 @@ describe('EquipmentCard', () => {
 
 1. **Create Migration** (if needed)
    ```bash
-   npx supabase migration new add_new_feature_table
+   npm run db:migration:new -- add_new_feature_table
    ```
 
 2. **Write Migration SQL**

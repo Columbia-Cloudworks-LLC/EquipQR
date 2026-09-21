@@ -6,6 +6,17 @@
   "cleanUrls": true,
   "redirects": [
     {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "github.equipqr.app"
+        }
+      ],
+      "destination": "https://github.com/Columbia-Cloudworks-LLC/EquipQR",
+      "permanent": true
+    },
+    {
       "source": "/eqr-logo/:path*",
       "destination": "/images/brand/eqr-logo/:path*",
       "permanent": true

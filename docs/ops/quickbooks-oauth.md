@@ -203,8 +203,23 @@ deno test --allow-env --allow-net=quickbooks.api.intuit.com ./quickbooks-export-
 2. Run `.\dev\sync-local-supabase-env.ps1` so `supabase/functions/.env` includes `QBO_USE_SANDBOX=true`.
 3. Register the local callback URI in the Intuit Developer Portal (Development app → Keys & OAuth).
 4. Capture the integration once: `npm run e2e:quickbooks-auth:capture` (see `docs/ops/playwright-real-auth-integrations.md`).
-5. Restart Supabase after env changes: `npx supabase stop; npx supabase start -x logflare -x vector`
+5. Restart the **full** local stack after env changes (`.\dev\dev-stop.bat` then `.\dev\dev-start.bat`). Do not use ad-hoc `npx supabase stop` / `start`.
 6. Probe the QBO API from the shell: `.\dev\qbo\Invoke-QboQuery.ps1 -StatusOnly`.
+
+## Production invoice export
+
+Live QBO connections and team→customer mappings are org-specific (exact
+IDs live in the private ops runbook / 1Password, not in this repo).
+EquipQR exports **draft-only** invoices from work order details via
+Export → QuickBooks (**Create New Invoice** / **Update Invoice #…** /
+**Open Invoice**). Export is gated on a completed work order +
+team→customer mapping + `can_manage_quickbooks`.
+
+**Intuit passkey chooser blocks automation.** Use the logged-in
+`cursor-ide-browser` session. `dev/qbo/Connect-QboBrowserSession.ps1`
+exists for retries.
+
+Customer steps: [Export a work order to QuickBooks](../support/admin-integrations/export-work-order-to-qb.md).
 
 ## API reference
 
