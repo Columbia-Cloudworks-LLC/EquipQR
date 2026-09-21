@@ -53,7 +53,7 @@ Register the derived callback URI in the Intuit Developer Portal:
 | Preview | `https://<preview-project-ref>.supabase.co/functions/v1/quickbooks-oauth-callback` |
 | Local | `http://localhost:54321/functions/v1/quickbooks-oauth-callback` |
 
-For the persistent preview branch, both the Supabase URL and callback must address its isolated backend. The Vercel `preview` environment's `preview` Git branch has an explicit callback override to prevent an inherited retired custom domain from resolving to production. Register that exact callback under Intuit **Development** keys. Never use `supabase.preview.equipqr.app` as the callback: legacy normalization redirects that retired hostname to production. Keep production settings separate.
+For the persistent preview branch, both the Supabase URL and callback must address its isolated backend. The Vercel `preview` environment's `preview` Git branch has an explicit callback override to prevent an inherited retired custom domain from resolving to production. Register that exact callback under Intuit **Development** keys. Never use the retired preview custom hostname as the callback: legacy normalization redirects it to production. Keep production settings separate.
 
 ### Vault secrets (token refresh scheduler)
 
