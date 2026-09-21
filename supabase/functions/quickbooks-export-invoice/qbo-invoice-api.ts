@@ -1,6 +1,7 @@
+import type { InvoiceConfirmation } from "./qbo-invoice-review.ts";
 import {
-  QBO_API_BASE,
   getIntuitTid,
+  QBO_API_BASE,
   withMinorVersion,
 } from "../_shared/quickbooks-config.ts";
 import type { TeamCustomerMapping } from "./qbo-tax-status.ts";
@@ -22,7 +23,9 @@ type QuickBooksFaultMetadata = {
   errorCodes: Array<string | number | undefined>;
 };
 
-function extractQuickBooksFaultMetadata(fault: unknown): QuickBooksFaultMetadata {
+function extractQuickBooksFaultMetadata(
+  fault: unknown,
+): QuickBooksFaultMetadata {
   if (!fault || typeof fault !== "object") {
     return { errorCodes: [] };
   }
@@ -30,7 +33,10 @@ function extractQuickBooksFaultMetadata(fault: unknown): QuickBooksFaultMetadata
   const errors = Array.isArray(faultObj.Error) ? faultObj.Error : [];
   const errorCodes = errors.map((entry) => {
     if (!entry || typeof entry !== "object") return undefined;
-    return (entry as Record<string, unknown>).code as string | number | undefined;
+    return (entry as Record<string, unknown>).code as
+      | string
+      | number
+      | undefined;
   });
   return {
     type: faultObj.type,
@@ -95,7 +101,12 @@ export async function fetchExistingInvoiceForUpdate(
   }
 
   const existingInvoiceData = await getResponse.json();
-  assertNoFault(existingInvoiceData, logStep, "invoice read response", getIntuitTid(getResponse));
+  assertNoFault(
+    existingInvoiceData,
+    logStep,
+    "invoice read response",
+    getIntuitTid(getResponse),
+  );
   return existingInvoiceData.Invoice as QuickBooksInvoice;
 }
 
@@ -106,11 +117,13 @@ export async function updateQuickBooksInvoice(
   customerMapping: TeamCustomerMapping,
   artifacts: PreparedInvoiceArtifacts,
   taxState: VerifiedTaxState,
+  confirmation: InvoiceConfirmation,
   logStep: (step: string, details?: Record<string, unknown>) => void,
 ): Promise<InvoiceApiResult> {
   const { invoiceLines, privateNote, customerMemo, customFields } = artifacts;
 
   let updatedInvoice: QuickBooksInvoice = {
+    sparse: true,
     Id: existingInvoice.Id,
     SyncToken: existingInvoice.SyncToken,
     CustomerRef: { value: customerMapping.quickbooks_customer_id },
@@ -119,6 +132,13 @@ export async function updateQuickBooksInvoice(
     PrivateNote: privateNote,
     CustomerMemo: { value: customerMemo },
   };
+  if (confirmation.overwrite_existing_dates) {
+    updatedInvoice.TxnDate = confirmation.invoice_date;
+    updatedInvoice.DueDate = confirmation.due_date;
+    if (confirmation.payment_term_id) {
+      updatedInvoice.SalesTermRef = { value: confirmation.payment_term_id };
+    }
+  }
   updatedInvoice = applyCustomerBillEmail(
     updatedInvoice,
     taxState.customerPrimaryEmail,
@@ -126,7 +146,9 @@ export async function updateQuickBooksInvoice(
   );
   updatedInvoice = applyTransactionTaxState(updatedInvoice, taxState);
 
-  const updateUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/invoice`);
+  const updateUrl = withMinorVersion(
+    `${QBO_API_BASE}/v3/company/${realmId}/invoice`,
+  );
   const updateResponse = await fetch(updateUrl, {
     method: "POST",
     headers: {
@@ -140,7 +162,12 @@ export async function updateQuickBooksInvoice(
   const intuitTid = getIntuitTid(updateResponse);
 
   if (!updateResponse.ok) {
-    logQuickBooksHttpFailure("Invoice update failed", updateResponse, intuitTid, logStep);
+    logQuickBooksHttpFailure(
+      "Invoice update failed",
+      updateResponse,
+      intuitTid,
+      logStep,
+    );
     throw new Error("Failed to update invoice in QuickBooks");
   }
 
@@ -160,7 +187,7 @@ export async function createQuickBooksInvoice(
   customerMapping: TeamCustomerMapping,
   artifacts: PreparedInvoiceArtifacts,
   taxState: VerifiedTaxState,
-  workOrderDueDate: string | null | undefined,
+  confirmation: InvoiceConfirmation,
   logStep: (step: string, details?: Record<string, unknown>) => void,
 ): Promise<InvoiceApiResult> {
   const { invoiceLines, privateNote, customerMemo, customFields } = artifacts;
@@ -174,16 +201,25 @@ export async function createQuickBooksInvoice(
     CustomField: customFields,
     PrivateNote: privateNote,
     CustomerMemo: { value: customerMemo },
-    TxnDate: new Date().toISOString().split("T")[0],
+    TxnDate: confirmation.invoice_date,
+    DueDate: confirmation.due_date,
+    ...(confirmation.payment_term_id
+      ? { SalesTermRef: { value: confirmation.payment_term_id } }
+      : {}),
+    AllowOnlineCreditCardPayment: false,
+    AllowOnlineACHPayment: false,
+    EmailStatus: "NotSet",
   };
 
-  if (workOrderDueDate) {
-    newInvoice.DueDate = workOrderDueDate.split("T")[0];
-  }
-  newInvoice = applyCustomerBillEmail(newInvoice, taxState.customerPrimaryEmail);
+  newInvoice = applyCustomerBillEmail(
+    newInvoice,
+    taxState.customerPrimaryEmail,
+  );
   newInvoice = applyTransactionTaxState(newInvoice, taxState);
 
-  const createUrl = withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/invoice`);
+  const createUrl =
+    withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/invoice`) +
+    `&requestid=${encodeURIComponent(`equipqr-${workOrderId}`)}`;
   const createResponse = await fetch(createUrl, {
     method: "POST",
     headers: {
@@ -197,7 +233,12 @@ export async function createQuickBooksInvoice(
   const intuitTid = getIntuitTid(createResponse);
 
   if (!createResponse.ok) {
-    logQuickBooksHttpFailure("Invoice creation failed", createResponse, intuitTid, logStep);
+    logQuickBooksHttpFailure(
+      "Invoice creation failed",
+      createResponse,
+      intuitTid,
+      logStep,
+    );
     throw new Error("Failed to create invoice in QuickBooks");
   }
 

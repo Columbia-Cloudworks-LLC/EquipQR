@@ -3,7 +3,10 @@ import {
   QBO_NON_TAXABLE_TAX_CODE_REF,
   QBO_TAXABLE_TAX_CODE_REF,
 } from "../_shared/quickbooks-config.ts";
+import { buildPMInvoiceDescription, buildPartsLineDescription } from "./qbo-invoice-lines.ts";
 import type {
+  PreventativeMaintenanceInvoiceRow,
+  WorkOrderCost,
   InvoiceSalesLines,
   WorkOrderData,
   WorkOrderNote,
@@ -27,6 +30,10 @@ export type QuickBooksInvoiceStatus =
   | "voided";
 
 export interface QuickBooksInvoice {
+  sparse?: boolean;
+  SalesTermRef?: { value: string; name?: string } | null;
+  AllowOnlineCreditCardPayment?: boolean;
+  AllowOnlineACHPayment?: boolean;
   Id?: string;
   SyncToken?: string;
   CustomerRef: { value: string };
@@ -84,61 +91,41 @@ export function applyCustomerBillEmail(
   return invoice;
 }
 
-const formatTimelineTimestamp = (value: string): string => {
-  const iso = new Date(value).toISOString();
-  return `${iso.slice(0, 16)}z`;
-};
-
-const formatStatus = (status: string): string =>
-  status
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-
-export function buildCustomerTimelineLines(
-  statusEvents: WorkOrderStatusEvent[],
-  notes: WorkOrderNote[],
-): string[] {
-  const timelineLines: Array<{ timestamp: string; text: string }> = [];
-
-  statusEvents.forEach((event) => {
-    const summary = event.reason
-      ? `Status changed to ${formatStatus(event.new_status)} - ${event.reason}`
-      : `Status changed to ${formatStatus(event.new_status)}`;
-    timelineLines.push({ timestamp: event.changed_at, text: summary });
-  });
-
-  notes
-    .filter((note) => !note.is_private)
-    .forEach((note) => {
-      timelineLines.push({ timestamp: note.created_at, text: note.content });
-    });
-
-  return timelineLines
-    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-    .map((entry) => `${formatTimelineTimestamp(entry.timestamp)} - [${entry.text}]`);
-}
-
 export function buildCustomerMemo(
   workOrder: WorkOrderData,
   notes: WorkOrderNote[],
-  statusEvents: WorkOrderStatusEvent[],
+  _statusEvents: WorkOrderStatusEvent[],
+  context?: { pm: PreventativeMaintenanceInvoiceRow | null; costs: WorkOrderCost[] },
 ): string {
   const publicNotes = notes.filter((note) => !note.is_private);
-  const latestPublicResolution = publicNotes.length > 0
-    ? publicNotes[publicNotes.length - 1].content
-    : "Resolved per work order completion.";
+  const technician = publicNotes.at(-1)?.author_name?.trim() || "Technician";
+  const sections = [
+    workOrder.description?.trim() || workOrder.title?.trim(),
+    context?.pm ? buildPMInvoiceDescription(context.pm, "", technician) : "",
+    ...publicNotes.map((note) => note.content),
+  ];
+  const parts = context?.costs.filter((cost) =>
+    !!cost.inventory_item_id || !/^Labor(\s|$|-)/i.test(cost.description.trim())
+  ) ?? [];
+  if (parts.length > 0) sections.push(buildPartsLineDescription(parts));
 
-  const header = [
-    `Initial request: ${workOrder.description || workOrder.title}.`,
-    `Resolution: ${latestPublicResolution}`,
-  ].join("\n");
-
-  const timeline = buildCustomerTimelineLines(statusEvents, notes);
-  if (timeline.length === 0) {
-    return header;
-  }
-
-  return `${header}\n\n${timeline.join("\n")}`.slice(0, 3900);
+  // Keep a finding once even when it was copied from PM notes into public notes.
+  const seen = new Set<string>();
+  const content = sections.flatMap((section) => (section || "").split(/\r?\n/))
+    .map((line) => line.trim())
+    .filter((line) => {
+      if (!line) return false;
+      const key = line.replace(/\s+/g, " ").toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).join("\n");
+  const maxLength = 3900;
+  if (content.length <= maxLength) return content;
+  const suffix = "\n… (see work order for remaining details)";
+  const available = content.slice(0, maxLength - suffix.length);
+  const lastBreak = available.lastIndexOf("\n");
+  return (lastBreak > available.length / 2 ? available.slice(0, lastBreak) : available.trimEnd()) + suffix;
 }
 
 export function getMachineHoursCustomFieldValue(
@@ -296,7 +283,6 @@ export const __payloadTestables = {
   applyTransactionTaxState,
   amountToCents,
   buildCustomerMemo,
-  buildCustomerTimelineLines,
   buildInvoiceCustomFields,
   deriveQuickBooksInvoiceStatus,
   getMachineHoursCustomFieldValue,

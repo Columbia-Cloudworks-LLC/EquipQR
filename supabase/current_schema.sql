@@ -11567,6 +11567,24 @@ $$;
 ALTER FUNCTION "public"."prevent_inactive_operator_template_with_enabled_assignments"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."prevent_invoice_details_reassignment"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'public'
+    AS $$
+BEGIN
+  IF NEW.work_order_id IS DISTINCT FROM OLD.work_order_id
+     OR NEW.organization_id IS DISTINCT FROM OLD.organization_id THEN
+    RAISE EXCEPTION 'Invoice details cannot be reassigned to another work order or organization'
+      USING ERRCODE = '23514';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."prevent_invoice_details_reassignment"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."preview_account_deletion"("p_user_id" "uuid") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
@@ -17857,6 +17875,36 @@ CREATE TABLE IF NOT EXISTS "public"."work_order_images" (
 ALTER TABLE "public"."work_order_images" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."work_order_invoice_details" (
+    "work_order_id" "uuid" NOT NULL,
+    "organization_id" "uuid" NOT NULL,
+    "invoice_date" "date",
+    "due_date" "date",
+    "payment_term_id" "text",
+    "service_dates" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
+    "qb_line_ids" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "work_order_invoice_details_qb_line_ids_object" CHECK (("jsonb_typeof"("qb_line_ids") = 'object'::"text")),
+    CONSTRAINT "work_order_invoice_details_service_dates_object" CHECK (("jsonb_typeof"("service_dates") = 'object'::"text"))
+);
+
+
+ALTER TABLE "public"."work_order_invoice_details" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."work_order_invoice_details" IS 'Explicit invoice review input. Incomplete input may be saved; the export validates required dates. No business-date clock defaults.';
+
+
+
+COMMENT ON COLUMN "public"."work_order_invoice_details"."service_dates" IS 'Explicit YYYY-MM-DD service dates keyed by pm:<maintenance UUID>, labor, or parts.';
+
+
+
+COMMENT ON COLUMN "public"."work_order_invoice_details"."qb_line_ids" IS 'Server-owned stable mapping from source line keys to QuickBooks invoice line IDs. Clients cannot write it.';
+
+
+
 CREATE TABLE IF NOT EXISTS "public"."work_order_notes" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "work_order_id" "uuid" NOT NULL,
@@ -18504,6 +18552,11 @@ ALTER TABLE ONLY "public"."work_order_equipment"
 
 ALTER TABLE ONLY "public"."work_order_images"
     ADD CONSTRAINT "work_order_images_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."work_order_invoice_details"
+    ADD CONSTRAINT "work_order_invoice_details_pkey" PRIMARY KEY ("work_order_id");
 
 
 
@@ -19300,6 +19353,10 @@ CREATE INDEX "idx_work_order_images_work_order_id" ON "public"."work_order_image
 
 
 
+CREATE INDEX "idx_work_order_invoice_details_organization" ON "public"."work_order_invoice_details" USING "btree" ("organization_id");
+
+
+
 CREATE INDEX "idx_work_order_notes_author_id" ON "public"."work_order_notes" USING "btree" ("author_id");
 
 
@@ -19345,6 +19402,10 @@ CREATE INDEX "idx_work_orders_equipment_status" ON "public"."work_orders" USING 
 
 
 CREATE INDEX "idx_work_orders_historical" ON "public"."work_orders" USING "btree" ("is_historical", "organization_id");
+
+
+
+CREATE UNIQUE INDEX "idx_work_orders_id_organization" ON "public"."work_orders" USING "btree" ("id", "organization_id");
 
 
 
@@ -19572,6 +19633,10 @@ CREATE OR REPLACE TRIGGER "pm_status_change_trigger" AFTER UPDATE ON "public"."p
 
 
 
+CREATE OR REPLACE TRIGGER "prevent_invoice_details_reassignment" BEFORE UPDATE ON "public"."work_order_invoice_details" FOR EACH ROW EXECUTE FUNCTION "public"."prevent_invoice_details_reassignment"();
+
+
+
 CREATE OR REPLACE TRIGGER "team_member_security_notifications_trigger" AFTER INSERT OR UPDATE OF "role" ON "public"."team_members" FOR EACH ROW EXECUTE FUNCTION "public"."notify_team_member_security_events"();
 
 
@@ -19741,6 +19806,10 @@ CREATE OR REPLACE TRIGGER "update_part_compatibility_rules_updated_at" BEFORE UP
 
 
 CREATE OR REPLACE TRIGGER "update_user_dashboard_preferences_updated_at" BEFORE UPDATE ON "public"."user_dashboard_preferences" FOR EACH ROW EXECUTE FUNCTION "public"."handle_updated_at"();
+
+
+
+CREATE OR REPLACE TRIGGER "update_work_order_invoice_details_updated_at" BEFORE UPDATE ON "public"."work_order_invoice_details" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
 
 
 
@@ -20579,6 +20648,11 @@ ALTER TABLE ONLY "public"."work_order_images"
 
 
 
+ALTER TABLE ONLY "public"."work_order_invoice_details"
+    ADD CONSTRAINT "work_order_invoice_details_work_order_fkey" FOREIGN KEY ("work_order_id", "organization_id") REFERENCES "public"."work_orders"("id", "organization_id") ON DELETE CASCADE;
+
+
+
 ALTER TABLE ONLY "public"."work_order_notes"
     ADD CONSTRAINT "work_order_notes_last_modified_by_fkey" FOREIGN KEY ("last_modified_by") REFERENCES "public"."profiles"("id");
 
@@ -21263,6 +21337,18 @@ CREATE POLICY "inventory_transactions_select" ON "public"."inventory_transaction
 
 
 ALTER TABLE "public"."invitation_performance_logs" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "invoice_details_insert" ON "public"."work_order_invoice_details" FOR INSERT TO "authenticated" WITH CHECK ("public"."can_user_manage_quickbooks"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+
+
+
+CREATE POLICY "invoice_details_select" ON "public"."work_order_invoice_details" FOR SELECT TO "authenticated" USING ("public"."can_user_manage_quickbooks"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+
+
+
+CREATE POLICY "invoice_details_update" ON "public"."work_order_invoice_details" FOR UPDATE TO "authenticated" USING ("public"."can_user_manage_quickbooks"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) WITH CHECK ("public"."can_user_manage_quickbooks"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+
 
 
 ALTER TABLE "public"."member_removal_audit" ENABLE ROW LEVEL SECURITY;
@@ -22229,6 +22315,9 @@ CREATE POLICY "work_order_images_delete_own" ON "public"."work_order_images" FOR
 
 COMMENT ON POLICY "work_order_images_delete_own" ON "public"."work_order_images" IS 'Users can delete their own images only while still a member of the work order''s organization. Security fix: added org membership check.';
 
+
+
+ALTER TABLE "public"."work_order_invoice_details" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."work_order_notes" ENABLE ROW LEVEL SECURITY;
@@ -23826,6 +23915,11 @@ GRANT ALL ON FUNCTION "public"."prevent_inactive_operator_template_with_enabled_
 
 
 
+REVOKE ALL ON FUNCTION "public"."prevent_invoice_details_reassignment"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."prevent_invoice_details_reassignment"() TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."preview_account_deletion"("p_user_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."preview_account_deletion"("p_user_id" "uuid") TO "service_role";
 
@@ -24677,6 +24771,35 @@ GRANT ALL ON TABLE "public"."work_order_equipment" TO "service_role";
 GRANT ALL ON TABLE "public"."work_order_images" TO "anon";
 GRANT ALL ON TABLE "public"."work_order_images" TO "authenticated";
 GRANT ALL ON TABLE "public"."work_order_images" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."work_order_invoice_details" TO "service_role";
+GRANT SELECT ON TABLE "public"."work_order_invoice_details" TO "authenticated";
+
+
+
+GRANT INSERT("work_order_id"),UPDATE("work_order_id") ON TABLE "public"."work_order_invoice_details" TO "authenticated";
+
+
+
+GRANT INSERT("organization_id"),UPDATE("organization_id") ON TABLE "public"."work_order_invoice_details" TO "authenticated";
+
+
+
+GRANT INSERT("invoice_date"),UPDATE("invoice_date") ON TABLE "public"."work_order_invoice_details" TO "authenticated";
+
+
+
+GRANT INSERT("due_date"),UPDATE("due_date") ON TABLE "public"."work_order_invoice_details" TO "authenticated";
+
+
+
+GRANT INSERT("payment_term_id"),UPDATE("payment_term_id") ON TABLE "public"."work_order_invoice_details" TO "authenticated";
+
+
+
+GRANT INSERT("service_dates"),UPDATE("service_dates") ON TABLE "public"."work_order_invoice_details" TO "authenticated";
 
 
 

@@ -4373,6 +4373,50 @@ export type Database = {
           },
         ]
       }
+      work_order_invoice_details: {
+        Row: {
+          created_at: string
+          due_date: string | null
+          invoice_date: string | null
+          organization_id: string
+          payment_term_id: string | null
+          qb_line_ids: Json
+          service_dates: Json
+          updated_at: string
+          work_order_id: string
+        }
+        Insert: {
+          created_at?: string
+          due_date?: string | null
+          invoice_date?: string | null
+          organization_id: string
+          payment_term_id?: string | null
+          qb_line_ids?: Json
+          service_dates?: Json
+          updated_at?: string
+          work_order_id: string
+        }
+        Update: {
+          created_at?: string
+          due_date?: string | null
+          invoice_date?: string | null
+          organization_id?: string
+          payment_term_id?: string | null
+          qb_line_ids?: Json
+          service_dates?: Json
+          updated_at?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_invoice_details_work_order_fkey"
+            columns: ["work_order_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
       work_order_notes: {
         Row: {
           author_id: string | null

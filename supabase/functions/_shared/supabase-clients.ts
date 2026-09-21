@@ -443,6 +443,23 @@ function isErrorMessageSafe(error: string): boolean {
  *   messages to keep response bodies free of attacker-controlled substrings.
  */
 const EXACT_SAFE_ERROR_MESSAGE_BY_INPUT = new Map<string, string>([
+  ["Confirm whether invoice dates should be replaced.", "Confirm whether invoice dates should be replaced."],
+  ["Could not read QuickBooks billing details. Try again before exporting.", "Could not read QuickBooks billing details. Try again before exporting."],
+  ["Invoice export history changed. Reload and review again.", "Invoice export history changed. Reload and review again."],
+  ["Invoice lines changed. Review again before exporting.", "Invoice lines changed. Review again before exporting."],
+  ["Keep the existing payment terms or select replacement terms. Clear terms directly in QuickBooks.", "Keep the existing payment terms or select replacement terms. Clear terms directly in QuickBooks."],
+  ["Online payments are enabled on this invoice. Review/update it in QuickBooks to avoid automatic customer delivery.", "Online payments are enabled on this invoice. Review/update it in QuickBooks to avoid automatic customer delivery."],
+  ["QuickBooks could not provide billing details.", "QuickBooks could not provide billing details."],
+  ["QuickBooks dates differ. Choose to preserve them or explicitly replace them after review.", "QuickBooks dates differ. Choose to preserve them or explicitly replace them after review."],
+  ["Review and confirm invoice details before exporting.", "Review and confirm invoice details before exporting."],
+  ["Select a Service date for every invoice line before exporting.", "Select a Service date for every invoice line before exporting."],
+  ["Select and confirm Invoice date and Due date before exporting.", "Select and confirm Invoice date and Due date before exporting."],
+  ["Select valid QuickBooks payment terms or an explicit Due date.", "Select valid QuickBooks payment terms or an explicit Due date."],
+  ["The mapped customer differs from the existing invoice. Review this invoice in QuickBooks.", "The mapped customer differs from the existing invoice. Review this invoice in QuickBooks."],
+  ["The QuickBooks invoice changed since review. Reload and review again.", "The QuickBooks invoice changed since review. Reload and review again."],
+  ["The QuickBooks invoice changed since review. Reload and review it again before exporting.", "The QuickBooks invoice changed since review. Reload and review it again before exporting."],
+  ["This invoice does not have a complete saved line association. Review/update it in QuickBooks to preserve its existing charges.", "This invoice does not have a complete saved line association. Review/update it in QuickBooks to preserve its existing charges."],
+  ["Work order billing details changed since review. Reload and review the invoice again.", "Work order billing details changed since review. Reload and review the invoice again."],
   ["No authorization header provided", "No authorization header provided"],
   ["Invalid authorization header format", "Invalid authorization header format"],
   ["Invalid or expired token", "Invalid or expired token"],
@@ -983,4 +1000,3 @@ async function decorateResponseWithCorrelationId(
     headers,
   });
 }
-

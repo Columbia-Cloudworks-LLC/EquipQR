@@ -13,6 +13,7 @@ import type {
 import { isQuickBooksEnabled } from '@/lib/flags';
 import { getInvokeErrorPayload } from '@/services/google-workspace/invokeError';
 import { toast } from 'sonner';
+import type { InvoiceConfirmation } from '@/services/quickbooks/invoiceReview';
 
 /**
  * Hook to get export logs for a work order
@@ -78,10 +79,14 @@ export function useQuickBooksLastExport(
 export function useExportToQuickBooks() {
   const queryClient = useQueryClient();
 
-  const mutation = useMutation<InvoiceExportResult, Error, string>({
-    mutationFn: async (workOrderId: string): Promise<InvoiceExportResult> => {
+  const mutation = useMutation<InvoiceExportResult, Error, string | { workOrderId: string; confirmation: InvoiceConfirmation }>({
+    mutationFn: async (input): Promise<InvoiceExportResult> => {
+      if (typeof input === 'string') throw new Error('Review invoice details before exporting.');
+      const { workOrderId, confirmation } = input;
       const request: QuickBooksExportInvoiceRequest = {
         work_order_id: workOrderId,
+        action: 'export',
+        confirmation,
       };
 
       const { data, error: invokeError } = await supabase.functions.invoke<
@@ -127,7 +132,8 @@ export function useExportToQuickBooks() {
     onError: (error: Error) => {
       toast.error(`Export failed: ${error.message}`);
     },
-    onSettled: (_data, _error, variables) => {
+    onSettled: (_data, _error, input) => {
+      const variables = typeof input === 'string' ? input : input.workOrderId;
       // Keep export status/logs fresh after either success or failure
       queryClient.invalidateQueries({ queryKey: ['quickbooks', 'export', variables] });
       queryClient.invalidateQueries({ queryKey: ['quickbooks', 'export-logs', variables] });
