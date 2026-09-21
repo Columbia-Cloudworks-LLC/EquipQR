@@ -11,16 +11,16 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
-## [3.33.0] - 2026-09-20
+## [3.33.0] - 2026-09-21
 
 ### Added
 
-- **Real-world photography** — Equipment-yard and workshop photos bring repair-shop and inventory workflows to life across the marketing pages.
+- **Real-world photography (#1550)** — Equipment-yard and workshop photos bring repair-shop and inventory workflows to life across the marketing pages.
 - **GitHub shortcut (#1541)** — [github.equipqr.app](https://github.equipqr.app) redirects to the EquipQR GitHub repository.
 
 ### Fixed
 
-- **Push notification retries** — Temporary delivery failures are retried instead of silently dropping work-order alerts. (#1438)
+- **Push notification retries (#1438)** — Temporary delivery failures are retried instead of silently dropping work-order alerts.
 
 ### Security
 
