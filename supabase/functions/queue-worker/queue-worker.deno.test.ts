@@ -27,6 +27,7 @@ interface CallLog {
   reads: { queueName: string; qty: number; vt: number }[];
   invokes: { queueName: string; payload: Record<string, unknown> }[];
   deletes: { queueName: string; msgId: number }[];
+  archives: { queueName: string; msgId: number }[];
 }
 
 function buildStubClient(
@@ -36,9 +37,10 @@ function buildStubClient(
     permanentFailure?: boolean;
     deleteError?: { message: string };
     readError?: { message: string; code?: string };
+    archiveError?: { message: string };
   } = {},
 ): { client: DrainClient; calls: CallLog } {
-  const calls: CallLog = { reads: [], invokes: [], deletes: [] };
+  const calls: CallLog = { reads: [], invokes: [], deletes: [], archives: [] };
   const batchIdx: Record<string, number> = {};
 
   const client: DrainClient = {
@@ -67,14 +69,46 @@ function buildStubClient(
       calls.deletes.push({ queueName, msgId });
       return Promise.resolve({ error: options.deleteError ?? null });
     },
+    archiveMessage: (queueName, msgId) => {
+      calls.archives.push({ queueName, msgId });
+      return Promise.resolve({ error: options.archiveError ?? null });
+    },
   };
 
   return { client, calls };
 }
 
-const silentLog = (_step: string, _details?: Record<string, unknown>): void => {
+const silentLog = (): void => {
   // suppress structured logs during tests
 };
+
+for (const archiveError of [undefined, { message: "archive unavailable" }]) {
+  Deno.test(`exhausted notification is archived without resending; archive error=${!!archiveError}`, async () => {
+    const message = { ...SAMPLE_MESSAGE(55), read_ct: 6 };
+    const { client, calls } = buildStubClient({ notifications: [[message]] }, { archiveError });
+    const result = await runDrainLoopForQueue(client, "notifications", { log: silentLog });
+    assertEquals(result.failed, 1);
+    assertEquals(calls.archives, [{ queueName: "notifications", msgId: 55 }]);
+    assertEquals(calls.invokes, []);
+    assertEquals(calls.deletes, []);
+  });
+}
+
+Deno.test("fifth notification attempt can still deliver and acknowledge", async () => {
+  const { client, calls } = buildStubClient({ notifications: [[{ ...SAMPLE_MESSAGE(56), read_ct: 5 }]] });
+  const result = await runDrainLoopForQueue(client, "notifications", { log: silentLog });
+  assertEquals(result.processed, 1);
+  assertEquals(calls.deletes, [{ queueName: "notifications", msgId: 56 }]);
+  assertEquals(calls.archives, []);
+});
+
+Deno.test("notification retry limit does not change export retries", async () => {
+  const { client, calls } = buildStubClient({ exports: [[{ ...SAMPLE_MESSAGE(57), read_ct: 8 }]] });
+  const result = await runDrainLoopForQueue(client, "exports", { log: silentLog });
+  assertEquals(result.processed, 1);
+  assertEquals(calls.invokes.length, 1);
+  assertEquals(calls.archives, []);
+});
 
 Deno.test(
   "happy path: each message produces read + invoke + delete exactly once, then queue drains",

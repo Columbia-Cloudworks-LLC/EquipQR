@@ -10,6 +10,8 @@ import type { ComponentType } from 'react';
 import { cn } from '@/lib/utils';
 import { BulldozerIcon } from './BulldozerIcon';
 import LandingReveal from './LandingReveal';
+import { Link } from 'react-router-dom';
+import { MarketingPhoto } from './MarketingPhoto';
 
 interface UseCase {
   icon: ComponentType<{ className?: string }>;
@@ -61,13 +63,23 @@ const AboutSection = ({ id }: { id?: string }) => {
   return (
     <section id={id} className="scroll-mt-20 py-16 bg-muted/20">
       <div className="container px-4 mx-auto">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            Who EquipQR is for
-          </h2>
-          <p className="mx-auto max-w-3xl text-left text-xl text-muted-foreground sm:text-center">
-            Shops stick a QR on the machine. The next scan pulls history. Same pattern for IT gear, tool cribs, buildings, and rental fleets.
-          </p>
+        <div className="mb-12 grid items-center gap-8 lg:grid-cols-2 lg:gap-12">
+          <div>
+            <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-primary">From the yard to the workbench</p>
+            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
+              Who EquipQR is for
+            </h2>
+            <p className="max-w-3xl text-xl leading-relaxed text-muted-foreground">
+              Shops stick a QR on the machine. The next scan pulls history. Same pattern for IT gear, tool cribs, buildings, and rental fleets.
+            </p>
+            <Link
+              to="/solutions/repair-shops"
+              className="mt-6 inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4 hover:text-primary/80 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+            >
+              Explore repair-shop workflows
+            </Link>
+          </div>
+          <MarketingPhoto photo="equipment" />
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -58,6 +58,12 @@ App links to Help Center resolve through `documentationUrl.ts`.
 
 ## Build Process
 
+### Marketing photography
+
+See [marketing photography](./marketing-photography.md) for stock-photo sources,
+licenses, non-AI provenance, optimized assets, and page placement. The homepage
+animation remains the primary product demonstration.
+
 ### Development Build
 ```bash
 # Install dependencies
