@@ -13,6 +13,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Added
 
+- **Real-world photography** — Equipment-yard and workshop photos bring repair-shop and inventory workflows to life across the marketing pages.
 - **GitHub shortcut (#1541)** — [github.equipqr.app](https://github.equipqr.app) redirects to the EquipQR GitHub repository.
 
 ### Fixed
