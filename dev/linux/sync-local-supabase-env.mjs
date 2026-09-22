@@ -120,7 +120,14 @@ export function buildLocalOverrideLines(status, apiPort) {
  * @param {string[]} keysToReplace
  */
 export function writeManagedEnvFile(filePath, blockLines, keysToReplace) {
-  const existing = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : '';
+  let existing = '';
+  try {
+    existing = fs.readFileSync(filePath, 'utf8');
+  } catch (error) {
+    if (!error || error.code !== 'ENOENT') {
+      throw error;
+    }
+  }
   const next = applyManagedBlock(existing, blockLines, keysToReplace);
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, next);

@@ -49,7 +49,9 @@ describe('local Supabase env sync', () => {
     const appFile = path.join(dir, '.env.local');
     const lines = buildLocalOverrideLines(parseStatusEnv(statusText), 54321);
     writeManagedEnvFile(appFile, lines.appLines, lines.appKeys);
+    writeManagedEnvFile(appFile, lines.appLines, lines.appKeys);
     const written = fs.readFileSync(appFile, 'utf8');
+    expect(written.match(/EQUIPQR LOCAL SUPABASE OVERRIDES/g)).toHaveLength(2);
     expect(written).toContain('VITE_SUPABASE_ANON_KEY=local-anon-key');
     expect(written).not.toContain('local-service-key');
   });
