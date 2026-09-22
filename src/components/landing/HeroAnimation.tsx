@@ -39,7 +39,7 @@ function pickNextState(prev: StateCode | null): StateCode {
  * Reduced-motion static composite only — Texas + dots.
  * Must not be used as the Suspense loading fallback (that caused TX flashes on cold load).
  */
-function StaticHeroComposite() {
+export function FleetObservabilityStatic() {
   return (
     <div
       className="relative w-full h-full flex flex-col items-center justify-center gap-4"
@@ -68,7 +68,7 @@ function StaticHeroComposite() {
  * Neutral Suspense placeholder while lazy phase chunks load.
  * Matches the morph start path so QR → morph stays continuous on cold load.
  */
-function HeroPhaseLoadingFallback() {
+export function HeroPhaseLoadingFallback() {
   return (
     <div
       className="relative w-full h-full flex items-center justify-center"
@@ -88,8 +88,20 @@ function HeroPhaseLoadingFallback() {
   );
 }
 
-export default function HeroAnimation() {
+interface HeroAnimationProps {
+  /** Gallery slide: animation stage only, without headline or call to action. */
+  stageOnly?: boolean;
+  /** Fired when one fleet cycle finishes, before the next cycle starts. */
+  onLoopComplete?: () => void;
+}
+
+export default function HeroAnimation({
+  stageOnly = false,
+  onLoopComplete,
+}: HeroAnimationProps) {
   const prefersReducedMotion = usePrefersReducedMotion();
+  const onLoopCompleteRef = useRef(onLoopComplete);
+  onLoopCompleteRef.current = onLoopComplete;
 
   // Counts COMPLETED cycles (incremented at the end of each cycle).
   // The cycle currently in progress is `cycleRef.current + 1` (1-indexed).
@@ -167,6 +179,7 @@ export default function HeroAnimation() {
   }, []);
 
   const restartCycleAfterFade = useCallback(() => {
+    onLoopCompleteRef.current?.();
     setOpacity(0);
     holdTimerRef.current = setTimeout(() => {
       cycleRef.current += 1;
@@ -240,48 +253,9 @@ export default function HeroAnimation() {
     void import('./StateMorphPhase').catch(() => undefined);
   }, [prefersReducedMotion]);
 
-  return (
-    <section
-      aria-label="EquipQR asset tracking demo"
-      className="relative flex flex-col items-center justify-center pt-24 pb-14 md:pt-28 md:pb-20 bg-linear-to-br from-background via-background to-primary/5"
-    >
-      <p className="sr-only">
-        EquipQR tracks QR-coded equipment across the United States. The demo shows a QR
-        code being scanned, which transforms into a U.S. map with asset location markers.
-        Work orders are created and exported to QuickBooks, Google Drive, or Excel.
-      </p>
-
-      <div className="relative z-10 text-center mb-8 px-4">
-        <h1
-          data-route-heading="true"
-          tabIndex={-1}
-          className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-        >
-          QR-tracked work orders for heavy equipment repair shops
-        </h1>
-      </div>
-
-        {/* CTA row directly under headline */}
-        <div className="flex flex-col items-center gap-3 mb-8 px-4">
-          <Button asChild size="lg" className="text-base px-7 py-5">
-            <Link to="/auth?tab=signup">
-              Get Started Free
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
-          <p className="text-sm text-muted-foreground">
-            No credit card. First scan in 20 minutes.
-          </p>
-        </div>
-
-        {/* Animation stage */}
-        <div
-          className="relative w-full max-w-sm px-4 overflow-hidden"
-          style={{ aspectRatio: '1 / 1', minHeight: 320 }}
-        >
-        {prefersReducedMotion ? (
-          <StaticHeroComposite />
-        ) : (
+  const stage = prefersReducedMotion ? (
+    <FleetObservabilityStatic />
+  ) : (
           <div
             className="relative w-full h-full transition-opacity duration-300"
             style={{ opacity }}
@@ -339,7 +313,54 @@ export default function HeroAnimation() {
               </Suspense>
             )}
           </div>
-        )}
+  );
+
+  if (stageOnly) {
+    return (
+      <div className="relative h-full w-full overflow-hidden" data-testid="fleet-observability-stage">
+        {stage}
+      </div>
+    );
+  }
+
+  return (
+    <section
+      aria-label="EquipQR asset tracking demo"
+      className="relative flex flex-col items-center justify-center pt-24 pb-14 md:pt-28 md:pb-20 bg-linear-to-br from-background via-background to-primary/5"
+    >
+      <p className="sr-only">
+        EquipQR tracks QR-coded equipment across the United States. The demo shows a QR
+        code being scanned, which transforms into a U.S. map with asset location markers.
+        Work orders are created and exported to QuickBooks, Google Drive, or Excel.
+      </p>
+
+      <div className="relative z-10 text-center mb-8 px-4">
+        <h1
+          data-route-heading="true"
+          tabIndex={-1}
+          className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
+          QR-tracked work orders for heavy equipment repair shops
+        </h1>
+      </div>
+
+      <div className="flex flex-col items-center gap-3 mb-8 px-4">
+        <Button asChild size="lg" className="text-base px-7 py-5">
+          <Link to="/auth?tab=signup">
+            Get Started Free
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+        </Button>
+        <p className="text-sm text-muted-foreground">
+          No credit card. First scan in 20 minutes.
+        </p>
+      </div>
+
+      <div
+        className="relative w-full max-w-sm px-4 overflow-hidden"
+        style={{ aspectRatio: '1 / 1', minHeight: 320 }}
+      >
+        {stage}
       </div>
     </section>
   );

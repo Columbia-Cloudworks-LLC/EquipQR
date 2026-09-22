@@ -1,0 +1,125 @@
+.scan-story,
+.scan-qr-hero,
+.scan-machine,
+.scan-phone,
+.scan-beam,
+.scan-pulse,
+.scan-asset,
+.scan-work,
+.scan-history,
+.scan-check-a,
+.scan-check-b,
+.scan-check-c {
+  animation-duration: 7s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-fill-mode: both;
+}
+
+.scan-story { animation-name: scan-clock; }
+.scan-qr-hero { animation-name: scan-qr-hero; }
+.scan-machine { animation-name: scan-machine; }
+.scan-phone { animation-name: scan-phone; }
+.scan-beam { animation-name: scan-beam; }
+.scan-pulse { animation-name: scan-pulse; }
+.scan-asset { animation-name: scan-asset; }
+.scan-work { animation-name: scan-work; }
+.scan-history { animation-name: scan-history; }
+.scan-check-a,
+.scan-check-b,
+.scan-check-c {
+  stroke-dasharray: 14;
+  stroke-dashoffset: 14;
+}
+
+.scan-check-a { animation-name: scan-check-a; }
+.scan-check-b { animation-name: scan-check-b; }
+.scan-check-c { animation-name: scan-check-c; }
+
+@keyframes scan-clock {
+  from { opacity: 1; }
+  to { opacity: 1; }
+}
+
+@keyframes scan-qr-hero {
+  0%, 14% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  26%, 86% { opacity: 0; transform: translate(-18%, -62%) scale(0.28); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes scan-machine {
+  0%, 12% { opacity: 0; transform: scale(0.96); }
+  24%, 88% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.96); }
+}
+
+@keyframes scan-phone {
+  0%, 24% { opacity: 0; transform: translateX(18px); }
+  34%, 48% { opacity: 1; transform: translateX(0); }
+  56%, 100% { opacity: 0; transform: translateX(12px); }
+}
+
+@keyframes scan-beam {
+  0%, 32% { opacity: 0; transform: scaleX(0.2); }
+  38% { opacity: 0.9; transform: scaleX(1); }
+  46%, 100% { opacity: 0; transform: scaleX(1); }
+}
+
+@keyframes scan-pulse {
+  0%, 36% { opacity: 0; transform: scale(0.4); }
+  42% { opacity: 0.85; transform: scale(1); }
+  50%, 100% { opacity: 0; transform: scale(1.35); }
+}
+
+@keyframes scan-asset {
+  0%, 46% { opacity: 0; transform: translateY(8px); }
+  52%, 62% { opacity: 1; transform: translateY(0); }
+  68%, 100% { opacity: 0; transform: translateY(0); }
+}
+
+@keyframes scan-work {
+  0%, 64% { opacity: 0; transform: translateY(8px); }
+  70%, 78% { opacity: 1; transform: translateY(0); }
+  84%, 100% { opacity: 0; transform: translateY(0); }
+}
+
+@keyframes scan-history {
+  0%, 80% { opacity: 0; transform: translateY(8px); }
+  86%, 93% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(4px); }
+}
+
+@keyframes scan-check-a {
+  0%, 70% { stroke-dashoffset: 14; }
+  74%, 84% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 14; }
+}
+
+@keyframes scan-check-b {
+  0%, 73% { stroke-dashoffset: 14; }
+  77%, 84% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 14; }
+}
+
+@keyframes scan-check-c {
+  0%, 76% { stroke-dashoffset: 14; }
+  80%, 84% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 14; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scan-story,
+  .scan-qr-hero,
+  .scan-machine,
+  .scan-phone,
+  .scan-beam,
+  .scan-pulse,
+  .scan-asset,
+  .scan-work,
+  .scan-history,
+  .scan-check-a,
+  .scan-check-b,
+  .scan-check-c {
+    animation: none;
+  }
+}
