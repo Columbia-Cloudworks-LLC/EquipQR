@@ -66,7 +66,8 @@
     "dev/linux/prereq.test.mjs",
     "dev/linux/sync-local-supabase-env.test.mjs",
     "dev/ci/check-github-environment-names.mjs",
-    "dev/ci/check-github-environment-names.test.mjs"
+    "dev/ci/check-github-environment-names.test.mjs",
+    "dev/ci/assert-preview-env-present.sh"
   ],
   "ignoreExports": [
     {
