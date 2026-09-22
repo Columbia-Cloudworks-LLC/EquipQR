@@ -87,7 +87,22 @@ jobs:
           ($provision -replace "`r","") | wsl.exe -d Ubuntu-24.04 -u root -- bash -s
           if ($LASTEXITCODE -ne 0) { throw "WSL provisioning failed: $LASTEXITCODE" }
           wsl.exe --terminate Ubuntu-24.04
-          wsl.exe -d Ubuntu-24.04 -- bash -lc 'for i in $(seq 1 20); do sudo systemctl start docker && docker info >/dev/null && break; sleep 3; done; docker info >/dev/null && echo DOCKER_OK && node -v && . /etc/os-release && echo "distro=$VERSION_ID"'
+          $startDocker = @'
+          set -euxo pipefail
+          for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
+            if sudo systemctl start docker && docker info >/dev/null; then
+              echo DOCKER_OK
+              node -v
+              . /etc/os-release
+              printf 'distro %s\n' "$VERSION_ID"
+              exit 0
+            fi
+            sleep 3
+          done
+          systemctl --no-pager --failed || true
+          exit 1
+          '@
+          ($startDocker -replace "`r","") | wsl.exe -d Ubuntu-24.04 -- bash -s
           if ($LASTEXITCODE -ne 0) { throw "Docker or Node did not start inside WSL: $LASTEXITCODE" }
 
           Write-Host '--- Windows launcher prepare-only ---'
