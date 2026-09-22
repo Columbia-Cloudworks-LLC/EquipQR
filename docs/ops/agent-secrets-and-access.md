@@ -2,6 +2,10 @@
 
 Operational reference for Cursor agents and headless automation. Columbia Cloudworks LLC / EquipQR.
 
+GitHub is the source of truth for EquipQR automation and deployment configuration. Preview and production values live in GitHub Environments with those names. The Linux bootstrap (`dev/linux/dev-start.sh`) builds local `.env` files from local Supabase and does not need 1Password. A missing `OP_SERVICE_ACCOUNT_TOKEN` is not a bootstrap failure.
+
+1Password remains only for the exceptions in `.github/workflows/README.md`: human logins, personal MCP credentials, and the rollback sync scripts. Do not copy those human passwords into GitHub. Do not delete vault items from this migration.
+
 ---
 
 ## Vault and tokens

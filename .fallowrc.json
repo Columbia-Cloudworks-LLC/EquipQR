@@ -64,7 +64,9 @@
     "dev/db/new-migration.test.mjs",
     "dev/linux/devcontainer-node-policy.test.mjs",
     "dev/linux/prereq.test.mjs",
-    "dev/linux/sync-local-supabase-env.test.mjs"
+    "dev/linux/sync-local-supabase-env.test.mjs",
+    "dev/ci/check-github-environment-names.mjs",
+    "dev/ci/check-github-environment-names.test.mjs"
   ],
   "ignoreExports": [
     {

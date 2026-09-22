@@ -35,13 +35,11 @@ log "User: $(whoami)  Host: $(hostname)"
 # ──────────────────────────────────────────────────────────────────────────────
 # 1. Verify OP_SERVICE_ACCOUNT_TOKEN
 # ──────────────────────────────────────────────────────────────────────────────
-log "[1/5] Verifying OP_SERVICE_ACCOUNT_TOKEN..."
+log "[1/5] Verifying optional 1Password token..."
 if [[ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]]; then
-    fail "OP_SERVICE_ACCOUNT_TOKEN is not set."
-    fail "  Set it as a Cursor Cloud Agent secret at:"
-    fail "    https://cursor.com/dashboard/cloud-agents → Secrets tab → Add Secret"
-    fail "  Name: OP_SERVICE_ACCOUNT_TOKEN  | Value: the ops_... token from Phase 0.3"
-    exit 1
+    warn "OP_SERVICE_ACCOUNT_TOKEN is not set. Skipping 1Password rendering."
+    warn "Local Supabase and Vite use dev/linux/dev-start.sh. GitHub holds deployment configuration."
+    exit 0
 fi
 
 if [[ "${OP_SERVICE_ACCOUNT_TOKEN}" != ops_* ]]; then
