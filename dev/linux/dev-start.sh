@@ -91,7 +91,8 @@ start_background() {
     fi
   fi
   echo "Starting $name..."
-  nohup "$@" >"$LOG_DIR/${name}.log" 2>&1 &
+  # New session so Codespaces does not reap these when postStart exits.
+  setsid "$@" >"$LOG_DIR/${name}.log" 2>&1 < /dev/null &
   echo $! >"$pid_file"
 }
 
