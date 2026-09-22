@@ -33,9 +33,12 @@ import {
 import { QuickFormDialog } from '@/features/quick-forms/components/QuickFormDialog';
 import { QuickFormQrDialog } from '@/features/quick-forms/components/QuickFormQrDialog';
 import { QuickFormLedgerPanel } from '@/features/quick-forms/components/QuickFormLedgerPanel';
+import { QuickFormRequestNotice } from '@/features/quick-forms/components/QuickFormRequestNotice';
 import { parseQuickFormData, type QuickFormData } from '@/features/quick-forms/types/quickForm';
 import type { QuickForm } from '@/features/quick-forms/services/quickFormsService';
 import { logger } from '@/utils/logger';
+
+const emptyForms: QuickForm[] = [];
 
 export default function QuickFormsPage() {
   const { currentOrganization } = useOrganization();
@@ -43,7 +46,10 @@ export default function QuickFormsPage() {
   const isAdmin = hasRole(['owner', 'admin']);
   const orgId = currentOrganization?.id;
 
-  const { data: forms = [], isLoading } = useQuickForms(isAdmin ? orgId : undefined);
+  const formsQuery = useQuickForms(isAdmin ? orgId : undefined);
+  const forms = formsQuery.data ?? emptyForms;
+  const showFormsInitialError = formsQuery.isLoadingError
+    || (formsQuery.isError && formsQuery.data === undefined);
   const createMutation = useCreateQuickForm(orgId);
   const updateMutation = useUpdateQuickForm(orgId);
   const deleteMutation = useDeleteQuickForm(orgId);
@@ -156,12 +162,19 @@ export default function QuickFormsPage() {
           </TabsList>
 
           <TabsContent value="forms" className="space-y-4">
-            {isLoading ? (
+            {formsQuery.isPending && formsQuery.data === undefined ? (
               <div className="grid gap-4 md:grid-cols-2">
                 {[1, 2].map((i) => (
                   <Skeleton key={i} className="h-40 w-full" />
                 ))}
               </div>
+            ) : showFormsInitialError ? (
+              <QuickFormRequestNotice
+                title="Couldn't load quick forms"
+                description="The quick forms request failed. Try again to load your forms."
+                onRetry={() => void formsQuery.refetch()}
+                isRetrying={formsQuery.isRefetching}
+              />
             ) : forms.length === 0 ? (
               <EmptyState
                 icon={FileSignature}
@@ -169,6 +182,15 @@ export default function QuickFormsPage() {
                 description="Create your first quick form and share its QR code with anyone on site — no sign-in needed."
               />
             ) : (
+              <div className="space-y-4">
+                {formsQuery.isRefetchError && (
+                  <QuickFormRequestNotice
+                    title="Refresh failed"
+                    description="The latest refresh failed. These are the last loaded quick forms."
+                    onRetry={() => void formsQuery.refetch()}
+                    isRetrying={formsQuery.isRefetching}
+                  />
+                )}
               <div className="grid gap-4 md:grid-cols-2">
                 {forms.map((form) => {
                   const parsed = parseQuickFormData(form.form_data);
@@ -234,6 +256,7 @@ export default function QuickFormsPage() {
                     </Card>
                   );
                 })}
+              </div>
               </div>
             )}
           </TabsContent>

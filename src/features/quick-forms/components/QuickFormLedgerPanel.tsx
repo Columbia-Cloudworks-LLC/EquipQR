@@ -27,12 +27,14 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import EmptyState from '@/components/ui/empty-state';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
+import { QuickFormRequestNotice } from '@/features/quick-forms/components/QuickFormRequestNotice';
 import { useQuickFormSubmissions } from '@/features/quick-forms/hooks/useQuickFormSubmissions';
 import {
   downloadQuickFormSubmissionsCsv,
   downloadQuickFormSubmissionsExcel,
   downloadQuickFormSubmissionsPdf,
 } from '@/features/quick-forms/services/quickFormExportService';
+import { listAllQuickFormSubmissions } from '@/features/quick-forms/services/quickFormSubmissionsService';
 import { formatQuickFormValue } from '@/features/quick-forms/types/quickForm';
 import type { QuickForm } from '@/features/quick-forms/services/quickFormsService';
 import type { QuickFormSubmission } from '@/features/quick-forms/services/quickFormSubmissionsService';
@@ -73,20 +75,26 @@ export function QuickFormLedgerPanel({ organizationId, forms }: QuickFormLedgerP
     [formFilter, range],
   );
 
-  const { data: submissions = [], isLoading } = useQuickFormSubmissions(organizationId, filters);
+  const submissionsQuery = useQuickFormSubmissions(organizationId, filters);
+  const submissions = submissionsQuery.data?.pages.flatMap((page) => page.submissions) ?? [];
+  const totalCount = submissionsQuery.data?.pages[0]?.totalCount ?? 0;
+  const showInitialError = submissionsQuery.isLoadingError
+    || (submissionsQuery.isError && submissionsQuery.data === undefined);
+  const refreshFailed = submissionsQuery.isRefetchError || submissionsQuery.isFetchNextPageError;
 
   const handleExport = async (format: 'csv' | 'excel' | 'pdf') => {
-    if (submissions.length === 0 || exporting) return;
+    if (totalCount === 0 || exporting) return;
     setExporting(true);
     try {
+      const matching = await listAllQuickFormSubmissions(organizationId, filters);
       if (format === 'csv') {
-        downloadQuickFormSubmissionsCsv(submissions);
+        downloadQuickFormSubmissionsCsv(matching);
       } else if (format === 'excel') {
-        await downloadQuickFormSubmissionsExcel(submissions);
+        await downloadQuickFormSubmissionsExcel(matching);
       } else {
-        await downloadQuickFormSubmissionsPdf(submissions);
+        await downloadQuickFormSubmissionsPdf(matching);
       }
-      toast.success(`Exported ${submissions.length} submissions`);
+      toast.success(`Exported ${matching.length} submissions`);
     } catch (error) {
       logger.error('Quick form ledger export failed', error);
       toast.error('Export failed. Please try again.');
@@ -128,7 +136,7 @@ export function QuickFormLedgerPanel({ organizationId, forms }: QuickFormLedgerP
             </Select>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" disabled={submissions.length === 0 || exporting}>
+                <Button variant="outline" size="sm" disabled={totalCount === 0 || exporting || showInitialError}>
                   <Download className="h-4 w-4 mr-2" />
                   {exporting ? 'Exporting…' : 'Export'}
                 </Button>
@@ -151,13 +159,20 @@ export function QuickFormLedgerPanel({ organizationId, forms }: QuickFormLedgerP
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        {isLoading ? (
+      <CardContent className="space-y-3">
+        {submissionsQuery.isPending && submissionsQuery.data === undefined ? (
           <div className="space-y-2">
             {[1, 2, 3].map((i) => (
               <Skeleton key={i} className="h-10 w-full" />
             ))}
           </div>
+        ) : showInitialError ? (
+          <QuickFormRequestNotice
+            title="Couldn't load submissions"
+            description="The submission ledger request failed. Try again to load matching responses."
+            onRetry={() => void submissionsQuery.refetch()}
+            isRetrying={submissionsQuery.isRefetching}
+          />
         ) : submissions.length === 0 ? (
           <EmptyState
             icon={Inbox}
@@ -166,7 +181,23 @@ export function QuickFormLedgerPanel({ organizationId, forms }: QuickFormLedgerP
             className="border-0 bg-transparent"
           />
         ) : (
-          <div className="divide-y rounded-md border">
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground" data-testid="quick-form-ledger-count">
+              Showing {submissions.length} of {totalCount} submissions
+            </p>
+            {refreshFailed && (
+              <QuickFormRequestNotice
+                title="Refresh failed"
+                description={
+                  submissionsQuery.isFetchNextPageError
+                    ? "Couldn't load another page. Submissions already on screen are unchanged."
+                    : 'The latest refresh failed. These are the last loaded submissions.'
+                }
+                onRetry={() => void submissionsQuery.refetch()}
+                isRetrying={submissionsQuery.isRefetching}
+              />
+            )}
+            <div className="divide-y rounded-md border">
             {submissions.map((submission) => (
               <div
                 key={submission.id}
@@ -196,6 +227,17 @@ export function QuickFormLedgerPanel({ organizationId, forms }: QuickFormLedgerP
                 </Button>
               </div>
             ))}
+            </div>
+            {submissionsQuery.hasNextPage && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void submissionsQuery.fetchNextPage()}
+                disabled={submissionsQuery.isFetchingNextPage}
+              >
+                {submissionsQuery.isFetchingNextPage ? 'Loading…' : 'Load more'}
+              </Button>
+            )}
           </div>
         )}
       </CardContent>

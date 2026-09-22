@@ -20,6 +20,9 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Fixed
 
+- **Quick Forms ledger** — The ledger pages through every matching submission and full exports include the whole filtered set, including results past the first page. (#1547)
+- **Quick Forms load errors** — A failed forms or ledger request shows an error with retry. An empty list appears only after a successful request with no rows. (#1548)
+- **Teams toolbar on phones** — Search, sort, and Create Team stack on narrow screens so they stay usable without sideways scrolling. (#1549)
 - **Push notification retries** — Temporary delivery failures are retried instead of silently dropping work-order alerts. (#1438)
 
 ### Security
