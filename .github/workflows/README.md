@@ -13,7 +13,7 @@ GitHub is the source of truth for automation and deployment configuration. Workf
 
 `SUPABASE_ACCESS_TOKEN` also remains a repository secret so schema drift checks on same-repo pull requests can read production migration history without receiving the production database password. Fork pull requests do not receive repository secrets.
 
-The name check is `dev/ci/check-github-environment-names.mjs`, used by `secrets-fanout.yml` and `secrets-drift-check.yml`.
+`secrets-fanout.yml` and `secrets-drift-check.yml` declare `environment: preview` and fail if a preview secret or variable is empty. They do not print values. `GITHUB_TOKEN` cannot list environment secret names. `dev/ci/check-github-environment-names.mjs` is the admin-token name inventory used outside Actions.
 
 ## Intentional 1Password exceptions
 

@@ -1,4 +1,6 @@
 // Confirms GitHub environment secret names. Prints names and missing entries only.
+// Actions GITHUB_TOKEN receives 403 from this API. Run it with an admin token.
+// Workflows prove injection by declaring environment: preview instead.
 export const expectedSecretNames = {
   production: [
     'GOOGLE_MAPS_BROWSER_KEY',
