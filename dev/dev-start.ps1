@@ -1,6 +1,12 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
+  Legacy Windows Docker Desktop stack. Prefer dev-start.bat, which runs dev/linux/dev-start.sh in WSL2.
+
+.DESCRIPTION
+  This script remains for a Windows host that already runs Docker Desktop outside WSL.
+  Codespaces, native Linux, and WSL use dev/linux/dev-start.sh. Do not add new development logic here.
+
   Start the full EquipQR local stack: Supabase, Edge Functions serve, Vite, and docs.
 
 .PARAMETER Force

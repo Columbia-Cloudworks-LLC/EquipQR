@@ -131,15 +131,26 @@ $appReady = Test-AppReady
 $supabaseReady = Test-SupabaseReady
 
 if (-not $SkipStackStart -and (-not $appReady -or -not $supabaseReady)) {
-    Write-Host "[EquipQR E2E] Local stack not ready (app=$appReady supabase=$supabaseReady). Starting dev-start.bat..."
-    $devStart = Join-Path $repoRoot 'dev\dev-start.bat'
-    if (-not (Test-Path -LiteralPath $devStart)) {
-        Write-Host "FAIL: dev-start.bat not found at $devStart"
-        exit 1
+    $onWindows = $env:OS -eq 'Windows_NT'
+    if ($onWindows) {
+        Write-Host "[EquipQR E2E] Local stack not ready (app=$appReady supabase=$supabaseReady). Starting dev-start.bat..."
+        $devStart = Join-Path $repoRoot 'dev\dev-start.bat'
+        if (-not (Test-Path -LiteralPath $devStart)) {
+            Write-Host "FAIL: dev-start.bat not found at $devStart"
+            exit 1
+        }
+        & $devStart
+    } else {
+        Write-Host "[EquipQR E2E] Local stack not ready (app=$appReady supabase=$supabaseReady). Starting dev/linux/dev-start.sh..."
+        $devStart = Join-Path $repoRoot 'dev/linux/dev-start.sh'
+        if (-not (Test-Path -LiteralPath $devStart)) {
+            Write-Host "FAIL: dev/linux/dev-start.sh not found at $devStart"
+            exit 1
+        }
+        & bash $devStart
     }
-    & $devStart
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "FAIL: dev-start.bat exited with code $LASTEXITCODE"
+        Write-Host "FAIL: dev stack start exited with code $LASTEXITCODE"
         exit $LASTEXITCODE
     }
     if (-not (Wait-ForApp)) {

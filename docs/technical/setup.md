@@ -2,13 +2,94 @@
 
 This guide combines quick start instructions, environment configuration, and troubleshooting to help you get up and running with EquipQR™ development quickly.
 
+## Supported development runtime
+
+EquipQR development runs on **Ubuntu 24.04 LTS**. The same Linux bootstrap is used in three places:
+
+| Environment | How you start |
+| --- | --- |
+| **GitHub Codespaces** | Create a codespace on the branch. The dev container runs `bash dev/linux/bootstrap.sh`, then `bash dev/linux/dev-start.sh`. |
+| **Windows** | Install [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) and Ubuntu 24.04, clone into the Linux filesystem, then run `dev\dev-start.bat` from the Windows checkout or `bash dev/linux/dev-start.sh` inside Ubuntu. |
+| **Native Linux** | Use Ubuntu 24.04 and run `bash dev/linux/bootstrap.sh`, then `bash dev/linux/dev-start.sh`. |
+
+Node.js must satisfy `engines.node` in the root `package.json` (currently **24.x**). The dev container installs that major. Do not install a different major to match an older machine.
+
+npm is the only package manager. Install with `npm ci`.
+
+### Repository location on Windows
+
+Clone inside the Linux filesystem, for example:
+
+```text
+~/src/EquipQR
+```
+
+A checkout under `/mnt/c/...` still runs, and `dev-start.bat` warns when it sees one. File watching and installs are much slower there, so the Linux path is the supported one. Windows Explorer can open `\\wsl$\Ubuntu-24.04\home\<user>\src\EquipQR`.
+
+### Codespaces
+
+1. On GitHub, choose **Code → Codespaces → Create codespace** on the branch you want.
+2. Wait until bootstrap and stack start finish. A failure stops with a remediation message.
+3. Open the forwarded **EquipQR Vite** port (8080). Supabase API (54321), Studio (54323), Mailpit (54324), and docs (5174) are forwarded privately.
+4. Sign in with the local seeded dev users. The database is the Codespace's Docker Supabase stack, not production.
+
+The container does not contain production secrets. Local Supabase writes URL and local API keys into `.env.local` and `supabase/functions/.env` when the stack starts. Optional integration credentials belong in Codespaces secrets or those ignored env files. Do not copy production credentials into the codespace.
+
+Rebuild the container after changing `.devcontainer/devcontainer.json`. That reconstructs the environment from the repository instead of reusing manual installs.
+
+### WSL2 on Windows
+
+Install WSL and Ubuntu 24.04 with Microsoft's current commands:
+
+```powershell
+wsl --install
+wsl --install -d Ubuntu-24.04
+```
+
+If an existing Ubuntu distro is still WSL1, convert it yourself:
+
+```powershell
+wsl --set-version Ubuntu 2
+```
+
+`dev\dev-start.bat` only checks that `wsl.exe`, WSL2, and Ubuntu are present, then runs `dev/linux/dev-start.sh`. It does not install Windows features or reboot the machine. If something is missing, it prints the command above and exits non-zero.
+
+```powershell
+.\dev\dev-start.bat
+.\dev\dev-start.bat -Force
+.\dev\dev-stop.bat
+```
+
+`-Force` resets the local database. A normal start does not.
+
+### Native Ubuntu 24.04
+
+```bash
+git clone <repository-url> ~/src/EquipQR
+cd ~/src/EquipQR
+bash dev/linux/bootstrap.sh
+bash dev/linux/dev-start.sh
+```
+
+Open `http://127.0.0.1:8080`. Studio is `http://127.0.0.1:54323`.
+
+Pass `--force` only when you intend to reset the local database:
+
+```bash
+bash dev/linux/dev-start.sh --force
+```
+
+### Legacy Windows Docker Desktop scripts
+
+`dev/dev-start.ps1` and `dev/dev-stop.ps1` are the previous Windows Docker Desktop implementation. `dev-start.bat` no longer calls them. Use the Linux entrypoint above. The PowerShell scripts remain only so an existing Docker Desktop workflow can be invoked explicitly while a machine moves to WSL2.
+
 ## Quick Start (5-Minute Setup)
 
 ### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
-cd equipqr
+git clone <repository-url> ~/src/EquipQR
+cd ~/src/EquipQR
 ```
 
 ### 2. Install Dependencies
@@ -31,38 +112,14 @@ Address deprecation warnings and `npm audit` findings immediately — do not def
 
 > **Note**: We use `npm ci` for consistent, reproducible installs. Never use other package managers.
 
-### 3. Environment Setup (1Password Preferred)
+### 3. Environment Setup
 
-If you have access to the EquipQR Agents 1Password vault, use `dev-start.bat` as the default setup path. It syncs app `.env` from the editable `app-env-local-dev` item and Edge Function `supabase/functions/.env` from the editable `edge-env-local-dev` item automatically.
+`bash dev/linux/dev-start.sh` writes local Supabase URL and local API keys into ignored env files. That is enough to boot the app, database, and tests. Optional integration secrets can be added to those ignored files or to Codespaces secrets. Do not put production credentials in the dev container or in git.
 
-```powershell
-# Optional: verify 1Password CLI is available
-op --version
-
-# Optional (Cursor agents / headless terminals): set User-scope OP_SERVICE_ACCOUNT_TOKEN
-# for the read-only op-svc-equipqr-agents service account, then refresh in-session:
-#   $env:OP_SERVICE_ACCOUNT_TOKEN = [Environment]::GetEnvironmentVariable('OP_SERVICE_ACCOUNT_TOKEN', 'User')
-# Never echo the token. See docs/ops/agent-secrets-and-access.md.
-
-# Start local stack + sync env files from 1Password early in startup
-.\dev\dev-start.bat
-
-# Optional: refresh Cursor MCP config (requires Cursor restart to apply)
-.\dev\dev-setup-cursor-mcp.bat
-```
-
-Manual fallback (no 1Password access):
+The legacy Windows `dev-start.ps1` path can still sync ignored env files from 1Password when that CLI is already configured. It is not required for the Linux runtime. Bootstrap copies `.env.example` to `.env` when `.env` is missing, then the start script overwrites the local Supabase URL and local keys in `.env.local`.
 
 ```bash
-# Copy the environment template
-cp .env.example .env
-```
-
-Then edit `.env` with your Supabase credentials:
-
-```env
-VITE_SUPABASE_URL=https://your-project-id.supabase.co
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+bash dev/linux/dev-start.sh
 ```
 
 ### 4. Start Development Server
@@ -136,7 +193,7 @@ Key secrets include:
 
 ### Local Edge Function Development
 
-Preferred: let `.\dev\dev-start.bat` sync `supabase/functions/.env` from 1Password.
+Preferred: let `bash dev/linux/dev-start.sh` write `supabase/functions/.env` from the local Supabase stack.
 
 Manual fallback: create `supabase/functions/.env`:
 
@@ -229,29 +286,31 @@ Before you begin, ensure you have the following installed on your development ma
 
 ### Development Workflow
 
-#### One-Click Start / Stop (Windows)
+#### Start / Stop
 
-Two batch files in the project root let you bring the entire local stack up or tear it down with a double-click:
+Windows batch files only enter WSL and run the Linux scripts. Inside Ubuntu or a Codespace, call the shell scripts directly.
 
 | Script | What it does |
 |--------|-------------|
-| **`dev-start.bat`** | Thin launcher for **`dev-start.ps1`**. Starts the **full** stack: Supabase + Edge Functions serve + docs + Vite. Exits **`0`** only when all four pass health checks. Optional **`-Force`**: after Supabase is up, runs **`supabase db reset`**, seeds dev media (equipment/note/work-order images via `dev/seed-dev-media.ps1`), regenerates **`src/integrations/supabase/types.ts`**, then ensures Edge, docs, and Vite are running. **`-Force`** does **not** call **`dev-stop`**; if Vite, docs, or Edge Functions serve is already running, the script exits with an error and tells you to run **`dev-stop`** first. |
-| **`dev-stop.bat`** | Thin launcher for **`dev-stop.ps1`**. Stops Vite (port 8080), docs (port 5174), Edge Functions serve, the Supabase Docker stack, and sweeps dev ports. Exits **`1`** if any attempted stop step fails. Optional **`-Force`** (or **`/Force`**) also quits Docker Desktop. |
-| **`dev-setup-cursor-mcp.bat`** | Thin launcher for **`dev-setup-cursor-mcp.ps1`**. Renders `~/.cursor/mcp.json` from 1Password references (via `dev/render-mcp-config.ps1`) and optionally writes the local gcloud service-account JSON. Does not start or stop the dev stack. |
+| **`dev-start.bat`** | Checks WSL2 and Ubuntu, then runs **`dev/linux/dev-start.sh`**. Optional **`-Force`** resets the local database. |
+| **`dev/linux/dev-start.sh`** | Canonical start: dependencies, Supabase, local env overrides, Edge Functions, docs, and Vite. **`--force`** is the only database reset. **`--prepare-only`** stops before the app servers. |
+| **`dev-stop.bat`** | Runs **`dev/linux/dev-stop.sh`** inside WSL. |
+| **`dev/linux/dev-stop.sh`** | Stops Vite, docs, Edge Functions serve, and the local Supabase containers. |
+| **`dev-setup-cursor-mcp.bat`** | Windows host helper for **`dev-setup-cursor-mcp.ps1`**. Renders Cursor MCP config. It does not start the dev stack. |
 
 ```powershell
-# From the project root — or double-click in Explorer
-.\dev\dev-start.bat                              # full stack, strict health
-.\dev\dev-start.bat -Force                       # DB reset + types + seed dev media, then full stack (stop stack first if already running)
-
-.\dev\dev-stop.bat                               # Stop full dev stack (Docker Desktop keeps running)
-.\dev\dev-stop.bat -Force                        # Same + quit Docker Desktop
-
-.\dev\dev-setup-cursor-mcp.bat                   # Refresh Cursor MCP config only
-.\dev\dev-setup-cursor-mcp.bat -SkipGcp          # Refresh MCP config without gcloud key write
+.\dev\dev-start.bat
+.\dev\dev-start.bat -Force
+.\dev\dev-stop.bat
 ```
 
-> **Tip**: `dev-start.bat` exits **`0`** only when Supabase API, Edge Functions serve, docs, and Vite are all healthy — suitable as a Playwright / E2E pre-test step. There is no final `pause`; failures return a non-zero exit code. 1Password env sync runs early when `op` is on PATH. MCP setup is intentionally separate via `dev-setup-cursor-mcp.bat` because Cursor restart is only relevant when MCP config changes. Logic lives in **`dev-start.ps1`** / **`dev-stop.ps1`** so batch stays double-click friendly without parser quirks.
+```bash
+bash dev/linux/dev-start.sh
+bash dev/linux/dev-start.sh --force
+bash dev/linux/dev-stop.sh
+```
+
+> **Tip**: The Linux start script exits **`0`** only when the requested services respond. A normal start never resets the database. `dev/dev-start.ps1` is the legacy Docker Desktop implementation and is not what the batch file calls.
 
 #### Daily Development Commands
 

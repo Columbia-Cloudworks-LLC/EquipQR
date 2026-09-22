@@ -8,9 +8,10 @@ This guide covers setting up your local environment to work with Supabase, inclu
 
 - **Node.js** — must satisfy `engines.node` in the root [`package.json`](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/package.json) (currently **Node 24.x LTS**). We recommend the latest **24.x** LTS release. [Download here](https://nodejs.org/)
 - **npm** (comes with Node.js) - We use npm exclusively
-- **Docker Desktop** — required for local Supabase ([Download here](https://www.docker.com/products/docker-desktop)); keep it updated for compatibility with the Supabase CLI stack
+- **Ubuntu 24.04** — the supported development OS (GitHub Codespaces, WSL2, or native Linux). See [Developer Setup](../technical/setup.md).
+- **Docker Engine** — required for local Supabase. Inside WSL2 this can be Docker Engine or Docker Desktop's WSL integration. On Windows, do not rely on a second Windows-only stack; `dev-start.bat` enters Ubuntu and uses Docker there.
 - **Git** - [Download here](https://git-scm.com/)
-- **1Password CLI (`op`)** - Strongly recommended. `dev-start.bat` can sync `.env` and `supabase/functions/.env` automatically when available.
+- **1Password CLI (`op`)** — optional. Core local development uses keys from `npx supabase status` and does not require production credentials. The legacy Windows script can still sync ignored env files when `op` is available.
 
 ### Supabase CLI Installation
 

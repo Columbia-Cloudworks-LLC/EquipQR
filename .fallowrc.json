@@ -55,7 +55,16 @@
     "dev/run-vitest-local.test.mjs",
     "dev/vitest-perf/report-vitest-durations.test.mjs",
     "dev/vitest-perf/publish-duration-pr-comment.mjs",
-    "dev/cloud-agent/seed-quick-login.mjs"
+    "dev/cloud-agent/seed-quick-login.mjs",
+    "dev/linux/prereq.mjs",
+    "dev/linux/sync-local-supabase-env.mjs",
+    "dev/invoke-powershell.mjs",
+    "dev/db/new-migration.mjs",
+    "dev/ci-install.mjs",
+    "dev/db/new-migration.test.mjs",
+    "dev/linux/devcontainer-node-policy.test.mjs",
+    "dev/linux/prereq.test.mjs",
+    "dev/linux/sync-local-supabase-env.test.mjs"
   ],
   "ignoreExports": [
     {

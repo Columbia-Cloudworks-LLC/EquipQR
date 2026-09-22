@@ -6,6 +6,8 @@ alwaysApply: true
 
 Agents working on EquipQR **must not fight a sick local stack**. Prefer a clean full cycle over incremental hacks that leave `node_modules`, Docker, or background processes in a bad state.
 
+The canonical runtime is Ubuntu 24.04. Codespaces, native Linux, and the Ubuntu distro inside WSL2 use `bash dev/linux/dev-start.sh` and `bash dev/linux/dev-stop.sh`. On a Windows host, `dev\dev-start.bat` and `dev\dev-stop.bat` only detect WSL2 Ubuntu and invoke those scripts. `dev-start.ps1` is the legacy Docker Desktop path and is not a second copy of the Linux workflow.
+
 ## Hard rules
 
 1. **Batch files only** for stack lifecycle. Use:
