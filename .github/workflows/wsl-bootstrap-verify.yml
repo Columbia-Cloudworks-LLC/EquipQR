@@ -70,6 +70,7 @@ jobs:
           fi
           printf 'dev ALL=(ALL) NOPASSWD:ALL\n' > /etc/sudoers.d/dev
           chmod 440 /etc/sudoers.d/dev
+          usermod -aG docker dev
           if [ -x /usr/sbin/iptables-legacy ]; then
             update-alternatives --set iptables /usr/sbin/iptables-legacy || true
             update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy || true
@@ -90,17 +91,18 @@ jobs:
           $startDocker = @'
           set -euxo pipefail
           for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
-            if sudo systemctl start docker && docker info >/dev/null; then
-              echo DOCKER_OK
-              node -v
-              . /etc/os-release
-              printf 'distro %s\n' "$VERSION_ID"
-              exit 0
+            if sudo systemctl start docker; then
+              break
             fi
             sleep 3
           done
-          systemctl --no-pager --failed || true
-          exit 1
+          sudo chmod 666 /var/run/docker.sock
+          docker info >/dev/null
+          echo DOCKER_OK
+          id
+          node -v
+          . /etc/os-release
+          printf 'distro %s\n' "$VERSION_ID"
           '@
           ($startDocker -replace "`r","") | wsl.exe -d Ubuntu-24.04 -- bash -s
           if ($LASTEXITCODE -ne 0) { throw "Docker or Node did not start inside WSL: $LASTEXITCODE" }
