@@ -136,17 +136,10 @@ jobs:
           $prepare = @'
           set -euxo pipefail
           cd /home/dev/src/EquipQR
-          if bash dev/linux/dev-start.sh --prepare-only --force; then
-            exit 0
-          fi
-          echo '--- docker ps ---'
-          docker ps -a || true
-          cid="$(docker ps -aq --filter name=supabase_db | head -n 1 || true)"
-          if [ -n "$cid" ]; then
-            echo '--- supabase db logs ---'
-            docker logs "$cid" 2>&1 | tail -n 150 || true
-          fi
-          exit 1
+          bash dev/linux/bootstrap.sh
+          npx supabase start --debug -x logflare -x vector
+          npx supabase db reset
+          node dev/linux/sync-local-supabase-env.mjs
           '@
           $prepareScript = Join-Path $env:RUNNER_TEMP 'wsl-prepare.sh'
           $prepareText = ($prepare -replace "`r","")
