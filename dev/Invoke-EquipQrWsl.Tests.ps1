@@ -50,4 +50,7 @@ if ($none.Message -notmatch 'wsl --install -d Ubuntu-24.04') { throw 'missing ub
 $nulls = Get-EquipQrWslPlan -WslCommandExists $true -ListText ("  NAME            STATE           VERSION`0`r`n* Ubuntu-24.04    Running         2`0")
 Assert-Equal $nulls.Distro 'Ubuntu-24.04' 'null-stripped list'
 
+Assert-Equal (ConvertTo-WslpathInput 'D:\a\EquipQR\EquipQR') 'D:/a/EquipQR/EquipQR' 'backslash path'
+Assert-Equal (ConvertTo-WslpathInput 'C:/src/EquipQR') 'C:/src/EquipQR' 'slash path'
+
 Write-Host 'Invoke-EquipQrWsl tests passed.'
