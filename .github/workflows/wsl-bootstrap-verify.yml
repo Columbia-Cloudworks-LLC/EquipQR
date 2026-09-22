@@ -125,7 +125,13 @@ jobs:
           cp -a '$linuxCheckout/.' /home/dev/src/EquipQR/
           chown -R dev:dev /home/dev/src/EquipQR
           "@
-          ($copy -replace "`r","") | wsl.exe -d Ubuntu-24.04 -u root -- bash -s
+          $copyScript = Join-Path $env:RUNNER_TEMP 'wsl-copy.sh'
+          $copyText = ($copy -replace "`r","")
+          if (-not $copyText.EndsWith("`n")) { $copyText += "`n" }
+          [System.IO.File]::WriteAllText($copyScript, $copyText)
+          $copyLinux = (wsl.exe -d Ubuntu-24.04 -- wslpath -u ($copyScript -replace '\\','/') | Out-String).Trim()
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($copyLinux)) { throw "Could not map the copy script into WSL." }
+          wsl.exe -d Ubuntu-24.04 -u root -- bash $copyLinux
           if ($LASTEXITCODE -ne 0) { throw "Copy into the Linux filesystem failed: $LASTEXITCODE" }
           wsl.exe -d Ubuntu-24.04 -- bash -lc "cd /home/dev/src/EquipQR && bash dev/linux/dev-start.sh --prepare-only --force"
           if ($LASTEXITCODE -ne 0) { throw "Linux-filesystem prepare failed: $LASTEXITCODE" }
