@@ -125,8 +125,15 @@ else
   exit 1
 fi
 
-PLAYWRIGHT_STAMP="node_modules/.cache/equipqr-playwright-chromium.ok"
-if [[ -f "$PLAYWRIGHT_STAMP" ]]; then
+# node_modules survives a Codespaces rebuild, but apt packages and the browser
+# download do not. A stamp inside node_modules would skip a required reinstall.
+playwright_runtime_ready() {
+  local browser_root="${PLAYWRIGHT_BROWSERS_PATH:-${HOME}/.cache/ms-playwright}"
+  compgen -G "${browser_root}/chromium_headless_shell-*/chrome-headless-shell-linux64/chrome-headless-shell" >/dev/null \
+    && { [[ -e /usr/lib/x86_64-linux-gnu/libglib-2.0.so.0 ]] || [[ -e /lib/x86_64-linux-gnu/libglib-2.0.so.0 ]]; }
+}
+
+if playwright_runtime_ready; then
   echo "Playwright Chromium already installed."
 else
   echo "Installing Playwright Chromium and its operating-system libraries."
@@ -141,8 +148,6 @@ else
   # sudo drops the Node feature PATH, so pass it through explicitly.
   sudo env "PATH=$PATH" npx playwright install-deps chromium
   npx playwright install chromium
-  mkdir -p "$(dirname "$PLAYWRIGHT_STAMP")"
-  date -u +%Y-%m-%dT%H:%M:%SZ >"$PLAYWRIGHT_STAMP"
 fi
 
 echo "Bootstrap finished. Start the stack with: bash dev/linux/dev-start.sh"
