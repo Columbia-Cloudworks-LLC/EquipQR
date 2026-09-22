@@ -14,6 +14,7 @@ param(
 
     [switch]$Force,
     [switch]$PrepareOnly,
+    [switch]$MapOnly,
 
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$Rest = @()
@@ -174,6 +175,10 @@ $linuxRepo = (& wsl.exe -d $plan.Distro -- wslpath -u $wslpathInput | Out-String
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($linuxRepo)) {
     Write-Host "Could not map '$repoRoot' into WSL distribution $($plan.Distro)."
     exit 1
+}
+if ($MapOnly) {
+    Write-Output $linuxRepo
+    exit 0
 }
 if ($linuxRepo -like '/mnt/*') {
     Write-Host "WARNING: This checkout is on the Windows filesystem ($linuxRepo)."

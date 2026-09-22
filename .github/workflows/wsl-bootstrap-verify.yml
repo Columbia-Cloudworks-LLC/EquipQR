@@ -107,27 +107,45 @@ jobs:
           ($startDocker -replace "`r","") | wsl.exe -d Ubuntu-24.04 -- bash -s
           if ($LASTEXITCODE -ne 0) { throw "Docker or Node did not start inside WSL: $LASTEXITCODE" }
 
-          Write-Host '--- Windows launcher prepare-only ---'
-          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$env:GITHUB_WORKSPACE\dev\Invoke-EquipQrWsl.ps1" -Command start -PrepareOnly -Force
-          if ($LASTEXITCODE -ne 0) { throw "Launcher prepare-only failed: $LASTEXITCODE" }
+          Write-Host '--- Windows launcher maps this checkout into WSL ---'
+          $mapped = & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$env:GITHUB_WORKSPACE\dev\Invoke-EquipQrWsl.ps1" -Command start -MapOnly
+          if ($LASTEXITCODE -ne 0) { throw "Launcher map failed: $LASTEXITCODE" }
+          Write-Host "Mapped Windows checkout to $mapped"
+          $mappedText = ($mapped | Out-String).Trim()
+          if ($mappedText -notmatch '^/mnt/') { throw "Expected the Windows checkout to map under /mnt, got $mappedText" }
+
+          Write-Host '--- canonical stack on the Linux filesystem ---'
+          $slashWorkspace = $env:GITHUB_WORKSPACE -replace '\\', '/'
+          $linuxCheckout = (wsl.exe -d Ubuntu-24.04 -- wslpath -u $slashWorkspace | Out-String).Trim()
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($linuxCheckout)) { throw "wslpath failed for $slashWorkspace" }
+          $copy = @"
+          set -euxo pipefail
+          rm -rf /home/dev/src/EquipQR
+          mkdir -p /home/dev/src/EquipQR
+          cp -a '$linuxCheckout/.' /home/dev/src/EquipQR/
+          chown -R dev:dev /home/dev/src/EquipQR
+          "@
+          ($copy -replace "`r","") | wsl.exe -d Ubuntu-24.04 -u root -- bash -s
+          if ($LASTEXITCODE -ne 0) { throw "Copy into the Linux filesystem failed: $LASTEXITCODE" }
+          wsl.exe -d Ubuntu-24.04 -- bash -lc "cd /home/dev/src/EquipQR && bash dev/linux/dev-start.sh --prepare-only --force"
+          if ($LASTEXITCODE -ne 0) { throw "Linux-filesystem prepare failed: $LASTEXITCODE" }
 
           $api = wsl.exe -d Ubuntu-24.04 -- bash -lc "curl --silent --output /dev/null --max-time 10 --write-out '%{http_code}' http://127.0.0.1:54321/rest/v1/"
           Write-Host "Supabase API HTTP $api"
           if ($api -notmatch '^[234]') { throw "Supabase API was not ready: $api" }
 
           Write-Host '--- idempotent bootstrap ---'
-          $linuxRepo = (wsl.exe -d Ubuntu-24.04 -- wslpath -u "$env:GITHUB_WORKSPACE").Trim()
-          wsl.exe -d Ubuntu-24.04 -- bash -lc "cd '$linuxRepo' && bash dev/linux/bootstrap.sh"
+          wsl.exe -d Ubuntu-24.04 -- bash -lc "cd /home/dev/src/EquipQR && bash dev/linux/bootstrap.sh"
           if ($LASTEXITCODE -ne 0) { throw "Second bootstrap failed: $LASTEXITCODE" }
 
-          Write-Host '--- Windows launcher full start ---'
-          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$env:GITHUB_WORKSPACE\dev\Invoke-EquipQrWsl.ps1" -Command start
-          if ($LASTEXITCODE -ne 0) { throw "Launcher start failed: $LASTEXITCODE" }
+          Write-Host '--- full start from the Linux filesystem ---'
+          wsl.exe -d Ubuntu-24.04 -- bash -lc "cd /home/dev/src/EquipQR && bash dev/linux/dev-start.sh"
+          if ($LASTEXITCODE -ne 0) { throw "Linux-filesystem start failed: $LASTEXITCODE" }
           $front = wsl.exe -d Ubuntu-24.04 -- bash -lc "curl --silent --output /dev/null --max-time 10 --write-out '%{http_code}' http://127.0.0.1:8080/"
           Write-Host "Frontend HTTP $front"
           if ($front -ne '200') { throw "Frontend was not ready: $front" }
 
-          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$env:GITHUB_WORKSPACE\dev\Invoke-EquipQrWsl.ps1" -Command stop
+          wsl.exe -d Ubuntu-24.04 -- bash -lc "cd /home/dev/src/EquipQR && bash dev/linux/dev-stop.sh"
           if ($LASTEXITCODE -ne 0) { throw "Launcher stop failed: $LASTEXITCODE" }
           Show-Disk
           Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value @"
