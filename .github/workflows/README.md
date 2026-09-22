@@ -22,3 +22,5 @@ Human logins (`quickbooks-developer`, `google-login`, `Oracle`) and personal MCP
 `dev/sync-1password-dev-envs.ps1`, `dev/sync-vercel-from-1password.ps1`, and `dev/sync-supabase-secrets-from-1password.ps1` stay in the tree as rollback until `main` no longer needs them. Active workflows do not call them.
 
 The repository secret `OP_SERVICE_ACCOUNT_TOKEN` must stay until this change is on `main`. Deleting it earlier breaks the current production workflows. Do not delete 1Password vault items.
+
+`production-release-readiness.yml` is the only workflow that declares `environment: production`. A push to `main` applies migrations, promotes Vercel, and deploys Edge Functions. A manual run defaults to `dry-run`, which only checks that the production environment injects credentials and that Supabase and Vercel accept them.
