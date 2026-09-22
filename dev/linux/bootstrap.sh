@@ -70,7 +70,13 @@ needs_npm_ci() {
   local prefix="$1"
   local lock="${prefix}/package-lock.json"
   local installed="${prefix}/node_modules/.package-lock.json"
-  if [[ ! -d "${prefix}/node_modules" || ! -f "$installed" ]]; then
+  local stamp="${prefix}/node_modules/.cache/equipqr-node-major"
+  local current
+  current="$(node -p 'process.versions.node.split(".")[0]')"
+  if [[ ! -d "${prefix}/node_modules" || ! -f "$installed" || ! -f "$stamp" ]]; then
+    return 0
+  fi
+  if [[ "$(cat "$stamp")" != "$current" ]]; then
     return 0
   fi
   if [[ "$lock" -nt "$installed" ]]; then
@@ -93,15 +99,19 @@ install_powershell
 
 if needs_npm_ci "."; then
   run_npm_ci "."
+  mkdir -p node_modules/.cache
+  node -p 'process.versions.node.split(".")[0]' > node_modules/.cache/equipqr-node-major
 else
-  echo "node_modules matches package-lock.json."
+  echo "node_modules matches package-lock.json and the running Node major."
 fi
 
 if [[ -f docs/package-lock.json ]]; then
   if needs_npm_ci "docs"; then
     run_npm_ci "docs"
+    mkdir -p docs/node_modules/.cache
+    node -p 'process.versions.node.split(".")[0]' > docs/node_modules/.cache/equipqr-node-major
   else
-    echo "docs/node_modules matches docs/package-lock.json."
+    echo "docs/node_modules matches docs/package-lock.json and the running Node major."
   fi
 fi
 
@@ -120,11 +130,16 @@ if [[ -f "$PLAYWRIGHT_STAMP" ]]; then
   echo "Playwright Chromium already installed."
 else
   echo "Installing Playwright Chromium and its operating-system libraries."
-  if ! command -v sudo >/dev/null 2>&1; then
-    echo "sudo is unavailable. Run: sudo npx playwright install-deps chromium && npx playwright install chromium" >&2
+  if ! command -v npx >/dev/null 2>&1; then
+    echo "npx is not on PATH. Install Node from package.json engines.node and rerun." >&2
     exit 1
   fi
-  sudo npx playwright install-deps chromium
+  if ! command -v sudo >/dev/null 2>&1; then
+    echo "sudo is unavailable. Run: sudo env PATH=\"\$PATH\" npx playwright install-deps chromium && npx playwright install chromium" >&2
+    exit 1
+  fi
+  # sudo drops the Node feature PATH, so pass it through explicitly.
+  sudo env "PATH=$PATH" npx playwright install-deps chromium
   npx playwright install chromium
   mkdir -p "$(dirname "$PLAYWRIGHT_STAMP")"
   date -u +%Y-%m-%dT%H:%M:%SZ >"$PLAYWRIGHT_STAMP"
