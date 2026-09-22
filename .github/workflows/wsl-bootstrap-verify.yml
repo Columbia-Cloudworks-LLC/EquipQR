@@ -71,10 +71,11 @@ jobs:
           printf 'dev ALL=(ALL) NOPASSWD:ALL\n' > /etc/sudoers.d/dev
           chmod 440 /etc/sudoers.d/dev
           usermod -aG docker dev
-          if [ -x /usr/sbin/iptables-legacy ]; then
-            update-alternatives --set iptables /usr/sbin/iptables-legacy || true
-            update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy || true
+          if [ -x /usr/sbin/iptables-nft ]; then
+            update-alternatives --set iptables /usr/sbin/iptables-nft || true
+            update-alternatives --set ip6tables /usr/sbin/ip6tables-nft || true
           fi
+          iptables -V || true
           if ! command -v node >/dev/null 2>&1 || [ "$(node -p 'process.versions.node.split(".")[0]')" != "24" ]; then
             curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
             apt-get install -y nodejs
@@ -148,12 +149,18 @@ jobs:
             fi
             sleep 2
           done
-          docker rm -f eqr-db >/dev/null
-          docker network rm eqr-probe >/dev/null
           if [ "$bridge_ok" != 1 ]; then
+            echo '--- postgres inside its own netns ---'
+            docker exec eqr-db pg_isready -U postgres || true
+            docker logs eqr-db || true
+            iptables -V || true
             echo 'Docker bridge networking failed: a second container could not reach Postgres.'
+            docker rm -f eqr-db >/dev/null || true
+            docker network rm eqr-probe >/dev/null || true
             exit 1
           fi
+          docker rm -f eqr-db >/dev/null
+          docker network rm eqr-probe >/dev/null
           echo BRIDGE_OK
           ok=0
           for attempt in 1 2 3; do
