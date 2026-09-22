@@ -137,7 +137,38 @@ jobs:
           set -euxo pipefail
           cd /home/dev/src/EquipQR
           bash dev/linux/bootstrap.sh
-          npx supabase start --debug -x logflare -x vector
+          echo '--- docker bridge probe ---'
+          docker network create eqr-probe
+          docker run -d --name eqr-db --network eqr-probe -e POSTGRES_HOST_AUTH_METHOD=trust postgres:17-alpine
+          bridge_ok=0
+          for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do
+            if docker run --rm --network eqr-probe postgres:17-alpine pg_isready -h eqr-db -U postgres; then
+              bridge_ok=1
+              break
+            fi
+            sleep 2
+          done
+          docker rm -f eqr-db >/dev/null
+          docker network rm eqr-probe >/dev/null
+          if [ "$bridge_ok" != 1 ]; then
+            echo 'Docker bridge networking failed: a second container could not reach Postgres.'
+            exit 1
+          fi
+          echo BRIDGE_OK
+          ok=0
+          for attempt in 1 2 3; do
+            echo "supabase start attempt $attempt"
+            if npx supabase start --debug -x logflare -x vector; then
+              ok=1
+              break
+            fi
+            npx supabase stop --no-backup || true
+            sleep 5
+          done
+          if [ "$ok" != 1 ]; then
+            echo 'supabase start failed after 3 attempts'
+            exit 1
+          fi
           npx supabase db reset
           node dev/linux/sync-local-supabase-env.mjs
           '@
