@@ -18,6 +18,8 @@ Plan → branch off preview → implement → verify locally
 → (later) /release or preview → main → Production Release Readiness → equipqr.app
 ```
 
+A **stacked pull request** replaces the single work branch with a chain: bottom PR base `preview`, each next PR base is the branch below it. Multiple commits on one branch are not a stack. `/release` is still one promote PR. See [`docs/ops/stacked-pull-requests.md`](../ops/stacked-pull-requests.md).
+
 ## Steps
 
 ### 1) Plan

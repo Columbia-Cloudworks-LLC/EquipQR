@@ -1,6 +1,6 @@
 ---
 name: itil-issue-resolver
-description: Primary EquipQR implementation workflow for one approved issue or small change. Use when the user asks to resolve, implement, execute, or fix a single issue after the scope is clear. Default is local-iterate on the current checkout (branching.mdc). Integrate via merge-ready PR only when the user asked to publish, land the issue on preview, or open a PR. Production promote (preview → main) is a separate /release step.
+description: Primary EquipQR implementation workflow for one approved issue or small change. Use when the user asks to resolve, implement, execute, or fix a single issue after the scope is clear. Default is local-iterate on the current checkout (branching.mdc). Integrate via merge-ready PR only when the user asked to publish, land the issue on preview, or open a PR. Production promote (preview → main) is a separate /release step. A stacked PR, PR stack, or stacked release is not this skill — use stacked-pr-release (multiple branches and pull requests).
 ---
 
 # ITIL Issue Resolver
@@ -16,6 +16,8 @@ Use this skill when:
 - The user names one GitHub issue and asks to resolve, implement, or fix it.
 - A Problem Summary, Service Summary, or Change Plan already gives enough direction.
 - The change is small enough to implement directly without a separate formal plan.
+
+If the user asks for a stacked PR, a PR stack, a stacked release, or multiple dependent pull requests, stop and use `stacked-pr-release`. One branch with many commits is not that request. Independent issues that do not depend on each other stay separate single PRs, not a fake chain.
 
 If the request is still unclear, use:
 
@@ -118,6 +120,8 @@ If verification fails outside the change scope, report the blocker instead of br
 ### 6. Integrate (publish mode only)
 
 **Skip this section** unless the user asked to publish, open a PR, merge, or land the issue on `preview` (`branching.mdc`). For local-iterate work, stop after Section 5 and report what changed.
+
+This section opens **one** pull request for **one** implementation unit. It is not a stacked pull request. When the authorized work is a dependency chain, follow `stacked-pr-release` instead of folding every layer into the branch below.
 
 **Prerequisite:** Section 5 completed; cite verification commands and outcomes in the handoff.
 

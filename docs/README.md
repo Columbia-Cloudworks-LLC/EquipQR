@@ -86,6 +86,7 @@ Browse them on GitHub or in your local checkout:
 - **[Local Supabase Development](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/local-supabase-development.md)** - Complete guide for local Supabase setup, edge function development, and migration synchronization
 - **[QuickBooks OAuth](./ops/quickbooks-oauth.md).** Intuit OAuth, vault secrets, and sandbox wiring. Unpublished on equipqr.info.
 - **[GitHub shortcut](./ops/github-shortcut.md)** — `github.equipqr.app` redirect ownership and verification.
+- **[Stacked pull requests](./ops/stacked-pull-requests.md)** — dependency chain of branches and pull requests. Not one multi-commit PR, and not the `/release` promote.
 - **[Disaster Recovery](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/disaster-recovery.md)** - Database backup and point-in-time recovery procedures
 
 ## Quick navigation
@@ -184,6 +185,7 @@ To avoid redundancy and ensure consistency, each topic has a single **source of 
 | Google Workspace Connect | `ops/google-workspace.md` | Support article `support/admin-integrations/google-workspace-connect.md` |
 | Product conventions | `technical/product-conventions.md` | Support / guides (customer copy) |
 | GitHub shortcut | `ops/github-shortcut.md` | `AGENTS.md` (index pointer only) |
+| Stacked pull requests | `ops/stacked-pull-requests.md` | `.cursor/skills/stacked-pr-release/SKILL.md`, `AGENTS.md` (index pointer only) |
 | Agent handbook maintenance | this file (Agent handbook) | `.cursor/rules/agents-handbook.mdc` (always-apply reminder) |
 
 **For AI/reviewer checklists** (`.github/instructions/*`, `.github/copilot-instructions.md`):

@@ -12,7 +12,8 @@ Canonical discovery index for `.cursor/skills/`. **Invoke When** is copied from 
 | itil-issue-resolver | Implement one approved issue or small change. Default is local-iterate on the current checkout. Open a merge-ready PR only when the user asked to publish or land the issue on preview. | `.cursor/skills/itil-issue-resolver/SKILL.md` |
 | itil-problem-record | Lightweight root-cause triage for one bug issue. Concise problem summary, then hand off to itil-issue-resolver when the user authorizes implementation. | `.cursor/skills/itil-problem-record/SKILL.md` |
 | itil-service-request | Lightweight feasibility and dollar-cost scope for one feature or vendor request. No code changes. | `.cursor/skills/itil-service-request/SKILL.md` |
-| release | Cut a production release via preview → main. Use when the user runs `/release` or asks to ship to production. | `.cursor/skills/release/SKILL.md` |
+| release | Cut a production release via preview → main. Use when the user runs `/release` or asks to ship to production. This is one promote PR, not a stacked pull request release. | `.cursor/skills/release/SKILL.md` |
+| stacked-pr-release | Dependency chain of separate branches and separate PRs. Bottom PR targets `preview`; each next PR targets the branch below it. Use for a stacked PR, PR stack, or stacked release. | `.cursor/skills/stacked-pr-release/SKILL.md` |
 | thermo-nuclear-full-codebase-audit | Task-subagent code quality audit. Invoked by a parent that already gathered the tree and file contents. | `.cursor/skills/thermo-nuclear-full-codebase-audit/SKILL.md` |
 
 ## Needs entry file

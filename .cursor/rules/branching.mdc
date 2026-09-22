@@ -10,7 +10,7 @@ See **`docs/ops/git-and-deploy.md`** for the full solo-developer deploy loop.
 
 Default is **local-iterate**. Stay on the current checkout. Do not create a branch, spawn a worktree, push, open a PR, or merge.
 
-Switch to **publish** only when the user asks to publish, open a PR, merge, ship, or land an issue on `preview`, or when they invoke a skill whose job is a PR (`/itil-issue-resolver` with an issue to land, `/release`, `/dependabot-merge-ready`, or address-pr-feedback on an existing PR).
+Switch to **publish** only when the user asks to publish, open a PR, merge, ship, or land an issue on `preview`, or when they invoke a skill whose job is a PR (`/itil-issue-resolver` with an issue to land, `/release`, `/stacked-pr-release`, `/dependabot-merge-ready`, or address-pr-feedback on an existing PR). A request for a stacked PR, PR stack, or stacked release is publish mode for a chain of PRs, not one aggregate PR (`docs/ops/stacked-pull-requests.md`).
 
 A Cursor-linked worktree is **not** publish authorization. Prefer the canonical clone. Do not treat `%USERPROFILE%\.cursor\worktrees\...` as a reason to branch or open a PR. Do not spawn a worktree for a local edit.
 
@@ -31,12 +31,12 @@ There is **no `dev` branch**. Git **`preview`** is the default merge target for 
 1. **Default: stay on this checkout.** Implement and wait. Do not run `git switch -c` unless publish mode is on.
 2. **Day-to-day PRs target `preview`.** Production ships via a controlled **`preview` → `main`** PR (or `/release` promote path).
 3. When GitHub defaults or old docs disagree, **this rule wins** for day-to-day work.
-4. **When publishing**, create the branch (or reuse the existing work branch / PR that already covers the change):
+4. **When publishing a single implementation unit**, create the branch (or reuse the existing work branch / PR that already covers the change):
    ```powershell
    git fetch origin preview
    git switch -c feat/<short-name> origin/preview
    ```
-5. When opening a feature/fix PR, use `--body-file` on Windows (`git-powershell.mdc`):
+5. When opening a single feature/fix PR, use `--body-file` on Windows (`git-powershell.mdc`):
    ```powershell
    gh pr create --base preview --head feat/<short-name> --title "<conventional-commit title>" --body-file "$env:TEMP\pr-<slug>-body.md"
    ```
@@ -58,3 +58,21 @@ There is **no `dev` branch**. Git **`preview`** is the default merge target for 
     - **Never force-push to `main` or `preview`.**
 
 See git-powershell.mdc for Windows worktree cleanup gotchas.
+
+## Stacked pull requests
+
+A **stacked PR**, **PR stack**, or **stacked release** is a chain of separate branches and separate pull requests. Several commits on one branch are **stacked commits**, not a stacked PR. One pull request that bundles separable changes is an **aggregate PR**, not a stack. `/release` (`preview` → `main`) is not a stacked PR.
+
+When the user asks for a stack, follow `docs/ops/stacked-pull-requests.md` and `.cursor/skills/stacked-pr-release/SKILL.md`.
+
+```text
+preview
+  └─ fix/<layer-one>      → PR base: preview
+       └─ fix/<layer-two> → PR base: fix/<layer-one>
+```
+
+- Bottom base is **`preview`**. Do not point every layer at `preview` or `main`.
+- Create the next branch from the parent stack branch, not from `preview`.
+- Keep each GitHub diff incremental.
+- Merge bottom-up. Do not invent a chain for independent work.
+- `gh stack` (`github/gh-stack`) is optional. If it is missing, build the same topology with `git` and `gh pr create`. When it is installed, pass `--base preview` so it does not default to `main`.
