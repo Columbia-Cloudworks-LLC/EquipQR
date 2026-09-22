@@ -84,7 +84,7 @@ jobs:
           . /etc/os-release
           printf 'OS %s %s\n' "$NAME" "$VERSION_ID"
           '@
-          $provision | wsl.exe -d Ubuntu-24.04 -u root -- bash -s
+          ($provision -replace "`r","") | wsl.exe -d Ubuntu-24.04 -u root -- bash -s
           if ($LASTEXITCODE -ne 0) { throw "WSL provisioning failed: $LASTEXITCODE" }
           wsl.exe --terminate Ubuntu-24.04
           wsl.exe -d Ubuntu-24.04 -- bash -lc 'sudo service docker start && docker info >/dev/null && echo DOCKER_OK && node -v && echo "distro=$(. /etc/os-release && echo $VERSION_ID)"'
