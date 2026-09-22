@@ -133,7 +133,27 @@ jobs:
           if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($copyLinux)) { throw "Could not map the copy script into WSL." }
           wsl.exe -d Ubuntu-24.04 -u root -- bash $copyLinux
           if ($LASTEXITCODE -ne 0) { throw "Copy into the Linux filesystem failed: $LASTEXITCODE" }
-          wsl.exe -d Ubuntu-24.04 -- bash -lc "cd /home/dev/src/EquipQR && bash dev/linux/dev-start.sh --prepare-only --force"
+          $prepare = @'
+          set -euxo pipefail
+          cd /home/dev/src/EquipQR
+          if bash dev/linux/dev-start.sh --prepare-only --force; then
+            exit 0
+          fi
+          echo '--- docker ps ---'
+          docker ps -a || true
+          cid="$(docker ps -aq --filter name=supabase_db | head -n 1 || true)"
+          if [ -n "$cid" ]; then
+            echo '--- supabase db logs ---'
+            docker logs "$cid" 2>&1 | tail -n 150 || true
+          fi
+          exit 1
+          '@
+          $prepareScript = Join-Path $env:RUNNER_TEMP 'wsl-prepare.sh'
+          $prepareText = ($prepare -replace "`r","")
+          if (-not $prepareText.EndsWith("`n")) { $prepareText += "`n" }
+          [System.IO.File]::WriteAllText($prepareScript, $prepareText)
+          $prepareLinux = (wsl.exe -d Ubuntu-24.04 -- wslpath -u ($prepareScript -replace '\\','/') | Out-String).Trim()
+          wsl.exe -d Ubuntu-24.04 -- bash $prepareLinux
           if ($LASTEXITCODE -ne 0) { throw "Linux-filesystem prepare failed: $LASTEXITCODE" }
 
           $api = wsl.exe -d Ubuntu-24.04 -- bash -lc "curl --silent --output /dev/null --max-time 10 --write-out '%{http_code}' http://127.0.0.1:54321/rest/v1/"
