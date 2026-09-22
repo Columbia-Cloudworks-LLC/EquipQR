@@ -108,4 +108,19 @@ describe('Quick Forms request states', () => {
       expect(listQuickForms.mock.calls.length).toBeGreaterThan(1);
     });
   });
+
+  it('shows a refresh failure when the cached result is an empty list', async () => {
+    listQuickForms.mockResolvedValue([]);
+    const { client } = renderPage();
+
+    expect(await screen.findByText('No quick forms yet')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+    listQuickForms.mockRejectedValue(new Error('HTTP 500'));
+    await client.invalidateQueries({ queryKey: quickFormKeys.list('org-1') });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/latest refresh failed/i);
+    expect(screen.getByText('No quick forms yet')).toBeInTheDocument();
+    expect(screen.queryByText(/couldn't load quick forms/i)).not.toBeInTheDocument();
+  });
 });

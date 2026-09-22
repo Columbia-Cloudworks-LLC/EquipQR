@@ -175,12 +175,6 @@ export default function QuickFormsPage() {
                 onRetry={() => void formsQuery.refetch()}
                 isRetrying={formsQuery.isRefetching}
               />
-            ) : forms.length === 0 ? (
-              <EmptyState
-                icon={FileSignature}
-                title="No quick forms yet"
-                description="Create your first quick form and share its QR code with anyone on site — no sign-in needed."
-              />
             ) : (
               <div className="space-y-4">
                 {formsQuery.isRefetchError && (
@@ -191,6 +185,13 @@ export default function QuickFormsPage() {
                     isRetrying={formsQuery.isRefetching}
                   />
                 )}
+                {forms.length === 0 ? (
+                  <EmptyState
+                    icon={FileSignature}
+                    title="No quick forms yet"
+                    description="Create your first quick form and share its QR code with anyone on site — no sign-in needed."
+                  />
+                ) : (
               <div className="grid gap-4 md:grid-cols-2">
                 {forms.map((form) => {
                   const parsed = parseQuickFormData(form.form_data);
@@ -257,6 +258,7 @@ export default function QuickFormsPage() {
                   );
                 })}
               </div>
+                )}
               </div>
             )}
           </TabsContent>

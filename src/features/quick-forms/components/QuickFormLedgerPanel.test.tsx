@@ -128,4 +128,19 @@ describe('Quick form ledger states and export scope', () => {
     expect(screen.getByText(/Name: visible/)).toBeInTheDocument();
     expect(screen.queryByText('No submissions yet')).not.toBeInTheDocument();
   });
+
+  it('shows a refresh failure when the cached ledger is empty', async () => {
+    listQuickFormSubmissionPage.mockResolvedValue(page([], 0, null));
+    const { client } = renderLedger();
+
+    expect(await screen.findByText('No submissions yet')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+    listQuickFormSubmissionPage.mockRejectedValue(new Error('HTTP 500'));
+    await client.invalidateQueries();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/last loaded submissions/i);
+    expect(screen.getByText('No submissions yet')).toBeInTheDocument();
+    expect(screen.queryByText(/couldn't load submissions/i)).not.toBeInTheDocument();
+  });
 });
