@@ -39,17 +39,12 @@ name: Schema Drift Check
 # where 18 migrations applied via MCP had wall-clock timestamps not present locally,
 # causing supabase db push --include-all to fail post-merge on main.
 #
-# Operator-facing requirements (mirrors edge-functions-smoke-test.yml):
-#   1. OP_SERVICE_ACCOUNT_TOKEN must be a REPO-LEVEL secret. This workflow
-#      does not declare environment:, so environment-scoped secrets won't
-#      resolve.
-#   2. The 1Password item `supabase-write` in the EquipQR Agents vault must
-#      contain a populated `SUPABASE_ACCESS_TOKEN` field (Supabase Management
-#      API access token with read access on the production project).
-#   3. When OP_SERVICE_ACCOUNT_TOKEN is empty (fork PRs, pre-token-plant),
-#      the load step degrades gracefully and the script skips with a
-#      ::warning:: + exit 0. A missing operator credential should not
-#      red-light every PR.
+# Operator-facing requirements:
+#   1. SUPABASE_ACCESS_TOKEN is a repository secret. This job does not
+#      declare environment: production, so the production database password
+#      is not available here.
+#   2. Fork pull requests cannot read repository secrets. The check skips
+#      with a warning in that case.
 
 on:
   pull_request:
@@ -66,7 +61,7 @@ on:
       - '.github/workflows/production-release-readiness.yml'
       - 'dev/release/wait-for-vercel-deployment.mjs'
       - 'dev/release/promote-vercel-production.mjs'
-      - '.github/actions/load-1p-secrets/**'
+      - 'dev/ci/check-github-environment-names.mjs'
   workflow_dispatch:
 
 permissions:
@@ -85,17 +80,10 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Load Supabase access token from 1Password
-        uses: ./.github/actions/load-1p-secrets
-        with:
-          required: 'false'
-        env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          SUPABASE_ACCESS_TOKEN: op://EquipQR Agents/supabase-write/SUPABASE_ACCESS_TOKEN
-
       - name: Check schema drift
         env:
           GITHUB_BASE_REF: ${{ github.base_ref }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           SUPABASE_PROJECT_REF: ymxkzronkhwxzcdcbnwq
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: node .github/scripts/check-schema-drift.js

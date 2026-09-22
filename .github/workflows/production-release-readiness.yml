@@ -7,10 +7,12 @@ name: Production Release Readiness
 # Functions last so an earlier failure cannot leave production edge ahead of
 # the promoted frontend.
 #
-# Required 1Password fields (EquipQR Agents vault), loaded via OP_SERVICE_ACCOUNT_TOKEN:
-#   - supabase-write / SUPABASE_ACCESS_TOKEN
-#   - supabase-write / prod_db_password  (production DB password for `supabase link`)
-#   - vercel-write / VERCEL_TOKEN         (Vercel token for deployment polling + promote)
+# Required GitHub production-environment secrets:
+#   - SUPABASE_ACCESS_TOKEN
+#   - SUPABASE_DB_PASSWORD
+#   - VERCEL_TOKEN
+# This job is the only workflow that declares environment: production.
+# It runs on main and does not deploy from pull requests.
 
 on:
   push:
@@ -28,8 +30,11 @@ jobs:
     name: Migrate, verify schema, promote Vercel, deploy edge
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    environment: production
     env:
-      OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -44,15 +49,6 @@ jobs:
         with:
           version: 2.72.8
 
-      - name: Load release secrets from 1Password
-        uses: ./.github/actions/load-1p-secrets
-        with:
-          required: 'true'
-        env:
-          SUPABASE_ACCESS_TOKEN: op://EquipQR Agents/supabase-write/SUPABASE_ACCESS_TOKEN
-          SUPABASE_DB_PASSWORD: op://EquipQR Agents/supabase-write/prod_db_password
-          VERCEL_TOKEN: op://EquipQR Agents/vercel-write/VERCEL_TOKEN
-
       - name: Verify secrets resolved
         shell: bash
         run: |
@@ -60,8 +56,8 @@ jobs:
           fail=0
           for var in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD VERCEL_TOKEN; do
             val="${!var:-}"
-            if [[ -z "$val" ]] || [[ "$val" == op://* ]]; then
-              echo "::error title=production-release-readiness::$var is empty or unresolved — check 1Password item fields and OP_SERVICE_ACCOUNT_TOKEN."
+            if [[ -z "$val" ]]; then
+              echo "::error title=production-release-readiness::$var is empty. Set it on the production GitHub environment."
               fail=1
             fi
           done
