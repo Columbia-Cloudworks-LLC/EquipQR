@@ -1,10 +1,10 @@
 name: WSL2 bootstrap verification
 
 # Manual evidence for issue #1543. Not pull-request CI.
-# A windows-2025 run installed Ubuntu 24.04 on WSL2, mapped the checkout, and
-# started Docker. Supabase schema init then failed because Realtime could not
-# connect to Postgres within 15s. Dispatch this only when that environment can
-# be retried; do not treat a red run as an application regression.
+# windows-2025 run 35787887366 installed Ubuntu 24.04 on WSL2, mapped the
+# checkout, started Docker with nftables, and reached Supabase API HTTP 200,
+# a seeded db reset, and frontend HTTP 200. Legacy iptables blackholed bridge
+# traffic on that kernel, so this job keeps nftables.
 on:
   workflow_dispatch:
 
