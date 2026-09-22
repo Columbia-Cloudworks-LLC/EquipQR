@@ -1,0 +1,123 @@
+name: WSL2 bootstrap verification
+
+# Manual evidence for issue #1543 Test C. Runs only when this branch is pushed
+# or when the workflow is dispatched. It is not part of pull-request CI.
+on:
+  push:
+    branches:
+      - cursor/wsl2-verify-6dcc
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  wsl2-ubuntu:
+    name: WSL2 Ubuntu launcher
+    runs-on: windows-2025
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Launcher unit checks
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & "$env:GITHUB_WORKSPACE\dev\Invoke-EquipQrWsl.Tests.ps1"
+
+      - name: Install Ubuntu 24.04 and run the Windows launcher
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $env:WSL_UTF8 = '1'
+          function Show-Disk {
+            Get-PSDrive -PSProvider FileSystem | Select-Object Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}, @{n='UsedGB';e={[math]::Round(($_.Used)/1GB,1)}} | Format-Table | Out-String | Write-Host
+          }
+          Show-Disk
+          Write-Host '--- wsl version ---'
+          wsl.exe --version
+          if ($LASTEXITCODE -ne 0) { throw "wsl --version failed: $LASTEXITCODE" }
+          wsl.exe --set-default-version 2
+          if ($LASTEXITCODE -ne 0) { throw "wsl --set-default-version failed: $LASTEXITCODE" }
+
+          Write-Host '--- launcher before Ubuntu is installed ---'
+          $beforeLog = Join-Path $env:RUNNER_TEMP 'launcher-before-ubuntu.txt'
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$env:GITHUB_WORKSPACE\dev\Invoke-EquipQrWsl.ps1" -Command start -PrepareOnly *> $beforeLog
+          $beforeCode = $LASTEXITCODE
+          $before = Get-Content -Raw $beforeLog
+          Write-Host $before
+          if ($beforeCode -eq 0) { throw 'Launcher succeeded before Ubuntu was installed.' }
+          if ($before -notmatch 'wsl --install') { throw 'Missing-distro message did not include the Microsoft install command.' }
+
+          Write-Host '--- install Ubuntu-24.04 ---'
+          wsl.exe --install -d Ubuntu-24.04 --no-launch
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Ubuntu-24.04 install exit $LASTEXITCODE; listing online distributions."
+            wsl.exe --list --online
+            throw "wsl --install -d Ubuntu-24.04 failed: $LASTEXITCODE"
+          }
+          wsl.exe --list --verbose
+          if ($LASTEXITCODE -ne 0) { throw "wsl --list failed: $LASTEXITCODE" }
+
+          $provision = @'
+          set -euxo pipefail
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y ca-certificates curl gnupg git sudo docker.io iptables
+          if ! id dev >/dev/null 2>&1; then
+            useradd -m -s /bin/bash dev
+          fi
+          printf 'dev ALL=(ALL) NOPASSWD:ALL\n' > /etc/sudoers.d/dev
+          chmod 440 /etc/sudoers.d/dev
+          if [ -x /usr/sbin/iptables-legacy ]; then
+            update-alternatives --set iptables /usr/sbin/iptables-legacy || true
+            update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy || true
+          fi
+          if ! command -v node >/dev/null 2>&1 || [ "$(node -p 'process.versions.node.split(".")[0]')" != "24" ]; then
+            curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
+            apt-get install -y nodejs
+          fi
+          printf '[user]\ndefault=dev\n' > /etc/wsl.conf
+          node -v
+          npm -v
+          . /etc/os-release
+          printf 'OS %s %s\n' "$NAME" "$VERSION_ID"
+          '@
+          $provision | wsl.exe -d Ubuntu-24.04 -u root -- bash -s
+          if ($LASTEXITCODE -ne 0) { throw "WSL provisioning failed: $LASTEXITCODE" }
+          wsl.exe --terminate Ubuntu-24.04
+          wsl.exe -d Ubuntu-24.04 -- bash -lc 'sudo service docker start && docker info >/dev/null && echo DOCKER_OK && node -v && echo "distro=$(. /etc/os-release && echo $VERSION_ID)"'
+          if ($LASTEXITCODE -ne 0) { throw "Docker or Node did not start inside WSL: $LASTEXITCODE" }
+
+          Write-Host '--- Windows launcher prepare-only ---'
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$env:GITHUB_WORKSPACE\dev\Invoke-EquipQrWsl.ps1" -Command start -PrepareOnly -Force
+          if ($LASTEXITCODE -ne 0) { throw "Launcher prepare-only failed: $LASTEXITCODE" }
+
+          $api = wsl.exe -d Ubuntu-24.04 -- bash -lc "curl --silent --output /dev/null --max-time 10 --write-out '%{http_code}' http://127.0.0.1:54321/rest/v1/"
+          Write-Host "Supabase API HTTP $api"
+          if ($api -notmatch '^[234]') { throw "Supabase API was not ready: $api" }
+
+          Write-Host '--- idempotent bootstrap ---'
+          $linuxRepo = (wsl.exe -d Ubuntu-24.04 -- wslpath -u "$env:GITHUB_WORKSPACE").Trim()
+          wsl.exe -d Ubuntu-24.04 -- bash -lc "cd '$linuxRepo' && bash dev/linux/bootstrap.sh"
+          if ($LASTEXITCODE -ne 0) { throw "Second bootstrap failed: $LASTEXITCODE" }
+
+          Write-Host '--- Windows launcher full start ---'
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$env:GITHUB_WORKSPACE\dev\Invoke-EquipQrWsl.ps1" -Command start
+          if ($LASTEXITCODE -ne 0) { throw "Launcher start failed: $LASTEXITCODE" }
+          $front = wsl.exe -d Ubuntu-24.04 -- bash -lc "curl --silent --output /dev/null --max-time 10 --write-out '%{http_code}' http://127.0.0.1:8080/"
+          Write-Host "Frontend HTTP $front"
+          if ($front -ne '200') { throw "Frontend was not ready: $front" }
+
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$env:GITHUB_WORKSPACE\dev\Invoke-EquipQrWsl.ps1" -Command stop
+          if ($LASTEXITCODE -ne 0) { throw "Launcher stop failed: $LASTEXITCODE" }
+          Show-Disk
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value @"
+          ## WSL2 verification
+          - Distribution: Ubuntu-24.04 on WSL2 (``windows-2025``)
+          - Missing Ubuntu: launcher exited non-zero and printed ``wsl --install``
+          - Prepare-only with ``-Force``: Supabase API HTTP $api
+          - Full start: frontend HTTP $front
+          - Second bootstrap: exit 0
+          "@
