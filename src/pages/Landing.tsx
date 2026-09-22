@@ -1,7 +1,7 @@
 import React, { Suspense, lazy, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import LandingHeader from '@/components/landing/LandingHeader';
-import HeroAnimation from '@/components/landing/HeroAnimation';
+import { HeroGallery } from '@/components/landing/hero-gallery/HeroGallery';
 import LandingFooter from '@/components/landing/LandingFooter';
 import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion';
 
@@ -80,7 +80,7 @@ const Landing: React.FC = () => {
           tabIndex={-1}
           className="outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
-          <HeroAnimation />
+          <HeroGallery />
           <Suspense fallback={<BelowFoldFallback />}>
             <WhyDifferentSection />
             <HowItWorksSection />

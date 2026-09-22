@@ -13,6 +13,8 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Added
 
+- **Landing hero stories (#1560, #1561)** — The homepage hero rotates between the fleet map and a scan-to-service-history story. Visitors can pick a story, and reduced-motion mode shows a still of each one.
+
 - **QuickBooks invoice review (#1551)** — Choose and save explicit service, invoice, and payment due dates before export. PM invoices use concise service lines with editable initial $0 pricing and customer notes in the memo.
 
 - **Real-world photography** — Equipment-yard and workshop photos bring repair-shop and inventory workflows to life across the marketing pages.

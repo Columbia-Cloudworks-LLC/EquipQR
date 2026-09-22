@@ -23,7 +23,7 @@ test('stock photography connects marketing discovery to signup @pr-evidence', as
   const accept = page.getByRole('button', { name: /^accept$/i });
   if (await accept.isVisible()) await accept.click();
 
-  const hero = page.getByRole('region', { name: 'EquipQR asset tracking demo' });
+  const hero = page.getByRole('region', { name: 'EquipQR workflow gallery' });
   await expect(hero).toBeVisible();
   await expect(page.getByTestId('static-hero-composite')).toHaveCount(0);
   await evidencePause(page, 3200);
