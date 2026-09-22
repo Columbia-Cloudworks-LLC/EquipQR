@@ -173,18 +173,8 @@ export function QuickFormLedgerPanel({ organizationId, forms }: QuickFormLedgerP
             onRetry={() => void submissionsQuery.refetch()}
             isRetrying={submissionsQuery.isRefetching}
           />
-        ) : submissions.length === 0 ? (
-          <EmptyState
-            icon={Inbox}
-            title="No submissions yet"
-            description="Share a quick form QR link to start collecting responses."
-            className="border-0 bg-transparent"
-          />
         ) : (
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground" data-testid="quick-form-ledger-count">
-              Showing {submissions.length} of {totalCount} submissions
-            </p>
             {refreshFailed && (
               <QuickFormRequestNotice
                 title="Refresh failed"
@@ -197,6 +187,18 @@ export function QuickFormLedgerPanel({ organizationId, forms }: QuickFormLedgerP
                 isRetrying={submissionsQuery.isRefetching}
               />
             )}
+            {submissions.length === 0 ? (
+              <EmptyState
+                icon={Inbox}
+                title="No submissions yet"
+                description="Share a quick form QR link to start collecting responses."
+                className="border-0 bg-transparent"
+              />
+            ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground" data-testid="quick-form-ledger-count">
+              Showing {submissions.length} of {totalCount} submissions
+            </p>
             <div className="divide-y rounded-md border">
             {submissions.map((submission) => (
               <div
@@ -237,6 +239,8 @@ export function QuickFormLedgerPanel({ organizationId, forms }: QuickFormLedgerP
               >
                 {submissionsQuery.isFetchingNextPage ? 'Loading…' : 'Load more'}
               </Button>
+            )}
+          </div>
             )}
           </div>
         )}
