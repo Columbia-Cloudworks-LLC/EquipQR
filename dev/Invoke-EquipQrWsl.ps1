@@ -14,6 +14,7 @@ param(
 
     [switch]$Force,
     [switch]$PrepareOnly,
+    [switch]$MapOnly,
 
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$Rest = @()
@@ -120,6 +121,12 @@ function Get-EquipQrWslPlan {
     }
 }
 
+function ConvertTo-WslpathInput {
+    param([Parameter(Mandatory = $true)][string]$WindowsPath)
+    # wsl.exe treats backslashes as escapes, so D:\a\EquipQR becomes D:aEquipQR.
+    return ($WindowsPath -replace '\\', '/')
+}
+
 function Get-BashArguments {
     $bashArgs = @()
     if ($Force) {
@@ -163,7 +170,16 @@ if ($plan.Action -ne 'launch') {
 }
 
 Write-Host $plan.Message
-$linuxRepo = (& wsl.exe -d $plan.Distro -- wslpath -u $repoRoot).Trim()
+$wslpathInput = ConvertTo-WslpathInput $repoRoot
+$linuxRepo = (& wsl.exe -d $plan.Distro -- wslpath -u $wslpathInput | Out-String).Trim()
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($linuxRepo)) {
+    Write-Host "Could not map '$repoRoot' into WSL distribution $($plan.Distro)."
+    exit 1
+}
+if ($MapOnly) {
+    Write-Output $linuxRepo
+    exit 0
+}
 if ($linuxRepo -like '/mnt/*') {
     Write-Host "WARNING: This checkout is on the Windows filesystem ($linuxRepo)."
     Write-Host 'The supported path is a clone on the Linux filesystem, for example ~/src/EquipQR.'
