@@ -13,17 +13,14 @@ export function ScanMachineStatic() {
     >
       <div className="relative h-[46%] w-full">
         <ExcavatorSilhouette />
-        <svg
-          className="absolute left-[46%] top-[38%] w-[16%]"
-          viewBox="850 365 222 222"
-          aria-hidden="true"
-          data-testid="machine-qr-label"
-        >
-          <EquipQrMark />
-        </svg>
+        <span className="absolute left-[39%] top-[46%] flex h-9 w-9 items-center justify-center rounded border border-primary bg-background sm:h-11 sm:w-11">
+          <svg className="h-[80%] w-[80%]" viewBox="850 365 222 222" aria-hidden="true" data-testid="machine-qr-label">
+            <EquipQrMark />
+          </svg>
+        </span>
       </div>
       <div
-        className="w-full max-w-[16rem] rounded-md border border-primary/30 bg-background/80 px-3 py-2 text-left text-[11px] leading-snug text-foreground shadow-sm"
+        className="w-full rounded-md border border-primary/50 bg-background/95 px-5 py-3 text-left text-sm leading-snug text-foreground shadow-sm"
         data-testid="scan-static-record"
       >
         <p className="font-semibold tracking-tight">CAT 320</p>

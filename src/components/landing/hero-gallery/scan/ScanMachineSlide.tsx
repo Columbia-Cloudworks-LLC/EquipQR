@@ -53,24 +53,21 @@ export default function ScanMachineSlide({ onLoopComplete }: HeroSlideProps) {
         </svg>
       </div>
 
-      <div className="scan-machine absolute inset-x-3 top-[6%] h-[52%] opacity-0">
+      <div className="scan-machine absolute inset-x-1 top-[2%] h-[55%] opacity-0">
         <ExcavatorSilhouette />
-        <svg
-          className="absolute left-[44%] top-[36%] w-[18%]"
-          viewBox="850 365 222 222"
-          aria-hidden="true"
-          data-testid="machine-qr-label"
-        >
-          <EquipQrMark />
-        </svg>
+        <span className="absolute left-[39%] top-[46%] flex h-9 w-9 items-center justify-center rounded border border-primary bg-background shadow-[0_0_0_3px_hsl(var(--background))] sm:h-11 sm:w-11">
+          <svg className="h-[80%] w-[80%]" viewBox="850 365 222 222" aria-hidden="true" data-testid="machine-qr-label">
+            <EquipQrMark />
+          </svg>
+        </span>
         <span
-          className="scan-pulse pointer-events-none absolute left-[48%] top-[42%] h-8 w-8 rounded-full border border-primary opacity-0"
+          className="scan-pulse pointer-events-none absolute left-[41%] top-[48%] h-8 w-8 rounded-full border border-primary opacity-0"
           aria-hidden="true"
         />
       </div>
 
       <div
-        className="scan-phone absolute right-[7%] top-[4%] w-[22%] opacity-0"
+        className="scan-phone absolute right-[1%] top-[12%] w-[19%] opacity-0"
         data-testid="scan-phone"
       >
         <svg viewBox="0 0 80 140" className="w-full" aria-hidden="true">
@@ -84,27 +81,29 @@ export default function ScanMachineSlide({ onLoopComplete }: HeroSlideProps) {
             stroke="hsl(var(--primary))"
             strokeWidth="3"
           />
-          <rect x="12" y="18" width="56" height="96" rx="2" fill="hsl(var(--primary) / 0.08)" />
+          <rect x="12" y="18" width="56" height="96" rx="2" fill="hsl(var(--primary) / 0.12)" />
+          <path d="M20 47V32h15 M45 32h15v15 M60 85v15H45 M35 100H20V85" fill="none" stroke="hsl(var(--primary))" strokeWidth="3" strokeLinecap="round" />
+          <circle cx="40" cy="66" r="9" fill="none" stroke="hsl(var(--primary))" strokeWidth="2" />
           <circle cx="40" cy="124" r="4" fill="hsl(var(--primary))" />
         </svg>
         <span
-          className="scan-beam absolute left-[-70%] top-[42%] h-[3px] w-[80%] origin-right rounded-full bg-primary opacity-0"
+          className="scan-beam absolute right-[95%] top-[45%] h-[2px] w-[220%] origin-right rounded-full bg-primary opacity-0"
           aria-hidden="true"
         />
       </div>
 
-      <div className="absolute inset-x-3 bottom-3 h-[36%]">
+      <div className="absolute inset-x-2 bottom-2 h-[38%]">
         <div
-          className="scan-asset absolute inset-0 flex flex-col justify-center rounded-md border border-primary/30 bg-background/90 px-3 py-2 text-left text-[11px] leading-snug text-foreground opacity-0 shadow-sm"
+          className="scan-asset absolute inset-0 flex flex-col justify-center rounded-md border border-primary/50 bg-background/95 px-5 py-3 text-left text-sm leading-snug text-foreground opacity-0 shadow-sm"
           data-testid="scan-asset-card"
         >
-          <p className="text-sm font-semibold tracking-tight">CAT 320</p>
+          <p className="text-base font-semibold tracking-tight">CAT 320 excavator</p>
           <p className="text-muted-foreground">SN EQ-10482 · 2,846 hrs</p>
           <p className="mt-1 text-muted-foreground">Last service Mar 2 · Open work</p>
         </div>
 
         <div
-          className="scan-work absolute inset-0 flex flex-col justify-center gap-1 rounded-md border border-primary/30 bg-background/90 px-3 py-2 text-left text-[11px] leading-snug text-foreground opacity-0 shadow-sm"
+          className="scan-work absolute inset-0 flex flex-col justify-center gap-1 rounded-md border border-primary/50 bg-background/95 px-5 py-3 text-left text-sm leading-snug text-foreground opacity-0 shadow-sm"
           data-testid="scan-work-order"
         >
           <p className="font-semibold">Work order · field service</p>
@@ -119,7 +118,7 @@ export default function ScanMachineSlide({ onLoopComplete }: HeroSlideProps) {
         </div>
 
         <div
-          className="scan-history absolute inset-0 flex flex-col justify-center gap-1.5 rounded-md border border-primary/30 bg-background/90 px-3 py-2 text-left text-[11px] leading-snug text-foreground opacity-0 shadow-sm"
+          className="scan-history absolute inset-0 flex flex-col justify-center gap-1.5 rounded-md border border-primary/50 bg-background/95 px-5 py-3 text-left text-sm leading-snug text-foreground opacity-0 shadow-sm"
           data-testid="scan-history"
         >
           <p className="text-muted-foreground">Nov 3 · 100-hr service</p>

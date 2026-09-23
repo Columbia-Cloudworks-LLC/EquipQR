@@ -19,18 +19,13 @@ export function ExcavatorSilhouette() {
       data-testid="excavator-silhouette"
       aria-hidden="true"
     >
-      <path
-        d={EXCAVATOR_TRACKS}
-        fill="hsl(var(--primary) / 0.08)"
-        stroke="hsl(var(--primary))"
-        strokeWidth={10}
-        strokeLinejoin="round"
-      />
+      <path d={EXCAVATOR_TRACKS} fill="hsl(var(--primary) / 0.7)" fillRule="evenodd" />
       <path
         d={EXCAVATOR_BODY}
-        fill="hsl(var(--primary) / 0.05)"
+        fill="hsl(var(--primary) / 0.8)"
+        fillRule="evenodd"
         stroke="hsl(var(--primary))"
-        strokeWidth={10}
+        strokeWidth={2}
         strokeLinejoin="round"
         strokeLinecap="round"
       />
@@ -39,8 +34,8 @@ export function ExcavatorSilhouette() {
           key={d}
           d={d}
           fill="none"
-          stroke="hsl(var(--primary))"
-          strokeWidth={8}
+          stroke="hsl(var(--background))"
+          strokeWidth={4}
         />
       ))}
     </svg>
