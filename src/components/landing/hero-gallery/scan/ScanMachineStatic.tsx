@@ -25,7 +25,7 @@ export function ScanMachineStatic() {
       >
         <p className="font-semibold tracking-tight">CAT D6 dozer</p>
         <p className="text-muted-foreground">SN EQ-10482 · 2,846 hrs</p>
-        <p className="mt-1">Grease boom pins</p>
+        <p className="mt-1">Grease blade pivots</p>
         <p className="text-muted-foreground">Mar 12 · Alex M. · 250-hr service</p>
       </div>
     </div>

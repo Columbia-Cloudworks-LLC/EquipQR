@@ -4,7 +4,7 @@ import { ExcavatorSilhouette } from './ExcavatorSilhouette';
 import './scanMachine.css';
 
 const TASKS = [
-  { label: 'Grease boom pins', mark: 'scan-check-a' },
+  { label: 'Grease blade pivots', mark: 'scan-check-a' },
   { label: 'Inspect track tension', mark: 'scan-check-b' },
   { label: 'Replace hydraulic filter', mark: 'scan-check-c' },
 ] as const;
