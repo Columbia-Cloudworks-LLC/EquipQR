@@ -92,7 +92,7 @@ export default function ScanMachineSlide({ onLoopComplete }: HeroSlideProps) {
         />
       </div>
 
-      <div className="absolute inset-x-2 bottom-2 h-[38%]">
+      <div className="absolute inset-x-2 bottom-[8%] h-[30%]">
         <div
           className="scan-asset absolute inset-0 flex flex-col justify-center rounded-md border border-primary/50 bg-background/95 px-5 py-3 text-left text-sm leading-snug text-foreground opacity-0 shadow-sm"
           data-testid="scan-asset-card"
