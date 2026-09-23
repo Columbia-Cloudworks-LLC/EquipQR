@@ -7,7 +7,8 @@
  * editor metadata removed so they can be stroked as branded linework.
  */
 
-export const EXCAVATOR_VIEWBOX = '0 0 801.329 801.33';
+// Crop the source's large empty margins so the machine fills the hero stage.
+export const EXCAVATOR_VIEWBOX = '0 175 801.329 465';
 
 /** Track frame and road wheels. */
 export const EXCAVATOR_TRACKS =

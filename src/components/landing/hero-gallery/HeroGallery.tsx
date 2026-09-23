@@ -187,7 +187,7 @@ export function HeroGallery({ slides = HERO_SLIDES }: HeroGalleryProps) {
       </div>
 
       <div
-        className="relative w-full max-w-sm touch-pan-y overflow-hidden px-4"
+        className="relative w-full max-w-sm touch-pan-y overflow-hidden px-4 sm:max-w-[480px]"
         style={{ aspectRatio: '1 / 1', minHeight: 320 }}
         data-testid="hero-gallery-stage"
         onPointerDown={onPointerDown}
