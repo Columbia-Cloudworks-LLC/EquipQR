@@ -45,6 +45,8 @@ git switch -c feat/<short-slug> origin/preview
 
 Implement with focused commits. Run Fallow before each commit per `fallow-before-commit.mdc`.
 
+A stacked PR does not use this single-branch step. Create the bottom branch from `origin/preview`, then each next branch from the parent layer. See `docs/ops/stacked-pull-requests.md`.
+
 ## Phase 2 — Local verification (before first push)
 
 Run in order:
@@ -63,12 +65,14 @@ git push -u origin HEAD
 
 Write PR body to a UTF-8 file (never inline `gh pr create --body` on Windows — `git-powershell.mdc`). Include visual evidence markdown from `tmp/pr-evidence/<flow>/evidence-markdown.md`.
 
-Day-to-day feature/fix PR:
+Day-to-day feature/fix PR (one implementation unit):
 
 ```powershell
 gh pr create --base preview --head feat/<short-slug> --title "<conventional title>" --body-file "$env:TEMP\pr-<slug>-body.md"
 .\dev\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts" -PrNumber <num> -Publish
 ```
+
+**Release stack:** when the request is a stacked PR, open one pull request per layer per `docs/ops/stacked-pull-requests.md`. The bottom PR uses `--base preview`. Each later PR uses `--base` set to the parent branch. Repeat local verify, evidence, CI, and Supabase for that layer. Merge bottom-up. After a parent merges, retarget the next PR to `preview` and confirm the diff is still only the remaining layer. Do not squash the stack into one review.
 
 Release / promote PR (`preview` → `main` or `chore/release-v*`):
 

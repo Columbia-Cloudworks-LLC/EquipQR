@@ -20,6 +20,8 @@ End-to-end workflow for triaging PR review comments, implementing fixes, and pos
 
 **Same merge gate as new PRs:** **`.cursor/rules/pr-merge-ready-workflow.mdc`** — CI green plus Supabase green or skipped. **Do not wait for Qodo** (retired). This skill covers the **feedback loop** when the user asks to address review comments; it is not a preview merge blocker.
 
+If the pull request is a stack layer, keep the fix on that layer and restack children so each later PR still shows only its incremental diff (`docs/ops/stacked-pull-requests.md`). Do not move the whole chain into one pull request.
+
 ## Priority order (mandatory)
 
 Before triaging human or bot comments, establish CI and Supabase state:

@@ -43,7 +43,7 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 | **Integration preview** | Push/merge to git **`preview`** | `<https://preview.equipqr.app>` | **Current live:** production API (`supabase.equipqr.app`). **Approved target:** persistent dataless branch per `docs/ops/preview-persistent-branch.md` |
 | **PR Preview** | Feature PRs / work-branch pushes | Commit-specific `*.vercel.app` | Prod API by default; ephemeral Supabase when `supabase/**` changes |
 
-> **Train (#1282):** feat → preview → main. Authoritative loop: **`docs/ops/git-and-deploy.md`**. Retired: `preview-domain-alias.yml`, Vercel custom **`staging`**, persistent Supabase **`olsdirkvvfegvclbpgrg`**. History: `docs/ops/preview-architecture-migration.md`.
+> **Train (#1282):** feat → preview → main. Authoritative loop: **`docs/ops/git-and-deploy.md`**. A stacked pull request is a chain of work branches (bottom PR base `preview`, each next base is the parent branch), and each branch still gets its own PR Preview. It is not one multi-commit PR and not the `preview` → `main` promote. See **`docs/ops/stacked-pull-requests.md`**. Retired: `preview-domain-alias.yml`, Vercel custom **`staging`**, persistent Supabase **`olsdirkvvfegvclbpgrg`**. History: `docs/ops/preview-architecture-migration.md`.
 >
 > **Target decision (not yet live):** `docs/ops/preview-persistent-branch.md`
 > records the approved move away from production Supabase for

@@ -6,7 +6,9 @@ description: >-
   preview, open preview→main PR, babysit until CI and Supabase are green
   (or skipped). Merge triggers Production Release Readiness and vercel promote.
   Use when the user runs /release or asks to release, bump version, or ship to
-  production.
+  production. Not a stacked pull request: a stacked PR release is a chain of
+  dependent branches and PRs (stacked-pr-release). Do not describe this
+  promote as a stacked PR.
 disable-model-invocation: true
 ---
 
@@ -15,6 +17,8 @@ disable-model-invocation: true
 End-to-end workflow to cut a **production release** on the feat → preview → main train: align with `origin/preview`, curate release metadata (**version bump only on promote**), verify changed tests locally, push the metadata commit onto **`preview`**, open a **`preview` → `main`** PR, and **babysit until merge-ready**.
 
 Feature work merges to **`preview`** during normal development and accumulates CHANGELOG `[Unreleased]` **without** bumping `package.json`. `/release` is the **preview → main** promote that empties Unreleased, adds a versioned CHANGELOG section, and bumps package metadata.
+
+**This skill is not a stacked pull request.** A stacked PR, PR stack, or stacked release is a chain of separate branches and separate pull requests defined in `docs/ops/stacked-pull-requests.md` and executed with `.cursor/skills/stacked-pr-release/SKILL.md`. One promote PR that contains many already-merged fixes is an aggregate of the train, not a stack. Do not write "stacked from preview" in the release body.
 
 **Opening the release PR is not handoff.** Merge to `main` triggers **Production Release Readiness** (migrations, schema drift, **`vercel promote`**).
 

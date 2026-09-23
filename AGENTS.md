@@ -12,6 +12,7 @@ This file is an index only. Open the one official document that matches the task
 | GitHub shortcut | [docs/ops/github-shortcut.md](docs/ops/github-shortcut.md) |
 | Secrets, vaults, access tiers | [docs/ops/agent-secrets-and-access.md](docs/ops/agent-secrets-and-access.md) |
 | Git, deploy, preview → main | [docs/ops/git-and-deploy.md](docs/ops/git-and-deploy.md), [.cursor/rules/branching.mdc](.cursor/rules/branching.mdc) |
+| Stacked pull requests | [docs/ops/stacked-pull-requests.md](docs/ops/stacked-pull-requests.md), [.cursor/skills/stacked-pr-release/SKILL.md](.cursor/skills/stacked-pr-release/SKILL.md) |
 | Changelog | [.cursor/rules/changelog.mdc](.cursor/rules/changelog.mdc) |
 | Local stack | [.cursor/rules/dev-stack-lifecycle.mdc](.cursor/rules/dev-stack-lifecycle.mdc), [docs/ops/local-supabase-development.md](docs/ops/local-supabase-development.md) |
 | Cloud Agents | [docs/ops/cloud-agent-ephemeral-stack.md](docs/ops/cloud-agent-ephemeral-stack.md) |

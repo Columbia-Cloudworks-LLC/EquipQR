@@ -17,6 +17,8 @@ git switch -c feat/<short-name> origin/preview
 
 Open day-to-day PRs with `--base preview`. Production ships via **`preview` → `main`** (or `/release`).
 
+A **stacked pull request** is not this single-branch loop and not the production promote. It is a chain of branches and pull requests: the bottom PR targets `preview`, and each later PR targets the branch below it. Several commits on one branch are not a stack. See [stacked-pull-requests.md](./stacked-pull-requests.md).
+
 ## Hostnames
 
 | URL | Meaning |
@@ -81,8 +83,11 @@ Default is **local-iterate** (`.cursor/rules/branching.mdc`). Stay on the
 current checkout. Do not create a branch, spawn a worktree, push, open a
 PR, or merge until the user asks to publish, land the issue on `preview`,
 or invokes a publish skill (`/itil-issue-resolver` with an issue to land,
-`/release`, `/dependabot-merge-ready`, or address-pr-feedback on an
-existing PR). A linked Cursor worktree is not publish authorization.
+`/release`, `/stacked-pr-release`, `/dependabot-merge-ready`, or
+address-pr-feedback on an existing PR). Asking for a stacked PR publishes
+a chain of PRs, not one multi-commit PR
+([stacked-pull-requests.md](./stacked-pull-requests.md)). A linked Cursor
+worktree is not publish authorization.
 
 When publishing, feature-branch PRs into `preview` follow open → evidence
 published → CI green → Supabase green or skipped → **merge**. Do **not**
@@ -126,6 +131,7 @@ deploy after merge.
 ## Related docs
 
 - `.cursor/rules/branching.mdc` — agent branching rules
+- [stacked-pull-requests.md](./stacked-pull-requests.md) — stacked PR definition (chain of branches and PRs)
 - `docs/ops/ci-cd-pipeline.md` — GitHub Actions
 - `docs/ops/deployment.md` — Vercel/Supabase operations detail
 - `docs/ops/google-workspace.md` — Workspace Connect and OAuth redirects

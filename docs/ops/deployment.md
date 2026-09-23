@@ -681,7 +681,7 @@ If you need to revert to GitHub-hosted runners:
 
 ## Versioning System
 
-`package.json` is the source of truth for the shipped app version. Feature PRs into `preview` do not bump it. `/release` chooses one SemVer, empties `[Unreleased]`, and pushes the bump onto `preview` before the promote PR to `main`. Changelog bullets follow `.cursor/rules/changelog.mdc`. See [`git-and-deploy.md`](./git-and-deploy.md).
+`package.json` is the source of truth for the shipped app version. Feature PRs into `preview` do not bump it. `/release` chooses one SemVer, empties `[Unreleased]`, and pushes the bump onto `preview` before the promote PR to `main`. That promote is one pull request. It is not a stacked pull request. A stacked PR is a chain of implementation branches documented in [`stacked-pull-requests.md`](./stacked-pull-requests.md). Changelog bullets follow `.cursor/rules/changelog.mdc`. See [`git-and-deploy.md`](./git-and-deploy.md).
 
 ### How It Works
 
