@@ -33,7 +33,7 @@ export const HERO_SLIDES: HeroSlideDefinition[] = [
     id: 'scan-machine',
     label: 'Scan one machine',
     description:
-      'A phone scans the QR label on an excavator and opens that machine’s identity, work order, and service history.',
+      'A phone scans the QR label on a dozer and opens that machine’s identity, work order, and service history.',
     preload: () => import('./scan/ScanMachineSlide'),
     Stage: ScanMachineSlide,
     StaticFrame: ScanMachineStatic,

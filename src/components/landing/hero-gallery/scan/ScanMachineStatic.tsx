@@ -23,7 +23,7 @@ export function ScanMachineStatic() {
         className="w-full rounded-md border border-primary/50 bg-background/95 px-5 py-3 text-left text-sm leading-snug text-foreground shadow-sm"
         data-testid="scan-static-record"
       >
-        <p className="font-semibold tracking-tight">CAT 320</p>
+        <p className="font-semibold tracking-tight">CAT D6 dozer</p>
         <p className="text-muted-foreground">SN EQ-10482 · 2,846 hrs</p>
         <p className="mt-1">Grease boom pins</p>
         <p className="text-muted-foreground">Mar 12 · Alex M. · 250-hr service</p>

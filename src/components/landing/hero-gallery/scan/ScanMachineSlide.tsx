@@ -97,7 +97,7 @@ export default function ScanMachineSlide({ onLoopComplete }: HeroSlideProps) {
           className="scan-asset absolute inset-0 flex flex-col justify-center rounded-md border border-primary/50 bg-background/95 px-5 py-3 text-left text-sm leading-snug text-foreground opacity-0 shadow-sm"
           data-testid="scan-asset-card"
         >
-          <p className="text-base font-semibold tracking-tight">CAT 320 excavator</p>
+          <p className="text-base font-semibold tracking-tight">CAT D6 dozer</p>
           <p className="text-muted-foreground">SN EQ-10482 · 2,846 hrs</p>
           <p className="mt-1 text-muted-foreground">Last service Mar 2 · Open work</p>
         </div>
