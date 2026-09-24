@@ -9,7 +9,7 @@ import {
   EquipmentManufacturerSelect,
   EquipmentStatusSelect,
 } from '@/features/equipment/components/EquipmentFilterSelects';
-import { EQUIPMENT_QUICK_FILTERS } from '@/features/equipment/components/equipmentFilterConstants';
+import { EQUIPMENT_QUICK_FILTERS, EQUIPMENT_STATUS_FILTER_LABELS } from '@/features/equipment/components/equipmentFilterConstants';
 import { Badge } from "@/components/ui/badge";
 import { EquipmentFilters } from '@/features/equipment/hooks/useEquipmentFiltering';
 
@@ -128,7 +128,7 @@ export const DesktopEquipmentFilters: React.FC<DesktopEquipmentFiltersProps> = (
               <span className="text-xs text-muted-foreground">Active:</span>
               {filters.status !== 'all' && (
                 <Badge variant="secondary" className="flex items-center gap-1 text-xs">
-                  Status: {filters.status}
+                  Status: {EQUIPMENT_STATUS_FILTER_LABELS[filters.status] ?? filters.status}
                   <X
                     className="h-3 w-3 cursor-pointer hover:text-foreground"
                     onClick={() => onFilterChange('status', 'all')}

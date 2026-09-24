@@ -11,6 +11,7 @@ import EquipmentImportMenu from './EquipmentImportMenu';
 import EquipmentDownloadMenu from './EquipmentDownloadMenu';
 import type { EquipmentListToolbarProps } from '@/features/equipment/components/equipmentFilterTypes';
 import type { EquipmentFilters } from '@/features/equipment/hooks/useEquipmentFiltering';
+import { EQUIPMENT_STATUS_FILTER_LABELS } from './equipmentFilterConstants';
 
 type EquipmentToolbarProps = EquipmentListToolbarProps;
 
@@ -114,7 +115,7 @@ const EquipmentToolbar: React.FC<EquipmentToolbarProps> = ({
 
           {filters.status !== 'all' && (
             <Badge variant="secondary" className="flex items-center gap-1 text-xs h-5 px-2">
-              Status: {filters.status.replace('_', ' ')}
+              Status: {EQUIPMENT_STATUS_FILTER_LABELS[filters.status] ?? filters.status}
               <button
                 onClick={() => onFilterChange('status', 'all')}
                 className="ml-0.5 hover:text-foreground"

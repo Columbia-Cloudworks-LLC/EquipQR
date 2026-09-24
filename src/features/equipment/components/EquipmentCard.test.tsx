@@ -120,12 +120,7 @@ describe('EquipmentCard', () => {
     it('navigates to equipment details when card is clicked', async () => {
       render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
 
-      // Find the card and click it
-      const nameEl = screen.getAllByText('Forklift A1')[0];
-      const card = nameEl.closest('article') || nameEl.closest('[class*="card"]');
-      
-      expect(card).toBeTruthy();
-      fireEvent.click(card!);
+      fireEvent.click(screen.getByRole('button', { name: 'Open equipment Forklift A1' }));
 
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith(
@@ -357,4 +352,3 @@ describe('EquipmentCard', () => {
     });
   });
 });
-
