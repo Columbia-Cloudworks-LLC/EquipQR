@@ -22,6 +22,9 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Fixed
 
+- **Accessible card actions** — Equipment and mobile inventory cards now keep details, QR codes, and quick actions independently usable with a keyboard. (#1573, #1575)
+- **Equipment filter labels** — The Out of Service filter chip now displays the same readable status label as the picker. (#1574)
+
 - **Quick Forms ledger** — The ledger pages through every matching submission and full exports include the whole filtered set, including results past the first page. (#1547)
 - **Quick Forms load errors** — A failed forms or ledger request shows an error with retry. An empty list appears only after a successful request with no rows, and a later failed refresh stays visible even when that result was empty. (#1548)
 - **Teams toolbar on phones** — Search, sort, and Create Team stack on narrow screens so they stay usable without sideways scrolling. (#1549)

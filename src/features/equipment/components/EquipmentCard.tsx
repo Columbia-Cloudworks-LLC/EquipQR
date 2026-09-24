@@ -1,6 +1,5 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { handleKeyboardActivation } from '@/components/a11y/keyboard';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { QrCode, MapPin, Calendar, Forklift, Clock } from 'lucide-react';
@@ -108,23 +107,24 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
   return (
     <Card
       className={cn(
-        "min-w-0 w-full max-w-full overflow-hidden cursor-pointer cv-auto-lg",
+        "relative min-w-0 w-full max-w-full overflow-hidden cursor-pointer cv-auto-lg",
         "card-lift hover:shadow-lg transition-all duration-normal",
         statusRailClass && "relative",
         statusTintClass,
         viewMode === 'grid' && "flex flex-col md:h-full"
       )}
       style={getEquipmentViewTransitionStyle('shell', isTransitionActive)}
-      role="button"
-      tabIndex={0}
       data-equipment-id={equipment.id}
       {...(isTransitionActive ? { 'data-equipment-transition-active': '' } : {})}
+      role="presentation"
       onClick={handleCardClick}
-      onKeyDown={(e) => {
-        if (e.target !== e.currentTarget) return;
-        handleKeyboardActivation(e, handleCardClick);
-      }}
     >
+      {/* Native details control is a sibling of QR/actions; its click bubbles to the card. */}
+      <button
+        type="button"
+        className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        aria-label={`Open equipment ${equipment.name}`}
+      />
       {statusRailClass ? (
         <div
           className={cn('pointer-events-none absolute inset-y-0 left-0 z-10 w-1 rounded-l-lg', statusRailClass)}
@@ -174,7 +174,7 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 flex-shrink-0 -mr-1 text-muted-foreground hover:text-foreground"
+              className="relative z-20 h-8 w-8 flex-shrink-0 -mr-1 text-muted-foreground hover:text-foreground"
               onClick={handleQRClick}
               aria-label={`Show QR code for ${equipment.name}`}
             >
@@ -206,7 +206,7 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
             <span className="truncate">{equipment.location}</span>
           </div>
 
-          <div className="col-start-3 row-start-4 self-end">
+          <div className="relative z-20 col-start-3 row-start-4 self-end">
             <EquipmentCardWorkOrderMenu
               equipmentId={equipment.id}
               pmStatus={pmStatus}

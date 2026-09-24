@@ -9,7 +9,7 @@ import {
   EquipmentManufacturerSelect,
   EquipmentStatusSelect,
 } from '@/features/equipment/components/EquipmentFilterSelects';
-import { EQUIPMENT_QUICK_FILTERS } from '@/features/equipment/components/equipmentFilterConstants';
+import { EQUIPMENT_QUICK_FILTERS, EQUIPMENT_STATUS_FILTER_LABELS } from '@/features/equipment/components/equipmentFilterConstants';
 import { EquipmentStatusRailLegend } from '@/features/equipment/components/EquipmentStatusRailLegend';
 
 // Team is intentionally not part of FilterOptions here — the team scope is
@@ -51,13 +51,7 @@ const EquipmentFilterPopover: React.FC<EquipmentFilterPopoverProps> = ({
               onValueChange={(value) => onFilterChange('status', value)}
               placeholder="All statuses"
               triggerClassName="h-8 text-sm"
-              labels={{
-                all: 'All Statuses',
-                active: 'Active',
-                maintenance: 'Maintenance',
-                inactive: 'Inactive',
-                out_of_service: 'Out of Service',
-              }}
+              labels={EQUIPMENT_STATUS_FILTER_LABELS}
             />
           </div>
 

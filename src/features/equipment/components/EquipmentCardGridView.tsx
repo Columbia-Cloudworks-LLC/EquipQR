@@ -107,7 +107,7 @@ export function EquipmentCardGridView({
               <Button
                 variant="outline"
                 size="icon"
-                className="h-9 w-9 flex-shrink-0 border-border/80 bg-background/80"
+                className="relative z-20 h-9 w-9 flex-shrink-0 border-border/80 bg-background/80"
                 onClick={onQRClick}
                 aria-label={`Show QR code for ${equipment.name}`}
               >
@@ -163,7 +163,7 @@ export function EquipmentCardGridView({
               <TooltipTrigger asChild>
                 <span
                   className={cn(
-                    'block min-w-0 truncate font-tabular font-bold leading-none tracking-tight text-foreground',
+                    'relative z-20 block min-w-0 truncate font-tabular font-bold leading-none tracking-tight text-foreground',
                     getWorkingHoursMetricClass(display.workingHoursDisplay)
                   )}
                   style={getEquipmentViewTransitionStyle('hours', isTransitionActive)}
@@ -184,7 +184,7 @@ export function EquipmentCardGridView({
           <TelemetryCell label="PM status">
             <Tooltip>
               <TooltipTrigger asChild>
-                <p className={cn('text-sm truncate', pmReadout.valueClassName)}>{pmReadout.label}</p>
+                <p className={cn('relative z-20 text-sm truncate', pmReadout.valueClassName)}>{pmReadout.label}</p>
               </TooltipTrigger>
               <TooltipContent>
                 <p className="max-w-[16rem] text-xs">{pmReadout.detail}</p>
@@ -195,7 +195,7 @@ export function EquipmentCardGridView({
       </CardContent>
 
       <div
-        className="mt-auto flex items-center gap-2 border-t border-border/80 bg-muted/20 px-4 py-2.5"
+        className="relative z-20 mt-auto flex items-center gap-2 border-t border-border/80 bg-muted/20 px-4 py-2.5"
         role="group"
         aria-label="Equipment actions"
       >
