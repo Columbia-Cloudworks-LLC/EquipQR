@@ -105,9 +105,16 @@ function writePublicAppConfig(local) {
     VITE_SUPABASE_URL: hosted ? apiUrl : 'http://localhost:54321',
     VITE_SUPABASE_ANON_KEY: local.ANON_KEY,
   };
-  const previous = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
-  const lines = previous.split(/\r?\n/).filter(line => !/^\s*(?:export\s+)?VITE_SUPABASE_(URL|ANON_KEY)\s*=/.test(line));
-  fs.writeFileSync(file, [...lines, ...Object.entries(entries).map(([key, value]) => `${key}=${JSON.stringify(value)}`)].join('\n') + '\n', { mode: 0o600 });
+  // Open once and refuse symlinks; read/write the same inode under the lifecycle lock.
+  const fd = fs.openSync(file, fs.constants.O_RDWR | fs.constants.O_CREAT | fs.constants.O_NOFOLLOW, 0o600);
+  try {
+    const previous = fs.readFileSync(fd, 'utf8');
+    const lines = previous.split(/\r?\n/).filter(line => !/^\s*(?:export\s+)?VITE_SUPABASE_(URL|ANON_KEY)\s*=/.test(line));
+    const content = [...lines, ...Object.entries(entries).map(([key, value]) => `${key}=${JSON.stringify(value)}`)].join('\n') + '\n';
+    fs.fchmodSync(fd, 0o600);
+    fs.writeSync(fd, content, 0, 'utf8');
+    fs.ftruncateSync(fd, Buffer.byteLength(content));
+  } finally { fs.closeSync(fd); }
 }
 async function probe(url, headers = {}) {
   try { const res = await fetch(url, { headers, signal: AbortSignal.timeout(7000) }); return res.ok; } catch { return false; }
@@ -115,10 +122,10 @@ async function probe(url, headers = {}) {
 async function waitFor(name, url, headers = {}, timeout = 120000) {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
-    if (await probe(url, headers)) { console.log(`OK ${name}: ${url}`); return; }
+    if (await probe(url, headers)) { console.log(`OK ${name}`); return; }
     await sleep(1500);
   }
-  throw new Error(`${name} did not become ready: ${url}; inspect ${logs}`);
+  throw new Error(`${name} did not become ready; inspect ${logs}`);
 }
 async function portFree(port) {
   await new Promise((resolve, reject) => {
@@ -137,7 +144,7 @@ async function status() {
   let ok = true;
   for (const [name, url] of checks) {
     const healthy = await probe(url, { apikey: local.ANON_KEY });
-    console.log(`${healthy ? 'OK' : 'FAIL'} ${name}: ${url}`);
+    console.log(`${healthy ? 'OK' : 'FAIL'} ${name}`);
     ok &&= healthy;
   }
   return ok;
