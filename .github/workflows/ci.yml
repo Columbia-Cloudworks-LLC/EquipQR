@@ -26,7 +26,7 @@ permissions:
 env:
   # Node 24.x LTS is the supported runtime (aligned with @types/node 24.x). See
   # https://nodejs.org/en/about/releases/ for the current release line status.
-  NODE_VERSION: 24.x
+  NODE_VERSION: 24.17.0
   CACHE_VERSION: v3
 
 jobs:

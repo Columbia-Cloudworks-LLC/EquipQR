@@ -7,7 +7,7 @@ if [[ -x "$EQUIPQR_NODE_HOME/bin/node" ]]; then
   export PATH="$EQUIPQR_NODE_HOME/bin:$PATH"
 elif [[ -s "$HOME/.nvm/nvm.sh" ]] && { ! command -v node >/dev/null || [[ "$(node --version)" != "v$EQUIPQR_NODE_VERSION" ]]; }; then
   # shellcheck source=/dev/null
-  source "$HOME/.nvm/nvm.sh"
+  source "$HOME/.nvm/nvm.sh" --no-use
   nvm use "$EQUIPQR_NODE_VERSION" >/dev/null
 fi
 export PATH="$EQUIPQR_ROOT/node_modules/.bin:$HOME/.local/bin:$PATH"

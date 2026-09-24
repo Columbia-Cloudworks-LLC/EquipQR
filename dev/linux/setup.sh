@@ -19,7 +19,7 @@ NODE_VERSION="$(cat .node-version)"
 NODE_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/equipqr/node-v${NODE_VERSION}"
 if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
   # shellcheck source=/dev/null
-  source "$HOME/.nvm/nvm.sh"
+  source "$HOME/.nvm/nvm.sh" --no-use
   nvm use "$NODE_VERSION" >/dev/null 2>&1 || true
 fi
 if [[ -x "$NODE_HOME/bin/node" ]]; then export PATH="$NODE_HOME/bin:$PATH"; fi
