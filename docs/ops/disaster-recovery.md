@@ -156,13 +156,7 @@ Convert your target recovery time to a Unix timestamp.
 
 **Option A: Using PowerShell (Windows)**
 
-```powershell
-# Convert a specific date/time to Unix timestamp
-# Example: January 13, 2026 at 2:30:00 PM UTC
-$targetTime = [DateTime]::Parse("2026-01-13T14:30:00Z").ToUniversalTime()
-$unixTimestamp = [int][double]::Parse((Get-Date $targetTime -UFormat %s))
-Write-Host "Unix Timestamp: $unixTimestamp"
-```
+See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
 
 **Option B: Using Bash (Linux/Mac)**
 
@@ -278,29 +272,7 @@ For daily backup restoration, use the Supabase Dashboard:
 
 **Recovery Steps**:
 
-```powershell
-# Step 1: Set environment variables
-$env:SUPABASE_ACCESS_TOKEN = "your-access-token"
-$env:PROJECT_REF = "ymxkzronkhwxzcdcbnwq"
-
-# Step 2: Calculate timestamp (5 minutes before the incident)
-$targetTime = [DateTime]::Parse("2026-01-13T14:25:00Z").ToUniversalTime()
-$recoveryTimestamp = [int][double]::Parse((Get-Date $targetTime -UFormat %s))
-Write-Host "Recovering to Unix timestamp: $recoveryTimestamp"
-
-# Step 3: Verify recovery window
-curl -H "Authorization: Bearer $env:SUPABASE_ACCESS_TOKEN" `
-  "https://api.supabase.com/v1/projects/$env:PROJECT_REF/database/backups"
-
-# Step 4: Notify users
-Write-Host "⚠️ NOTIFY USERS: System will be unavailable during recovery"
-
-# Step 5: Execute recovery
-curl -X POST "https://api.supabase.com/v1/projects/$env:PROJECT_REF/database/backups/restore-pitr" `
-  -H "Authorization: Bearer $env:SUPABASE_ACCESS_TOKEN" `
-  -H "Content-Type: application/json" `
-  -d "{`"recovery_time_target_unix`": `"$recoveryTimestamp`"}"
-```
+See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
 
 ### Scenario: Bad Migration Deployment
 

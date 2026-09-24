@@ -25,7 +25,7 @@ The original message is retained in the pgmq notifications archive for authorize
 
 Run the push-delivery and queue-worker Deno tests with the npm dependency cache isolated from the frontend installation:
 
-```powershell
+```bash
 deno test --no-config --node-modules-dir=none --allow-env supabase/functions/send-push-notification/push-delivery.deno.test.ts supabase/functions/queue-worker/queue-worker.deno.test.ts
 ```
 

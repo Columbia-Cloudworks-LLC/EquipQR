@@ -11,17 +11,17 @@ Local lint/tests/build are **necessary but not sufficient** for feature-branch P
 ## Hard rules
 
 1. **Never run `gh pr create` until CI-parity install succeeds locally:**
-   ```powershell
-   .\dev\npm-ci-safe.bat
+   ```bash
+   npm ci --prefer-offline --no-audit
    ```
-   That script stops the stack, then runs `npm ci --prefer-offline --no-audit`. Do not run bare `npm ci` while Vite or the stack is up on Windows (`dev-stack-lifecycle.mdc`). If this fails, fix lockfile / `.npmrc` / dependency peers **before** push or PR open. If still blocked locally after a lock release, ensure CI passes on push (Linux clean install). Do **not** rely on `npm install --legacy-peer-deps` alone when `npm ci` would fail — if you needed `--legacy-peer-deps`, ensure `.npmrc` sets `legacy-peer-deps=true` and re-run `.\dev\npm-ci-safe.bat`.
+   Stop the stack before replacing dependencies. If installation fails, fix the committed lockfile, dependency constraints, or `.npmrc` before publishing. Do not regenerate the lockfile in CI or use an uncommitted dependency bypass.
 
 2. **After `git push` to the PR branch, wait for required checks before handoff:**
-   ```powershell
+   ```bash
    gh pr checks <number> --watch
    ```
    Or poll until all required jobs pass:
-   ```powershell
+   ```bash
    gh pr checks <number>
    ```
    **Do not** report the PR as complete, walk away, or publish final summary while Lint, Test shards, Security Scan, or Build jobs are failing or pending.
@@ -41,18 +41,18 @@ CI runs different release-metadata jobs by PR base (`ci.yml`):
 
 Local checks:
 
-```powershell
+```bash
 # Feature PR into preview
-$env:RELEASE_METADATA_MODE = 'preview'
-$env:RELEASE_METADATA_BASE_SHA = (git merge-base HEAD origin/preview)
+export RELEASE_METADATA_MODE="preview"
+export RELEASE_METADATA_BASE_SHA="$(git merge-base HEAD origin/preview)"
 npm run verify:release-metadata
-Remove-Item Env:RELEASE_METADATA_MODE, Env:RELEASE_METADATA_BASE_SHA -ErrorAction SilentlyContinue
+unset RELEASE_METADATA_MODE RELEASE_METADATA_BASE_SHA
 
 # Release PR into main
-$env:RELEASE_METADATA_MODE = 'main'
-$env:RELEASE_METADATA_BASE_SHA = (git merge-base HEAD origin/main)
+export RELEASE_METADATA_MODE="main"
+export RELEASE_METADATA_BASE_SHA="$(git merge-base HEAD origin/main)"
 npm run verify:release-metadata
-Remove-Item Env:RELEASE_METADATA_MODE, Env:RELEASE_METADATA_BASE_SHA -ErrorAction SilentlyContinue
+unset RELEASE_METADATA_MODE RELEASE_METADATA_BASE_SHA
 ```
 
 Workflow-only paths (`.cursor/**`, `docs/**`, `AGENTS.md`, etc.) remain exempt, same as `changelog-stop`.

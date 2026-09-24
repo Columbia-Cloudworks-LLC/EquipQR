@@ -18,12 +18,7 @@ Opt-in Playwright project for validating connected vendor integrations on **prev
 1. Install Chromium if needed: `npx playwright install chromium`
 2. Capture auth in a headed browser:
 
-```powershell
-New-Item -ItemType Directory -Force -Path "tmp\playwright\auth" | Out-Null
-
-npx playwright codegen "https://preview.equipqr.app/auth?tab=signin" `
-  --save-storage="tmp/playwright/auth/nicholas-google-qbo.json"
-```
+See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
 
 3. In the codegen browser:
    - Click **Login with Google** and sign in as `nicholas.king@columbiacloudworks.com`
@@ -37,8 +32,8 @@ Never commit `tmp/playwright/auth/nicholas-google-qbo.json`. It contains live se
 
 Quick-login personas cannot complete Google Workspace OAuth. Capture storage state once in a headed browser:
 
-```powershell
-# Local stack must be running (.\dev\dev-start.bat)
+```bash
+# Local stack must be running (bash dev/linux/dev.sh start)
 npm run e2e:google-auth:capture
 ```
 
@@ -52,8 +47,8 @@ In the opened browser:
 
 OAuth tokens are stored in local Supabase (`quickbooks_credentials`) after Intuit redirects to the edge callback. A Playwright storage file replays the EquipQR session only.
 
-```powershell
-# Local stack must be running (.\dev\dev-start.bat)
+```bash
+# Local stack must be running (bash dev/linux/dev.sh start)
 npm run e2e:quickbooks-auth:capture
 ```
 
@@ -66,16 +61,16 @@ In the opened browser:
 
 Verify API access without the UI:
 
-```powershell
-.\dev\qbo\Invoke-QboQuery.ps1 -StatusOnly
-.\dev\qbo\Invoke-QboQuery.ps1 -Query "select Id, DisplayName from Customer maxresults 5"
+```bash
+bash dev/qbo/query.sh -StatusOnly
+bash dev/qbo/query.sh -Query "select Id, DisplayName from Customer maxresults 5"
 ```
 
 Run local QuickBooks preflight (headless replay):
 
-```powershell
-. .\dev\e2e\Load-QuickBooksLocalAuthEnv.ps1
-npx playwright test e2e/user/full/quickbooks-local.integration.spec.ts `
+```bash
+. bash dev/e2e/env.sh quickbooks-local
+npx playwright test e2e/user/full/quickbooks-local.integration.spec.ts \
   --config playwright.user.config.ts --project quickbooks-local --reporter=line
 ```
 
@@ -83,24 +78,24 @@ npx playwright test e2e/user/full/quickbooks-local.integration.spec.ts `
 
 There is no CLI for developer portal settings (redirect URIs, keys). Capture browser storage once:
 
-```powershell
+```bash
 npm run e2e:quickbooks-developer-auth:capture
 ```
 
 Sign in at `developer.intuit.com` (SMS/email verification as required). Output: `tmp/playwright/auth/quickbooks-developer-local.json`.
 
-```powershell
-. .\dev\e2e\Load-QuickBooksDeveloperStorageEnv.ps1
+```bash
+. bash dev/e2e/env.sh quickbooks-developer-storage
 # Agents replay E2E_QB_DEVELOPER_AUTH_STORAGE_STATE in Playwright / browser MCP
 ```
 
-Vault password fallback (when storage expires): `. .\dev\e2e\Load-QuickBooksDeveloperEnv.ps1`
+Vault password fallback (when storage expires): `. bash dev/e2e/env.sh quickbooks-developer`
 
 ### Run local Google Docs export test (headless replay)
 
-```powershell
-. .\dev\e2e\Load-GoogleLocalAuthEnv.ps1
-npx playwright test e2e/user/full/google-workspace-local.integration.spec.ts `
+```bash
+. bash dev/e2e/env.sh google-local
+npx playwright test e2e/user/full/google-workspace-local.integration.spec.ts \
   --config playwright.user.config.ts --project google-oauth-local --reporter=line
 ```
 
@@ -121,19 +116,17 @@ The test exports a work order to Google Docs and opens the returned `document_ur
 | `E2E_GOOGLE_DOCS_WORK_ORDER_ID` | Local Google Docs export | Optional completed work order UUID for `google-workspace-local.integration.spec.ts` |
 | `E2E_QB_LOCAL_AUTH_STORAGE_STATE` | Local QB integration replay | Defaults to `tmp/playwright/auth/quickbooks-local.json` |
 | `E2E_QB_DEVELOPER_AUTH_STORAGE_STATE` | Developer portal replay | Defaults to `tmp/playwright/auth/quickbooks-developer-local.json` |
-| `E2E_QB_ORG_ID` | `Invoke-QboQuery.ps1` | Organization UUID for credential lookup (defaults to first row) |
+| `E2E_QB_ORG_ID` | `bash dev/qbo/query.sh` | Organization UUID for credential lookup (defaults to first row) |
 
 Load the Vercel bypass secret before running tests against protected preview:
 
-```powershell
-$env:VERCEL_AUTOMATION_BYPASS_SECRET = op read "op://EquipQR Agents/vercel-automation-bypass/VERCEL_AUTOMATION_BYPASS_SECRET"
-```
+See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
 
 To reuse a Google-only storage state as a starting point for the combined EquipQR + QBO state:
 
-```powershell
-npx playwright codegen "https://preview.equipqr.app/auth?tab=signin" `
-  --load-storage="tmp/playwright/auth/google-business.json" `
+```bash
+npx playwright codegen "https://preview.equipqr.app/auth?tab=signin" \
+  --load-storage="tmp/playwright/auth/google-business.json" \
   --save-storage="tmp/playwright/auth/nicholas-google-qbo.json"
 ```
 
@@ -150,21 +143,11 @@ The export test work order must:
 
 ### Preflight only (integrations connected)
 
-```powershell
-$env:E2E_REAL_AUTH_STORAGE_STATE = "tmp\playwright\auth\nicholas-google-qbo.json"
-$env:E2E_REAL_AUTH_BASE_URL = "https://preview.equipqr.app"
-npx playwright test --config=playwright.user.config.ts --project=real-auth-integrations --headed -g "preflight"
-```
+See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
 
 ### Full real-auth suite (includes sandbox QBO export)
 
-```powershell
-$env:E2E_REAL_AUTH_STORAGE_STATE = "tmp\playwright\auth\nicholas-google-qbo.json"
-$env:E2E_REAL_AUTH_BASE_URL = "https://preview.equipqr.app"
-$env:E2E_QBO_WORK_ORDER_ID = "1660137f-a803-4510-9a0a-96c7048d0eb4"
-$env:E2E_ALLOW_QBO_DRAFTS = "true"
-npx playwright test --config=playwright.user.config.ts --project=real-auth-integrations --headed
-```
+See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
 
 ## What the tests do
 
@@ -191,7 +174,7 @@ Spec file: `e2e/user/full/real-auth-integrations.spec.ts`
 
 Local Playwright Google and QuickBooks E2E use captured storage state
 (`npm run e2e:google-auth:capture` / `e2e:quickbooks-auth:capture` with
-`Load-GoogleLocalAuthEnv.ps1` / `Load-QuickBooksLocalAuthEnv.ps1`).
+`bash dev/e2e/env.sh google-local` / `bash dev/e2e/env.sh quickbooks-local`).
 Replay headlessly. Complete OAuth only during capture runs.
 
 ## Preview.equipqr.app evidence
@@ -207,4 +190,4 @@ can sign in a personal Gmail/org and 404 production IDs.
 - No Google or Intuit passwords in repo config, env files, or test code
 - No automated Google/Intuit login in test bodies
 - Export test requires explicit `E2E_ALLOW_QBO_DRAFTS=true` (sandbox on preview). Use `E2E_ALLOW_QBO_PRODUCTION_DRAFTS=true` only when intentionally testing live QBO.
-- Project `real-auth-integrations` is excluded from default `dev-test.bat` / `run-user-regression.ps1` suites
+- Project `real-auth-integrations` is excluded from default `dev-test.bat` / `bash dev/linux/user-regression.sh` suites

@@ -1,14 +1,14 @@
 // fallow-ignore-file unused-file
-// (Invoked by dev/qbo/Connect-QboBrowserSession.ps1, not imported statically.)
+// (Invoked by bash dev/e2e/env.sh qbo-browser, not imported statically.)
 // Unattended QuickBooks Online browser sign-in for agent automation.
 //
 // Signs into app.qbo.intuit.com using credentials provided via env
-// (QBO_USERNAME / QBO_PASSWORD, loaded by Connect-QboBrowserSession.ps1) and a
+// (QBO_USERNAME / QBO_PASSWORD, loaded by bash dev/e2e/env.sh qbo-browser) and a
 // fresh TOTP read from 1Password at challenge time. The session persists in a
 // local Playwright profile so subsequent runs skip sign-in entirely.
 //
 // Usage (via wrapper):
-//   .\dev\qbo\Connect-QboBrowserSession.ps1 [-TargetUrl <url>]
+//   bash dev/e2e/env.sh qbo-browser [-TargetUrl <url>]
 //
 // Exit codes: 0 signed in, 1 sign-in failed, 2 missing env.
 import { chromium } from '@playwright/test';
@@ -18,7 +18,7 @@ import { mkdirSync } from 'node:fs';
 const USERNAME = process.env.QBO_USERNAME;
 const PASSWORD = process.env.QBO_PASSWORD;
 if (!USERNAME || !PASSWORD) {
-  console.error('QBO_USERNAME / QBO_PASSWORD required (run via Connect-QboBrowserSession.ps1)');
+  console.error('QBO_USERNAME / QBO_PASSWORD required (run via bash dev/e2e/env.sh qbo-browser)');
   process.exit(2);
 }
 

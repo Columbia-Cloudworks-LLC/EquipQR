@@ -1,0 +1,28 @@
+name: Linux development environment
+on:
+  pull_request:
+    branches: [preview, main]
+    paths: ['dev/**', '.cursor/hooks/**', 'etc/lint/**', 'package*.json', '.node-version', '.github/workflows/linux-development.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux-stack:
+    name: Linux setup and local stack
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Set up the shared Linux environment
+        run: bash dev/linux/setup.sh
+      - name: Check Bash workflows and platform policy
+        run: bash dev/linux/run.sh npm run test:linux
+      - name: Start app, docs, database and functions
+        run: bash dev/linux/dev.sh start
+      - name: Verify health and authentication
+        run: |
+          bash dev/linux/dev.sh status
+          bash dev/linux/run.sh npx --no-install playwright test e2e/user/critical/auth.spec.ts --config playwright.user.config.ts --project critical
+      - name: Stop the stack
+        if: always()
+        run: bash dev/linux/dev.sh stop

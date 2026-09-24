@@ -25,7 +25,7 @@ If the target is unclear or includes multiple bugs, ask the user to choose one.
 
 For GitHub issues:
 
-```powershell
+```bash
 gh issue view <number> --json number,title,body,labels,state,comments,url
 ```
 

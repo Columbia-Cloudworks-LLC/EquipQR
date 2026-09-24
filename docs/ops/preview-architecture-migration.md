@@ -87,10 +87,10 @@ Everything that currently assumes `preview.equipqr.app` and/or `olsdirkvvfegvclb
 
 ### Scripts
 
-- `dev/sync-supabase-secrets-from-1password.ps1` — `edge-env-preview-secrets` locked to `olsdirk`
+- `bash dev/ops/supabase-secrets.sh` — `edge-env-preview-secrets` locked to `olsdirk`
 - `dev/configure-supabase-auth.mjs` — preview environment = `olsdirk` + `preview.equipqr.app`
 - `dev/export-schema-baseline.{sh,ps1}` — links/exports from **olsdirk**
-- `dev/bootstrap-local-google-auth.ps1` — reads preview auth config from **olsdirk** API
+- `bash dev/ops/bootstrap-google-auth.sh` — reads preview auth config from **olsdirk** API
 
 ### Supabase config
 
@@ -198,8 +198,8 @@ Inventory, cost model, architecture proposal. **Stop here for maintainer sign-of
 
 ### Phase 2 — Secrets pipeline hardening ✅
 
-1. Fix `sync-supabase-secrets-from-1password.ps1 -Check` CLI JSON parsing (spinner/ANSI on stderr).
-2. Replace placeholder `TOKEN_ENCRYPTION_KEY` in `edge-env-prod-secrets` via `op-item-mutate.ps1`.
+1. Fix `bash dev/ops/supabase-secrets.sh -Check` CLI JSON parsing (spinner/ANSI on stderr).
+2. Replace placeholder `TOKEN_ENCRYPTION_KEY` in `edge-env-prod-secrets` via `bash dev/ops/op-item.sh`.
 3. Align 1Password field labels with sync scripts; REST API path for Vercel Preview env upsert.
 4. Rotate-and-verify playbook in `agent-secrets-and-access.md`.
 
@@ -223,7 +223,7 @@ Per `local-verify-before-preview-push.mdc`: Fallow, lint, type-check, targeted t
 
 ## Rollback
 
-If OAuth or integrations fail after cutover, restore Vercel preview `VITE_*` from `app-env-preview-public` via `sync-vercel-from-1password.ps1 -Environment preview` and verify prod edge secrets with `-Check -OpItem edge-env-prod-secrets`. The retired `olsdirk` branch cannot be restored once deleted.
+If OAuth or integrations fail after cutover, restore Vercel preview `VITE_*` from `app-env-preview-public` via `bash dev/ops/vercel-env.sh -Environment preview` and verify prod edge secrets with `-Check -OpItem edge-env-prod-secrets`. The retired `olsdirk` branch cannot be restored once deleted.
 
 ---
 
@@ -239,6 +239,6 @@ If OAuth or integrations fail after cutover, restore Vercel preview `VITE_*` fro
 
 | Check | Result |
 |-------|--------|
-| `sync-supabase-secrets-from-1password.ps1 -Check -OpItem edge-env-preview-secrets` | **Pass** (after Phase 2 CLI JSON parse fix) |
-| `sync-supabase-secrets-from-1password.ps1 -Check -OpItem edge-env-prod-secrets` | **Pass** (vault placeholders fixed + applied to Supabase) |
-| `sync-vercel-from-1password.ps1 -Check` preview + production | **Pass** (presence-only); many 1Password field label warnings |
+| `bash dev/ops/supabase-secrets.sh -Check -OpItem edge-env-preview-secrets` | **Pass** (after Phase 2 CLI JSON parse fix) |
+| `bash dev/ops/supabase-secrets.sh -Check -OpItem edge-env-prod-secrets` | **Pass** (vault placeholders fixed + applied to Supabase) |
+| `bash dev/ops/vercel-env.sh -Check` preview + production | **Pass** (presence-only); many 1Password field label warnings |

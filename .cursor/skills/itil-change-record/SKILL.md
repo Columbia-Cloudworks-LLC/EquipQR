@@ -45,7 +45,7 @@ Use this compact shape and fill every placeholder with concrete repo details:
 <context-anchor>
 Request: #{{number}} - {{request_title}} (or ad-hoc)
 Goal: {{one paragraph}}
-Stack: React + TypeScript + Vite + Tailwind + shadcn/ui + Supabase + TanStack Query + Vitest + React Testing Library on Windows PowerShell.
+Stack: React + TypeScript + Vite + Tailwind + shadcn/ui + Supabase + TanStack Query + Vitest + React Testing Library on Linux Bash.
 Required reading before edits: AGENTS.md (index only — open the one official doc for the topic), relevant .cursor/rules/*.mdc, relevant .cursor/skills/**/SKILL.md, and {{task-specific files}}.
 Composer target: Composer 2.5 should be able to execute this without inferring missing files, commands, tests, or stop conditions.
 Formatting rule: boundary tags and headers at column 0; nested snippets/examples at exactly four leading spaces; no triple backticks anywhere in this plan; use {{placeholder text}} for generic fill-in values.
@@ -81,8 +81,8 @@ Branch/PR path: {{branch from origin/preview; push work branch after local verif
 </execution-steps>
 
 <authorized-commands>
-- {{exact PowerShell-compatible command}}
-- {{exact PowerShell-compatible command}}
+- {{exact Bash-compatible command}}
+- {{exact Bash-compatible command}}
 </authorized-commands>
 
 <verification-plan>
@@ -109,7 +109,7 @@ Plans should be Composer 2.5 executable by default:
 
 - Name exact files and symbols.
 - Name query keys, props, routes, tables, policies, env vars, or tests when known.
-- List exact PowerShell-compatible terminal commands in `<authorized-commands>`; do not ask the execution agent to invent commands.
+- List exact Bash-compatible terminal commands in `<authorized-commands>`; do not ask the execution agent to invent commands.
 - Include test-first work for behavior changes: write/update the focused test, run it to the expected failure, then implement.
 - Use only atomic markdown checkboxes and require the execution agent to update them in the plan file as work progresses.
 - Include summary checkpoints after each major phase so the plan becomes the execution memory.

@@ -22,7 +22,7 @@ const SIGNUP_TIMEOUT_MS = 20_000;
 const LOGIN_TIMEOUT_MS = 20_000;
 
 async function startVite({ port, viteEnv }) {
-  const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+  const npmCommand = 'npm';
   const child = spawn(
     npmCommand,
     ['run', 'dev', '--', '--host', PREVIEW_ACCESS_HOST, '--port', String(port), '--strictPort'],

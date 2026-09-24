@@ -101,7 +101,7 @@ npx supabase functions pull quickbooks-oauth-callback
 
 ### Step 5: Start Local Supabase Instance
 
-> **Preferred workflow**: Run `.\dev\dev-start.bat` from the project root. It launches **`dev-start.ps1`**, front-loads 1Password sync when `op` is available, then starts Docker, Supabase, Edge Functions serve, the docs site, and Vite. Exit code **`0`** means all four passed health checks. **`-Force`** resets the local DB, regenerates TypeScript types, and re-seeds dev media (equipment/note/work-order images) after Supabase is up — run **`.\dev\dev-stop.bat`** first if the dev stack is already running. **`.\dev\dev-stop.bat`** launches **`dev-stop.ps1`** for teardown; **`-Force`** there also quits Docker Desktop.
+> **Preferred workflow**: Run `bash dev/linux/dev.sh start` from the project root. It launches **`bash dev/linux/dev.sh start`**, front-loads 1Password sync when `op` is available, then starts Docker, Supabase, Edge Functions serve, the docs site, and Vite. Exit code **`0`** means all four passed health checks. **`-Force`** resets the local DB, regenerates TypeScript types, and re-seeds dev media (equipment/note/work-order images) after Supabase is up — run **`bash dev/linux/dev.sh stop`** first if the dev stack is already running. **`bash dev/linux/dev.sh stop`** launches **`bash dev/linux/dev.sh stop`** for teardown; **`-Force`** there also quits Docker Desktop.
 
 Start a local Supabase instance (PostgreSQL, PostgREST, Auth, Storage, Edge Functions):
 
@@ -127,7 +127,7 @@ npx supabase status
 
 ### Step 6: Set Up Local Environment Variables
 
-Preferred: use `.\dev\dev-start.bat` with 1Password CLI available. It syncs base `.env` and edge env values automatically, then writes local Supabase URL overrides to `.env.local`.
+Preferred: use `bash dev/linux/dev.sh start` with 1Password CLI available. It syncs base `.env` and edge env values automatically, then writes local Supabase URL overrides to `.env.local`.
 
 Manual fallback (without 1Password): create a `.env.local` file for local Supabase development:
 
@@ -240,7 +240,7 @@ git checkout -b feature/quickbooks-edge-function-update
 **Standard workflow for creating new migrations:**
 
 1. **Create the migration file**:
-   ```powershell
+   ```bash
    npm run db:migration:new -- your_migration_name
    ```
 
@@ -513,8 +513,8 @@ Committed files under `supabase/seeds/` are the **durable core** — test users,
 
 | Entry point | Behavior |
 | ----------- | ---------- |
-| `.\dev\dev-start.bat -Force` | Regenerates at `-SeedScale` (default 1), then `supabase db reset` |
-| `.\dev\dev-test.bat reset-db` / `run-user-regression.ps1 -ResetDb` | Regenerates at scale 1, then resets |
+| `bash dev/linux/dev.sh reset` | Regenerates at `-SeedScale` (default 1), then `supabase db reset` |
+| `npm run test:e2e:critical reset-db` / `bash dev/linux/user-regression.sh -ResetDb` | Regenerates at scale 1, then resets |
 | `npm run seed:generate [-- --scale N]` | Manual regeneration only (no DB reset) |
 
 Generation is deterministic (seeded RNG + counter UUIDs). Guardrail tests live in `dev/seed-data/generate-seeds.test.ts`. See `supabase/seeds/README.md` for domain breakdown and E2E safety contracts (generated UUID prefixes stay disjoint from durable-core fixtures; Apex stays empty for operator check-ins and inventory RBAC deny paths).
@@ -523,11 +523,11 @@ Generation is deterministic (seeded RNG + counter UUIDs). Guardrail tests live i
 
 ```bash
 # ---- One-click dev environment (Windows) ----
-.\dev\dev-start.bat                      # Supabase + Edge Functions + docs + Vite (strict health)
-.\dev\dev-start.bat -Force               # Regenerate volume seeds, DB reset, types, seed dev media, then full stack (stop first if running)
-.\dev\dev-start.bat -Force -SeedScale 5  # Same with 5x generated inventory/equipment/work-order volume (#1164)
-.\dev\dev-stop.bat                       # Stop Vite, docs, Edge serve, Supabase Docker; sweep ports
-.\dev\dev-stop.bat -Force                # Same + quit Docker Desktop
+bash dev/linux/dev.sh start                      # Supabase + Edge Functions + docs + Vite (strict health)
+bash dev/linux/dev.sh reset               # Regenerate volume seeds, DB reset, types, seed dev media, then full stack (stop first if running)
+bash dev/linux/dev.sh reset -SeedScale 5  # Same with 5x generated inventory/equipment/work-order volume (#1164)
+bash dev/linux/dev.sh stop                       # Stop Vite, docs, Edge serve, Supabase Docker; sweep ports
+bash dev/linux/dev.sh stop -Force                # Same + quit Docker Desktop
 
 # ---- Supabase CLI commands (always use npx) ----
 npx supabase --version              # Check version

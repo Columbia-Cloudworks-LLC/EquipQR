@@ -1,5 +1,5 @@
 // fallow-ignore-file unused-file
-// Invoked by Invoke-PrEvidenceCapture.ps1 via npx tsx, not imported.
+// Invoked by bash dev/linux/pr-evidence.sh capture via npx tsx, not imported.
 import { resetFreshStartOnboardingFixture } from '../../e2e/user/shared/fresh-start-reset';
 
 await resetFreshStartOnboardingFixture();

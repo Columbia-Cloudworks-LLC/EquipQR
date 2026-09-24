@@ -11,7 +11,8 @@ describe('dev container Node policy', () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
     const devcontainer = JSON.parse(fs.readFileSync(path.join(repoRoot, '.devcontainer', 'devcontainer.json'), 'utf8'));
     const featureVersion = devcontainer.features?.['ghcr.io/devcontainers/features/node:2']?.version;
-    expect(featureVersion).toBe(String(requiredNodeMajor(pkg.engines.node)));
+    expect(featureVersion.split(".")[0]).toBe(String(requiredNodeMajor(pkg.engines.node)));
+    expect(featureVersion).toBe(fs.readFileSync(path.join(repoRoot, ".node-version"), "utf8").trim());
     expect(devcontainer.image).toBe('mcr.microsoft.com/devcontainers/base:ubuntu-24.04');
   });
 });

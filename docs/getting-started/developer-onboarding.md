@@ -62,15 +62,15 @@ npm ci
 If you have 1Password access for EquipQR, use it as the default setup path.
 `dev-start.bat` now syncs both app `.env` and `supabase/functions/.env` from 1Password before continuing startup.
 
-```powershell
+```bash
 # Optional: verify 1Password CLI is installed
 op --version
 
 # Start the full local stack (prompts for 1Password auth early)
-.\dev\dev-start.bat
+bash dev/linux/dev.sh start
 
 # Optional: refresh Cursor MCP config only (restart Cursor afterwards)
-.\dev\dev-setup-cursor-mcp.bat
+bash dev/ops/render-mcp.sh
 ```
 
 If you do not have 1Password access, use the manual fallback:
@@ -95,8 +95,8 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 Preferred:
 
-```powershell
-.\dev\dev-start.bat
+```bash
+bash dev/linux/dev.sh start
 ```
 
 Manual fallback (when not using full local stack automation):
@@ -137,7 +137,7 @@ Visit `http://localhost:8080` to see the application running!
    ```
 
 3. **Configure local environment**:
-   - Preferred: run `.\dev\dev-start.bat` and let it sync env files automatically (including 1Password-backed sync when available)
+   - Preferred: run `bash dev/linux/dev.sh start` and let it sync env files automatically (including 1Password-backed sync when available)
    - Manual fallback: create `.env.local` with local Supabase credentials from `npx supabase status`
    - Use local Supabase URL from `supabase/config.toml` or `npx supabase status` (default: `http://localhost:54321`)
 
@@ -180,7 +180,7 @@ See **[Git and Deploy](../ops/git-and-deploy.md)** and **[Development Lifecycle]
 
 1. **Branch off `preview`**
 
-   ```powershell
+   ```bash
    git fetch origin preview
    git switch -c feat/<short-name> origin/preview
    ```
@@ -189,7 +189,7 @@ See **[Git and Deploy](../ops/git-and-deploy.md)** and **[Development Lifecycle]
 
 3. **Push work branch** — Vercel Preview builds; test on the commit-specific **`*.vercel.app`** URL. After merge to git **`preview`**, **`preview.equipqr.app`** updates.
 
-   ```powershell
+   ```bash
    git push -u origin HEAD
    ```
 

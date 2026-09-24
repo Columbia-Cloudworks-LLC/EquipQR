@@ -11,8 +11,8 @@
  *   npm run seed:generate -- --scale 5   # 5x volume for load testing
  *
  * Wired into:
- *   - dev-start.ps1 -Force (before `supabase db reset`)
- *   - dev/run-user-regression.ps1 -ResetDb
+ *   - bash dev/linux/dev.sh start -Force (before `supabase db reset`)
+ *   - bash dev/linux/user-regression.sh --reset
  */
 
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';

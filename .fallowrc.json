@@ -36,6 +36,7 @@
     ]
   },
   "entry": [
+    "dev/ops/read-yaml.mjs",
     "dev/invoice-export-smoke.deno.ts",
     "playwright.user.config.ts",
     "src/sw.ts",
@@ -49,7 +50,6 @@
     "dev/test-ci.mjs",
     "dev/test-ci-entry.mjs",
     "dev/test-ci-sharded.mjs",
-    "dev/test-ci-windows.mjs",
     "dev/upload-screenshot.ts",
     "dev/docs-media/print-storage-path.ts",
     "dev/run-vitest-local.test.mjs",
@@ -58,153 +58,218 @@
     "dev/cloud-agent/seed-quick-login.mjs",
     "dev/linux/prereq.mjs",
     "dev/linux/sync-local-supabase-env.mjs",
-    "dev/invoke-powershell.mjs",
-    "dev/db/new-migration.mjs",
-    "dev/ci-install.mjs",
-    "dev/db/new-migration.test.mjs",
     "dev/linux/devcontainer-node-policy.test.mjs",
     "dev/linux/prereq.test.mjs",
     "dev/linux/sync-local-supabase-env.test.mjs",
     "dev/ci/check-github-environment-names.mjs",
     "dev/ci/check-github-environment-names.test.mjs",
-    "dev/ci/assert-preview-env-present.sh"
+    "dev/ci/assert-preview-env-present.sh",
+    "dev/linux/stack.mjs"
   ],
   "ignoreExports": [
     {
       "file": "src/components/ui/**",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/components/landing/features/CapabilitiesGrid.tsx",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/pages/features/data/*Data.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/services/supabaseDataService.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/services/syncDataService.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/features/equipment/components/EquipmentFilters.tsx",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/features/equipment/hooks/useEquipmentFiltering.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/features/equipment/services/EquipmentService.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/features/equipment/types/equipment.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/features/equipment/types/equipmentNotes.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/features/inventory/schemas/inventorySchema.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/features/inventory/types/inventory.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/features/work-orders/types/workOrder.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/services/quickbooks/types.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/features/organization/components/UnifiedMembersList.tsx",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/features/organization/hooks/useOrganizationMembers.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/features/organization/types/organization.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/features/work-orders/services/workOrderNotesService.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/services/google-workspace/index.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/utils/google-workspace.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "supabase/functions/_shared/google-drive-destination-browser.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "supabase/functions/_shared/google-drive-folder-routing.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "supabase/functions/_shared/google-workspace-token.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "supabase/functions/_shared/work-order-google-docs-single-data.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/pages/features/data/qrCodeIntegrationData.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/features/work-orders/utils/workOrderHelpers.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/utils/dateFormatter.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/features/equipment/utils/equipmentHelpers.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/features/equipment/hooks/useEquipment.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/features/work-orders/hooks/useWorkOrders.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/features/teams/hooks/useTeam.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/features/teams/hooks/useTeamManagement.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "src/integrations/supabase/types.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "vitest/**",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     }
   ],
   "usedClassMembers": [

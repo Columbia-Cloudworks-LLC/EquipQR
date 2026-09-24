@@ -34,7 +34,7 @@
 <details open>
 <summary>📸 Visual evidence (local dev stack)</summary>
 
-<!-- Agent: run .\dev\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts" -->
+<!-- Agent: run bash dev/linux/pr-evidence.sh -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts" -->
 <!-- Paste evidence-markdown.md content here before opening the PR -->
 
 </details>

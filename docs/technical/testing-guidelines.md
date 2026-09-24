@@ -211,8 +211,8 @@ beforeEach(() => {
 
 Local browser tests against `http://localhost:8080` with seeded Dev Quick Login users.
 
-```powershell
-.\dev\dev-test.bat              # headless critical (default)
+```bash
+npm run test:e2e:critical              # headless critical (default)
 npm run test:e2e:critical     # headless critical
 npm run test:e2e:full         # headless full suite
 ```

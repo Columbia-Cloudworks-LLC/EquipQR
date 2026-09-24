@@ -3,7 +3,7 @@
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
   "features": {
     "ghcr.io/devcontainers/features/node:2": {
-      "version": "24"
+      "version": "24.17.0"
     },
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/devcontainers/features/docker-in-docker:4": {},
@@ -11,7 +11,13 @@
       "version": "latest"
     }
   },
-  "forwardPorts": [8080, 5174, 54321, 54323, 54324],
+  "forwardPorts": [
+    8080,
+    5174,
+    54321,
+    54323,
+    54324
+  ],
   "portsAttributes": {
     "8080": {
       "label": "EquipQR Vite",
@@ -37,8 +43,8 @@
   "otherPortsAttributes": {
     "onAutoForward": "silent"
   },
-  "postCreateCommand": "bash dev/linux/bootstrap.sh",
-  "postStartCommand": "bash dev/linux/dev-start.sh",
+  "postCreateCommand": "bash dev/linux/setup.sh",
+  "postStartCommand": "bash dev/linux/dev.sh start",
   "waitFor": "postStartCommand",
   "remoteUser": "vscode",
   "hostRequirements": {

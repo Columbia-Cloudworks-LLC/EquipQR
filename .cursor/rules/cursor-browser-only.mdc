@@ -25,4 +25,4 @@ Do not ask to switch tools. Stay on Cursor Browser. If a task truly cannot be do
 
 ## Not this rule
 
-Automated Playwright (`e2e/**`, `dev-test.bat`, `Invoke-PrEvidence.ps1`) is CI/local E2E, not agent browser driving. Those scripts stay allowed.
+Automated Playwright (`e2e/**`, `dev-test.bat`, `bash dev/linux/pr-evidence.sh`) is CI/local E2E, not agent browser driving. Those scripts stay allowed.

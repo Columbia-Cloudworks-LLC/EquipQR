@@ -1,54 +1,37 @@
 ---
-description: "Authoritative local dev stack lifecycle — batch files only; agents may stop/start the full stack freely to prevent session corruption."
+description: "Linux-only developer lifecycle. Bash orchestration; one optional Windows batch launcher."
 alwaysApply: true
 ---
-# Dev Stack Lifecycle (authoritative)
+# Developer stack lifecycle
 
-Agents working on EquipQR **must not fight a sick local stack**. Prefer a clean full cycle over incremental hacks that leave `node_modules`, Docker, or background processes in a bad state.
+Use Ubuntu 24.04 and Bash for every developer command. The canonical checkout
+belongs on the Linux filesystem. Windows-only application setup is unsupported.
+Do not introduce PowerShell, Windows Node, Docker Desktop, or Windows credential
+store dependencies. `dev/equipqr.bat` is only a manual convenience launcher.
 
-The canonical runtime is Ubuntu 24.04. Codespaces, native Linux, and the Ubuntu distro inside WSL2 use `bash dev/linux/dev-start.sh` and `bash dev/linux/dev-stop.sh`. On a Windows host, `dev\dev-start.bat` and `dev\dev-stop.bat` only detect WSL2 Ubuntu and invoke those scripts. `dev-start.ps1` is the legacy Docker Desktop path and is not a second copy of the Linux workflow.
+```bash
+bash dev/linux/dev.sh start
+bash dev/linux/dev.sh status
+bash dev/linux/dev.sh stop
+bash dev/linux/dev.sh reset  # Explicitly erase and reseed the local database
+```
 
-## Hard rules
+Agents may cycle managed services when verification requires it. Stop before
+reinstalling dependencies. Restart after app or edge environment changes.
+Do not replace managed lifecycle commands with arbitrary process kills or
+unrelated container restarts. Startup retains data; reset is an explicit action.
 
-1. **Batch files only** for stack lifecycle. Use:
-   - `.\dev\dev-stop.bat` — stop the entire stack (Vite, docs, edge serve, Supabase/Docker).
-   - `.\dev\dev-start.bat` — start the full stack when dependencies and env are already current.
-   - `.\dev\dev-start.bat -Force` — cold start: DB reset, types regen, seed images, then full stack.
+Check app (8080), docs (5174), Auth, and the database-backed Edge health endpoint
+before browser verification. Logs live under `tmp/linux-stack/logs`. Process
+records include identity checks so stale PIDs do not identify unrelated processes.
 
-   Do **not** run ad-hoc `npx supabase stop` / `npx supabase start`, individual Docker container restarts, or detached `cmd /k` windows as substitutes for the batch scripts.
+All local database operations use the generated Supabase working directory under
+`tmp/linux-stack/runtime`. Do not accidentally use a root-level linked project
+or start a second Supabase stack. Only one checkout may own these fixed ports.
 
-2. **Agent autonomy.** When local verification, E2E, Playwright, or dependency work requires it, **stop and restart the whole stack without asking the maintainer**. Authorization to implement includes authorization to cycle the stack.
+Codex cloud uses the explicitly approved non-production hosted backend. Setup
+installs dependencies; agents start services afterward. Hosted mode never resets
+data. Local fixture suites and database tests are local-only.
 
-3. **Prefer full cycles when symptoms appear.** Run `dev-stop.bat` then `dev-start.bat` or `dev-start.bat -Force` when any of these occur:
-   - `npm ci` or `npm install` fails with **EPERM** / **EBUSY** on native binaries (`lightningcss`, `tailwindcss-oxide`, etc.) — Vite, Vitest, ESLint, or the dev stack is holding file locks. Run **`.\dev\npm-ci-safe.bat`** (stops E2E + dev stack, releases locks, deletes stuck `node_modules` when needed). Do not run bare `npm ci` while the stack is up on Windows.
-   - `'vite' is not recognized` or incomplete `node_modules` (missing `node_modules\.bin\vite.cmd`).
-   - Vite crashes watching Playwright output under `tmp/` (mitigated in `vite.config.ts`; still cycle if it recurs).
-   - Kong **502** on edge functions after restart (see `local-dev-troubleshoot.mdc`).
-   - OAuth / edge env changes under `supabase/functions/.env` — use **full** stop/start via batch files, not partial Docker-only restarts.
-   - Migrations or seed changes need applying — `dev-start.bat -Force`.
-   - HTTP probe failures **after** an earlier successful probe in the same session — verify with an independent check first; if the stack is actually unhealthy, cycle rather than debugging in place for multiple turns.
-
-4. **Never corrupt the session mid-work.**
-   - Do **not** run `npm ci` while Vite, docs, edge serve, Vitest watch, or Playwright is running on Windows — stop the stack first (`dev-stop.bat` or `dev-stop-all.bat`), then use **`npm-ci-safe.bat`** / **`npm run ci:install`**.
-   - Do **not** assume a failed probe means the stack is down if logic is wrong (e.g. `fetch().ok` on **304 Not Modified**); verify the probe (HTTP 304 is success) before restarting.
-   - `dev-start.ps1` validates `node_modules` health before skipping install; trust repair paths there instead of hand-patching half-installed deps.
-
-5. **Background processes, not popup terminals.** Vite, docs, and edge-functions serve run as hidden background processes with logs under `tmp\dev-logs\` (`vite.*.log`, `docs.*.log`, `edge-functions.*.log`). Do not reintroduce detached terminal windows.
-
-## When to use `-Force`
-
-| Situation | Command |
-|-----------|---------|
-| Normal restart after code/env edits (no DB change) | `.\dev\dev-stop.bat` then `.\dev\dev-start.bat` |
-| New/changed migrations, seed files, or types regen needed | `.\dev\dev-start.bat -Force` |
-| Unknown dirty DB state or onboarding/E2E fixture drift | `.\dev\dev-start.bat -Force` |
-
-## Verification after start
-
-Confirm the status report shows **OK** for Supabase API (`54321`), Frontend (`8080`), Docs (`5174`), and Edge Functions before E2E or PR evidence capture.
-
-## Relationship to other rules
-
-- **`local-verify-before-preview-push.mdc`:** E2E gates assume a healthy stack; this rule defines how to get there.
-- **`local-dev-troubleshoot.mdc`:** Symptom-specific fixes; when in doubt, full batch-file cycle first.
-- **`docs/ops/agent-secrets-and-access.md`:** Secrets and env sync — still use `dev/sync-local-supabase-env.ps1` when OAuth drift is suspected after a clean start.
+See [Linux development](../../docs/ops/linux-development.md) for installation,
+credentials, verification limits, and the exact Codex settings.
