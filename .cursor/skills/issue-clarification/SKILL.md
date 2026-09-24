@@ -284,11 +284,11 @@ Write the draft, then **immediately** update GitHub (same turn when possible). A
 
 Update GitHub as soon as the draft is complete and any required `AskQuestion` decisions are resolved. Do not wait for the user to reply “approve.”
 
-Prefer a connected GitHub integration when available. Fallback (desktop Cursor / PowerShell):
+Prefer a connected GitHub integration when available. Fallback (Linux terminal):
 
 See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
 
-If the draft is JSON, extract `body` to a UTF-8 temp file and pass that path to `--body-file` (never inline multiline `--body` on Windows).
+If the draft is JSON, extract `body` to a UTF-8 temp file and pass that path to `--body-file` (use `--body-file` for multiline text).
 
 Confirm with `gh issue view <number> --web` or re-fetch JSON and verify triage line + all five sections render correctly.
 

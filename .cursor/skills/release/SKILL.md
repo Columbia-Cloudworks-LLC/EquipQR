@@ -20,7 +20,7 @@ Feature work merges to **`preview`** during normal development and accumulates C
 
 ## Mandatory Rules
 
-- **Windows / PowerShell only.** Use `--body-file` for multiline PR bodies.
+- **Linux / Bash only.** Use `--body-file` for multiline PR bodies.
 - **Never auto-discard local changes.** Resolve dirty trees per `.cursor/rules/workflow-artifacts.mdc`.
 - **Promote PR head must be `preview`.** Never open `--base main --head chore/release-*` (or any other non-`preview` head). Version bumps must not land via a PR into `preview` either — Preview Release Metadata forbids package bumps on PRs to `preview`.
 - **Never force-push to `main` or `preview`.**

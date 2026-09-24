@@ -65,7 +65,7 @@ If none apply, **do not** stop for a plan — proceed directly to implementation
 
 ### Script helpers (EquipQR repository)
 
-From the repo root, prefer the shared PowerShell drivers:
+From the repo root, prefer the shared Bash workflows:
 
 | Step | Script |
 |------|--------|
@@ -159,7 +159,7 @@ bash dev/pr-feedback/workflow.sh reviews -PullRequestNumber <number> -Json
 **GraphQL (manual fallback):** Prefer `reviewThreads` — it returns resolution state and comment content together.
 
 ```bash
-$query = 'query($owner:String!,$repo:String!,$pr:Int!,$after:String){repository(owner:$owner,name:$repo){pullRequest(number:$pr){reviewThreads(first:100,after:$after){pageInfo{hasNextPage endCursor}nodes{id isResolved isOutdated comments(first:10){nodes{databaseId body author{login} path line createdAt}}}}}}}'
+query='query($owner:String!,$repo:String!,$pr:Int!,$after:String){repository(owner:$owner,name:$repo){pullRequest(number:$pr){reviewThreads(first:100,after:$after){pageInfo{hasNextPage endCursor}nodes{id isResolved isOutdated comments(first:10){nodes{databaseId body author{login} path line createdAt}}}}}}}'
 gh api graphql -f query="$query" -f owner="{owner}" -f repo="{repo}" -F pr={pr_number}
 ```
 
@@ -283,7 +283,7 @@ See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-
 
 ### Step 7: Commit and Push
 
-Commit with a message referencing the PR (PowerShell-safe temp file for multi-line bodies):
+Commit with a message referencing the PR (UTF-8 temporary file for multi-line bodies):
 
 See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
 
@@ -314,11 +314,11 @@ gh issue create --title "Deferred from PR #<number>: <short topic>" --body-file 
 | **Reject** | `<concise technical rationale why this does not apply>` |
 | **Question** | `<specific question>; awaiting direction before changing code>` |
 
-**PowerShell-safe JSON:**
+**Bash-safe JSON:**
 
 ```bash
-$payload = '{"body":"Fixed — <brief description>","in_reply_to":1234567890}'
-$payload | gh api repos/{owner}/{repo}/pulls/{pr_number}/comments --method POST --input -
+payload='{"body":"Fixed — <brief description>","in_reply_to":1234567890}'
+printf '%s\n' "$payload" | gh api repos/{owner}/{repo}/pulls/{pr_number}/comments --method POST --input -
 ```
 
 Use the review comment `databaseId` from GraphQL as `in_reply_to`.

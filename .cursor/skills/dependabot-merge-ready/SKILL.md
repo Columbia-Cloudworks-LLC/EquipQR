@@ -139,13 +139,13 @@ unset RELEASE_METADATA_MODE RELEASE_METADATA_BASE_SHA
 **Fallow (before commit):**
 
 ```bash
-npx --yes fallow@2.88.0 --format json --quiet --summary > tmp\fallow-pre-commit.json 2>$null
+npx --yes fallow@2.88.0 --format json --quiet --summary > tmp/fallow-pre-commit.json 2>/dev/null
 # exitCode must be 0; total_issues must be 0
-npx --yes fallow@2.88.0 dupes --format json --quiet > tmp\fallow-pre-commit-dupes.json 2>$null
+npx --yes fallow@2.88.0 dupes --format json --quiet > tmp/fallow-pre-commit-dupes.json 2>/dev/null
 # clone_groups must be 0
 ```
 
-**Commit (PowerShell — no heredoc):**
+**Commit (Bash):**
 
 ```bash
 git add -A

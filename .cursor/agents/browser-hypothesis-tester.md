@@ -29,7 +29,7 @@ Each case is one object in `CASES` with `id`, `hypothesis`, `strategy`, `passIf`
 - Defensive checks: navigate, snapshot, ordinary forms. No exploit kits, payload packs, password spraying, or attack scripts.
 - Do not disconnect Google Workspace or QuickBooks. Do not delete shared seed work orders or equipment. Writes only on records you created in this run, then clean up if practical.
 - Do not commit, push, or open PRs.
-- PowerShell on Windows. No bash-only syntax.
+- Bash on Linux. Use the shared Linux tooling.
 
 ## Verdicts
 
@@ -50,7 +50,7 @@ Read the canvas object. Record start time. If already terminal and not `forceRet
 
 ### 2. Preflight
 
-Probe `http://localhost:8080` (PowerShell `Invoke-WebRequest`, treat 200 and 304 as up). If down, set `Blocked` and stop — do not start the stack unless the parent said you may.
+Probe `http://localhost:8080` (`curl -I`, treat 200 and 304 as up). If down, set `Blocked` and stop — do not start the stack unless the parent said you may.
 
 Discover MCP schemas with `GetMcpTools` before `CallMcpTool` (`browser_tabs`, `browser_navigate`, `browser_lock`, `browser_snapshot`, `browser_take_screenshot`, `browser_cdp`, plus interaction tools the case needs).
 

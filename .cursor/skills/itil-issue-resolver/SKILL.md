@@ -121,7 +121,7 @@ If verification fails outside the change scope, report the blocker instead of br
 
 **Prerequisite:** Section 5 completed; cite verification commands and outcomes in the handoff.
 
-**Publish exit:** Follow **`.cursor/rules/pr-merge-ready-workflow.mdc`** end-to-end — branch (or reuse the existing work branch), Fallow, Windows `npm-ci-safe.bat` / Linux `npm ci`, lint, `test:ci`, build, local E2E, PR visual evidence when UI or user-visible behavior changed (including help/docs discovery), push, open PR, babysit CI + Supabase until green or skipped, then merge. **Do not** wait for Qodo. **Do not** hand off after commit-only, after push-only, or immediately after `gh pr create`.
+**Publish exit:** Follow **`.cursor/rules/pr-merge-ready-workflow.mdc`** end-to-end — branch (or reuse the existing work branch), Fallow, Linux `npm ci`, lint, `test:ci`, build, local E2E, PR visual evidence when UI or user-visible behavior changed (including help/docs discovery), push, open PR, babysit CI + Supabase until green or skipped, then merge. **Do not** wait for Qodo. **Do not** hand off after commit-only, after push-only, or immediately after `gh pr create`.
 
 Summary commands (publish mode only; reuse an existing work branch when one already covers the issue):
 
