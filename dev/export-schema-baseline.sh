@@ -79,7 +79,7 @@ lines = [
     "-- EquipQR RLS reference baseline (read-only documentation artifact)",
     "-- Source: production Supabase project ymxkzronkhwxzcdcbnwq",
     f"-- Generated (UTC): {generated_at}",
-    "-- Regenerate: ./dev/export-schema-baseline.sh (CI) or .\\dev\\export-schema-baseline.ps1 (Windows)",
+    "-- Regenerate: ./dev/export-schema-baseline.sh (CI) or .\\dev\\bash dev/export-schema-baseline.sh (Windows)",
     "-- Do NOT apply this file directly; use supabase/migrations for changes.",
     "",
     "-- =============================================================================",

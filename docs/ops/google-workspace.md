@@ -31,7 +31,7 @@ EquipQR Connect flow. Do not provision parallel Google orgs unless the
 maintainer explicitly asks.
 
 When blocked on Google Admin or GCP Console UI, load `Google (Business)`
-via `.\dev\e2e\Load-GoogleBusinessEnv.ps1` before asking the maintainer
+via `bash dev/e2e/env.sh google-business` before asking the maintainer
 to sign in manually.
 
 ## Redirect URIs
@@ -40,14 +40,14 @@ Local uses **separate** GCP clients for Supabase Auth sign-in vs Google
 Workspace Connect. Register `http://localhost:54321` and
 `http://127.0.0.1:54321` on each. Set
 `GW_OAUTH_REDIRECT_BASE_URL=http://localhost:54321` in
-`supabase/functions/.env`, then restart with `.\dev\dev-stop.bat` /
-`.\dev\dev-start.bat`.
+`supabase/functions/.env`, then restart with `bash dev/linux/dev.sh stop` /
+`bash dev/linux/dev.sh start`.
 
 Production callbacks use `https://supabase.equipqr.app` (Google console
 and Vercel `VITE_SUPABASE_URL`). Keep
 `GW_OAUTH_REDIRECT_BASE_URL=https://supabase.equipqr.app` on
 `edge-env-prod-secrets` and sync with
-`.\dev\sync-supabase-secrets-from-1password.ps1 -OpItem edge-env-prod-secrets`.
+`bash dev/ops/supabase-secrets.sh -OpItem edge-env-prod-secrets`.
 
 A derived-URL cleanup is tracked in
 [url-config-external-cleanup.md](./url-config-external-cleanup.md).

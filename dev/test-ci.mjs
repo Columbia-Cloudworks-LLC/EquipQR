@@ -10,7 +10,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Configuration
 const TEST_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes - tests complete in ~2-3 min, plus coverage generation
 const RATCHET_TIMEOUT_MS = 30 * 1000;  // 30 seconds
-const isWindows = process.platform === 'win32';
 
 console.log('🧪 Running tests with coverage...');
 
@@ -18,11 +17,11 @@ console.log('🧪 Running tests with coverage...');
 let cleanupStarted = false;
 
 // Run vitest directly via npx
-const npxBin = isWindows ? 'npx.cmd' : 'npx';
+const npxBin = 'npx';
 const vitestProcess = spawn(npxBin, ['vitest', 'run', '--coverage'], {
   stdio: 'inherit',
   env: process.env,
-  shell: isWindows
+  shell: false
 });
 
 // Hard timeout to prevent hanging
@@ -32,17 +31,8 @@ const hardTimeout = setTimeout(() => {
   
   console.log('⏰ Test timeout reached - forcing exit');
   
-  // On Windows, need to kill the process tree
-  if (isWindows && vitestProcess.pid) {
-    try {
-      execSync(`taskkill /pid ${vitestProcess.pid} /T /F`, { stdio: 'ignore' });
-    } catch {
-      // Process may already be dead
-    }
-  } else {
-    vitestProcess.kill('SIGKILL');
-  }
-  
+  vitestProcess.kill('SIGKILL');
+
   // Check if coverage was generated before timeout
   const coveragePath = path.join(__dirname, '..', 'coverage', 'coverage-summary.json');
   if (fs.existsSync(coveragePath)) {

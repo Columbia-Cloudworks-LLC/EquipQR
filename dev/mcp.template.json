@@ -6,7 +6,7 @@
   "mcpServers": {
     "todiagram": {
       "type": "stdio",
-      "command": "todiagram.cmd",
+      "command": "todiagram",
       "args": [],
       "env": {
         "TODIAGRAM_API_KEY": "op://tgo2m6qbct5otqeqirjocn3joa/todiagram/credential"
@@ -14,7 +14,7 @@
     },
     "playwright-recording": {
       "type": "stdio",
-      "command": "npx.cmd",
+      "command": "npx",
       "args": [
         "-y",
         "@playwright/mcp@latest",
@@ -42,7 +42,7 @@
     "_comment_datadog": "Datadog MCP intentionally disabled to reduce costs. To re-enable: restore the 'datadog' entry below (see git history of this file), update the URL site (mcp.{site}.datadoghq.com), confirm the API key value (NOT the key UUID) is in the Datadog API-key item (api_key field) of the EquipQR Agents 1Password vault (UUID tgo2m6qbct5otqeqirjocn3joa), then run dev/render-mcp-config.ps1. Avoid restating the secret-reference URI scheme inline here; op-inject would otherwise consume the rest of this comment as a vault path and abort the render.",
     "gcloud": {
       "type": "stdio",
-      "command": "npx.cmd",
+      "command": "npx",
       "args": ["-y", "@google-cloud/gcloud-mcp@0.5.3"],
       "env": {
         "GOOGLE_APPLICATION_CREDENTIALS": "${userHome}${pathSeparator}.config${pathSeparator}gcloud${pathSeparator}equipqr-agent-viewer.json",
@@ -52,7 +52,7 @@
     "_comment_warning_gcloud_write": "WRITE ACCESS via impersonation - gcloud-write reuses the viewer SA JSON for bootstrap auth and sets CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT to the editor SA email, so every gcloud command launched through this MCP automatically impersonates the editor SA without a static second key. Matches the AGENTS.md line 25 hybrid impersonation pattern. The viewer SA holds roles/iam.serviceAccountTokenCreator on the editor SA (project-scoped to equipqr-prod) so impersonation works without keys. Only invoke when explicitly authorizing a write/admin action.",
     "gcloud-write": {
       "type": "stdio",
-      "command": "npx.cmd",
+      "command": "npx",
       "args": ["-y", "@google-cloud/gcloud-mcp@0.5.3"],
       "env": {
         "GOOGLE_APPLICATION_CREDENTIALS": "${userHome}${pathSeparator}.config${pathSeparator}gcloud${pathSeparator}equipqr-agent-viewer.json",

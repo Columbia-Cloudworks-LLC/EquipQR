@@ -9,36 +9,13 @@ permissions:
 
 jobs:
   deployment-status:
-    runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && 'self-hosted' || 'ubuntu-latest' }}
+    runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && fromJSON('["self-hosted","Linux"]') || fromJSON('["ubuntu-24.04"]') }}
     # The repo has a second Vercel project (equipqr-docs / equipqr.info) rooted at docs/.
     # Its deployment_status events must not fail this workflow or preview branch checks
     # when the main SPA deployment is healthy.
     if: ${{ contains(fromJson('["success","failure"]'), github.event.deployment_status.state) && !contains(github.event.deployment_status.environment, 'equipqr-docs') }}
     steps:
-      - name: Deployment Status Update (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        env:
-          DEPLOY_STATE: ${{ github.event.deployment_status.state }}
-          DEPLOY_ENVIRONMENT: ${{ github.event.deployment_status.environment }}
-          DEPLOY_REF: ${{ github.event.deployment.ref }}
-        run: |
-          Write-Host "Deployment status: $env:DEPLOY_STATE"
-          if ($env:DEPLOY_ENVIRONMENT -ne '') {
-            Write-Host "Environment: $env:DEPLOY_ENVIRONMENT"
-          }
-          if ($env:DEPLOY_REF -ne '') {
-            Write-Host "Ref: $env:DEPLOY_REF"
-          }
-          if ($env:DEPLOY_STATE -eq 'success') {
-            Write-Host "✅ Deployment successful!"
-          } else {
-            Write-Host "❌ Deployment failed"
-            exit 1
-          }
-
-      - name: Deployment Status Update (Unix)
-        if: runner.os != 'Windows'
+      - name: Deployment Status Update (Linux)
         shell: bash
         env:
           DEPLOY_STATE: ${{ github.event.deployment_status.state }}

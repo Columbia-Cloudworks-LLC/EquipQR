@@ -47,5 +47,5 @@ if [ -z "$SKIP_REASON" ]; then
   require_item_or_mark_skip "$op_edge_item" "$scope_label"
 fi
 if [ -z "$SKIP_REASON" ]; then
-  pwsh -NoProfile -ExecutionPolicy Bypass -File ./dev/sync-supabase-secrets-from-1password.ps1 -Check -OpItem "$op_edge_item"
+  bash dev/ops/supabase-secrets.sh --check --op-item "$op_edge_item"
 fi

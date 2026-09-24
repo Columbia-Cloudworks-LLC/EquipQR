@@ -44,7 +44,7 @@ If the request is still unclear, use:
 
 For GitHub issues:
 
-```powershell
+```bash
 gh issue view <number> --json number,title,body,labels,state,comments,url
 ```
 
@@ -61,7 +61,7 @@ Stop and ask if there is no clear definition of done.
 
 Inspect:
 
-```powershell
+```bash
 git status --short
 git branch --show-current
 gh pr list --state open --search "<issue-number> in:body" --json number,title,headRefName,baseRefName,url
@@ -100,16 +100,16 @@ Choose the smallest credible gate:
 
 - Always run Fallow (both scans) before commit per `fallow-before-commit.mdc`.
 - Always run lint/type checks when product code changed:
-  ```powershell
+  ```bash
   npm run lint
   npm run type-check
   ```
 - Run targeted tests for touched behavior:
-  ```powershell
+  ```bash
   npm test -- <test-paths>
   ```
 - Run `npm run build` when routing, bundling, PWA, Vite, or env wiring may be affected.
-- For UI changes, smoke the affected route with browser MCP or `.\dev\dev-test.bat` critical when a spec exists.
+- For UI changes, smoke the affected route with browser MCP or `npm run test:e2e:critical` critical when a spec exists.
 - For OAuth/integrations, exercise the flow on the local stack (browser MCP + edge logs + RPC/DB confirmation).
 - For migrations/RLS/edge functions, run the relevant Supabase or Deno checks when the local stack is healthy.
 
@@ -125,17 +125,7 @@ If verification fails outside the change scope, report the blocker instead of br
 
 Summary commands (publish mode only; reuse an existing work branch when one already covers the issue):
 
-```powershell
-git fetch origin preview
-git switch -c <type>/issue-<number>-<slug> origin/preview
-# ... implement, verify (Fallow, npm-ci-safe.bat, lint, test:ci, build, E2E) ...
-.\dev\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts"
-git push -u origin HEAD
-gh pr create --base preview --head <branch> --title "<title>" --body-file <body-file-with-evidence-markdown>
-.\dev\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts" -PrNumber <num> -Publish
-gh pr checks <num> --watch
-# Confirm Supabase green or skipped; merge — see pr-merge-ready-workflow.mdc
-```
+See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
 
 Accumulate CHANGELOG notes under `[Unreleased]` when the change is user-visible. Follow `.cursor/rules/changelog.mdc` (short bullets). **Do not** bump `package.json` on feature PRs. Use `Fixes #<number>` or `Closes #<number>` in the commit body or PR body when the issue should close after merge to `preview` (or after promote, if the issue should stay open until production).
 

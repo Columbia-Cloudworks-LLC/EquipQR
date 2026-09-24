@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2129
 
 # Setup script for Billing Exemptions Dashboard (Issue #232)
 # This script helps configure the necessary environment variables and Supabase secrets

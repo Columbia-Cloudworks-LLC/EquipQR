@@ -1,0 +1,19 @@
+---
+description: "Linux Bash is the project shell for local, CI, and cloud work."
+alwaysApply: true
+---
+# Git and Bash
+
+Run project commands in Linux. Source `dev/linux/env.sh` or use
+`bash dev/linux/run.sh COMMAND`. Keep WSL checkouts on the Linux filesystem.
+The sole Windows entrypoint is `dev/equipqr.bat`; it only launches WSL and the browser.
+
+Use quoted arguments and Bash arrays. Never execute dotenv content as shell code.
+Use UTF-8 body files with `gh pr create/edit --body-file` and `git commit -F` for
+multiline text. Preserve existing PR footer links when editing descriptions.
+Use JSON input for review replies, with the parent comment ID in `in_reply_to`.
+Inspect failures before retrying a publishing command to avoid duplicate comments.
+
+Follow the PR merge workflow and its verification gates. List worktrees before
+removing one; stop its managed stack first. Verify a remote merge independently
+if local branch cleanup fails because the branch is checked out in a worktree.

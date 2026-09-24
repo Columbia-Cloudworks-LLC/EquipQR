@@ -4,17 +4,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const TARGET_KINDS = new Set(['node-cli', 'npx', 'external-bin', 'pwsh-module']);
+const TARGET_KINDS = new Set(['node-cli', 'npx', 'external-bin', 'system-bin']);
 const CONTRACT_KINDS = new Set(['exit-code', 'fallow-unused', 'fallow-dupes']);
 const TOOLS_CACHE = path.join('tmp', 'lint-tools');
 const DOWNLOAD_MAX_SECONDS = 60;
 
 const repoRootFromModule = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-
-/** @param {string} value */
-function psQuote(value) {
-  return `'${String(value).replace(/'/g, "''")}'`;
-}
 
 /** @param {unknown} value */
 function isPlainObject(value) {
@@ -169,23 +164,10 @@ function parseTarget(row) {
       batch,
     };
   }
-  if (
-    !isPlainObject(row.module) ||
-    typeof row.module.name !== 'string' ||
-    typeof row.module.version !== 'string' ||
-    typeof row.function !== 'string'
-  ) {
-    throw new Error(`${id}: pwsh-module requires module.name, module.version, and function`);
+  if (typeof row.bin !== 'string' || !/^[a-z][a-z0-9-]*$/.test(row.bin)) {
+    throw new Error(`${id}: system-bin requires a binary name`);
   }
-  return {
-    id,
-    kind: 'pwsh-module',
-    module: { name: row.module.name, version: row.module.version },
-    function: row.function,
-    match,
-    hook,
-    batch,
-  };
+  return { id, kind: 'system-bin', bin: row.bin, match, hook, batch };
 }
 
 /**
@@ -329,14 +311,6 @@ export function spawnProcess(executable, args, cwd) {
   });
 }
 
-function resolvePowerShell() {
-  if (process.platform === 'win32') {
-    const systemRoot = process.env.SystemRoot ?? 'C:\\Windows';
-    return path.join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
-  }
-  return 'pwsh';
-}
-
 /** @param {string} repoRoot */
 export function npxCliCandidates(repoRoot) {
   const nodeDir = path.dirname(process.execPath);
@@ -358,78 +332,9 @@ export function resolveNpxCli(repoRoot) {
   throw new Error(`npx-cli.js not found (looked in ${candidates.join(', ')})`);
 }
 
-/** @param {readonly string[]} argv */
-export function pwshArgvFlags(argv) {
-  /** @type {string[]} */
-  const flags = [];
-  for (let i = 0; i < argv.length; i += 1) {
-    if (argv[i] === '-Path') {
-      i += 1;
-      continue;
-    }
-    flags.push(argv[i]);
-  }
-  return flags;
-}
-
 /** @param {string} url @param {string} dest */
 export function curlDownloadArgs(url, dest) {
   return ['-fsSL', '--proto', '=https', '--max-time', String(DOWNLOAD_MAX_SECONDS), '--retry', '2', '-o', dest, url];
-}
-
-/** @param {string} name @param {string} version */
-export function pwshModuleInstallScript(name, version) {
-  return [
-    '[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12',
-    'Import-Module PowerShellGet -ErrorAction SilentlyContinue',
-    '$gallery = Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue',
-    'if (-not $gallery) { Register-PSRepository -Default -ErrorAction SilentlyContinue; $gallery = Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue }',
-    '$previousPolicy = if ($gallery) { [string]$gallery.InstallationPolicy } else { $null }',
-    'try {',
-    '  if (Get-PSRepository -Name PSGallery -ErrorAction SilentlyContinue) { Set-PSRepository -Name PSGallery -InstallationPolicy Trusted }',
-    `  Install-Module -Name ${psQuote(name)} -RequiredVersion ${psQuote(version)} -Scope CurrentUser -Force`,
-    '} finally {',
-    '  if ($previousPolicy) { Set-PSRepository -Name PSGallery -InstallationPolicy $previousPolicy -ErrorAction SilentlyContinue }',
-    '}',
-  ].join('\n');
-}
-
-/** @param {string} repoRoot */
-function pssaSettingsPath(repoRoot) {
-  return path.join(repoRoot, 'etc', 'lint', 'PSScriptAnalyzerSettings.psd1');
-}
-
-/** @param {string} repoRoot */
-export function listPowerShellFiles(repoRoot) {
-  /** @type {string[]} */
-  const files = [];
-  const skipDirs = new Set(['node_modules', 'tmp', '.git', 'dist', 'coverage', 'artifacts']);
-
-  /** @param {string} dir */
-  function walk(dir) {
-    let entries;
-    try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-    for (const entry of entries) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        if (skipDirs.has(entry.name)) {
-          continue;
-        }
-        walk(full);
-        continue;
-      }
-      if (entry.name.toLowerCase().endsWith('.ps1')) {
-        files.push(full);
-      }
-    }
-  }
-
-  walk(repoRoot);
-  return files;
 }
 
 /**
@@ -552,50 +457,14 @@ async function ensureExternalBin(target, repoRoot) {
   }
 }
 
-/** @param {{ name: string; version: string }} module @param {string} repoRoot */
-function cachedPwshModuleManifest(module, repoRoot) {
-  return path.join(repoRoot, TOOLS_CACHE, module.name, module.version, `${module.name}.psd1`);
-}
 
 /**
  * @param {ReturnType<typeof parseTarget>} target
  * @param {string} repoRoot
  */
-async function ensurePwshModule(target, repoRoot) {
-  if (target.kind !== 'pwsh-module') {
-    throw new Error('ensurePwshModule on non pwsh-module target');
-  }
-  if (fs.existsSync(cachedPwshModuleManifest(target.module, repoRoot))) {
-    return { ready: true, targetId: target.id };
-  }
-  const powershell = resolvePowerShell();
-  const { name, version } = target.module;
-  const checkScript = [
-    `$m = Get-Module -ListAvailable -Name ${psQuote(name)} | Where-Object { $_.Version -eq [version]${psQuote(version)} }`,
-    'if ($m) { exit 0 } else { exit 1 }',
-  ].join('; ');
-  const check = await spawnProcess(powershell, ['-NoProfile', '-NonInteractive', '-Command', checkScript], repoRoot);
-  if (check.exitCode === 0) {
-    return { ready: true, targetId: target.id };
-  }
-  const installScript = pwshModuleInstallScript(name, version);
-  const install = await spawnProcess(
-    powershell,
-    ['-NoProfile', '-NonInteractive', '-Command', installScript],
-    repoRoot
-  );
-  const installed = await spawnProcess(powershell, ['-NoProfile', '-NonInteractive', '-Command', checkScript], repoRoot);
-  if (installed.exitCode === 0) {
-    return { ready: true, targetId: target.id };
-  }
-  return {
-    ready: false,
-    targetId: target.id,
-    reason: [install.stderr, install.stdout, `Install-Module ${name} ${version} failed`]
-      .filter(Boolean)
-      .join('\n')
-      .trim(),
-  };
+async function ensureSystemBin(target, repoRoot) {
+  const result = await spawnProcess(target.bin, ['--version'], repoRoot);
+  return { ready: result.exitCode === 0, targetId: target.id, reason: result.stderr };
 }
 
 /**
@@ -610,8 +479,8 @@ export async function ensureTool(target, repoRoot) {
       return ensureNpx(target, repoRoot);
     case 'external-bin':
       return ensureExternalBin(target, repoRoot);
-    case 'pwsh-module':
-      return ensurePwshModule(target, repoRoot);
+    case 'system-bin':
+      return ensureSystemBin(target, repoRoot);
     default: {
       const exhausted = /** @type {never} */ (target);
       throw new Error(`unknown kind: ${JSON.stringify(exhausted)}`);
@@ -679,53 +548,6 @@ async function spawnExternalBin(target, argv, repoRoot) {
   return spawnProcess(binPath, resolvedArgv, repoRoot);
 }
 
-/**
- * @param {ReturnType<typeof parseTarget>} target
- * @param {readonly string[]} argv
- * @param {string} repoRoot
- * @param {{ paths?: readonly string[] }} [options]
- */
-async function spawnPwshModule(target, argv, repoRoot, options = {}) {
-  if (target.kind !== 'pwsh-module') {
-    throw new Error('spawnPwshModule on non pwsh-module target');
-  }
-  const powershell = resolvePowerShell();
-  const settings = pssaSettingsPath(repoRoot);
-  const paths = options.paths ?? [];
-  const hookPathIndex = argv.indexOf('-Path');
-  const hookPath = hookPathIndex >= 0 ? argv[hookPathIndex + 1] : undefined;
-  const extraFlags = pwshArgvFlags(argv);
-  const extraFlagClause = extraFlags.length > 0 ? ` ${extraFlags.join(' ')}` : '';
-  const cachedManifest = cachedPwshModuleManifest(target.module, repoRoot);
-  const moduleImport = fs.existsSync(cachedManifest)
-    ? `Import-Module -Name ${psQuote(cachedManifest)} -ErrorAction Stop`
-    : `Import-Module -Name ${psQuote(target.module.name)} -RequiredVersion ${psQuote(target.module.version)} -ErrorAction Stop`;
-
-  /** @type {string[]} */
-  const script = [moduleImport];
-  if (paths.length > 0) {
-    const listFile = path.join(repoRoot, TOOLS_CACHE, 'pssa-paths.txt');
-    fs.mkdirSync(path.dirname(listFile), { recursive: true });
-    fs.writeFileSync(listFile, `${paths.join('\n')}\n`, 'utf8');
-    script.push(`$paths = Get-Content -LiteralPath ${psQuote(listFile)}`);
-  } else if (hookPath) {
-    script.push(`$paths = @(${psQuote(hookPath)})`);
-  } else {
-    script.push('$paths = @()');
-  }
-  if (fs.existsSync(settings)) {
-    script.push(`$settings = ${psQuote(settings)}`);
-    script.push(`$result = ${target.function} -Path $paths -Settings $settings${extraFlagClause}`);
-  } else {
-    script.push(`$result = ${target.function} -Path $paths${extraFlagClause}`);
-  }
-  script.push(
-    `if ($result) { $result | ForEach-Object { '{0}:{1} {2} {3}' -f $_.ScriptName, $_.Line, $_.RuleName, $_.Message } | Write-Output }`
-  );
-  script.push('if ($result) { exit 1 } else { exit 0 }');
-
-  return spawnProcess(powershell, ['-NoProfile', '-NonInteractive', '-Command', script.join('; ')], repoRoot);
-}
 
 /**
  * @param {ReturnType<typeof parseTarget>} target
@@ -733,7 +555,7 @@ async function spawnPwshModule(target, argv, repoRoot, options = {}) {
  * @param {string} repoRoot
  * @param {{ paths?: readonly string[] }} [options]
  */
-export async function spawnKind(target, argv, repoRoot, options) {
+export async function spawnKind(target, argv, repoRoot) {
   switch (target.kind) {
     case 'node-cli':
       return spawnNodeCli(target, argv, repoRoot);
@@ -741,8 +563,8 @@ export async function spawnKind(target, argv, repoRoot, options) {
       return spawnNpx(target, argv, repoRoot);
     case 'external-bin':
       return spawnExternalBin(target, argv, repoRoot);
-    case 'pwsh-module':
-      return spawnPwshModule(target, argv, repoRoot, options);
+    case 'system-bin':
+      return spawnProcess(target.bin, argv, repoRoot);
     default: {
       const exhausted = /** @type {never} */ (target);
       throw new Error(`unknown kind: ${JSON.stringify(exhausted)}`);
@@ -882,12 +704,12 @@ export function formatProjectReport(outcomes) {
  * @param {'hook' | 'project'} mode
  */
 async function runTargetProcess(target, argv, repoRoot, mode) {
-  if (target.kind === 'pwsh-module' && mode === 'project') {
-    const files = listPowerShellFiles(repoRoot);
-    if (files.length === 0) {
-      return { exitCode: 0, stdout: '', stderr: '' };
-    }
-    return spawnKind(target, argv, repoRoot, { paths: files });
+  if (target.id === 'shellcheck' && mode === 'project') {
+    const listing = await spawnProcess('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z', '*.sh'], repoRoot);
+    if (listing.exitCode !== 0) return listing;
+    const files = [...new Set(listing.stdout.split('\0').filter(file => file && fs.existsSync(path.join(repoRoot, file))))];
+    if (files.length === 0) return { exitCode: 0, stdout: '', stderr: '' };
+    return spawnKind(target, [...argv, ...files], repoRoot);
   }
   return spawnKind(target, argv, repoRoot);
 }

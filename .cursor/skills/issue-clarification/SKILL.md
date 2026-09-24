@@ -22,13 +22,11 @@ The user must provide an existing issue. If the user does not provide a valid is
 
 Prefer a connected GitHub integration (MCP or equivalent) when available to fetch issue JSON. Otherwise use the local CLI fallback:
 
-```powershell
-.\dev\itil\Get-ItilIssueContext.ps1 -Issue "<number-or-url>" -Json
-```
+See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
 
 Or:
 
-```powershell
+```bash
 gh issue view <number> --json number,title,body,labels,state,comments,url
 ```
 
@@ -124,7 +122,7 @@ When the gated-behavior heuristic matched, also mirror the critical acceptance r
 
 Primary exploration target is **`origin/preview`** (integration tip) because this skill runs before implementation. Fetch before searching:
 
-```powershell
+```bash
 git fetch origin preview
 ```
 
@@ -174,7 +172,7 @@ If investigation suggests the issue is already fixed on production or the integr
 
 1. Consult `origin/main` and PR history when relevant:
 
-   ```powershell
+   ```bash
    gh pr list --state merged --search "<issue-number> in:body" --json number,title,mergedAt,url
    gh issue view <number> --json timelineItems
    ```
@@ -288,10 +286,7 @@ Update GitHub as soon as the draft is complete and any required `AskQuestion` de
 
 Prefer a connected GitHub integration when available. Fallback (desktop Cursor / PowerShell):
 
-```powershell
-$title = (Get-Content -Raw "artifacts/issue-clarification-drafts/<number>.title.txt").Trim()
-gh issue edit <number> --title $title --body-file "artifacts/issue-clarification-drafts/<number>.md"
-```
+See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
 
 If the draft is JSON, extract `body` to a UTF-8 temp file and pass that path to `--body-file` (never inline multiline `--body` on Windows).
 

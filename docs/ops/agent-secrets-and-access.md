@@ -22,18 +22,18 @@ GitHub is the source of truth for EquipQR automation and deployment configuratio
 
 Load Google Business credentials for browser automation:
 
-```powershell
-. .\dev\e2e\Load-GoogleBusinessEnv.ps1
+```bash
+bash dev/e2e/env.sh google-business COMMAND
 # Sets GOOGLE_BUSINESS_EMAIL and GOOGLE_BUSINESS_PASSWORD
 ```
 
 **op:// note:** titles with parentheses break `op read` URIs. Use vault UUID + item ID:
 
-```powershell
+```bash
 op read op://mrviyowmjwrxv7syobdlhnmawa/ukvy6bzwb2ikq5cfeambgcq5u4/username
 ```
 
-Constants and helpers: `dev/op/columbia-cloudworks-agents-vault.ps1`.
+Constants and child-process loading: `dev/e2e/env.sh`.
 
 | Token env var | Service account | Permissions | Typical use |
 |---|---|---|---|
@@ -45,8 +45,8 @@ Cloud Agents and GitHub Actions use the read-only token as a repo/org secret. Ne
 **Token rules**
 
 - Never use the read-only token for vault writes.
-- Never store write-tier vendor PATs (`github-write`, `vercel-write`, `supabase-write`, and similar) in `HKCU\Environment`. Materialize with `op read` in-session when needed.
-- The only long-lived User-scope exception is read-only `OP_SERVICE_ACCOUNT_TOKEN` for headless reads.
+- Never store write-tier vendor PATs (`github-write`, `vercel-write`, `supabase-write`, and similar) in a persistent global environment. Materialize with `op read` in-session when needed.
+- Supply the read-only `OP_SERVICE_ACCOUNT_TOKEN` through the Linux process environment for headless reads.
 
 ### Env and vendor item patterns
 
@@ -54,7 +54,7 @@ Naming convention for MCP-backed items: `<service>-<access-tier>` (not env tier)
 
 | Item pattern | Purpose |
 | --- | --- |
-| `app-env-local-dev` | Local Vite `.env` (via `.\dev\dev-start.bat`) |
+| `app-env-local-dev` | Optional integration `.env` (via `bash dev/ops/local-env.sh`) |
 | `edge-env-local-dev` | Local edge `supabase/functions/.env` |
 | `app-env-preview-public` / `app-env-prod-public` | Public `VITE_*` vars synced to Vercel |
 | `edge-env-preview-secrets` / `edge-env-prod-secrets` | Supabase Edge Function secrets |
@@ -65,72 +65,42 @@ Naming convention for MCP-backed items: `<service>-<access-tier>` (not env tier)
 
 ---
 
-## Cursor shell vs 1Password writes
+## 1Password writes from Linux
 
-### Symptom
+Use the Bash wrapper to close stdin and bound execution time. It requires the
+write-tier `OP_SAT_EquipQR` token and keeps it inside the child process.
 
-Running `op item edit` or `op item create` **inline** in a Cursor agent terminal:
-
-- Hangs until killed (exit `4294967295` / timeout)
-- `invalid JSON in piped input`
-- `cannot create an item from template and stdin at the same time`
-
-### Cause
-
-Cursor's integrated shell attaches **stdin as a pipe** to child processes. The 1Password CLI treats active stdin as [JSON template input](https://www.1password.dev/cli/reference/management-commands/item#item-edit) (the `-` positional form). Reads do not use that code path, so `op read` works inline.
-
-### Fix (required pattern)
-
-Use the repo helper, which runs `op` in a **detached** `powershell.exe -File` process:
-
-```powershell
-# Dry-run field update (safe)
-.\dev\op-item-mutate.ps1 `
-  -Action Edit `
-  -Item "app-env-preview-public" `
-  -Assignment "GOOGLE_WORKSPACE_CLIENT_ID[text]=87469690682-example.apps.googleusercontent.com" `
-  -DryRun
-
-# Apply
-.\dev\op-item-mutate.ps1 -Action Edit -Item "app-env-preview-public" `
-  -Assignment "GOOGLE_WORKSPACE_CLIENT_ID[text]=87469690682-example.apps.googleusercontent.com"
+```bash
+bash dev/ops/op-item.sh --dry-run edit app-env-preview-public -- 'FIELD[text]=value'
+bash dev/ops/op-item.sh edit app-env-preview-public --template /path/to/item.json
 ```
 
-Assignment rules ([official docs](https://www.1password.dev/cli/reference/management-commands/item#item-edit)):
-
-- `--` before assignments when values contain `.` or special characters
-- `field[text]=value` for plain text fields
-- For multi-field or sensitive bulk edits: `-Action Edit -TemplatePath C:\path\to\item.json` after `op item get ... --format json`
-
-Interactive maintainer terminals (`PS D:\EquipQR>`) can run `op` directly; agents should not rely on that.
-
-Omit `-Vault "EquipQR Agents"` on `op-item-mutate.ps1`. Use the script default vault UUID — spaced vault names break detached `op item edit`.
-
----
+Use protected files for bulk secrets. Never include secrets in command output.
+See [Bash workflows](linux-workflows.md) for current sync commands and arguments.
 
 ## Secret sync pipelines
 
 | Script | Source | Target |
 |---|---|---|
-| `dev-start.bat` / `dev-start.ps1` | `app-env-local-dev`, `edge-env-local-dev` | `.env`, `supabase/functions/.env` |
-| `dev/sync-vercel-from-1password.ps1` | `app-env-*-public` | Vercel env (production / preview) |
-| `dev/sync-supabase-secrets-from-1password.ps1` | `edge-env-*-secrets` | Supabase Edge secrets |
-| `dev/render-mcp-config.ps1` | `dev/mcp.template.json` + `op inject` | `~/.cursor/mcp.json` |
+| `bash dev/ops/local-env.sh` | `app-env-local-dev`, `edge-env-local-dev` | `.env`, `supabase/functions/.env` |
+| `bash dev/ops/vercel-env.sh` | `app-env-*-public` | Vercel env (production / preview) |
+| `bash dev/ops/supabase-secrets.sh` | `edge-env-*-secrets` | Supabase Edge secrets |
+| `bash dev/ops/render-mcp.sh` | `dev/mcp.template.json` + `op inject` | `~/.cursor/mcp.json` |
 
-Verify MCP wiring: `.\dev\op-mcp-doctor.ps1` (expect 13/13 green on maintainer machine).
+Verify MCP wiring: `bash dev/ops/doctor.sh` (expect 13/13 green on maintainer machine).
 
 ### Preview OAuth alignment checklist
 
 Google Workspace OAuth requires **matching client ID** in:
 
-1. `app-env-preview-public` → `GOOGLE_WORKSPACE_CLIENT_ID` → baked into Vite as `VITE_GOOGLE_WORKSPACE_CLIENT_ID`
+1. `app-env-preview-public` → `GOOGLE_WORKSPACE_CLIENT_ID` → baked into Vite as `VITE_GOOGLE_WORKSPACE_CLIENT_ID\
 2. `edge-env-prod-secrets` → `GOOGLE_WORKSPACE_CLIENT_ID` + `GOOGLE_WORKSPACE_CLIENT_SECRET` (cloud preview and production share this item after #1033)
 
 After vault edit:
 
-1. `.\dev\sync-vercel-from-1password.ps1 -Environment preview`
+1. `bash dev/ops/vercel-env.sh --apply --environment preview`
 2. Redeploy the latest Vercel Preview deployment for git **`preview`** (or merge/push to `preview` so `preview.equipqr.app` rebuilds)
-3. Confirm edge secrets via `sync-supabase-secrets-from-1password.ps1 -Check -OpItem edge-env-prod-secrets`
+3. Confirm edge secrets via `bash dev/ops/supabase-secrets.sh --check --op-item edge-env-prod-secrets`
 
 ### Rotate-and-verify playbook (preview + production)
 
@@ -138,39 +108,31 @@ Use this end-to-end loop after any secret rotation in 1Password. Never paste sec
 
 **1. Read-only digest check (before change)**
 
-```powershell
-$env:OP_SERVICE_ACCOUNT_TOKEN = [Environment]::GetEnvironmentVariable('OP_SERVICE_ACCOUNT_TOKEN','User')
-.\dev\sync-supabase-secrets-from-1password.ps1 -Check -OpItem edge-env-prod-secrets
-.\dev\sync-vercel-from-1password.ps1 -Check -Environment preview
-.\dev\sync-vercel-from-1password.ps1 -Check -Environment production
+```bash
+# Authenticate the Linux 1Password CLI before checking configuration.
+bash dev/ops/supabase-secrets.sh --check --op-item edge-env-prod-secrets
+bash dev/ops/vercel-env.sh --check --environment preview
+bash dev/ops/vercel-env.sh --check --environment production
 ```
 
 **2. Rotate in 1Password** (detached writes only)
 
-```powershell
-# Dry-run first
-.\dev\op-item-mutate.ps1 -Action Edit -Item "edge-env-prod-secrets" `
-  -Assignment "TOKEN_ENCRYPTION_KEY[text]=<openssl rand -base64 32 output>" -DryRun
-# Apply without -DryRun when dry-run looks correct
-```
+Use the current [Linux workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
+**3. Apply authorized changes**
 
-For `TOKEN_ENCRYPTION_KEY` on production: generate a **new** key; do not copy the preview value. Rotating production encryption keys invalidates existing Google Workspace refresh tokens unless a re-encryption migration runs first — coordinate with maintainers before prod rotation.
-
-**3. Apply to targets**
-
-```powershell
+```bash
 # Production edge (serves preview.equipqr.app and equipqr.app) — apply only when maintainer authorizes
-.\dev\sync-supabase-secrets-from-1password.ps1 -OpItem edge-env-prod-secrets
+bash dev/ops/supabase-secrets.sh --apply --op-item edge-env-prod-secrets
 
 # Vercel public env
-.\dev\sync-vercel-from-1password.ps1 -Environment preview
-.\dev\sync-vercel-from-1password.ps1 -Environment production
+bash dev/ops/vercel-env.sh --apply --environment preview
+bash dev/ops/vercel-env.sh --apply --environment production
 ```
 
 **4. Redeploy affected surfaces**
 
 - Vercel: trigger redeploy of `preview` branch (or production promotion) so baked `VITE_*` values refresh.
-- Supabase Edge: secrets apply immediately; invoke a smoke edge function if unsure (`edge-functions-smoke-test.yml` or local `dev-start.bat` + integration path).
+- Supabase Edge: secrets apply immediately; invoke a smoke edge function if unsure (`edge-functions-smoke-test.yml` or local `bash dev/linux/dev.sh start` + integration path).
 
 **5. Smoke verify**
 
@@ -181,7 +143,7 @@ For `TOKEN_ENCRYPTION_KEY` on production: generate a **new** key; do not copy th
 | Production GW/QB | Repeat on `equipqr.app` after prod apply only |
 | Drift CI | `secrets-drift-check.yml` daily run green on both edge items |
 
-**6. Re-run `-Check`** — all four commands must exit 0 before closing a rotation task.
+**6. Re-run `--check`** — all four commands must exit 0 before closing a rotation task.
 
 See also `docs/ops/preview-architecture-migration.md` (#1033) for consolidating cloud preview on `edge-env-prod-secrets`.
 
@@ -198,19 +160,19 @@ on failing commands.
 - `op read` / `op item get` with read SAT (EquipQR Agents **and** Columbia Cloudworks Agents vaults)
 - `github-read` MCP, `gcloud` viewer MCP, Supabase MCP reads, Datadog/Better Stack read tools
 - Local `npm test`, lint, scoped verification
-- Google Admin / GCP Console browser sign-in via `.\dev\e2e\Load-GoogleBusinessEnv.ps1` when fixing Workspace or OAuth client blockers
+- Google Admin / GCP Console browser sign-in via `bash dev/e2e/env.sh google-business` when fixing Workspace or OAuth client blockers
 
 ### Tier B — Maintainer User-scope env (already granted on the dev machine)
 
-- `OP_SAT_EquipQR` for 1Password vault writes (via `op-item-mutate.ps1` only)
+- `OP_SAT_EquipQR` for 1Password vault writes (via `bash dev/ops/op-item.sh` only)
 - `OP_SERVICE_ACCOUNT_TOKEN` for headless reads
 - `FIRECRAWL_API_KEY` (bounded quota risk)
 
 If a shell was opened before these were set, refresh:
 
-```powershell
-$env:OP_SERVICE_ACCOUNT_TOKEN = [Environment]::GetEnvironmentVariable('OP_SERVICE_ACCOUNT_TOKEN','User')
-$env:OP_SAT_EquipQR = [Environment]::GetEnvironmentVariable('OP_SAT_EquipQR','User')
+```bash
+ $OP_SERVICE_ACCOUNT_TOKEN = [Environment]::GetEnvironmentVariable('OP_SERVICE_ACCOUNT_TOKEN','User')
+ $OP_SAT_EquipQR = [Environment]::GetEnvironmentVariable('OP_SAT_EquipQR','User')
 ```
 
 ### Tier C — Browser / OAuth approval (human in the loop)
@@ -219,8 +181,8 @@ $env:OP_SAT_EquipQR = [Environment]::GetEnvironmentVariable('OP_SAT_EquipQR','Us
 | --- | --- |
 | MCP server not authenticated | Authorize the server in Cursor → MCP (browser OAuth). Then retry once. |
 | Google Workspace connect/disconnect on **preview cloud** only | Complete **Connect Google Workspace** on preview.equipqr.app; the agent watches edge logs / DB row count. Local GW flows are agent-automated via browser MCP. |
-| Google Admin Console (2SV, OAuth clients, user security) | Prefer agent browser sign-in with `Load-GoogleBusinessEnv.ps1` first; ask only if Columbia Cloudworks Agents read fails or the change needs personal approval. |
-| GCP mutation needed | Approve **gcloud-write** / editor SA impersonation for the exact change. Use `Load-GoogleBusinessEnv.ps1` for Console UI edits when impersonation is blocked. Never `gcloud config set account`. |
+| Google Admin Console (2SV, OAuth clients, user security) | Prefer agent browser sign-in with `bash dev/e2e/env.sh google-business` first; ask only if Columbia Cloudworks Agents read fails or the change needs personal approval. |
+| GCP mutation needed | Approve **gcloud-write** / editor SA impersonation for the exact change. Use `bash dev/e2e/env.sh google-business` for Console UI edits when impersonation is blocked. Never `gcloud config set account`. |
 | GitHub mutation beyond agent PAT | Approve **github-write** MCP or run the exact `gh` command. |
 | Supabase production promotion | Explicit `/release` or hotfix language only. |
 | Cursor Smart Mode blocks a command | User approves via the native approval card; agent retries with `request_smart_mode_approval` when applicable. |

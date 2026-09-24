@@ -19,7 +19,7 @@ GitHub is the source of truth for automation and deployment configuration. Workf
 
 Human logins (`quickbooks-developer`, `google-login`, `Oracle`) and personal MCP credentials (`gcp-read`, `gcp-editor`, `datadog-prod`, `figma`, `context7`, `todiagram`) are not copied into GitHub. GitHub Actions uses `GITHUB_TOKEN` instead of the `github-write` or `github-read` personal access tokens.
 
-`dev/sync-1password-dev-envs.ps1`, `dev/sync-vercel-from-1password.ps1`, and `dev/sync-supabase-secrets-from-1password.ps1` stay in the tree as rollback until `main` no longer needs them. Active workflows do not call them.
+`bash dev/ops/local-env.sh`, `bash dev/ops/vercel-env.sh`, and `bash dev/ops/supabase-secrets.sh` stay in the tree as rollback until `main` no longer needs them. Active workflows do not call them.
 
 The repository secret `OP_SERVICE_ACCOUNT_TOKEN` must stay until this change is on `main`. Deleting it earlier breaks the current production workflows. Do not delete 1Password vault items.
 

@@ -7,18 +7,9 @@ alwaysApply: true
 
 Before committing any code change in this repository, run Fallow against the **current working branch** and review both the dead-code/unused scan **and** the duplication scan:
 
-```powershell
-npx --yes fallow@2.88.0 --format json --quiet --summary > tmp\fallow-pre-commit.json 2>$null
-$code = $LASTEXITCODE
-if ($code -ge 2) { throw "Fallow runtime error $code — fix before committing" }
-$issues = (Get-Content tmp\fallow-pre-commit.json | ConvertFrom-Json).check.total_issues
-if ($issues -gt 0) { throw "Fallow found $issues issue(s) — resolve before committing (zero-baseline policy)" }
-
-npx --yes fallow@2.88.0 dupes --format json --quiet > tmp\fallow-pre-commit-dupes.json 2>$null
-$dupesCode = $LASTEXITCODE
-if ($dupesCode -ge 2) { throw "Fallow dupes runtime error $dupesCode — fix before committing" }
-$cloneGroups = (Get-Content tmp\fallow-pre-commit-dupes.json | ConvertFrom-Json).clone_groups.Count
-if ($cloneGroups -gt 0) { throw "Fallow found $cloneGroups duplication clone group(s) — resolve before committing (zero-baseline policy)" }
+```bash
+npx --yes fallow@2.88.0 --format json --quiet --summary
+npx --yes fallow@2.88.0 dupes --format json --quiet
 ```
 
 ## Zero-Baseline Policy

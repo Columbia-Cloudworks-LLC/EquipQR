@@ -6,8 +6,8 @@
 
 When gcloud MCP impersonation is insufficient (OAuth client redirect URIs, Workspace user security, Admin Console policy), agents may sign in through the browser using Columbia Cloudworks Agents vault item `Google (Business)`:
 
-```powershell
-. .\dev\e2e\Load-GoogleBusinessEnv.ps1
+```bash
+. bash dev/e2e/env.sh google-business
 ```
 
 See `docs/ops/agent-secrets-and-access.md` for vault UUID, item IDs, and `op://` rules.
@@ -83,7 +83,7 @@ Plus, on each of the four billing accounts:
 
 ### Default (read-only)
 
-```powershell
+```bash
 # Agent's default behavior — runs as viewer SA.
 gcloud projects list
 gcloud logging read '...' --organization=476784721717
@@ -92,14 +92,14 @@ gcloud organizations get-iam-policy 476784721717
 
 ### Explicit elevation (write)
 
-```powershell
+```bash
 # When the agent needs to make a change, it adds --impersonate-service-account
 # to the specific command. Only that one command runs as the editor SA.
-gcloud projects set-iam-policy <project> policy.yaml `
+gcloud projects set-iam-policy <project> policy.yaml \
   --impersonate-service-account=equipqr-cursor-agent-editor-pr@equipqr-prod.iam.gserviceaccount.com
 
-gcloud projects create my-new-project `
-  --organization=476784721717 `
+gcloud projects create my-new-project \
+  --organization=476784721717 \
   --impersonate-service-account=equipqr-cursor-agent-editor-pr@equipqr-prod.iam.gserviceaccount.com
 ```
 
@@ -121,7 +121,7 @@ The full role posture above can be reapplied to a new Google Cloud organization 
 
 ### 1. Viewer SA org-wide read
 
-```powershell
+```bash
 $org    = "<TARGET_ORG_ID>"
 $viewer = "serviceAccount:<viewer-sa@<project>.iam.gserviceaccount.com>"
 
@@ -147,7 +147,7 @@ foreach ($role in $viewerRoles) {
 
 ### 2. Editor SA org-wide co-admin
 
-```powershell
+```bash
 $org    = "<TARGET_ORG_ID>"
 $editor = "serviceAccount:<editor-sa@<project>.iam.gserviceaccount.com>"
 
@@ -174,19 +174,19 @@ foreach ($role in $editorRoles) {
 
 ### 3. Impersonation chain
 
-```powershell
+```bash
 $editorEmail = "<editor-sa@<project>.iam.gserviceaccount.com>"
 $viewer      = "serviceAccount:<viewer-sa@<project>.iam.gserviceaccount.com>"
 
-gcloud iam service-accounts add-iam-policy-binding $editorEmail `
-  --member=$viewer `
-  --role="roles/iam.serviceAccountTokenCreator" `
+gcloud iam service-accounts add-iam-policy-binding $editorEmail \
+  --member=$viewer \
+  --role="roles/iam.serviceAccountTokenCreator" \
   --project=<project>
 ```
 
 ### 4. Billing accounts
 
-```powershell
+```bash
 $editor = "serviceAccount:<editor-sa@<project>.iam.gserviceaccount.com>"
 $viewer = "serviceAccount:<viewer-sa@<project>.iam.gserviceaccount.com>"
 $billingAccounts = @("<BILLING_ACCOUNT_ID_1>", "<BILLING_ACCOUNT_ID_2>")
@@ -205,10 +205,10 @@ Projects created under organization `476784721717` (whether by the editor SA via
 
 Every `add-iam-policy-binding` above has a matching `remove-iam-policy-binding` form. The setup is fully reversible by running the same scripts with `remove-iam-policy-binding` in place of `add-iam-policy-binding`. The impersonation grant from step 3 can be revoked with:
 
-```powershell
-gcloud iam service-accounts remove-iam-policy-binding $editorEmail `
-  --member=$viewer `
-  --role="roles/iam.serviceAccountTokenCreator" `
+```bash
+gcloud iam service-accounts remove-iam-policy-binding $editorEmail \
+  --member=$viewer \
+  --role="roles/iam.serviceAccountTokenCreator" \
   --project=equipqr-prod
 ```
 

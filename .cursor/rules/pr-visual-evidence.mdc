@@ -15,40 +15,17 @@ Part of the full **`pr-merge-ready-workflow.mdc`** handoff. Every **product/runt
 
 Workflow-only PRs (`.cursor/**`, `AGENTS.md`, `dev/mcp.template.json`) are exempt.
 
-## Agent workflow (before `gh pr create`)
+## Agent workflow (before opening the PR)
 
-1. **Author or update** a focused spec under `e2e/pr-evidence/` when existing specs do not cover the change. Do **not** rely on `smoke-dashboard.spec.ts` when the PR changes specific UI.
-2. **Capture** on the local stack:
-   ```powershell
-   .\dev\pr-evidence\Invoke-PrEvidence.ps1 `
-     -Flow "<short-slug>" `
-     -Spec "e2e/pr-evidence/<feature>.spec.ts" `
-     -CaptureOnly
-   ```
-   Use `-MobileViewport` when the change affects phone UX. In specs, pass `{ target: locator }` to `evidenceScreenshot()` for controls that must be fully framed.
-3. **Visual review (mandatory)** — open each PNG under `tmp/pr-evidence/<slug>/screenshots/` and walk `visual-review-checklist.md`. Confirm the layout is production-ready (fully visible targets, no horizontal scroll traps, intentional mobile stacking, reachable primary actions). Fix layout or re-capture on any failure. Record approval:
-   ```powershell
-   .\dev\pr-evidence\Complete-PrEvidenceVisualReview.ps1 `
-     -Flow "<short-slug>" `
-     -Notes "<what you verified>"
-   ```
-   Upload/publish is blocked until `visual-review.json` has `approved: true`.
-4. **Upload** and merge `tmp/pr-evidence/<slug>/evidence-markdown.md` into the PR body under **Screenshots/Videos** (or paste the generated section verbatim):
-   ```powershell
-   .\dev\pr-evidence\Invoke-PrEvidence.ps1 `
-     -Flow "<short-slug>" `
-     -Spec "e2e/pr-evidence/<feature>.spec.ts"
-   ```
-5. **After** `gh pr create`, **publish** the evidence comment (hosted URLs for inline playback):
-   ```powershell
-   .\dev\pr-evidence\Invoke-PrEvidence.ps1 `
-     -Flow "<short-slug>" `
-     -Spec "e2e/pr-evidence/<feature>.spec.ts" `
-     -PrNumber <num> `
-     -Publish
-   ```
+1. Author a focused spec for the changed UI; use `smoke-dashboard.spec.ts` only for a smoke check.
+2. Run `bash dev/linux/pr-evidence.sh capture --flow SLUG --spec e2e/pr-evidence/FEATURE.spec.ts`. Add `--mobile` for phone UX.
+3. Open every PNG and review the MP4. Check framing, horizontal overflow, mobile stacking, and reachable actions. Fix or recapture failures.
+4. Record review with `bash dev/linux/pr-evidence.sh review --flow SLUG --notes 'What was verified'`.
+5. Upload with `bash dev/linux/pr-evidence.sh upload --flow SLUG`, then include the generated evidence markdown in the PR body.
+6. After opening the PR, use `bash dev/linux/pr-evidence.sh comment --flow SLUG --pr NUMBER` when publication is authorized.
 
-If capture fails, **stop before opening the PR** — fix the spec or stack; do not open a PR without evidence.
+Do not open a product UI PR with failed capture or missing required evidence.
+Upload and posting verify the manifest hash against the visual review.
 
 ## When to add new Playwright specs
 
@@ -91,7 +68,7 @@ PR handoff must cite:
 
 - Capture command run (copy-pasteable).
 - Spec file path.
-- Visual review completion (`Complete-PrEvidenceVisualReview.ps1` notes or `visual-review.json`).
+- Visual review completion (`bash dev/linux/pr-evidence.sh review` notes or `visual-review.json`).
 - Confirmation that screenshots **and** demo MP4 were uploaded (or PR comment URL after `-Publish`).
 
 ## Relationship to local verify

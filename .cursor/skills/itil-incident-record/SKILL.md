@@ -28,7 +28,7 @@ Proceed only when there is a specific issue, URL, page, user action, or error me
 
 If a GitHub issue is named, read it with:
 
-```powershell
+```bash
 gh issue view <number> --json number,title,body,labels,state,comments,url
 ```
 

@@ -48,7 +48,7 @@ Feature work merges to **`preview`** during normal development and accumulates C
 
 ## Step 1: Preflight
 
-```powershell
+```bash
 git fetch origin preview main --tags
 git branch --show-current
 git rev-parse HEAD
@@ -67,7 +67,7 @@ Workflow-artifact-only dirt: commit on current branch per `.cursor/rules/workflo
 
 Record last tag:
 
-```powershell
+```bash
 git describe --tags --abbrev=0 origin/main
 ```
 
@@ -87,7 +87,7 @@ Validate version consistency before continuing.
 
 Do **not** open a PR into `preview` for the version bump (CI Preview Release Metadata rejects package bumps). Commit on the local `preview` tip and push:
 
-```powershell
+```bash
 git switch preview
 git merge --ff-only origin/preview
 # stage CHANGELOG.md package.json package-lock.json README badges only
@@ -103,12 +103,7 @@ If metadata did not change, **stop** — nothing to release.
 
 ## Step 4: Scoped Vitest
 
-```powershell
-$sinceTag = git describe --tags --abbrev=0 origin/main
-$testFiles = git diff --name-only --diff-filter=AM "$sinceTag..HEAD" |
-  Where-Object { $_ -match '\.(test|spec)\.(ts|tsx)$' }
-if ($testFiles) { npx vitest run @testFiles }
-```
+See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
 
 Record skipped state when no test files changed.
 
@@ -122,8 +117,8 @@ If `git diff --name-status "$sinceTag..HEAD"` touches `src/**/*.tsx`, capture pe
 
 ## Step 6: Open or update release PR
 
-```powershell
-gh pr create --base main --head preview --title "Release vX.Y.Z" --body-file "$env:TEMP\equipqr-release-pr-body.md"
+```bash
+gh pr create --base main --head preview --title "Release vX.Y.Z" --body-file "/tmp/equipqr-release-pr-body.md"
 # or gh pr edit when updating an existing release PR
 ```
 
@@ -133,9 +128,7 @@ Customer-facing summary: short user or operator outcomes since last release per 
 
 ## Step 7: Publish evidence
 
-```powershell
-.\dev\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts" -PrNumber <num> -Publish
-```
+See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
 
 Skip when Step 5 did not apply.
 

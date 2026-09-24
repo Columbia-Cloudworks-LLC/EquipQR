@@ -35,7 +35,7 @@ For scenario-driven multi-scene recording, quality gates, diagnostics sidecars, 
 
 ## Phase 1 commands
 
-```powershell
+```bash
 # From repo root — single smoke video (canonical timestamped name under tmp/demos)
 npm run demo:video-smoke
 
@@ -52,12 +52,12 @@ Notes:
 
 ## Phase 2 commands (`@playwright/test`)
 
-```powershell
+```bash
 # Install browsers once (dev machine)
 npx playwright install chromium
 
 # Localhost: uses dev quick login in the spec
-$env:DEMO_BASE_URL="http://localhost:8080"
+export DEMO_BASE_URL="http://localhost:8080"
 npm run demo:record
 
 # Production strict sequence:
@@ -68,25 +68,22 @@ npm run demo:record:preflight:prod
 npx playwright codegen https://equipqr.app --save-storage=tmp/demos/auth.json
 
 # 3) run recording (finalizes canonical artifact into tmp/demos)
-$env:DEMO_BASE_URL="https://equipqr.app"
-$env:DEMO_STORAGE_STATE="tmp/demos/auth.json"
+export DEMO_BASE_URL="https://equipqr.app"
+export DEMO_STORAGE_STATE="tmp/demos/auth.json"
 npm run demo:record:prod
 
 # 4) reliability gate (default 3 runs)
-$env:DEMO_PROD_RELIABILITY_RUNS="3"
+export DEMO_PROD_RELIABILITY_RUNS="3"
 npm run demo:record:prod:reliability
 ```
 
 Validate outputs from `tmp/demos`:
 
-```powershell
-# newest artifacts first
-Get-ChildItem tmp/demos/*.webm | Sort-Object LastWriteTime -Descending | Select-Object -First 5
-```
+See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
 
 ## Legacy GIF demos (unchanged)
 
-```powershell
+```bash
 npm run demo:gif -- "Scenario Name"
 ```
 
@@ -94,13 +91,7 @@ Add `--video-only` to skip GIF generation and keep only the `.webm` for a named 
 
 ## Artifact lookup examples
 
-```powershell
-# latest production recording
-Get-ChildItem tmp/demos/*demo-prod*.webm | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-
-# latest smoke recording
-Get-ChildItem tmp/demos/*demo-smoke*.webm | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-```
+See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
 
 ## Troubleshooting
 
