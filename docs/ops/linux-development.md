@@ -13,13 +13,10 @@ cloud host would be required for identical backend hosting. The approved excepti
 uses an existing non-production Supabase branch in Codex cloud; the frontend,
 documentation, Node version, and lifecycle implementation remain the same.
 
-Cloud validation installed both dependency lockfiles and reached the development
-backend with curl and Node using explicit proxy/system-CA flags. Full launcher
-startup is not yet verified: earlier health checks failed, and the final adjusted
-configuration could not be tested because Codex returned
-`Too many requests: Your environment didn't start because we're at capacity`.
-Rerun the saved environment test when capacity is available; require all four
-health checks to pass before treating cloud setup as verified.
+After setup, run `bash dev/linux/dev.sh start` and `bash dev/linux/dev.sh status`.
+Require all four health checks to pass: app, documentation, authentication, and
+the database-backed Edge Function. Cloud capacity errors require a new environment
+test; they do not establish whether the application setup works.
 
 ## First setup
 
@@ -87,8 +84,10 @@ settings in ignored `.env.local`, so subsequent `dev.sh` commands work in task s
 Start the app in the agent phase with `bash dev/linux/dev.sh start`.
 Keep agent internet access enabled for dependency hosts and the exact development
 backend hostname, allowing the HTTP methods needed by authentication and CRUD.
-The currently saved cloud UI configuration predates this install-only change and
-must be updated before claiming it matches these repository scripts.
+Select `preview` when starting a task and use the repository setup command above.
+The installer selects the exact Node version from `.node-version`, even when the
+cloud image initially supplies an older Node version. Use `bash dev/linux/run.sh`
+before commands such as `npm test` to select that same runtime in fresh shells.
 The launcher enables Node's environment-proxy and system-CA support, keeping
 loopback addresses outside the proxy. This is required for outbound cloud HTTPS.
 
@@ -107,10 +106,9 @@ applies only to the locally seeded accounts. Optional `VITE_DEV_TEST_PASSWORD`
 must contain only a disposable development password because Vite exposes it to
 the browser. It is not populated by this setup.
 
-Use version-controlled repository scripts in the final Codex environment. The
-earlier base64 snapshot was a temporary test of unpublished files; it is not the
-deployment mechanism. Changes must be published before the cloud environment can
-check out this exact setup. Publish changes through a verified PR into `preview` before using them in cloud tasks.
+Use version-controlled repository scripts in the Codex environment. Publish
+changes through a verified PR into `preview` before using them in cloud tasks.
+Keep the saved setup command free of embedded snapshots and branch overrides.
 
 Codex runs setup in a separate shell. Setup exports do not configure later task
 shells, and setup secrets are removed before the agent phase. Put only public
