@@ -6,6 +6,23 @@ product behavior changes. Do not inventory current files, symbols, or
 line numbers here — look those up in the checkout when a task needs them.
 Add a pointer in `AGENTS.md` only if a new topic needs discovery.
 
+## Animation debugging
+
+`/debug/animation-test` is available in local development and Vercel Preview
+builds only. Production builds omit both the page and its isolated playback
+runtime. The lab uses real animation components in a disposable iframe and a
+virtual clock for timers, animation frames, GSAP, and browser animations.
+Backward seeking replays from the same random seed; the seek limit is 120 seconds.
+It never mutates equipment or work-order data.
+
+Hero stories registered in the shared hero slide registry appear automatically.
+Authored CSS keyframes are discovered automatically and receive reference-tile
+fixtures; those tiles use a two-second duration, not the original composition.
+Register other new animation components in the debugger's animation catalog with
+a meaningful fixture and description. Interactive fixtures may be operated inside
+the stage; advance the clock to inspect transitions they trigger. The system's
+reduced-motion preference is preserved.
+
 ## Product onboarding
 
 Only active owners and admins enter product onboarding. Members are never

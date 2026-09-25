@@ -6,6 +6,7 @@ import fs from "fs";
 import { writeMarketingHtmlFiles } from "./dev/generate-marketing-html";
 import { loadPublicReleases } from "./dev/publicReleases";
 import { buildCsp } from "./dev/csp";
+import { animationDebugEnabled } from "./dev/animation-debug-build";
 
 // HTTP request logger plugin for dev server
 function httpLogger(): PluginOption {
@@ -84,8 +85,9 @@ function resolveManualChunk(id: string): string | undefined {
 }
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode, command }) => ({
   define: {
+    __ANIMATION_DEBUG__: JSON.stringify(animationDebugEnabled(command, process.env.VERCEL_ENV)),
     // Expose version to the client (prefers env var, falls back to package.json)
     __APP_VERSION__: JSON.stringify(process.env.VITE_APP_VERSION || PKG_VERSION),
     __PUBLIC_RELEASES__: JSON.stringify(PUBLIC_RELEASES),

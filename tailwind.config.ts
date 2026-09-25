@@ -209,6 +209,10 @@ export default {
 				'ease-out': 'var(--easing-ease-out)',
 			},
 			keyframes: {
+				'caret-blink': {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0' }
+				},
 				'accordion-down': {
 					from: {
 						height: '0'
@@ -276,6 +280,7 @@ export default {
 				}
 			},
 			animation: {
+				'caret-blink': 'caret-blink 1s step-end infinite',
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				// Page transitions
