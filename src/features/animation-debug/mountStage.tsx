@@ -35,17 +35,19 @@ export async function mountStage() {
       useLayoutEffect(() => { committed = true; }, []);
       return null;
     }
+    const waitingForContent = () => !committed || Boolean(document.querySelector('[data-animation-loading]'));
     const renderStage = () => root.render(<MemoryRouter><Suspense key={preparation} fallback={<p>Loading animation…</p>}><div style={{ width: '100%', height: '100vh', overflow: 'auto' }}><fixture.Stage state={state} seed={Number(params.get('seed') ?? 1)} complete={complete} /><Ready /></div></Suspense></MemoryRouter>);
     flushSync(renderStage);
     // A resolved lazy import can remain behind React's fallback commit delay.
     // Remount only the uncommitted boundary, while time is still zero, until a
     // layout effect proves the actual fixture (not its fallback) has committed.
-    for (let pass = 0; !committed && pass < 100; pass++) {
+    for (let pass = 0; waitingForContent() && pass < 100; pass++) {
       await clock.settle();
       preparation++;
+      committed = false;
       flushSync(renderStage);
     }
-    if (!committed) throw new Error('Animation did not finish loading. Please restart the stage.');
+    if (waitingForContent()) throw new Error('Animation did not finish loading. Please restart the stage.');
     await clock.settle();
     clock.captureAnimations();
     function report() {

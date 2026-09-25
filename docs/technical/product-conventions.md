@@ -19,7 +19,9 @@ Hero stories registered in the shared hero slide registry appear automatically.
 Authored CSS keyframes are discovered automatically and receive reference-tile
 fixtures; those tiles use a two-second duration, not the original composition.
 Register other new animation components in the debugger's animation catalog with
-a meaningful fixture and description. Interactive fixtures may be operated inside
+a meaningful fixture and description. Mark nested Suspense fallbacks with
+`data-animation-loading` so initial readiness waits for their actual content;
+the shared hero fallbacks already provide this marker. Interactive fixtures may be operated inside
 the stage; advance the clock to inspect transitions they trigger. The system's
 reduced-motion preference is preserved.
 
