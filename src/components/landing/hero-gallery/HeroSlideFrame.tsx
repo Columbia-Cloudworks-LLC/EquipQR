@@ -17,7 +17,7 @@ export function HeroSlideFrame({ slide, reducedMotion, onLoopComplete }: HeroSli
   const Stage = slide.Stage;
   const Fallback = slide.Fallback;
   return (
-    <Suspense fallback={<Fallback />}>
+    <Suspense fallback={<span className="contents" data-animation-loading><Fallback /></span>}>
       <Stage onLoopComplete={onLoopComplete} />
     </Suspense>
   );

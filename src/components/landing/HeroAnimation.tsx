@@ -73,6 +73,7 @@ export function HeroPhaseLoadingFallback() {
     <div
       className="relative w-full h-full flex items-center justify-center"
       data-testid="hero-phase-loading-fallback"
+      data-animation-loading
     >
       <svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true">
         <path
@@ -302,7 +303,7 @@ export default function HeroAnimation({
             {/* Phase 5 checklist overlay — full-stage absolute, so the connector
                 line SVG can start at the dot's stage position and end at the panel */}
             {phase === 'phase5-checklist' && (
-              <Suspense fallback={null}>
+              <Suspense fallback={<span hidden data-animation-loading />}>
                 <PMChecklistPhase
                   slideDirection={slideDirection}
                   dotStageX={dotStageX}

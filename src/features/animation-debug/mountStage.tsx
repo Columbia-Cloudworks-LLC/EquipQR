@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
-import { Suspense } from 'react';
+import { Suspense, useLayoutEffect } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { installVirtualClock } from './virtualClock';
 import { FRAME_MS, type StageSnapshot } from './protocol';
@@ -29,12 +29,25 @@ export async function mountStage() {
     const complete = () => { events.push(`${(clock.time / 1000).toFixed(3)}s · Sequence completed`); };
     document.documentElement.classList.add('dark');
     const root = createRoot(document.getElementById('root')!);
-    const renderStage = () => root.render(<MemoryRouter><Suspense fallback={<p>Loading animation…</p>}><div style={{ width: '100%', height: '100vh', overflow: 'auto' }}><fixture.Stage state={state} seed={Number(params.get('seed') ?? 1)} complete={complete} /></div></Suspense></MemoryRouter>);
+    let committed = false;
+    let preparation = 0;
+    function Ready() {
+      useLayoutEffect(() => { committed = true; }, []);
+      return null;
+    }
+    const waitingForContent = () => !committed || Boolean(document.querySelector('[data-animation-loading]'));
+    const renderStage = () => root.render(<MemoryRouter><Suspense key={preparation} fallback={<p>Loading animation…</p>}><div style={{ width: '100%', height: '100vh', overflow: 'auto' }}><fixture.Stage state={state} seed={Number(params.get('seed') ?? 1)} complete={complete} /><Ready /></div></Suspense></MemoryRouter>);
     flushSync(renderStage);
-    // Let already-preloaded React.lazy promises and passive effects commit while
-    // virtual time stays at zero, before declaring the first frame ready.
-    for (let pass = 0; pass < 5; pass++) await clock.settle();
-    flushSync(renderStage);
+    // A resolved lazy import can remain behind React's fallback commit delay.
+    // Remount only the uncommitted boundary, while time is still zero, until a
+    // layout effect proves the actual fixture (not its fallback) has committed.
+    for (let pass = 0; waitingForContent() && pass < 100; pass++) {
+      await clock.settle();
+      preparation++;
+      committed = false;
+      flushSync(renderStage);
+    }
+    if (waitingForContent()) throw new Error('Animation did not finish loading. Please restart the stage.');
     await clock.settle();
     clock.captureAnimations();
     function report() {
@@ -61,6 +74,7 @@ export async function mountStage() {
       try {
         let remaining = delta;
         while (remaining > 0.001) {
+          clock.captureAnimations();
           const step = Math.min(FRAME_MS, remaining);
           flushSync(() => clock.tick(step));
           await clock.settle();

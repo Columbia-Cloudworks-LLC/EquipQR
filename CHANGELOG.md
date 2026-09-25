@@ -24,6 +24,8 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Fixed
 
+- **Animation lab startup** — Frame stepping waits for the animation to finish loading, preserving accurate timing on a cold load.
+
 - **Hero story timing** — The scan story reports one completion per loop, keeping gallery transitions aligned with the full story.
 
 - **Input caret** — The verification-code input caret now blinks as intended.

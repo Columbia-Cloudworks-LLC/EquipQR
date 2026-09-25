@@ -17,6 +17,10 @@ test('animation lab steps and seeks every registered fixture @pr-evidence', asyn
     await test.step(id, async () => {
       await selector.selectOption(id);
       await expect(status).toHaveText('Paused');
+      await expect(page.frameLocator('iframe').locator('[data-animation-loading]')).toHaveCount(0);
+      if (id === 'scan-machine') {
+        await expect(page.locator('tbody tr').filter({ hasText: 'scan-clock' })).toHaveText('scan-clock0.07000');
+      }
       await page.getByRole('button', { name: 'Step one frame', exact: true }).click();
       await expect(elapsed).toHaveText('0.017 s');
       await page.getByLabel('Seek to (s)').fill('2');
