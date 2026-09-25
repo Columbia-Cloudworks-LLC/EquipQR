@@ -45,7 +45,9 @@ export default function ScanMachineSlide({ onLoopComplete }: HeroSlideProps) {
     <div
       className="scan-story relative h-full w-full overflow-hidden"
       data-testid="scan-machine-stage"
-      onAnimationIteration={onLoopComplete}
+      onAnimationIteration={(event) => {
+        if (event.target === event.currentTarget) onLoopComplete();
+      }}
     >
       <div className="scan-qr-hero absolute left-1/2 top-1/2 w-[58%] -translate-x-1/2 -translate-y-1/2">
         <svg viewBox="850 365 222 222" aria-hidden="true">

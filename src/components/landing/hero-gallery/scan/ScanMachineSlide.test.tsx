@@ -24,6 +24,17 @@ describe('ScanMachineSlide', () => {
     stage.dispatchEvent(new Event('webkitAnimationIteration', { bubbles: true }));
     expect(onLoopComplete).toHaveBeenCalledTimes(1);
   });
+
+  it('ignores child animation iterations so the gallery advances once per story', () => {
+    const onLoopComplete = vi.fn();
+    render(<ScanMachineSlide onLoopComplete={onLoopComplete} />);
+    screen.getByTestId('scan-phone').dispatchEvent(new Event('animationiteration', { bubbles: true }));
+    screen.getByTestId('scan-phone').dispatchEvent(new Event('webkitAnimationIteration', { bubbles: true }));
+    expect(onLoopComplete).not.toHaveBeenCalled();
+    screen.getByTestId('scan-machine-stage').dispatchEvent(new Event('animationiteration', { bubbles: true }));
+    screen.getByTestId('scan-machine-stage').dispatchEvent(new Event('webkitAnimationIteration', { bubbles: true }));
+    expect(onLoopComplete).toHaveBeenCalledOnce();
+  });
 });
 
 describe('ScanMachineStatic', () => {

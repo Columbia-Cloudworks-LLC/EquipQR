@@ -1,6 +1,9 @@
 import { lazy } from 'react';
+import { isAnimationDebugHost } from '@/lib/animationDebugHost';
 
 export const Auth = lazy(() => import('@/pages/Auth'));
+export const AnimationTest = typeof __ANIMATION_DEBUG__ !== 'undefined' && __ANIMATION_DEBUG__ && isAnimationDebugHost(location.hostname)
+  ? lazy(() => import('@/features/animation-debug/AnimationTestPage')) : null;
 export const DebugAuth = import.meta.env.DEV ? lazy(() => import('@/pages/DebugAuth')) : null;
 export const DebugScanFeedback = import.meta.env.DEV ? lazy(() => import('@/pages/DebugScanFeedback')) : null;
 export const RepairShops = lazy(() => import('@/pages/solutions/RepairShops'));

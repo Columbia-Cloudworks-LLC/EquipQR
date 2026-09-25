@@ -13,6 +13,8 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Added
 
+- **Animation lab** — Preview includes an animation test page with frame stepping, pause, replay, and isolated animation phases.
+
 - **Landing hero stories (#1560, #1561)** — The homepage hero rotates between the fleet map and a scan-to-service-history story. Visitors can pick a story, and reduced-motion mode shows a still of each one.
 
 - **QuickBooks invoice review (#1551)** — Choose and save explicit service, invoice, and payment due dates before export. PM invoices use concise service lines with editable initial $0 pricing and customer notes in the memo.
@@ -21,6 +23,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 - **GitHub shortcut (#1541)** — [github.equipqr.app](https://github.equipqr.app) redirects to the EquipQR GitHub repository.
 
 ### Fixed
+
+- **Hero story timing** — The scan story reports one completion per loop, keeping gallery transitions aligned with the full story.
+
+- **Input caret** — The verification-code input caret now blinks as intended.
 
 - **Accessible card actions** — Equipment and mobile inventory cards now keep details, QR codes, and quick actions independently usable with a keyboard. (#1573, #1575)
 - **Equipment filter labels** — The Out of Service filter chip now displays the same readable status label as the picker. (#1574)
