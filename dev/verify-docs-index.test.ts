@@ -7,6 +7,7 @@ import {
   collectLocalMarkdownHrefs,
   findGithubShortcutRedirect,
   isGithubShortcutLiveRedirect,
+  isGithubShortcutRootSource,
   locationMatchesRepo,
   resolveLocalMarkdownHref,
 } from './verify-docs-index.mjs';
@@ -49,7 +50,7 @@ describe('collectBrokenAgentsLinks', () => {
 });
 
 describe('findGithubShortcutRedirect', () => {
-  it('requires host match, permanent flag, and the repo URL', () => {
+  it('requires host match, permanent flag, the repo URL, and a root source', () => {
     const match = {
       source: '/(.*)',
       destination: GITHUB_REPO_URL,
@@ -73,6 +74,21 @@ describe('findGithubShortcutRedirect', () => {
         redirects: [{ ...match, has: [{ type: 'host', value: 'equipqr.app' }] }],
       }),
     ).toBeUndefined();
+    expect(
+      findGithubShortcutRedirect({
+        redirects: [{ ...match, source: '/foo' }],
+      }),
+    ).toBeUndefined();
+  });
+});
+
+describe('isGithubShortcutRootSource', () => {
+  it('accepts only patterns that still match the host root', () => {
+    expect(isGithubShortcutRootSource('/')).toBe(true);
+    expect(isGithubShortcutRootSource('/(.*)')).toBe(true);
+    expect(isGithubShortcutRootSource('/:path*')).toBe(true);
+    expect(isGithubShortcutRootSource('/foo')).toBe(false);
+    expect(isGithubShortcutRootSource('/github')).toBe(false);
   });
 });
 

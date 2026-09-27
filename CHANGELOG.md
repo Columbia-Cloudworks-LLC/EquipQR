@@ -11,32 +11,37 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+## [3.34.0] - 2026-09-27
+
 ### Added
 
-- **Animation lab** — Preview includes an animation test page with frame stepping, pause, replay, and isolated animation phases.
+- **QuickBooks invoice review** — Choose and save service dates, invoice dates, payment terms, and due dates before exporting a work order. (#1551, #1552)
 
-- **Landing hero stories (#1560, #1561)** — The homepage hero rotates between the fleet map and a scan-to-service-history story. Visitors can pick a story, and reduced-motion mode shows a still of each one.
+### Changed
 
-- **QuickBooks invoice review (#1551)** — Choose and save explicit service, invoice, and payment due dates before export. PM invoices use concise service lines with editable initial $0 pricing and customer notes in the memo.
+- **Clearer QuickBooks line items** — PM services use concise invoice lines with initial $0 pricing; findings, public notes, and parts details appear in the customer memo. Set PM prices in QuickBooks before sending. (#1552)
+- **Homepage workflow stories** — The hero rotates through fleet-map and scan-to-service-history stories, with manual selection and still images for reduced-motion preferences. (#1560, #1561, #1565)
 
-- **Real-world photography** — Equipment-yard and workshop photos bring repair-shop and inventory workflows to life across the marketing pages.
+### Fixed
+
+- **QuickBooks re-export** — Existing QuickBooks prices and service dates are preserved, and replacing invoice billing dates requires an explicit choice. (#1552)
+- **Complete Quick Forms results** — Browse every matching submission and export the entire filtered set, including results beyond the first page. (#1547)
+- **Quick Forms retry** — Failed loads and refreshes show an error and retry option, including when the previous result was empty. (#1548, #1558)
+- **Teams on phones** — Search, sort, and Create Team stay usable on narrow screens without sideways scrolling. (#1549)
+- **Keyboard-accessible card actions** — Equipment and mobile inventory cards keep details, QR codes, and quick actions independently usable with a keyboard. (#1573, #1575)
+- **Equipment status labels** — The Out of Service filter uses the same readable label as the status picker. (#1574)
+- **Verification-code entry** — The input caret now blinks as intended. (#1565)
+
+## [3.33.0] - 2026-09-21
+
+### Added
+
+- **Real-world photography (#1550)** — Equipment-yard and workshop photos bring repair-shop and inventory workflows to life across the marketing pages.
 - **GitHub shortcut (#1541)** — [github.equipqr.app](https://github.equipqr.app) redirects to the EquipQR GitHub repository.
 
 ### Fixed
 
-- **Animation lab startup** — Frame stepping waits for the animation to finish loading, preserving accurate timing on a cold load.
-
-- **Hero story timing** — The scan story reports one completion per loop, keeping gallery transitions aligned with the full story.
-
-- **Input caret** — The verification-code input caret now blinks as intended.
-
-- **Accessible card actions** — Equipment and mobile inventory cards now keep details, QR codes, and quick actions independently usable with a keyboard. (#1573, #1575)
-- **Equipment filter labels** — The Out of Service filter chip now displays the same readable status label as the picker. (#1574)
-
-- **Quick Forms ledger** — The ledger pages through every matching submission and full exports include the whole filtered set, including results past the first page. (#1547)
-- **Quick Forms load errors** — A failed forms or ledger request shows an error with retry. An empty list appears only after a successful request with no rows, and a later failed refresh stays visible even when that result was empty. (#1548)
-- **Teams toolbar on phones** — Search, sort, and Create Team stack on narrow screens so they stay usable without sideways scrolling. (#1549)
-- **Push notification retries** — Temporary delivery failures are retried instead of silently dropping work-order alerts. (#1438)
+- **Push notification retries (#1438)** — Temporary delivery failures are retried instead of silently dropping work-order alerts.
 
 ### Security
 
@@ -2764,7 +2769,9 @@ Update package dependencies and versions
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.32.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.34.0...HEAD
+[3.34.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.33.0...v3.34.0
+[3.33.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.32.0...v3.33.0
 [3.32.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.31.0...v3.32.0
 [3.31.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.30.0...v3.31.0
 [3.30.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.29.1...v3.30.0
