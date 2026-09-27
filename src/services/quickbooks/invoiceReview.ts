@@ -48,13 +48,18 @@ export interface InvoiceConfirmation extends InvoiceDates {
 
 export async function getInvoiceReview(workOrderId: string): Promise<InvoiceReview> {
   const { data, error } = await supabase.functions.invoke<InvoiceReview & { error?: string }>(
-    'quickbooks-export-invoice', { body: { work_order_id: workOrderId, action: 'review' } },
+    // Legacy handlers export whenever work_order_id is present, ignoring action.
+    // A review-only identifier makes those handlers reject without an invoice write.
+    'quickbooks-export-invoice', { body: { review_work_order_id: workOrderId, action: 'review' } },
   );
   if (error) {
     const payload = await getInvokeErrorPayload(error);
-    throw new Error(payload?.error || error.message);
+    throw new Error(payload?.error === 'work_order_id is required'
+      ? 'Invoice review is temporarily unavailable. Please try again shortly.'
+      : payload?.error || error.message);
   }
   if (!data || data.error) throw new Error(data?.error || 'Unable to review this invoice');
+  if (!Array.isArray(data.services)) throw new Error('Invoice review is temporarily unavailable. Please try again shortly.');
   return data;
 }
 

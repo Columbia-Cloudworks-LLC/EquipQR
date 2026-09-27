@@ -24,6 +24,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Fixed
 
+- **Safe invoice review during updates** — Opening invoice review cannot trigger an export while the QuickBooks integration is being updated. (#1580)
 - **QuickBooks re-export** — Existing QuickBooks prices and service dates are preserved, and replacing invoice billing dates requires an explicit choice. (#1552)
 - **Complete Quick Forms results** — Browse every matching submission and export the entire filtered set, including results beyond the first page. (#1547)
 - **Quick Forms retry** — Failed loads and refreshes show an error and retry option, including when the previous result was empty. (#1548, #1558)
