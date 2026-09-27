@@ -27,7 +27,7 @@ test('card actions stay independent and status chips match the picker @pr-eviden
   await evidenceScreenshot(page, '02-equipment-details-focus', { target: details });
   await details.press('Enter');
   await expect(page).toHaveURL(/\/dashboard\/equipment\/[^/?]+$/);
-  await expect(page.getByRole('heading', { name: equipmentName, exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: equipmentName, exact: true, level: 1 })).toBeVisible();
 
   await gotoDashboard('/equipment?status=out_of_service');
   await expect(page.getByText('Status: Out of Service', { exact: true })).toBeVisible();
@@ -77,7 +77,7 @@ test('card actions stay independent and status chips match the picker @pr-eviden
     const itemName = (await inventoryDetails.getAttribute('aria-label'))!.replace('Open inventory item ', '');
     await inventoryDetails.press('Space');
     await expect(page).toHaveURL(/\/dashboard\/inventory\/[^/?]+$/);
-    await expect(page.getByRole('heading', { name: itemName, exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: itemName, exact: true, level: 1 })).toBeVisible();
     await evidencePause(page, 500);
     await evidenceScreenshot(page, '06-inventory-keyboard-details');
   }
