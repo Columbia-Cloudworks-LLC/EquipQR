@@ -74,4 +74,3 @@ jobs:
             supabase/rls-policies.sql
           if-no-files-found: error
           retention-days: 7
-
