@@ -12,7 +12,7 @@ name: Export Database Schema
 
 on:
   push:
-    branches: [main]
+    branches: [main, preview]
     paths-ignore:
       - 'supabase/schema.sql'
       - 'supabase/rls-policies.sql'
@@ -39,6 +39,12 @@ jobs:
         with:
           version: 2.72.8
 
+      - name: Export regression tests
+        run: python3 dev/test_export_schema_baseline.py
+
+      - name: Verify PostgreSQL client
+        run: psql --version
+
       - name: Export schema and RLS baseline from production project
         id: export-schema
         run: |
@@ -58,8 +64,19 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.PREVIEW_DATABASE_URL }}
 
-      - name: Commit schema artifacts if changed
+      - name: Upload schema reference artifacts
         if: steps.export-schema.outputs.exported == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: schema-reference
+          path: |
+            supabase/schema.sql
+            supabase/rls-policies.sql
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Commit schema artifacts if changed
+        if: steps.export-schema.outputs.exported == 'true' && github.ref == 'refs/heads/main'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

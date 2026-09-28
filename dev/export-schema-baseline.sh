@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Export preview-sourced schema and RLS reference artifacts (read-only docs).
+# Export database schema and RLS reference artifacts (read-only docs).
 # Usage: DATABASE_URL='postgresql://...' ./dev/export-schema-baseline.sh
 
 set -euo pipefail
@@ -12,63 +12,40 @@ if [[ -z "${DATABASE_URL:-}" ]]; then
   exit 1
 fi
 
-echo "Dumping production schema to supabase/schema.sql ..."
-supabase db dump --db-url "$DATABASE_URL" \
-  --schema public \
-  --schema storage \
-  --schema auth \
-  --schema pgmq_public \
-  --file supabase/schema.sql
+# Build both artifacts in a temporary directory; a failed query must leave the
+# existing references untouched. psql works with the pinned Supabase dump CLI.
+command -v psql >/dev/null || { echo "psql is required" >&2; exit 1; }
+output_dir="${SCHEMA_EXPORT_OUTPUT_DIR:-$repo_root/supabase}"
+mkdir -p "$output_dir"
+export_tmp="$(mktemp -d)"
+trap 'rm -rf "$export_tmp"' EXIT
 
-extract_json_object() {
-  python - "$1" <<'PY'
-import sys
-raw = open(sys.argv[1], encoding='utf-8').read()
-start = raw.find('{')
-if start < 0:
-    raise SystemExit('No JSON object found in Supabase query output')
-depth = 0
-in_string = False
-escaped = False
-for i, ch in enumerate(raw[start:], start):
-    if in_string:
-        if escaped:
-            escaped = False
-        elif ch == '\\':
-            escaped = True
-        elif ch == '"':
-            in_string = False
-        continue
-    if ch == '"':
-        in_string = True
-        continue
-    if ch == '{':
-        depth += 1
-    elif ch == '}':
-        depth -= 1
-        if depth == 0:
-            open(sys.argv[1], 'w', encoding='utf-8').write(raw[start:i + 1])
-            break
-else:
-    raise SystemExit('Malformed JSON object in Supabase query output')
-PY
-}
+echo "Dumping schema ..."
+supabase db dump --db-url "$DATABASE_URL" \
+  --schema public --schema storage --schema auth --schema pgmq_public \
+  --file "$export_tmp/schema.sql"
 
 run_query_json() {
   local sql_file="$1"
-  local tmp_out
-  tmp_out="$(mktemp)"
-  supabase db query --db-url "$DATABASE_URL" --output json --file "$sql_file" >"$tmp_out" 2>/dev/null || true
-  extract_json_object "$tmp_out"
-  echo "$tmp_out"
+  local output_file="$2"
+  # Wrap the catalog SELECT in PostgreSQL JSON, preserving booleans and arrays.
+  # ON_ERROR_STOP and a direct call preserve failures instead of parsing help text.
+  {
+    echo "SELECT json_build_object('rows', COALESCE(json_agg(catalog), '[]'::json)) FROM ("
+    sed 's/;[[:space:]]*$//' "$sql_file"
+    echo ') AS catalog;'
+  } | PGOPTIONS='-c default_transaction_read_only=on' \
+    psql --dbname="$DATABASE_URL" -X -q -A -t -v ON_ERROR_STOP=1 > "$output_file"
 }
 
 echo "Querying RLS catalog ..."
-tables_file="$(run_query_json dev/export-rls-tables.sql)"
-policies_file="$(run_query_json dev/export-rls-policies-query.sql)"
+tables_file="$export_tmp/tables.json"
+policies_file="$export_tmp/policies.json"
+run_query_json dev/export-rls-tables.sql "$tables_file"
+run_query_json dev/export-rls-policies-query.sql "$policies_file"
 generated_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
-python - "$tables_file" "$policies_file" "supabase/rls-policies.sql" "$generated_at" <<'PY'
+python3 - "$tables_file" "$policies_file" "$export_tmp/rls-policies.sql" "$generated_at" <<'PY'
 import json, sys
 
 tables_path, policies_path, rls_path, generated_at = sys.argv[1:5]
@@ -79,7 +56,7 @@ lines = [
     "-- EquipQR RLS reference baseline (read-only documentation artifact)",
     "-- Source: production Supabase project ymxkzronkhwxzcdcbnwq",
     f"-- Generated (UTC): {generated_at}",
-    "-- Regenerate: ./dev/export-schema-baseline.sh (CI) or .\\dev\\bash dev/export-schema-baseline.sh (Windows)",
+    "-- Regenerate: bash dev/export-schema-baseline.sh",
     "-- Do NOT apply this file directly; use supabase/migrations for changes.",
     "",
     "-- =============================================================================",
@@ -129,5 +106,6 @@ with open(rls_path, "w", encoding="utf-8", newline="\n") as handle:
 print(f"Wrote {rls_path} ({len(policies)} policies, {len(tables)} tables inventoried).")
 PY
 
-rm -f "$tables_file" "$policies_file"
+mv "$export_tmp/schema.sql" "$output_dir/schema.sql"
+mv "$export_tmp/rls-policies.sql" "$output_dir/rls-policies.sql"
 echo "Schema and RLS baseline export complete."
