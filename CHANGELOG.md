@@ -11,6 +11,8 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+## [3.34.1] - 2026-09-27
+
 ### Fixed
 
 - **Database reference exports** — Restored automatic database documentation exports and added preview verification before production release.

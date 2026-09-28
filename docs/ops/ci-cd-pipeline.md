@@ -120,9 +120,10 @@ references intact. `SCHEMA_EXPORT_OUTPUT_DIR` can direct local test output to a
 temporary directory. Prerequisites: Supabase CLI, Docker, psql, Python 3.
 
 Each successful run uploads a `schema-reference` artifact for seven days.
-Only runs on `main` commit the generated files; preview and feature-branch
-manual runs provide artifact-only verification. To verify a fix after merging
-to preview, inspect the preview-triggered run and download its artifact.
+All branches use artifact-only output: the workflow never pushes generated
+files directly to protected branches. To refresh the checked-in references,
+download the artifact and submit the files through a normal PR. To verify a fix
+after merging to preview, inspect the preview-triggered run and its artifact.
 
 ### Vercel
 

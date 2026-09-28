@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   export-schema:
@@ -75,16 +75,3 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-      - name: Commit schema artifacts if changed
-        if: steps.export-schema.outputs.exported == 'true' && github.ref == 'refs/heads/main'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add supabase/schema.sql supabase/rls-policies.sql
-          if git diff --cached --quiet; then
-            echo "No schema baseline changes detected"
-          else
-            git commit -m "chore: update schema and RLS baseline [skip ci]"
-            git push
-            echo "Schema baseline changes committed and pushed"
-          fi
