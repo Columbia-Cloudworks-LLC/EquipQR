@@ -176,6 +176,7 @@ vi.mock('@/components/layout/TopBar', () => ({
 
 /** Sync stubs so App.routes avoids React.lazy / Suspense ticks per route. */
 vi.mock('@/routes/lazyPublicPages', () => ({
+  AnimationTest: null,
   Auth: () => <div data-testid="auth-page">Auth</div>,
   DebugAuth: null,
   DebugScanFeedback: null,

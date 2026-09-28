@@ -71,7 +71,7 @@ export const WorkOrderScheduling: React.FC<WorkOrderSchedulingProps> = ({
         </h3>
         
         <div className="space-y-2">
-          <Label htmlFor="work-order-due-date">Due Date</Label>
+          <Label htmlFor="work-order-due-date">Work order due date</Label>
           <Input
             id="work-order-due-date"
             type="date"
@@ -81,6 +81,7 @@ export const WorkOrderScheduling: React.FC<WorkOrderSchedulingProps> = ({
           {errors.dueDate && (
             <p className="text-sm text-destructive">{errors.dueDate}</p>
           )}
+          <p className="text-xs text-muted-foreground">Scheduling deadline for the work. Invoice payment dates are entered separately when reviewing an invoice.</p>
         </div>
 
         <div className="space-y-2">

@@ -149,6 +149,8 @@ export interface QuickBooksCustomerRecord {
  * Request payload for quickbooks-export-invoice Edge Function
  */
 export type QuickBooksExportInvoiceRequest = {
+  action?: 'export';
+  confirmation?: import('./invoiceReview').InvoiceConfirmation;
   work_order_id: string;
 };
 

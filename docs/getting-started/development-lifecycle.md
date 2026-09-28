@@ -26,7 +26,7 @@ Use Cursor Plan/Agent mode for non-trivial changes. Store plans under `docs/plan
 
 ### 2) Branch and implement
 
-```powershell
+```bash
 git fetch origin preview
 git switch -c feat/<short-name> origin/preview
 ```
@@ -35,7 +35,7 @@ Run local stack via `dev-start.bat`. Gate: lint, type-check, targeted tests, sma
 
 ### 3) Push and validate on Preview
 
-```powershell
+```bash
 git push -u origin HEAD
 ```
 
@@ -45,8 +45,8 @@ git push -u origin HEAD
 
 ### 4) PR to preview
 
-```powershell
-gh pr create --base preview --head feat/<short-name> --title "feat: ..." --body-file "$env:TEMP\pr-body.md"
+```bash
+gh pr create --base preview --head feat/<short-name> --title "feat: ..." --body-file "/tmp/pr-body.md"
 ```
 
 Requirements: CI green, visual evidence for UI changes, Supabase green or skipped when the PR has no related changes. Release-metadata mode is **preview** (Unreleased notes; no version bump).

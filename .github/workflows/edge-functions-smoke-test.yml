@@ -28,25 +28,11 @@ name: Edge Functions Smoke Test
 # ──────────────────────────────────────────────────────────────────────
 # Operator-facing requirements (learned the hard way during PR #637):
 #
-#   1. OP_SERVICE_ACCOUNT_TOKEN must be a REPO-LEVEL secret, not an
-#      environment secret. This workflow does not declare `environment:`,
-#      so environment-scoped secrets won't resolve. One token, one place
-#      to rotate, one place to audit.
-#
-#   2. The 1Password item `supabase-write` in the EquipQR Agents vault must
-#      expose `preview_anon_public_key` and `prod_anon_public_key` (public
-#      anon JWTs for each Supabase project). This workflow does not read
-#      `app-env-*-public` items: those Vercel-facing items may omit per-field
-#      `vite_supabase_url` labels even while `supabase-write` stays canonical
-#      for CI probes.
-#
-#   3. Project URL: production Supabase (`ymxkzronkhwxzcdcbnwq`). Cloud preview
-#      (`preview.equipqr.app`) shares this project after #1033; olsdirk retired.
-#
-#   4. When OP_SERVICE_ACCOUNT_TOKEN is empty (e.g. fork PRs that can't
-#      access secrets), the load step degrades gracefully and the probe
-#      step skips with a warning + exit 0. This is intentional — a
-#      missing operator credential should not red-light every PR.
+#   1. SUPABASE_ANON_KEY is a repository secret (the public anon key). This
+#      workflow does not declare environment: production.
+#   2. Project URL: production Supabase (`ymxkzronkhwxzcdcbnwq`).
+#   3. Fork pull requests cannot read repository secrets. The probe skips
+#      with a warning in that case.
 # ──────────────────────────────────────────────────────────────────────
 
 on:
@@ -55,15 +41,11 @@ on:
     paths:
       - 'supabase/functions/**'
       - '.github/workflows/edge-functions-smoke-test.yml'
-      # Trigger when the composite action this workflow depends on changes,
-      # otherwise YAML/auth fixes to the action skip CI validation.
-      - '.github/actions/load-1p-secrets/**'
   pull_request:
     branches: [main]
     paths:
       - 'supabase/functions/**'
       - '.github/workflows/edge-functions-smoke-test.yml'
-      - '.github/actions/load-1p-secrets/**'
   workflow_dispatch:
 
 permissions:
@@ -84,32 +66,17 @@ jobs:
           {
             echo "env=production"
             echo "supabase_url=https://ymxkzronkhwxzcdcbnwq.supabase.co"
-            echo "anon_op_field=prod_anon_public_key"
           } >> "$GITHUB_OUTPUT"
-
-      - name: Load Supabase anon key from 1Password
-        uses: ./.github/actions/load-1p-secrets
-        with:
-          # Smoke test is best-effort — when OP_SERVICE_ACCOUNT_TOKEN has not
-          # been planted yet (or this is a fork PR), emit a warning and let
-          # the downstream probe step skip rather than fail the deploy.
-          required: 'false'
-        env:
-          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
-          SUPABASE_ANON_KEY: op://EquipQR Agents/supabase-write/${{ steps.target.outputs.anon_op_field }}
 
       - name: Probe public-google-maps-key
         shell: bash
         env:
           SUPABASE_URL: ${{ steps.target.outputs.supabase_url }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           set -u
-          # When load-1p-secrets skipped (no OP_SERVICE_ACCOUNT_TOKEN), the
-          # op:// values pass through as literal strings. Detect both that
-          # case and the genuinely-empty case.
-          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ] \
-             || [[ "${SUPABASE_ANON_KEY}" == op://* ]]; then
-            echo "::warning::SUPABASE_URL or SUPABASE_ANON_KEY not resolved from 1Password — skipping smoke test for ${{ steps.target.outputs.env }} environment. Plant OP_SERVICE_ACCOUNT_TOKEN as a GHA repo secret to enable this check."
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "::warning::SUPABASE_URL or SUPABASE_ANON_KEY is unavailable — skipping smoke test for ${{ steps.target.outputs.env }}. Fork pull requests cannot read repository secrets."
             exit 0
           fi
 

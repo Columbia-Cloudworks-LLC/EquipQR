@@ -6,10 +6,12 @@
 # seed (Auth Admin API), rewrites VITE_SUPABASE_*, then starts Vite on :8080.
 #
 # Non-goals: Docker / local supabase start on the cloud VM.
+# Embedded JavaScript uses literal template variables.
+# shellcheck disable=SC2016
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-# shellcheck source=cloud-agent/common.sh
+# shellcheck source=dev/cloud-agent/common.sh
 source "${REPO_ROOT}/dev/cloud-agent/common.sh"
 
 cd "$REPO_ROOT"
@@ -24,7 +26,7 @@ for arg in "$@"; do
       cat <<'EOF'
 Usage: bash dev/cloud-agent-ephemeral-stack.sh [--skip-vite] [--force-new]
 
-  --skip-vite   Create/seed/rewrite env only (do not exec npm run dev)
+  --skip-vite   Create/seed/rewrite env only (do not exec bash dev/linux/dev.sh start)
   --force-new   Ignore reusable session state and create a new branch
 EOF
       exit 0
@@ -224,6 +226,10 @@ ca_log "Teardown: bash dev/cloud-agent-ephemeral-teardown.sh"
 
 # Keep Vite + DevQuickLogin aligned with the password used for Auth Admin seed.
 export VITE_DEV_TEST_PASSWORD="$RESOLVED_QUICK_LOGIN_PASSWORD"
+export EQUIPQR_BACKEND=hosted EQUIPQR_DEV_SUPABASE_URL="$api_url" EQUIPQR_DEV_SUPABASE_ANON_KEY="$anon_key"
+ca_upsert_env_key "${REPO_ROOT}/.env.local" EQUIPQR_BACKEND hosted
+ca_upsert_env_key "${REPO_ROOT}/.env.local" EQUIPQR_DEV_SUPABASE_URL "$api_url"
+ca_upsert_env_key "${REPO_ROOT}/.env.local" EQUIPQR_DEV_SUPABASE_ANON_KEY "$anon_key"
 
 if [[ "$SKIP_VITE" -eq 1 ]]; then
   ca_ok "Skipping Vite (--skip-vite)."
@@ -233,4 +239,4 @@ fi
 
 ca_log "Starting Vite on :8080..."
 # VITE_DEV_TEST_PASSWORD already exported by ca_resolve_quick_login_password.
-exec npm run dev
+exec bash dev/linux/dev.sh start

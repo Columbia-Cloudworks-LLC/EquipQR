@@ -6,6 +6,7 @@
  */
 
 import React, { useState } from 'react';
+import { InvoiceReviewDialog } from './InvoiceReviewDialog';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -81,6 +82,7 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
   fileExportHandlers,
 }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [invoiceReviewOpen, setInvoiceReviewOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const navigate = useNavigate();
 
@@ -240,6 +242,10 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
                       workOrderId={workOrderId}
                       teamId={equipmentTeamId ?? null}
                       workOrderStatus={workOrderStatus}
+                      onReviewInvoice={() => {
+                        onOpenChange(false);
+                        window.setTimeout(() => setInvoiceReviewOpen(true), 0);
+                      }}
                     />
                   </div>
                 </div>
@@ -267,6 +273,7 @@ export const MobileWorkOrderActionSheet: React.FC<MobileWorkOrderActionSheetProp
           </div>
         </SheetContent>
       </Sheet>
+      {invoiceReviewOpen && <InvoiceReviewDialog workOrderId={workOrderId} open onOpenChange={setInvoiceReviewOpen} />}
 
       <WorkOrderDeleteConfirmDialog
         open={showDeleteDialog}

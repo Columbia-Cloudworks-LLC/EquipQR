@@ -208,13 +208,6 @@ const InventoryList = () => {
     navigate(`/dashboard/inventory/${itemId}`);
   };
 
-  const handleItemKeyDown = (e: React.KeyboardEvent<HTMLElement>, itemId: string) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      handleViewItem(itemId);
-    }
-  };
-
   const handleCloseForm = () => {
     setShowForm(false);
     setEditingItem(null);
@@ -447,7 +440,6 @@ const InventoryList = () => {
               canCreate={canCreate}
               adjustPending={adjustMutation.isPending}
               onViewDetails={handleViewItem}
-              onKeyDown={handleItemKeyDown}
               onQuickAdjust={handleQuickAdjust}
               onShowQR={handleShowQRCode}
               onEdit={handleEditItem}

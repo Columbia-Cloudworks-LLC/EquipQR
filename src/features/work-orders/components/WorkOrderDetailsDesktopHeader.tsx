@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { InvoiceReviewDialog } from './InvoiceReviewDialog';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -68,6 +69,8 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
   const [showPDFDialog, setShowPDFDialog] = useState(false);
   const [pdfDialogFocusDrive, setPdfDialogFocusDrive] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [invoiceReviewOpen, setInvoiceReviewOpen] = useState(false);
   const navigate = useNavigate();
   const permissions = useUnifiedPermissions();
   const deleteWorkOrderMutation = useDeleteWorkOrder();
@@ -203,7 +206,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
           actions={
             <>
               {showActionsMenu && (
-                <DropdownMenu>
+                <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" aria-label={actionsMenuLabel}>
                       {canExport ? (
@@ -231,6 +234,10 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
                       isManager={permissionLevels.isManager}
                       onOpenPdfDialog={() => openPdfDialog(false)}
                       onOpenDrivePdfDialog={() => openPdfDialog(true)}
+                      onReviewInvoice={() => {
+                        setExportMenuOpen(false);
+                        window.setTimeout(() => setInvoiceReviewOpen(true), 0);
+                      }}
                       isGeneratingPdf={isGenerating || isSavingToDrive}
                       onDownloadXlsx={() => exportSingle(workOrder.id)}
                       isExportingXlsx={isExportingSingle}
@@ -265,6 +272,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
           }
         />
 
+        {invoiceReviewOpen && <InvoiceReviewDialog workOrderId={workOrder.id} open onOpenChange={setInvoiceReviewOpen} />}
         <WorkOrderPDFExportDialog
           open={showPDFDialog}
           onOpenChange={setShowPDFDialog}

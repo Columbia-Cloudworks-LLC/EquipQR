@@ -25,7 +25,7 @@ If the request is actually broken behavior, use `itil-problem-record` instead.
 
 For GitHub issues:
 
-```powershell
+```bash
 gh issue view <number> --json number,title,body,labels,state,comments,url
 ```
 

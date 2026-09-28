@@ -1,13 +1,13 @@
 ---
 title: "Export a work order to QuickBooks"
 description: "Complete a PM work order and send it to QuickBooks Online as a draft invoice with labor and parts line items, notes, and a customer memo."
-lastReviewed: 2026-07-07
+lastReviewed: 2026-09-21
 personas: ["admin","owner"]
 requirement: "Only Owners and Admins (or members granted QuickBooks access) can export. The work order must be completed, and its equipment must be on a team linked to a QuickBooks customer."
 ---
 
 **For:** Admin, Owner  
-**Last reviewed:** 2026-07-07
+**Last reviewed:** 2026-09-21
 
 ::: info Requires
 Only Owners and Admins (or members granted QuickBooks access) can export. The work order must be **completed**, and its equipment must be on a team linked to a QuickBooks customer.
@@ -63,6 +63,12 @@ Click **Complete** and confirm. After completion, notes, images, and costs are l
 
 Open the **Export** menu in the work order header and choose **QuickBooks → Create New Invoice**.
 
+Review invoice details before confirming the export. Enter the **Service date** for each line, **Invoice date**, **Payment terms**, and **Due date** (the payment deadline). Unknown dates start empty: creating or completing a work order today does not mean the service happened today.
+
+**Calculate from invoice date and terms** fills the due date from your selections. You can choose an explicit payment deadline instead. **Save details** keeps your entries without exporting. The **Work order due date** remains a separate scheduling deadline.
+
+For example, work performed August 5 and billed September 21 under Net 30 can have a service date of August 5, invoice date September 21, and payment due date October 21.
+
 ![Export menu with the QuickBooks submenu](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/admin-integrations/desktop/qb-12-export-menu-quickbooks.png)
 
 On mobile, the same actions live in the work order quick-actions sheet under **QuickBooks**:
@@ -85,8 +91,11 @@ After the first export the QuickBooks submenu switches to **Update Invoice #…*
 | --- | --- |
 | Labor cost lines | One **Labor** service line (summed) |
 | All other cost lines | One **Parts** line (summed) |
-| PM checklist summary + public notes | Description on the primary line |
-| Status history + public notes | Customer-visible message |
+| Performed PM | Separate concise **PM — service name** line, quantity 1 and initial unit price $0 |
+| PM findings + public notes + parts detail | Customer memo, without the internal status timeline |
+| Service date | Date on its service line, when the QuickBooks form enables Service date |
+| Invoice date | Invoice billing/accounting date |
+| Payment terms + Due date | Customer payment terms and deadline |
 | Full cost breakdown + private notes | Private note (not customer-visible) |
 | Equipment make/model/serial/hours | Invoice custom field |
 | Work order ID and dates | Memo on statement (hidden) |
@@ -96,13 +105,17 @@ After the first export the QuickBooks submenu switches to **Update Invoice #…*
 
 ![Draft invoice totals, customer note, and hidden statement memo](https://supabase.equipqr.app/storage/v1/object/public/docs-media/support/admin-integrations/desktop/qb-16-qbo-invoice-totals.png)
 
-::: tip Drafts only
-EquipQR always creates a **draft**. You review and send from QuickBooks — nothing is emailed to your customer automatically. Once sent or paid, the invoice status (and balance) mirrors back onto the work order automatically.
+::: tip Review pricing before sending
+PM unit prices start at **$0** so you can enter your standard rate in QuickBooks. Separately billable labor and parts keep their amounts. EquipQR does not call the invoice-send action and creates invoices with online payments disabled for review. Set the PM price and any desired payment options before deliberately sending from QuickBooks.
 :::
+
+In QuickBooks, enable **Manage → Customization → Service date** to show dates alongside service lines. The printed column is labeled **Date**. On phones, customers may need to open invoice details to see dates rather than only the payment summary. Check your actual customer view and printable invoice.
 
 ## 7. Re-export if the work order changes
 
-**Update Invoice** pushes the latest work order data to the same draft. Once you send the invoice in QuickBooks, a later export creates a new invoice rather than editing the sent one.
+**Update Invoice** opens another review of the linked invoice. QuickBooks dates, existing service dates, quantities, and prices are preserved by default. Changing the invoice date, terms, or due date requires an explicit replacement choice. If the invoice or work order changes after review, reload the review before exporting.
+
+Older invoices without saved line associations, and invoices with online payments enabled, must be updated directly in QuickBooks. EquipQR explains this rather than guessing which charges to replace or changing delivery settings.
 
 ## Troubleshooting
 

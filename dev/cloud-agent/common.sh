@@ -93,7 +93,7 @@ ca_resolve_quick_login_password() {
     ca_fail "Set CLOUD_AGENT_QUICK_LOGIN_PASSWORD or VITE_DEV_TEST_PASSWORD (or VITE_DEV_TEST_PASSWORD / DEV_LOGIN_PASSWORD in .env)."
     return 1
   fi
-  RESOLVED_QUICK_LOGIN_PASSWORD="$resolved"
+  export RESOLVED_QUICK_LOGIN_PASSWORD="$resolved"
   export CLOUD_AGENT_QUICK_LOGIN_PASSWORD="$resolved"
   export VITE_DEV_TEST_PASSWORD="$resolved"
 }
@@ -324,7 +324,7 @@ try {
 ca_extract_json() {
   local raw="$1"
   (
-    cd "$REPO_ROOT"
+    cd "$REPO_ROOT" || return
     printf '%s' "$raw" | node dev/cloud-agent/seed-quick-login.mjs --extract-cli-json -
   )
 }

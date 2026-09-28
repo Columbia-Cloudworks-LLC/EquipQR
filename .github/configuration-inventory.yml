@@ -1,0 +1,91 @@
+# Metadata only. No secret values.
+# GitHub environments preview and production are the deployment source.
+version: 1
+authority: github
+exceptions:
+  - name: quickbooks-developer
+    reason: Human Intuit login, password, and one-time password. Not an automation secret.
+  - name: google-login
+    reason: Human Google password and backup codes.
+  - name: Oracle
+    reason: Human account password and one-time passwords.
+  - name: github-read
+    reason: Personal access token. Actions uses the built-in GITHUB_TOKEN.
+  - name: github-write
+    reason: Personal access token. Actions uses the built-in GITHUB_TOKEN.
+  - name: gcp-read
+    reason: Developer MCP service account. Not required for CI or the local stack.
+  - name: gcp-editor
+    reason: Developer MCP credential. Not required for CI or the local stack.
+  - name: datadog-prod
+    reason: Observability MCP credential. Not injected into CI or Codespaces.
+  - name: datadog-perplexity
+    reason: Observability MCP credential. Not injected into CI or Codespaces.
+  - name: figma
+    reason: Personal design token. Not injected into CI or Codespaces.
+  - name: context7
+    reason: Developer documentation token. Not injected into CI.
+  - name: todiagram
+    reason: Developer MCP token. Not injected into CI.
+  - name: op-svc-equipqr-agents
+    reason: 1Password service account. Remains until main stops reading 1Password.
+  - name: preview edge GW_OAUTH_REDIRECT_BASE_URL
+    reason: The preview edge item has no such field. Production has the variable.
+environments:
+  production:
+    branch: main
+    secrets:
+      - GOOGLE_MAPS_BROWSER_KEY
+      - GOOGLE_MAPS_SERVER_KEY
+      - GOOGLE_WORKSPACE_CLIENT_SECRET
+      - HCAPTCHA_SECRET_KEY
+      - INTUIT_CLIENT_SECRET
+      - KDF_SALT
+      - RESEND_API_KEY
+      - SUPABASE_ACCESS_TOKEN
+      - SUPABASE_DB_PASSWORD
+      - SUPABASE_SERVICE_ROLE_KEY
+      - TOKEN_ENCRYPTION_KEY
+      - VAPID_PRIVATE_KEY
+      - VERCEL_TOKEN
+    variables:
+      - GOOGLE_MAPS_MAP_ID
+      - GOOGLE_WORKSPACE_CLIENT_ID
+      - GW_OAUTH_REDIRECT_BASE_URL
+      - INTUIT_CLIENT_ID
+      - PRODUCTION_URL
+      - PUBLIC_SITE_URL
+      - SUPABASE_ANON_KEY
+      - SUPABASE_PROJECT_REF
+      - SUPABASE_URL
+      - VAPID_PUBLIC_KEY
+      - VAPID_SUBJECT
+  preview:
+    branch: preview
+    secrets:
+      - GOOGLE_MAPS_BROWSER_KEY
+      - GOOGLE_MAPS_SERVER_KEY
+      - GOOGLE_WORKSPACE_CLIENT_SECRET
+      - HCAPTCHA_SECRET_KEY
+      - INTUIT_CLIENT_SECRET
+      - KDF_SALT
+      - RESEND_API_KEY
+      - SUPABASE_SERVICE_ROLE_KEY
+      - TOKEN_ENCRYPTION_KEY
+      - VAPID_PRIVATE_KEY
+    variables:
+      - GOOGLE_MAPS_MAP_ID
+      - GOOGLE_WORKSPACE_CLIENT_ID
+      - INTUIT_CLIENT_ID
+      - PRODUCTION_URL
+      - PUBLIC_SITE_URL
+      - QBO_USE_SANDBOX
+      - SUPABASE_ANON_KEY
+      - SUPABASE_PROJECT_REF
+      - SUPABASE_URL
+      - VAPID_PUBLIC_KEY
+      - VAPID_SUBJECT
+repository_secrets_still_used_by_pull_requests:
+  - SUPABASE_ACCESS_TOKEN
+  - SUPABASE_ANON_KEY
+  - VERCEL_TOKEN

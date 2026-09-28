@@ -421,13 +421,16 @@ export async function searchCustomers(
  * @returns Export result with invoice details
  */
 export async function exportInvoice(
-  workOrderId: string
+  workOrderId: string,
+  confirmation?: import('./invoiceReview').InvoiceConfirmation,
 ): Promise<InvoiceExportResult> {
   const { data: { session } } = await supabase.auth.getSession();
   
   if (!session) {
     return { success: false, error: 'Not authenticated' };
   }
+
+  if (!confirmation) return { success: false, error: 'Review invoice details before exporting.' };
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   
@@ -440,7 +443,9 @@ export async function exportInvoice(
         'Authorization': `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({
-        work_order_id: workOrderId,
+          work_order_id: workOrderId,
+          action: 'export',
+          confirmation,
       }),
     }
   );

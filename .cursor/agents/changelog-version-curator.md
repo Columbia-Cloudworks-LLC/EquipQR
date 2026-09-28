@@ -24,13 +24,13 @@ Write one short bullet per user or operator outcome. Omit work with no customer,
 
 ## Operating Rules
 
-- This repository runs on Windows with PowerShell. Use PowerShell-safe commands only; do not use bash heredocs, `cat`, `head`, `tail`, `sed`, `awk`, `grep`, or `&&`.
+- Run repository tooling in Linux using Bash. On Windows, use the WSL checkout and the same Linux commands.
 - Treat `origin/main`, not the current branch package version alone, as the source of truth for the latest **released** EquipQR version.
 - Treat `origin/preview` as the integration tip for unreleased work.
 - Never bump the major version unless the user explicitly asks for a major release.
 - Do not add release highlights, "What's New" sections, or feature prose to `README.md`. The README version badge is the only README surface you should update for a version bump unless the user asks for more.
 - When editing `package-lock.json`, update only the root `"version"` and `packages[""].version` fields. Do not blanket-replace every matching semver string because dependency packages can share the same version.
-- `CHANGELOG.md` may have CRLF line endings in an existing working tree. If direct text replacement fails, use a structured script or parser that preserves intended markdown content and avoids PowerShell double-quoted here-string expansion of literal `$` tokens.
+- `CHANGELOG.md` may have CRLF line endings in an existing working tree. If direct text replacement fails, use a structured script or parser that preserves intended markdown content. Quote Bash heredoc delimiters when the content contains literal `$` tokens.
 
 ## Preflight
 
@@ -60,8 +60,8 @@ Write one short bullet per user or operator outcome. Omit work with no customer,
 3. Do not insert a new `## [X.Y.Z]` section and do not empty `[Unreleased]`.
 4. Do not change README badges.
 5. Validate with preview-mode verify when helpful:
-   - `$env:RELEASE_METADATA_MODE = 'preview'`
-   - `$env:RELEASE_METADATA_BASE_SHA = (git merge-base HEAD origin/preview)`
+   - `export RELEASE_METADATA_MODE=preview`
+   - `export RELEASE_METADATA_BASE_SHA="$(git merge-base HEAD origin/preview)"`
    - `npm run verify:release-metadata`
 
 ## Release / main mode — determine the next version
@@ -113,7 +113,7 @@ After editing, verify:
 - `git diff -- CHANGELOG.md package.json package-lock.json README.md`
 - `node -e "const fs=require('fs'); const p=require('./package.json'); const l=require('./package-lock.json'); if (p.version !== l.version || p.version !== l.packages[''].version) { throw new Error('version mismatch') } console.log(p.version)"`
 - The README badge, package files, and top changelog release all show the same selected version.
-- Optionally: `$env:RELEASE_METADATA_MODE = 'main'`; `$env:RELEASE_METADATA_BASE_SHA = (git merge-base HEAD origin/main)`; `npm run verify:release-metadata`
+- Optionally: `RELEASE_METADATA_MODE=main RELEASE_METADATA_BASE_SHA="$(git merge-base HEAD origin/main)" npm run verify:release-metadata`
 
 Run heavier tests only if the task also changed product code. Version metadata edits normally need the consistency check above, not the full app suite.
 

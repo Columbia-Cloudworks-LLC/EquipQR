@@ -34,7 +34,6 @@ function getQuantityClassName(item: InventoryItem): string {
 
 export interface MobileInventoryCardProps extends InventoryItemActionHandlers {
   item: InventoryItem;
-  onKeyDown: (e: React.KeyboardEvent<HTMLElement>, itemId: string) => void;
   groupCount?: number;
 }
 
@@ -43,7 +42,6 @@ const MobileInventoryCard: React.FC<MobileInventoryCardProps> = ({
   canCreate,
   adjustPending,
   onViewDetails,
-  onKeyDown,
   onQuickAdjust,
   onShowQR,
   onEdit,
@@ -58,17 +56,20 @@ const MobileInventoryCard: React.FC<MobileInventoryCardProps> = ({
   return (
     <Card
       className={cn(
-        'cursor-pointer border-border/60 bg-card shadow-sm',
+        'relative cursor-pointer border-border/60 bg-card shadow-sm',
         'transition-colors duration-100',
         'hover:bg-muted/40 active:bg-muted/65 dark:active:bg-primary/12',
         'motion-reduce:transition-none'
       )}
+      role="presentation"
       onClick={() => onViewDetails(item.id)}
-      onKeyDown={(e) => onKeyDown(e, item.id)}
-      role="button"
-      tabIndex={0}
-      aria-label={`Open inventory item ${item.name}`}
     >
+      {/* Keep keyboard activation native and separate from the QR and menu buttons. */}
+      <button
+        type="button"
+        className="absolute inset-0 z-10 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        aria-label={`Open inventory item ${item.name}`}
+      />
       <CardContent className="px-3 py-3">
         <div className="grid min-w-0 grid-cols-[1fr_auto] gap-x-2.5 gap-y-1">
           <div className="col-start-1 row-start-1 min-w-0">
@@ -81,7 +82,7 @@ const MobileInventoryCard: React.FC<MobileInventoryCardProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 shrink-0 -mr-1 text-muted-foreground hover:text-foreground"
+              className="relative z-20 h-8 w-8 shrink-0 -mr-1 text-muted-foreground hover:text-foreground"
               onClick={handleQRClick}
               aria-label={`Show QR code for ${item.name}`}
             >
@@ -141,7 +142,7 @@ const MobileInventoryCard: React.FC<MobileInventoryCardProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+                  className="relative z-20 h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
                   aria-label={`More actions for ${item.name}`}
                   onClick={(e) => e.stopPropagation()}
                 >

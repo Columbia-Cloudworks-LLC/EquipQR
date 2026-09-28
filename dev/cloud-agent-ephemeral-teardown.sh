@@ -3,7 +3,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-# shellcheck source=cloud-agent/common.sh
+# shellcheck source=dev/cloud-agent/common.sh
 source "${REPO_ROOT}/dev/cloud-agent/common.sh"
 
 cd "$REPO_ROOT"

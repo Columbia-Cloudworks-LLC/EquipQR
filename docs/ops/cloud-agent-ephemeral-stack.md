@@ -8,7 +8,7 @@
 | Surface | Backend |
 |---------|---------|
 | **Cursor Cloud Agent (Linux VM)** | Ephemeral hosted Supabase **branch** + Vite on `:8080` |
-| **Windows maintainer machine** | Full local Docker stack (`dev-start.bat` / `dev-start.ps1`) |
+| **Windows maintainer machine** | Full local Docker stack (`dev-start.bat` / `bash dev/linux/dev.sh start`) |
 | **PR `supabase/**` validation** | Existing GitHub Integration branching (dataless; see [supabase-branching.md](./supabase-branching.md)) |
 
 Cloud agents **do not** run `npx supabase start` in Docker. Cursor Cloud VMs have broken Docker bridge ICC; that path is abandoned.

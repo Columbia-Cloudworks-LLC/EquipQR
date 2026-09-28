@@ -26,11 +26,11 @@ Merge when **all** of the following are true. Do **not** wait for Qodo (retired 
 
 Then merge:
 
-```powershell
+```bash
 gh pr merge <num> --merge
 ```
 
-Do not pass `--delete-branch` while the PR head is checked out in this worktree (`git-powershell.mdc`).
+Do not pass `--delete-branch` while the PR head is checked out in this worktree (`git-bash.mdc`).
 
 Do **not** report "PR opened" or walk away while CI or Supabase is failing or pending.
 
@@ -38,7 +38,7 @@ Do **not** report "PR opened" or walk away while CI or Supabase is failing or pe
 
 Only after publish mode is on (`branching.mdc`). If you are already on a matching `feat/*` or `fix/*` branch, keep it. Otherwise:
 
-```powershell
+```bash
 git fetch origin preview
 git switch -c feat/<short-slug> origin/preview
 ```
@@ -50,30 +50,27 @@ Implement with focused commits. Run Fallow before each commit per `fallow-before
 Run in order:
 
 1. Fallow (both scans)
-2. **`npm ci --prefer-offline --no-audit`** when lockfile/deps changed or before first PR open — on Windows, run `.\dev\dev-stop.bat` first if EPERM/EBUSY is possible (`dev-stack-lifecycle.mdc`). Linux CI is authoritative if local `npm ci` is blocked by file locks after a successful prior install.
+2. **`npm ci --prefer-offline --no-audit`** when dependencies changed or before first PR open. Stop the stack before replacing dependencies. Both local and CI installs must succeed with the committed lockfile.
 3. `npm run lint`, `npm run type-check`, `npm run test:ci`, `npm run build`, `npm run verify:spa-routing` when applicable
-4. Ensure stack healthy via batch files (`dev-stack-lifecycle.mdc`); use `.\dev\dev-start.bat -Force` when migrations/seeds affect E2E
+4. Ensure stack healthy with the Bash launcher (`dev-stack-lifecycle.mdc`); use `bash dev/linux/dev.sh reset` when migrations/seeds affect E2E
 5. Local E2E / PR evidence capture per `local-verify-before-preview-push.mdc` and `pr-visual-evidence.mdc`
 
 ## Phase 3 — Open PR
 
-```powershell
+```bash
 git push -u origin HEAD
 ```
 
-Write PR body to a UTF-8 file (never inline `gh pr create --body` on Windows — `git-powershell.mdc`). Include visual evidence markdown from `tmp/pr-evidence/<flow>/evidence-markdown.md`.
+Write the PR body to a UTF-8 file and use `--body-file` (`git-bash.mdc`). Include required visual evidence from `tmp/pr-evidence/<flow>/evidence-markdown.md`.
 
 Day-to-day feature/fix PR:
 
-```powershell
-gh pr create --base preview --head feat/<short-slug> --title "<conventional title>" --body-file "$env:TEMP\pr-<slug>-body.md"
-.\dev\pr-evidence\Invoke-PrEvidence.ps1 -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts" -PrNumber <num> -Publish
-```
+See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
 
 Release / promote PR (`preview` → `main` or `chore/release-v*`):
 
-```powershell
-gh pr create --base main --head preview --title "Release vX.Y.Z" --body-file "$env:TEMP\pr-release-body.md"
+```bash
+gh pr create --base main --head preview --title "Release vX.Y.Z" --body-file "/tmp/pr-release-body.md"
 ```
 
 ## Phase 4 — Babysit until merge
@@ -82,7 +79,7 @@ Repeat until the merge gate passes, then merge:
 
 ### 4a — CI first
 
-```powershell
+```bash
 gh pr checks <num> --watch
 ```
 
@@ -94,8 +91,8 @@ Confirm `Validate Supabase Migrations` and `Supabase Preview` are success, or sk
 
 ### 4c — Merge
 
-```powershell
-.\dev\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <num> -Json
+```bash
+bash dev/pr-feedback/workflow.sh checks -PullRequestNumber <num> -Json
 gh pr view <num> --json mergeable,mergeStateStatus,url
 gh pr merge <num> --merge
 ```

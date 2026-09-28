@@ -92,7 +92,7 @@ Browse them on GitHub or in your local checkout:
 
 ### For New Developers
 1. Start with **[Developer Onboarding](./getting-started/developer-onboarding.md)** - 5-minute quick start
-   - Preferred setup path: use 1Password CLI + `.\dev\dev-start.bat` to auto-sync env files
+   - Use [Linux development](./ops/linux-development.md) for WSL2 and Codex setup, then [Bash workflows](./ops/linux-workflows.md) for administrative tools. Core startup needs no vault login.
 2. Read **[Development Lifecycle](./getting-started/development-lifecycle.md)** - Understand how work moves from plan to production
 3. Review [Architecture](./technical/architecture.md) - Understand system design
 4. Read [Standards](./technical/standards.md) - Learn coding standards and UI patterns

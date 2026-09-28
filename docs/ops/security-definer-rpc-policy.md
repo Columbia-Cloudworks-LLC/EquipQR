@@ -31,7 +31,7 @@ Issue [#762](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/762) lock
 
 Regenerate after grant changes (local Supabase must be running):
 
-```powershell
+```bash
 node dev/generate-security-definer-rpc-inventory.mjs
 ```
 
@@ -46,7 +46,7 @@ Output: `docs/ops/security-definer-rpc-inventory.md`
 
 Keep allowlists aligned:
 
-```powershell
+```bash
 node dev/validate-security-definer-allowlist-sync.mjs
 ```
 
@@ -77,7 +77,7 @@ Do this domain-by-domain (invitations, QuickBooks, org lifecycle) to avoid break
 
 ## Verification
 
-```powershell
+```bash
 npx supabase db reset
 npm run test:db
 ```

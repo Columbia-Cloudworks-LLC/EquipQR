@@ -30,12 +30,14 @@ interface WorkOrderQuickBooksExportSubmenuProps {
   workOrderId: string;
   teamId: string | null;
   workOrderStatus: WorkOrderStatus;
+  onReviewInvoice: () => void;
 }
 
 export const WorkOrderQuickBooksExportSubmenu: React.FC<WorkOrderQuickBooksExportSubmenuProps> = ({
   workOrderId,
   teamId,
   workOrderStatus,
+  onReviewInvoice,
 }) => {
   const { currentOrganization } = useOrganization();
   const featureEnabled = isQuickBooksEnabled();
@@ -131,12 +133,12 @@ export const WorkOrderQuickBooksExportSubmenu: React.FC<WorkOrderQuickBooksExpor
 
   const handleCreate = () => {
     if (hasLinkedInvoice || setupDisabled || isLoading) return;
-    exportMutation.mutate(workOrderId);
+    onReviewInvoice();
   };
 
   const handleUpdate = () => {
     if (!hasLinkedInvoice || setupDisabled || isLoading) return;
-    exportMutation.mutate(workOrderId);
+    onReviewInvoice();
   };
 
   const handleOpen = () => {
@@ -154,7 +156,7 @@ export const WorkOrderQuickBooksExportSubmenu: React.FC<WorkOrderQuickBooksExpor
           <Tooltip>
             <TooltipTrigger asChild>
               <DropdownMenuItem
-                onClick={handleCreate}
+                onSelect={handleCreate}
                 disabled={hasLinkedInvoice || setupDisabled || isLoading}
               >
                 {isExporting && !hasLinkedInvoice ? (
@@ -177,7 +179,7 @@ export const WorkOrderQuickBooksExportSubmenu: React.FC<WorkOrderQuickBooksExpor
           <Tooltip>
             <TooltipTrigger asChild>
               <DropdownMenuItem
-                onClick={handleUpdate}
+                onSelect={handleUpdate}
                 disabled={!hasLinkedInvoice || setupDisabled || isLoading}
               >
                 {isExporting && hasLinkedInvoice ? (

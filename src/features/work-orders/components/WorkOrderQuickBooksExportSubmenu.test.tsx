@@ -47,6 +47,7 @@ describe('WorkOrderQuickBooksExportSubmenu', () => {
             workOrderId="wo-1"
             teamId="team-1"
             workOrderStatus="completed"
+            onReviewInvoice={vi.fn()}
           />
         </DropdownMenuContent>
       </DropdownMenu>,

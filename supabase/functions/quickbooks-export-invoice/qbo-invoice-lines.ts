@@ -74,7 +74,10 @@ export interface PreventativeMaintenanceInvoiceRow {
   pm_checklist_templates?: { name: string | null } | { name: string | null }[] | null;
 }
 
+export const PM_INVOICE_ITEM_NAME = "Preventative Maintenance";
+
 export type InvoiceSalesLines = Array<{
+  Id?: string;
   Amount: number;
   DetailType: "SalesItemLineDetail";
   Description?: string;
@@ -83,6 +86,7 @@ export type InvoiceSalesLines = Array<{
     Qty?: number;
     UnitPrice?: number;
     TaxCodeRef?: { value: string };
+    ServiceDate?: string;
   };
 }>;
 
@@ -378,7 +382,7 @@ function isPmConditionOk(condition: unknown): boolean {
   return condition === 1;
 }
 
-/** Builds PM + public-notes narrative for customer-visible invoice line descriptions. */
+/** Builds PM findings for the customer memo, never a sales line. */
 export function buildPMInvoiceDescription(
   pm: PreventativeMaintenanceInvoiceRow | null,
   publicNotes: string,
@@ -418,6 +422,11 @@ export function buildPMInvoiceDescription(
       lines.push(`PM checklist was completed by ${tech}; no checklist rows were recorded.`);
     }
 
+    // An OK condition can still carry useful service findings entered by the technician.
+    for (const item of items.filter((it) => isPmConditionOk(it.condition) && it.notes?.trim())) {
+      lines.push(`${item.section} | ${item.title}\r\n${item.notes!.trim()}`);
+    }
+
     const pmNotes = pm.notes?.trim();
     if (pmNotes) {
       lines.push(pmNotes);
@@ -437,18 +446,14 @@ export function buildPMInvoiceDescription(
   return result;
 }
 
-type InvoicePrimaryTarget = "labor" | "parts";
-
-/** Hard cap for any single QuickBooks Line.Description field. */
-const MAX_QBO_LINE_DESCRIPTION_CHARS = 3975;
-
-function capLineDescription(desc: string): string {
-  if (desc.length <= MAX_QBO_LINE_DESCRIPTION_CHARS) return desc;
-  return desc.slice(0, MAX_QBO_LINE_DESCRIPTION_CHARS - 20) + "\n... (truncated)";
+function getPMLineDescription(pm: PreventativeMaintenanceInvoiceRow): string {
+  const name = pmTemplateName(pm)?.trim().replace(/\s+/g, " ");
+  const description = name ? `PM — ${name}` : "Preventative maintenance";
+  return description.length > 120 ? `${description.slice(0, 119)}…` : description;
 }
 
 /**
- * Customer-facing description for the summarized Parts line. Lists the billable
+ * Customer-facing memo detail for the summarized Parts line. Lists the billable
  * cost rows folded into the line so detail entered on the work order (e.g.
  * "Parts - engine oil, oil filter") survives onto the invoice instead of only
  * living in the hidden PrivateNote.
@@ -464,17 +469,10 @@ export function buildPartsLineDescription(partCosts: WorkOrderCost[]): string {
   return `Parts:\n${unique.map((description) => `- ${description}`).join("\n")}`;
 }
 
-export async function buildInvoiceLines(
-  accessToken: string,
-  realmId: string,
+function getInvoiceAmounts(
   costs: WorkOrderCost[],
   notes: WorkOrderNote[],
-  ctx: {
-    workOrder: WorkOrderData;
-    pm: PreventativeMaintenanceInvoiceRow | null;
-    publicNotesText: string;
-  },
-): Promise<InvoiceSalesLines> {
+) {
   const laborMatchedCosts = costs.filter(isExplicitLaborCostRow);
   const partCosts = costs.filter((cost) => !isExplicitLaborCostRow(cost));
 
@@ -510,20 +508,54 @@ export async function buildInvoiceLines(
     return sum + (cents > 0 ? cents : 0);
   }, 0);
 
-  const fallbackTechnician =
-    [...notes].filter((n) => !n.is_private).slice(-1)[0]?.author_name?.trim() ||
-    [...notes].slice(-1)[0]?.author_name?.trim() ||
-    "Technician";
+  return { laborQty, laborTotalCents, partsTotalCents, loggedHours };
+}
 
-  const pmPublicDesc = buildPMInvoiceDescription(
-    ctx.pm,
-    ctx.publicNotesText,
-    fallbackTechnician,
-  );
+export interface InvoiceLineContext {
+  workOrder: WorkOrderData;
+  pm: PreventativeMaintenanceInvoiceRow | null;
+  publicNotesText?: string;
+  serviceDates?: Record<string, string>;
+}
 
-  let primary: InvoicePrimaryTarget | null = null;
-  if (laborTotalCents > 0) primary = "labor";
-  else if (partsTotalCents > 0) primary = "parts";
+export interface InvoiceServiceDescriptor {
+  key: string;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  amount: number;
+}
+
+/** Stable keys and display order shared by review, line creation, and re-export. */
+export function getInvoiceServiceDescriptors(
+  costs: WorkOrderCost[],
+  notes: WorkOrderNote[],
+  ctx: InvoiceLineContext,
+): InvoiceServiceDescriptor[] {
+  const { laborQty, laborTotalCents, partsTotalCents, loggedHours } = getInvoiceAmounts(costs, notes);
+  const descriptors: InvoiceServiceDescriptor[] = [];
+  if (ctx.pm) descriptors.push({ key: `pm:${ctx.pm.id}`, description: getPMLineDescription(ctx.pm), quantity: 1, unit_price: 0, amount: 0 });
+  if (laborTotalCents > 0 || (partsTotalCents === 0 && !ctx.pm)) {
+    const quantity = laborTotalCents > 0 ? laborQty : 1;
+    descriptors.push({ key: "labor", description: loggedHours > 0 ? `Labor (${laborQty.toFixed(2)} hrs)` : "Labor", quantity, unit_price: (laborTotalCents / 100) / quantity, amount: laborTotalCents / 100 });
+  }
+  if (partsTotalCents > 0) descriptors.push({ key: "parts", description: "Parts", quantity: 1, unit_price: partsTotalCents / 100, amount: partsTotalCents / 100 });
+  return descriptors;
+}
+
+export async function buildInvoiceLines(
+  accessToken: string,
+  realmId: string,
+  costs: WorkOrderCost[],
+  notes: WorkOrderNote[],
+  ctx: InvoiceLineContext,
+): Promise<InvoiceSalesLines> {
+  const { laborQty, laborTotalCents, partsTotalCents, loggedHours } = getInvoiceAmounts(costs, notes);
+  const descriptors = getInvoiceServiceDescriptors(costs, notes, ctx);
+  const withServiceDates = (lines: InvoiceSalesLines): InvoiceSalesLines => lines.map((line, index) => {
+    const serviceDate = ctx.serviceDates?.[descriptors[index].key];
+    return serviceDate ? { ...line, SalesItemLineDetail: { ...line.SalesItemLineDetail, ServiceDate: serviceDate } } : line;
+  });
 
   const lazyIncomeRef = (() => {
     let cached: Promise<{ value: string; name?: string }> | null = null;
@@ -536,7 +568,19 @@ export async function buildInvoiceLines(
 
   const lines: InvoiceSalesLines = [];
 
-  if (primary === null) {
+  if (ctx.pm) {
+    const pmItem = await getOrCreateSalesItem(
+      accessToken, realmId, PM_INVOICE_ITEM_NAME, "Service", lazyIncomeRef,
+    );
+    lines.push({
+      Amount: 0,
+      DetailType: "SalesItemLineDetail",
+      Description: getPMLineDescription(ctx.pm),
+      SalesItemLineDetail: { ItemRef: pmItem, Qty: 1, UnitPrice: 0 },
+    });
+  }
+
+  if (laborTotalCents === 0 && partsTotalCents === 0 && !ctx.pm) {
     const laborItem = await getOrCreateSalesItem(
       accessToken,
       realmId,
@@ -544,20 +588,17 @@ export async function buildInvoiceLines(
       "Service",
       lazyIncomeRef,
     );
-    const fallbackDescription = capLineDescription(
-      ctx.workOrder.title?.trim() || "Labor",
-    );
     lines.push({
       Amount: 0,
       DetailType: "SalesItemLineDetail",
-      Description: fallbackDescription,
+      Description: descriptors[0].description,
       SalesItemLineDetail: {
         ItemRef: laborItem,
         Qty: 1,
         UnitPrice: 0,
       },
     });
-    return lines;
+    return withServiceDates(lines);
   }
 
   const laborShortDescription = loggedHours > 0
@@ -573,16 +614,11 @@ export async function buildInvoiceLines(
       lazyIncomeRef,
     );
     const laborUnit = (laborTotalCents / 100) / laborQty;
-    const laborDescRaw =
-      primary === "labor" && pmPublicDesc.trim().length > 0
-        ? `${pmPublicDesc.trim()}\n\n${laborShortDescription}`
-        : laborShortDescription;
-    const laborDesc = capLineDescription(laborDescRaw);
 
     lines.push({
       Amount: laborTotalCents / 100,
       DetailType: "SalesItemLineDetail",
-      Description: laborDesc,
+      Description: laborShortDescription,
       SalesItemLineDetail: {
         ItemRef: laborItem,
         Qty: laborQty,
@@ -599,17 +635,11 @@ export async function buildInvoiceLines(
       partsItemType,
       lazyIncomeRef,
     );
-    const partsBreakdown = buildPartsLineDescription(partCosts);
-    const partsDescRaw =
-      primary === "parts" && pmPublicDesc.trim().length > 0
-        ? `${pmPublicDesc.trim()}\n\n${partsBreakdown}`
-        : partsBreakdown;
-    const partsDesc = capLineDescription(partsDescRaw);
 
     lines.push({
       Amount: partsTotalCents / 100,
       DetailType: "SalesItemLineDetail",
-      Description: partsDesc,
+      Description: "Parts",
       SalesItemLineDetail: {
         ItemRef: partsItem,
         Qty: 1,
@@ -618,7 +648,7 @@ export async function buildInvoiceLines(
     });
   }
 
-  return lines;
+  return withServiceDates(lines);
 }
 
 export const __testables = {

@@ -8,6 +8,7 @@
  */
 
 import React from 'react';
+import { InvoiceReviewDialog } from './InvoiceReviewDialog';
 import { Button } from '@/components/ui/button';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import {
@@ -61,6 +62,8 @@ interface QuickBooksExportButtonProps {
   onExportSuccess?: () => void;
   /** Show export status and history in a popover */
   showStatusDetails?: boolean;
+  /** Parent owns the review dialog when the button lives in a menu or sheet. */
+  onReviewInvoice?: () => void;
 }
 
 export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
@@ -70,6 +73,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
   asMenuItem = false,
   onExportSuccess,
   showStatusDetails = false,
+  onReviewInvoice,
 }) => {
   const { formatDateTime } = useFormatTimestamp();
 
@@ -106,6 +110,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
   const { data: exportLogs = [] } = useQuickBooksExportLogs(workOrderId, shouldLoadStatusDetails);
 
   const exportMutation = useExportToQuickBooks();
+  const [reviewOpen, setReviewOpen] = React.useState(false);
 
   if (!featureEnabled || !canExport) {
     return null;
@@ -139,12 +144,12 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
 
   const handleExport = () => {
     if (isDisabled) return;
-    exportMutation.mutate(workOrderId, {
-      onSuccess: () => {
-        onExportSuccess?.();
-      },
-    });
+    if (onReviewInvoice) onReviewInvoice();
+    else setReviewOpen(true);
   };
+
+  const reviewDialog = !onReviewInvoice && <InvoiceReviewDialog workOrderId={workOrderId} open={reviewOpen}
+    onOpenChange={setReviewOpen} onExportSuccess={onExportSuccess} />;
 
   const latestLog = exportLogs[0] ?? null;
 
@@ -214,11 +219,11 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
     if (showSetupState) return null;
 
     return (
-      <TooltipProvider>
+      <><TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
             <DropdownMenuItem
-              onClick={handleExport}
+              onSelect={handleExport}
               disabled={isDisabled || isLoading}
               className={isDisabled ? 'opacity-50 cursor-not-allowed' : ''}
             >
@@ -229,7 +234,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
             <p className="max-w-xs">{tooltipMessage}</p>
           </TooltipContent>
         </Tooltip>
-      </TooltipProvider>
+      </TooltipProvider>{reviewDialog}</>
     );
   }
 
@@ -269,6 +274,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
           </Tooltip>
         </TooltipProvider>
         {statusDetails}
+        {reviewDialog}
       </div>
     );
   }
@@ -288,6 +294,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
         </TooltipContent>
       </Tooltip>
       {statusDetails}
+      {reviewDialog}
     </TooltipProvider>
   );
 };

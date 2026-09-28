@@ -172,7 +172,7 @@ async function main() {
 
   if (!token || token.startsWith('op://')) {
     const msg =
-      'SUPABASE_ACCESS_TOKEN missing or unresolved — cannot verify schema drift. Plant OP_SERVICE_ACCOUNT_TOKEN as a repo secret and ensure load-1p-secrets resolves supabase-write.';
+      'SUPABASE_ACCESS_TOKEN missing or unresolved — cannot verify schema drift. The repository secret is required for same-repo checks and is unavailable on fork pull requests.';
     if (strict) {
       ghError('schema-drift-check', msg);
       process.exit(1);

@@ -44,7 +44,7 @@ The setting is reversible from the same Admin Console screen — set the toggle 
 
 After Workspace data sharing is enabled, query against the **organization** resource, not the project:
 
-```powershell
+```bash
 # All Workspace OAuth Token Audit entries in the last hour
 gcloud logging read 'logName="organizations/476784721717/logs/cloudaudit.googleapis.com%2Factivity" AND protoPayload.serviceName="oauth2.googleapis.com"' --organization=476784721717 --limit=10 --freshness=1h --format=json
 
@@ -75,12 +75,7 @@ Cloud Logging is charged at **$0.50/GiB after the first 50 GiB/project/month fre
 
 To capture the 7-day baseline post-enable (target completion: **2026-04-26**), run the following from a session with org-level log-read access:
 
-```powershell
-# Entry count by log name, last 7 days, org tier
-gcloud logging read 'logName="organizations/476784721717/logs/cloudaudit.googleapis.com%2Factivity"' --organization=476784721717 --freshness=7d --format='value(insertId)' | Measure-Object | Select-Object -ExpandProperty Count
-
-gcloud logging read 'logName="organizations/476784721717/logs/cloudaudit.googleapis.com%2Fdata_access"' --organization=476784721717 --freshness=7d --format='value(insertId)' | Measure-Object | Select-Object -ExpandProperty Count
-```
+See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
 
 Then complete this table inline:
 

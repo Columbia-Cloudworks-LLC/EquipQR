@@ -79,6 +79,7 @@ export async function buildPreparedInvoiceArtifacts(
   workOrder: WorkOrderData,
   context: WorkOrderExportContext,
   taxState: VerifiedTaxState,
+  serviceDates: Record<string, string> = {},
 ): Promise<PreparedInvoiceArtifacts> {
   const notesTyped = context.notes;
   const publicNotesText = notesTyped
@@ -95,6 +96,7 @@ export async function buildPreparedInvoiceArtifacts(
       workOrder,
       pm: context.pmRow,
       publicNotesText,
+      serviceDates,
     },
   );
   if (invoiceLines.length === 0) {
@@ -110,6 +112,7 @@ export async function buildPreparedInvoiceArtifacts(
     workOrder,
     context.notes,
     context.statusHistory,
+    { pm: context.pmRow, costs: context.costs },
   );
   const customFields = buildInvoiceCustomFields(
     workOrder,

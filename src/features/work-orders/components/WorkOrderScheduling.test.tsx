@@ -24,7 +24,7 @@ describe('WorkOrderScheduling', () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText('Due Date'), { target: { value: '2026-03-20' } });
+    fireEvent.change(screen.getByLabelText('Work order due date'), { target: { value: '2026-03-20' } });
 
     expect(setValue).toHaveBeenCalledWith('dueDateHasTime', true);
     const dueDateCall = setValue.mock.calls.find((call) => call[0] === 'dueDate');

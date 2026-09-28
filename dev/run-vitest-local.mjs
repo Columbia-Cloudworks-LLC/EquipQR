@@ -5,7 +5,6 @@
  *
  * - Default: unit (node) then component (jsdom) sequentially.
  * - Pass --project unit|component to run a single project.
- * - On Windows, component tests run in 4 shards unless --shard=N/M is already set.
  */
 
 import { spawnSync } from 'child_process';
@@ -16,14 +15,12 @@ import { getVitestPathFilters, parseReporterArgs, parseVitestLocalArgs } from '.
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(__dirname, '..');
 const vitestCli = path.join(repoRoot, 'node_modules', 'vitest', 'vitest.mjs');
-const isWindows = process.platform === 'win32';
 
 const rawArgs = process.argv.slice(2);
 const { projectFilter, passthroughArgs } = parseVitestLocalArgs(rawArgs);
 const reporterArgs = parseReporterArgs(rawArgs);
 const pathFilters = getVitestPathFilters(passthroughArgs);
 
-const COMPONENT_SHARDS = 4;
 
 function runVitest(label, args) {
   const banner = `\n${'='.repeat(72)}\n  Vitest: ${label}\n${'='.repeat(72)}\n`;
@@ -47,24 +44,6 @@ if (pathFilters.length > 0 && !projectFilter) {
 }
 
 function componentPhases() {
-  const hasShardArg = passthroughArgs.some((a) => a.startsWith('--shard='));
-  if (isWindows && !hasShardArg) {
-    return Array.from({ length: COMPONENT_SHARDS }, (_, i) => {
-      const shard = i + 1;
-      return {
-        label: `component (jsdom) shard ${shard}/${COMPONENT_SHARDS}`,
-        args: [
-          'run',
-          '--project',
-          'component',
-          `--shard=${shard}/${COMPONENT_SHARDS}`,
-          ...reporterArgs,
-          ...passthroughArgs,
-        ],
-      };
-    });
-  }
-
   return [
     {
       label: 'component (jsdom)',

@@ -3,6 +3,7 @@ import { Route } from 'react-router-dom';
 import SmartLanding from '@/components/landing/SmartLanding';
 import {
   Auth,
+  AnimationTest,
   DebugAuth,
   DebugScanFeedback,
   RepairShops,
@@ -43,6 +44,7 @@ export const publicRouteElements = (
     <Route path="/" element={<SmartLanding />} />
     <Route path="/landing" element={<LandingCanonicalRedirect />} />
     <Route path="/auth" element={<LazyRoute><Auth /></LazyRoute>} />
+    {AnimationTest && <Route path="/debug/animation-test" element={<LazyRoute><AnimationTest /></LazyRoute>} />}
     {import.meta.env.DEV && DebugAuth && (
       <Route path="/debug-auth" element={<LazyRoute><DebugAuth /></LazyRoute>} />
     )}

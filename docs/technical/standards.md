@@ -32,11 +32,11 @@ Follow `eslint.config.js` – no unused vars/explicit any (warn), React hooks ru
 
 ### Lint catalog (edited files)
 
-Edited `.ts` / `.tsx`, `.md` / `.mdc`, `.ps1`, and `.github/workflows`
+Edited `.ts` / `.tsx`, `.md` / `.mdc`, `.sh`, and `.github/workflows`
 files must pass the lint catalog (`etc/lint/targets.json` via Cursor
 `lint-on-edit` → `dev/lint-catalog.mjs`). Hook mode is fail-closed and
 uses the per-file argv on each row (ESLint `--max-warnings 0`,
-markdownlint `--no-globs`, PSScriptAnalyzer, actionlint). Fallow is
+markdownlint `--no-globs`, ShellCheck, actionlint). Fallow is
 project-only (`npm run lint:all`).
 
 **Markdown policy:** high-signal rules only in `.markdownlint-cli2.jsonc`

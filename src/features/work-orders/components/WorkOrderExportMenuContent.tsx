@@ -28,6 +28,7 @@ export interface WorkOrderExportMenuContentProps extends WorkOrderFileExportHand
   isManager: boolean;
   onOpenPdfDialog: () => void;
   onOpenDrivePdfDialog: () => void;
+  onReviewInvoice: () => void;
   isGeneratingPdf: boolean;
 }
 
@@ -42,6 +43,7 @@ export const WorkOrderExportMenuContent: React.FC<WorkOrderExportMenuContentProp
   isManager,
   onOpenPdfDialog,
   onOpenDrivePdfDialog,
+  onReviewInvoice,
   isGeneratingPdf,
   onDownloadXlsx,
   isExportingXlsx,
@@ -148,6 +150,7 @@ export const WorkOrderExportMenuContent: React.FC<WorkOrderExportMenuContentProp
           workOrderId={workOrderId}
           teamId={equipmentTeamId ?? null}
           workOrderStatus={workOrderStatus}
+          onReviewInvoice={onReviewInvoice}
         />
       )}
     </>

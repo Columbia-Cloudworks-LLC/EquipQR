@@ -1,4 +1,4 @@
-﻿# EquipQR
+# EquipQR
 
 EquipQR is a multi-tenant fleet maintenance app for equipment QR codes, work orders, preventative maintenance, inventory, and field teams. The stack is React, TypeScript, Vite, Supabase, and TanStack Query. Operators use [equipqr.app](https://equipqr.app); the Help Center is [equipqr.info](https://equipqr.info); the repository shortcut is [github.equipqr.app](https://github.equipqr.app).
 
@@ -14,6 +14,7 @@ This file is an index only. Open the one official document that matches the task
 | Git, deploy, preview → main | [docs/ops/git-and-deploy.md](docs/ops/git-and-deploy.md), [.cursor/rules/branching.mdc](.cursor/rules/branching.mdc) |
 | Changelog | [.cursor/rules/changelog.mdc](.cursor/rules/changelog.mdc) |
 | Local stack | [.cursor/rules/dev-stack-lifecycle.mdc](.cursor/rules/dev-stack-lifecycle.mdc), [docs/ops/local-supabase-development.md](docs/ops/local-supabase-development.md) |
+| Linux / WSL2 / Codex setup | [docs/ops/linux-development.md](docs/ops/linux-development.md) |
 | Cloud Agents | [docs/ops/cloud-agent-ephemeral-stack.md](docs/ops/cloud-agent-ephemeral-stack.md) |
 | Migrations | [docs/ops/migrations.md](docs/ops/migrations.md), [docs/ops/migration-rules-quick-reference.md](docs/ops/migration-rules-quick-reference.md) |
 | Google Workspace | [docs/ops/google-workspace.md](docs/ops/google-workspace.md) |
@@ -34,7 +35,7 @@ This file is an index only. Open the one official document that matches the task
 | PR visual evidence | [.cursor/rules/pr-visual-evidence.mdc](.cursor/rules/pr-visual-evidence.mdc) |
 | PR CI gate | [.cursor/rules/pr-ci-gate-before-open.mdc](.cursor/rules/pr-ci-gate-before-open.mdc) |
 | Fallow before commit | [.cursor/rules/fallow-before-commit.mdc](.cursor/rules/fallow-before-commit.mdc) |
-| Git / PowerShell | [.cursor/rules/git-powershell.mdc](.cursor/rules/git-powershell.mdc) |
+| Git / Bash | [.cursor/rules/git-bash.mdc](.cursor/rules/git-bash.mdc) |
 | Workflow artifacts | [.cursor/rules/workflow-artifacts.mdc](.cursor/rules/workflow-artifacts.mdc) |
 | Browser (Cursor only) | [.cursor/rules/cursor-browser-only.mdc](.cursor/rules/cursor-browser-only.mdc) |
 | Implement an issue | [.cursor/skills/itil-issue-resolver/SKILL.md](.cursor/skills/itil-issue-resolver/SKILL.md) |

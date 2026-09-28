@@ -77,3 +77,17 @@ Do not stretch or synthesize missing image content.
 Explicit dimensions reserve layout space. Below-fold images load lazily; only
 the repair-shop hero image loads eagerly with high fetch priority. `srcSet`
 allows mobile browsers to choose the smaller derivative.
+
+## Hero animation vectors
+
+The homepage hero is a vector gallery, not photography. The fleet-observability
+story is the existing EquipQR mark and state-map sequence. The scan-one-machine
+story uses a side-view excavator as mechanical linework.
+
+### Excavator side view
+
+- Source: [SVG Repo — Excavator Side View](https://www.svgrepo.com/svg/51594/excavator-side-view).
+- License: **CC0**, as listed by SVG Repo. Attribution is not required and is
+  recorded here so the source stays traceable.
+- The shipped paths drop editor metadata and are stroked in the hero purple
+  instead of the original solid black fill.

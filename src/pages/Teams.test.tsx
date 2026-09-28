@@ -238,6 +238,45 @@ describe('Teams Page', () => {
     });
   });
 
+  describe('toolbar on narrow layouts', () => {
+    it('keeps search, sort, and Create Team in keyboard order for a creator', async () => {
+      const user = userEvent.setup({ delay: null });
+      setupAsPersona(personas.owner, { teams: [maintenanceTeam] });
+      render(<Teams />);
+
+      await user.tab();
+      expect(screen.getByRole('textbox', { name: /search teams/i })).toHaveFocus();
+      await user.tab();
+      expect(screen.getByRole('combobox', { name: /sort teams/i })).toHaveFocus();
+      await user.tab();
+      expect(screen.getByRole('button', { name: /create team/i })).toHaveFocus();
+    });
+
+    it('keeps search then sort in keyboard order when the user cannot create teams', async () => {
+      const user = userEvent.setup({ delay: null });
+      setupAsPersona(personas.technician, { canCreate: false, teams: [maintenanceTeam] });
+      render(<Teams />);
+
+      expect(screen.queryByRole('button', { name: /create team/i })).not.toBeInTheDocument();
+      await user.tab();
+      expect(screen.getByRole('textbox', { name: /search teams/i })).toHaveFocus();
+      await user.tab();
+      expect(screen.getByRole('combobox', { name: /sort teams/i })).toHaveFocus();
+    });
+
+    it('filters the visible teams from the search field', () => {
+      setupAsPersona(personas.owner, { teams: [maintenanceTeam, fieldTeam] });
+      render(<Teams />);
+
+      fireEvent.change(screen.getByRole('textbox', { name: /search teams/i }), {
+        target: { value: teamFixtures.field.name },
+      });
+
+      expect(screen.getByText(teamFixtures.field.name)).toBeInTheDocument();
+      expect(screen.queryByText(teamFixtures.maintenance.name)).not.toBeInTheDocument();
+    });
+  });
+
   // --------------------------------------------------------
   // Frank (read-only member) — no teams at all
   // --------------------------------------------------------

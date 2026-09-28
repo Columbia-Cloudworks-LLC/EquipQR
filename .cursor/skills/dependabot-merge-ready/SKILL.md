@@ -13,7 +13,7 @@ description: >-
 
 Automated PR remediation for **Dependabot-originating PRs only**. Objective: resolve the current Dependabot PR with minimal necessary changes, ensure zero feature regression, manage technical debt via GitHub issues, document under CHANGELOG `[Unreleased]` (**no** `package.json` bump on preview), and monitor the CI pipeline to a green state.
 
-**Before starting:** read `AGENTS.md` as an index, then the one relevant official doc plus `.cursor/rules/*.mdc` (especially `pr-merge-ready-workflow.mdc`, `pr-ci-gate-before-open.mdc`, `fallow-before-commit.mdc`, `git-powershell.mdc`, `workflow-artifacts.mdc`).
+**Before starting:** read `AGENTS.md` as an index, then the one relevant official doc plus `.cursor/rules/*.mdc` (especially `pr-merge-ready-workflow.mdc`, `pr-ci-gate-before-open.mdc`, `fallow-before-commit.mdc`, `git-bash.mdc`, `workflow-artifacts.mdc`).
 
 ## Entry gate (mandatory — do not skip)
 
@@ -21,9 +21,9 @@ Invoking this workflow **MUST** include a PR number or a link to a PR that was o
 
 **Preflight:**
 
-```powershell
+```bash
 # Accept -PullRequestNumber <n> or parse number from a github.com/.../pull/<n> URL
-.\dev\pr-feedback\Get-PrContext.ps1 -PullRequestNumber <number> -Json
+bash dev/pr-feedback/workflow.sh context -PullRequestNumber <number> -Json
 gh pr view <number> --json author,title,headRefName,baseRefName,url
 ```
 
@@ -54,13 +54,13 @@ Execute the following phases sequentially. **Do not proceed to the next phase un
 
 ### EquipQR Phase 1 commands
 
-```powershell
+```bash
 git fetch origin
 git switch <headRefName>   # from Get-PrContext
 git diff origin/preview...HEAD -- package.json package-lock.json
 
 # CI-parity sync (prefer over npm install on this repo)
-.\dev\dev-stop.bat             # if EPERM/EBUSY risk on Windows
+bash dev/linux/dev.sh stop             # if EPERM/EBUSY risk on Windows
 npm ci --prefer-offline --no-audit
 ```
 
@@ -76,7 +76,7 @@ Record: dependency name, from-version, to-version, dev vs prod.
 
 Search `src/`, `supabase/functions/`, `e2e/`, `dev/` for package name and known import paths.
 
-```powershell
+```bash
 npm run lint
 npm run type-check
 npm run test:ci
@@ -100,18 +100,9 @@ npm run verify:spa-routing
 3. If an open issue exists, run `gh issue comment <issue-number> --body "<Your detailed findings>"`
 4. If no issue exists, run `gh issue create --title "Tech Debt: <Dependency Name> update findings" --body "<Your detailed findings>"`
 
-Use a UTF-8 body file on Windows when findings are multiline (`git-powershell.mdc`):
+Use a UTF-8 body file on Windows when findings are multiline (`git-bash.mdc`):
 
-```powershell
-@"
-## Context
-Dependabot PR #<number>: <title>
-
-## Findings
-- ...
-"@ | Set-Content -Path "$env:TEMP\dependabot-debt-<slug>.md" -Encoding utf8
-gh issue comment <issue-number> --body-file "$env:TEMP\dependabot-debt-<slug>.md"
-```
+See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
 
 Skip Phase 4 when there are no debt findings beyond the routine bump.
 
@@ -127,11 +118,11 @@ Preview release-metadata CI treats `package.json` and `package-lock.json` as rel
 2. Add one short Changed bullet under CHANGELOG `## [Unreleased]` for the lockfile or `package.json` diff.
 3. Ensure `package-lock.json` dependency changes from the bump are committed; root app version stays aligned with `package.json` (no bump).
 
-```powershell
-$env:RELEASE_METADATA_MODE = 'preview'
-$env:RELEASE_METADATA_BASE_SHA = (git merge-base HEAD origin/preview)
+```bash
+export RELEASE_METADATA_MODE="preview"
+export RELEASE_METADATA_BASE_SHA="$(git merge-base HEAD origin/preview)"
 npm run verify:release-metadata
-Remove-Item Env:RELEASE_METADATA_MODE, Env:RELEASE_METADATA_BASE_SHA -ErrorAction SilentlyContinue
+unset RELEASE_METADATA_MODE RELEASE_METADATA_BASE_SHA
 ```
 
 ## Phase 6: Commit, Push, & CI Loop
@@ -147,16 +138,16 @@ Remove-Item Env:RELEASE_METADATA_MODE, Env:RELEASE_METADATA_BASE_SHA -ErrorActio
 
 **Fallow (before commit):**
 
-```powershell
-npx --yes fallow@2.88.0 --format json --quiet --summary > tmp\fallow-pre-commit.json 2>$null
+```bash
+npx --yes fallow@2.88.0 --format json --quiet --summary > tmp/fallow-pre-commit.json 2>/dev/null
 # exitCode must be 0; total_issues must be 0
-npx --yes fallow@2.88.0 dupes --format json --quiet > tmp\fallow-pre-commit-dupes.json 2>$null
+npx --yes fallow@2.88.0 dupes --format json --quiet > tmp/fallow-pre-commit-dupes.json 2>/dev/null
 # clone_groups must be 0
 ```
 
-**Commit (PowerShell — no heredoc):**
+**Commit (Bash):**
 
-```powershell
+```bash
 git add -A
 git commit -m "fix: minimal remediation for <Dependency Name> update" -m "Fallow: exitCode=0, total_issues=0, clone_groups=0"
 git push -u origin HEAD
@@ -164,8 +155,8 @@ git push -u origin HEAD
 
 **CI + Supabase loop** (merge gate per `pr-merge-ready-workflow.mdc`):
 
-```powershell
-.\dev\pr-feedback\Get-PrChecks.ps1 -PullRequestNumber <number> -Watch -FailFast
+```bash
+bash dev/pr-feedback/workflow.sh checks -PullRequestNumber <number> -Watch -FailFast
 gh pr view <number> --json mergeable,mergeStateStatus,url
 ```
 

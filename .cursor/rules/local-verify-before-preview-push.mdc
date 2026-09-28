@@ -22,7 +22,7 @@ This gate is **not** for unpublished local-iterate work (`branching.mdc`). For l
 
 Run in order when a commit, push, or PR was requested; all must pass:
 
-0. **CI-parity install** — required after any `package.json` / lockfile / `.npmrc` change and before opening a feature-branch PR. On Windows use `.\dev\npm-ci-safe.bat` (`dev-stack-lifecycle.mdc`), not bare `npm ci` while the stack is up. Linux/CI still uses `npm ci --prefer-offline --no-audit`. See `pr-ci-gate-before-open.mdc`.
+0. **CI-parity install** — required after any `package.json` / lockfile / `.npmrc` change and before opening a feature-branch PR. Stop the stack, then run `npm ci --prefer-offline --no-audit` in Linux. See `pr-ci-gate-before-open.mdc`.
 1. **Fallow** — both scans per `fallow-before-commit.mdc` (before commit).
 2. **Static checks** — `npm run lint`, `npm run type-check`.
 3. **Targeted tests** — Vitest for touched behavior; add/update tests when behavior changed.
@@ -34,10 +34,10 @@ Pick the **smallest credible E2E proof** that covers the user-visible outcome. P
 
 | Change touches | Local E2E proof (agent-run) |
 |---|---|
-| UI route / form / dashboard flow | Browser MCP smoke on `http://localhost:8080` **or** `.\dev\dev-test.bat` critical when a spec exists |
+| UI route / form / dashboard flow | Browser MCP smoke on `http://localhost:8080` **or** `npm run test:e2e:critical` critical when a spec exists |
 | User-visible behavior touched indirectly (help links, copy, docs discovery) | Playwright PR evidence or browser MCP proving discovery **and** the underlying workflow still completes |
 | equipqr.info docs wired to app surfaces | `npm run docs:build` plus Playwright/browser proof from each contextual Help link and Help Center nav to the article |
-| Broad UX / release-sensitive | `.\dev\dev-test.bat full` (headless) |
+| Broad UX / release-sensitive | `npm run test:e2e:critical full` (headless) |
 | Edge Function / OAuth callback | `deno test` in function dir if present; then exercise callback path on local stack; confirm via edge logs + DB/RPC read |
 | Google sign-in (Supabase Auth) | Browser MCP: complete Google login locally; confirm session in app |
 | Google Workspace Connect / disconnect | Browser MCP on integrations page; complete flow locally; confirm `gw_connected` redirect or RPC `get_google_workspace_connection_status` |
@@ -48,18 +48,18 @@ Pick the **smallest credible E2E proof** that covers the user-visible outcome. P
 
 Before E2E, ensure the stack is up and env is current. Follow **`dev-stack-lifecycle.mdc`** — batch files only:
 
-```powershell
-.\dev\dev-stop.bat
-.\dev\dev-start.bat          # normal restart
+```bash
+bash dev/linux/dev.sh stop
+bash dev/linux/dev.sh start          # normal restart
 # or
-.\dev\dev-start.bat -Force   # DB reset, migrations/seeds, types regen
+bash dev/linux/dev.sh reset   # DB reset, migrations/seeds, types regen
 ```
 
 Agents may run stop/start **without asking** when verification or dependency work requires a clean stack. After edge env changes under `supabase/functions/.env`, use a **full** batch-file cycle — not partial Docker-only restarts.
 
-Before `npm ci` on Windows, stop the stack if native binary EPERM/EBUSY is possible.
+Stop the stack before replacing installed dependencies.
 
-OAuth redirect mismatches locally almost always mean `GW_OAUTH_REDIRECT_BASE_URL` / `QB_OAUTH_REDIRECT_BASE_URL` missing from the edge runtime — see `dev/sync-local-supabase-env.ps1`.
+OAuth redirect mismatches locally almost always mean `GW_OAUTH_REDIRECT_BASE_URL` / `QB_OAUTH_REDIRECT_BASE_URL` missing from the edge runtime — see `bash dev/ops/local-env.sh`.
 
 Reference: `docs/technical/e2e-user-regression.md`, `docs/technical/testing-guidelines.md`.
 

@@ -11,6 +11,28 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+## [3.34.0] - 2026-09-27
+
+### Added
+
+- **QuickBooks invoice review** — Choose and save service dates, invoice dates, payment terms, and due dates before exporting a work order. (#1551, #1552)
+
+### Changed
+
+- **Clearer QuickBooks line items** — PM services use concise invoice lines with initial $0 pricing; findings, public notes, and parts details appear in the customer memo. Set PM prices in QuickBooks before sending. (#1552)
+- **Homepage workflow stories** — The hero rotates through fleet-map and scan-to-service-history stories, with manual selection and still images for reduced-motion preferences. (#1560, #1561, #1565)
+
+### Fixed
+
+- **Safe invoice review during updates** — Opening invoice review cannot trigger an export while the QuickBooks integration is being updated. (#1580)
+- **QuickBooks re-export** — Existing QuickBooks prices and service dates are preserved, and replacing invoice billing dates requires an explicit choice. (#1552)
+- **Complete Quick Forms results** — Browse every matching submission and export the entire filtered set, including results beyond the first page. (#1547)
+- **Quick Forms retry** — Failed loads and refreshes show an error and retry option, including when the previous result was empty. (#1548, #1558)
+- **Teams on phones** — Search, sort, and Create Team stay usable on narrow screens without sideways scrolling. (#1549)
+- **Keyboard-accessible card actions** — Equipment and mobile inventory cards keep details, QR codes, and quick actions independently usable with a keyboard. (#1573, #1575)
+- **Equipment status labels** — The Out of Service filter uses the same readable label as the status picker. (#1574)
+- **Verification-code entry** — The input caret now blinks as intended. (#1565)
+
 ## [3.33.0] - 2026-09-21
 
 ### Added
@@ -2748,7 +2770,8 @@ Update package dependencies and versions
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.33.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.34.0...HEAD
+[3.34.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.33.0...v3.34.0
 [3.33.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.32.0...v3.33.0
 [3.32.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.31.0...v3.32.0
 [3.31.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.30.0...v3.31.0

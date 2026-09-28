@@ -28,7 +28,7 @@ Configure these secrets in Supabase Dashboard → Edge Functions → Secrets:
 
 | Tier | App `VITE_INTUIT_CLIENT_ID` | Edge `INTUIT_*` | `QBO_USE_SANDBOX` | QBO companies | Invoice UI |
 |------|------------------------------|-----------------|-------------------|---------------|--------------|
-| Local | Development | Development | `true` (via `sync-local-supabase-env.ps1`) | Sandbox | `app.sandbox.qbo.intuit.com` |
+| Local | Development | Development | `true` (via `bash dev/ops/local-env.sh`) | Sandbox | `app.sandbox.qbo.intuit.com` |
 | Preview | Development | Development | `true` (via secrets sync) | Sandbox | `app.sandbox.qbo.intuit.com` |
 | Production | Production | Production | unset | Live | `app.qbo.intuit.com` |
 
@@ -36,13 +36,13 @@ Configure these secrets in Supabase Dashboard → Edge Functions → Secrets:
 
 After switching preview to sandbox, **disconnect and reconnect** QuickBooks on preview.equipqr.app so stored tokens match the sandbox realm.
 
-Client-side: align `VITE_INTUIT_CLIENT_ID` in `app-env-preview-public` with `INTUIT_CLIENT_ID` in `edge-env-preview-secrets` (same Development client ID).
+Client-side: align the deployed `VITE_INTUIT_CLIENT_ID` with `INTUIT_CLIENT_ID` in `edge-env-preview-secrets` (same Development client ID). The persistent preview uses an isolated Supabase project. Verify live branch-scoped Vercel values before syncing the public vault item; an older vault snapshot may still point at production.
 
-**OAuth redirect URI (derived — do not set separate redirect base secrets)**
+**OAuth redirect URI**
 
 EquipQR derives the QuickBooks OAuth callback from the canonical Supabase URL:
 
-- Browser: `VITE_SUPABASE_URL`
+- Browser: `VITE_QB_OAUTH_REDIRECT_BASE_URL` when present, otherwise `VITE_SUPABASE_URL`
 - Edge token exchange: `SUPABASE_URL`
 
 Register the derived callback URI in the Intuit Developer Portal:
@@ -50,15 +50,15 @@ Register the derived callback URI in the Intuit Developer Portal:
 | Environment | Intuit redirect URI |
 |-------------|---------------------|
 | Production | `https://supabase.equipqr.app/functions/v1/quickbooks-oauth-callback` |
-| Preview | `https://supabase.equipqr.app/functions/v1/quickbooks-oauth-callback` |
+| Preview | `https://<preview-project-ref>.supabase.co/functions/v1/quickbooks-oauth-callback` |
 | Local | `http://localhost:54321/functions/v1/quickbooks-oauth-callback` |
 
-Legacy `VITE_QB_OAUTH_REDIRECT_BASE_URL` / `QB_OAUTH_REDIRECT_BASE_URL` overrides are deprecated. Remove them from Vercel and Supabase secrets if still present; OAuth callbacks are derived from the Supabase URL as described above.
+For the persistent preview branch, both the Supabase URL and callback must address its isolated backend. The Vercel `preview` environment's `preview` Git branch has an explicit callback override to prevent an inherited retired custom domain from resolving to production. Register that exact callback under Intuit **Development** keys. Never use the retired preview custom hostname as the callback: legacy normalization redirects it to production. Keep production settings separate.
 
 ### Vault secrets (token refresh scheduler)
 
 The token refresh scheduler reads secrets from the Supabase Vault. Configure them with the
-project secret sync scripts (`.\dev\sync-supabase-secrets-from-1password.ps1` or your
+project secret sync scripts (`bash dev/ops/supabase-secrets.sh` or your
 environment's equivalent). Do not paste elevated API keys into tickets, chat, or docs.
 
 Required vault entries (names must match what the scheduler Edge Function expects):
@@ -200,23 +200,44 @@ deno test --allow-env --allow-net=quickbooks.api.intuit.com ./quickbooks-export-
 ### Local development
 
 1. Use Intuit **Development** app credentials (same keys as preview sandbox).
-2. Run `.\dev\sync-local-supabase-env.ps1` so `supabase/functions/.env` includes `QBO_USE_SANDBOX=true`.
+2. Run `bash dev/ops/local-env.sh` so `supabase/functions/.env` includes `QBO_USE_SANDBOX=true`.
 3. Register the local callback URI in the Intuit Developer Portal (Development app → Keys & OAuth).
 4. Capture the integration once: `npm run e2e:quickbooks-auth:capture` (see `docs/ops/playwright-real-auth-integrations.md`).
-5. Restart the **full** local stack after env changes (`.\dev\dev-stop.bat` then `.\dev\dev-start.bat`). Do not use ad-hoc `npx supabase stop` / `start`.
-6. Probe the QBO API from the shell: `.\dev\qbo\Invoke-QboQuery.ps1 -StatusOnly`.
+5. Restart the **full** local stack after env changes (`bash dev/linux/dev.sh stop` then `bash dev/linux/dev.sh start`). Do not use ad-hoc `npx supabase stop` / `start`.
+6. Probe the QBO API from the shell: `bash dev/qbo/query.sh -StatusOnly`.
 
 ## Production invoice export
 
 Live QBO connections and team→customer mappings are org-specific (exact
 IDs live in the private ops runbook / 1Password, not in this repo).
-EquipQR exports **draft-only** invoices from work order details via
+EquipQR creates invoices for review from work order details via
 Export → QuickBooks (**Create New Invoice** / **Update Invoice #…** /
 **Open Invoice**). Export is gated on a completed work order +
 team→customer mapping + `can_manage_quickbooks`.
 
+Invoice export requires a review/confirmation exchange. `action: "review"`
+returns customer terms, persisted business dates, current QuickBooks values,
+service amounts, and a source fingerprint without creating QuickBooks items or
+invoices. `action: "export"` requires explicit calendar dates, that fingerprint,
+and the reviewed invoice ID/SyncToken. Unknown business dates have no clock or
+work-order scheduling fallback. Billing inputs are persisted separately in
+`work_order_invoice_details`; authenticated column grants exclude the protected
+QuickBooks line mapping.
+
+PM exports as a distinct zero-priced service line; public findings and parts
+detail go in CustomerMemo. Sparse updates preserve QuickBooks prices and
+service dates using a server-owned mapping bound to company and invoice IDs.
+Unmapped legacy invoices and invoices with online payments enabled require
+updates directly in QuickBooks. Header date/term replacements require explicit
+confirmation; clearing existing payment terms must be done in QuickBooks.
+
+Creation sets online credit-card and ACH payment flags false and EmailStatus
+NotSet, and never invokes the send endpoint. Intuit's imported-invoice delivery
+behavior depends on company settings: an API create is not inherently a draft
+state. Price review and deliberate sending remain separate user steps.
+
 **Intuit passkey chooser blocks automation.** Use the logged-in
-`cursor-ide-browser` session. `dev/qbo/Connect-QboBrowserSession.ps1`
+`cursor-ide-browser` session. `bash dev/e2e/env.sh qbo-browser`
 exists for retries.
 
 Customer steps: [Export a work order to QuickBooks](../support/admin-integrations/export-work-order-to-qb.md).
@@ -241,7 +262,8 @@ const status = await getConnectionStatus(organizationId);
 const { customers } = await searchCustomers(organizationId, 'search query');
 
 // Export invoice
-const result = await exportInvoice(workOrderId);
+// confirmation comes from the reviewed invoice details, never the current clock.
+const result = await exportInvoice(workOrderId, confirmation);
 ```
 
 ### React hooks
@@ -259,5 +281,5 @@ const { data: customers } = useQuickBooksCustomers(organizationId, searchQuery);
 
 // Export mutation
 const exportMutation = useExportToQuickBooks();
-exportMutation.mutate(workOrderId);
+exportMutation.mutate({ workOrderId, confirmation });
 ```

@@ -83,7 +83,7 @@ once the cutover in `preview-persistent-branch.md` begins.
 |------------|--------------|---------------|-------|
 | `INTUIT_CLIENT_ID` | All QuickBooks functions | `Q0...` | QuickBooks OAuth client ID — **Development** keys on preview/local, **Production** keys on main |
 | `INTUIT_CLIENT_SECRET` | All QuickBooks functions | `...` | QuickBooks OAuth client secret (pair with client ID tier above) |
-| `QBO_USE_SANDBOX` | All QuickBooks functions | `true` | **Preview only.** Routes QBO Data API calls to `sandbox-quickbooks.api.intuit.com`. Injected automatically by `sync-supabase-secrets-from-1password.ps1` for `edge-env-preview-secrets`; must **not** be set on production. |
+| `QBO_USE_SANDBOX` | All QuickBooks functions | `true` | **Preview only.** Routes QBO Data API calls to `sandbox-quickbooks.api.intuit.com`. Injected automatically by `bash dev/ops/supabase-secrets.sh` for `edge-env-preview-secrets`; must **not** be set on production. |
 
 > **Preview/local sandbox contract:** Use Intuit Developer Portal **Development** keys (`INTUIT_CLIENT_ID` / `INTUIT_CLIENT_SECRET`) together with `QBO_USE_SANDBOX=true`. OAuth connects sandbox companies; invoice links use `app.sandbox.qbo.intuit.com`. Production (`main`) uses Production keys with no `QBO_USE_SANDBOX`.
 
@@ -317,7 +317,7 @@ Secrets are **not automatically synced** between branches. If you add a new secr
 
 ## Google Maps API key — HTTP referrer allowlist
 
-The `GOOGLE_MAPS_BROWSER_KEY` Supabase secret only **delivers** the Google Cloud API key value to the browser. The key itself is then validated by Google's CDN against the **HTTP referrer allowlist** configured on the Google Cloud project — and that allowlist is **not** stored in Supabase, **not** synchronized between Supabase branches, and **not** rotated by `dev/sync-supabase-secrets-from-1password.ps1`. Whenever a new Vercel domain alias, custom domain, or Supabase preview branch is added, the upstream Google Cloud allowlist must be widened by hand.
+The `GOOGLE_MAPS_BROWSER_KEY` Supabase secret only **delivers** the Google Cloud API key value to the browser. The key itself is then validated by Google's CDN against the **HTTP referrer allowlist** configured on the Google Cloud project — and that allowlist is **not** stored in Supabase, **not** synchronized between Supabase branches, and **not** rotated by `bash dev/ops/supabase-secrets.sh`. Whenever a new Vercel domain alias, custom domain, or Supabase preview branch is added, the upstream Google Cloud allowlist must be widened by hand.
 
 ### Symptom when missing
 
@@ -352,7 +352,7 @@ Set the same allowlist on every Google Cloud API key referenced as `GOOGLE_MAPS_
 The HTTP-referrer restriction is a property of the Google Cloud API key itself, not of the EquipQR application or its Supabase Edge Function secrets. The Supabase secret only carries the key string; Google validates the referrer header on every Maps API request against the allowlist on the key. This means the allowlist:
 
 - Is **shared** across every Supabase project / environment that resolves to the same physical Google Cloud key.
-- Cannot be rotated by `dev/sync-supabase-secrets-from-1password.ps1` (which only touches Supabase secret values).
+- Cannot be rotated by `bash dev/ops/supabase-secrets.sh` (which only touches Supabase secret values).
 - Must be re-checked whenever a new domain is brought online (custom domain, Vercel alias, additional preview branch URL).
 
 ## Related Documentation

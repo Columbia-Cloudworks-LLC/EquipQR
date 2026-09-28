@@ -4,7 +4,7 @@ import { MemoryRouter, Routes, Route, Link } from 'react-router-dom';
 import Landing from './Landing';
 
 vi.mock('@/components/landing/LandingHeader', () => ({ default: () => null }));
-vi.mock('@/components/landing/HeroAnimation', () => ({ default: () => null }));
+vi.mock('@/components/landing/hero-gallery/HeroGallery', () => ({ HeroGallery: () => null }));
 vi.mock('@/components/landing/LandingFooter', () => ({ default: () => null }));
 vi.mock('@/components/landing/WhyDifferentSection', () => ({ default: () => <div /> }));
 vi.mock('@/components/landing/HowItWorksSection', () => ({ default: () => <div /> }));

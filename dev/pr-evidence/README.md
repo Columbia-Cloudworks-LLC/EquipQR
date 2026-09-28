@@ -4,62 +4,34 @@ Agents **must** capture screenshots and an MP4 demo video from the local dev sta
 
 ## Quick path
 
-```powershell
-# 1. Add or update e2e/pr-evidence/<feature>.spec.ts (see e2e/pr-evidence/README.md)
-
-# 2. Capture only (generates visual-review-checklist.md)
-.\dev\pr-evidence\Invoke-PrEvidence.ps1 `
-  -Flow "my-feature" `
-  -Spec "e2e/pr-evidence/my-feature.spec.ts" `
-  -CaptureOnly
-
-# 3. Open each PNG; complete visual-review-checklist.md; record approval
-.\dev\pr-evidence\Complete-PrEvidenceVisualReview.ps1 `
-  -Flow "my-feature" `
-  -Notes "Verified framing and mobile layout"
-
-# 4. Upload + write evidence-markdown.md (blocked until step 3)
-.\dev\pr-evidence\Invoke-PrEvidence.ps1 `
-  -Flow "my-feature" `
-  -Spec "e2e/pr-evidence/my-feature.spec.ts"
-
-# 5. Include tmp/pr-evidence/my-feature/evidence-markdown.md in the PR body, then post comment after create:
-.\dev\pr-evidence\Invoke-PrEvidence.ps1 `
-  -Flow "my-feature" `
-  -Spec "e2e/pr-evidence/my-feature.spec.ts" `
-  -PrNumber 1234 `
-  -Publish
-
-# -Publish reuses an existing capture in tmp/pr-evidence/{flow}/ (no Playwright re-run).
-# Pass -Recapture to force a fresh capture when publishing.
-```
+See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
 
 ## Scripts
 
 | Script | Role |
 |--------|------|
-| `Invoke-PrEvidenceCapture.ps1` | Stack probe/start, Playwright run, PNG + H.264 MP4 generation, visual-review checklist |
-| `Complete-PrEvidenceVisualReview.ps1` | Record agent PNG review approval (`visual-review.json`) |
-| `Publish-PrEvidence.ps1` | Upload screenshots to Supabase + demo MP4 to GitHub, emit markdown |
-| `Invoke-PrEvidence.ps1` | End-to-end orchestrator (+ optional `gh pr comment`); gates publish on visual review |
-| `Publish-DocsMedia.ps1` | Upload capture artifacts to public `docs-media` for equipqr.info articles |
+| `bash dev/linux/pr-evidence.sh capture` | Stack probe/start, Playwright run, PNG + H.264 MP4 generation, visual-review checklist |
+| `bash dev/linux/pr-evidence.sh review` | Record agent PNG review approval (`visual-review.json`) |
+| `bash dev/linux/pr-evidence.sh upload` | Upload screenshots to Supabase + demo MP4 to GitHub, emit markdown |
+| `bash dev/linux/pr-evidence.sh` | End-to-end orchestrator (+ optional `gh pr comment`); gates publish on visual review |
+| `bash dev/docs-media/workflow.sh publish` | Upload capture artifacts to public `docs-media` for equipqr.info articles |
 
 ## Documentation media bucket
 
 For equipqr.info (not PR comments), publish capture manifests to **`docs-media`**:
 
-```powershell
-.\dev\docs-media\Publish-DocsMedia.ps1 `
-  -ManifestPath tmp\pr-evidence\location-maps-desktop\manifest.json `
-  -Collection location-maps `
-  -Variant desktop `
+```bash
+bash dev/docs-media/workflow.sh publish \
+  -ManifestPath tmp\pr-evidence\location-maps-desktop\manifest.json \
+  -Collection location-maps \
+  -Variant desktop \
   -MarkdownOut tmp\docs-media\location-maps\desktop.md
 ```
 
-Bootstrap optional verification after migration (uses `SUPABASE_URL` / `VITE_SUPABASE_URL` from the shell, or pass `-SupabaseUrl`; `Publish-DocsMedia.ps1` loads upload env automatically):
+Bootstrap optional verification after migration (uses `SUPABASE_URL` / `VITE_SUPABASE_URL` from the shell, or pass `-SupabaseUrl`; `bash dev/docs-media/workflow.sh publish` loads upload env automatically):
 
-```powershell
-.\dev\docs-media\Bootstrap-DocsMediaBucket.ps1
+```bash
+bash dev/docs-media/workflow.sh verify
 ```
 
 ## Prerequisites
@@ -67,13 +39,9 @@ Bootstrap optional verification after migration (uses `SUPABASE_URL` / `VITE_SUP
 - Local stack at `http://localhost:8080` (or pass `-BaseUrl`)
 - Playwright Chromium: `npx playwright install chromium`
 - `ffmpeg` and `ffprobe` on PATH (WebM → H.264 MP4 uses shared recording profile from `dev/lib/recording-quality.mjs`)
-- `OP_SERVICE_ACCOUNT_TOKEN` (User scope) for preview Supabase screenshot uploads — `Invoke-PrEvidence.ps1` and `Publish-DocsMedia.ps1` call `Set-PrEvidenceUploadEnvironment`, which materializes `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from 1Password for the session (see `dev/README-upload-screenshot.md` for manual setup)
+- `OP_SERVICE_ACCOUNT_TOKEN` (User scope) for preview Supabase screenshot uploads — `bash dev/linux/pr-evidence.sh` and `bash dev/docs-media/workflow.sh publish` call `Set-PrEvidenceUploadEnvironment`, which materializes `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from 1Password for the session (see `dev/README-upload-screenshot.md` for manual setup)
 - **`GH_SESSION_TOKEN` (User scope)** for GitHub inline video upload — a GitHub `user_session` cookie, **not** a PAT. One-time setup:
-  ```powershell
-  gh extension install drogers0/gh-image
-  gh image extract-token | Set-Content -Path "$env:USERPROFILE\.equipqr-gh-session-token" -NoNewline -Encoding ascii
-  [Environment]::SetEnvironmentVariable('GH_SESSION_TOKEN', (Get-Content "$env:USERPROFILE\.equipqr-gh-session-token" -Raw).Trim(), 'User')
-  ```
+  See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
   Refresh when GitHub invalidates the session (`gh image check-token`).
 - `gh` authenticated when using `-Publish`
 

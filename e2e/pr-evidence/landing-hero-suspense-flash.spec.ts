@@ -19,7 +19,7 @@ test.describe('PR evidence landing hero Suspense flash @pr-evidence', () => {
     // Hard navigation so lazy chunks behave like a first visit.
     await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-    const hero = page.getByRole('region', { name: /EquipQR asset tracking demo/i });
+    const hero = page.getByRole('region', { name: /EquipQR workflow gallery/i });
     await expect(hero).toBeVisible({ timeout: 30_000 });
 
     const heading = page.getByRole('heading', { level: 1 });

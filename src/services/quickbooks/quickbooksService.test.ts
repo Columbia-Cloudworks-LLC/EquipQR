@@ -488,6 +488,7 @@ describe('QuickBooks Service', () => {
   });
 
   describe('exportInvoice', () => {
+    const confirmation = { invoice_date: '2020-09-21', due_date: '2020-10-21', payment_term_id: null, service_dates: { labor: '2020-08-05' }, existing_invoice_id: null, existing_sync_token: null, overwrite_existing_dates: false, source_fingerprint: 'source-v1' };
     beforeEach(() => {
       global.fetch = vi.fn();
     });
@@ -498,7 +499,7 @@ describe('QuickBooks Service', () => {
         error: null,
       });
 
-      const result = await exportInvoice(mockWorkOrderId);
+      const result = await exportInvoice(mockWorkOrderId, confirmation);
 
       expect(result).toEqual({ success: false, error: 'Not authenticated' });
     });
@@ -516,7 +517,7 @@ describe('QuickBooks Service', () => {
         }),
       } as unknown as Response);
 
-      const result = await exportInvoice(mockWorkOrderId);
+      const result = await exportInvoice(mockWorkOrderId, confirmation);
 
       expect(result.success).toBe(true);
       expect(result.invoiceId).toBe('inv-123');
@@ -538,7 +539,7 @@ describe('QuickBooks Service', () => {
         }),
       } as unknown as Response);
 
-      const result = await exportInvoice(mockWorkOrderId);
+      const result = await exportInvoice(mockWorkOrderId, confirmation);
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Internal server error');
@@ -555,7 +556,7 @@ describe('QuickBooks Service', () => {
         json: vi.fn().mockResolvedValue({}),
       } as unknown as Response);
 
-      const result = await exportInvoice(mockWorkOrderId);
+      const result = await exportInvoice(mockWorkOrderId, confirmation);
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Failed to export invoice');

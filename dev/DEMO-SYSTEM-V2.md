@@ -25,7 +25,7 @@ Demo System v2 is a scenario-driven recording platform designed for customer-rea
 
 ## Operator Commands (PowerShell)
 
-```powershell
+```bash
 # List available v2 scenarios
 npm run demo:v2:list
 
@@ -33,8 +33,8 @@ npm run demo:v2:list
 npm run demo:v2:run -- --scenario=executive-overview --base-url=http://localhost:8080
 
 # Run one scenario in production mode (strict preflight + storage-state required)
-$env:DEMO_BASE_URL="https://equipqr.app"
-$env:DEMO_STORAGE_STATE="tmp/demos/auth.json"
+export DEMO_BASE_URL="https://equipqr.app"
+export DEMO_STORAGE_STATE="tmp/demos/auth.json"
 npm run demo:v2:run:prod -- --scenario=executive-overview
 
 # Run default core suite
