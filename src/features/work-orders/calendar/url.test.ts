@@ -57,7 +57,7 @@ describe('resolveWorkOrdersChrome', () => {
       isMobile: true,
     });
 
-    expect(chrome.surface).toBe('list');
+    expect(chrome.surface).toBe('calendar');
 
     const patch: ChromePatch = {};
     const params = serializeChromeParams(chrome, patch);

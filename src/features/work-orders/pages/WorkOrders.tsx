@@ -1,3 +1,4 @@
+import { WorkOrderAgenda } from '@/features/work-orders/calendar/WorkOrderAgenda';
 import React, { lazy, Suspense, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Plus, ShieldCheck, Users } from 'lucide-react';
@@ -143,7 +144,7 @@ const WorkOrders = () => {
       ? chrome.selectedWorkOrderId
       : null;
 
-  const { data: calendarServerRows = [] } = useTeamBasedWorkOrders(
+  const { data: calendarServerRows = [], isLoading: calendarLoading, isError: calendarError, refetch: refetchCalendar } = useTeamBasedWorkOrders(
     {},
     { enabled: chrome.surface === 'calendar' },
   );
@@ -436,6 +437,17 @@ const WorkOrders = () => {
                 : undefined
             }
           >
+            {isMobile && (
+              <WorkOrdersViewToggle
+                isMobile
+                surface={chrome.surface}
+                onChange={(surface) => {
+                  setPreferenceLocalStorage(WORK_ORDERS_VIEW_MODE_KEY, surface);
+                  writeChrome({ surface, selectedWorkOrderId: null });
+                }}
+                className="mb-2"
+              />
+            )}
             <WorkOrderFilters
               filters={filters}
               activeFilterCount={getActiveFilterCount()}
@@ -451,7 +463,7 @@ const WorkOrders = () => {
               hideDueDateFilter={chrome.surface === 'calendar'}
               showSearchAndSort={chrome.surface === 'list'}
               rangeToggle={
-                chrome.surface === 'calendar' ? (
+                chrome.surface === 'calendar' && !isMobile ? (
                   <CalendarRangeToggle
                     range={chrome.range}
                     onChange={(range) => writeChrome({ range })}
@@ -499,6 +511,22 @@ const WorkOrders = () => {
               onPageSizeChange={setPageSize}
             />
             </>
+          ) : calendarLoading ? (
+            <p role="status">Loading work orders…</p>
+          ) : calendarError ? (
+            <div role="alert" className="space-y-2">
+              <p>Work orders could not be loaded.</p>
+              <Button variant="outline" onClick={() => void refetchCalendar()}>Retry work orders</Button>
+            </div>
+          ) : isMobile ? (
+            <WorkOrderAgenda
+              items={calendarItems}
+              range={chrome.range}
+              anchor={chrome.anchor}
+              onDateChange={(anchor) => writeChrome({ anchor, selectedWorkOrderId: null })}
+              onRangeChange={(range) => writeChrome({ range, selectedWorkOrderId: null })}
+              onSelect={(workOrderId) => writeChrome({ selectedWorkOrderId: workOrderId })}
+            />
           ) : (
             <Suspense fallback={<div className="min-h-[24rem]" aria-busy="true" />}>
               <WorkOrderCalendar
@@ -527,7 +555,7 @@ const WorkOrders = () => {
             </Suspense>
           )}
 
-          {isMobile && totalAccessibleCount > 0 && (
+          {isMobile && chrome.surface === 'list' && totalAccessibleCount > 0 && (
             <MobileListGlanceCount
               resultCount={totalFilteredCount}
               totalCount={totalAccessibleCount}

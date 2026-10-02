@@ -62,6 +62,14 @@ vi.mock('@/features/equipment/services/equipmentQRPermissions', async () => {
   };
 });
 
+vi.mock('@/features/organization/hooks/useSimplifiedOrganizationRestrictions', () => ({
+  useSimplifiedOrganizationRestrictions: () => ({
+    restrictions: { canCreateCustomPMTemplates: true },
+    isSingleUser: false,
+    isLoading: false,
+  }),
+}));
+
 vi.mock('@/lib/authClaims', () => ({
   getAuthClaims: vi.fn().mockResolvedValue({ sub: 'user-1' }),
   requireAuthClaims: vi.fn().mockResolvedValue({ sub: 'user-1' }),

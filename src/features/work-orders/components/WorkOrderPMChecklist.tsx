@@ -1,3 +1,4 @@
+import { usePermissions } from '@/hooks/usePermissions';
 import React from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -43,7 +44,7 @@ const PMTemplateSelector: React.FC<PMTemplateSelectorProps> = ({
   if (isLoading) {
     return (
       <div className="rounded-lg border bg-muted/30 p-3">
-        <p className="text-sm text-muted-foreground">Loading templates...</p>
+        <p role="status" className="text-sm text-muted-foreground">Loading PM templates...</p>
       </div>
     );
   }
@@ -54,7 +55,7 @@ const PMTemplateSelector: React.FC<PMTemplateSelectorProps> = ({
       onValueChange={onTemplateChange}
       disabled={isLoading}
     >
-      <SelectTrigger id="pm-template-select" aria-label="PM template">
+      <SelectTrigger id="pm-template-select" aria-label="PM template (optional)">
         <SelectValue placeholder="Select a PM template..." />
       </SelectTrigger>
       <SelectContent>
@@ -105,6 +106,8 @@ export const WorkOrderPMChecklist: React.FC<WorkOrderPMChecklistProps> = ({
     selectedTemplate,
     assignedTemplate,
     isLoading,
+    isError,
+    refreshTemplates,
     restrictions,
     handleTemplateChange,
     handleClearTemplate,
@@ -117,18 +120,27 @@ export const WorkOrderPMChecklist: React.FC<WorkOrderPMChecklistProps> = ({
     autoDefaultFromEquipment,
   });
 
+  const { hasRole } = usePermissions();
+  const canManageTemplates = hasRole(['owner', 'admin']);
   const hasPmSelected = Boolean(values.pmTemplateId);
 
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        <Label htmlFor="pm-template-select">PM Template</Label>
+        <Label htmlFor="pm-template-select">PM template (optional)</Label>
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
-            {templates.length === 0 && !isLoading && !hasPmSelected ? (
+            {isError ? (
+              <div role="alert" className="rounded-lg border p-3 text-sm">
+                <p>PM templates could not be loaded. Try again, or create this work order without a checklist.</p>
+                <Button type="button" variant="outline" size="sm" onClick={() => void refreshTemplates()}>
+                  Retry templates
+                </Button>
+              </div>
+            ) : templates.length === 0 && !isLoading && !hasPmSelected ? (
               <div className="rounded-lg border bg-muted/30 p-3">
                 <p className="text-sm text-muted-foreground">
-                  No PM templates available. Ask an admin to add templates or assign one on the equipment record.
+                  No PM templates available. You can create this work order without a checklist.
                 </p>
               </div>
             ) : (
@@ -157,6 +169,22 @@ export const WorkOrderPMChecklist: React.FC<WorkOrderPMChecklistProps> = ({
             </Button>
           )}
         </div>
+        {!hasPmSelected && !isLoading && !isError && (
+          <p className="text-sm text-muted-foreground">No checklist selected. A PM checklist is optional.</p>
+        )}
+        {canManageTemplates ? (
+          <div className="space-y-1 text-sm">
+            <a className="text-primary underline underline-offset-4" href="/dashboard/pm-templates" target="_blank" rel="noopener noreferrer">
+              Manage PM templates (opens in a new tab)
+            </a>
+            <p className="text-xs text-muted-foreground">Your work-order draft stays here. Return to this tab when finished.</p>
+            <Button type="button" variant="outline" size="sm" disabled={isLoading} onClick={() => void refreshTemplates()}>
+              Refresh templates
+            </Button>
+          </div>
+        ) : !isLoading && !isError && templates.length === 0 ? (
+          <p className="text-xs text-muted-foreground">If you need a checklist, ask your organization owner or admin to add a PM template.</p>
+        ) : null}
         {assignedTemplate && selectedEquipment && hasPmSelected && values.pmTemplateId === assignedTemplate.id && (
           <p className="text-xs text-muted-foreground">
             Defaults to the PM template assigned to {selectedEquipment.name}. Choose another template or remove PM if this work order does not need a checklist.

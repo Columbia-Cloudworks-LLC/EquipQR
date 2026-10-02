@@ -1,3 +1,4 @@
+import { resolveWorkOrderAssignment } from '@/features/work-orders/utils/resolveWorkOrderAssignment';
 import { User, UserMinus, type LucideIcon } from 'lucide-react';
 
 export type WorkOrderAssignmentDisplay = {
@@ -16,12 +17,12 @@ type WorkOrderAssigneeSource = {
 export function getWorkOrderAssignmentDisplay(
   workOrder: WorkOrderAssigneeSource,
 ): WorkOrderAssignmentDisplay {
-  const assigneeName = workOrder.assigneeName || workOrder.assignee?.name;
+  const assignment = resolveWorkOrderAssignment(workOrder);
 
-  if (workOrder.assignee_id && assigneeName) {
+  if (assignment.id) {
     return {
       type: 'user',
-      name: assigneeName,
+      name: assignment.name,
       icon: User,
       label: 'Assigned to',
     };
@@ -29,7 +30,7 @@ export function getWorkOrderAssignmentDisplay(
 
   return {
     type: 'unassigned',
-    name: 'Not yet assigned',
+    name: 'Unassigned',
     icon: UserMinus,
     label: 'Assignment',
   };

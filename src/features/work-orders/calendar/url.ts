@@ -121,7 +121,7 @@ export function resolveWorkOrdersChrome(input: {
   const inboundAnchor = input.urlDate.kind === 'calendarDay' ? input.urlDate.day : null;
   const inboundWo = selectedWorkOrderId(input.woParam);
 
-  if (input.isMobile || intendedView === 'list') {
+  if (intendedView === 'list') {
     return {
       surface: 'list',
       dueBucket: null,
@@ -134,7 +134,7 @@ export function resolveWorkOrdersChrome(input: {
 
   return {
     surface: 'calendar',
-    range: inboundRange ?? 'month',
+    range: inboundRange ?? (input.isMobile ? 'week' : 'month'),
     anchor: inboundAnchor ?? todayLocal(),
     selectedWorkOrderId: inboundWo,
   };

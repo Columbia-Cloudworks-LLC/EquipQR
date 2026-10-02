@@ -34,17 +34,24 @@ export const useWorkOrderPMChecklist = ({
   allowTemplateOverride = false,
   autoDefaultFromEquipment = false,
 }: UseWorkOrderPMChecklistProps) => {
-  const { data: allTemplates = [], isLoading: isLoadingTemplates } = usePMTemplates();
+  const templatesQuery = usePMTemplates();
+  const { data: allTemplates = [], isLoading: isLoadingTemplates } = templatesQuery;
   const { restrictions } = useSimplifiedOrganizationRestrictions();
   const lastEquipmentIdRef = useRef<string | null>(null);
   const userSelectedTemplateRef = useRef(false);
 
-  const { data: matchingTemplates = [], isLoading: isLoadingMatching } = useMatchingPMTemplates(
+  const matchingQuery = useMatchingPMTemplates(
     selectedEquipment?.id,
     { enabled: !!selectedEquipment?.id },
   );
 
+  const { data: matchingTemplates = [], isLoading: isLoadingMatching } = matchingQuery;
   const isLoading = isLoadingTemplates || isLoadingMatching;
+  const isError = templatesQuery.isError || matchingQuery.isError;
+  const refreshTemplates = () => Promise.all([
+    templatesQuery.refetch(),
+    ...(selectedEquipment?.id ? [matchingQuery.refetch()] : []),
+  ]);
 
   const hasAssignedTemplate = Boolean(selectedEquipment?.default_pm_template_id);
   const assignedTemplate = hasAssignedTemplate
@@ -141,6 +148,8 @@ export const useWorkOrderPMChecklist = ({
     assignedTemplate,
     hasAssignedTemplate,
     isLoading,
+    isError,
+    refreshTemplates,
     restrictions,
     handleTemplateChange,
     handleClearTemplate,

@@ -1,3 +1,4 @@
+import { resolveWorkOrderAssignment } from '@/features/work-orders/utils/resolveWorkOrderAssignment';
 import { parseLastKnownLocation, resolveEffectiveLocation } from '@/utils/effectiveLocation';
 import {
   WorkOrder,
@@ -328,7 +329,14 @@ export function mapJoinedWorkOrderFields(
  * Maps raw Supabase row to WorkOrder with computed fields
  */
 export function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
-  const assignee = wo.assignee as WorkOrderJoinedProfile;
+  const joinedAssignee = wo.assignee as WorkOrderJoinedProfile;
+  const assignment = resolveWorkOrderAssignment({
+    assignee_id: wo.assignee_id as string | null,
+    assignee: joinedAssignee,
+  });
+  const assignee = assignment.id
+    ? { id: assignment.id, name: assignment.name, avatar_url: assignment.avatarUrl }
+    : null;
   const equipment = wo.equipment as WorkOrderJoinedEquipment;
   const creator = wo.creator as WorkOrderJoinedProfile;
   const organizationId = wo.organization_id as string;
@@ -337,5 +345,6 @@ export function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
     ...mapBaseWorkOrderFields(wo),
     ...mapQuickBooksInvoiceFields(wo),
     ...mapJoinedWorkOrderFields(assignee, equipment, creator, organizationId),
+    assignee_name: assignment.id ? assignment.name : null,
   } as WorkOrder;
 }

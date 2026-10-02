@@ -11,6 +11,16 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Added
+
+- **Mobile work order calendar view (#1587)** — Work order calendar view is now supported on mobile phones with an agenda-style layout for easy daily and weekly planning.
+
+### Changed
+
+- **Optional PM checklist guidance (#1586)** — Work-order creation now explains that a PM checklist is optional and provides role-aware template guidance.
+- **Distinct landing account actions (#1585)** — The landing page now offers separate "Sign in" and "Create account" actions.
+- **Consistent work-order assignments (#1584)** — Work-order lists, details, and status actions now use the current assignee consistently.
+
 ## [3.34.1] - 2026-09-27
 
 ### Fixed

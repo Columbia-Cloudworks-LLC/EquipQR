@@ -490,12 +490,14 @@ describe('WorkOrders Page', () => {
       expect(screen.getByRole('radiogroup', { name: 'Work orders view' })).toBeInTheDocument();
     });
 
-    it('hides the view toggle on phones', () => {
+    it('shows the view toggle on phones', async () => {
       vi.mocked(useMobileModule.useIsMobile).mockReturnValue(true);
       renderAt('/dashboard/work-orders?view=calendar');
-      expect(screen.queryByRole('radiogroup', { name: 'Work orders view' })).not.toBeInTheDocument();
-      expect(screen.queryByTestId('work-order-calendar')).not.toBeInTheDocument();
-      expect(screen.getByTestId('work-orders-list')).toBeInTheDocument();
+      expect(screen.getByRole('radiogroup', { name: 'Work orders view' })).toBeInTheDocument();
+      // wait for the lazy loaded agenda or it's synchronous? It's synchronous.
+      // let's just find the Agenda text or class since we didn't add a test id
+      expect(screen.getByText('Today')).toBeInTheDocument();
+      expect(screen.queryByTestId('work-orders-list')).not.toBeInTheDocument();
     });
 
     it('hides the due-date bucket in calendar mode', async () => {

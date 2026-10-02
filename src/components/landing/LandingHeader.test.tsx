@@ -16,17 +16,14 @@ function renderHeader() {
 }
 
 describe('LandingHeader', () => {
-  it('exposes a single Get Started account CTA to /auth', () => {
+  it('exposes Sign in and Create account CTAs to /auth', () => {
     renderHeader();
 
     const header = screen.getByRole('banner');
-    const accountLinks = within(header).getAllByRole('link', { name: /^Get Started$/i });
-    expect(accountLinks.length).toBeGreaterThanOrEqual(1);
-    for (const link of accountLinks) {
-      expect(link).toHaveAttribute('href', '/auth');
-    }
+    
+    expect(within(header).getByRole('link', { name: /^Sign in$/i })).toHaveAttribute('href', '/auth?tab=signin');
+    expect(within(header).getByRole('link', { name: /^Create account$/i })).toHaveAttribute('href', '/auth?tab=signup');
 
-    expect(within(header).queryByRole('link', { name: /^Sign In$/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /Get Started Free/i })).not.toBeInTheDocument();
+    expect(within(header).queryByRole('link', { name: /^Get Started$/i })).not.toBeInTheDocument();
   });
 });
