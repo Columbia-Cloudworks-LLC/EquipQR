@@ -24,7 +24,7 @@ export function WorkOrdersViewToggle({
     >
       <Button
         variant="ghost"
-        size="icon"
+        size="default"
         className={cn('h-11 gap-2 rounded-r-none px-3 md:h-8', surface === 'list' && 'bg-muted')}
         onClick={() => onChange('list')}
         aria-label="List view"
@@ -36,7 +36,7 @@ export function WorkOrdersViewToggle({
       </Button>
       <Button
         variant="ghost"
-        size="icon"
+        size="default"
         className={cn('h-11 gap-2 rounded-l-none px-3 md:h-8', surface === 'calendar' && 'bg-muted')}
         onClick={() => onChange('calendar')}
         aria-label={isMobile ? 'Agenda view' : 'Calendar view'}
