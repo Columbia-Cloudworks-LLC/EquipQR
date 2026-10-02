@@ -25,7 +25,7 @@ preview
             └─ fix/<layer-three> → PR 3, base: fix/<layer-two>
 ```
 
-- Bottom base is **`preview`**, not `main`. Production promote stays `/release`.
+- Bottom base is **`preview`** for ordinary feature/fix work. An emergency hotfix stack may use **`main`** only when `branching.mdc` permits it. Production promote stays `/release`.
 - Do not open every layer against `preview` or `main`.
 - One branch per layer. A `cursor/<name>-<suffix>` session prefix does not collapse layers onto one branch.
 - Do not invent a chain for independent work. Those are separate PRs onto `preview`.
