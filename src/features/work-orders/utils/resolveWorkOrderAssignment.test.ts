@@ -4,7 +4,7 @@ import { resolveWorkOrderAssignment } from './resolveWorkOrderAssignment';
 describe('resolveWorkOrderAssignment', () => {
   it('returns Unassigned when no id is present', () => {
     expect(resolveWorkOrderAssignment({})).toEqual({ id: null, name: 'Unassigned', avatarUrl: null });
-    expect(resolveWorkOrderAssignment({ assignee_id: null })).toEqual({ id: null, name: 'Unassigned', avatarUrl: null });
+    expect(resolveWorkOrderAssignment({ assignee_id: null, assigneeName: 'Legacy assignee' })).toEqual({ id: null, name: 'Unassigned', avatarUrl: null });
     expect(resolveWorkOrderAssignment({ assigneeId: undefined })).toEqual({ id: null, name: 'Unassigned', avatarUrl: null });
   });
 
