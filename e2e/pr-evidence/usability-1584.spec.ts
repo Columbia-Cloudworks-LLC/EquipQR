@@ -1,4 +1,4 @@
-import { test, expect } from '../user/fixtures/equipqr-test';
+import { test } from '../user/fixtures/equipqr-test';
 import { evidencePause, evidenceScreenshot } from './shared/evidence-helpers';
 
 test.describe('Usability improvements 1584-1587 @pr-evidence', () => {
