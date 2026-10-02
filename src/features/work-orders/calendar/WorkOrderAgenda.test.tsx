@@ -26,27 +26,29 @@ describe('WorkOrderAgenda', () => {
   });
 
   it('renders items with useFormatTimestamp for timed placements', () => {
+    const dueAt = new Date(2026, 0, 1, 12).getTime();
+    const agendaDay = todayLocal(dueAt);
     const items: CalendarItem[] = [
       {
         workOrderId: 'wo-1',
         title: 'Fix AC',
         status: 'open',
         overdue: false,
-        placement: { kind: 'timed', dueAt: { epochMs: new Date(2026, 0, 1, 12).getTime() } }
+        placement: { kind: 'timed', dueAt: { epochMs: dueAt } }
       },
       {
         workOrderId: 'wo-2',
         title: 'Paint Wall',
         status: 'open',
         overdue: false,
-        placement: { kind: 'unscheduled', createdOn: dummyAnchor }
+        placement: { kind: 'unscheduled', createdOn: agendaDay }
       }
     ];
 
     render(<WorkOrderAgenda 
       items={items} 
       range="day" 
-      anchor={dummyAnchor} 
+      anchor={agendaDay}
       onDateChange={vi.fn()} 
       onRangeChange={vi.fn()} 
       onSelect={vi.fn()} 
