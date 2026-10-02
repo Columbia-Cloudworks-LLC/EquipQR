@@ -28,7 +28,7 @@ Configure these secrets in Supabase Dashboard → Edge Functions → Secrets:
 
 | Tier | App `VITE_INTUIT_CLIENT_ID` | Edge `INTUIT_*` | `QBO_USE_SANDBOX` | QBO companies | Invoice UI |
 |------|------------------------------|-----------------|-------------------|---------------|--------------|
-| Local | Development | Development | `true` (via `sync-local-supabase-env.ps1`) | Sandbox | `app.sandbox.qbo.intuit.com` |
+| Local | Development | Development | `true` (via `bash dev/ops/local-env.sh`) | Sandbox | `app.sandbox.qbo.intuit.com` |
 | Preview | Development | Development | `true` (via secrets sync) | Sandbox | `app.sandbox.qbo.intuit.com` |
 | Production | Production | Production | unset | Live | `app.qbo.intuit.com` |
 
@@ -58,7 +58,7 @@ For the persistent preview branch, both the Supabase URL and callback must addre
 ### Vault secrets (token refresh scheduler)
 
 The token refresh scheduler reads secrets from the Supabase Vault. Configure them with the
-project secret sync scripts (`.\dev\sync-supabase-secrets-from-1password.ps1` or your
+project secret sync scripts (`bash dev/ops/supabase-secrets.sh` or your
 environment's equivalent). Do not paste elevated API keys into tickets, chat, or docs.
 
 Required vault entries (names must match what the scheduler Edge Function expects):
@@ -200,11 +200,11 @@ deno test --allow-env --allow-net=quickbooks.api.intuit.com ./quickbooks-export-
 ### Local development
 
 1. Use Intuit **Development** app credentials (same keys as preview sandbox).
-2. Run `.\dev\sync-local-supabase-env.ps1` so `supabase/functions/.env` includes `QBO_USE_SANDBOX=true`.
+2. Run `bash dev/ops/local-env.sh` so `supabase/functions/.env` includes `QBO_USE_SANDBOX=true`.
 3. Register the local callback URI in the Intuit Developer Portal (Development app → Keys & OAuth).
 4. Capture the integration once: `npm run e2e:quickbooks-auth:capture` (see `docs/ops/playwright-real-auth-integrations.md`).
-5. Restart the **full** local stack after env changes (`.\dev\dev-stop.bat` then `.\dev\dev-start.bat`). Do not use ad-hoc `npx supabase stop` / `start`.
-6. Probe the QBO API from the shell: `.\dev\qbo\Invoke-QboQuery.ps1 -StatusOnly`.
+5. Restart the **full** local stack after env changes (`bash dev/linux/dev.sh stop` then `bash dev/linux/dev.sh start`). Do not use ad-hoc `npx supabase stop` / `start`.
+6. Probe the QBO API from the shell: `bash dev/qbo/query.sh -StatusOnly`.
 
 ## Production invoice export
 
@@ -237,7 +237,7 @@ behavior depends on company settings: an API create is not inherently a draft
 state. Price review and deliberate sending remain separate user steps.
 
 **Intuit passkey chooser blocks automation.** Use the logged-in
-`cursor-ide-browser` session. `dev/qbo/Connect-QboBrowserSession.ps1`
+`cursor-ide-browser` session. `bash dev/e2e/env.sh qbo-browser`
 exists for retries.
 
 Customer steps: [Export a work order to QuickBooks](../support/admin-integrations/export-work-order-to-qb.md).

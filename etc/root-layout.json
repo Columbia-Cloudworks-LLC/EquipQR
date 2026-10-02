@@ -43,6 +43,7 @@
   "rootAllowedDirs": [
     ".audit",
     ".cursor",
+    ".devcontainer",
     ".fallow",
     ".github",
     ".qodo",

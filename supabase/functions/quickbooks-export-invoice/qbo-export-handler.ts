@@ -57,6 +57,7 @@ export async function handleQuickBooksExportInvoice(
 
     let body: {
       work_order_id?: string;
+      review_work_order_id?: string;
       action?: "review" | "export";
       confirmation?: InvoiceConfirmation;
     };
@@ -65,7 +66,11 @@ export async function handleQuickBooksExportInvoice(
     } catch {
       return createErrorResponse("Invalid JSON body", 400, { req });
     }
-    const { work_order_id } = body;
+    // New review clients omit the legacy export identifier so old deployments
+    // reject them safely. Accept the earlier review shape during rolling updates.
+    const work_order_id = body.action === "review"
+      ? body.review_work_order_id ?? body.work_order_id
+      : body.work_order_id;
 
     if (!work_order_id) {
       return new Response(

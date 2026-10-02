@@ -124,7 +124,7 @@ const Teams = () => {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto min-w-0 py-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Teams</h1>
         <p className="text-muted-foreground mt-1">
@@ -132,9 +132,9 @@ const Teams = () => {
         </p>
       </div>
 
-      {/* Search + Sort + Create toolbar */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1">
+      {/* Search, sort, then Create Team. Stacked below the md breakpoint so phone widths and 200% zoom keep a usable search field. */}
+      <div className="flex w-full min-w-0 flex-col gap-3 md:flex-row md:items-center" data-testid="teams-toolbar">
+        <div className="relative w-full min-w-0 md:flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search teams..."
@@ -145,7 +145,7 @@ const Teams = () => {
           />
         </div>
         <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-          <SelectTrigger className="w-40 shrink-0">
+          <SelectTrigger className="w-full md:w-44 md:shrink-0" aria-label="Sort teams">
             <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
             <SelectValue />
           </SelectTrigger>
@@ -157,7 +157,7 @@ const Teams = () => {
           </SelectContent>
         </Select>
         {canCreateTeams && (
-          <Button onClick={() => setShowCreateDialog(true)} className="gap-2 shrink-0">
+          <Button onClick={() => setShowCreateDialog(true)} className="w-full gap-2 md:w-auto md:shrink-0">
             <Plus className="h-4 w-4" />
             Create Team
           </Button>

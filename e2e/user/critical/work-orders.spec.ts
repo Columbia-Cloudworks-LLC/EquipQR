@@ -5,6 +5,7 @@ test.describe('work orders @critical', () => {
   test('work orders list shows seeded oil change', async ({ gotoDashboard, page, assertHealthyShell }) => {
     await gotoDashboard('/work-orders');
     await assertHealthyShell();
+    await page.getByRole('textbox', { name: 'Search work orders', exact: true }).fill(seedWorkOrders.oilChange.title);
     await expect(page.getByText(seedWorkOrders.oilChange.title).first()).toBeVisible({
       timeout: 60_000,
     });

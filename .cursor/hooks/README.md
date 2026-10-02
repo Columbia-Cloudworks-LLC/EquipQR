@@ -1,46 +1,12 @@
-# Cursor Hooks
+# Linux editor hooks
 
-These hooks are Windows-specific and require PowerShell. They will not work on Unix-like systems (Linux, macOS) unless PowerShell Core is installed.
+`.cursor/hooks.json` invokes `workflow.sh` for migration guards, changelog reminders,
+lint, type checking, related tests, and local type generation. Python hooks run
+with `python3`. The editor must execute inside Linux/WSL with the project toolchain.
 
-**Note:** This project's primary development platform is Windows. The hooks are designed for Windows development environments using PowerShell.
+The lint hook fails closed on invalid JSON and failed tooling. The shared catalog
+checks TypeScript, Markdown, Bash with ShellCheck, and Actions with actionlint.
+Fallow is project-only. Type generation preserves the existing file if Supabase
+fails or its output lacks the expected TypeScript anchors.
 
-## Available Hooks
-
-- `sync-types.ps1` - Syncs TypeScript types after file edits
-- `run-tests.ps1` - Runs tests after file edits
-- `guard-migrations.ps1` - Guards against reading migration files incorrectly
-- `changelog-stop.ps1` - After a completed session, remind for a short `[Unreleased]` bullet or an explicit no-user-visible-change justification
-- `component-check.py` - Fuzzy-searches existing components before the agent creates a new one
-- `lint-on-edit.ps1` - Cursor stdin adapter for the lint catalog (`etc/lint/targets.json` via `dev/lint-catalog.mjs`). Fail-closed on edited `.ts`/`.tsx`, `.md`/`.mdc`, `.ps1`, and `.github/workflows` files. Fallow is project-only.
-- `strict-type-check.ps1` - Blocks edits that introduce explicit `: any` types in `.ts`/`.tsx` files and runs `tsc --noEmit`
-- `secret-guardian.py` - Scans prompts and shell commands for hardcoded secrets (Stripe keys, Supabase service-role keys, QBO refresh tokens) and blocks the action if detected
-- `architecture-guard.py` - Enforces layered-architecture import rules: blocks UI components from importing features (UI Purity), warns on cross-feature imports (Feature Isolation)
-
-## Cross-Platform Support
-
-These hooks use PowerShell syntax and are designed for Windows development environments. For cross-platform support, consider:
-
-1. Installing PowerShell Core on Unix-like systems
-2. Creating equivalent bash scripts for Unix-like systems
-3. Using a cross-platform task runner like npm scripts
-
-## Configuration
-
-Hooks are configured in `.cursor/hooks.json`. The current configuration uses PowerShell commands that are Windows-specific.
-
-### Windows: keeping hook windows hidden
-
-Cursor (a GUI process) spawns hook child processes without `CREATE_NO_WINDOW`,
-so console-subsystem children can briefly flash a window that steals focus.
-To keep hooks invisible, follow these conventions in `hooks.json` and any
-script you add:
-
-1. **PowerShell launcher** — always use:
-   `powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File ...`
-   The `-WindowStyle Hidden` flag suppresses the console window even if one is allocated.
-2. **Python launcher** — use `pythonw` (the windowless interpreter) instead of `python`.
-   Cursor pipes stdin/stdout, so `pythonw` reads/writes them correctly.
-3. **Inside .ps1 scripts** — never wrap subprocesses in `cmd /c "npx ..."` or
-   `cmd /c "git ..."`. Invoke executables directly with the call operator:
-   `& npx.cmd vitest related $filePath --run` or `& git status --porcelain=v1`.
-   This avoids spawning a transient `cmd.exe` console window.
+Run `npm run test:linux` for offline hook and workflow contract checks.

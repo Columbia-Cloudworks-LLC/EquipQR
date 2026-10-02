@@ -12,14 +12,14 @@ name: Export Database Schema
 
 on:
   push:
-    branches: [main]
+    branches: [main, preview]
     paths-ignore:
       - 'supabase/schema.sql'
       - 'supabase/rls-policies.sql'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   export-schema:
@@ -38,6 +38,12 @@ jobs:
         uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520
         with:
           version: 2.72.8
+
+      - name: Export regression tests
+        run: python3 dev/test_export_schema_baseline.py
+
+      - name: Verify PostgreSQL client
+        run: psql --version
 
       - name: Export schema and RLS baseline from production project
         id: export-schema
@@ -58,16 +64,13 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.PREVIEW_DATABASE_URL }}
 
-      - name: Commit schema artifacts if changed
+      - name: Upload schema reference artifacts
         if: steps.export-schema.outputs.exported == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add supabase/schema.sql supabase/rls-policies.sql
-          if git diff --cached --quiet; then
-            echo "No schema baseline changes detected"
-          else
-            git commit -m "chore: update schema and RLS baseline [skip ci]"
-            git push
-            echo "Schema baseline changes committed and pushed"
-          fi
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: schema-reference
+          path: |
+            supabase/schema.sql
+            supabase/rls-policies.sql
+          if-no-files-found: error
+          retention-days: 7

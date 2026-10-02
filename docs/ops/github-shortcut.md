@@ -36,7 +36,7 @@ Do not point this hostname at GitHub with a CNAME. GitHub cannot terminate `gith
 
 Config (always, including CI):
 
-```powershell
+```bash
 npm run verify:docs-index
 ```
 
@@ -44,13 +44,13 @@ That check asserts the host redirect exists in routing config and that every `AG
 
 Live (after DNS is attached; optional `--live`):
 
-```powershell
+```bash
 npm run verify:docs-index -- --live
 ```
 
 Manual:
 
-```powershell
+```bash
 curl.exe -sI --max-redirs 0 "https://github.equipqr.app/"
 ```
 

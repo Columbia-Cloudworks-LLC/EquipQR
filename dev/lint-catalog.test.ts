@@ -5,8 +5,6 @@ import {
   matchesFile,
   npxCliCandidates,
   parseCatalog,
-  pwshArgvFlags,
-  pwshModuleInstallScript,
   renderArgv,
   resolveNpxCli,
   unknownOnlyIds,
@@ -101,11 +99,6 @@ describe('npx readiness', () => {
   });
 });
 
-describe('pwshArgvFlags', () => {
-  it('drops -Path and keeps remaining flags such as -EnableExit', () => {
-    expect(pwshArgvFlags(['-Path', path.join(repoRoot, 'script.ps1'), '-EnableExit'])).toEqual(['-EnableExit']);
-  });
-});
 
 describe('curlDownloadArgs', () => {
   it('bounds downloads with a timeout and retries', () => {
@@ -140,15 +133,6 @@ describe('unknownOnlyIds', () => {
   });
 });
 
-describe('pwshModuleInstallScript', () => {
-  it('restores the previous PSGallery installation policy', () => {
-    const script = pwshModuleInstallScript('PSScriptAnalyzer', '1.23.0');
-    expect(script).toContain('$previousPolicy');
-    expect(script).toContain('finally');
-    expect(script).toContain('Set-PSRepository -Name PSGallery -InstallationPolicy $previousPolicy');
-    expect(script).not.toMatch(/SkipPublisherCheck/);
-  });
-});
 
 describe('renderArgv', () => {
   it('substitutes {{file}} and {{repoRoot}} only', () => {

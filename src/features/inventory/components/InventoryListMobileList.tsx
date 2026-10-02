@@ -5,7 +5,6 @@ import type { InventoryItem } from '@/features/inventory/types/inventory';
 type InventoryListMobileListProps = InventoryItemActionHandlers & {
   items: InventoryItem[];
   groupMembershipCounts: Record<string, number>;
-  onKeyDown: (e: React.KeyboardEvent<HTMLElement>, itemId: string) => void;
 };
 
 export function InventoryListMobileList({
@@ -14,7 +13,6 @@ export function InventoryListMobileList({
   canCreate,
   adjustPending,
   onViewDetails,
-  onKeyDown,
   onQuickAdjust,
   onShowQR,
   onEdit,
@@ -29,7 +27,6 @@ export function InventoryListMobileList({
           canCreate={canCreate}
           adjustPending={adjustPending}
           onViewDetails={onViewDetails}
-          onKeyDown={onKeyDown}
           onQuickAdjust={onQuickAdjust}
           onShowQR={onShowQR}
           onEdit={onEdit}

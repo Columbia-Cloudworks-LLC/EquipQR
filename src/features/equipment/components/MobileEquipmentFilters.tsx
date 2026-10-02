@@ -20,7 +20,7 @@ import {
   EquipmentManufacturerSelect,
   EquipmentStatusSelect,
 } from '@/features/equipment/components/EquipmentFilterSelects';
-import { EQUIPMENT_QUICK_FILTERS } from '@/features/equipment/components/equipmentFilterConstants';
+import { EQUIPMENT_QUICK_FILTERS, EQUIPMENT_STATUS_FILTER_LABELS } from '@/features/equipment/components/equipmentFilterConstants';
 import {
   EQUIPMENT_SORT_FIELD_OPTIONS,
   getEquipmentSortFieldDefaultOrder,
@@ -253,12 +253,15 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
           <span className="text-sm text-muted-foreground">Active:</span>
           {filters.status !== 'all' && (
             <Badge variant="secondary" className="flex shrink-0 items-center gap-1 whitespace-nowrap">
-              Status: {filters.status}
-              <X
-                className="h-3 w-3 cursor-pointer hover:text-foreground"
+              Status: {EQUIPMENT_STATUS_FILTER_LABELS[filters.status] ?? filters.status}
+              <button
+                type="button"
+                className="hover:text-foreground"
                 onClick={() => onFilterChange('status', 'all')}
                 aria-label="Clear status filter"
-              />
+              >
+                <X className="h-3 w-3" />
+              </button>
             </Badge>
           )}
           {filters.manufacturer !== 'all' && (

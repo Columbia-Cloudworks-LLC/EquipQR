@@ -16,6 +16,6 @@ if [ -z "$HEAD_TAG" ]; then
 fi
 
 # Remove the 'v' prefix
-VERSION="${HEAD_TAG#${TAG_PREFIX}}"
+VERSION="${HEAD_TAG#"${TAG_PREFIX}"}"
 
 echo "$VERSION"

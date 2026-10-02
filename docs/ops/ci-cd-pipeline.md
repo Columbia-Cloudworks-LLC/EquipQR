@@ -108,30 +108,22 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 
 ### 6. Export Database Schema (`export-schema.yml`)
 
-**Trigger:** Push to `main` branch, or manual dispatch
+Pushes to `main` and `preview`, or manual dispatches, export read-only schema
+and RLS reference files using `dev/export-schema-baseline.sh`. The historical
+`PREVIEW_DATABASE_URL` secret points to production; testing from the preview
+branch still reads that database's catalog and does not mutate the database.
 
-**Purpose:** Export the database schema from the **production** Supabase project and commit it to the repository
+The pinned Supabase CLI dumps the schema. PostgreSQL `psql` queries the RLS
+catalog in read-only mode with `ON_ERROR_STOP`; Python 3 formats the inventory.
+Both files are prepared in temporary storage, so failed queries leave existing
+references intact. `SCHEMA_EXPORT_OUTPUT_DIR` can direct local test output to a
+temporary directory. Prerequisites: Supabase CLI, Docker, psql, Python 3.
 
-**What it does:**
-- Uses Supabase CLI to dump schema from the production project
-- Exports `public`, `storage`, `auth`, and `pgmq_public` schemas to `supabase/schema.sql`
-- Queries `pg_policies` / table RLS posture into `supabase/rls-policies.sql`
-- Commits both reference files if changed
-- Uses `paths-ignore` and bot-actor guard to prevent workflow loops
-
-**Benefits:**
-- Instant visibility into current database structure
-- No need to mentally reconstruct schema from 160+ migration files
-- Useful for onboarding and documentation
-- Easy schema review in PRs
-
-**Required Secret:** `PREVIEW_DATABASE_URL` (GitHub secret name unchanged; value should point at production pooler after #1033 cutover)
-- Format: `postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres`
-- Obtain from: Supabase Dashboard → Production Project (`ymxkzronkhwxzcdcbnwq`) → Settings → Database → Connection string (URI)
-
----
-
-## External Services
+Each successful run uploads a `schema-reference` artifact for seven days.
+All branches use artifact-only output: the workflow never pushes generated
+files directly to protected branches. To refresh the checked-in references,
+download the artifact and submit the files through a normal PR. To verify a fix
+after merging to preview, inspect the preview-triggered run and its artifact.
 
 ### Vercel
 
@@ -255,12 +247,12 @@ EquipQR uses a hybrid runner strategy for optimal performance and security.
 **Current Configuration:** Self-hosted (Windows)
 
 **Toggle Method:**
-```powershell
+```bash
 # Switch to self-hosted
-pwsh -File dev/switch-runner-type.ps1 -RunnerType self-hosted
+bash dev/ops/runner-type.sh -RunnerType self-hosted
 
 # Switch to GitHub-hosted
-pwsh -File dev/switch-runner-type.ps1 -RunnerType github-hosted
+bash dev/ops/runner-type.sh -RunnerType github-hosted
 ```
 
 **Runner Assignment:**
@@ -364,5 +356,5 @@ See [Deployment Guide - Self-Hosted Runner Setup](./deployment.md#self-hosted-ru
 | `.github/runner-config.yml` | Runner type configuration |
 | `vercel.json` | Vercel deployment configuration |
 | `supabase/config.toml` | Supabase CLI configuration |
-| `dev/switch-runner-type.ps1` | Toggle self-hosted/GitHub-hosted runners |
+| `bash dev/ops/runner-type.sh` | Toggle self-hosted/GitHub-hosted runners |
 | `dev/test-ci.mjs` | CI test runner with coverage validation |

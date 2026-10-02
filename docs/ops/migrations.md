@@ -173,7 +173,7 @@ CREATE TRIGGER validate_invitation_expiration
    Do **not** run bare `npx supabase migration new` in Cursor agent
    terminals. The CLI reads SQL from stdin; agent shells keep stdin open
    and the command can hang. `db:migration:new` wraps
-   `dev/db/New-SupabaseMigration.ps1` (30s timeout, immediate EOF). If a
+   `bash dev/linux/migration-new.sh` (30s timeout, immediate EOF). If a
    hang occurs, kill stray `supabase.exe` processes before retrying. Do
    not hand-create migration timestamps as a workaround.
 
@@ -281,7 +281,7 @@ DDL/schema-changing means anything that alters structure: `CREATE`/`ALTER`/`DROP
 
 ### Regeneration commands
 
-With the local stack running and all migrations applied (`.\dev\dev-start.bat -Force` or `npx supabase db reset`):
+With the local stack running and all migrations applied (`bash dev/linux/dev.sh reset` or `npx supabase db reset`):
 
 ```bash
 # Regenerate the reference dump from the local database

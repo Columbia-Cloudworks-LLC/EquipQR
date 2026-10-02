@@ -191,7 +191,12 @@ try {
           Authorization: `Bearer ${bearer}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ work_order_id: woId, ...body }),
+        body: JSON.stringify({
+          ...(body.action === "review"
+            ? { review_work_order_id: woId }
+            : { work_order_id: woId }),
+          ...body,
+        }),
       },
     );
     const response = await handleQuickBooksExportInvoice({
@@ -214,6 +219,15 @@ try {
   assertEquals(review.status, 200);
   assertEquals(review.data.saved_details, null);
   assertEquals(review.data.services[0].unit_price, 0);
+  assertEquals(invoiceWrites, 0);
+  const earlierReviewClient = await invoke({
+    action: "review", review_work_order_id: undefined, work_order_id: woId,
+  });
+  assertEquals(earlierReviewClient.status, 200);
+  const reviewIdentifierCannotExport = await invoke({
+    action: "export", review_work_order_id: woId, work_order_id: undefined,
+  });
+  assertEquals(reviewIdentifierCannotExport.status, 400);
   assertEquals(invoiceWrites, 0);
   const dates = {
     invoice_date: "2024-02-29",

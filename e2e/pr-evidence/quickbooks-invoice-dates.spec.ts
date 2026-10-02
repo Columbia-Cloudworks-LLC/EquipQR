@@ -60,6 +60,8 @@ test.describe('Explicit invoice dates and concise PM review #1551 @pr-evidence',
         await route.fulfill({ status: 400, json: { error: 'Evidence does not export invoices' } });
         return;
       }
+      expect(body).not.toHaveProperty('work_order_id');
+      expect(body.review_work_order_id).toBe(workOrderId);
       reviewRequests++;
       const { data, error } = await admin.from('work_order_invoice_details').select('invoice_date,due_date,payment_term_id,service_dates').eq('work_order_id', workOrderId).maybeSingle();
       if (error) throw error;
