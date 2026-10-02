@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { WorkOrderAgenda } from './WorkOrderAgenda';
 import type { CalendarItem } from './placement';
+import { todayLocal } from './dueDate';
 
 vi.mock('@/hooks/useFormatTimestamp', () => ({
   useFormatTimestamp: () => ({
@@ -10,7 +11,7 @@ vi.mock('@/hooks/useFormatTimestamp', () => ({
 }));
 
 describe('WorkOrderAgenda', () => {
-  const dummyAnchor = { y: 2026, m: 1, d: 1 };
+  const dummyAnchor = todayLocal(12345);
   
   it('renders without items', () => {
     render(<WorkOrderAgenda 
