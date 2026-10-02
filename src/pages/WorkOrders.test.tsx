@@ -490,12 +490,12 @@ describe('WorkOrders Page', () => {
       expect(screen.getByRole('radiogroup', { name: 'Work orders view' })).toBeInTheDocument();
     });
 
-    it('hides the view toggle on phones', () => {
+    it('shows the view toggle on phones', () => {
       vi.mocked(useMobileModule.useIsMobile).mockReturnValue(true);
       renderAt('/dashboard/work-orders?view=calendar');
-      expect(screen.queryByRole('radiogroup', { name: 'Work orders view' })).not.toBeInTheDocument();
-      expect(screen.queryByTestId('work-order-calendar')).not.toBeInTheDocument();
-      expect(screen.getByTestId('work-orders-list')).toBeInTheDocument();
+      expect(screen.getByRole('radiogroup', { name: 'Work orders view' })).toBeInTheDocument();
+      expect(screen.getByTestId('work-order-calendar')).toBeInTheDocument();
+      expect(screen.queryByTestId('work-orders-list')).not.toBeInTheDocument();
     });
 
     it('hides the due-date bucket in calendar mode', async () => {

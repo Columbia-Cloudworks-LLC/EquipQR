@@ -21,8 +21,8 @@ describe('LandingHeader', () => {
 
     const header = screen.getByRole('banner');
     
-    expect(within(header).getByRole('link', { name: /^Sign in$/i })).toHaveAttribute('href', '/auth');
-    expect(within(header).getByRole('link', { name: /^Create account$/i })).toHaveAttribute('href', '/auth');
+    expect(within(header).getByRole('link', { name: /^Sign in$/i })).toHaveAttribute('href', '/auth?tab=signin');
+    expect(within(header).getByRole('link', { name: /^Create account$/i })).toHaveAttribute('href', '/auth?tab=signup');
 
     expect(within(header).queryByRole('link', { name: /^Get Started$/i })).not.toBeInTheDocument();
   });
