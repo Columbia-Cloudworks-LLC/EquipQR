@@ -145,7 +145,7 @@ PR 1, then PR 2, then PR 3
 
 Merge a layer only when that layer meets the normal merge gate (local verify, CI, Supabase green or skipped, visual evidence when the layer changes user-visible behavior). See [pr-merge-ready-workflow.mdc](../../.cursor/rules/pr-merge-ready-workflow.mdc).
 
-After a layer merges, point the next pull request at `preview` (the integration branch), or let supported stack tooling retarget it. Confirm GitHub does not duplicate commits or show the already-merged layer again.
+After a layer merges, point the next pull request at the stack trunk (`preview`, or `main` for an allowed emergency hotfix stack), or let supported stack tooling retarget it. Confirm GitHub does not duplicate commits or show the already-merged layer again.
 
 Do not merge a downstream pull request before its parent. Do not squash the whole stack into one review before a human has reviewed the layers.
 
