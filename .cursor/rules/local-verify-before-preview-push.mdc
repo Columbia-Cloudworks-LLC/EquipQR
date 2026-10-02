@@ -10,6 +10,8 @@ As of 2026-06-13, the local dev stack has **production parity** (Auth, Edge Func
 
 **Do not push a work branch and do not open/merge a PR into `preview` (or a release PR into `main`) until the change is verified locally end-to-end with zero manual user intervention.**
 
+A stacked pull request repeats this gate **per layer** before that layer's PR is ready. A later layer's tests do not verify an earlier layer. See `docs/ops/stacked-pull-requests.md`.
+
 - "Verified" means the agent ran the checks, observed pass signals, and can cite commands + outcomes in the handoff.
 - "Zero manual intervention" means no asking the maintainer to click OAuth, reload, sign in, or confirm behavior. Use shell, Vitest, Playwright, Supabase CLI, edge logs, and **browser MCP** instead.
 - If the change cannot be verified locally without a human step, **stop before push** and report the blocker.

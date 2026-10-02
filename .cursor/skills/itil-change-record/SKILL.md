@@ -33,6 +33,7 @@ Read the issue or request and identify:
 - Permission, RLS, multi-tenant, privacy, or vendor risks.
 - Tests and manual checks that should prove success.
 - Whether external setup is required before code.
+- Whether the work is one implementation unit or a dependency chain. A stacked PR is multiple branches and pull requests (`stacked-pr-release`). Do not plan one aggregate PR and call it a stack.
 
 ### 2. Write The Plan
 
@@ -51,7 +52,7 @@ Composer target: Composer 2.5 should be able to execute this without inferring m
 Formatting rule: boundary tags and headers at column 0; nested snippets/examples at exactly four leading spaces; no triple backticks anywhere in this plan; use {{placeholder text}} for generic fill-in values.
 
 External setup: {{steps, owner, credential/resource names, verification, or "None"}}
-Branch/PR path: {{branch from origin/preview; push work branch after local verify; PR into preview per branching.mdc and pr-merge-ready-workflow.mdc; promote preview → main separately via /release}}
+Branch/PR path: {{branch from origin/preview; push work branch after local verify; PR into preview per branching.mdc and pr-merge-ready-workflow.mdc; promote preview → main separately via /release. If the user asked for a stacked PR, name each stack layer, its parent branch, and its base; bottom base is preview. A single multi-commit PR is not a stack. See docs/ops/stacked-pull-requests.md.}}
 </context-anchor>
 
 <execution-steps>

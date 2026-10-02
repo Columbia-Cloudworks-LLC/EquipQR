@@ -195,6 +195,8 @@ See **[Git and Deploy](../ops/git-and-deploy.md)** and **[Development Lifecycle]
 
 4. **Open PR to `preview`**, CI green, merge → integration hostname updates. Ship production later via **`preview` → `main`** / `/release` → **Production Release Readiness** promotes **equipqr.app**.
 
+   A stacked pull request is a chain of those PRs (bottom base `preview`, each next base is the parent branch), not extra commits on one branch. See [Stacked pull requests](../ops/stacked-pull-requests.md).
+
 ## Project Structure Deep Dive
 
 ```

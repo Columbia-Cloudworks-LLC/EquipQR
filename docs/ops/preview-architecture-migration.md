@@ -13,7 +13,9 @@ Related: [GitHub #1033](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issue
 **Restored (2026-07):** day-to-day work is again **feat → preview → main**.
 Git `preview` is the integration branch; `preview.equipqr.app` tracks normal
 Vercel deploys of that branch. **`preview-domain-alias.yml` is removed** (no
-fast-forward of `preview` from `main`).
+fast-forward of `preview` from `main`). A stacked pull request is a chain of
+work branches on that train (bottom base `preview`), not one multi-commit PR
+and not a return to feat → `main`. See [stacked-pull-requests.md](./stacked-pull-requests.md).
 
 | Layer | Pre-production | Production |
 |-------|----------------|------------|
