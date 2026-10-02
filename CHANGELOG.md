@@ -17,9 +17,9 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Changed
 
-- **PM checklist assignment is optional (#1584)** — PM checklists are no longer required on preventative maintenance work orders and default to optional.
-- **Single CTA landing buttons (#1585)** — The landing page now features distinct "Sign in" and "Create account" call-to-actions.
-- **Resolved assignee logic (#1586)** — The assignee selection and display rules for work orders have been consolidated, prioritizing direct user assignments.
+- **Optional PM checklist guidance (#1586)** — Work-order creation now explains that a PM checklist is optional and provides role-aware template guidance.
+- **Distinct landing account actions (#1585)** — The landing page now offers separate "Sign in" and "Create account" actions.
+- **Consistent work-order assignments (#1584)** — Work-order lists, details, and status actions now use the current assignee consistently.
 
 ## [3.34.1] - 2026-09-27
 
