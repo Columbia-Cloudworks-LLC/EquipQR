@@ -215,7 +215,7 @@ git push -u origin HEAD
 gh pr create --base fix/renderer-season-foundation --head fix/renderer-season-vegetation --title "fix: season vegetation" --body-file "$env:TEMP\pr-stack-2.md"
 ```
 
-On Windows, write multiline bodies to a file (`git-powershell.mdc`). After the pull requests exist, `gh stack link` can attach them to a GitHub stack if the extension becomes available later. Linking is optional. Correct bases are not.
+On Windows, write multiline bodies to a file (`git-bash.mdc`). After the pull requests exist, `gh stack link` can attach them to a GitHub stack if the extension becomes available later. Linking is optional. Correct bases are not.
 
 ## Issue linking
 
