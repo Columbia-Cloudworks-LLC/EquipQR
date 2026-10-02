@@ -31,7 +31,7 @@ describe('WorkOrderAgenda', () => {
         title: 'Fix AC',
         status: 'open',
         overdue: false,
-        placement: { kind: 'timed', dueAt: { epochMs: 12345 } }
+        placement: { kind: 'timed', dueAt: { epochMs: new Date(2026, 0, 1, 12).getTime() } }
       },
       {
         workOrderId: 'wo-2',
@@ -52,7 +52,7 @@ describe('WorkOrderAgenda', () => {
     />);
 
     expect(screen.getByText('Fix AC')).toBeInTheDocument();
-    expect(screen.getByText('Due Formatted: 12345')).toBeInTheDocument();
+    expect(screen.getByText(`Due Formatted: ${new Date(2026, 0, 1, 12).getTime()}`)).toBeInTheDocument();
     expect(screen.getByText('Paint Wall')).toBeInTheDocument();
     expect(screen.getByText('Unscheduled')).toBeInTheDocument();
   });
