@@ -69,7 +69,7 @@ Day-to-day feature/fix PR (one implementation unit):
 
 See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
 
-**Release stack:** when the request is a stacked PR, open one pull request per layer per `docs/ops/stacked-pull-requests.md`. The bottom PR uses `--base preview`. Each later PR uses `--base` set to the parent branch. Repeat local verify, evidence, CI, and Supabase for that layer. Merge bottom-up. After a parent merges, retarget the next PR to `preview` and confirm the diff is still only the remaining layer. Do not squash the stack into one review.
+**Release stack:** when the request is a stacked PR, open one pull request per layer per `docs/ops/stacked-pull-requests.md`. The bottom PR uses `--base preview` for ordinary work, or `--base main` only for an allowed emergency hotfix stack. Each later PR uses `--base` set to the parent branch. Repeat local verify, evidence, CI, and Supabase for that layer. Merge bottom-up. After a parent merges, retarget the next PR to the stack trunk and confirm the diff is still only the remaining layer. Do not squash the stack into one review.
 
 Release / promote PR (`preview` → `main` or `chore/release-v*`):
 
