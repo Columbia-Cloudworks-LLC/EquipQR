@@ -1,3 +1,4 @@
+import { resolveWorkOrderAssignment } from '@/features/work-orders/utils/resolveWorkOrderAssignment';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DateTimePicker } from '@/components/ui/datetime-picker';
@@ -49,7 +50,7 @@ export function WorkOrderCalendarPanel({
   const [showTime, setShowTime] = useState(due.kind === 'timed');
   const teamName = workOrder.teamName ?? workOrder.team?.name ?? '—';
   const equipmentName = workOrder.equipmentName ?? workOrder.equipment?.name ?? '—';
-  const assigneeName = workOrder.assigneeName ?? workOrder.assignee_name ?? 'Unassigned';
+  const assigneeName = resolveWorkOrderAssignment(workOrder).name;
 
   return (
     <Sheet key={workOrder.id} open onOpenChange={(open) => { if (!open) onClose(); }}>

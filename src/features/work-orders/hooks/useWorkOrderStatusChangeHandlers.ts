@@ -57,6 +57,7 @@ export function useWorkOrderStatusChangeHandlers(
 
   const handleStatusChange = useCallback(
     async (newStatus: WorkOrderStatus) => {
+      if (newStatus === 'in_progress' && !workOrder.assignee_id) return;
       if (newStatus === 'completed' && workOrder.has_pm && pmData) {
         if (pmData.status !== 'completed') {
           return;
@@ -89,6 +90,7 @@ export function useWorkOrderStatusChangeHandlers(
       }
     },
     [
+      workOrder.assignee_id,
       workOrder.has_pm,
       workOrder.id,
       pmData,

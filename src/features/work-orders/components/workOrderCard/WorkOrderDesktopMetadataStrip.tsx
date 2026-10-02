@@ -1,3 +1,4 @@
+import { resolveWorkOrderAssignment } from '@/features/work-orders/utils/resolveWorkOrderAssignment';
 import React from 'react';
 import { AlertTriangle, Calendar, Clock, MapPin, User, Users, UserX } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -30,6 +31,7 @@ export const WorkOrderDesktopMetadataStrip: React.FC<WorkOrderDesktopMetadataStr
   canEditAssignment,
   canEdit,
 }) => {
+  const assignment = resolveWorkOrderAssignment(workOrder);
   const equipmentTeamName = workOrder.equipmentTeamName ?? workOrder.teamName;
   const createdDateValue = workOrder.created_date;
   const due = parseDue(workOrder);
@@ -71,10 +73,10 @@ export const WorkOrderDesktopMetadataStrip: React.FC<WorkOrderDesktopMetadataStr
 
       <WorkOrderAssignmentHover workOrder={assignmentContext} disabled={!canEditAssignment}>
         <span className="inline-flex items-center gap-1 cursor-pointer hover:text-foreground rounded px-1 -mx-1 transition-colors">
-          {workOrder.assigneeName ? (
+          {assignment.id ? (
             <>
               <User className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate max-w-40">{workOrder.assigneeName}</span>
+              <span className="truncate max-w-40">{assignment.name}</span>
             </>
           ) : (
             <>

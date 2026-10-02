@@ -69,7 +69,7 @@ const LandingHeader = () => {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center gap-4 lg:gap-6">
             {navigation.map((item) => {
               const isHash = item.href.startsWith('#');
               // Active logic only on landing page
@@ -94,7 +94,7 @@ const LandingHeader = () => {
               );
             })}
             <div
-              className="hidden xl:flex items-center gap-4 ml-2 pl-4 border-l border-border"
+              className="hidden 2xl:flex items-center gap-4 ml-2 pl-4 border-l border-border"
               aria-label="Popular features"
             >
               {featureDeepLinks.map((link) => (
@@ -110,9 +110,12 @@ const LandingHeader = () => {
           </div>
 
           {/* Desktop CTA */}
-          <div className="hidden md:flex items-center">
+          <div className="hidden md:flex items-center gap-2">
+            <Button asChild variant="ghost">
+              <Link to="/auth?tab=signin">Sign in</Link>
+            </Button>
             <Button asChild>
-              <Link to="/auth">Get Started</Link>
+              <Link to="/auth?tab=signup">Create account</Link>
             </Button>
           </div>
 
@@ -124,11 +127,11 @@ const LandingHeader = () => {
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-75 sm:w-100">
+              <SheetContent side="right" className="w-75 sm:w-100 overflow-y-auto">
                 <SheetHeader className="sr-only">
                   <SheetTitle>Site navigation</SheetTitle>
                   <SheetDescription>
-                    Jump to a section or get started.
+                    Jump to a section, sign in, or create an account.
                   </SheetDescription>
                 </SheetHeader>
                 <div className="flex flex-col gap-8 mt-6">
@@ -191,8 +194,13 @@ const LandingHeader = () => {
                     </p>
                     <div className="flex flex-col gap-2">
                       <SheetClose asChild>
+                        <Button asChild variant="outline" className="w-full h-11">
+                          <Link to="/auth?tab=signin">Sign in</Link>
+                        </Button>
+                      </SheetClose>
+                      <SheetClose asChild>
                         <Button asChild className="w-full h-11">
-                          <Link to="/auth">Get Started</Link>
+                          <Link to="/auth?tab=signup">Create account</Link>
                         </Button>
                       </SheetClose>
                     </div>

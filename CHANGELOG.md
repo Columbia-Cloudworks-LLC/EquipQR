@@ -11,6 +11,16 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Added
+
+- **Mobile work order calendar view (#1587)** — Work order calendar view is now supported on mobile phones with an agenda-style layout for easy daily and weekly planning.
+
+### Changed
+
+- **PM checklist assignment is optional (#1584)** — PM checklists are no longer required on preventative maintenance work orders and default to optional.
+- **Single CTA landing buttons (#1585)** — The landing page now features distinct "Sign in" and "Create account" call-to-actions.
+- **Resolved assignee logic (#1586)** — The assignee selection and display rules for work orders have been consolidated, prioritizing direct user assignments.
+
 ## [3.34.1] - 2026-09-27
 
 ### Fixed

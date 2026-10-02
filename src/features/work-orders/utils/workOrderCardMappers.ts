@@ -1,3 +1,4 @@
+import { resolveWorkOrderAssignment } from '@/features/work-orders/utils/resolveWorkOrderAssignment';
 import type { WorkOrder, WorkOrderData } from '@/features/work-orders/types/workOrder';
 import type { AssignmentWorkOrderContext } from '@/features/work-orders/hooks/useWorkOrderContextualAssignment';
 
@@ -9,8 +10,8 @@ export const mapToWorkOrderData = (workOrder: WorkOrder): WorkOrderData => ({
   organizationId: workOrder.organizationId ?? workOrder.organization_id ?? '',
   priority: workOrder.priority,
   status: workOrder.status,
-  assigneeId: workOrder.assigneeId ?? workOrder.assignee_id,
-  assigneeName: workOrder.assigneeName,
+  assigneeId: resolveWorkOrderAssignment(workOrder).id ?? undefined,
+  assigneeName: resolveWorkOrderAssignment(workOrder).name,
   teamId: workOrder.teamId ?? workOrder.team_id,
   teamName: workOrder.teamName ?? workOrder.equipmentTeamName,
   createdDate: workOrder.createdDate ?? workOrder.created_date ?? '',

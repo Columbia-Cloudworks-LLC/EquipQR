@@ -1,3 +1,4 @@
+import { resolveWorkOrderAssignment } from '@/features/work-orders/utils/resolveWorkOrderAssignment';
 import React, { memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
@@ -105,7 +106,7 @@ export const WorkOrderDesktopCard: React.FC<WorkOrderCardProps> = memo(({
                   id: workOrder.id,
                   status: workOrder.status,
                   has_pm: workOrder.has_pm,
-                  assignee_id: workOrder.assignee_id ?? workOrder.assigneeId,
+                  assignee_id: resolveWorkOrderAssignment(workOrder).id,
                   created_by: workOrder.created_by,
                 }}
                 organizationId={workOrder.organization_id ?? workOrder.organizationId}
