@@ -85,6 +85,31 @@ export function todayLocal(nowMs: number = Date.now()): CalendarDay {
   return calendarDayOfInstant({ epochMs: nowMs });
 }
 
+export function calendarDayInTimeZone(epochMs: number, timeZone?: string): CalendarDay {
+  if (!timeZone) return todayLocal(epochMs);
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+    });
+    const parts = formatter.formatToParts(new Date(epochMs));
+    let y = 0;
+    let m = 0;
+    let d = 0;
+    for (const part of parts) {
+      if (part.type === 'year') y = Number(part.value);
+      if (part.type === 'month') m = Number(part.value);
+      if (part.type === 'day') d = Number(part.value);
+    }
+    if (y && m && d) return { y, m, d };
+  } catch {
+    // Fall back to todayLocal if timeZone is invalid
+  }
+  return todayLocal(epochMs);
+}
+
 function rebaseInstantToDay(at: LocalInstant, day: CalendarDay): LocalInstant {
   const date = new Date(at.epochMs);
   return {

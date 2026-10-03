@@ -338,6 +338,15 @@ async function processInvoiceEvents(
               realmId: event.realm_id,
               invoice,
             });
+          } else {
+            logStep("Payment-linked invoice not found in QuickBooks — treating as deleted", {
+              invoice_id: invoiceId,
+            });
+            await handleDeletedQuickBooksInvoice(supabaseClient, {
+              organizationId: event.organization_id,
+              realmId: event.realm_id,
+              invoiceId,
+            });
           }
         }
       } else {

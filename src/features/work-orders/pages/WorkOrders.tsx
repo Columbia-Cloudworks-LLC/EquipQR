@@ -87,7 +87,7 @@ const WorkOrders = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const initializedFromUrl = useRef(false);
-  const { setSelectedTeamId } = useSelectedTeam();
+  const { selectedTeamId, setSelectedTeamId } = useSelectedTeam();
 
   const { userTeamIds, isManager, isLoading: teamAccessLoading } = useTeamBasedAccess();
   const {
@@ -146,7 +146,7 @@ const WorkOrders = () => {
 
   const { data: calendarServerRows = [], isLoading: calendarLoading, isError: calendarError, refetch: refetchCalendar } = useTeamBasedWorkOrders(
     {},
-    { enabled: chrome.surface === 'calendar' },
+    { enabled: chrome.surface === 'calendar', selectedTeamId },
   );
   const calendarMerged = useOfflineMergedWorkOrders(calendarServerRows);
   const calendarRows = useMemo(() => {

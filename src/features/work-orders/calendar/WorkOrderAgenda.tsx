@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { calendarDayToIso, parseCalendarDay, todayLocal, type CalendarDay } from './dueDate';
+import { calendarDayInTimeZone, calendarDayToIso, parseCalendarDay, todayLocal, type CalendarDay } from './dueDate';
 import type { CalendarItem } from './placement';
 import type { CalendarRange } from './url';
 import { localeFirstDay } from './adapter/toFullCalendar';
@@ -20,7 +20,7 @@ interface WorkOrderAgendaProps {
 }
 
 export function WorkOrderAgenda({ items, range, anchor, onDateChange, onRangeChange, onSelect }: WorkOrderAgendaProps) {
-  const { formatTime } = useFormatTimestamp();
+  const { formatTime, timeZone } = useFormatTimestamp();
   // A shared month link opens the week containing its anchor; its URL stays intact.
   const grain = range === 'day' ? 'day' : 'week';
   const anchorDate = new Date(anchor.y, anchor.m - 1, anchor.d);
@@ -40,7 +40,7 @@ export function WorkOrderAgenda({ items, range, anchor, onDateChange, onRangeCha
   const grouped = new Map<string, CalendarItem[]>();
   for (const item of items) {
     const p = item.placement;
-    const day = p.kind === 'timed' ? todayLocal(p.dueAt.epochMs) : p.kind === 'dueDay' ? p.day : p.createdOn;
+    const day = p.kind === 'timed' ? calendarDayInTimeZone(p.dueAt.epochMs, timeZone) : p.kind === 'dueDay' ? p.day : p.createdOn;
     const key = calendarDayToIso(day);
     grouped.set(key, [...(grouped.get(key) ?? []), item]);
   }
@@ -80,7 +80,7 @@ export function WorkOrderAgenda({ items, range, anchor, onDateChange, onRangeCha
               <ul className="space-y-2">
                 {rows.map(item => (
                   <li key={item.workOrderId}>
-                    <button type="button" onClick={() => onSelect(item.workOrderId)} className={cn('w-full rounded-lg border p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', item.status === 'cancelled' && 'opacity-60')} aria-label={`View ${item.title}`}>
+                    <button type="button" onClick={() => onSelect(item.workOrderId)} className={cn('w-full rounded-lg border p-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', item.status === 'cancelled' && 'opacity-60')}>
                       <span className="block break-words font-medium">{item.title}</span>
                       <span className="my-1 block text-sm">
                         {item.placement.kind === 'timed' ? `Due ${formatTime(item.placement.dueAt.epochMs)}` : item.placement.kind === 'unscheduled' ? 'Unscheduled' : 'All-day due date'}

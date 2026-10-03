@@ -7,6 +7,7 @@ import { todayLocal } from './dueDate';
 vi.mock('@/hooks/useFormatTimestamp', () => ({
   useFormatTimestamp: () => ({
     formatTime: (ms: number) => `Formatted: ${ms}`,
+    timeZone: 'UTC',
   })
 }));
 
