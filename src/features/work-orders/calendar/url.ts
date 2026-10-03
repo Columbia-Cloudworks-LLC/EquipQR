@@ -1,4 +1,5 @@
 import {
+  calendarDayInTimeZone,
   calendarDayToIso,
   parseCalendarDay,
   todayLocal,
@@ -104,6 +105,7 @@ export function resolveWorkOrdersChrome(input: {
   woParam: string | null;
   persist: string | null;
   isMobile: boolean;
+  timeZone?: string;
 }): WorkOrdersChrome {
   if (input.urlDate.kind === 'listBucket') {
     return {
@@ -135,7 +137,11 @@ export function resolveWorkOrdersChrome(input: {
   return {
     surface: 'calendar',
     range: inboundRange ?? (input.isMobile ? 'week' : 'month'),
-    anchor: inboundAnchor ?? todayLocal(),
+    anchor:
+      inboundAnchor ??
+      (input.timeZone
+        ? calendarDayInTimeZone(Date.now(), input.timeZone)
+        : todayLocal()),
     selectedWorkOrderId: inboundWo,
   };
 }

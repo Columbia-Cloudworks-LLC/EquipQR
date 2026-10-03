@@ -2,6 +2,7 @@ import { useContext, useMemo } from 'react';
 
 import { SettingsContext } from '@/contexts/settings-context';
 import { useUserSettings } from '@/hooks/useUserSettings';
+import { defaultUserSettings } from '@/types/settings';
 import {
   formatDate,
   formatDateTime,

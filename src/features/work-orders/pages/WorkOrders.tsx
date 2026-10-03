@@ -33,6 +33,7 @@ import type { MergedWorkOrder } from '@/features/work-orders/hooks/useOfflineMer
 import { useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
 import { useOfflineMergedWorkOrders } from '@/features/work-orders/hooks/useOfflineMergedWorkOrders';
 import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { MobileListGlanceCount } from '@/components/common/MobileListGlanceCount';
@@ -129,6 +130,7 @@ const WorkOrders = () => {
   usePMTemplates();
 
   const updateWorkOrder = useUpdateWorkOrder();
+  const { timeZone } = useFormatTimestamp();
 
   const chrome = useMemo(() => resolveWorkOrdersChrome({
     urlDate: parseUrlDate(searchParams.get('date')),
@@ -137,7 +139,8 @@ const WorkOrders = () => {
     woParam: searchParams.get('wo'),
     persist: getPreferenceLocalStorage(WORK_ORDERS_VIEW_MODE_KEY),
     isMobile,
-  }), [isMobile, searchParams]);
+    timeZone,
+  }), [isMobile, searchParams, timeZone]);
 
   const creatingFromCalendar = showForm || createPrefill != null;
   const selectedWorkOrderId =
