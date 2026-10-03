@@ -475,7 +475,12 @@ Deno.test("loadInvoiceReviewContext cleans up deleted invoices and marks wasDele
           return Promise.resolve({ data: null, error: null });
         },
         update: (payload: Record<string, unknown>) => {
-          updates.push({ table, payload });
+          const entry = { table, payload, filters: {} as Record<string, unknown> };
+          updates.push(entry);
+          builder.eq = (col: string, val: unknown) => {
+            entry.filters[col] = val;
+            return builder;
+          };
           return builder;
         },
       };
@@ -512,13 +517,20 @@ Deno.test("loadInvoiceReviewContext cleans up deleted invoices and marks wasDele
     assertEquals(context.existing, null);
     assertEquals(context.saved.qb_line_ids, {});
 
-    const logUpdate = updates.find((u) => u.table === "quickbooks_export_logs");
+    const logUpdate = updates.find((u) => u.table === "quickbooks_export_logs") as any;
     assertEquals(logUpdate?.payload.status, "error");
     assertEquals(logUpdate?.payload.error_message, "Invoice was deleted in QuickBooks");
+    assertEquals(logUpdate?.filters.work_order_id, "wo-123");
+    assertEquals(logUpdate?.filters.organization_id, "org-1");
+    assertEquals(logUpdate?.filters.realm_id, "realm-1");
+    assertEquals(logUpdate?.filters.status, "success");
+    assertEquals(logUpdate?.filters.quickbooks_invoice_id, "old-inv");
 
     const woUpdate = updates.find((u) => u.table === "work_orders");
     assertEquals(woUpdate?.payload.quickbooks_invoice_id, null);
     assertEquals(woUpdate?.payload.quickbooks_invoice_number, null);
+    assertEquals(woUpdate?.payload.invoice_sent_at, null);
+    assertEquals(woUpdate?.payload.invoice_paid_at, null);
 
     const detailsUpdate = updates.find((u) => u.table === "work_order_invoice_details");
     assertEquals(detailsUpdate?.payload.qb_line_ids, {});

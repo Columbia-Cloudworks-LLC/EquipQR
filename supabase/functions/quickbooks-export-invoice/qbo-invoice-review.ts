@@ -188,14 +188,21 @@ export async function loadInvoiceReviewContext(
       workOrderId,
       deletedInvoiceId,
     });
-    if (activePrevious) {
-      const { error: logUpdateError } = await client
+    if (activePrevious || deletedInvoiceId) {
+      let logQuery = client
         .from("quickbooks_export_logs")
         .update({
           status: "error",
           error_message: "Invoice was deleted in QuickBooks",
         })
-        .eq("id", activePrevious.id);
+        .eq("work_order_id", workOrderId)
+        .eq("organization_id", organizationId)
+        .eq("realm_id", realmId)
+        .eq("status", "success");
+      if (deletedInvoiceId) {
+        logQuery = logQuery.eq("quickbooks_invoice_id", deletedInvoiceId);
+      }
+      const { error: logUpdateError } = await logQuery;
       if (logUpdateError) {
         log("Error: Failed to update export log for deleted invoice", {
           error: logUpdateError.message,
@@ -215,6 +222,8 @@ export async function loadInvoiceReviewContext(
         invoice_status: null,
         invoice_balance_cents: null,
         invoice_due_date: null,
+        invoice_sent_at: null,
+        invoice_paid_at: null,
         invoice_sync_error: null,
         invoice_last_synced_at: new Date().toISOString(),
       })

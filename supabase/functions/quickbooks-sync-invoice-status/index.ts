@@ -146,31 +146,6 @@ async function handleDeletedQuickBooksInvoice(
     workOrderId?: string;
   },
 ): Promise<void> {
-  const now = new Date().toISOString();
-  let woQuery = supabaseClient
-    .from("work_orders")
-    .update({
-      quickbooks_invoice_id: null,
-      quickbooks_invoice_number: null,
-      quickbooks_invoice_environment: null,
-      invoice_status: null,
-      invoice_balance_cents: null,
-      invoice_due_date: null,
-      invoice_sync_error: null,
-      invoice_last_synced_at: now,
-    })
-    .eq("organization_id", params.organizationId)
-    .eq("quickbooks_realm_id", params.realmId)
-    .eq("quickbooks_invoice_id", params.invoiceId);
-  if (params.workOrderId) {
-    woQuery = woQuery.eq("id", params.workOrderId);
-  }
-  const { error: woError } = await woQuery;
-  if (woError) {
-    logStep("Warning: Failed to clear work order mirror for deleted invoice", { error: woError.message });
-    throw new Error(`Failed to clear work order mirror for deleted invoice: ${woError.message}`);
-  }
-
   let logQuery = supabaseClient
     .from("quickbooks_export_logs")
     .update({
@@ -188,6 +163,33 @@ async function handleDeletedQuickBooksInvoice(
   if (logError) {
     logStep("Warning: Failed to update export logs for deleted invoice", { error: logError.message });
     throw new Error(`Failed to update export logs for deleted invoice: ${logError.message}`);
+  }
+
+  const now = new Date().toISOString();
+  let woQuery = supabaseClient
+    .from("work_orders")
+    .update({
+      quickbooks_invoice_id: null,
+      quickbooks_invoice_number: null,
+      quickbooks_invoice_environment: null,
+      invoice_status: null,
+      invoice_balance_cents: null,
+      invoice_due_date: null,
+      invoice_sent_at: null,
+      invoice_paid_at: null,
+      invoice_sync_error: null,
+      invoice_last_synced_at: now,
+    })
+    .eq("organization_id", params.organizationId)
+    .eq("quickbooks_realm_id", params.realmId)
+    .eq("quickbooks_invoice_id", params.invoiceId);
+  if (params.workOrderId) {
+    woQuery = woQuery.eq("id", params.workOrderId);
+  }
+  const { error: woError } = await woQuery;
+  if (woError) {
+    logStep("Warning: Failed to clear work order mirror for deleted invoice", { error: woError.message });
+    throw new Error(`Failed to clear work order mirror for deleted invoice: ${woError.message}`);
   }
 }
 

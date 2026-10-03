@@ -699,7 +699,7 @@ Deno.test("fetchInvoice returns null when invoice is deleted or not found (404 o
   }
 });
 
-Deno.test("handleDeletedQuickBooksInvoice clears work_orders mirror and updates export logs", async () => {
+Deno.test("handleDeletedQuickBooksInvoice clears work_orders mirror, clears sent/paid dates, and updates export logs first", async () => {
   const updates: Array<{ table: string; payload: Record<string, unknown> }> = [];
   const fakeClient: any = {
     from: (table: string) => {
@@ -721,12 +721,54 @@ Deno.test("handleDeletedQuickBooksInvoice clears work_orders mirror and updates 
     workOrderId: "wo-1",
   });
 
+  // Verify export logs are updated before work order mirror is cleared
+  assertEquals(updates[0]?.table, "quickbooks_export_logs");
+  assertEquals(updates[1]?.table, "work_orders");
+
   const wo = updates.find((u) => u.table === "work_orders");
   assertEquals(wo?.payload.quickbooks_invoice_id, null);
   assertEquals(wo?.payload.quickbooks_invoice_number, null);
   assertEquals(wo?.payload.invoice_status, null);
+  assertEquals(wo?.payload.invoice_sent_at, null);
+  assertEquals(wo?.payload.invoice_paid_at, null);
 
   const log = updates.find((u) => u.table === "quickbooks_export_logs");
   assertEquals(log?.payload.status, "error");
   assertEquals(log?.payload.error_message, "Invoice was deleted in QuickBooks");
+});
+
+Deno.test("handleDeletedQuickBooksInvoice propagates export log update errors without clearing work_orders", async () => {
+  const updates: Array<{ table: string; payload: Record<string, unknown> }> = [];
+  const fakeClient: any = {
+    from: (table: string) => {
+      const builder: any = {
+        update: (payload: Record<string, unknown>) => {
+          updates.push({ table, payload });
+          return builder;
+        },
+        eq: () => builder,
+        then: (onfulfilled: any) => {
+          if (table === "quickbooks_export_logs") {
+            return Promise.resolve(onfulfilled({ error: { message: "db write error" } }));
+          }
+          return Promise.resolve(onfulfilled({ error: null }));
+        },
+      };
+      return builder;
+    },
+  };
+
+  await assertRejects(
+    () =>
+      handleDeletedQuickBooksInvoice(fakeClient as SupabaseClient, {
+        organizationId: "org-1",
+        realmId: "realm-1",
+        invoiceId: "inv-1",
+        workOrderId: "wo-1",
+      }),
+    Error,
+    "Failed to update export logs for deleted invoice",
+  );
+
+  assertEquals(updates.some((u) => u.table === "work_orders"), false);
 });
