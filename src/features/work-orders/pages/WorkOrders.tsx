@@ -41,6 +41,7 @@ import {
   applyCalendarDrag,
   applyDueWrite,
   calendarEditability,
+  calendarDayInTimeZone,
   parseDue,
   parseUrlDate,
   persistDue,
@@ -150,7 +151,7 @@ const WorkOrders = () => {
 
   const { data: calendarServerRows = [], isLoading: calendarLoading, isError: calendarError, refetch: refetchCalendar } = useTeamBasedWorkOrders(
     {},
-    { enabled: chrome.surface === 'calendar', selectedTeamId },
+    { enabled: chrome.surface === 'calendar' },
   );
   const calendarMerged = useOfflineMergedWorkOrders(calendarServerRows);
   const calendarRows = useMemo(() => {
@@ -458,7 +459,13 @@ const WorkOrders = () => {
                 surface={chrome.surface}
                 onChange={(surface) => {
                   setPreferenceLocalStorage(WORK_ORDERS_VIEW_MODE_KEY, surface);
-                  writeChrome({ surface, selectedWorkOrderId: null });
+                  writeChrome({
+                    surface,
+                    selectedWorkOrderId: null,
+                    ...(surface === 'calendar'
+                      ? { anchor: calendarDayInTimeZone(Date.now(), timeZone) }
+                      : {}),
+                  });
                 }}
                 className="mb-2"
               />
