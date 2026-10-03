@@ -44,8 +44,8 @@ vi.mock('@/hooks/useAuth', () => ({
 }));
 
 const mockEquipmentData = [
-  { id: 'equip-1', name: 'Forklift #1', team: { name: 'Warehouse Team' } },
-  { id: 'equip-2', name: 'Crane #3', team: null },
+  { id: 'equip-1', name: 'Forklift #1', team: { id: 'team-warehouse', name: 'Warehouse Team' }, team_id: 'team-warehouse' },
+  { id: 'equip-2', name: 'Crane #3', team: null, team_id: null },
 ];
 
 vi.mock('@/features/equipment/hooks/useEquipment', () => ({
@@ -196,6 +196,21 @@ describe('useOfflineMergedWorkOrders', () => {
     });
 
     expect(result.current[0].equipmentName).toBe('Forklift #1');
+  });
+
+  it('resolves team properties from equipment cache', () => {
+    const queueItem = makeQueueItem();
+    queueItem.payload = { ...queueItem.payload, equipmentId: 'equip-1' };
+    mockQueuedItems.mockReturnValue([queueItem]);
+
+    const { result } = renderHook(() => useOfflineMergedWorkOrders([]), {
+      wrapper: createWrapper(),
+    });
+
+    expect(result.current[0].team_id).toBe('team-warehouse');
+    expect(result.current[0].teamId).toBe('team-warehouse');
+    expect(result.current[0].equipmentTeamId).toBe('team-warehouse');
+    expect(result.current[0].equipmentTeamName).toBe('Warehouse Team');
   });
 
   it('generates IDs with offline- prefix', () => {

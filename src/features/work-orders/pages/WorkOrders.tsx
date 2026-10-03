@@ -11,6 +11,7 @@ import { useBatchAssignUnassignedWorkOrders } from '@/features/work-orders/hooks
 import { useWorkOrderFiltering } from '@/features/work-orders/hooks/useWorkOrderFiltering';
 import ListPaginationFooter from '@/components/common/ListPaginationFooter';
 import { useUser } from '@/contexts/useUser';
+import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
 import { useSelectedTeam } from '@/hooks/useSelectedTeam';
 import type { WorkOrder, WorkOrderAcceptanceModalState, WorkOrderData } from '@/features/work-orders/types/workOrder';
 import { Button } from '@/components/ui/button';
@@ -151,12 +152,23 @@ const WorkOrders = () => {
   const calendarMerged = useOfflineMergedWorkOrders(calendarServerRows);
   const calendarRows = useMemo(() => {
     if (chrome.surface !== 'calendar') return [];
+    const effectiveTeamFilter =
+      selectedTeamId === null
+        ? filters.teamFilter
+        : selectedTeamId === UNASSIGNED_TEAM_ID
+          ? 'unassigned'
+          : selectedTeamId;
+
     return filterWorkOrders(
       calendarMerged as WorkOrderData[],
-      { ...filters, dueDateFilter: 'all' },
+      {
+        ...filters,
+        dueDateFilter: 'all',
+        teamFilter: effectiveTeamFilter,
+      },
       currentUser?.id,
     );
-  }, [calendarMerged, chrome.surface, currentUser?.id, filters]);
+  }, [calendarMerged, chrome.surface, currentUser?.id, filters, selectedTeamId]);
 
   const calendarItems = useMemo(() => {
     return calendarRows.map((wo) => {

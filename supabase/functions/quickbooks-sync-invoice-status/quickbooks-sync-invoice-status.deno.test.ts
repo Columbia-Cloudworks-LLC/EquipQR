@@ -891,3 +891,82 @@ Deno.test("processInvoiceEvents: handles not-found payment-linked invoices by ca
     globalThis.fetch = originalFetch;
   }
 });
+
+Deno.test("processInvoiceEvents: processes Invoice delete events without QuickBooks credentials", async () => {
+  const updates: Array<{ table: string; payload: Record<string, unknown> }> = [];
+  const statusUpdates: string[] = [];
+
+  const workOrderBuilder: any = {
+    update: (payload: Record<string, unknown>) => {
+      updates.push({ table: "work_orders", payload });
+      return workOrderBuilder;
+    },
+    eq: () => workOrderBuilder,
+  };
+
+  const exportLogBuilder: any = {
+    update: (payload: Record<string, unknown>) => {
+      updates.push({ table: "quickbooks_export_logs", payload });
+      return exportLogBuilder;
+    },
+    eq: () => exportLogBuilder,
+  };
+
+  const client: any = {
+    rpc: (_name: string, _args: unknown) =>
+      Promise.resolve({
+        data: [
+          {
+            id: "evt-del-1",
+            organization_id: "org-1",
+            realm_id: "realm-1",
+            entity_name: "Invoice",
+            entity_id: "inv-del-1",
+            operation: "Delete",
+            attempts: 1,
+          },
+        ],
+        error: null,
+      }),
+    from: (table: string) => {
+      if (table === "work_orders") return workOrderBuilder;
+      if (table === "quickbooks_export_logs") return exportLogBuilder;
+      if (table === "quickbooks_credentials") {
+        return {
+          select: () => ({
+            in: () => ({
+              in: () => Promise.resolve({ data: [], error: null }),
+            }),
+          }),
+        };
+      }
+      if (table === "quickbooks_invoice_status_events") {
+        return {
+          update: (payload: { status: string }) => {
+            statusUpdates.push(payload.status);
+            return {
+              eq: () => ({
+                eq: () => Promise.resolve({ error: null }),
+              }),
+            };
+          },
+        };
+      }
+      return {};
+    },
+  };
+
+  const result = await processInvoiceEvents(client, "cid", "csecret");
+  assertEquals(result.processed, 1);
+  assertEquals(result.failed, 0);
+  assertEquals(statusUpdates, ["processed"]);
+
+  const logUpdate = updates.find((u) => u.table === "quickbooks_export_logs");
+  assertEquals(logUpdate?.payload.status, "error");
+  assertEquals(logUpdate?.payload.error_message, "Invoice was deleted in QuickBooks");
+
+  const woUpdate = updates.find((u) => u.table === "work_orders");
+  assertEquals(woUpdate?.payload.quickbooks_invoice_id, null);
+  assertEquals(woUpdate?.payload.quickbooks_invoice_number, null);
+});
+

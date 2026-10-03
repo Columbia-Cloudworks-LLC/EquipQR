@@ -279,21 +279,21 @@ async function processInvoiceEvents(
     // and work-order mirroring. A failure here marks the event as error so it can be
     // retried on the next run (up to the attempts ceiling).
     try {
-      const credential = credentialsByKey.get(credentialKey(event.organization_id, event.realm_id));
-      if (!credential) throw new Error("No QuickBooks credentials for event realm and organization");
+      if (event.entity_name === "Invoice" && event.operation?.toLowerCase() === "delete") {
+        logStep("Invoice delete event received", { entity_id: event.entity_id });
+        await handleDeletedQuickBooksInvoice(supabaseClient, {
+          organizationId: event.organization_id,
+          realmId: event.realm_id,
+          invoiceId: event.entity_id,
+        });
+      } else {
+        const credential = credentialsByKey.get(credentialKey(event.organization_id, event.realm_id));
+        if (!credential) throw new Error("No QuickBooks credentials for event realm and organization");
 
-      const { accessToken, credential: refreshedCredential } = await refreshTokenIfNeeded(credential, supabaseClient, clientId, clientSecret);
-      credentialsByKey.set(credentialKey(event.organization_id, event.realm_id), refreshedCredential);
+        const { accessToken, credential: refreshedCredential } = await refreshTokenIfNeeded(credential, supabaseClient, clientId, clientSecret);
+        credentialsByKey.set(credentialKey(event.organization_id, event.realm_id), refreshedCredential);
 
-      if (event.entity_name === "Invoice") {
-        if (event.operation?.toLowerCase() === "delete") {
-          logStep("Invoice delete event received", { entity_id: event.entity_id });
-          await handleDeletedQuickBooksInvoice(supabaseClient, {
-            organizationId: event.organization_id,
-            realmId: event.realm_id,
-            invoiceId: event.entity_id,
-          });
-        } else {
+        if (event.entity_name === "Invoice") {
           const { invoice, intuitTid } = await fetchInvoice(accessToken, event.realm_id, event.entity_id);
           logStep("Invoice fetched", { entity_id: event.entity_id, intuit_tid: intuitTid });
           if (!invoice) {
@@ -313,9 +313,8 @@ async function processInvoiceEvents(
               operation: event.operation,
             });
           }
-        }
-      } else if (event.entity_name === "Payment") {
-        const { payment, intuitTid: paymentIntuitTid } = await fetchPayment(
+        } else if (event.entity_name === "Payment") {
+          const { payment, intuitTid: paymentIntuitTid } = await fetchPayment(
           accessToken,
           event.realm_id,
           event.entity_id,
@@ -349,8 +348,9 @@ async function processInvoiceEvents(
             });
           }
         }
-      } else {
-        throw new Error(`Unsupported QuickBooks event entity_name: ${(event as InvoiceEvent).entity_name}`);
+        } else {
+          throw new Error(`Unsupported QuickBooks event entity_name: ${(event as InvoiceEvent).entity_name}`);
+        }
       }
     } catch (eventError) {
       // Business logic failed. Attempt to persist the error status so the event

@@ -126,6 +126,7 @@ export interface WorkOrder extends WorkOrderRow {
   invoiceLastSyncedAt?: string | null;
   // Computed fields from joins (camelCase for React conventions)
   assigneeName?: string;
+  teamId?: string;
   teamName?: string;
   equipmentName?: string;
   equipmentManufacturer?: string;
@@ -229,6 +230,7 @@ export interface WorkOrderData {
   assigneeId?: string;
   assigneeName?: string;
   teamId?: string;
+  team_id?: string | null;
   teamName?: string;
   createdDate: string;
   /** @deprecated Use createdDate instead */

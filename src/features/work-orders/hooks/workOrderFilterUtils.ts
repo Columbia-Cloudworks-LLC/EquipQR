@@ -57,10 +57,11 @@ function matchesSearch(order: WorkOrderData, searchQuery: string): boolean {
 }
 
 function matchesAssignee(order: WorkOrderData, assigneeFilter: string, currentUserId?: string): boolean {
+  const teamId = order.teamId ?? order.team_id ?? null;
   return (
     assigneeFilter === 'all' ||
     (assigneeFilter === 'mine' && order.assigneeId === currentUserId) ||
-    (assigneeFilter === 'unassigned' && !order.assigneeId && !order.teamId) ||
+    (assigneeFilter === 'unassigned' && !order.assigneeId && !teamId) ||
     order.assigneeId === assigneeFilter
   );
 }
@@ -70,7 +71,8 @@ function matchesTeam(order: WorkOrderData, teamFilter: string): boolean {
     return true;
   }
 
-  return teamFilter === 'unassigned' ? !order.teamId : order.teamId === teamFilter;
+  const teamId = order.teamId ?? order.team_id ?? null;
+  return teamFilter === 'unassigned' ? !teamId : teamId === teamFilter;
 }
 
 function matchesDueDate(order: WorkOrderData, dueDateFilter: string): boolean {

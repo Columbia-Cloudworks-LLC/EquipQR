@@ -18,6 +18,8 @@ export function buildOfflineQueuedWorkOrder({
 }: BuildOfflineQueuedWorkOrderOptions): MergedWorkOrder {
   const { payload } = item;
   const equipment = allEquipment.find((entry) => entry.id === payload.equipmentId);
+  const equipmentTeamId = equipment?.team_id ?? equipment?.team?.id ?? null;
+  const equipmentTeamName = equipment?.team?.name ?? equipment?.team_name;
 
   return {
     id: workOrderId ?? `${OFFLINE_ID_PREFIX}${item.id}`,
@@ -29,7 +31,8 @@ export function buildOfflineQueuedWorkOrder({
     status: 'submitted',
     assignee_id: payload.assigneeId ?? null,
     assignee_name: null,
-    team_id: null,
+    team_id: equipmentTeamId,
+    teamId: equipmentTeamId ?? undefined,
     created_by: item.userId,
     created_by_admin: null,
     created_by_name: userDisplayName ?? null,
@@ -64,7 +67,8 @@ export function buildOfflineQueuedWorkOrder({
     equipmentSerialNumber: equipment?.serial_number ?? undefined,
     equipmentWorkingHours: equipment?.working_hours ?? null,
     equipmentImageUrl: equipment?.image_url ?? null,
-    equipmentTeamName: equipment?.team?.name,
+    equipmentTeamId: equipmentTeamId ?? undefined,
+    equipmentTeamName,
     assigneeName: undefined,
     createdByName: userDisplayName ?? undefined,
     _isPendingSync: true,
