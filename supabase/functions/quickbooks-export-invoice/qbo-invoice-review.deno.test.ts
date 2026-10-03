@@ -514,6 +514,10 @@ Deno.test("loadInvoiceReviewContext cleans up deleted invoices and marks wasDele
             entry.filters[col] = val;
             return builder;
           };
+          builder.contains = (col: string, val: unknown) => {
+            entry.filters[`${col}_contains`] = val;
+            return builder;
+          };
           return builder;
         },
       };
@@ -569,8 +573,14 @@ Deno.test("loadInvoiceReviewContext cleans up deleted invoices and marks wasDele
     assertEquals(woUpdate?.filters.quickbooks_realm_id, "realm-1");
     assertEquals(woUpdate?.filters.quickbooks_invoice_id, "old-inv");
 
-    const detailsUpdate = updates.find((u) => u.table === "work_order_invoice_details");
+    const detailsUpdate = updates.find((u) => u.table === "work_order_invoice_details") as any;
     assertEquals(detailsUpdate?.payload.qb_line_ids, {});
+    assertEquals(detailsUpdate?.filters.work_order_id, "wo-123");
+    assertEquals(detailsUpdate?.filters.organization_id, "org-1");
+    assertEquals(detailsUpdate?.filters.qb_line_ids_contains, {
+      __invoice_id: "old-inv",
+      __realm_id: "realm-1",
+    });
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -614,6 +624,10 @@ Deno.test("loadInvoiceReviewContext does not clear qb_line_ids if they belong to
           updates.push(entry);
           builder.eq = (col: string, val: unknown) => {
             entry.filters[col] = val;
+            return builder;
+          };
+          builder.contains = (col: string, val: unknown) => {
+            entry.filters[`${col}_contains`] = val;
             return builder;
           };
           return builder;
@@ -673,6 +687,7 @@ Deno.test("loadInvoiceReviewContext retains wasDeleted on subsequent reviews aft
         },
         order: () => builder,
         limit: () => builder,
+        contains: () => builder,
         maybeSingle: () => {
           if (table === "work_order_invoice_details") {
             return Promise.resolve({

@@ -249,12 +249,18 @@ export async function loadInvoiceReviewContext(
       (!saved.qb_line_ids.__realm_id || saved.qb_line_ids.__realm_id === realmId);
 
     if (lineIdsMatchDeleted) {
-      saved.qb_line_ids = {};
-      const { error: detailsUpdateError } = await client
+      let detailsQuery = client
         .from("work_order_invoice_details")
         .update({ qb_line_ids: {} })
         .eq("work_order_id", workOrderId)
         .eq("organization_id", organizationId);
+      if (deletedInvoiceId) {
+        detailsQuery = detailsQuery.contains("qb_line_ids", {
+          __invoice_id: deletedInvoiceId,
+          __realm_id: realmId,
+        });
+      }
+      const { error: detailsUpdateError } = await detailsQuery;
       if (detailsUpdateError) {
         log("Error: Failed to clear qb_line_ids for deleted invoice", {
           error: detailsUpdateError.message,
@@ -263,6 +269,7 @@ export async function loadInvoiceReviewContext(
           "Could not clear invoice line mappings for deleted invoice. Please reload.",
         );
       }
+      saved.qb_line_ids = {};
     }
   }
   if (existing && existing.CustomerRef.value !== customerId) {
