@@ -43,7 +43,7 @@
 
 @keyframes scan-qr-hero {
   0%, 14% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  26%, 96% { opacity: 0; transform: translate(-18%, -62%) scale(0.28); }
+  26%, 96% { opacity: 0; transform: translate(-61%, -81%) scale(0.28); }
   100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 

@@ -24,6 +24,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Fixed
 
+- **Centered scan story animation mark** — The EquipQR brand mark in the "Scan one machine" hero story now begins centered on the stage, smoothly matching the initial position of the fleet observability animation.
 - **QuickBooks re-export after invoice deletion (#1588)** — Opening invoice review for a work order whose QuickBooks invoice was deleted now reconciles local export state, warns the user, and allows creating a new invoice.
 
 ## [3.34.1] - 2026-09-27
