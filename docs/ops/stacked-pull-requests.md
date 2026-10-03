@@ -184,19 +184,19 @@ gh stack init --base preview fix/renderer-season-foundation
 # implement and commit only the foundation layer
 gh stack add fix/renderer-season-vegetation
 # implement and commit only the vegetation layer
-gh stack submit
+gh stack submit --auto --open
 ```
 
-`gh stack add` creates the next branch at the current tip. Commit the current layer before adding the next one. Do not create every branch up front and then commit unrelated work onto the top branch.
+`gh stack add` creates the next branch at the current tip. Commit the current layer before adding the next one. Do not create every branch up front and then commit unrelated work onto the top branch. Always pass `--auto --open` so submissions run non-interactively without stalling in agent sessions and publish pull requests as ready for review.
 
 Useful follow-ups, when `gh stack --help` still lists them:
 
 | Command | Use |
 |---------|-----|
 | `gh stack view` | Confirm order, bases, and pull-request links |
-| `gh stack submit` | Push branches, open or update pull requests, link the GitHub stack |
+| `gh stack submit --auto --open` | Push branches non-interactively, open pull requests ready for review, link the GitHub stack |
 | `gh stack sync` / `gh stack rebase` | Restack after a lower layer changes |
-| `gh stack merge <pr> --merge --yes` | Merge bottom-up through that layer, only when each included layer is merge-ready |
+| `gh stack merge <target> --yes` | Merge linked stacks bottom-up through target layer (mandatory for gh-stack linked PRs) |
 
 Flags move. If help text disagrees with this table, follow help text and keep the topology.
 

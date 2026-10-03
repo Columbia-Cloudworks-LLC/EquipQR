@@ -147,7 +147,7 @@ export async function syncInvoiceToQuickBooks(
         actorId: params.userId,
       });
     } else {
-      const { data: latestDeletion } = await supabaseClient
+      const { data: latestDeletion, error: deletionError } = await supabaseClient
         .from("quickbooks_export_logs")
         .select("id, quickbooks_invoice_id")
         .eq("work_order_id", params.workOrderId)
@@ -158,6 +158,15 @@ export async function syncInvoiceToQuickBooks(
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
+
+      if (deletionError) {
+        logStep("Failed to query QuickBooks export deletion history", {
+          error: deletionError.message,
+        });
+        throw new Error(
+          `Failed to query QuickBooks export deletion history: ${deletionError.message}`,
+        );
+      }
 
       const replacementAttemptKey = latestDeletion
         ? (latestDeletion.quickbooks_invoice_id ?? latestDeletion.id)

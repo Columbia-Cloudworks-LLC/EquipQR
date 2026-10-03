@@ -84,10 +84,10 @@ gh stack init --base preview fix/<layer-one>
 # commit only layer one
 gh stack add fix/<layer-two>
 # commit only layer two
-gh stack submit
+gh stack submit --auto --open
 ```
 
-Commit the current layer before `gh stack add`. `submit` pushes and opens pull requests whose bases are the parent branches, then links them as a GitHub stack.
+Commit the current layer before `gh stack add`. `submit` pushes and opens pull requests whose bases are the parent branches, then links them as a GitHub stack. Always pass `--auto --open` so submissions run non-interactively without stalling in agent sessions and publish pull requests as ready for review.
 
 ### 4. Without `gh stack`
 
@@ -134,7 +134,7 @@ Update numbers once the pull requests exist. Closing keywords go on the layer th
 
 If a lower layer changes, restack (`gh stack sync` / `gh stack rebase`, or rebase each child onto its parent). `git push --force-with-lease` is allowed on **unmerged stack branches only**. Never force-push `main` or `preview`.
 
-Merge bottom-up with `gh pr merge <num> --merge` after that layer's CI and Supabase gates pass (`pr-merge-ready-workflow.mdc`). Then set the next PR base to `preview`, or use `gh stack merge <pr> --merge --yes` when help text still supports it and every included layer is merge-ready.
+When the stack was created with `gh stack`, merge linked stacks using `gh stack merge <target> --yes` (or `--merge --yes`) once every included layer passes its CI and Supabase gates (`pr-merge-ready-workflow.mdc`). `gh pr merge` cannot merge linked stacks. For stacks managed manually without the extension, merge bottom-up with `gh pr merge <num> --merge` after each layer passes CI, then retarget the next PR's base to `preview`.
 
 Confirm the next diff is still incremental after retarget.
 
