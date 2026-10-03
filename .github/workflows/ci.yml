@@ -300,7 +300,7 @@ jobs:
       run: node dev/coverage-ratchet.mjs
 
     - name: Upload merged coverage to Codecov
-      uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f
+      uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5
       with:
         files: ./coverage/lcov.info
         flags: unittests
@@ -339,7 +339,7 @@ jobs:
         path: coverage
 
     - name: Post coverage report
-      uses: davelosert/vitest-coverage-report-action@8b157684c6a6b259b97d45e72b44242865c0f6a5
+      uses: davelosert/vitest-coverage-report-action@c4bbc33a89b7ace0e63d35f1f7d4bcee31155a73
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         json-summary-path: coverage/coverage-summary.json
@@ -438,13 +438,13 @@ jobs:
       continue-on-error: true
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938
+      uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2
       with:
         languages: javascript
         queries: security-and-quality
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938
+      uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2
       with:
         category: "/language:javascript"
 
