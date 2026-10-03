@@ -680,6 +680,20 @@ Deno.test("fetchInvoice returns null when invoice is deleted or not found (404 o
       );
     const resDel = await fetchInvoice("tok", "realm", "inv-del");
     assertEquals(resDel.invoice, null);
+
+    // 200 with missing Invoice.Id throws
+    globalThis.fetch = () =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({ Invoice: {} }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    await assertRejects(
+      () => fetchInvoice("tok", "realm", "inv-malformed"),
+      Error,
+      "no Invoice.Id",
+    );
   } finally {
     globalThis.fetch = originalFetch;
   }

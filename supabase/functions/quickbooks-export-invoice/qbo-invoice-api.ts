@@ -165,9 +165,14 @@ export async function fetchExistingInvoiceForUpdate(
   );
 
   const invoice = responseData.Invoice as (QuickBooksInvoice & { status?: string }) | undefined;
-  if (!invoice || !invoice.Id || invoice.status === "Deleted") {
-    logStep("Invoice empty or deleted in QuickBooks response", { invoiceId, intuit_tid: intuitTid });
+  if (invoice?.status === "Deleted") {
+    logStep("Invoice marked Deleted in QuickBooks response", { invoiceId, intuit_tid: intuitTid });
     return null;
+  }
+  if (!invoice || !invoice.Id) {
+    throw new Error(
+      `QuickBooks invoice read returned no Invoice.Id (intuit_tid: ${intuitTid ?? "unknown"})`,
+    );
   }
   return invoice as QuickBooksInvoice;
 }

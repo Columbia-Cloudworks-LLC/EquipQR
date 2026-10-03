@@ -418,6 +418,26 @@ Deno.test("fetchExistingInvoiceForUpdate returns null when invoice is deleted or
   } finally {
     globalThis.fetch = originalFetch;
   }
+
+  // 5. 200 with missing Invoice or missing Invoice.Id throws instead of returning null
+  globalThis.fetch = () =>
+    Promise.resolve(
+      new Response(
+        JSON.stringify({ Invoice: {} }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+  try {
+    let threw = false;
+    try {
+      await fetchExistingInvoiceForUpdate("token", "realm", "inv-malformed", () => {});
+    } catch {
+      threw = true;
+    }
+    assertEquals(threw, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 Deno.test("loadInvoiceReviewContext cleans up deleted invoices and marks wasDeleted", async () => {
@@ -506,3 +526,83 @@ Deno.test("loadInvoiceReviewContext cleans up deleted invoices and marks wasDele
     globalThis.fetch = originalFetch;
   }
 });
+
+Deno.test("loadInvoiceReviewContext retains wasDeleted on subsequent reviews after deletion was already marked", async () => {
+  const { loadInvoiceReviewContext } = await import("./qbo-invoice-review.ts");
+  const originalFetch = globalThis.fetch;
+
+  const mockSupabase: any = {
+    from: (table: string) => {
+      const builder: any = {
+        select: () => builder,
+        eq: (_col: string, val: unknown) => {
+          if (val === "success" || val === "error") {
+            builder._status = val;
+          }
+          return builder;
+        },
+        order: () => builder,
+        limit: () => builder,
+        maybeSingle: () => {
+          if (table === "work_order_invoice_details") {
+            return Promise.resolve({
+              data: {
+                invoice_date: null,
+                due_date: null,
+                payment_term_id: null,
+                service_dates: {},
+                qb_line_ids: {},
+              },
+              error: null,
+            });
+          }
+          if (table === "quickbooks_export_logs") {
+            if (builder._status === "success") {
+              return Promise.resolve({ data: null, error: null });
+            }
+            return Promise.resolve({
+              data: {
+                id: "log-del",
+                quickbooks_invoice_id: "old-inv",
+                created_at: "2026-10-02T12:00:00Z",
+              },
+              error: null,
+            });
+          }
+          return Promise.resolve({ data: null, error: null });
+        },
+        update: () => builder,
+      };
+      return builder;
+    },
+  };
+
+  globalThis.fetch = (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes("/customer/")) {
+      return Promise.resolve(new Response(JSON.stringify({ Customer: {} }), { status: 200 }));
+    }
+    if (url.includes("Term")) {
+      return Promise.resolve(new Response(JSON.stringify({ QueryResponse: { Term: [] } }), { status: 200 }));
+    }
+    return Promise.resolve(new Response(null, { status: 404 }));
+  };
+
+  try {
+    const context = await loadInvoiceReviewContext(
+      mockSupabase,
+      "token",
+      "realm-1",
+      "wo-123",
+      "org-1",
+      "cust-1",
+      () => {},
+    );
+
+    assertEquals(context.wasDeleted, true);
+    assertEquals(context.existing, null);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+

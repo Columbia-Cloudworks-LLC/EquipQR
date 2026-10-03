@@ -126,8 +126,13 @@ async function fetchInvoice(
     );
   }
   const invoice = body.Invoice as (QuickBooksInvoice & { status?: string }) | undefined;
-  if (!invoice || !invoice.Id || invoice.status === "Deleted") {
+  if (invoice?.status === "Deleted") {
     return { invoice: null, intuitTid };
+  }
+  if (!invoice || !invoice.Id) {
+    throw new Error(
+      `QuickBooks invoice read returned no Invoice.Id (intuit_tid: ${intuitTid ?? "unknown"})`,
+    );
   }
   return { invoice, intuitTid };
 }
