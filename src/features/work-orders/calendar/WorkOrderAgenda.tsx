@@ -40,7 +40,14 @@ export function WorkOrderAgenda({ items, range, anchor, onDateChange, onRangeCha
   const grouped = new Map<string, CalendarItem[]>();
   for (const item of items) {
     const p = item.placement;
-    const day = p.kind === 'timed' ? calendarDayInTimeZone(p.dueAt.epochMs, timeZone) : p.kind === 'dueDay' ? p.day : p.createdOn;
+    const day =
+      p.kind === 'timed'
+        ? calendarDayInTimeZone(p.dueAt.epochMs, timeZone)
+        : p.kind === 'dueDay'
+          ? p.day
+          : p.createdEpochMs != null
+            ? calendarDayInTimeZone(p.createdEpochMs, timeZone)
+            : p.createdOn;
     const key = calendarDayToIso(day);
     grouped.set(key, [...(grouped.get(key) ?? []), item]);
   }

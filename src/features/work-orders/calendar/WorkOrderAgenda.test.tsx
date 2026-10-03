@@ -75,4 +75,35 @@ describe('WorkOrderAgenda', () => {
     screen.getByRole('button', { name: 'Today' }).click();
     expect(onDateChange).toHaveBeenCalled();
   });
+
+  it('groups unscheduled items using createdEpochMs in the configured timeZone', () => {
+    // 2026-01-02T00:30:00Z in UTC is 2026-01-02
+    const createdEpochMs = Date.parse('2026-01-02T00:30:00Z');
+    const items: CalendarItem[] = [
+      {
+        workOrderId: 'wo-unscheduled-tz',
+        title: 'Calibrate Sensor',
+        status: 'open',
+        overdue: false,
+        placement: {
+          kind: 'unscheduled',
+          createdOn: { y: 2026, m: 1, d: 1 },
+          createdEpochMs,
+        },
+      },
+    ];
+
+    render(
+      <WorkOrderAgenda
+        items={items}
+        range="day"
+        anchor={{ y: 2026, m: 1, d: 2 }}
+        onDateChange={vi.fn()}
+        onRangeChange={vi.fn()}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Calibrate Sensor')).toBeInTheDocument();
+  });
 });

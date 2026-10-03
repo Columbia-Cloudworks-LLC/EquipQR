@@ -41,12 +41,17 @@ export type CalendarDragResult =
   | { readonly kind: 'applied'; readonly due: DueDate }
   | { readonly kind: 'rejected' };
 
-function createdOnDay(source: CalendarWorkOrderSource): CalendarDay {
+function createdEpochMsOf(source: CalendarWorkOrderSource): number | undefined {
   const raw = source.createdDate ?? source.created_date;
-  if (raw == null || raw === '') return todayLocal();
+  if (raw == null || raw === '') return undefined;
 
   const epochMs = Date.parse(raw);
-  if (Number.isNaN(epochMs)) return todayLocal();
+  return Number.isNaN(epochMs) ? undefined : epochMs;
+}
+
+function createdOnDay(source: CalendarWorkOrderSource): CalendarDay {
+  const epochMs = createdEpochMsOf(source);
+  if (epochMs == null) return todayLocal();
 
   const date = new Date(epochMs);
   return { y: date.getFullYear(), m: date.getMonth() + 1, d: date.getDate() };
@@ -62,10 +67,11 @@ export function toCalendarItem(
   editability: CalendarEditability,
 ): CalendarItem {
   const due = parseDue(source);
+  const createdEpochMs = createdEpochMsOf(source);
   return {
     workOrderId: source.id,
     title: source.title,
-    placement: placeWorkOrder(due, createdOnDay(source), estimatedHoursOf(source)),
+    placement: placeWorkOrder(due, createdOnDay(source), estimatedHoursOf(source), createdEpochMs),
     editability,
     status: source.status,
     priority: source.priority,

@@ -42,7 +42,7 @@ export type DuePersist = {
 };
 
 export type CalendarPlacement =
-  | { readonly kind: 'unscheduled'; readonly createdOn: CalendarDay }
+  | { readonly kind: 'unscheduled'; readonly createdOn: CalendarDay; readonly createdEpochMs?: number }
   | { readonly kind: 'dueDay'; readonly day: CalendarDay }
   | {
       readonly kind: 'timed';
@@ -313,10 +313,15 @@ export function placeWorkOrder(
   due: DueDate,
   createdOn: CalendarDay,
   estimatedHours: number | null,
+  createdEpochMs?: number,
 ): CalendarPlacement {
   switch (due.kind) {
     case 'none':
-      return { kind: 'unscheduled', createdOn };
+      return {
+        kind: 'unscheduled',
+        createdOn,
+        ...(createdEpochMs != null ? { createdEpochMs } : {}),
+      };
     case 'day':
       return { kind: 'dueDay', day: due.day };
     case 'timed': {

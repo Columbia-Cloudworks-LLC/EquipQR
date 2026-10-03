@@ -36,6 +36,7 @@ describe('toCalendarItem', () => {
         m: new Date(created).getMonth() + 1,
         d: new Date(created).getDate(),
       },
+      createdEpochMs: Date.parse(created),
     });
     expect(item.overdue).toBe(false);
   });
