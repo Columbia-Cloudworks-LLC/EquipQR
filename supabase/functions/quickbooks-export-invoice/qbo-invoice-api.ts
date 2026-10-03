@@ -79,12 +79,36 @@ function logQuickBooksHttpFailure(
   });
 }
 
+export function isQuickBooksNotFoundError(
+  status: number,
+  fault: unknown,
+): boolean {
+  if (status === 404) return true;
+  if (!fault || typeof fault !== "object") return false;
+  const faultObj = fault as Record<string, unknown>;
+  const errors = Array.isArray(faultObj.Error) ? faultObj.Error : [];
+  return errors.some((entry) => {
+    if (!entry || typeof entry !== "object") return false;
+    const error = entry as Record<string, unknown>;
+    const code = String(error.code ?? "");
+    const message = String(error.Message ?? "").toLowerCase();
+    const detail = String(error.Detail ?? "").toLowerCase();
+    return (
+      code === "610" ||
+      message.includes("object not found") ||
+      detail.includes("object not found") ||
+      detail.includes("no entity found") ||
+      (status === 400 && message.includes("not found"))
+    );
+  });
+}
+
 export async function fetchExistingInvoiceForUpdate(
   accessToken: string,
   realmId: string,
   invoiceId: string,
   logStep: (step: string, details?: Record<string, unknown>) => void,
-): Promise<QuickBooksInvoice> {
+): Promise<QuickBooksInvoice | null> {
   const getInvoiceUrl = withMinorVersion(
     `${QBO_API_BASE}/v3/company/${realmId}/invoice/${invoiceId}`,
   );
@@ -96,18 +120,56 @@ export async function fetchExistingInvoiceForUpdate(
     },
   });
 
+  const intuitTid = getIntuitTid(getResponse);
+
+  if (getResponse.status === 404) {
+    logStep("Invoice not found in QuickBooks (404)", { invoiceId, intuit_tid: intuitTid });
+    return null;
+  }
+
+  let responseData: Record<string, unknown> | null = null;
+  try {
+    responseData = await getResponse.json();
+  } catch {
+    // Non-JSON response
+  }
+
+  if (responseData?.Fault && isQuickBooksNotFoundError(getResponse.status, responseData.Fault)) {
+    logStep("Invoice not found or deleted in QuickBooks", {
+      invoiceId,
+      status: getResponse.status,
+      intuit_tid: intuitTid,
+    });
+    return null;
+  }
+
   if (!getResponse.ok) {
+    logQuickBooksHttpFailure(
+      "Invoice read failed",
+      getResponse,
+      intuitTid,
+      logStep,
+    );
     throw new Error("Failed to fetch existing invoice for update");
   }
 
-  const existingInvoiceData = await getResponse.json();
+  if (!responseData) {
+    throw new Error("Failed to fetch existing invoice for update: empty response");
+  }
+
   assertNoFault(
-    existingInvoiceData,
+    responseData,
     logStep,
     "invoice read response",
-    getIntuitTid(getResponse),
+    intuitTid,
   );
-  return existingInvoiceData.Invoice as QuickBooksInvoice;
+
+  const invoice = responseData.Invoice as (QuickBooksInvoice & { status?: string }) | undefined;
+  if (!invoice || !invoice.Id || invoice.status === "Deleted") {
+    logStep("Invoice empty or deleted in QuickBooks response", { invoiceId, intuit_tid: intuitTid });
+    return null;
+  }
+  return invoice as QuickBooksInvoice;
 }
 
 export async function updateQuickBooksInvoice(
@@ -256,4 +318,5 @@ export const __qboInvoiceApiTestables = {
   extractQuickBooksFaultMetadata,
   canonicalQuickBooksHttpFailureReason,
   logQuickBooksHttpFailure,
+  isQuickBooksNotFoundError,
 };

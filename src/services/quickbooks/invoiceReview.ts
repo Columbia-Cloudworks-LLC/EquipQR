@@ -37,6 +37,7 @@ export interface InvoiceReview {
     amount: number;
   }>;
   blocking_reason: string | null;
+  was_deleted?: boolean;
 }
 
 export interface InvoiceConfirmation extends InvoiceDates {

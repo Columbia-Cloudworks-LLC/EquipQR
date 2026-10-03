@@ -100,6 +100,12 @@ export async function syncInvoiceToQuickBooks(
         logStep,
       );
 
+      if (!existingInvoice) {
+        throw new InvoiceReviewError(
+          "The invoice was deleted in QuickBooks. Reload and review again to create a new invoice.",
+        );
+      }
+
       if (
         existingInvoice.SyncToken !== params.confirmation.existing_sync_token
       ) {

@@ -1,11 +1,12 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useExportToQuickBooks } from '@/hooks/useExportToQuickBooks';
+import { invalidateWorkOrderCaches } from '@/features/work-orders/utils/invalidateWorkOrderQueries';
 import {
   getInvoiceReview, saveInvoiceDates, calculateInvoiceDueDate,
   type InvoiceDates, type InvoiceReview,
@@ -85,6 +86,11 @@ function InvoiceReviewForm({ review, workOrderId, onClose, onExportSuccess }: {
   return (
     <div className="space-y-5">
       <p className="text-sm text-muted-foreground">Choose the dates your customer should see. Work order entry time and scheduling deadlines are not used.</p>
+      {review.was_deleted && (
+        <div role="status" className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-200">
+          The previously exported invoice was deleted from QuickBooks. You can review the details below and create a new invoice.
+        </div>
+      )}
       {existing && <div className="rounded-md border p-3 text-sm space-y-2">
         <p>Showing the current QuickBooks invoice dates. Existing prices and service dates are preserved.</p>
         <label className="flex items-start gap-2">
@@ -166,6 +172,8 @@ function InvoiceReviewForm({ review, workOrderId, onClose, onExportSuccess }: {
 }
 
 export function InvoiceReviewDialog({ workOrderId, open, onOpenChange, onExportSuccess }: Props) {
+  const queryClient = useQueryClient();
+  const { currentOrganization } = useOrganization();
   const review = useQuery({
     queryKey: ['quickbooks', 'invoice-review', workOrderId],
     queryFn: () => getInvoiceReview(workOrderId),
@@ -175,6 +183,17 @@ export function InvoiceReviewDialog({ workOrderId, open, onOpenChange, onExportS
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
+
+  useEffect(() => {
+    if (review.data?.was_deleted) {
+      void queryClient.invalidateQueries({ queryKey: ['quickbooks', 'export', workOrderId] });
+      void queryClient.invalidateQueries({ queryKey: ['quickbooks', 'export-logs', workOrderId] });
+      if (currentOrganization?.id) {
+        invalidateWorkOrderCaches(queryClient, currentOrganization.id, workOrderId);
+      }
+    }
+  }, [review.data?.was_deleted, workOrderId, currentOrganization?.id, queryClient]);
+
   return <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl" onClick={(event) => event.stopPropagation()}>
       <DialogHeader>
