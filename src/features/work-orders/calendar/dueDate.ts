@@ -42,7 +42,7 @@ export type DuePersist = {
 };
 
 export type CalendarPlacement =
-  | { readonly kind: 'unscheduled'; readonly createdOn: CalendarDay }
+  | { readonly kind: 'unscheduled'; readonly createdOn: CalendarDay; readonly createdEpochMs?: number }
   | { readonly kind: 'dueDay'; readonly day: CalendarDay }
   | {
       readonly kind: 'timed';
@@ -83,6 +83,31 @@ function calendarDayOfInstant(at: LocalInstant): CalendarDay {
 
 export function todayLocal(nowMs: number = Date.now()): CalendarDay {
   return calendarDayOfInstant({ epochMs: nowMs });
+}
+
+export function calendarDayInTimeZone(epochMs: number, timeZone?: string): CalendarDay {
+  if (!timeZone) return todayLocal(epochMs);
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+    });
+    const parts = formatter.formatToParts(new Date(epochMs));
+    let y = 0;
+    let m = 0;
+    let d = 0;
+    for (const part of parts) {
+      if (part.type === 'year') y = Number(part.value);
+      if (part.type === 'month') m = Number(part.value);
+      if (part.type === 'day') d = Number(part.value);
+    }
+    if (y && m && d) return { y, m, d };
+  } catch {
+    // Fall back to todayLocal if timeZone is invalid
+  }
+  return todayLocal(epochMs);
 }
 
 function rebaseInstantToDay(at: LocalInstant, day: CalendarDay): LocalInstant {
@@ -257,7 +282,7 @@ export function hydrateDueFormFields(source: DueColumns): {
   };
 }
 
-function compareDay(a: CalendarDay, b: CalendarDay): number {
+export function compareDay(a: CalendarDay, b: CalendarDay): number {
   if (a.y !== b.y) return a.y - b.y;
   if (a.m !== b.m) return a.m - b.m;
   return a.d - b.d;
@@ -267,14 +292,17 @@ export function isDueOverdue(
   due: DueDate,
   status: WorkOrderStatus,
   nowMs: number = Date.now(),
+  timeZone?: string,
 ): boolean {
   if (status === 'completed' || status === 'cancelled') return false;
 
   switch (due.kind) {
     case 'none':
       return false;
-    case 'day':
-      return compareDay(due.day, todayLocal(nowMs)) < 0;
+    case 'day': {
+      const today = timeZone ? calendarDayInTimeZone(nowMs, timeZone) : todayLocal(nowMs);
+      return compareDay(due.day, today) < 0;
+    }
     case 'timed':
       return due.at.epochMs < nowMs;
     default: {
@@ -288,10 +316,15 @@ export function placeWorkOrder(
   due: DueDate,
   createdOn: CalendarDay,
   estimatedHours: number | null,
+  createdEpochMs?: number,
 ): CalendarPlacement {
   switch (due.kind) {
     case 'none':
-      return { kind: 'unscheduled', createdOn };
+      return {
+        kind: 'unscheduled',
+        createdOn,
+        ...(createdEpochMs != null ? { createdEpochMs } : {}),
+      };
     case 'day':
       return { kind: 'dueDay', day: due.day };
     case 'timed': {

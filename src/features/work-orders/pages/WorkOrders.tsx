@@ -1,3 +1,4 @@
+import { WorkOrderAgenda } from '@/features/work-orders/calendar/WorkOrderAgenda';
 import React, { lazy, Suspense, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Plus, ShieldCheck, Users } from 'lucide-react';
@@ -10,6 +11,7 @@ import { useBatchAssignUnassignedWorkOrders } from '@/features/work-orders/hooks
 import { useWorkOrderFiltering } from '@/features/work-orders/hooks/useWorkOrderFiltering';
 import ListPaginationFooter from '@/components/common/ListPaginationFooter';
 import { useUser } from '@/contexts/useUser';
+import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
 import { useSelectedTeam } from '@/hooks/useSelectedTeam';
 import type { WorkOrder, WorkOrderAcceptanceModalState, WorkOrderData } from '@/features/work-orders/types/workOrder';
 import { Button } from '@/components/ui/button';
@@ -31,6 +33,7 @@ import type { MergedWorkOrder } from '@/features/work-orders/hooks/useOfflineMer
 import { useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
 import { useOfflineMergedWorkOrders } from '@/features/work-orders/hooks/useOfflineMergedWorkOrders';
 import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
+import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { MobileListGlanceCount } from '@/components/common/MobileListGlanceCount';
@@ -38,6 +41,7 @@ import {
   applyCalendarDrag,
   applyDueWrite,
   calendarEditability,
+  calendarDayInTimeZone,
   parseDue,
   parseUrlDate,
   persistDue,
@@ -86,7 +90,7 @@ const WorkOrders = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const initializedFromUrl = useRef(false);
-  const { setSelectedTeamId } = useSelectedTeam();
+  const { selectedTeamId, setSelectedTeamId } = useSelectedTeam();
 
   const { userTeamIds, isManager, isLoading: teamAccessLoading } = useTeamBasedAccess();
   const {
@@ -127,6 +131,7 @@ const WorkOrders = () => {
   usePMTemplates();
 
   const updateWorkOrder = useUpdateWorkOrder();
+  const { timeZone } = useFormatTimestamp();
 
   const chrome = useMemo(() => resolveWorkOrdersChrome({
     urlDate: parseUrlDate(searchParams.get('date')),
@@ -135,7 +140,8 @@ const WorkOrders = () => {
     woParam: searchParams.get('wo'),
     persist: getPreferenceLocalStorage(WORK_ORDERS_VIEW_MODE_KEY),
     isMobile,
-  }), [isMobile, searchParams]);
+    timeZone,
+  }), [isMobile, searchParams, timeZone]);
 
   const creatingFromCalendar = showForm || createPrefill != null;
   const selectedWorkOrderId =
@@ -143,30 +149,45 @@ const WorkOrders = () => {
       ? chrome.selectedWorkOrderId
       : null;
 
-  const { data: calendarServerRows = [] } = useTeamBasedWorkOrders(
+  const { data: calendarServerRows = [], isLoading: calendarLoading, isError: calendarError, refetch: refetchCalendar } = useTeamBasedWorkOrders(
     {},
-    { enabled: chrome.surface === 'calendar' },
+    { enabled: chrome.surface === 'calendar', selectedTeamId },
   );
   const calendarMerged = useOfflineMergedWorkOrders(calendarServerRows);
   const calendarRows = useMemo(() => {
     if (chrome.surface !== 'calendar') return [];
+    const effectiveTeamFilter =
+      selectedTeamId === null
+        ? filters.teamFilter
+        : selectedTeamId === UNASSIGNED_TEAM_ID
+          ? 'unassigned'
+          : selectedTeamId;
+
     return filterWorkOrders(
       calendarMerged as WorkOrderData[],
-      { ...filters, dueDateFilter: 'all' },
+      {
+        ...filters,
+        dueDateFilter: 'all',
+        teamFilter: effectiveTeamFilter,
+      },
       currentUser?.id,
     );
-  }, [calendarMerged, chrome.surface, currentUser?.id, filters]);
+  }, [calendarMerged, chrome.surface, currentUser?.id, filters, selectedTeamId]);
 
   const calendarItems = useMemo(() => {
     return calendarRows.map((wo) => {
       const row = wo as MergedWorkOrder & WorkOrderData;
-      return toCalendarItem(row, calendarEditability({
-        engineCanEdit: permissions.workOrders.getPermissions(row).canEdit,
-        status: row.status,
-        isOfflinePending: Boolean(row._isPendingSync) || row.id.startsWith('offline-'),
-      }));
+      return toCalendarItem(
+        row,
+        calendarEditability({
+          engineCanEdit: permissions.workOrders.getPermissions(row).canEdit,
+          status: row.status,
+          isOfflinePending: Boolean(row._isPendingSync) || row.id.startsWith('offline-'),
+        }),
+        timeZone,
+      );
     });
-  }, [calendarRows, permissions]);
+  }, [calendarRows, permissions, timeZone]);
 
   const writeChrome = useCallback((patch: Parameters<typeof serializeChromeParams>[1]) => {
     setSearchParams(serializeChromeParams(chrome, patch, searchParams), { replace: true });
@@ -436,6 +457,23 @@ const WorkOrders = () => {
                 : undefined
             }
           >
+            {isMobile && (
+              <WorkOrdersViewToggle
+                isMobile
+                surface={chrome.surface}
+                onChange={(surface) => {
+                  setPreferenceLocalStorage(WORK_ORDERS_VIEW_MODE_KEY, surface);
+                  writeChrome({
+                    surface,
+                    selectedWorkOrderId: null,
+                    ...(surface === 'calendar'
+                      ? { anchor: calendarDayInTimeZone(Date.now(), timeZone) }
+                      : {}),
+                  });
+                }}
+                className="mb-2"
+              />
+            )}
             <WorkOrderFilters
               filters={filters}
               activeFilterCount={getActiveFilterCount()}
@@ -451,7 +489,7 @@ const WorkOrders = () => {
               hideDueDateFilter={chrome.surface === 'calendar'}
               showSearchAndSort={chrome.surface === 'list'}
               rangeToggle={
-                chrome.surface === 'calendar' ? (
+                chrome.surface === 'calendar' && !isMobile ? (
                   <CalendarRangeToggle
                     range={chrome.range}
                     onChange={(range) => writeChrome({ range })}
@@ -499,8 +537,32 @@ const WorkOrders = () => {
               onPageSizeChange={setPageSize}
             />
             </>
+          ) : calendarLoading && calendarItems.length === 0 ? (
+            <p role="status">Loading work orders…</p>
+          ) : calendarError && calendarItems.length === 0 ? (
+            <div role="alert" className="space-y-2">
+              <p>Work orders could not be loaded.</p>
+              <Button variant="outline" onClick={() => void refetchCalendar()}>Retry work orders</Button>
+            </div>
           ) : (
-            <Suspense fallback={<div className="min-h-[24rem]" aria-busy="true" />}>
+            <>
+              {calendarError && (
+                <div role="status" className="flex items-center justify-between gap-2 p-2 rounded-md bg-destructive/10 text-destructive text-sm mb-2">
+                  <span>Failed to refresh latest work orders.</span>
+                  <Button size="sm" variant="outline" onClick={() => void refetchCalendar()}>Retry</Button>
+                </div>
+              )}
+              {isMobile ? (
+                <WorkOrderAgenda
+                  items={calendarItems}
+                  range={chrome.range}
+                  anchor={chrome.anchor}
+                  onDateChange={(anchor) => writeChrome({ anchor, selectedWorkOrderId: null })}
+                  onRangeChange={(range) => writeChrome({ range, selectedWorkOrderId: null })}
+                  onSelect={(workOrderId) => writeChrome({ selectedWorkOrderId: workOrderId })}
+                />
+              ) : (
+                <Suspense fallback={<div className="min-h-[24rem]" aria-busy="true" />}>
               <WorkOrderCalendar
                 key={calendarEpoch}
                 items={calendarItems}
@@ -525,9 +587,11 @@ const WorkOrders = () => {
                 onChromeChange={(next) => writeChrome(next)}
               />
             </Suspense>
+            )}
+            </>
           )}
 
-          {isMobile && totalAccessibleCount > 0 && (
+          {isMobile && chrome.surface === 'list' && totalAccessibleCount > 0 && (
             <MobileListGlanceCount
               resultCount={totalFilteredCount}
               totalCount={totalAccessibleCount}

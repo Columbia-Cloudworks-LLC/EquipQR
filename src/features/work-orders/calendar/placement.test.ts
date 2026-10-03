@@ -36,6 +36,7 @@ describe('toCalendarItem', () => {
         m: new Date(created).getMonth() + 1,
         d: new Date(created).getDate(),
       },
+      createdEpochMs: Date.parse(created),
     });
     expect(item.overdue).toBe(false);
   });
@@ -70,6 +71,15 @@ describe('toCalendarItem', () => {
     const item = toCalendarItem(source({ status: 'completed' }), locked);
     expect(item.editability).toEqual({ kind: 'readOnly', reason: 'locked' });
     expect(item.status).toBe('completed');
+  });
+
+  it('calculates overdue using configured timeZone', () => {
+    const epochMs = Date.parse('2026-01-02T00:30:00.000Z');
+    const wo = source({ dueDate: '2026-01-01', dueDateHasTime: false });
+    const itemLA = toCalendarItem(wo, editable, 'America/Los_Angeles', epochMs);
+    expect(itemLA.overdue).toBe(false);
+    const itemUTC = toCalendarItem(wo, editable, 'UTC', epochMs);
+    expect(itemUTC.overdue).toBe(true);
   });
 });
 

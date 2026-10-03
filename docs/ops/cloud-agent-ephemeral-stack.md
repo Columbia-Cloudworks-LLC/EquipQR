@@ -2,6 +2,8 @@
 
 > Per-session hosted Supabase Database Branch + cloud-safe Quick Login for Cursor
 > Cloud Agents ([issue #1249](https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/1249)).
+>
+> "Stack" here means the ephemeral Supabase runtime, not a stacked pull request. A PR stack is a chain of branches and pull requests: [stacked-pull-requests.md](./stacked-pull-requests.md).
 
 ## Decision
 

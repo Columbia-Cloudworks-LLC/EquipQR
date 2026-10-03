@@ -316,6 +316,7 @@ export async function handleQuickBooksExportInvoice(
             };
           }),
           blocking_reason: blockingReason,
+          was_deleted: reviewContext.wasDeleted ?? false,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );

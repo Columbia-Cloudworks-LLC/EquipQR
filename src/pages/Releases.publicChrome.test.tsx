@@ -95,7 +95,7 @@ async function renderReleasesPage(userRole: 'admin' | null) {
   const versionHref = screen
     .getByRole('link', { name: /view release notes for equipqr version/i })
     .getAttribute('href');
-  const getStartedHref = screen.getByRole('link', { name: 'Get Started' }).getAttribute('href');
+  const getStartedHref = screen.getByRole('link', { name: 'Sign in' }).getAttribute('href');
   const headingVisible = screen.getByRole('heading', { name: 'Releases', level: 1 });
   const latestVisible = screen.getByText('Public releases page');
   await user.click(screen.getByRole('button', { name: /legal links/i }));
@@ -119,7 +119,7 @@ describe('Releases public chrome', () => {
 
     expect(signedIn.headingVisible).toBeInTheDocument();
     expect(signedIn.latestVisible).toBeInTheDocument();
-    expect(signedIn.getStartedHref).toBe('/auth');
+    expect(signedIn.getStartedHref).toBe('/auth?tab=signin');
     expect(signedIn.versionHref).toBe('/releases');
     expect(signedIn.menuLabels).toEqual([
       'Releases',
@@ -137,7 +137,7 @@ describe('Releases public chrome', () => {
 
     expect(anonymous.headingVisible).toBeInTheDocument();
     expect(anonymous.latestVisible).toBeInTheDocument();
-    expect(anonymous.getStartedHref).toBe('/auth');
+    expect(anonymous.getStartedHref).toBe('/auth?tab=signin');
     expect(anonymous.versionHref).toBe('/releases');
     expect(anonymous.menuLabels).toEqual(signedIn.menuLabels);
     expect(screen.queryByText('DSR Cockpit')).not.toBeInTheDocument();

@@ -58,7 +58,12 @@ EquipQR uses a **feat → preview → main** train (#1282). Authoritative policy
    - Promote via **`preview` → `main`** (or `/release`) with version bump + empty Unreleased
    - **Production Release Readiness** runs `vercel promote`
 
-4. **Hotfixes**
+4. **Stacked pull requests**
+   - A stack is several branches and several pull requests. The bottom PR targets `preview`. Each next PR targets the branch immediately below it.
+   - Many commits on one branch are not a stacked PR. One PR that mixes separable changes is not a stacked PR.
+   - Authoritative workflow: [`docs/ops/stacked-pull-requests.md`](./docs/ops/stacked-pull-requests.md).
+
+5. **Hotfixes**
    - Prefer `fix/*` → `preview` then promote; emergencies may PR into `main` then back-merge `preview`
 
 **Note**: Version tags are created automatically when `package.json` is updated on `main`. See [Versioning & Release Process](#versioning--release-process) below.
@@ -443,6 +448,7 @@ In rare cases, emergency hotfixes may bypass normal PR approval:
 - Testing performed
 - Screenshots for UI changes
 - Breaking changes (if any)
+- For a stack layer: position (`Stack: 2 of 3`), the PR it depends on, and the next PR. Closing keywords belong on the layer that finishes the issue.
 - Migration steps (if any)
 
 ### Size Guidelines

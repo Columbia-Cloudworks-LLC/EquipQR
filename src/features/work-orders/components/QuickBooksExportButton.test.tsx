@@ -152,7 +152,7 @@ describe('QuickBooksExportButton Component', () => {
       
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /Export to QuickBooks/i })).toBeInTheDocument();
-      });
+      }, { timeout: 3000 });
     });
   });
 

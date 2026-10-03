@@ -12,7 +12,15 @@ import {
 } from "./payment-linked-invoices.ts";
 import { __syncTestables } from "./index.ts";
 
-const { refreshTokenIfNeeded, claimInvoiceEvents, EVENT_BATCH_SIZE, markEvent, processInvoiceEvents } = __syncTestables;
+const {
+  refreshTokenIfNeeded,
+  claimInvoiceEvents,
+  EVENT_BATCH_SIZE,
+  markEvent,
+  processInvoiceEvents,
+  fetchInvoice,
+  handleDeletedQuickBooksInvoice,
+} = __syncTestables;
 
 /** Records update payload and chained `.eq()` filters for service-role credential writes. */
 function createQuickBooksCredentialUpdateMock(opts?: { persistError?: { message: string } }) {
@@ -642,3 +650,323 @@ Deno.test("processInvoiceEvents: error-mark persistence failure is swallowed and
   );
   // The function must return normally; the mark-error DB failure must be swallowed.
 });
+
+Deno.test("fetchInvoice returns null when invoice is deleted or not found (404 or Fault 610)", async () => {
+  const originalFetch = globalThis.fetch;
+  try {
+    // 404
+    globalThis.fetch = () => Promise.resolve(new Response(null, { status: 404 }));
+    const res404 = await fetchInvoice("tok", "realm", "inv-404");
+    assertEquals(res404.invoice, null);
+
+    // 400 with 610 Fault
+    globalThis.fetch = () =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({ Fault: { Error: [{ code: "610", Message: "Object Not Found" }] } }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    const res610 = await fetchInvoice("tok", "realm", "inv-610");
+    assertEquals(res610.invoice, null);
+
+    // 200 with status: "Deleted"
+    globalThis.fetch = () =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({ Invoice: { Id: "inv-del", status: "Deleted" } }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    const resDel = await fetchInvoice("tok", "realm", "inv-del");
+    assertEquals(resDel.invoice, null);
+
+    // 200 with missing Invoice.Id throws
+    globalThis.fetch = () =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({ Invoice: {} }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    await assertRejects(
+      () => fetchInvoice("tok", "realm", "inv-malformed"),
+      Error,
+      "no Invoice.Id",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("handleDeletedQuickBooksInvoice clears work_orders mirror, clears sent/paid dates, and updates export logs first", async () => {
+  const updates: Array<{ table: string; payload: Record<string, unknown> }> = [];
+  const fakeClient: any = {
+    from: (table: string) => {
+      const builder: any = {
+        update: (payload: Record<string, unknown>) => {
+          updates.push({ table, payload });
+          return builder;
+        },
+        eq: () => builder,
+      };
+      return builder;
+    },
+  };
+
+  await handleDeletedQuickBooksInvoice(fakeClient as SupabaseClient, {
+    organizationId: "org-1",
+    realmId: "realm-1",
+    invoiceId: "inv-1",
+    workOrderId: "wo-1",
+  });
+
+  // Verify export logs are updated before work order mirror is cleared
+  assertEquals(updates[0]?.table, "quickbooks_export_logs");
+  assertEquals(updates[1]?.table, "work_orders");
+
+  const wo = updates.find((u) => u.table === "work_orders");
+  assertEquals(wo?.payload.quickbooks_invoice_id, null);
+  assertEquals(wo?.payload.quickbooks_invoice_number, null);
+  assertEquals(wo?.payload.invoice_status, null);
+  assertEquals(wo?.payload.invoice_sent_at, null);
+  assertEquals(wo?.payload.invoice_paid_at, null);
+
+  const log = updates.find((u) => u.table === "quickbooks_export_logs");
+  assertEquals(log?.payload.status, "error");
+  assertEquals(log?.payload.error_message, "Invoice was deleted in QuickBooks");
+});
+
+Deno.test("handleDeletedQuickBooksInvoice propagates export log update errors without clearing work_orders", async () => {
+  const updates: Array<{ table: string; payload: Record<string, unknown> }> = [];
+  const fakeClient: any = {
+    from: (table: string) => {
+      const builder: any = {
+        update: (payload: Record<string, unknown>) => {
+          updates.push({ table, payload });
+          return builder;
+        },
+        eq: () => builder,
+        then: (onfulfilled: any) => {
+          if (table === "quickbooks_export_logs") {
+            return Promise.resolve(onfulfilled({ error: { message: "db write error" } }));
+          }
+          return Promise.resolve(onfulfilled({ error: null }));
+        },
+      };
+      return builder;
+    },
+  };
+
+  await assertRejects(
+    () =>
+      handleDeletedQuickBooksInvoice(fakeClient as SupabaseClient, {
+        organizationId: "org-1",
+        realmId: "realm-1",
+        invoiceId: "inv-1",
+        workOrderId: "wo-1",
+      }),
+    Error,
+    "Failed to update export logs for deleted invoice",
+  );
+
+  assertEquals(updates.some((u) => u.table === "work_orders"), false);
+});
+
+Deno.test("processInvoiceEvents: handles not-found payment-linked invoices by calling handleDeletedQuickBooksInvoice", async () => {
+  const updates: Array<{ table: string; payload: Record<string, unknown> }> = [];
+  const statusUpdates: string[] = [];
+
+  const workOrderBuilder = {
+    update: (payload: Record<string, unknown>) => {
+      updates.push({ table: "work_orders", payload });
+      return workOrderBuilder;
+    },
+    eq: () => workOrderBuilder,
+    select: () => Promise.resolve({ data: [{ id: "wo-1" }], error: null }),
+  };
+
+  const exportLogBuilder = {
+    update: (payload: Record<string, unknown>) => {
+      updates.push({ table: "quickbooks_export_logs", payload });
+      return exportLogBuilder;
+    },
+    eq: () => exportLogBuilder,
+  };
+
+  const credentialsData = [
+    {
+      organization_id: "org-1",
+      realm_id: "realm-1",
+      access_token: "tok",
+      refresh_token: "ref",
+      access_token_expires_at: new Date(Date.now() + 3600000).toISOString(),
+      refresh_token_expires_at: new Date(Date.now() + 86400000).toISOString(),
+    },
+  ];
+
+  const client: any = {
+    rpc: (_name: string, _args: unknown) =>
+      Promise.resolve({
+        data: [
+          {
+            id: "evt-payment-1",
+            organization_id: "org-1",
+            realm_id: "realm-1",
+            entity_name: "Payment",
+            entity_id: "pay-1",
+            operation: "Create",
+            attempts: 1,
+          },
+        ],
+        error: null,
+      }),
+    from: (table: string) => {
+      if (table === "work_orders") return workOrderBuilder;
+      if (table === "quickbooks_export_logs") return exportLogBuilder;
+      if (table === "quickbooks_credentials") {
+        return {
+          select: () => ({
+            in: () => ({
+              in: () => Promise.resolve({ data: credentialsData, error: null }),
+            }),
+          }),
+        };
+      }
+      if (table === "quickbooks_invoice_status_events") {
+        return {
+          update: (payload: { status: string }) => {
+            statusUpdates.push(payload.status);
+            return {
+              eq: () => ({
+                eq: () => Promise.resolve({ error: null }),
+              }),
+            };
+          },
+        };
+      }
+      return {};
+    },
+  };
+
+  const originalFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/payment/")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              Payment: {
+                Id: "pay-1",
+                Line: [
+                  {
+                    LinkedTxn: [{ TxnId: "inv-deleted", TxnType: "Invoice" }],
+                  },
+                ],
+              },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        );
+      }
+      if (url.includes("/invoice/inv-deleted")) {
+        return Promise.resolve(new Response(null, { status: 404 }));
+      }
+      return Promise.resolve(new Response(null, { status: 404 }));
+    };
+
+    const result = await processInvoiceEvents(client, "cid", "csecret");
+    assertEquals(result.processed, 1);
+    assertEquals(result.failed, 0);
+
+    const logUpdate = updates.find((u) => u.table === "quickbooks_export_logs");
+    assertEquals(logUpdate?.payload.status, "error");
+    assertEquals(logUpdate?.payload.error_message, "Invoice was deleted in QuickBooks");
+
+    const woUpdate = updates.find((u) => u.table === "work_orders");
+    assertEquals(woUpdate?.payload.quickbooks_invoice_id, null);
+    assertEquals(woUpdate?.payload.quickbooks_invoice_number, null);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("processInvoiceEvents: processes Invoice delete events without QuickBooks credentials", async () => {
+  const updates: Array<{ table: string; payload: Record<string, unknown> }> = [];
+  const statusUpdates: string[] = [];
+
+  const workOrderBuilder: any = {
+    update: (payload: Record<string, unknown>) => {
+      updates.push({ table: "work_orders", payload });
+      return workOrderBuilder;
+    },
+    eq: () => workOrderBuilder,
+  };
+
+  const exportLogBuilder: any = {
+    update: (payload: Record<string, unknown>) => {
+      updates.push({ table: "quickbooks_export_logs", payload });
+      return exportLogBuilder;
+    },
+    eq: () => exportLogBuilder,
+  };
+
+  const client: any = {
+    rpc: (_name: string, _args: unknown) =>
+      Promise.resolve({
+        data: [
+          {
+            id: "evt-del-1",
+            organization_id: "org-1",
+            realm_id: "realm-1",
+            entity_name: "Invoice",
+            entity_id: "inv-del-1",
+            operation: "Delete",
+            attempts: 1,
+          },
+        ],
+        error: null,
+      }),
+    from: (table: string) => {
+      if (table === "work_orders") return workOrderBuilder;
+      if (table === "quickbooks_export_logs") return exportLogBuilder;
+      if (table === "quickbooks_credentials") {
+        return {
+          select: () => ({
+            in: () => ({
+              in: () => Promise.resolve({ data: [], error: null }),
+            }),
+          }),
+        };
+      }
+      if (table === "quickbooks_invoice_status_events") {
+        return {
+          update: (payload: { status: string }) => {
+            statusUpdates.push(payload.status);
+            return {
+              eq: () => ({
+                eq: () => Promise.resolve({ error: null }),
+              }),
+            };
+          },
+        };
+      }
+      return {};
+    },
+  };
+
+  const result = await processInvoiceEvents(client, "cid", "csecret");
+  assertEquals(result.processed, 1);
+  assertEquals(result.failed, 0);
+  assertEquals(statusUpdates, ["processed"]);
+
+  const logUpdate = updates.find((u) => u.table === "quickbooks_export_logs");
+  assertEquals(logUpdate?.payload.status, "error");
+  assertEquals(logUpdate?.payload.error_message, "Invoice was deleted in QuickBooks");
+
+  const woUpdate = updates.find((u) => u.table === "work_orders");
+  assertEquals(woUpdate?.payload.quickbooks_invoice_id, null);
+  assertEquals(woUpdate?.payload.quickbooks_invoice_number, null);
+});
+

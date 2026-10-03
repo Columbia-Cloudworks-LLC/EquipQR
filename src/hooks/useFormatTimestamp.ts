@@ -2,6 +2,7 @@ import { useContext, useMemo } from 'react';
 
 import { SettingsContext } from '@/contexts/settings-context';
 import { useUserSettings } from '@/hooks/useUserSettings';
+import { defaultUserSettings } from '@/types/settings';
 import {
   formatDate,
   formatDateTime,
@@ -19,6 +20,7 @@ export function useFormatTimestamp() {
 
   return useMemo(
     () => ({
+      timeZone: settings?.timezone || defaultUserSettings.timezone,
       formatDate: (date: Date | string) => formatDate(date, settings),
       formatDateTime: (date: Date | string) => formatDateTime(date, settings),
       formatTime: (date: Date | string) => formatTime(date, settings),

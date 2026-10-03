@@ -100,6 +100,12 @@ export async function syncInvoiceToQuickBooks(
         logStep,
       );
 
+      if (!existingInvoice) {
+        throw new InvoiceReviewError(
+          "The invoice was deleted in QuickBooks. Reload and review again to create a new invoice.",
+        );
+      }
+
       if (
         existingInvoice.SyncToken !== params.confirmation.existing_sync_token
       ) {
@@ -141,6 +147,31 @@ export async function syncInvoiceToQuickBooks(
         actorId: params.userId,
       });
     } else {
+      const { data: latestDeletion, error: deletionError } = await supabaseClient
+        .from("quickbooks_export_logs")
+        .select("id, quickbooks_invoice_id")
+        .eq("work_order_id", params.workOrderId)
+        .eq("organization_id", params.organizationId)
+        .eq("realm_id", params.realmId)
+        .eq("status", "error")
+        .eq("error_message", "Invoice was deleted in QuickBooks")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (deletionError) {
+        logStep("Failed to query QuickBooks export deletion history", {
+          error: deletionError.message,
+        });
+        throw new Error(
+          `Failed to query QuickBooks export deletion history: ${deletionError.message}`,
+        );
+      }
+
+      const replacementAttemptKey = latestDeletion
+        ? (latestDeletion.quickbooks_invoice_id ?? latestDeletion.id)
+        : null;
+
       const createResult = await createQuickBooksInvoice(
         params.accessToken,
         params.realmId,
@@ -150,6 +181,7 @@ export async function syncInvoiceToQuickBooks(
         params.taxState,
         params.confirmation,
         logStep,
+        replacementAttemptKey,
       );
 
       syncedInvoice = createResult.invoice;

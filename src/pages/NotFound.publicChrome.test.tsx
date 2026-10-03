@@ -37,7 +37,7 @@ async function renderNotFoundPage(userRole: 'admin' | null) {
   const versionHref = screen
     .getByRole('link', { name: /view release notes for equipqr version/i })
     .getAttribute('href');
-  const getStartedHref = screen.getByRole('link', { name: 'Get Started' }).getAttribute('href');
+  const getStartedHref = screen.getByRole('link', { name: 'Sign in' }).getAttribute('href');
   const headingVisible = screen.getByRole('heading', { name: 'Page not found', level: 1 });
   const missingPathVisible = screen.getByText('/this-is-not-a-route');
   await user.click(screen.getByRole('button', { name: /legal links/i }));
@@ -61,7 +61,7 @@ describe('NotFound public chrome', () => {
 
     expect(signedIn.headingVisible).toBeInTheDocument();
     expect(signedIn.missingPathVisible).toBeInTheDocument();
-    expect(signedIn.getStartedHref).toBe('/auth');
+    expect(signedIn.getStartedHref).toBe('/auth?tab=signin');
     expect(signedIn.versionHref).toBe('/releases');
     expect(signedIn.menuLabels).toEqual([
       'Releases',
@@ -79,7 +79,7 @@ describe('NotFound public chrome', () => {
 
     expect(anonymous.headingVisible).toBeInTheDocument();
     expect(anonymous.missingPathVisible).toBeInTheDocument();
-    expect(anonymous.getStartedHref).toBe('/auth');
+    expect(anonymous.getStartedHref).toBe('/auth?tab=signin');
     expect(anonymous.versionHref).toBe('/releases');
     expect(anonymous.menuLabels).toEqual(signedIn.menuLabels);
     expect(screen.queryByText('DSR Cockpit')).not.toBeInTheDocument();

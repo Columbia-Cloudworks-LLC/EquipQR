@@ -4,24 +4,26 @@ import { getTeamBasedWorkOrders, type TeamBasedWorkOrderFilters } from '@/featur
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { isOrgAdminRole } from '@/features/teams/utils/teamAccessScope';
+import type { SelectedTeamId } from '@/contexts/selected-team-context';
 
 export const useTeamBasedWorkOrders = (
   filters: TeamBasedWorkOrderFilters = {},
-  options?: { enabled?: boolean },
+  options?: { enabled?: boolean; selectedTeamId?: SelectedTeamId },
 ) => {
   const { currentOrganization } = useOrganization();
   const { getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
   const isManager = isOrgAdminRole(currentOrganization?.userRole);
 
   const userTeamIds = getUserTeamIds();
+  const selectedTeamId = options?.selectedTeamId ?? null;
 
   return useQuery({
-    queryKey: ['team-based-work-orders', currentOrganization?.id, userTeamIds, isManager, filters],
+    queryKey: ['team-based-work-orders', currentOrganization?.id, userTeamIds, isManager, filters, selectedTeamId],
     queryFn: () => {
       if (!currentOrganization?.id) {
         return [];
       }
-      return getTeamBasedWorkOrders(currentOrganization.id, userTeamIds, isManager, filters);
+      return getTeamBasedWorkOrders(currentOrganization.id, userTeamIds, isManager, filters, selectedTeamId);
     },
     enabled: !!currentOrganization?.id && !teamsLoading && (options?.enabled ?? true),
     // Bumped from 30s to 1 min and removed forced window-focus refetch.

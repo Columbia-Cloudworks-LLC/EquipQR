@@ -101,15 +101,42 @@ export async function loadInvoiceReviewContext(
       service_dates: {},
       qb_line_ids: {},
     };
-  const { data: previous, error: previousError } = await client.from(
-    "quickbooks_export_logs",
-  ).select("quickbooks_invoice_id").eq("work_order_id", workOrderId).eq(
-    "organization_id",
-    organizationId,
-  ).eq("realm_id", realmId).eq("status", "success").order("created_at", {
-    ascending: false,
-  }).limit(1).maybeSingle();
-  if (previousError) throw new Error("Failed to load invoice export history");
+  const [
+    { data: latestSuccess, error: previousError },
+    { data: latestDeletion, error: deletionError },
+  ] = await Promise.all([
+    client.from("quickbooks_export_logs")
+      .select("id, quickbooks_invoice_id, created_at")
+      .eq("work_order_id", workOrderId)
+      .eq("organization_id", organizationId)
+      .eq("realm_id", realmId)
+      .eq("status", "success")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    client.from("quickbooks_export_logs")
+      .select("id, quickbooks_invoice_id, created_at")
+      .eq("work_order_id", workOrderId)
+      .eq("organization_id", organizationId)
+      .eq("realm_id", realmId)
+      .eq("status", "error")
+      .eq("error_message", "Invoice was deleted in QuickBooks")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  if (previousError || deletionError) {
+    throw new Error("Failed to load invoice export history");
+  }
+
+  const hasActiveDeletionMarker = Boolean(
+    latestDeletion &&
+      (!latestSuccess ||
+        new Date(latestDeletion.created_at) > new Date(latestSuccess.created_at)),
+  );
+  const activePrevious = (!hasActiveDeletionMarker && latestSuccess)
+    ? latestSuccess
+    : null;
   const get = async (path: string) => {
     const response = await fetch(
       withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/${path}`),
@@ -142,15 +169,109 @@ export async function loadInvoiceReviewContext(
         )
       }`,
     ),
-    previous?.quickbooks_invoice_id
+    activePrevious?.quickbooks_invoice_id
       ? fetchExistingInvoiceForUpdate(
         accessToken,
         realmId,
-        previous.quickbooks_invoice_id,
+        activePrevious.quickbooks_invoice_id,
         log,
       )
       : Promise.resolve(null),
   ]);
+  const wasDeleted = hasActiveDeletionMarker ||
+    Boolean(activePrevious?.quickbooks_invoice_id && !existing);
+  if (wasDeleted) {
+    const deletedInvoiceId = activePrevious?.quickbooks_invoice_id ??
+      latestDeletion?.quickbooks_invoice_id ??
+      null;
+    log("Handling previously exported invoice deleted in QuickBooks", {
+      workOrderId,
+      deletedInvoiceId,
+    });
+    if (activePrevious || deletedInvoiceId) {
+      let logQuery = client
+        .from("quickbooks_export_logs")
+        .update({
+          status: "error",
+          error_message: "Invoice was deleted in QuickBooks",
+        })
+        .eq("work_order_id", workOrderId)
+        .eq("organization_id", organizationId)
+        .eq("realm_id", realmId)
+        .eq("status", "success");
+      if (deletedInvoiceId) {
+        logQuery = logQuery.eq("quickbooks_invoice_id", deletedInvoiceId);
+      }
+      const { error: logUpdateError } = await logQuery;
+      if (logUpdateError) {
+        log("Error: Failed to update export log for deleted invoice", {
+          error: logUpdateError.message,
+        });
+        throw new InvoiceReviewError(
+          "Could not update export history for deleted invoice. Please reload.",
+        );
+      }
+    }
+
+    let woQuery = client
+      .from("work_orders")
+      .update({
+        quickbooks_invoice_id: null,
+        quickbooks_invoice_number: null,
+        quickbooks_invoice_environment: null,
+        invoice_status: null,
+        invoice_balance_cents: null,
+        invoice_due_date: null,
+        invoice_sent_at: null,
+        invoice_paid_at: null,
+        invoice_sync_error: null,
+        invoice_last_synced_at: new Date().toISOString(),
+      })
+      .eq("id", workOrderId)
+      .eq("organization_id", organizationId)
+      .eq("quickbooks_realm_id", realmId);
+    if (deletedInvoiceId) {
+      woQuery = woQuery.eq("quickbooks_invoice_id", deletedInvoiceId);
+    }
+    const { error: woUpdateError } = await woQuery;
+    if (woUpdateError) {
+      log("Error: Failed to clear work order mirror for deleted invoice", {
+        error: woUpdateError.message,
+      });
+      throw new InvoiceReviewError(
+        "Could not clear work order mirror for deleted invoice. Please reload.",
+      );
+    }
+
+    const lineIdsMatchDeleted = (!saved.qb_line_ids.__invoice_id ||
+      !deletedInvoiceId ||
+      saved.qb_line_ids.__invoice_id === deletedInvoiceId) &&
+      (!saved.qb_line_ids.__realm_id || saved.qb_line_ids.__realm_id === realmId);
+
+    if (lineIdsMatchDeleted) {
+      let detailsQuery = client
+        .from("work_order_invoice_details")
+        .update({ qb_line_ids: {} })
+        .eq("work_order_id", workOrderId)
+        .eq("organization_id", organizationId);
+      if (deletedInvoiceId) {
+        detailsQuery = detailsQuery.contains("qb_line_ids", {
+          __invoice_id: deletedInvoiceId,
+          __realm_id: realmId,
+        });
+      }
+      const { error: detailsUpdateError } = await detailsQuery;
+      if (detailsUpdateError) {
+        log("Error: Failed to clear qb_line_ids for deleted invoice", {
+          error: detailsUpdateError.message,
+        });
+        throw new InvoiceReviewError(
+          "Could not clear invoice line mappings for deleted invoice. Please reload.",
+        );
+      }
+      saved.qb_line_ids = {};
+    }
+  }
   if (existing && existing.CustomerRef.value !== customerId) {
     throw new InvoiceReviewError(
       "The mapped customer differs from the existing invoice. Review this invoice in QuickBooks.",
@@ -181,6 +302,7 @@ export async function loadInvoiceReviewContext(
     existing: existing as QuickBooksInvoice | null,
     terms,
     customerTermId: customer.Customer?.SalesTermRef?.value ?? null,
+    wasDeleted,
   };
 }
 export function updateBlockingReason(

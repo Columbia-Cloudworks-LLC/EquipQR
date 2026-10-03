@@ -19,7 +19,7 @@ import {
   type DuePersist,
   type DueWrite,
 } from '@/features/work-orders/calendar';
-import type { LocalInstant } from '@/features/work-orders/calendar/dueDate';
+import { calendarDayInTimeZone, type LocalInstant } from '@/features/work-orders/calendar/dueDate';
 
 function localYmd(date: Date): { y: number; m: number; d: number } {
   return { y: date.getFullYear(), m: date.getMonth() + 1, d: date.getDate() };
@@ -186,6 +186,14 @@ describe('isDueOverdue', () => {
     expect(isDueOverdue({ kind: 'timed', at: { epochMs: now - 1 } }, 'completed', now)).toBe(false);
     expect(isDueOverdue({ kind: 'none' }, 'submitted', now)).toBe(false);
   });
+
+  it('evaluates date-only due overdue status against configured timeZone', () => {
+    // 2026-01-02T00:30:00Z: in UTC it is 2026-01-02, but in America/Los_Angeles it is 2026-01-01
+    const epochMs = Date.parse('2026-01-02T00:30:00.000Z');
+    const day = { y: 2026, m: 1, d: 1 };
+    expect(isDueOverdue({ kind: 'day', day }, 'submitted', epochMs, 'America/Los_Angeles')).toBe(false);
+    expect(isDueOverdue({ kind: 'day', day }, 'submitted', epochMs, 'UTC')).toBe(true);
+  });
 });
 
 describe('placeWorkOrder', () => {
@@ -208,3 +216,22 @@ describe('placeWorkOrder', () => {
     });
   });
 });
+
+describe('calendarDayInTimeZone', () => {
+  it('groups timed instants in the specified time zone rather than UTC or browser local', () => {
+    // 2026-01-02T00:30:00Z is 2026-01-01 16:30 in America/Los_Angeles (UTC-8)
+    const epochMs = Date.parse('2026-01-02T00:30:00.000Z');
+    expect(calendarDayInTimeZone(epochMs, 'America/Los_Angeles')).toEqual({
+      y: 2026,
+      m: 1,
+      d: 1,
+    });
+    // In Asia/Tokyo (UTC+9), it is 2026-01-02 09:30
+    expect(calendarDayInTimeZone(epochMs, 'Asia/Tokyo')).toEqual({
+      y: 2026,
+      m: 1,
+      d: 2,
+    });
+  });
+});
+

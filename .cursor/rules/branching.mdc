@@ -10,7 +10,7 @@ See **`docs/ops/git-and-deploy.md`** for the full solo-developer deploy loop.
 
 Default is **local-iterate**. Stay on the current checkout. Do not create a branch, spawn a worktree, push, open a PR, or merge.
 
-Switch to **publish** only when the user asks to publish, open a PR, merge, ship, or land an issue on `preview`, or when they invoke a skill whose job is a PR (`/itil-issue-resolver` with an issue to land, `/release`, `/dependabot-merge-ready`, or address-pr-feedback on an existing PR).
+Switch to **publish** only when the user asks to publish, open a PR, merge, ship, or land an issue on `preview`, or when they invoke a skill whose job is a PR (`/itil-issue-resolver` with an issue to land, `/release`, `/stacked-pr-release`, `/dependabot-merge-ready`, or address-pr-feedback on an existing PR). A request for a stacked PR, PR stack, or stacked release is publish mode for a chain of PRs, not one aggregate PR (`docs/ops/stacked-pull-requests.md`).
 
 A Cursor-linked worktree is **not** publish authorization. Prefer the canonical clone. Do not treat `%USERPROFILE%\.cursor\worktrees\...` as a reason to branch or open a PR. Do not spawn a worktree for a local edit.
 

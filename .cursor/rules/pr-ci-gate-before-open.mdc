@@ -8,6 +8,8 @@ This file is a **publish** gate (`branching.mdc`). It does not apply to local-it
 
 Local lint/tests/build are **necessary but not sufficient** for feature-branch PRs. CI runs a **clean `npm ci`** on Linux runners; that path must pass before `gh pr create` and before the agent marks the PR workflow complete.
 
+Each layer of a stacked pull request is its own PR and repeats this gate. The bottom layer targets `preview`; later layers target the parent branch (`docs/ops/stacked-pull-requests.md`).
+
 ## Hard rules
 
 1. **Never run `gh pr create` until CI-parity install succeeds locally:**

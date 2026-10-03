@@ -1,3 +1,4 @@
+import { resolveWorkOrderAssignment } from '@/features/work-orders/utils/resolveWorkOrderAssignment';
 import React, { memo, useMemo } from 'react';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -50,11 +51,7 @@ export const WorkOrderMobileCard: React.FC<WorkOrderMobileCardProps> = memo(({
   const machineHours = formatWorkOrderMachineHours(workOrder.equipmentWorkingHours);
   const isTerminal = isTerminalStatus(workOrder.status);
 
-  const assigneeName =
-    workOrder.assigneeName ??
-    workOrder.assignee_name ??
-    workOrder.assignedTo?.name ??
-    undefined;
+  const assigneeName = resolveWorkOrderAssignment(workOrder).name;
 
   const initials = useMemo(() => getAssigneeInitials(assigneeName), [assigneeName]);
 

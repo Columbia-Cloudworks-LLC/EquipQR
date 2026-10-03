@@ -13,6 +13,15 @@ updates:
       timezone: America/Chicago
     open-pull-requests-limit: 15
     target-branch: preview
+    groups:
+      react:
+        patterns:
+          - "react*"
+          - "@types/react*"
+      vitest:
+        patterns:
+          - "vitest*"
+          - "@vitest/*"
     ignore:
       - dependency-name: "@types/node"
         update-types:

@@ -57,7 +57,7 @@ describe('resolveWorkOrdersChrome', () => {
       isMobile: true,
     });
 
-    expect(chrome.surface).toBe('list');
+    expect(chrome.surface).toBe('calendar');
 
     const patch: ChromePatch = {};
     const params = serializeChromeParams(chrome, patch);
@@ -65,6 +65,21 @@ describe('resolveWorkOrdersChrome', () => {
     expect(params.get('range')).toBe('week');
     expect(params.get('date')).toBe('2026-09-04');
     expect(params.get('wo')).toBe('wo-1');
+  });
+
+  it('initializes default calendar anchor using configured timeZone', () => {
+    const chrome = resolveWorkOrdersChrome({
+      urlDate: parseUrlDate(null),
+      viewParam: 'calendar',
+      rangeParam: 'week',
+      woParam: null,
+      persist: null,
+      isMobile: true,
+      timeZone: 'UTC',
+    });
+
+    expect(chrome.surface).toBe('calendar');
+    expect(chrome.anchor).toBeDefined();
   });
 
   it('keeps team and sort keys when writing calendar chrome', () => {

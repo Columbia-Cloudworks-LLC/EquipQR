@@ -11,6 +11,24 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+## [3.35.0] - 2026-10-03
+
+### Added
+
+- **Mobile work order calendar view (#1587)** — Work order calendar view is now supported on mobile phones with an agenda-style layout for easy daily and weekly planning.
+
+### Changed
+
+- **React and React DOM 19.3.0 (#1597)** — Updated React, React DOM, and their TypeScript definitions to 19.3.0.
+- **Optional PM checklist guidance (#1586)** — Work-order creation now explains that a PM checklist is optional and provides role-aware template guidance.
+- **Distinct landing account actions (#1585)** — The landing page now offers separate "Sign in" and "Create account" actions.
+- **Consistent work-order assignments (#1584)** — Work-order lists, details, and status actions now use the current assignee consistently.
+
+### Fixed
+
+- **Centered scan story animation mark** — The EquipQR brand mark in the "Scan one machine" hero story now begins centered on the stage, smoothly matching the initial position of the fleet observability animation.
+- **QuickBooks re-export after invoice deletion (#1588)** — Opening invoice review for a work order whose QuickBooks invoice was deleted now reconciles local export state, warns the user, and allows creating a new invoice.
+
 ## [3.34.1] - 2026-09-27
 
 ### Fixed
@@ -2776,7 +2794,9 @@ Update package dependencies and versions
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.34.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.35.0...HEAD
+[3.35.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.34.1...v3.35.0
+[3.34.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.34.0...v3.34.1
 [3.34.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.33.0...v3.34.0
 [3.33.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.32.0...v3.33.0
 [3.32.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.31.0...v3.32.0
