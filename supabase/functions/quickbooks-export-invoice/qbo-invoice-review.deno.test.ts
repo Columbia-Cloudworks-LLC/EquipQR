@@ -244,6 +244,23 @@ Deno.test("create sends selected dates and disables imported invoice automatic p
       "attempt-123",
     );
     assertEquals(urls[1].includes("requestid=equipqr-work-order-attempt-123"), true);
+
+    await createQuickBooksInvoice(
+      "token",
+      "realm",
+      "12345678-1234-1234-1234-123456789012",
+      mapping,
+      artifacts,
+      tax,
+      confirmation,
+      () => {},
+      "87654321-4321-4321-4321-210987654321",
+    );
+    const uuidUrl = new URL(urls[2]);
+    const reqId = uuidUrl.searchParams.get("requestid") ?? "";
+    assertEquals(reqId.startsWith("eq-"), true);
+    assertEquals(reqId.length <= 50, true);
+
     await updateQuickBooksInvoice(
       "token",
       "realm",
@@ -254,10 +271,10 @@ Deno.test("create sends selected dates and disables imported invoice automatic p
       confirmation,
       () => {},
     );
-    assertEquals(bodies[2].sparse, true);
-    assertEquals(bodies[2].TxnDate, undefined);
-    assertEquals(bodies[2].DueDate, undefined);
-    assertEquals(bodies[2].AllowOnlineACHPayment, undefined);
+    assertEquals(bodies[3].sparse, true);
+    assertEquals(bodies[3].TxnDate, undefined);
+    assertEquals(bodies[3].DueDate, undefined);
+    assertEquals(bodies[3].AllowOnlineACHPayment, undefined);
   } finally {
     globalThis.fetch = originalFetch;
   }

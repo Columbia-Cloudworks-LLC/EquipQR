@@ -247,6 +247,26 @@ export async function updateQuickBooksInvoice(
   };
 }
 
+export async function buildCreateInvoiceRequestId(
+  workOrderId: string,
+  attemptKey?: string | null,
+): Promise<string> {
+  const base = attemptKey
+    ? `equipqr-${workOrderId}-${attemptKey}`
+    : `equipqr-${workOrderId}`;
+  if (base.length <= 50) {
+    return base;
+  }
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(base),
+  );
+  const hex = Array.from(new Uint8Array(digest), (b) =>
+    b.toString(16).padStart(2, "0")
+  ).join("");
+  return `eq-${hex.substring(0, 40)}`;
+}
+
 export async function createQuickBooksInvoice(
   accessToken: string,
   realmId: string,
@@ -256,7 +276,7 @@ export async function createQuickBooksInvoice(
   taxState: VerifiedTaxState,
   confirmation: InvoiceConfirmation,
   logStep: (step: string, details?: Record<string, unknown>) => void,
-  attemptId?: string,
+  attemptId?: string | null,
 ): Promise<InvoiceApiResult> {
   const { invoiceLines, privateNote, customerMemo, customFields } = artifacts;
   const generatedDocNumber = `WO-${workOrderId.substring(0, 8).toUpperCase()}`;
@@ -285,9 +305,10 @@ export async function createQuickBooksInvoice(
   );
   newInvoice = applyTransactionTaxState(newInvoice, taxState);
 
-  const idempotencyKey = attemptId
-    ? `equipqr-${workOrderId}-${attemptId}`
-    : `equipqr-${workOrderId}`;
+  const idempotencyKey = await buildCreateInvoiceRequestId(
+    workOrderId,
+    attemptId,
+  );
   const createUrl =
     withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/invoice`) +
     `&requestid=${encodeURIComponent(idempotencyKey)}`;

@@ -147,6 +147,22 @@ export async function syncInvoiceToQuickBooks(
         actorId: params.userId,
       });
     } else {
+      const { data: latestDeletion } = await supabaseClient
+        .from("quickbooks_export_logs")
+        .select("id, quickbooks_invoice_id")
+        .eq("work_order_id", params.workOrderId)
+        .eq("organization_id", params.organizationId)
+        .eq("realm_id", params.realmId)
+        .eq("status", "error")
+        .eq("error_message", "Invoice was deleted in QuickBooks")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const replacementAttemptKey = latestDeletion
+        ? (latestDeletion.quickbooks_invoice_id ?? latestDeletion.id)
+        : null;
+
       const createResult = await createQuickBooksInvoice(
         params.accessToken,
         params.realmId,
@@ -156,7 +172,7 @@ export async function syncInvoiceToQuickBooks(
         params.taxState,
         params.confirmation,
         logStep,
-        logEntryId,
+        replacementAttemptKey,
       );
 
       syncedInvoice = createResult.invoice;
