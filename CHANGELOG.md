@@ -11,6 +11,8 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+## [3.35.0] - 2026-10-03
+
 ### Added
 
 - **Mobile work order calendar view (#1587)** — Work order calendar view is now supported on mobile phones with an agenda-style layout for easy daily and weekly planning.
@@ -2792,7 +2794,9 @@ Update package dependencies and versions
 
 ---
 
-[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.34.0...HEAD
+[Unreleased]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.35.0...HEAD
+[3.35.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.34.1...v3.35.0
+[3.34.1]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.34.0...v3.34.1
 [3.34.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.33.0...v3.34.0
 [3.33.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.32.0...v3.33.0
 [3.32.0]: https://github.com/Columbia-Cloudworks-LLC/EquipQR/compare/v3.31.0...v3.32.0
