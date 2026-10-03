@@ -54,7 +54,7 @@ export function WorkOrderAgenda({ items, range, anchor, onDateChange, onRangeCha
               {value === 'day' ? 'Day' : 'Week'}
             </Button>
           ))}
-          <Button variant="outline" className="h-11" onClick={() => onDateChange(todayLocal())}>Today</Button>
+          <Button variant="outline" className="h-11" onClick={() => onDateChange(calendarDayInTimeZone(Date.now(), timeZone))}>Today</Button>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" className="h-11 w-11 shrink-0" aria-label={`Previous ${grain}`} onClick={() => move(-1)}><ChevronLeft className="h-4 w-4" /></Button>

@@ -60,4 +60,19 @@ describe('WorkOrderAgenda', () => {
     expect(screen.getByText('Paint Wall')).toBeInTheDocument();
     expect(screen.getByText('Unscheduled')).toBeInTheDocument();
   });
+
+  it('calls onDateChange with calendarDayInTimeZone on Today click', () => {
+    const onDateChange = vi.fn();
+    render(<WorkOrderAgenda 
+      items={[]} 
+      range="day" 
+      anchor={dummyAnchor} 
+      onDateChange={onDateChange} 
+      onRangeChange={vi.fn()} 
+      onSelect={vi.fn()} 
+    />);
+
+    screen.getByRole('button', { name: 'Today' }).click();
+    expect(onDateChange).toHaveBeenCalled();
+  });
 });
