@@ -15,6 +15,7 @@ import {
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
 import { deriveQuickBooksInvoiceStatus, type QuickBooksInvoice } from "../quickbooks-export-invoice/qbo-invoice-payload.ts";
+import { isQuickBooksNotFoundError } from "../quickbooks-export-invoice/qbo-invoice-api.ts";
 import {
   extractLinkedInvoiceIdsFromPayment,
   fetchPayment,
@@ -85,7 +86,7 @@ async function fetchInvoice(
   accessToken: string,
   realmId: string,
   invoiceId: string,
-): Promise<{ invoice: QuickBooksInvoice; intuitTid: string | null }> {
+): Promise<{ invoice: QuickBooksInvoice | null; intuitTid: string | null }> {
   const response = await fetch(
     withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/invoice/${encodeURIComponent(invoiceId)}`),
     {
@@ -97,23 +98,90 @@ async function fetchInvoice(
     },
   );
   const intuitTid = getIntuitTid(response);
+  if (response.status === 404) {
+    return { invoice: null, intuitTid };
+  }
+  let body: Record<string, unknown> | null = null;
+  try {
+    body = await response.json();
+  } catch {
+    // not JSON
+  }
+  if (body?.Fault && isQuickBooksNotFoundError(response.status, body.Fault)) {
+    return { invoice: null, intuitTid };
+  }
   if (!response.ok) {
     throw new Error(
       `QuickBooks invoice read failed (${response.status}) (intuit_tid: ${intuitTid ?? "unknown"})`,
     );
   }
-  const body = await response.json();
+  if (!body) {
+    throw new Error(
+      `QuickBooks invoice read returned empty body (intuit_tid: ${intuitTid ?? "unknown"})`,
+    );
+  }
   if (body.Fault) {
     throw new Error(
       `QuickBooks invoice read Fault: ${JSON.stringify(body.Fault).substring(0, 300)} (intuit_tid: ${intuitTid ?? "unknown"})`,
     );
   }
-  if (!body.Invoice?.Id) {
-    throw new Error(
-      `QuickBooks invoice read returned no Invoice.Id (intuit_tid: ${intuitTid ?? "unknown"})`,
-    );
+  const invoice = body.Invoice as (QuickBooksInvoice & { status?: string }) | undefined;
+  if (!invoice || !invoice.Id || invoice.status === "Deleted") {
+    return { invoice: null, intuitTid };
   }
-  return { invoice: body.Invoice as QuickBooksInvoice, intuitTid };
+  return { invoice, intuitTid };
+}
+
+async function handleDeletedQuickBooksInvoice(
+  supabaseClient: SupabaseClient,
+  params: {
+    organizationId: string;
+    realmId: string;
+    invoiceId: string;
+    workOrderId?: string;
+  },
+): Promise<void> {
+  const now = new Date().toISOString();
+  let woQuery = supabaseClient
+    .from("work_orders")
+    .update({
+      quickbooks_invoice_id: null,
+      quickbooks_invoice_number: null,
+      quickbooks_invoice_environment: null,
+      invoice_status: null,
+      invoice_balance_cents: null,
+      invoice_due_date: null,
+      invoice_sync_error: null,
+      invoice_last_synced_at: now,
+    })
+    .eq("organization_id", params.organizationId)
+    .eq("quickbooks_realm_id", params.realmId)
+    .eq("quickbooks_invoice_id", params.invoiceId);
+  if (params.workOrderId) {
+    woQuery = woQuery.eq("id", params.workOrderId);
+  }
+  const { error: woError } = await woQuery;
+  if (woError) {
+    logStep("Warning: Failed to clear work order mirror for deleted invoice", { error: woError.message });
+  }
+
+  let logQuery = supabaseClient
+    .from("quickbooks_export_logs")
+    .update({
+      status: "error",
+      error_message: "Invoice was deleted in QuickBooks",
+    })
+    .eq("organization_id", params.organizationId)
+    .eq("realm_id", params.realmId)
+    .eq("quickbooks_invoice_id", params.invoiceId)
+    .eq("status", "success");
+  if (params.workOrderId) {
+    logQuery = logQuery.eq("work_order_id", params.workOrderId);
+  }
+  const { error: logError } = await logQuery;
+  if (logError) {
+    logStep("Warning: Failed to update export logs for deleted invoice", { error: logError.message });
+  }
 }
 
 /** Stable key for a credential entry so the same realm under two orgs never collides. */
@@ -209,14 +277,34 @@ async function processInvoiceEvents(
       credentialsByKey.set(credentialKey(event.organization_id, event.realm_id), refreshedCredential);
 
       if (event.entity_name === "Invoice") {
-        const { invoice, intuitTid } = await fetchInvoice(accessToken, event.realm_id, event.entity_id);
-        logStep("Invoice fetched", { entity_id: event.entity_id, intuit_tid: intuitTid });
-        await updateMirroredWorkOrders(supabaseClient, {
-          organizationId: event.organization_id,
-          realmId: event.realm_id,
-          invoice,
-          operation: event.operation,
-        });
+        if (event.operation?.toLowerCase() === "delete") {
+          logStep("Invoice delete event received", { entity_id: event.entity_id });
+          await handleDeletedQuickBooksInvoice(supabaseClient, {
+            organizationId: event.organization_id,
+            realmId: event.realm_id,
+            invoiceId: event.entity_id,
+          });
+        } else {
+          const { invoice, intuitTid } = await fetchInvoice(accessToken, event.realm_id, event.entity_id);
+          logStep("Invoice fetched", { entity_id: event.entity_id, intuit_tid: intuitTid });
+          if (!invoice) {
+            logStep("Invoice not found in QuickBooks during event processing — treating as deleted", {
+              entity_id: event.entity_id,
+            });
+            await handleDeletedQuickBooksInvoice(supabaseClient, {
+              organizationId: event.organization_id,
+              realmId: event.realm_id,
+              invoiceId: event.entity_id,
+            });
+          } else {
+            await updateMirroredWorkOrders(supabaseClient, {
+              organizationId: event.organization_id,
+              realmId: event.realm_id,
+              invoice,
+              operation: event.operation,
+            });
+          }
+        }
       } else if (event.entity_name === "Payment") {
         const { payment, intuitTid: paymentIntuitTid } = await fetchPayment(
           accessToken,
@@ -235,11 +323,13 @@ async function processInvoiceEvents(
         for (const invoiceId of invoiceIds) {
           const { invoice, intuitTid } = await fetchInvoice(accessToken, event.realm_id, invoiceId);
           logStep("Payment-linked invoice fetched", { invoice_id: invoiceId, intuit_tid: intuitTid });
-          await updateMirroredWorkOrders(supabaseClient, {
-            organizationId: event.organization_id,
-            realmId: event.realm_id,
-            invoice,
-          });
+          if (invoice) {
+            await updateMirroredWorkOrders(supabaseClient, {
+              organizationId: event.organization_id,
+              realmId: event.realm_id,
+              invoice,
+            });
+          }
         }
       } else {
         throw new Error(`Unsupported QuickBooks event entity_name: ${(event as InvoiceEvent).entity_name}`);
@@ -322,17 +412,31 @@ async function reconcileOpenInvoices(
         row.quickbooks_realm_id,
         row.quickbooks_invoice_id,
       );
-      logStep("Reconcile invoice fetched", {
-        invoice_id: row.quickbooks_invoice_id,
-        intuit_tid: intuitTid,
-      });
-      await updateMirroredWorkOrders(supabaseClient, {
-        organizationId: row.organization_id,
-        realmId: row.quickbooks_realm_id,
-        invoice,
-        operation: "Reconcile",
-      });
-      reconciled += 1;
+      if (!invoice) {
+        logStep("Reconcile found invoice deleted in QuickBooks", {
+          invoice_id: row.quickbooks_invoice_id,
+          work_order_id: row.id,
+        });
+        await handleDeletedQuickBooksInvoice(supabaseClient, {
+          organizationId: row.organization_id,
+          realmId: row.quickbooks_realm_id,
+          invoiceId: row.quickbooks_invoice_id,
+          workOrderId: row.id,
+        });
+        reconciled += 1;
+      } else {
+        logStep("Reconcile invoice fetched", {
+          invoice_id: row.quickbooks_invoice_id,
+          intuit_tid: intuitTid,
+        });
+        await updateMirroredWorkOrders(supabaseClient, {
+          organizationId: row.organization_id,
+          realmId: row.quickbooks_realm_id,
+          invoice,
+          operation: "Reconcile",
+        });
+        reconciled += 1;
+      }
     } catch (syncError) {
       failed += 1;
       await supabaseClient
@@ -402,5 +506,7 @@ export const __syncTestables = {
   claimInvoiceEvents,
   markEvent,
   processInvoiceEvents,
+  handleDeletedQuickBooksInvoice,
+  fetchInvoice,
   EVENT_BATCH_SIZE,
 };

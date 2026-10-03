@@ -22,6 +22,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 - **Distinct landing account actions (#1585)** — The landing page now offers separate "Sign in" and "Create account" actions.
 - **Consistent work-order assignments (#1584)** — Work-order lists, details, and status actions now use the current assignee consistently.
 
+### Fixed
+
+- **QuickBooks re-export after invoice deletion (#1588)** — Opening invoice review for a work order whose QuickBooks invoice was deleted now reconciles local export state, warns the user, and allows creating a new invoice.
+
 ## [3.34.1] - 2026-09-27
 
 ### Fixed

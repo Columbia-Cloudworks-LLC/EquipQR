@@ -324,3 +324,185 @@ Deno.test("review validation messages remain useful without reflecting arbitrary
     false,
   );
 });
+
+Deno.test("isQuickBooksNotFoundError detects 404 and 400 Fault Object Not Found / 610", async () => {
+  const { isQuickBooksNotFoundError } = await import("./qbo-invoice-api.ts");
+  assertEquals(isQuickBooksNotFoundError(404, null), true);
+  assertEquals(
+    isQuickBooksNotFoundError(400, {
+      Error: [{ code: "610", Message: "Object Not Found" }],
+    }),
+    true,
+  );
+  assertEquals(
+    isQuickBooksNotFoundError(400, {
+      Error: [{ Message: "Object Not Found" }],
+    }),
+    true,
+  );
+  assertEquals(
+    isQuickBooksNotFoundError(400, {
+      Error: [{ Detail: "Object Not Found : No entity found with Id: 123" }],
+    }),
+    true,
+  );
+  assertEquals(
+    isQuickBooksNotFoundError(400, {
+      Error: [{ code: "2030", Message: "Invalid date format" }],
+    }),
+    false,
+  );
+  assertEquals(isQuickBooksNotFoundError(500, null), false);
+});
+
+Deno.test("fetchExistingInvoiceForUpdate returns null when invoice is deleted or not found", async () => {
+  const { fetchExistingInvoiceForUpdate } = await import("./qbo-invoice-api.ts");
+  const originalFetch = globalThis.fetch;
+
+  // 1. 404 Not Found
+  globalThis.fetch = () => Promise.resolve(new Response(null, { status: 404 }));
+  try {
+    const res = await fetchExistingInvoiceForUpdate("token", "realm", "inv-404", () => {});
+    assertEquals(res, null);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  // 2. 400 with Fault code 610 Object Not Found
+  globalThis.fetch = () =>
+    Promise.resolve(
+      new Response(
+        JSON.stringify({
+          Fault: { Error: [{ code: "610", Message: "Object Not Found" }] },
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+  try {
+    const res = await fetchExistingInvoiceForUpdate("token", "realm", "inv-610", () => {});
+    assertEquals(res, null);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  // 3. 200 with status: "Deleted"
+  globalThis.fetch = () =>
+    Promise.resolve(
+      new Response(
+        JSON.stringify({
+          Invoice: { Id: "inv-del", status: "Deleted" },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+  try {
+    const res = await fetchExistingInvoiceForUpdate("token", "realm", "inv-del", () => {});
+    assertEquals(res, null);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  // 4. 200 active invoice
+  globalThis.fetch = () =>
+    Promise.resolve(
+      new Response(
+        JSON.stringify({
+          Invoice: { Id: "inv-live", SyncToken: "1" },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+  try {
+    const res = await fetchExistingInvoiceForUpdate("token", "realm", "inv-live", () => {});
+    assertEquals(res?.Id, "inv-live");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test("loadInvoiceReviewContext cleans up deleted invoices and marks wasDeleted", async () => {
+  const { loadInvoiceReviewContext } = await import("./qbo-invoice-review.ts");
+  const originalFetch = globalThis.fetch;
+
+  const updates: Array<{ table: string; payload: Record<string, unknown> }> = [];
+
+  const mockSupabase: any = {
+    from: (table: string) => {
+      const builder: any = {
+        select: () => builder,
+        eq: () => builder,
+        order: () => builder,
+        limit: () => builder,
+        maybeSingle: () => {
+          if (table === "work_order_invoice_details") {
+            return Promise.resolve({
+              data: {
+                invoice_date: null,
+                due_date: null,
+                payment_term_id: null,
+                service_dates: {},
+                qb_line_ids: { "pm:123": "1", __invoice_id: "old-inv", __realm_id: "realm-1" },
+              },
+              error: null,
+            });
+          }
+          if (table === "quickbooks_export_logs") {
+            return Promise.resolve({
+              data: { id: "log-1", quickbooks_invoice_id: "old-inv" },
+              error: null,
+            });
+          }
+          return Promise.resolve({ data: null, error: null });
+        },
+        update: (payload: Record<string, unknown>) => {
+          updates.push({ table, payload });
+          return builder;
+        },
+      };
+      return builder;
+    },
+  };
+
+  globalThis.fetch = (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes("/customer/")) {
+      return Promise.resolve(new Response(JSON.stringify({ Customer: {} }), { status: 200 }));
+    }
+    if (url.includes("Term")) {
+      return Promise.resolve(new Response(JSON.stringify({ QueryResponse: { Term: [] } }), { status: 200 }));
+    }
+    if (url.includes("/invoice/old-inv")) {
+      return Promise.resolve(new Response(JSON.stringify({ Fault: { Error: [{ code: "610", Message: "Object Not Found" }] } }), { status: 400 }));
+    }
+    return Promise.resolve(new Response(null, { status: 404 }));
+  };
+
+  try {
+    const context = await loadInvoiceReviewContext(
+      mockSupabase,
+      "token",
+      "realm-1",
+      "wo-123",
+      "org-1",
+      "cust-1",
+      () => {},
+    );
+
+    assertEquals(context.wasDeleted, true);
+    assertEquals(context.existing, null);
+    assertEquals(context.saved.qb_line_ids, {});
+
+    const logUpdate = updates.find((u) => u.table === "quickbooks_export_logs");
+    assertEquals(logUpdate?.payload.status, "error");
+    assertEquals(logUpdate?.payload.error_message, "Invoice was deleted in QuickBooks");
+
+    const woUpdate = updates.find((u) => u.table === "work_orders");
+    assertEquals(woUpdate?.payload.quickbooks_invoice_id, null);
+    assertEquals(woUpdate?.payload.quickbooks_invoice_number, null);
+
+    const detailsUpdate = updates.find((u) => u.table === "work_order_invoice_details");
+    assertEquals(detailsUpdate?.payload.qb_line_ids, {});
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

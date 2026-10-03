@@ -95,4 +95,21 @@ describe('invoice review', () => {
       service_dates: { 'pm:1': '2020-08-06' }, existing_invoice_id: 'q1', existing_sync_token: '3', overwrite_existing_dates: false,
     } }));
   });
+  it('displays warning banner and allows creating new invoice when previous invoice was deleted in QuickBooks', async () => {
+    vi.mocked(getInvoiceReview).mockResolvedValue({
+      ...empty,
+      was_deleted: true,
+      existing_invoice: null,
+    });
+    renderDialog();
+
+    expect(
+      await screen.findByText(
+        'The previously exported invoice was deleted from QuickBooks. You can review the details below and create a new invoice.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Confirm and create invoice' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Confirm and update invoice' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Invoice date')).toBeEnabled();
+  });
 });
