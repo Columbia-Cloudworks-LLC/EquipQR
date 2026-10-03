@@ -17,6 +17,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Changed
 
+- **React and React DOM 19.3.0 (#1597)** — Updated React, React DOM, and their TypeScript definitions to 19.3.0.
 - **Optional PM checklist guidance (#1586)** — Work-order creation now explains that a PM checklist is optional and provides role-aware template guidance.
 - **Distinct landing account actions (#1585)** — The landing page now offers separate "Sign in" and "Create account" actions.
 - **Consistent work-order assignments (#1584)** — Work-order lists, details, and status actions now use the current assignee consistently.
