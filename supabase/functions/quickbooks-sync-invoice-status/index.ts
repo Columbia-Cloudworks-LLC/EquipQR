@@ -168,6 +168,7 @@ async function handleDeletedQuickBooksInvoice(
   const { error: woError } = await woQuery;
   if (woError) {
     logStep("Warning: Failed to clear work order mirror for deleted invoice", { error: woError.message });
+    throw new Error(`Failed to clear work order mirror for deleted invoice: ${woError.message}`);
   }
 
   let logQuery = supabaseClient
@@ -186,6 +187,7 @@ async function handleDeletedQuickBooksInvoice(
   const { error: logError } = await logQuery;
   if (logError) {
     logStep("Warning: Failed to update export logs for deleted invoice", { error: logError.message });
+    throw new Error(`Failed to update export logs for deleted invoice: ${logError.message}`);
   }
 }
 

@@ -157,7 +157,7 @@
     "@radix-ui/react-tooltip": "1.2.11",
     "@radix-ui/react-visually-hidden": "^1.2.3",
     "@supabase/supabase-js": "~2.110.2",
-    "@tanstack/react-query": "^5.101.2",
+    "@tanstack/react-query": "5.104.0",
     "@tanstack/react-query-persist-client": "5.104.0",
     "@tanstack/react-table": "8.21.3",
     "@vis.gl/react-google-maps": "1.8.3",
@@ -227,6 +227,7 @@
     "istanbul-lib-coverage": "^3.2.2",
     "istanbul-lib-report": "^3.0.1",
     "istanbul-reports": "^3.2.0",
+    "js-yaml": "5.4.1",
     "jsdom": "29.1.1",
     "markdownlint-cli2": "0.23.3",
     "postcss": "^8.5.14",
@@ -245,7 +246,6 @@
     "workbox-expiration": "7.4.1",
     "workbox-precaching": "7.4.1",
     "workbox-routing": "7.4.1",
-    "workbox-strategies": "7.4.1",
-    "js-yaml": "5.4.1"
+    "workbox-strategies": "7.4.1"
   }
 }

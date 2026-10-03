@@ -197,9 +197,12 @@ export async function loadInvoiceReviewContext(
         })
         .eq("id", activePrevious.id);
       if (logUpdateError) {
-        log("Warning: Failed to update export log for deleted invoice", {
+        log("Error: Failed to update export log for deleted invoice", {
           error: logUpdateError.message,
         });
+        throw new InvoiceReviewError(
+          "Could not update export history for deleted invoice. Please reload.",
+        );
       }
     }
 
@@ -218,9 +221,12 @@ export async function loadInvoiceReviewContext(
       .eq("id", workOrderId)
       .eq("organization_id", organizationId);
     if (woUpdateError) {
-      log("Warning: Failed to clear work order mirror for deleted invoice", {
+      log("Error: Failed to clear work order mirror for deleted invoice", {
         error: woUpdateError.message,
       });
+      throw new InvoiceReviewError(
+        "Could not clear work order mirror for deleted invoice. Please reload.",
+      );
     }
 
     saved.qb_line_ids = {};
@@ -230,9 +236,12 @@ export async function loadInvoiceReviewContext(
       .eq("work_order_id", workOrderId)
       .eq("organization_id", organizationId);
     if (detailsUpdateError) {
-      log("Warning: Failed to clear qb_line_ids for deleted invoice", {
+      log("Error: Failed to clear qb_line_ids for deleted invoice", {
         error: detailsUpdateError.message,
       });
+      throw new InvoiceReviewError(
+        "Could not clear invoice line mappings for deleted invoice. Please reload.",
+      );
     }
   }
   if (existing && existing.CustomerRef.value !== customerId) {
