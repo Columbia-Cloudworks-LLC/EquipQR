@@ -256,6 +256,7 @@ export async function createQuickBooksInvoice(
   taxState: VerifiedTaxState,
   confirmation: InvoiceConfirmation,
   logStep: (step: string, details?: Record<string, unknown>) => void,
+  attemptId?: string,
 ): Promise<InvoiceApiResult> {
   const { invoiceLines, privateNote, customerMemo, customFields } = artifacts;
   const generatedDocNumber = `WO-${workOrderId.substring(0, 8).toUpperCase()}`;
@@ -284,9 +285,12 @@ export async function createQuickBooksInvoice(
   );
   newInvoice = applyTransactionTaxState(newInvoice, taxState);
 
+  const idempotencyKey = attemptId
+    ? `equipqr-${workOrderId}-${attemptId}`
+    : `equipqr-${workOrderId}`;
   const createUrl =
     withMinorVersion(`${QBO_API_BASE}/v3/company/${realmId}/invoice`) +
-    `&requestid=${encodeURIComponent(`equipqr-${workOrderId}`)}`;
+    `&requestid=${encodeURIComponent(idempotencyKey)}`;
   const createResponse = await fetch(createUrl, {
     method: "POST",
     headers: {

@@ -511,24 +511,32 @@ const WorkOrders = () => {
               onPageSizeChange={setPageSize}
             />
             </>
-          ) : calendarLoading ? (
+          ) : calendarLoading && calendarItems.length === 0 ? (
             <p role="status">Loading work orders…</p>
-          ) : calendarError ? (
+          ) : calendarError && calendarItems.length === 0 ? (
             <div role="alert" className="space-y-2">
               <p>Work orders could not be loaded.</p>
               <Button variant="outline" onClick={() => void refetchCalendar()}>Retry work orders</Button>
             </div>
-          ) : isMobile ? (
-            <WorkOrderAgenda
-              items={calendarItems}
-              range={chrome.range}
-              anchor={chrome.anchor}
-              onDateChange={(anchor) => writeChrome({ anchor, selectedWorkOrderId: null })}
-              onRangeChange={(range) => writeChrome({ range, selectedWorkOrderId: null })}
-              onSelect={(workOrderId) => writeChrome({ selectedWorkOrderId: workOrderId })}
-            />
           ) : (
-            <Suspense fallback={<div className="min-h-[24rem]" aria-busy="true" />}>
+            <>
+              {calendarError && (
+                <div role="status" className="flex items-center justify-between gap-2 p-2 rounded-md bg-destructive/10 text-destructive text-sm mb-2">
+                  <span>Failed to refresh latest work orders.</span>
+                  <Button size="sm" variant="outline" onClick={() => void refetchCalendar()}>Retry</Button>
+                </div>
+              )}
+              {isMobile ? (
+                <WorkOrderAgenda
+                  items={calendarItems}
+                  range={chrome.range}
+                  anchor={chrome.anchor}
+                  onDateChange={(anchor) => writeChrome({ anchor, selectedWorkOrderId: null })}
+                  onRangeChange={(range) => writeChrome({ range, selectedWorkOrderId: null })}
+                  onSelect={(workOrderId) => writeChrome({ selectedWorkOrderId: workOrderId })}
+                />
+              ) : (
+                <Suspense fallback={<div className="min-h-[24rem]" aria-busy="true" />}>
               <WorkOrderCalendar
                 key={calendarEpoch}
                 items={calendarItems}
@@ -553,6 +561,8 @@ const WorkOrders = () => {
                 onChromeChange={(next) => writeChrome(next)}
               />
             </Suspense>
+            )}
+            </>
           )}
 
           {isMobile && chrome.surface === 'list' && totalAccessibleCount > 0 && (

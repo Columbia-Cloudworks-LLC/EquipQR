@@ -186,8 +186,10 @@ Deno.test("legacy mappings, online payment delivery and stale reviews block safe
 });
 Deno.test("create sends selected dates and disables imported invoice automatic payment delivery; update is sparse", async () => {
   const originalFetch = globalThis.fetch;
+  const urls: string[] = [];
   const bodies: QuickBooksInvoice[] = [];
-  globalThis.fetch = (_input, init) => {
+  globalThis.fetch = (input, init) => {
+    urls.push(String(input));
     const body = JSON.parse(String(init?.body));
     bodies.push(body);
     return Promise.resolve(
@@ -223,11 +225,25 @@ Deno.test("create sends selected dates and disables imported invoice automatic p
       confirmation,
       () => {},
     );
+    assertEquals(urls[0].includes("requestid=equipqr-work-order"), true);
     assertEquals(bodies[0].TxnDate, "2026-09-21");
     assertEquals(bodies[0].DueDate, "2026-10-21");
     assertEquals(bodies[0].AllowOnlineACHPayment, false);
     assertEquals(bodies[0].AllowOnlineCreditCardPayment, false);
     assertEquals(bodies[0].EmailStatus, "NotSet");
+
+    await createQuickBooksInvoice(
+      "token",
+      "realm",
+      "work-order",
+      mapping,
+      artifacts,
+      tax,
+      confirmation,
+      () => {},
+      "attempt-123",
+    );
+    assertEquals(urls[1].includes("requestid=equipqr-work-order-attempt-123"), true);
     await updateQuickBooksInvoice(
       "token",
       "realm",
@@ -238,10 +254,10 @@ Deno.test("create sends selected dates and disables imported invoice automatic p
       confirmation,
       () => {},
     );
-    assertEquals(bodies[1].sparse, true);
-    assertEquals(bodies[1].TxnDate, undefined);
-    assertEquals(bodies[1].DueDate, undefined);
-    assertEquals(bodies[1].AllowOnlineACHPayment, undefined);
+    assertEquals(bodies[2].sparse, true);
+    assertEquals(bodies[2].TxnDate, undefined);
+    assertEquals(bodies[2].DueDate, undefined);
+    assertEquals(bodies[2].AllowOnlineACHPayment, undefined);
   } finally {
     globalThis.fetch = originalFetch;
   }

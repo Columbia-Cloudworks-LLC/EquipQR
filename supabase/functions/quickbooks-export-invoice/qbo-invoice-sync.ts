@@ -156,6 +156,7 @@ export async function syncInvoiceToQuickBooks(
         params.taxState,
         params.confirmation,
         logStep,
+        logEntryId,
       );
 
       syncedInvoice = createResult.invoice;

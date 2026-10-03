@@ -130,7 +130,7 @@ export const WorkOrderPMChecklist: React.FC<WorkOrderPMChecklistProps> = ({
         <Label htmlFor="pm-template-select">PM template (optional)</Label>
         <div className="flex items-start gap-2">
           <div className="min-w-0 flex-1">
-            {isError ? (
+            {isError && templates.length === 0 ? (
               <div role="alert" className="rounded-lg border p-3 text-sm">
                 <p>PM templates could not be loaded. Try again, or create this work order without a checklist.</p>
                 <Button type="button" variant="outline" size="sm" onClick={() => void refreshTemplates()}>
@@ -144,16 +144,26 @@ export const WorkOrderPMChecklist: React.FC<WorkOrderPMChecklistProps> = ({
                 </p>
               </div>
             ) : (
-              <PMTemplateSelector
-                isLoading={isLoading}
-                templates={templates}
-                selectedValue={selectValue}
-                onTemplateChange={handleTemplateChange}
-                showLicenseFooter
-                canCreateCustomPMTemplates={restrictions.canCreateCustomPMTemplates}
-                assignedTemplate={assignedTemplate}
-                equipmentName={selectedEquipment?.name}
-              />
+              <div className="space-y-2">
+                {isError && (
+                  <div role="status" className="flex items-center justify-between gap-2 p-2 rounded-md bg-destructive/10 text-destructive text-sm">
+                    <span>Failed to refresh latest templates.</span>
+                    <Button type="button" size="sm" variant="outline" onClick={() => void refreshTemplates()}>
+                      Retry
+                    </Button>
+                  </div>
+                )}
+                <PMTemplateSelector
+                  isLoading={isLoading}
+                  templates={templates}
+                  selectedValue={selectValue}
+                  onTemplateChange={handleTemplateChange}
+                  showLicenseFooter
+                  canCreateCustomPMTemplates={restrictions.canCreateCustomPMTemplates}
+                  assignedTemplate={assignedTemplate}
+                  equipmentName={selectedEquipment?.name}
+                />
+              </div>
             )}
           </div>
           {hasPmSelected && (
