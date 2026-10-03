@@ -69,6 +69,20 @@ describe('useWorkOrderFilters', () => {
       expect(result.current.filteredWorkOrders[0].id).toBe('wo-snake');
     });
 
+    it('matches orders with equipmentTeamId fallback', () => {
+      const orders: WorkOrderData[] = [
+        baseWorkOrder({ id: 'wo-equip-team', title: 'Equip Team WO', equipmentTeamId: 'team-a' }),
+      ];
+      const { result } = renderHook(() => useWorkOrderFilters(orders, 'user-1'));
+
+      act(() => {
+        result.current.updateFilter('teamFilter', 'team-a');
+      });
+
+      expect(result.current.filteredWorkOrders).toHaveLength(1);
+      expect(result.current.filteredWorkOrders[0].id).toBe('wo-equip-team');
+    });
+
     it('does NOT count teamFilter in the page-local active-filter count', () => {
       // Team scope is owned by the global TopBar `useSelectedTeam`, so a
       // non-default `teamFilter` value must not bump the page-local "active

@@ -57,7 +57,7 @@ function matchesSearch(order: WorkOrderData, searchQuery: string): boolean {
 }
 
 function matchesAssignee(order: WorkOrderData, assigneeFilter: string, currentUserId?: string): boolean {
-  const teamId = order.teamId ?? order.team_id ?? null;
+  const teamId = order.teamId ?? order.team_id ?? order.equipmentTeamId ?? null;
   return (
     assigneeFilter === 'all' ||
     (assigneeFilter === 'mine' && order.assigneeId === currentUserId) ||
@@ -71,7 +71,7 @@ function matchesTeam(order: WorkOrderData, teamFilter: string): boolean {
     return true;
   }
 
-  const teamId = order.teamId ?? order.team_id ?? null;
+  const teamId = order.teamId ?? order.team_id ?? order.equipmentTeamId ?? null;
   return teamFilter === 'unassigned' ? !teamId : teamId === teamFilter;
 }
 
