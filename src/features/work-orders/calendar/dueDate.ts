@@ -282,7 +282,7 @@ export function hydrateDueFormFields(source: DueColumns): {
   };
 }
 
-function compareDay(a: CalendarDay, b: CalendarDay): number {
+export function compareDay(a: CalendarDay, b: CalendarDay): number {
   if (a.y !== b.y) return a.y - b.y;
   if (a.m !== b.m) return a.m - b.m;
   return a.d - b.d;
@@ -292,14 +292,17 @@ export function isDueOverdue(
   due: DueDate,
   status: WorkOrderStatus,
   nowMs: number = Date.now(),
+  timeZone?: string,
 ): boolean {
   if (status === 'completed' || status === 'cancelled') return false;
 
   switch (due.kind) {
     case 'none':
       return false;
-    case 'day':
-      return compareDay(due.day, todayLocal(nowMs)) < 0;
+    case 'day': {
+      const today = timeZone ? calendarDayInTimeZone(nowMs, timeZone) : todayLocal(nowMs);
+      return compareDay(due.day, today) < 0;
+    }
     case 'timed':
       return due.at.epochMs < nowMs;
     default: {

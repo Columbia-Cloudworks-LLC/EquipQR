@@ -106,4 +106,51 @@ describe('WorkOrderAgenda', () => {
 
     expect(screen.getByText('Calibrate Sensor')).toBeInTheDocument();
   });
+
+  it('calculates overdue status for all-day items in configured timeZone', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-02T12:00:00Z'));
+
+    const items: CalendarItem[] = [
+      {
+        workOrderId: 'wo-today',
+        title: 'Task Due Today',
+        status: 'open',
+        overdue: true,
+        placement: {
+          kind: 'dueDay',
+          day: { y: 2026, m: 1, d: 2 },
+        },
+      },
+      {
+        workOrderId: 'wo-yesterday',
+        title: 'Task Due Yesterday',
+        status: 'open',
+        overdue: false,
+        placement: {
+          kind: 'dueDay',
+          day: { y: 2026, m: 1, d: 1 },
+        },
+      },
+    ];
+
+    render(
+      <WorkOrderAgenda
+        items={items}
+        range="week"
+        anchor={{ y: 2026, m: 1, d: 2 }}
+        onDateChange={vi.fn()}
+        onRangeChange={vi.fn()}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    const todayButton = screen.getByText('Task Due Today').closest('button');
+    expect(todayButton).not.toHaveTextContent('Overdue');
+
+    const yesterdayButton = screen.getByText('Task Due Yesterday').closest('button');
+    expect(yesterdayButton).toHaveTextContent('Overdue');
+
+    vi.useRealTimers();
+  });
 });

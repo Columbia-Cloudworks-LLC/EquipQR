@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { calendarDayInTimeZone, calendarDayToIso, parseCalendarDay, todayLocal, type CalendarDay } from './dueDate';
+import { calendarDayInTimeZone, calendarDayToIso, compareDay, parseCalendarDay, todayLocal, type CalendarDay } from './dueDate';
 import type { CalendarItem } from './placement';
 import type { CalendarRange } from './url';
 import { localeFirstDay } from './adapter/toFullCalendar';
@@ -52,6 +52,14 @@ export function WorkOrderAgenda({ items, range, anchor, onDateChange, onRangeCha
     grouped.set(key, [...(grouped.get(key) ?? []), item]);
   }
 
+  const isItemOverdue = (item: CalendarItem) => {
+    if (item.status === 'completed' || item.status === 'cancelled') return false;
+    if (item.placement.kind === 'dueDay') {
+      return compareDay(item.placement.day, calendarDayInTimeZone(Date.now(), timeZone)) < 0;
+    }
+    return item.overdue;
+  };
+
   return (
     <section className="space-y-4" aria-label="Work order agenda" data-testid="work-order-agenda">
       <div className="space-y-3">
@@ -91,7 +99,7 @@ export function WorkOrderAgenda({ items, range, anchor, onDateChange, onRangeCha
                       <span className="block break-words font-medium">{item.title}</span>
                       <span className="my-1 block text-sm">
                         {item.placement.kind === 'timed' ? `Due ${formatTime(item.placement.dueAt.epochMs)}` : item.placement.kind === 'unscheduled' ? 'Unscheduled' : 'All-day due date'}
-                        {item.overdue && <span className="ml-2 font-medium text-destructive">Overdue</span>}
+                        {isItemOverdue(item) && <span className="ml-2 font-medium text-destructive">Overdue</span>}
                       </span>
                       <Badge className={getStatusColor(item.status)}>{formatStatus(item.status)}</Badge>
                     </button>

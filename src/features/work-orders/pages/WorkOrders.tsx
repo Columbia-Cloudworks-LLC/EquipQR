@@ -151,7 +151,7 @@ const WorkOrders = () => {
 
   const { data: calendarServerRows = [], isLoading: calendarLoading, isError: calendarError, refetch: refetchCalendar } = useTeamBasedWorkOrders(
     {},
-    { enabled: chrome.surface === 'calendar' },
+    { enabled: chrome.surface === 'calendar', selectedTeamId },
   );
   const calendarMerged = useOfflineMergedWorkOrders(calendarServerRows);
   const calendarRows = useMemo(() => {
@@ -177,13 +177,17 @@ const WorkOrders = () => {
   const calendarItems = useMemo(() => {
     return calendarRows.map((wo) => {
       const row = wo as MergedWorkOrder & WorkOrderData;
-      return toCalendarItem(row, calendarEditability({
-        engineCanEdit: permissions.workOrders.getPermissions(row).canEdit,
-        status: row.status,
-        isOfflinePending: Boolean(row._isPendingSync) || row.id.startsWith('offline-'),
-      }));
+      return toCalendarItem(
+        row,
+        calendarEditability({
+          engineCanEdit: permissions.workOrders.getPermissions(row).canEdit,
+          status: row.status,
+          isOfflinePending: Boolean(row._isPendingSync) || row.id.startsWith('offline-'),
+        }),
+        timeZone,
+      );
     });
-  }, [calendarRows, permissions]);
+  }, [calendarRows, permissions, timeZone]);
 
   const writeChrome = useCallback((patch: Parameters<typeof serializeChromeParams>[1]) => {
     setSearchParams(serializeChromeParams(chrome, patch, searchParams), { replace: true });

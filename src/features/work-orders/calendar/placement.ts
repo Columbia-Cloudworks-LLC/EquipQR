@@ -65,6 +65,8 @@ function estimatedHoursOf(source: CalendarWorkOrderSource): number | null {
 export function toCalendarItem(
   source: CalendarWorkOrderSource,
   editability: CalendarEditability,
+  timeZone?: string,
+  nowMs: number = Date.now(),
 ): CalendarItem {
   const due = parseDue(source);
   const createdEpochMs = createdEpochMsOf(source);
@@ -75,7 +77,7 @@ export function toCalendarItem(
     editability,
     status: source.status,
     priority: source.priority,
-    overdue: isDueOverdue(due, source.status),
+    overdue: isDueOverdue(due, source.status, nowMs, timeZone),
   };
 }
 
