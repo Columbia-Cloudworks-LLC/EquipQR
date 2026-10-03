@@ -26,10 +26,6 @@ vi.mock('@/features/work-orders/hooks/useWorkOrderPMChecklist', () => ({
   PM_TEMPLATE_NONE_VALUE: 'none'
 }));
 
-vi.mock('@/components/pm-templates/PMTemplateSelector', () => ({
-  PMTemplateSelector: () => <div data-testid="pm-template-selector">Template Selector</div>
-}));
-
 describe('WorkOrderPMChecklist', () => {
   it('renders a message that PM checklist is optional when no template is selected', () => {
     mockHookState = {
