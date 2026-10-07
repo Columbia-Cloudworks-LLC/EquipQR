@@ -1,0 +1,40 @@
+name: osv-scanner
+
+on:
+  push:
+    branches: [main, preview]
+  pull_request:
+    branches: [main, preview]
+  schedule:
+    # Run daily at 06:00 UTC to catch newly disclosed vulnerabilities
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write # Required for uploading SARIF results to GitHub Code Scanning
+
+jobs:
+  scan:
+    name: OSV Scanner
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run OSV-Scanner
+        uses: google/osv-scanner-action@v1.9.2
+        with:
+          # Automatically detects lockfiles (package-lock.json, pnpm-lock.yaml, etc.)
+          scan-args: |-
+            --output=results.sarif
+            --format=sarif
+            ./
+
+      - name: Upload SARIF report to GitHub Advanced Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+          category: osv-scanner
