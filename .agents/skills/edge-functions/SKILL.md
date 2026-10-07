@@ -35,8 +35,16 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     return createErrorResponse(auth.error, auth.status, { req });
   }
 
-  // All queries executed on `supabase` respect RLS
-  const { data, error } = await supabase.from("equipment").select("*");
+  const { organizationId } = await req.json();
+  if (!organizationId) {
+    return createErrorResponse("organizationId is required", 400, { req });
+  }
+
+  // Enforce tenant boundary via organization_id filter alongside RLS
+  const { data, error } = await supabase
+    .from("equipment")
+    .select("*")
+    .eq("organization_id", organizationId);
   if (error) return createErrorResponse(error.message, 500, { req });
 
   return createJsonResponse({ data }, 200, { req });

@@ -41,8 +41,9 @@
     "vitest.config.ts"
   ],
   "rootAllowedDirs": [
-    ".audit",
     ".agents",
+    ".audit",
+    ".cursor",
     ".devcontainer",
     ".fallow",
     ".github",
