@@ -1,43 +1,51 @@
-# EquipQR
+# EquipQR Agent Guidelines
 
-EquipQR is a multi-tenant fleet maintenance app for equipment QR codes, work orders, preventative maintenance, inventory, and field teams. The stack is React, TypeScript, Vite, Supabase, and TanStack Query. Operators use [equipqr.app](https://equipqr.app); the Help Center is [equipqr.info](https://equipqr.info); the repository shortcut is [github.equipqr.app](https://github.equipqr.app).
+EquipQR is a multi-tenant fleet maintenance application for equipment QR tracking, work orders, preventative maintenance, inventory, and field teams.
 
-This file is an index only. Open the one official document that matches the task. Change guidance in that document first. Change this file only to add, remove, or correct a reference.
+- **Frontend:** React 19, TypeScript (strict), Vite SPA, TanStack Query, Tailwind CSS.
+- **Backend:** Supabase (PostgreSQL with Row Level Security, Auth, Storage) and Supabase Edge Functions (Deno).
+- **Integrations:** QuickBooks Online API, Google Workspace API.
+- **Live Domains:** App: [equipqr.app](https://equipqr.app) | Preview: [preview.equipqr.app](https://preview.equipqr.app) | Repository: [github.equipqr.app](https://github.equipqr.app)
 
-## References
+---
 
-| Topic | Document |
-| --- | --- |
-| Documentation map and maintenance | [docs/README.md](docs/README.md) |
-| GitHub shortcut | [docs/ops/github-shortcut.md](docs/ops/github-shortcut.md) |
-| Secrets, vaults, access tiers | [docs/ops/agent-secrets-and-access.md](docs/ops/agent-secrets-and-access.md) |
-| Git, deploy, preview → main | [docs/ops/git-and-deploy.md](docs/ops/git-and-deploy.md), [.cursor/rules/branching.mdc](.cursor/rules/branching.mdc) |
-| Stacked pull requests | [docs/ops/stacked-pull-requests.md](docs/ops/stacked-pull-requests.md), [.cursor/skills/stacked-pr-release/SKILL.md](.cursor/skills/stacked-pr-release/SKILL.md) |
-| Changelog | [.cursor/rules/changelog.mdc](.cursor/rules/changelog.mdc) |
-| Local stack | [.cursor/rules/dev-stack-lifecycle.mdc](.cursor/rules/dev-stack-lifecycle.mdc), [docs/ops/local-supabase-development.md](docs/ops/local-supabase-development.md) |
-| Linux / WSL2 / Codex setup | [docs/ops/linux-development.md](docs/ops/linux-development.md) |
-| Cloud Agents | [docs/ops/cloud-agent-ephemeral-stack.md](docs/ops/cloud-agent-ephemeral-stack.md) |
-| Migrations | [docs/ops/migrations.md](docs/ops/migrations.md), [docs/ops/migration-rules-quick-reference.md](docs/ops/migration-rules-quick-reference.md) |
-| Google Workspace | [docs/ops/google-workspace.md](docs/ops/google-workspace.md) |
-| QuickBooks | [docs/ops/quickbooks-oauth.md](docs/ops/quickbooks-oauth.md) |
-| Playwright real auth | [docs/ops/playwright-real-auth-integrations.md](docs/ops/playwright-real-auth-integrations.md) |
-| GCP / Workspace admin | [docs/ops/cloud-admin-access.md](docs/ops/cloud-admin-access.md) |
-| Docs site, PWA, media | [docs/ops/deployment.md](docs/ops/deployment.md) |
-| Edge Functions | [docs/edge-functions/auth-patterns.md](docs/edge-functions/auth-patterns.md) |
-| Invitation / signup email | [docs/ops/auth-signup-email-workflow.md](docs/ops/auth-signup-email-workflow.md) |
-| Product conventions | [docs/technical/product-conventions.md](docs/technical/product-conventions.md) |
-| Permissions / inventory RBAC | [docs/guides/permissions.md](docs/guides/permissions.md) |
-| Setup, npm install | [docs/technical/setup.md](docs/technical/setup.md) |
-| Lint / coding standards | [docs/technical/standards.md](docs/technical/standards.md) |
-| Testing, PII in captures | [docs/technical/testing-guidelines.md](docs/technical/testing-guidelines.md) |
-| Async CSV exports | [docs/technical/async-export-jobs.md](docs/technical/async-export-jobs.md) |
-| Local E2E before push | [.cursor/rules/local-verify-before-preview-push.mdc](.cursor/rules/local-verify-before-preview-push.mdc) |
-| PR open → merge | [.cursor/rules/pr-merge-ready-workflow.mdc](.cursor/rules/pr-merge-ready-workflow.mdc) |
-| PR visual evidence | [.cursor/rules/pr-visual-evidence.mdc](.cursor/rules/pr-visual-evidence.mdc) |
-| PR CI gate | [.cursor/rules/pr-ci-gate-before-open.mdc](.cursor/rules/pr-ci-gate-before-open.mdc) |
-| Fallow before commit | [.cursor/rules/fallow-before-commit.mdc](.cursor/rules/fallow-before-commit.mdc) |
-| Git / Bash | [.cursor/rules/git-bash.mdc](.cursor/rules/git-bash.mdc) |
-| Workflow artifacts | [.cursor/rules/workflow-artifacts.mdc](.cursor/rules/workflow-artifacts.mdc) |
-| Browser (Cursor only) | [.cursor/rules/cursor-browser-only.mdc](.cursor/rules/cursor-browser-only.mdc) |
-| Implement an issue | [.cursor/skills/itil-issue-resolver/SKILL.md](.cursor/skills/itil-issue-resolver/SKILL.md) |
-| PR feedback | [.cursor/skills/address-pr-feedback/SKILL.md](.cursor/skills/address-pr-feedback/SKILL.md) |
+## 1. Operating Rules for Antigravity
+
+1. **Canonical Development Environment:**
+   All tooling, Node.js scripts, and git operations run inside Ubuntu WSL2:
+   `/home/viralarchitect/projects/EquipQR`
+   The Windows launcher is `equipqr.bat` (`start`, `stop`, `status`, `reset`).
+   The Linux lifecycle script is `bash dev/linux/dev.sh start|stop|status|reset`.
+
+2. **Deterministic Quality Gates:**
+   - **Zero `as unknown as` or `as any`:** Never bypass TypeScript typing. Inherit generated schema types from `src/integrations/supabase/types.ts` (`Tables<'table_name'>`).
+   - **Strict TypeScript Compliance:** Code changes must be clean under `npx tsc --noEmit`.
+   - **Strict Linter Compliance:** Must pass `npm run lint`.
+   - **Test Integrity:** Relevant unit and component tests (`npm test`) must pass before concluding tasks.
+
+3. **Security & Authorization Boundaries:**
+   - Always enforce tenant isolation via `organization_id` filters and PostgreSQL Row Level Security (RLS).
+   - In Supabase Edge Functions, default to `createUserSupabaseClient(req)` + `requireUser(req, supabase)`.
+   - Never use `createAdminSupabaseClient()` (service-role key) in public endpoints (`verify_jwt = false`) without documented token-scoped verification.
+
+4. **No Unrequested Refactoring:**
+   - Touch only the files and systems explicitly requested.
+   - Do not refactor adjacent modules, rewrite working patterns, or add unneeded dependencies.
+
+---
+
+## 2. Core Documentation & References
+
+| Topic | Reference Document |
+| :--- | :--- |
+| Documentation Map | [docs/README.md](docs/README.md) |
+| Git Branching & Deploy Train | [docs/ops/git-and-deploy.md](docs/ops/git-and-deploy.md) |
+| Secrets & Access Tiers | [docs/ops/agent-secrets-and-access.md](docs/ops/agent-secrets-and-access.md) |
+| Linux & WSL2 Setup | [docs/ops/linux-development.md](docs/ops/linux-development.md) |
+| Database Migrations | [docs/ops/migrations.md](docs/ops/migrations.md) |
+| Edge Function Auth Patterns | [docs/edge-functions/auth-patterns.md](docs/edge-functions/auth-patterns.md) |
+| Permissions & RBAC | [docs/guides/permissions.md](docs/guides/permissions.md) |
+| Testing Guidelines | [docs/technical/testing-guidelines.md](docs/technical/testing-guidelines.md) |
+| Verification Gate Skill | [.agents/skills/verify-gate/SKILL.md](.agents/skills/verify-gate/SKILL.md) |
+| Edge Functions Skill | [.agents/skills/edge-functions/SKILL.md](.agents/skills/edge-functions/SKILL.md) |
+| Git & Deploy Skill | [.agents/skills/git-and-deploy/SKILL.md](.agents/skills/git-and-deploy/SKILL.md) |

@@ -61,4 +61,4 @@ Markdown embeds the demo as a **bare GitHub URL on its own line** (required for 
 
 ## Workflow-only exception
 
-Changes confined to `.cursor/**`, `AGENTS.md`, or `dev/mcp.template.json` do not require PR visual evidence.
+Changes confined to `.agents/**`, `.cursor/**`, `AGENTS.md`, or `dev/mcp.template.json` do not require PR visual evidence.
