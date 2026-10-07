@@ -317,4 +317,4 @@ trusting it. If it fails, copy `user_session` from DevTools on the
 browser where github.com is logged in and set `$env:GH_SESSION_TOKEN` in
 the **current shell only**. Do not persist write-tier session cookies to
 User-scope env vars or commit them.
-See `.cursor/rules/pr-visual-evidence.mdc`.
+See `dev/pr-evidence/README.md` and `e2e/pr-evidence/README.md`.

@@ -17,6 +17,6 @@
     "MD031": false
   },
   "frontMatter": "^---\\s*\\n[\\s\\S]*?\\n---\\s*\\n",
-  "globs": [".cursor/**/*.md", ".cursor/**/*.mdc", "AGENTS.md"],
+  "globs": [".agents/**/*.md", "AGENTS.md"],
   "gitignore": true
 }

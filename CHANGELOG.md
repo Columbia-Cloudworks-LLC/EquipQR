@@ -7,9 +7,13 @@ All notable changes to EquipQR by Columbia Cloudworks LLC will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Entries through 3.28.0 are more verbose than the current policy. Newer notes are short customer-facing outcomes. Editorial rules live in `.cursor/rules/changelog.mdc`.
+Entries through 3.28.0 are more verbose than the current policy. Newer notes are short customer-facing outcomes. Editorial rules live in `AGENTS.md` and `.agents/skills/git-and-deploy/SKILL.md`.
 
 ## [Unreleased]
+
+### Changed
+
+- **Antigravity AI workspace configuration (#1632)** — Replaced legacy Cursor and Copilot configuration with a streamlined Antigravity workspace structure.
 
 ## [3.35.0] - 2026-10-03
 

@@ -52,6 +52,7 @@ describe('isReleaseRelevantPath', () => {
   it('ignores workflow and docs-only paths', () => {
     expect(isReleaseRelevantPath('AGENTS.md')).toBe(false);
     expect(isReleaseRelevantPath('.cursor/rules/foo.mdc')).toBe(false);
+    expect(isReleaseRelevantPath('.agents/skills/verify-gate/SKILL.md')).toBe(false);
     expect(isReleaseRelevantPath('docs/ops/deployment.md')).toBe(false);
     expect(isReleaseRelevantPath('CHANGELOG.md')).toBe(false);
   });

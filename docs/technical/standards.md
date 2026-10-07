@@ -45,7 +45,7 @@ reference links `MD052`, trailing whitespace `MD009`). Do **not** churn
 suppressed rules: `MD013` / `MD024` / `MD025` / `MD033` / `MD036` /
 `MD041` (pre-existing), plus `MD060` (compact tables), `MD022` / `MD032`
 / `MD031` (spacing around headings/lists/fences in tight `.mdc` layouts).
-`npm run lint:md` scopes to `.cursor/**` and `AGENTS.md`; legacy
+`npm run lint:md` scopes to `.agents/**` and `AGENTS.md`; legacy
 `docs/**` is out of enforced scope until migrated.
 
 ### Naming Conventions
