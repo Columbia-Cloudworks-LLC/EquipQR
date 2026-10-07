@@ -46,7 +46,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
 ## 2. Authentication & RLS Boundaries
 
 1. **User-Scoped by Default:** Always use `createUserSupabaseClient(req)` forwarding user JWT.
-2. **Admin Client Restricted:** `createAdminSupabaseClient()` (service-role key) bypasses RLS. Use ONLY for authorized background cron jobs or webhooks documented in `docs/edge-functions/auth-patterns.md`.
+2. **Admin Client Restricted:** `createAdminSupabaseClient()` (service-role key) bypasses RLS. Use ONLY for authorized background cron jobs, verified webhooks, or documented super-admin / hybrid endpoints (such as `list-organizations-admin`, `check-subscription`, or `create-ticket` per `docs/edge-functions/auth-patterns.md:79-108`).
 3. **Public Token Endpoints (`verify_jwt = false`):**
    - Endpoints like `operator-check-in` or `quick-form` must validate assignment tokens via scoped RPCs before executing business logic. Never run arbitrary raw table queries with admin client in unauthenticated request branches.
 

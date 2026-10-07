@@ -14,13 +14,13 @@ EquipQR is a multi-tenant fleet maintenance application for equipment QR trackin
 1. **Canonical Development Environment:**
    All tooling, Node.js scripts, and git operations run inside Ubuntu WSL2:
    `/home/viralarchitect/projects/EquipQR`
-   The Windows launcher is `equipqr.bat` (`start`, `stop`, `status`, `reset`).
+   The Windows launcher is `dev/equipqr.bat` (`start`, `stop`, `status`, `reset`).
    The Linux lifecycle script is `bash dev/linux/dev.sh start|stop|status|reset`.
 
 2. **Deterministic Quality Gates:**
    - **Zero `as unknown as` or `as any`:** Never bypass TypeScript typing. Inherit generated schema types from `src/integrations/supabase/types.ts` (`Tables<'table_name'>`).
    - **Strict TypeScript Compliance:** Code changes must be clean under `npx tsc --noEmit`.
-   - **Strict Linter Compliance:** Must pass `npm run lint`.
+   - **Strict Linter Compliance:** Must pass `npm run lint:all`.
    - **Test Integrity:** Relevant unit and component tests (`npm test`) must pass before concluding tasks.
 
 3. **Security & Authorization Boundaries:**

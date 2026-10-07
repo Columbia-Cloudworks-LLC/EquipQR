@@ -65,7 +65,7 @@
         "steps": [
           {
             "argv": [
-              ".cursor/**/*.{md,mdc}",
+              ".agents/**/*.md",
               "AGENTS.md"
             ],
             "contract": {

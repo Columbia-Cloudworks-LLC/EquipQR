@@ -17,20 +17,26 @@ EquipQR uses a single-developer **feat → preview → main** train.
 
 ## 2. Day-to-Day Development Loop
 
-### Create Work Branch
+### Default Work Mode: Local Iteration
+Default is **local-iterate** (`docs/ops/git-and-deploy.md`). Stay on the current checkout. Do NOT create a branch, spawn a worktree, push, or open a PR until the user explicitly requests to publish or land the change.
+
+### Publishing (When Explicitly Requested)
+When the user explicitly authorizes publishing:
+
+#### Step 1: Create Work Branch
 ```bash
 git fetch origin preview
 git switch -c feat/<short-name> origin/preview
 ```
 
-### Verify Locally
+#### Step 2: Verify Locally
 ```bash
 npx tsc --noEmit
-npm run lint
+npm run lint:all
 npm test
 ```
 
-### Open Pull Request
+#### Step 3: Open Pull Request
 Target `preview` by default:
 ```bash
 gh pr create --base preview --title "feat(scope): concise description" --body "Closes #<issue_number>"

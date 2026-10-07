@@ -7,7 +7,7 @@ Authoritative day-to-day workflow. See also [`docs/ops/git-and-deploy.md`](../op
 - **`preview`** is the integration train; branch off **`preview`** for work.
 - **`main`** is production; ship via controlled **`preview` → `main`** (or `/release`).
 - **Default QA URL:** commit-specific Vercel Preview (`*.vercel.app`) after you push a work branch; **`preview.equipqr.app`** after merge to git **`preview`**.
-- Feature PRs accumulate short CHANGELOG `[Unreleased]` bullets per `.cursor/rules/changelog.mdc` and **do not** bump `package.json`. Version bumps happen on promote to `main`.
+- Feature PRs accumulate short CHANGELOG `[Unreleased]` bullets per `CHANGELOG.md` and `.agents/skills/git-and-deploy/SKILL.md` and **do not** bump `package.json`. Version bumps happen on promote to `main`.
 
 ## Lifecycle
 
@@ -71,4 +71,4 @@ No manual Vercel dashboard promote step.
 
 ## Onboarding
 
-Branch off **`preview`**, PR to **`preview`**. Promote to **`main`** separately. See `.cursor/rules/branching.mdc`.
+Branch off **`preview`**, PR to **`preview`**. Promote to **`main`** separately. See `.agents/skills/git-and-deploy/SKILL.md` and `docs/ops/git-and-deploy.md`.

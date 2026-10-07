@@ -185,8 +185,8 @@ To avoid redundancy and ensure consistency, each topic has a single **source of 
 | Google Workspace Connect | `ops/google-workspace.md` | Support article `support/admin-integrations/google-workspace-connect.md` |
 | Product conventions | `technical/product-conventions.md` | Support / guides (customer copy) |
 | GitHub shortcut | `ops/github-shortcut.md` | `AGENTS.md` (index pointer only) |
-| Stacked pull requests | `ops/stacked-pull-requests.md` | `.cursor/skills/stacked-pr-release/SKILL.md`, `AGENTS.md` (index pointer only) |
-| Agent handbook maintenance | this file (Agent handbook) | `.cursor/rules/agents-handbook.mdc` (always-apply reminder) |
+| Stacked pull requests | `ops/stacked-pull-requests.md` | `.agents/skills/git-and-deploy/SKILL.md`, `AGENTS.md` (index pointer only) |
+| Agent handbook maintenance | this file (Agent handbook) | `AGENTS.md` (index pointer only) |
 
 **For AI/reviewer checklists** (`.github/instructions/*`, `.github/copilot-instructions.md`):
 - These are short checklists for code review, not a second copy of the docs above
@@ -207,7 +207,7 @@ Do not add real org IDs, project IDs, tenant domains, service account emails, or
 ## Agent handbook
 
 `AGENTS.md` is a short index (product blurb plus references). Official
-process and lessons live in this `docs/` tree and in `.cursor/rules/`.
+process and lessons live in this `docs/` tree and in `.agents/skills/`.
 
 **Maintenance rule:** guidance changes update the authoritative document
 first. `AGENTS.md` changes only when its references must be added,
@@ -223,7 +223,7 @@ When a process is new or changes:
 Do not grow `AGENTS.md` with full write-ups, learned-preference dumps, or
 workspace-fact piles. Do not paste current implementation paths or
 symbols into agent-facing docs. Changelog, branching, and
-workflow-artifact rules stay in `.cursor/rules/` — do not invent a
+workflow-artifact rules stay in `.agents/skills/` — do not invent a
 parallel policy in the index.
 
 ## Contributing to documentation

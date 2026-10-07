@@ -42,7 +42,7 @@
   ],
   "rootAllowedDirs": [
     ".audit",
-    ".cursor",
+    ".agents",
     ".devcontainer",
     ".fallow",
     ".github",

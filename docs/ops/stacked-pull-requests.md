@@ -53,7 +53,7 @@ GitHub's generic stacked-PR examples use `main` as the trunk. In EquipQR, passin
 - Later PR bases: the parent stack branch
 - Do not open every layer against `preview` or `main`
 
-An emergency hotfix stack may target `main` only when [branching.mdc](../../.cursor/rules/branching.mdc) already allows a production hotfix. Back-merge or rebase `preview` afterward so the train does not diverge.
+An emergency hotfix stack may target `main` only when [git-and-deploy](../../.agents/skills/git-and-deploy/SKILL.md) already allows a production hotfix. Back-merge or rebase `preview` afterward so the train does not diverge.
 
 Branch names describe the layer (`fix/renderer-season-water`, `feat/invoice-date-review`). A session that must use a `cursor/<name>-<suffix>` prefix still creates **one branch per layer**. The prefix does not collapse the stack.
 
@@ -143,7 +143,7 @@ Do not leave the chain diverged. Never force-push `main` or `preview`. Force-wit
 PR 1, then PR 2, then PR 3
 ```
 
-Merge a layer only when that layer meets the normal merge gate (local verify, CI, Supabase green or skipped, visual evidence when the layer changes user-visible behavior). See [pr-merge-ready-workflow.mdc](../../.cursor/rules/pr-merge-ready-workflow.mdc).
+Merge a layer only when that layer meets the normal merge gate (local verify, CI, Supabase green or skipped, visual evidence when the layer changes user-visible behavior). See [git-and-deploy](../../.agents/skills/git-and-deploy/SKILL.md).
 
 After a layer merges, point the next pull request at the stack trunk (`preview`, or `main` for an allowed emergency hotfix stack), or let supported stack tooling retarget it. Confirm GitHub does not duplicate commits or show the already-merged layer again.
 
@@ -227,7 +227,7 @@ Use `Relates to #123` when the layer is necessary but not sufficient.
 
 ## Testing and verification
 
-Verify each layer before opening its pull request, at the depth in [local-verify-before-preview-push.mdc](../../.cursor/rules/local-verify-before-preview-push.mdc) and [pr-ci-gate-before-open.mdc](../../.cursor/rules/pr-ci-gate-before-open.mdc).
+Verify each layer before opening its pull request, at the depth in [verify-gate](../../.agents/skills/verify-gate/SKILL.md).
 
 For every layer, as applicable:
 
@@ -292,4 +292,4 @@ One pull request with many commits does not meet this list.
 
 ## Agent entry
 
-Execute the stack with [.cursor/skills/stacked-pr-release/SKILL.md](../../.cursor/skills/stacked-pr-release/SKILL.md). This document is the source of truth if the skill and this page disagree.
+Execute the stack with [.agents/skills/git-and-deploy/SKILL.md](../../.agents/skills/git-and-deploy/SKILL.md). This document is the source of truth if the skill and this page disagree.

@@ -16,8 +16,11 @@ Always run these commands in the canonical Ubuntu WSL2 environment (`/home/viral
 # Frontend TypeScript check
 npx tsc --noEmit
 
-# ESLint check
-npm run lint
+# Full repository lint (ESLint, Biome, markdownlint across .agents and AGENTS.md)
+npm run lint:all
+
+# Canonical Linux verification script
+bash dev/linux/verify.sh
 
 # Check markdown links in docs and AGENTS.md
 npm run verify:docs-index
@@ -49,4 +52,4 @@ npm run verify:schema-reference
 
 ## Quality Rules
 1. **Zero `as unknown as`:** Do not bypass TypeScript types. Derive domain models from `Tables<'table_name'>` in `src/integrations/supabase/types.ts`.
-2. **Deterministic Checks:** Every change must exit code 0 on `tsc --noEmit` and `npm run lint`.
+2. **Deterministic Checks:** Every change must exit code 0 on `tsc --noEmit` and `npm run lint:all`.
