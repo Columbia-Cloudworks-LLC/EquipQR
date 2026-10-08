@@ -13,6 +13,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Changed
 
+- **Ecosystem and UI library updates** — Updated Radix UI primitives, Supabase JS, React components, Vitest test tooling, and ESLint to current stable maintenance releases.
 - **Antigravity AI workspace configuration (#1632)** — Replaced legacy Cursor and Copilot configuration with a streamlined Antigravity workspace structure.
 
 ## [3.35.0] - 2026-10-03
