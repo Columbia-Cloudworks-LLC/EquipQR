@@ -216,7 +216,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     if (settingsId) {
       const dayStart = new Date();
       dayStart.setUTCHours(0, 0, 0, 0);
-      const { data: existing } = await createAdminSupabaseClient()
+      const { data: existing } = await supabase
         .from("operator_checkin_submissions")
         .select("submitted_at")
         .eq("settings_id", settingsId)

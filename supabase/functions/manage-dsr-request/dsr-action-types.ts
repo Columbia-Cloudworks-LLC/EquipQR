@@ -21,6 +21,7 @@ export type DsrRequestRow = {
   status: string;
   request_type: string;
   due_at: string;
+  extended_due_at?: string | null;
   received_at: string;
   updated_at: string;
   organization_id: string | null;
@@ -82,9 +83,7 @@ export function areRequiredChecklistStepsComplete(request: DsrRequestRow): boole
 }
 
 export function buildSlaBucket(request: DsrRequestRow): "overdue" | "due_soon" | "on_track" {
-  const dueDate = new Date(
-    (request as unknown as { extended_due_at?: string | null }).extended_due_at ?? request.due_at,
-  );
+  const dueDate = new Date(request.extended_due_at ?? request.due_at);
   const now = new Date();
   if (dueDate.getTime() < now.getTime()) return "overdue";
 
