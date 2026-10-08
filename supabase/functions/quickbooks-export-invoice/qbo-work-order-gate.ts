@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
+import type { WorkOrderData } from "./qbo-invoice-lines.ts";
 
 /**
  * Extracts the client IP address from request headers.
@@ -33,7 +34,7 @@ export async function loadWorkOrderForExport(
   supabaseClient: SupabaseClient,
   workOrderId: string,
   userOrgIds: string[],
-): Promise<{ workOrder: Record<string, unknown> | null; error: string | null; notFound: boolean }> {
+): Promise<{ workOrder: WorkOrderData | null; error: string | null; notFound: boolean }> {
   const { data: workOrder, error: woError } = await supabaseClient
     .from('work_orders')
     .select(`
@@ -62,7 +63,7 @@ export async function loadWorkOrderForExport(
     return { workOrder: null, error: null, notFound: true };
   }
 
-  return { workOrder, error: null, notFound: false };
+  return { workOrder: workOrder as WorkOrderData, error: null, notFound: false };
 }
 
 export async function verifyQuickBooksManagePermission(

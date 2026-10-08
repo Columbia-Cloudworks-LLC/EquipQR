@@ -216,6 +216,9 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     if (settingsId) {
       const dayStart = new Date();
       dayStart.setUTCHours(0, 0, 0, 0);
+      // Public QR callers are unauthenticated and lack org-member SELECT permissions
+      // on operator_checkin_submissions. Token-scoped verification is already completed above
+      // via requireOperatorCheckinAssignmentToken, authorizing service-role lookup for settings_id.
       const { data: existing } = await createAdminSupabaseClient()
         .from("operator_checkin_submissions")
         .select("submitted_at")
