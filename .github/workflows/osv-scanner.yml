@@ -11,6 +11,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read # Required for uploading SARIF results to GitHub Code Scanning
   contents: read
   security-events: write # Required for uploading SARIF results to GitHub Code Scanning
 
