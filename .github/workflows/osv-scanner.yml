@@ -29,6 +29,8 @@ jobs:
         with:
           # Automatically detects lockfiles (package-lock.json, pnpm-lock.yaml, etc.)
           scan-args: |-
+            --skip-git
+            --recursive
             --output=results.sarif
             --format=sarif
             ./
