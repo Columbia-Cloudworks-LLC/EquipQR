@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, QrCode, MapPin, Calendar, Trash2, Clock, ChevronRight } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 import { getStatusColor, EQUIPMENT_STATUS_OPTIONS } from '@/features/equipment/utils/equipmentHelpers';
+import { getCustomAttributeString } from '@/features/equipment/utils/getEquipmentCardDisplayModel';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { getEquipmentViewTransitionStyle } from '@/features/equipment/transitions/equipmentViewTransitionNames';
 import { useEquipmentCardTransitionState } from '@/features/equipment/transitions/useEquipmentCardTransitionState';
@@ -31,14 +32,8 @@ const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
   const { activeEquipmentId } = useEquipmentCardTransitionState();
   const isTransitionActive = activeEquipmentId === equipment.id;
 
-  const customAttrs =
-    equipment.custom_attributes &&
-    typeof equipment.custom_attributes === 'object' &&
-    !Array.isArray(equipment.custom_attributes)
-      ? (equipment.custom_attributes as Record<string, unknown>)
-      : null;
-  const unitNumber = typeof customAttrs?.unit_number === 'string' ? customAttrs.unit_number : null;
-  const qrTag = typeof customAttrs?.qr_tag === 'string' ? customAttrs.qr_tag : null;
+  const unitNumber = getCustomAttributeString(equipment.custom_attributes, 'unit_number');
+  const qrTag = getCustomAttributeString(equipment.custom_attributes, 'qr_tag');
 
   return (
     <div className="space-y-4">

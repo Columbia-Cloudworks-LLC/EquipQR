@@ -36,6 +36,15 @@ interface EquipmentCardDisplayInput {
   custom_attributes?: Record<string, unknown> | null;
 }
 
+/** Reads a string value from an equipment `custom_attributes` JSON object. */
+export function getCustomAttributeString(customAttributes: unknown, key: string): string | null {
+  if (!customAttributes || typeof customAttributes !== 'object' || Array.isArray(customAttributes)) {
+    return null;
+  }
+  const value = (customAttributes as Record<string, unknown>)[key];
+  return typeof value === 'string' ? value : null;
+}
+
 function buildAssetDescriptor(manufacturer?: string | null, model?: string | null): string {
   const parts = [manufacturer, model].filter(Boolean);
   return parts.length > 0 ? parts.join(' ') : EMPTY_READOUT;
@@ -89,13 +98,7 @@ export function getEquipmentCardDisplayModel(
     : null;
   const hours = equipment.working_hours ?? 0;
   const hoursFormatted = hours.toLocaleString();
-  const customAttrs =
-    equipment.custom_attributes &&
-    typeof equipment.custom_attributes === 'object' &&
-    !Array.isArray(equipment.custom_attributes)
-      ? (equipment.custom_attributes as Record<string, unknown>)
-      : null;
-  const unitNumber = typeof customAttrs?.unit_number === 'string' ? customAttrs.unit_number : null;
+  const unitNumber = getCustomAttributeString(equipment.custom_attributes, 'unit_number');
 
   return {
     imageAlt: `${equipment.name} equipment`,
