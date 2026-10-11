@@ -5,6 +5,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   NEEDS_INFO_MARKER,
+  blockerMarker,
   buildBlockerNotice,
   classifyAreas,
   findMissingBugInfo,
@@ -141,6 +142,12 @@ describe('findMissingBugInfo', () => {
     assert.deepEqual(findMissingBugInfo(body), []);
   });
 
+  test('a GitHub attachment link counts as evidence, a lookalike host does not', () => {
+    const steps = '1. Open equipment\n2. Scan QR\n\n';
+    assert.deepEqual(findMissingBugInfo(`${steps}Recording: https://github.com/user-attachments/assets/abc123`), []);
+    assert.deepEqual(findMissingBugInfo(`${steps}See https://github.com.evil.example/user-attachments/x`), ['logs']);
+  });
+
   test('free-form body without detail is missing both', () => {
     assert.deepEqual(findMissingBugInfo('It does not work.'), ['reproduction steps', 'logs']);
   });
@@ -174,11 +181,17 @@ describe('parseSlashCommand', () => {
 });
 
 describe('buildBlockerNotice', () => {
-  test('escapes table pipes and records the actor', () => {
-    const notice = buildBlockerNotice({ reason: 'needs A | B', actor: 'octo', timestamp: '2026-10-11T00:00:00.000Z' });
-    assert.match(notice, /needs A \\\| B/);
+  test('escapes table pipes and backslashes and records the actor', () => {
+    const notice = buildBlockerNotice({
+      reason: 'needs A | B \\ C',
+      actor: 'octo',
+      timestamp: '2026-10-11T00:00:00.000Z',
+      sourceCommentId: 5,
+    });
+    assert.ok(notice.includes('needs A \\| B \\\\ C'));
     assert.match(notice, /@octo/);
     assert.match(notice, /`\/unblock`/);
+    assert.ok(notice.startsWith(blockerMarker(5)));
   });
 });
 
@@ -360,6 +373,23 @@ describe('runCommentHandler', () => {
     });
     assert.deepEqual(addedLabels(github), ['status:blocked']);
     assert.match(names(github, 'createComment')[0].params.body, /waiting on Intuit/);
+  });
+
+  test('a rerun of the same /block event does not post a second notice', async () => {
+    const github = fakeGithub({
+      permission: 'write',
+      comments: [{ id: 77, user: { type: 'Bot' }, body: `${blockerMarker(5)}\n### Blocked` }],
+    });
+    await runCommentHandler({
+      github,
+      core,
+      context: {
+        repo,
+        payload: { issue: { ...issue, labels: [] }, comment: { id: 5, body: '/block waiting on Intuit', user: { login: 'maint', type: 'User' } } },
+      },
+    });
+    assert.deepEqual(addedLabels(github), ['status:blocked']);
+    assert.equal(names(github, 'createComment').length, 0);
   });
 
   test('/unblock and /investigate', async () => {

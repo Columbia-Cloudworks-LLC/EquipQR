@@ -17,7 +17,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 - **Unit numbers and QR tags on equipment** — Equipment cards and the mobile equipment header show the unit number, and the mobile header shows the QR tag, when they are set in custom attributes.
 - **Defect photos on PM checklist items** — PM checklist items with an attached photo show a thumbnail and file name.
-- **QuickBooks export shortcut** — Completed work orders show an "Export to QuickBooks" button, and a "Synced" badge once the invoice has synced.
+- **QuickBooks export shortcut** — Completed work orders show an "Export to QuickBooks" button (or "Update Invoice #" once an invoice exists), and a "Synced" badge once the invoice has synced.
 - **Short equipment and inspection links** — `/assets/<id>` and `/inspections/<id>` links open the matching equipment or work order and keep any query parameters.
 - **Issue triage automation** — New GitHub issues are labeled by area, incomplete bug reports are asked for reproduction steps and logs, and maintainers can set issue status with `/ready`, `/block`, `/unblock`, and `/investigate`.
 

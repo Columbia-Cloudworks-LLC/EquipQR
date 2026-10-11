@@ -12,19 +12,9 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { ExternalLink, FileSpreadsheet, Loader2, RefreshCw } from 'lucide-react';
-import { useOrganization } from '@/contexts/OrganizationContext';
-import { useQuery } from '@tanstack/react-query';
-import { quickBooks } from '@/lib/queryKeys/integrations';
-import { getConnectionStatus, getTeamCustomerMapping } from '@/services/quickbooks';
 import { getQuickBooksInvoiceUrl } from '@/services/quickbooks/types';
-import { useExportToQuickBooks, useQuickBooksLastExport } from '@/hooks/useExportToQuickBooks';
-import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
-import { isQuickBooksEnabled } from '@/lib/flags';
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
-import {
-  getQuickBooksExportAvailability,
-  getQuickBooksInvoiceDisplay,
-} from '@/features/work-orders/utils/quickBooksExportPresentation';
+import { useWorkOrderQuickBooksExportState } from '@/features/work-orders/hooks/useWorkOrderQuickBooksExportState';
 
 interface WorkOrderQuickBooksExportSubmenuProps {
   workOrderId: string;
@@ -39,42 +29,21 @@ export const WorkOrderQuickBooksExportSubmenu: React.FC<WorkOrderQuickBooksExpor
   workOrderStatus,
   onReviewInvoice,
 }) => {
-  const { currentOrganization } = useOrganization();
-  const featureEnabled = isQuickBooksEnabled();
-  const { data: canExport = false, isLoading: accessLoading } = useQuickBooksAccess();
-
-  const organizationId = currentOrganization?.id;
-
-  const { data: connectionStatus, isLoading: connectionLoading } = useQuery({
-    queryKey: quickBooks.connection(organizationId ?? ''),
-    queryFn: () => {
-      if (!organizationId) {
-        throw new Error('Organization is required for QuickBooks connection status');
-      }
-      return getConnectionStatus(organizationId);
-    },
-    enabled: !!organizationId && canExport && featureEnabled,
-    staleTime: 60 * 1000,
-  });
-
-  const { data: teamMapping, isLoading: mappingLoading } = useQuery({
-    queryKey: quickBooks.teamMapping(organizationId ?? '', teamId ?? ''),
-    queryFn: () => {
-      if (!organizationId || !teamId) {
-        throw new Error('Organization and team are required for QuickBooks team mapping');
-      }
-      return getTeamCustomerMapping(organizationId, teamId);
-    },
-    enabled:
-      !!organizationId && !!teamId && canExport && featureEnabled && connectionStatus?.isConnected,
-  });
-
-  const { data: existingExport } = useQuickBooksLastExport(
-    workOrderId,
-    !!workOrderId && canExport && featureEnabled && connectionStatus?.isConnected,
-  );
-
-  const exportMutation = useExportToQuickBooks();
+  const {
+    featureEnabled,
+    canExport,
+    accessLoading,
+    existingExport,
+    isExporting,
+    isLoading,
+    alreadyExported,
+    hasLinkedInvoice,
+    invoiceDisplay,
+    tooltipMessage,
+    showSetupState,
+    setupDisabled,
+    updateLabel,
+  } = useWorkOrderQuickBooksExportState({ workOrderId, teamId, workOrderStatus });
 
   if (!featureEnabled) {
     return null;
@@ -94,32 +63,7 @@ export const WorkOrderQuickBooksExportSubmenu: React.FC<WorkOrderQuickBooksExpor
     );
   }
 
-  if (!canExport) {
-    return null;
-  }
-
-  const isExporting = exportMutation.isPending;
-  const isLoading = connectionLoading || mappingLoading || isExporting;
-  const isConnected = connectionStatus?.isConnected;
-  const hasMapping = !!teamMapping;
-  const hasTeam = !!teamId;
-  const isCompleted = workOrderStatus === 'completed';
-
-  const { alreadyExported, hasInvoiceIdentifiers, invoiceDisplay } =
-    getQuickBooksInvoiceDisplay(existingExport);
-
-  const { tooltipMessage, isDisabled, showSetupState } = getQuickBooksExportAvailability({
-    isCompleted,
-    isConnected,
-    hasTeam,
-    hasMapping,
-    isExporting,
-    alreadyExported,
-    hasInvoiceIdentifiers,
-    invoiceDisplay,
-  });
-
-  if (showSetupState) {
+  if (!canExport || showSetupState) {
     return null;
   }
 
@@ -127,9 +71,6 @@ export const WorkOrderQuickBooksExportSubmenu: React.FC<WorkOrderQuickBooksExpor
     alreadyExported && existingExport?.quickbooks_invoice_id && existingExport?.quickbooks_environment
       ? getQuickBooksInvoiceUrl(existingExport.quickbooks_invoice_id, existingExport.quickbooks_environment)
       : null;
-
-  const hasLinkedInvoice = alreadyExported && hasInvoiceIdentifiers;
-  const setupDisabled = isDisabled && !hasLinkedInvoice;
 
   const handleCreate = () => {
     if (hasLinkedInvoice || setupDisabled || isLoading) return;
@@ -145,8 +86,6 @@ export const WorkOrderQuickBooksExportSubmenu: React.FC<WorkOrderQuickBooksExpor
     if (!invoiceUrl) return;
     window.open(invoiceUrl, '_blank', 'noopener,noreferrer');
   };
-
-  const updateLabel = invoiceDisplay ? `Update Invoice #${invoiceDisplay}` : 'Update Invoice';
 
   return (
     <DropdownMenuSub>

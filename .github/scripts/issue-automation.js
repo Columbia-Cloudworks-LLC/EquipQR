@@ -163,6 +163,22 @@ function hasReproductionSteps(body) {
 }
 
 /**
+ * True when the text links a file uploaded to GitHub (screenshots, recordings, logs).
+ * @param {string} text
+ */
+function hasGitHubAttachment(text) {
+  for (const candidate of text.match(/https:\/\/[^\s)<>"']+/g) || []) {
+    try {
+      const url = new URL(candidate);
+      if (url.hostname === 'github.com' && url.pathname.startsWith('/user-attachments/')) return true;
+    } catch {
+      // Not a valid URL; keep looking.
+    }
+  }
+  return false;
+}
+
+/**
  * @param {string} body
  */
 function hasLogsOrEvidence(body) {
@@ -175,7 +191,7 @@ function hasLogsOrEvidence(body) {
     /```/.test(text) ||
     /!\[[^\]]*\]\([^)]+\)/.test(text) ||
     /<img\s/i.test(text) ||
-    /github\.com\/user-attachments\//i.test(text) ||
+    hasGitHubAttachment(text) ||
     /\b(?:stack ?trace|traceback|exception|console (?:error|log)|(?:type|reference|syntax)error)\b/i.test(text) ||
     /\berror:/i.test(text) ||
     /\b[45]\d\d (?:error|status|response)\b/i.test(text)
@@ -235,18 +251,34 @@ export function parseSlashCommand(body) {
 }
 
 /**
- * ITIL-style blocker record posted by `/block <reason>`.
- * @param {{ reason: string, actor: string, timestamp: string }} details
+ * Hidden marker tying a blocker notice to the `/block` comment that raised it.
+ * @param {number} commentId
  */
-export function buildBlockerNotice({ reason, actor, timestamp }) {
+export function blockerMarker(commentId) {
+  return `<!-- equipqr-issue-blocker:comment-${commentId} -->`;
+}
+
+/**
+ * @param {string} text
+ */
+function escapeTableCell(text) {
+  return text.replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
+}
+
+/**
+ * ITIL-style blocker record posted by `/block <reason>`.
+ * @param {{ reason: string, actor: string, timestamp: string, sourceCommentId: number }} details
+ */
+export function buildBlockerNotice({ reason, actor, timestamp, sourceCommentId }) {
   const safeReason = reason.replace(/\s+/g, ' ').slice(0, 500) || 'No reason given.';
   return [
+    blockerMarker(sourceCommentId),
     '### Blocked',
     '',
     '| Field | Value |',
     '| --- | --- |',
     '| Status | `status:blocked` (pending) |',
-    `| Blocker | ${safeReason.replace(/\|/g, '\\|')} |`,
+    `| Blocker | ${escapeTableCell(safeReason)} |`,
     `| Raised by | @${actor} |`,
     `| Raised at | ${timestamp} |`,
     '| Next action | Resolve the dependency, then comment `/unblock` to return this issue to `status:ready-for-dev`. |',
@@ -322,6 +354,22 @@ export async function removeLabels(github, repo, issueNumber, labels) {
 }
 
 /**
+ * Finds a comment the bot posted with the given hidden marker.
+ * @param {any} github
+ * @param {{ owner: string, repo: string }} repo
+ * @param {number} issueNumber
+ * @param {string} marker
+ * @returns {Promise<{ id: number, body?: string } | undefined>}
+ */
+async function findBotComment(github, repo, issueNumber, marker) {
+  const comments = await github.paginate(github.rest.issues.listComments, { ...repo, issue_number: issueNumber, per_page: 100 });
+  return comments.find(
+    (/** @type {{ body?: string, user?: { type?: string } }} */ comment) =>
+      comment.user?.type === 'Bot' && (comment.body || '').includes(marker),
+  );
+}
+
+/**
  * Creates the needs-info comment, or updates it in place if the bot already posted one.
  * @param {any} github
  * @param {{ owner: string, repo: string }} repo
@@ -329,11 +377,7 @@ export async function removeLabels(github, repo, issueNumber, labels) {
  * @param {string} body
  */
 async function upsertNeedsInfoComment(github, repo, issueNumber, body) {
-  const comments = await github.paginate(github.rest.issues.listComments, { ...repo, issue_number: issueNumber, per_page: 100 });
-  const existing = comments.find(
-    (/** @type {{ body?: string, user?: { type?: string } }} */ comment) =>
-      comment.user?.type === 'Bot' && (comment.body || '').includes(NEEDS_INFO_MARKER),
-  );
+  const existing = await findBotComment(github, repo, issueNumber, NEEDS_INFO_MARKER);
   if (existing) {
     if (existing.body !== body) {
       await github.rest.issues.updateComment({ ...repo, comment_id: existing.id, body });
@@ -481,11 +525,19 @@ export async function runCommentHandler({ github, context, core }) {
       case 'block':
         await removeLabels(github, repo, issue.number, ['status:ready-for-dev'].filter(has));
         await addLabels(github, repo, issue.number, ['status:blocked']);
-        await github.rest.issues.createComment({
-          ...repo,
-          issue_number: issue.number,
-          body: buildBlockerNotice({ reason: slash.args, actor: comment.user.login, timestamp: new Date().toISOString() }),
-        });
+        // A rerun of the same /block event reuses its notice instead of posting another.
+        if (!(await findBotComment(github, repo, issue.number, blockerMarker(comment.id)))) {
+          await github.rest.issues.createComment({
+            ...repo,
+            issue_number: issue.number,
+            body: buildBlockerNotice({
+              reason: slash.args,
+              actor: comment.user.login,
+              timestamp: new Date().toISOString(),
+              sourceCommentId: comment.id,
+            }),
+          });
+        }
         break;
       case 'unblock':
         await removeLabels(github, repo, issue.number, ['status:blocked'].filter(has));

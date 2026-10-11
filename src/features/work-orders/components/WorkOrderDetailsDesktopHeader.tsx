@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { WorkOrderDeleteConfirmDialog } from '@/features/work-orders/components/WorkOrderDeleteConfirmDialog';
-import { Info, Download, MoreHorizontal, Trash2, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
+import { Info, Download, MoreHorizontal, Trash2, CheckCircle2 } from 'lucide-react';
 import { getStatusColor, formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
 import { WorkOrderData, PermissionLevels, EquipmentData, PMData } from '@/features/work-orders/types/workOrderDetails';
 import {
@@ -33,6 +33,7 @@ import { useWorkOrderImageCount } from '@/features/work-orders/hooks/useWorkOrde
 import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
 import { isQuickBooksEnabled } from '@/lib/flags';
 import QuickBooksInvoiceStatusBadge from './QuickBooksInvoiceStatusBadge';
+import { WorkOrderQuickBooksShortcutButton } from './WorkOrderQuickBooksShortcutButton';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { canExportWorkOrderGoogleDoc } from '@/features/work-orders/utils/googleDocsExportAvailability';
 
@@ -191,7 +192,9 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
                 balanceCents={workOrder.invoice_balance_cents}
                 paidAt={workOrder.invoice_paid_at}
               />
-              {workOrder.invoice_last_synced_at && (
+              {workOrder.invoice_last_synced_at &&
+                (workOrder.quickbooks_invoice_id || workOrder.quickbooks_invoice_number) &&
+                !workOrder.invoice_sync_error && (
                 <Badge variant="outline" className="bg-success/15 text-success border-success/30 gap-1 text-xs">
                   <CheckCircle2 className="h-3 w-3" />
                   Synced
@@ -212,17 +215,12 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
           actions={
             <>
               {showQuickBooks && workOrder.status === 'completed' && (
-                <Button
-                  variant="outline"
-                  size="default"
-                  className="gap-2 border-success/40 bg-success/10 text-success hover:bg-success/20 hover:text-success"
-                  onClick={() => setInvoiceReviewOpen(true)}
-                >
-                  <FileSpreadsheet className="h-4 w-4" />
-                  {workOrder.quickbooks_invoice_number
-                    ? `Export to QuickBooks (Draft Invoice #${workOrder.quickbooks_invoice_number})`
-                    : 'Export to QuickBooks'}
-                </Button>
+                <WorkOrderQuickBooksShortcutButton
+                  workOrderId={workOrder.id}
+                  teamId={equipmentTeamId ?? null}
+                  workOrderStatus={workOrder.status}
+                  onReviewInvoice={() => setInvoiceReviewOpen(true)}
+                />
               )}
               {showActionsMenu && (
                 <DropdownMenu open={exportMenuOpen} onOpenChange={setExportMenuOpen}>

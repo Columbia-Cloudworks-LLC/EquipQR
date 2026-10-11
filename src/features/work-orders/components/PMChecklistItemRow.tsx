@@ -178,7 +178,7 @@ const PMChecklistItemRow = React.memo<PMChecklistItemRowProps>(function PMCheckl
           <div className="mt-2.5 flex items-center gap-3 p-2 bg-muted/60 rounded-lg border border-border/70">
             <img
               src={item.photo_url}
-              alt="Inspection defect thumbnail"
+              alt={`Defect on ${item.title}`}
               className="h-12 w-12 rounded-md object-cover border border-border shadow-sm shrink-0"
             />
             <div className="min-w-0 flex-1">

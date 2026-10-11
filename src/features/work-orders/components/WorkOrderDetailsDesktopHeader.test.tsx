@@ -14,6 +14,10 @@ const mockUseWorkOrderImageCount = vi.fn();
 const mockUseQuickBooksAccess = vi.fn();
 const mockIsQuickBooksEnabled = vi.fn();
 
+vi.mock('./WorkOrderQuickBooksShortcutButton', () => ({
+  WorkOrderQuickBooksShortcutButton: () => <span>QuickBooks shortcut</span>,
+}));
+
 vi.mock('./WorkOrderQuickBooksExportSubmenu', () => ({
   WorkOrderQuickBooksExportSubmenu: () => <span>QuickBooks</span>,
 }));
@@ -270,6 +274,36 @@ describe('WorkOrderDetailsDesktopHeader', () => {
     await user.click(screen.getByRole('button', { name: 'Export' }));
 
     expect(screen.queryByText('QuickBooks')).not.toBeInTheDocument();
+  });
+
+  it('renders the QuickBooks shortcut for completed work orders when QuickBooks is available', () => {
+    mockIsQuickBooksEnabled.mockReturnValue(true);
+    mockUseQuickBooksAccess.mockReturnValue({ data: true });
+
+    render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
+
+    expect(screen.getByText('QuickBooks shortcut')).toBeInTheDocument();
+  });
+
+  it('shows the Synced badge only for a linked invoice without a sync error', () => {
+    const synced = {
+      ...baseProps.workOrder,
+      quickbooks_invoice_id: 'qb-1',
+      invoice_last_synced_at: '2026-10-10T00:00:00Z',
+    };
+
+    const { rerender } = render(<WorkOrderDetailsDesktopHeader {...baseProps} workOrder={synced} />);
+    expect(screen.getAllByText('Synced').length).toBeGreaterThan(0);
+
+    rerender(
+      <WorkOrderDetailsDesktopHeader {...baseProps} workOrder={{ ...synced, invoice_sync_error: 'QuickBooks API error' }} />,
+    );
+    expect(screen.queryAllByText('Synced')).toHaveLength(0);
+
+    rerender(
+      <WorkOrderDetailsDesktopHeader {...baseProps} workOrder={{ ...synced, quickbooks_invoice_id: null }} />,
+    );
+    expect(screen.queryAllByText('Synced')).toHaveLength(0);
   });
 
   it('shows an Actions trigger when delete is the only available action', async () => {
