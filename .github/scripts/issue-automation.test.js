@@ -4,8 +4,10 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  COMMAND_EFFECTS,
   NEEDS_INFO_MARKER,
   blockerMarker,
+  commandsConflict,
   buildBlockerNotice,
   classifyAreas,
   findMissingBugInfo,
@@ -208,6 +210,24 @@ describe('parseSlashCommand', () => {
     assert.equal(parseSlashCommand('/deploy now'), null);
     assert.equal(parseSlashCommand('/readyish'), null);
     assert.equal(parseSlashCommand('thanks!\n/ready'), null);
+  });
+});
+
+describe('commandsConflict', () => {
+  test('every pair of commands that undo each other conflicts in both directions', () => {
+    const expected = new Set([
+      'ready>block', 'block>ready',
+      'ready>investigate', 'investigate>ready',
+      'block>unblock', 'unblock>block',
+      'unblock>investigate', 'investigate>unblock',
+    ]);
+    const commands = Object.keys(COMMAND_EFFECTS);
+    for (const older of commands) {
+      for (const newer of commands) {
+        if (older === newer) continue;
+        assert.equal(commandsConflict(older, newer), expected.has(`${older}>${newer}`), `${older} then ${newer}`);
+      }
+    }
   });
 });
 
@@ -459,6 +479,19 @@ describe('runCommentHandler', () => {
     });
     assert.equal(names(github, 'addLabels').length, 0);
     assert.equal(names(github, 'createComment').length, 0);
+  });
+
+  test('an older /unblock that runs after a newer /investigate is skipped', async () => {
+    const github = fakeGithub({
+      permission: 'admin',
+      comments: [{ id: 9, user: { login: 'maint', type: 'User' }, body: '/investigate' }],
+    });
+    await runCommentHandler({
+      github,
+      core,
+      context: { repo, payload: { issue: { ...issue, labels: [] }, comment: { id: 8, body: '/unblock', user: { login: 'maint', type: 'User' } } } },
+    });
+    assert.equal(names(github, 'addLabels').length, 0);
   });
 
   test('a newer command from a non-maintainer does not supersede', async () => {

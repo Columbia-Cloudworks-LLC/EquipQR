@@ -33,17 +33,33 @@ export const NEEDS_INFO_MARKER = '<!-- equipqr-issue-triage:needs-info -->';
 const MAINTAINER_PERMISSIONS = new Set(['admin', 'maintain', 'write']);
 
 /**
- * Newer commands that undo an older one. Queued runs are not guaranteed to
- * execute in event order, so an older command is skipped when one of these
- * was posted after it.
- * @type {Record<string, string[]>}
+ * Labels each slash command removes and adds. This table drives both the label
+ * changes and the ordering check, so the two cannot drift apart.
+ * @type {Record<string, { remove: string[], add: string[] }>}
  */
-const SUPERSEDED_BY = {
-  ready: ['block', 'investigate'],
-  block: ['unblock', 'ready'],
-  unblock: ['block'],
-  investigate: ['ready'],
+export const COMMAND_EFFECTS = {
+  ready: {
+    remove: ['status:needs-triage', 'status:needs-info', 'status:needs-investigation', 'status:blocked'],
+    add: ['status:ready-for-dev'],
+  },
+  block: { remove: ['status:ready-for-dev'], add: ['status:blocked'] },
+  unblock: { remove: ['status:blocked'], add: ['status:ready-for-dev'] },
+  investigate: { remove: ['status:ready-for-dev'], add: ['status:needs-investigation'] },
 };
+
+/**
+ * True when running `older` after `newer` would undo part of `newer`: one adds
+ * a label the other removes. Queued runs are not guaranteed to execute in event
+ * order, so an older command is skipped when a conflicting newer one exists.
+ * @param {string} older
+ * @param {string} newer
+ */
+export function commandsConflict(older, newer) {
+  const a = COMMAND_EFFECTS[older];
+  const b = COMMAND_EFFECTS[newer];
+  if (!a || !b) return false;
+  return a.add.some((label) => b.remove.includes(label)) || a.remove.some((label) => b.add.includes(label));
+}
 
 /** @type {{ label: string, patterns: RegExp[] }[]} */
 const AREA_RULES = [
@@ -513,12 +529,11 @@ async function isMaintainer(github, repo, username) {
  * @returns {Promise<string | null>}
  */
 async function findNewerConflictingCommand(github, repo, issueNumber, commentId, command) {
-  const conflicts = SUPERSEDED_BY[command] || [];
   const comments = await github.paginate(github.rest.issues.listComments, { ...repo, issue_number: issueNumber, per_page: 100 });
   const candidates = comments
     .filter((/** @type {{ id: number, body?: string, user?: { type?: string, login?: string } }} */ c) => c.id > commentId && !isBot(c.user))
     .map((/** @type {{ id: number, body?: string, user?: { login?: string } }} */ c) => ({ c, parsed: parseSlashCommand(c.body || '') }))
-    .filter(({ parsed }) => parsed && conflicts.includes(parsed.command))
+    .filter(({ parsed }) => parsed && commandsConflict(command, parsed.command))
     .sort((a, b) => b.c.id - a.c.id);
   for (const { c, parsed } of candidates) {
     if (c.user?.login && (await isMaintainer(github, repo, c.user.login))) return parsed?.command ?? null;
@@ -570,41 +585,22 @@ export async function runCommentHandler({ github, context, core }) {
       return;
     }
 
-    switch (slash.command) {
-      case 'ready':
-        await removeLabels(
-          github,
-          repo,
-          issue.number,
-          ['status:needs-triage', 'status:needs-info', 'status:needs-investigation', 'status:blocked'].filter(has),
-        );
-        await addLabels(github, repo, issue.number, ['status:ready-for-dev']);
-        break;
-      case 'block':
-        await removeLabels(github, repo, issue.number, ['status:ready-for-dev'].filter(has));
-        await addLabels(github, repo, issue.number, ['status:blocked']);
-        // A rerun of the same /block event reuses its notice instead of posting another.
-        if (!(await findBotComment(github, repo, issue.number, blockerMarker(comment.id)))) {
-          await github.rest.issues.createComment({
-            ...repo,
-            issue_number: issue.number,
-            body: buildBlockerNotice({
-              reason: slash.args,
-              actor: comment.user.login,
-              timestamp: new Date().toISOString(),
-              sourceCommentId: comment.id,
-            }),
-          });
-        }
-        break;
-      case 'unblock':
-        await removeLabels(github, repo, issue.number, ['status:blocked'].filter(has));
-        await addLabels(github, repo, issue.number, ['status:ready-for-dev']);
-        break;
-      case 'investigate':
-        await removeLabels(github, repo, issue.number, ['status:ready-for-dev'].filter(has));
-        await addLabels(github, repo, issue.number, ['status:needs-investigation']);
-        break;
+    const effects = COMMAND_EFFECTS[slash.command];
+    await removeLabels(github, repo, issue.number, effects.remove.filter(has));
+    await addLabels(github, repo, issue.number, effects.add);
+
+    // A rerun of the same /block event reuses its notice instead of posting another.
+    if (slash.command === 'block' && !(await findBotComment(github, repo, issue.number, blockerMarker(comment.id)))) {
+      await github.rest.issues.createComment({
+        ...repo,
+        issue_number: issue.number,
+        body: buildBlockerNotice({
+          reason: slash.args,
+          actor: comment.user.login,
+          timestamp: new Date().toISOString(),
+          sourceCommentId: comment.id,
+        }),
+      });
     }
     await react(github, repo, comment.id, '+1');
     core.info(`Applied /${slash.command} for ${comment.user.login}.`);
