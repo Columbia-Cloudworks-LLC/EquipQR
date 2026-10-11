@@ -64,7 +64,7 @@ Area labels come from keywords and file paths in the title and body. Empty issue
 
 Pull request comments and bot comments are ignored. When the issue author comments on an issue in `status:needs-info`, it moves to `status:needs-triage`.
 
-Slash commands must be on the first line of the comment. Only users with `write`, `maintain`, or `admin` permission can run them. The bot reacts 👍 when a command is applied and 😕 when the commenter is not authorized.
+Slash commands must be on the first line of the comment. Only users with `write`, `maintain`, or `admin` permission can run them. The bot reacts 👍 when a command is applied and 😕 when the commenter is not authorized. GitHub does not guarantee that queued runs execute in comment order, so a command is skipped when a maintainer has already posted a newer command that undoes it (for example, `/block` followed by `/unblock`). The newest command always wins.
 
 | Command | Effect |
 | --- | --- |
