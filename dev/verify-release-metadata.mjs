@@ -97,7 +97,7 @@ export function isReleaseRelevantPath(filePath) {
   if (normalized === 'AGENTS.md') {
     return false;
   }
-  if (normalized.startsWith('.cursor/')) {
+  if (normalized.startsWith('.cursor/') || normalized.startsWith('.agents/')) {
     return false;
   }
   if (normalized.startsWith('docs/')) {

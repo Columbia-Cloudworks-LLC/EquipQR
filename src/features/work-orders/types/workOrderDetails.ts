@@ -27,6 +27,7 @@ export interface WorkOrderData {
   invoice_balance_cents?: number | null;
   invoice_due_date?: string | null;
   invoice_last_synced_at?: string | null;
+  invoice_sync_error?: string | null;
   assignee?: {
     id: string;
     name: string;

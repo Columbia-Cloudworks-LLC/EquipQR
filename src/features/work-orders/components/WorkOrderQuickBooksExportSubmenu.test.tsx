@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { WorkOrderQuickBooksExportSubmenu } from './WorkOrderQuickBooksExportSubmenu';
 
 const mockUseQuickBooksAccess = vi.fn();
-const mockUseExportToQuickBooks = vi.fn();
 const mockUseQuickBooksLastExport = vi.fn();
 const mockIsQuickBooksEnabled = vi.fn();
 
@@ -19,7 +18,7 @@ vi.mock('@/hooks/useQuickBooksAccess', () => ({
 }));
 
 vi.mock('@/hooks/useExportToQuickBooks', () => ({
-  useExportToQuickBooks: (...args: unknown[]) => mockUseExportToQuickBooks(...args),
+  QUICKBOOKS_EXPORT_MUTATION_KEY: ['quickbooks', 'export-invoice'],
   useQuickBooksLastExport: (...args: unknown[]) => mockUseQuickBooksLastExport(...args),
 }));
 
@@ -57,7 +56,6 @@ describe('WorkOrderQuickBooksExportSubmenu', () => {
     vi.clearAllMocks();
     mockIsQuickBooksEnabled.mockReturnValue(true);
     mockUseQuickBooksAccess.mockReturnValue({ data: true });
-    mockUseExportToQuickBooks.mockReturnValue({ isPending: false, mutate: vi.fn() });
     mockUseQuickBooksLastExport.mockReturnValue({ data: null });
   });
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { QrCode, MapPin, Calendar, Forklift, Clock } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { getEquipmentCardDisplayModel } from "@/features/equipment/utils/getEquipmentCardDisplayModel";
@@ -165,6 +166,11 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
             >
               {equipment.name}
             </span>
+            {display.unitNumber ? (
+              <Badge variant="secondary" className="flex-shrink-0 rounded-full px-1.5 py-0 text-[10px] font-mono font-medium">
+                Unit #{display.unitNumber}
+              </Badge>
+            ) : null}
             {(equipment as MergedEquipment)._isPendingSync && (
               <PendingSyncBadge className="flex-shrink-0" />
             )}

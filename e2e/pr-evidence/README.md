@@ -8,7 +8,7 @@ Every product PR must include **screenshots and at least one MP4 demo video** de
 |-------------|------------------|
 | UI route, form, dialog, dashboard flow | **Required:** add `e2e/pr-evidence/<feature>.spec.ts` |
 | Edge-only / no UI | Use RPC/log proof in PR body; no Playwright spec |
-| Workflow-only (`.cursor/**`, `AGENTS.md`) | No PR evidence spec |
+| Workflow-only (`.agents/**`, `AGENTS.md`) | No PR evidence spec |
 
 If no feature spec exists yet, `smoke-dashboard.spec.ts` is the fallback — **do not stop at the fallback** when the PR touches user-visible UI.
 

@@ -26,9 +26,6 @@ expect_failure bash dev/ops/supabase-secrets.sh --op-item unapproved --apply
 expect_failure bash dev/ops/github-secrets.sh --environment Production --apply
 expect_failure bash dev/e2e/env.sh unknown true
 [[ ! -e "$CALL_LOG" ]] || { echo 'Validation unexpectedly invoked GitHub.' >&2; exit 1; }
-printf '{"path":"missing-file.ts"}' | bash .cursor/hooks/workflow.sh lint-on-edit | jq -e '.continue == true' >/dev/null
-if printf invalid | bash .cursor/hooks/workflow.sh lint-on-edit > "$tmp/hook.json"; then exit 1; fi
-jq -e '.continue == false' "$tmp/hook.json" >/dev/null
 bash dev/e2e/env.sh google-local bash -c '[[ "$E2E_REAL_AUTH_BASE_URL" == http://localhost:8080 && -n "$E2E_REAL_AUTH_STORAGE_STATE" ]]'
 # Reject extra Windows entrypoints and runtime dispatch, including untracked files.
 python3 - <<'PY'
@@ -40,7 +37,7 @@ for name in paths:
     if not p.is_file(): continue
     if p.suffix.lower() in ('.ps1', '.psm1', '.psd1', '.cmd', '.bat') and name != 'dev/equipqr.bat':
         raise SystemExit(f'Unexpected Windows entrypoint: {name}')
-    if p.suffix in ('.sh', '.mjs', '.yml', '.yaml') and name.startswith(('dev/', '.github/', '.cursor/hooks/')):
+    if p.suffix in ('.sh', '.mjs', '.yml', '.yaml') and name.startswith(('dev/', '.github/')):
         text = p.read_text()
         if any(token in text for token in ('powershell' + '.exe', 'shell: ' + 'pwsh', 'invoke-' + 'powershell.mjs')):
             raise SystemExit(f'Unexpected Windows runtime: {name}')

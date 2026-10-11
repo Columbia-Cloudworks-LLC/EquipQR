@@ -98,7 +98,7 @@ N/A
 - Ensure components use existing UI primitives from `src/components/ui/`
 - Confirm queries use TanStack Query patterns with proper cache keys
 - Validate multi-tenancy: all data access includes `organization_id` filter
-- For UI changes, validate alignment with `.cursor/rules/design-context.mdc`
+- For UI changes, validate alignment with design standards in `docs/technical/standards.md`
 - For UI changes, verify mobile technician usability and light/dark readability parity
 
 </details>

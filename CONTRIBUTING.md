@@ -27,7 +27,7 @@ EquipQR is a QR-first work order app for heavy equipment repair shops, built wit
 
 ## Branching Model
 
-EquipQR uses a **feat → preview → main** train (#1282). Authoritative policy: [`.cursor/rules/branching.mdc`](.cursor/rules/branching.mdc).
+EquipQR uses a **feat → preview → main** train (#1282). Authoritative policy: [`docs/ops/git-and-deploy.md`](docs/ops/git-and-deploy.md).
 
 ### Branch Environments
 
@@ -70,7 +70,7 @@ EquipQR uses a **feat → preview → main** train (#1282). Authoritative policy
 
 ## Versioning & Release Process
 
-EquipQR uses **semantic versioning**. GitHub Actions creates tags when a bumped `package.json` lands on `main`. What belongs in the changelog is defined in [`.cursor/rules/changelog.mdc`](.cursor/rules/changelog.mdc).
+EquipQR uses **semantic versioning**. GitHub Actions creates tags when a bumped `package.json` lands on `main`. Keep entries user-focused in [`CHANGELOG.md`](CHANGELOG.md).
 
 ### How It Works
 

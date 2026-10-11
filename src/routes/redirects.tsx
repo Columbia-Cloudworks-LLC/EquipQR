@@ -2,12 +2,14 @@ import { Navigate, useLocation, useParams } from 'react-router-dom';
 
 export const RedirectToEquipment = () => {
   const { equipmentId } = useParams();
-  return <Navigate to={`/dashboard/equipment/${equipmentId}`} replace />;
+  const { search } = useLocation();
+  return <Navigate to={{ pathname: `/dashboard/equipment/${equipmentId}`, search }} replace />;
 };
 
 export const RedirectToWorkOrder = () => {
   const { workOrderId } = useParams();
-  return <Navigate to={`/dashboard/work-orders/${workOrderId}`} replace />;
+  const { search } = useLocation();
+  return <Navigate to={{ pathname: `/dashboard/work-orders/${workOrderId}`, search }} replace />;
 };
 
 /** Legacy `/landing` URLs normalize to canonical `/` (hash and query preserved). */

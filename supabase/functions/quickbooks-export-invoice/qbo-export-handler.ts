@@ -265,7 +265,7 @@ export async function handleQuickBooksExportInvoice(
       exportContext.costs,
       exportContext.notes,
       {
-        workOrder: workOrder as unknown as WorkOrderData,
+        workOrder,
         pm: exportContext.pmRow,
       },
     );
@@ -349,7 +349,7 @@ export async function handleQuickBooksExportInvoice(
     const artifacts = await buildPreparedInvoiceArtifacts(
       accessToken,
       credentials.realm_id,
-      workOrder as unknown as WorkOrderData,
+      workOrder,
       exportContext,
       taxState,
       confirmation.service_dates,

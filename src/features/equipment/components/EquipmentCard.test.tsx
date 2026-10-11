@@ -60,6 +60,24 @@ describe('EquipmentCard', () => {
       expect(screen.getAllByText('Forklift A1')[0]).toBeInTheDocument();
     });
 
+    it('renders the unit number in both the mobile row and the desktop card', () => {
+      render(
+        <EquipmentCard
+          equipment={{ ...mockEquipment, custom_attributes: { unit_number: 'E-12' } }}
+          onShowQRCode={mockOnShowQRCode}
+        />,
+      );
+
+      // jsdom ignores the md: breakpoint classes, so both layouts are in the DOM.
+      expect(screen.getAllByText('Unit #E-12')).toHaveLength(2);
+    });
+
+    it('omits the unit number when none is set', () => {
+      render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
+
+      expect(screen.queryByText(/Unit #/)).not.toBeInTheDocument();
+    });
+
     it('renders manufacturer and model', () => {
       render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
 

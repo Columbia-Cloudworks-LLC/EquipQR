@@ -218,6 +218,6 @@ For the longer-form versions of these patterns and the rest of the
 EquipQR review checklist (accessibility, error handling, query
 optimization, design context), see:
 
-- [.github/copilot-instructions.md](.github/copilot-instructions.md) — full domain reviewer guide
-- [.github/instructions/code-review.instructions.md](.github/instructions/code-review.instructions.md) — prioritized reviewer checklist
+- [AGENTS.md](AGENTS.md) — quality gates, security boundaries, and the documentation map
+- [.agents/skills/verify-gate/SKILL.md](.agents/skills/verify-gate/SKILL.md) — verification checklist
 - [docs/guides/permissions.md](docs/guides/permissions.md) — RBAC matrix

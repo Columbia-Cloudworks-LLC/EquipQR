@@ -31,12 +31,12 @@ Cloud agents **do not** run `npx supabase start` in Docker. Cursor Cloud VMs hav
    - Deletes the session branch
    - Restores `.env` from the pre-ephemeral backup
 
-## Cursor wiring
+## Environment setup
 
-[`.cursor/environment.json`](../../.cursor/environment.json):
+Setup scripts:
 
-- `install` → `bash dev/cloud-agent-frontend-setup.sh` (Node 24, 1Password `.env`, `npm ci`)
-- `start` → `bash dev/cloud-agent-ephemeral-stack.sh`
+- Setup: `bash dev/cloud-agent-frontend-setup.sh` (Node 24, 1Password `.env`, `npm ci`)
+- Start: `bash dev/cloud-agent-ephemeral-stack.sh`
 
 Cloud Agent secrets must include at least:
 

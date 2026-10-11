@@ -225,6 +225,6 @@ When blocked, post:
 
 - `docs/ops/cloud-admin-access.md` — GCP org posture
 - `docs/ops/google-workspace.md` — Connect contract and OAuth redirects
-- `.cursor/skills/secrets-rotation/SKILL.md` — rotation procedures (when present)
+- [Rotate-and-verify playbook](#rotate-and-verify-playbook-preview--production) — rotation procedure for preview and production secrets
 - `docs/technical/setup.md` — human developer onboarding
 - `AGENTS.md` — slim index only; do not copy this runbook back there

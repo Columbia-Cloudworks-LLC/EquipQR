@@ -16,6 +16,26 @@ export const legacyRedirectRouteElements = (
       }
     />
     <Route
+      path="/assets/:equipmentId"
+      element={
+        <ProtectedRoute>
+          <SimpleOrganizationProvider>
+            <RedirectToEquipment />
+          </SimpleOrganizationProvider>
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/inspections/:workOrderId"
+      element={
+        <ProtectedRoute>
+          <SimpleOrganizationProvider>
+            <RedirectToWorkOrder />
+          </SimpleOrganizationProvider>
+        </ProtectedRoute>
+      }
+    />
+    <Route
       path="/work-orders/:workOrderId"
       element={
         <ProtectedRoute>

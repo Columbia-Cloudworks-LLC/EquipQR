@@ -3,25 +3,20 @@ import {
   getQrTokenSecret,
   rotateQrTokenViaRpc,
 } from '@/features/public-forms/qrTokenSecretsService';
-import type { QuickFormData } from '@/features/quick-forms/types/quickForm';
-import type { Database, Json } from '@/integrations/supabase/types';
+import { parseQuickFormData, type QuickFormData } from '@/features/quick-forms/types/quickForm';
+import type { Database, Json, Tables } from '@/integrations/supabase/types';
 
 type QuickFormUpdate = Database['public']['Tables']['quick_forms']['Update'];
 
-export interface QuickForm {
-  id: string;
-  organization_id: string;
-  name: string;
-  description: string | null;
+export type QuickForm = Omit<Tables<'quick_forms'>, 'form_data'> & {
   form_data: QuickFormData;
-  is_active: boolean;
-  public_token_hash: string;
-  token_rotated_at: string;
-  token_rotated_by: string | null;
-  created_by: string;
-  updated_by: string | null;
-  created_at: string;
-  updated_at: string;
+};
+
+function mapQuickFormRow(row: Tables<'quick_forms'>): QuickForm {
+  return {
+    ...row,
+    form_data: parseQuickFormData(row.form_data),
+  };
 }
 
 export async function listQuickForms(organizationId: string): Promise<QuickForm[]> {
@@ -32,7 +27,7 @@ export async function listQuickForms(organizationId: string): Promise<QuickForm[
     .order('created_at', { ascending: true });
 
   if (error) throw error;
-  return (data ?? []) as unknown as QuickForm[];
+  return (data ?? []).map(mapQuickFormRow);
 }
 
 /**
@@ -50,7 +45,7 @@ export async function createQuickForm(input: {
     p_organization_id: input.organizationId,
     p_name: input.name,
     p_description: input.description ?? '',
-    p_form_data: input.formData as unknown as Json,
+    p_form_data: input.formData as Json,
   });
 
   if (error) throw error;
@@ -68,7 +63,7 @@ export async function createQuickForm(input: {
 
   if (fetchError) throw fetchError;
   return {
-    form: form as unknown as QuickForm,
+    form: mapQuickFormRow(form),
     rawToken: row.raw_token as string,
   };
 }
@@ -84,7 +79,7 @@ export async function updateQuickForm(input: {
   const updateData: QuickFormUpdate = { updated_at: new Date().toISOString() };
   if (input.name !== undefined) updateData.name = input.name;
   if (input.description !== undefined) updateData.description = input.description;
-  if (input.formData !== undefined) updateData.form_data = input.formData as unknown as Json;
+  if (input.formData !== undefined) updateData.form_data = input.formData as Json;
   if (input.isActive !== undefined) updateData.is_active = input.isActive;
 
   const { data, error } = await supabase
@@ -96,7 +91,7 @@ export async function updateQuickForm(input: {
     .single();
 
   if (error) throw error;
-  return data as unknown as QuickForm;
+  return mapQuickFormRow(data);
 }
 
 export async function deleteQuickForm(formId: string, organizationId: string): Promise<void> {

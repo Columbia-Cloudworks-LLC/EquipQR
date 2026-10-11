@@ -57,7 +57,7 @@ export function EquipmentCardWorkOrderMenu({
           onClick={handleCreateWorkOrder}
         >
           <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span className="truncate">Work Order</span>
+          <span className="truncate">Start Work Order</span>
         </Button>
       ) : (
         <Button

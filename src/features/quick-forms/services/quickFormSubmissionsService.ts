@@ -5,16 +5,31 @@ import type {
   QuickFormFieldValue,
 } from '@/features/quick-forms/types/quickForm';
 
-export interface QuickFormSubmission {
-  id: string;
-  organization_id: string;
-  quick_form_id: string;
-  submitted_at: string;
+import type { Tables } from '@/integrations/supabase/types';
+
+export type QuickFormSubmission = Omit<
+  Tables<'quick_form_submissions'>,
+  'form_snapshot' | 'field_values' | 'client_context'
+> & {
   form_snapshot: (QuickFormData & { id?: string; name?: string; description?: string | null }) | null;
   field_values: QuickFormFieldValue[];
   client_context: QuickFormClientContext | null;
-  request_fingerprint: string | null;
-  created_at: string;
+};
+
+function mapQuickFormSubmissionRow(
+  row: Tables<'quick_form_submissions'>,
+): QuickFormSubmission {
+  return {
+    id: row.id,
+    organization_id: row.organization_id,
+    quick_form_id: row.quick_form_id,
+    submitted_at: row.submitted_at,
+    form_snapshot: (row.form_snapshot as QuickFormSubmission['form_snapshot']) ?? null,
+    field_values: (Array.isArray(row.field_values) ? row.field_values : []) as QuickFormFieldValue[],
+    client_context: (row.client_context as QuickFormClientContext | null) ?? null,
+    request_fingerprint: row.request_fingerprint,
+    created_at: row.created_at,
+  };
 }
 
 export interface QuickFormSubmissionFilters {
@@ -123,7 +138,7 @@ export async function listQuickFormSubmissionPage(
   const { data, error } = await dataQuery;
   if (error) throw error;
 
-  const submissions = (data ?? []) as unknown as QuickFormSubmission[];
+  const submissions = (data ?? []).map(mapQuickFormSubmissionRow);
   const nextCursor = submissions.length === pageSize
     ? cursorFrom(submissions[submissions.length - 1]!)
     : null;

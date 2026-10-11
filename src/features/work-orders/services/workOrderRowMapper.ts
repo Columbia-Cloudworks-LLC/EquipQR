@@ -3,6 +3,7 @@ import { parseLastKnownLocation, resolveEffectiveLocation } from '@/utils/effect
 import {
   WorkOrder,
   WorkOrderEmbeddedEquipment,
+  type WorkOrderRow,
 } from '@/features/work-orders/types/workOrder';
 
 // Optimized select query string with all joins.
@@ -106,34 +107,34 @@ export type WorkOrderJoinedEquipment = {
   teams?: WorkOrderJoinedTeam;
 } | null;
 
-export function mapBaseWorkOrderFields(wo: Record<string, unknown>): Partial<WorkOrder> {
+export function mapBaseWorkOrderFields(wo: Partial<WorkOrderRow>): Partial<WorkOrder> {
   return {
-    id: wo.id as string,
-    title: wo.title as string,
-    description: wo.description as string,
-    equipment_id: wo.equipment_id as string,
-    organization_id: wo.organization_id as string,
-    priority: wo.priority as WorkOrder['priority'],
-    status: wo.status as WorkOrder['status'],
-    assignee_id: wo.assignee_id as string | null,
-    assignee_name: wo.assignee_name as string | null,
-    team_id: wo.team_id as string | null,
-    created_by: wo.created_by as string,
-    created_by_admin: wo.created_by_admin as string | null,
-    created_by_name: wo.created_by_name as string | null,
-    created_date: wo.created_date as string,
-    due_date: wo.due_date as string | null,
-    due_date_has_time: (wo.due_date_has_time as boolean | undefined) ?? false,
-    estimated_hours: wo.estimated_hours as number | null,
-    completed_date: wo.completed_date as string | null,
-    acceptance_date: wo.acceptance_date as string | null,
-    updated_at: wo.updated_at as string,
-    is_historical: wo.is_historical as boolean,
-    historical_start_date: wo.historical_start_date as string | null,
-    historical_notes: wo.historical_notes as string | null,
-    has_pm: wo.has_pm as boolean,
-    pm_required: wo.pm_required as boolean,
-    primary_image_id: (wo.primary_image_id as string | null | undefined) ?? null,
+    id: wo.id,
+    title: wo.title,
+    description: wo.description,
+    equipment_id: wo.equipment_id,
+    organization_id: wo.organization_id,
+    priority: wo.priority,
+    status: wo.status,
+    assignee_id: wo.assignee_id ?? null,
+    assignee_name: wo.assignee_name ?? null,
+    team_id: wo.team_id ?? null,
+    created_by: wo.created_by,
+    created_by_admin: wo.created_by_admin ?? null,
+    created_by_name: wo.created_by_name ?? null,
+    created_date: wo.created_date,
+    due_date: wo.due_date ?? null,
+    due_date_has_time: wo.due_date_has_time ?? false,
+    estimated_hours: wo.estimated_hours ?? null,
+    completed_date: wo.completed_date ?? null,
+    acceptance_date: wo.acceptance_date ?? null,
+    updated_at: wo.updated_at,
+    is_historical: wo.is_historical ?? false,
+    historical_start_date: wo.historical_start_date ?? null,
+    historical_notes: wo.historical_notes ?? null,
+    has_pm: wo.has_pm ?? false,
+    pm_required: wo.pm_required ?? false,
+    primary_image_id: wo.primary_image_id ?? null,
   };
 }
 
@@ -342,7 +343,7 @@ export function mapWorkOrderRow(wo: Record<string, unknown>): WorkOrder {
   const organizationId = wo.organization_id as string;
 
   return {
-    ...mapBaseWorkOrderFields(wo),
+    ...mapBaseWorkOrderFields(wo as Partial<WorkOrderRow>),
     ...mapQuickBooksInvoiceFields(wo),
     ...mapJoinedWorkOrderFields(assignee, equipment, creator, organizationId),
     assignee_name: assignment.id ? assignment.name : null,
