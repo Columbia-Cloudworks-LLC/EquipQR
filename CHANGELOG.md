@@ -11,6 +11,8 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+## [3.36.0] - 2026-10-11
+
 ### Added
 
 - **Unit numbers and QR tags on equipment** — Equipment cards and the mobile equipment header show the unit number, and the mobile header shows the QR tag, when they are set in custom attributes.
