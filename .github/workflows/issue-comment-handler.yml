@@ -1,0 +1,39 @@
+name: Issue Comment Handler
+
+# Clears status:needs-info when the reporter responds and runs maintainer slash
+# commands (/ready, /block, /unblock, /investigate).
+# Logic lives in .github/scripts/issue-automation.js.
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read # sparse checkout of .github/scripts
+  issues: write
+
+# Shared with issue-triage.yml so label writes on one issue never race.
+concurrency:
+  group: issue-automation-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  handle:
+    name: Handle issue comment
+    # Skip pull request comments and bot comments before a runner starts.
+    if: ${{ !github.event.issue.pull_request && github.event.comment.user.type != 'Bot' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout automation scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      - name: Handle comment
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        with:
+          script: |
+            const { runCommentHandler } = await import(`${process.env.GITHUB_WORKSPACE}/.github/scripts/issue-automation.js`);
+            await runCommentHandler({ github, context, core });
