@@ -232,13 +232,15 @@ INSERT INTO public.pm_interval_policies (
   'equipment',
   'aa0e8400-e29b-41d4-a716-44665544a203'::uuid,
   NULL,
-  'primary',
+  'default',
   'custom',
   30,
   'days',
   'bb0e8400-e29b-41d4-a716-446655440001'::uuid
 )
 ON CONFLICT (id) DO UPDATE SET
+  -- Effective-policy lookups only read the default slot.
+  policy_slot = 'default',
   interval_value = 30,
   interval_type = 'days';
 

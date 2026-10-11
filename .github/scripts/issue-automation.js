@@ -43,7 +43,7 @@ export const COMMAND_EFFECTS = {
     add: ['status:ready-for-dev'],
   },
   block: { remove: ['status:ready-for-dev'], add: ['status:blocked'] },
-  unblock: { remove: ['status:blocked'], add: ['status:ready-for-dev'] },
+  unblock: { remove: ['status:blocked', 'status:needs-investigation'], add: ['status:ready-for-dev'] },
   investigate: { remove: ['status:ready-for-dev'], add: ['status:needs-investigation'] },
 };
 

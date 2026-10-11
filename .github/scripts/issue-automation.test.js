@@ -630,8 +630,10 @@ describe('runCommentHandler', () => {
       context: { repo, payload: { issue: { ...issue, labels: [] }, comment: { id: 8, body: '/block vendor outage', user: { login: 'maint', type: 'User' } } } },
     });
     const writes = github.calls.filter((call) => call.name === 'addLabels' || call.name === 'removeLabel');
-    const last = writes.slice(-2).map((call) => call.params.labels || call.params.name);
-    assert.deepEqual(last, ['status:blocked', ['status:ready-for-dev']]);
+    const labelsWritten = writes.map((call) => call.params.labels || call.params.name);
+    const blockedAdded = labelsWritten.findIndex((labels) => Array.isArray(labels) && labels.includes('status:blocked'));
+    assert.ok(labelsWritten.lastIndexOf('status:blocked') > blockedAdded, 'replay removes status:blocked after /block added it');
+    assert.deepEqual(labelsWritten.at(-1), ['status:ready-for-dev']);
     assert.equal(names(github, 'createComment').length, 0);
   });
 
@@ -657,6 +659,23 @@ describe('runCommentHandler', () => {
     assert.deepEqual(addedLabels(github), ['status:blocked', 'status:ready-for-dev', 'status:needs-investigation']);
     const removals = names(github, 'removeLabel').map((call) => call.params.name);
     assert.equal(removals.at(-1), 'status:ready-for-dev');
+  });
+
+  test('/unblock after /investigate and /block returns the issue to ready only', async () => {
+    const github = fakeGithub({ permission: 'admin' });
+    await runCommentHandler({
+      github,
+      core,
+      context: {
+        repo,
+        payload: {
+          issue: { ...issue, labels: [{ name: 'status:blocked' }, { name: 'status:needs-investigation' }] },
+          comment: { id: 8, body: '/unblock', user: { login: 'maint', type: 'User' } },
+        },
+      },
+    });
+    assert.deepEqual(names(github, 'removeLabel').map((call) => call.params.name), ['status:blocked', 'status:needs-investigation']);
+    assert.deepEqual(addedLabels(github), ['status:ready-for-dev']);
   });
 
   test('a newer non-conflicting command does not supersede', async () => {
