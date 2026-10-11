@@ -33,7 +33,7 @@ interface EquipmentCardDisplayInput {
   status: string;
   last_maintenance?: string;
   working_hours?: number | null;
-  custom_attributes?: Record<string, unknown> | null;
+  custom_attributes?: unknown;
 }
 
 /** Reads a string value from an equipment `custom_attributes` JSON object. */

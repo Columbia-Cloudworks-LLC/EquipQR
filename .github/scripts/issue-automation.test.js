@@ -142,6 +142,16 @@ describe('findMissingBugInfo', () => {
     assert.deepEqual(findMissingBugInfo(body), []);
   });
 
+  test('an empty evidence field does not count as logs because of its heading', () => {
+    const body = '### Steps to reproduce\n\n1. Open\n2. Click\n\n### Console error\n\n_No response_';
+    assert.deepEqual(findMissingBugInfo(body), ['logs']);
+  });
+
+  test('evidence in another filled form field still counts', () => {
+    const body = '### Steps to reproduce\n\n1. Open\n2. Click\n\n### Console error\n\n_No response_\n\n### Additional context\n\n```\nTypeError: x is undefined\n```';
+    assert.deepEqual(findMissingBugInfo(body), []);
+  });
+
   test('a GitHub attachment link counts as evidence, a lookalike host does not', () => {
     const steps = '1. Open equipment\n2. Scan QR\n\n';
     assert.deepEqual(findMissingBugInfo(`${steps}Recording: https://github.com/user-attachments/assets/abc123`), []);

@@ -186,7 +186,10 @@ function hasLogsOrEvidence(body) {
   const logSection = sections.find((section) => /log|error|console|stack|output|screenshot|evidence/i.test(section.heading));
   if (logSection && logSection.content.length > 0) return true;
 
-  const text = stripEmptyResponses(body);
+  // In an issue form, only filled-in field contents count; headings such as
+  // "Console error" above an empty field must not read as evidence.
+  const text =
+    sections.length > 0 ? sections.map((section) => section.content).join('\n') : stripEmptyResponses(body);
   return (
     /```/.test(text) ||
     /!\[[^\]]*\]\([^)]+\)/.test(text) ||
