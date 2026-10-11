@@ -434,12 +434,28 @@ async function currentLabelNames(github, repo, issueNumber) {
 }
 
 /**
+ * `/ready` clears the triage statuses, but a reporter reply that overlaps it can
+ * add `status:needs-triage` back. Both paths call this after writing so
+ * whichever run finishes last removes the stale status.
+ * @param {any} github
+ * @param {{ owner: string, repo: string }} repo
+ * @param {number} issueNumber
+ */
+async function settleReadyStatus(github, repo, issueNumber) {
+  const labels = await currentLabelNames(github, repo, issueNumber);
+  if (!labels.includes('status:ready-for-dev')) return;
+  await removeLabels(github, repo, issueNumber, ['status:needs-triage', 'status:needs-info'].filter((name) => labels.includes(name)));
+}
+
+/**
  * Entry point for issue-triage.yml (`issues: opened, edited`).
  * @param {{ github: any, context: any, core: any }} args
  */
 export async function runTriage({ github, context, core }) {
-  const { issue, action } = context.payload;
+  const { action } = context.payload;
   const repo = context.repo;
+  // A queued opened run can start after an edit; classify the current content.
+  const { data: issue } = await github.rest.issues.get({ ...repo, issue_number: context.payload.issue.number });
   const title = issue.title || '';
   const body = issue.body || '';
 
@@ -540,6 +556,26 @@ async function findNewerConflictingCommand(github, repo, issueNumber, commentId,
 }
 
 /**
+ * Returns the human slash commands posted after `commentId`, newest first.
+ * Callers still check the author's permission.
+ * @param {any} github
+ * @param {{ owner: string, repo: string }} repo
+ * @param {number} issueNumber
+ * @param {number} commentId 0 to consider every comment on the issue
+ * @returns {Promise<{ login: string, command: string, args: string }[]>}
+ */
+async function slashCommandsAfter(github, repo, issueNumber, commentId) {
+  const comments = await github.paginate(github.rest.issues.listComments, { ...repo, issue_number: issueNumber, per_page: 100 });
+  return comments
+    .filter((/** @type {{ id: number, body?: string, user?: { type?: string, login?: string } }} */ c) => c.id > commentId && !isBot(c.user))
+    .sort((/** @type {{ id: number }} */ a, /** @type {{ id: number }} */ b) => b.id - a.id)
+    .flatMap((/** @type {{ body?: string, user?: { login?: string } }} */ c) => {
+      const parsed = parseSlashCommand(c.body || '');
+      return parsed && c.user?.login ? [{ login: c.user.login, ...parsed }] : [];
+    });
+}
+
+/**
  * Returns the newest maintainer slash command posted after `commentId` that
  * matches `accept`, or null when none exists.
  * @param {any} github
@@ -550,14 +586,8 @@ async function findNewerConflictingCommand(github, repo, issueNumber, commentId,
  * @returns {Promise<string | null>}
  */
 async function findMaintainerCommandAfter(github, repo, issueNumber, commentId, accept) {
-  const comments = await github.paginate(github.rest.issues.listComments, { ...repo, issue_number: issueNumber, per_page: 100 });
-  const candidates = comments
-    .filter((/** @type {{ id: number, body?: string, user?: { type?: string, login?: string } }} */ c) => c.id > commentId && !isBot(c.user))
-    .map((/** @type {{ id: number, body?: string, user?: { login?: string } }} */ c) => ({ c, parsed: parseSlashCommand(c.body || '') }))
-    .filter(({ parsed }) => parsed && accept(parsed.command))
-    .sort((a, b) => b.c.id - a.c.id);
-  for (const { c, parsed } of candidates) {
-    if (c.user?.login && (await isMaintainer(github, repo, c.user.login))) return parsed?.command ?? null;
+  for (const { login, command } of await slashCommandsAfter(github, repo, issueNumber, commentId)) {
+    if (accept(command) && (await isMaintainer(github, repo, login))) return command;
   }
   return null;
 }
@@ -572,16 +602,12 @@ async function findMaintainerCommandAfter(github, repo, issueNumber, commentId, 
  * @returns {Promise<string[]>}
  */
 async function listMaintainerCommandsAfter(github, repo, issueNumber, commentId) {
-  const comments = await github.paginate(github.rest.issues.listComments, { ...repo, issue_number: issueNumber, per_page: 100 });
-  const candidates = comments
-    .filter((/** @type {{ id: number, body?: string, user?: { type?: string, login?: string } }} */ c) => c.id > commentId && !isBot(c.user))
-    .map((/** @type {{ id: number, body?: string, user?: { login?: string } }} */ c) => ({ c, parsed: parseSlashCommand(c.body || '') }))
-    .filter(({ parsed }) => parsed && !(parsed.command === 'block' && !parsed.args))
-    .sort((a, b) => a.c.id - b.c.id);
   /** @type {string[]} */
   const commands = [];
-  for (const { c, parsed } of candidates) {
-    if (parsed && c.user?.login && (await isMaintainer(github, repo, c.user.login))) commands.push(parsed.command);
+  for (const { login, command, args } of (await slashCommandsAfter(github, repo, issueNumber, commentId)).reverse()) {
+    // A bare /block changes no labels.
+    if (command === 'block' && !args) continue;
+    if (await isMaintainer(github, repo, login)) commands.push(command);
   }
   return commands;
 }
@@ -674,6 +700,7 @@ export async function runCommentHandler({ github, context, core }) {
         }),
       });
     }
+    if (slash.command === 'ready') await settleReadyStatus(github, repo, issue.number);
     await react(github, repo, comment.id, '+1');
     core.info(`Applied /${slash.command} for ${comment.user.login}.`);
     return;
@@ -682,6 +709,7 @@ export async function runCommentHandler({ github, context, core }) {
   if (has('status:needs-info') && comment.user.login === issue.user?.login) {
     await removeLabels(github, repo, issue.number, ['status:needs-info']);
     await addLabels(github, repo, issue.number, ['status:needs-triage']);
+    await settleReadyStatus(github, repo, issue.number);
     core.info('Reporter responded; moved to status:needs-triage.');
     return;
   }

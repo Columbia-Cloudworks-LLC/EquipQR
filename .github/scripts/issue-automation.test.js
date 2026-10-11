@@ -19,14 +19,16 @@ import {
 } from './issue-automation.js';
 
 /**
- * The handlers read the issue's current labels from the API. Unless a test sets
- * `github.issueLabels` itself, serve the labels from the event payload.
+ * The handlers read the issue's current labels and content from the API. Unless
+ * a test sets `github.issueLabels` or `github.currentIssue` itself, serve them
+ * from the event payload.
  */
 function withCurrentLabels(run) {
   return (args) => {
     if (!args.github.issueLabels) {
       args.github.issueLabels = (args.context.payload.issue.labels || []).map((label) => label.name);
     }
+    if (!args.github.currentIssue) args.github.currentIssue = args.context.payload.issue;
     return run(args);
   };
 }
@@ -84,6 +86,7 @@ function fakeGithub({ labels = [], comments = [], permission = 'read' } = {}) {
         listLabelsForRepo: () => {},
         listLabelsOnIssue: () => {},
         listComments: () => {},
+        get: async () => ({ data: github.currentIssue }),
         createLabel: record('createLabel'),
         addLabels: record('addLabels'),
         removeLabel: async (params) => {
@@ -287,6 +290,18 @@ describe('runTriage', () => {
     assert.equal(names(github, 'createLabel').length, 0);
   });
 
+  test('an opened run classifies the current body, not the stale webhook body', async () => {
+    const github = fakeGithub();
+    github.currentIssue = { ...baseIssue, body: BUG_FORM_COMPLETE, labels: [] };
+    await runTriage({
+      github,
+      core,
+      context: { repo, payload: { action: 'opened', issue: { ...baseIssue, body: BUG_FORM_EMPTY, labels: [] } } },
+    });
+    assert.ok(!addedLabels(github).includes('status:needs-info'));
+    assert.ok(addedLabels(github).includes('status:needs-triage'));
+  });
+
   test('editing in the missing details swaps needs-info for needs-triage and updates the comment', async () => {
     const github = fakeGithub({
       comments: [{ id: 99, user: { type: 'Bot' }, body: `${NEEDS_INFO_MARKER}\nold checklist` }],
@@ -387,6 +402,22 @@ describe('runCommentHandler', () => {
     });
     assert.deepEqual(names(github, 'removeLabel').map((call) => call.params.name), ['status:needs-info']);
     assert.deepEqual(addedLabels(github), ['status:needs-triage']);
+  });
+
+  test('a reporter reply that overlaps /ready does not leave needs-triage behind', async () => {
+    const github = fakeGithub();
+    const addLabelsImpl = github.rest.issues.addLabels;
+    github.rest.issues.addLabels = async (params) => {
+      // The overlapping /ready run lands before this run re-reads its labels.
+      github.issueLabels = ['status:ready-for-dev', ...params.labels];
+      return addLabelsImpl(params);
+    };
+    await runCommentHandler({
+      github,
+      core,
+      context: { repo, payload: { issue, comment: { id: 1, body: 'Here are the logs', user: { login: 'reporter', type: 'User' } } } },
+    });
+    assert.equal(names(github, 'removeLabel').at(-1).params.name, 'status:needs-triage');
   });
 
   test('replies from other users leave needs-info alone', async () => {
