@@ -18,7 +18,7 @@ describe('collectLocalMarkdownHrefs', () => {
   it('keeps repo-relative links and drops absolute URLs', () => {
     const markdown = [
       '[secrets](docs/ops/agent-secrets-and-access.md)',
-      '[branching](.cursor/rules/branching.mdc#work-mode)',
+      '[branching](.agents/skills/git-and-deploy/SKILL.md#work-mode)',
       '[app](https://equipqr.app)',
       '[mail](mailto:invite@equipqr.app)',
       '[same](#refs)',
@@ -26,7 +26,7 @@ describe('collectLocalMarkdownHrefs', () => {
 
     expect(collectLocalMarkdownHrefs(markdown)).toEqual([
       'docs/ops/agent-secrets-and-access.md',
-      '.cursor/rules/branching.mdc#work-mode',
+      '.agents/skills/git-and-deploy/SKILL.md#work-mode',
     ]);
   });
 });

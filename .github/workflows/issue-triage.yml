@@ -1,0 +1,36 @@
+name: Issue Triage
+
+# Labels new and edited issues by area and checks bug reports for reproduction
+# steps and logs. Logic lives in .github/scripts/issue-automation.js.
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  contents: read # sparse checkout of .github/scripts
+  issues: write
+
+# Shared with issue-comment-handler.yml so label writes on one issue never race.
+concurrency:
+  group: issue-automation-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  triage:
+    name: Triage issue
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout automation scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      - name: Triage issue
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        with:
+          script: |
+            const { runTriage } = await import(`${process.env.GITHUB_WORKSPACE}/.github/scripts/issue-automation.js`);
+            await runTriage({ github, context, core });

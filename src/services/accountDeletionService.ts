@@ -36,83 +36,73 @@ export type AccountDeletionExecuteResponse = {
   receiptWarning?: string | null;
 };
 
-async function getAuthHeaders(): Promise<Record<string, string>> {
-  const { data: sessionData } = await supabase.auth.getSession();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-
-  const accessToken = sessionData?.session?.access_token;
-  if (!accessToken) {
-    throw new Error('You must be signed in to manage account deletion.');
-  }
-
-  headers.Authorization = `Bearer ${accessToken}`;
-  return headers;
-}
-
-function getDeleteAccountUrl(): string {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  if (!supabaseUrl) {
-    throw new Error('Supabase URL is not configured.');
-  }
-  return `${supabaseUrl}/functions/v1/delete-account`;
-}
-
-async function parseDeleteAccountResponse<T>(
-  res: Response,
+async function invokeDeleteAccount<T>(
+  body: Record<string, unknown>,
   options?: { allowStatuses?: number[] },
 ): Promise<T> {
-  const body = (await res.json().catch(() => ({}))) as T & { error?: string; message?: string };
-  if (!res.ok && !options?.allowStatuses?.includes(res.status)) {
-    throw new Error(body.error || body.message || 'Account deletion request failed.');
+  const { data, error } = await supabase.functions.invoke<T>('delete-account', { body });
+
+  if (error) {
+    let errorBody: (T & { error?: string; message?: string }) | null = null;
+    let status: number | undefined;
+
+    const context = (error as { context?: Response })?.context;
+    if (context && typeof context.json === 'function') {
+      status = context.status;
+      try {
+        errorBody = await context.json();
+      } catch {
+        // ignore parse error
+      }
+    }
+
+    if (status && options?.allowStatuses?.includes(status) && errorBody) {
+      return errorBody;
+    }
+
+    const message =
+      (typeof errorBody?.error === 'string' && errorBody.error) ||
+      (typeof errorBody?.message === 'string' && errorBody.message) ||
+      error.message ||
+      'Account deletion request failed.';
+    throw new Error(message);
   }
-  return body;
+
+  if (!data) {
+    throw new Error('Account deletion request failed.');
+  }
+
+  return data;
 }
 
 export async function previewAccountDeletion(): Promise<AccountDeletionPreview> {
-  const headers = await getAuthHeaders();
-  const res = await fetch(getDeleteAccountUrl(), {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ dryRunOnly: true }),
-  });
-
-  const body = await parseDeleteAccountResponse<AccountDeletionDryRunResponse>(res);
-  return body.preview;
+  const response = await invokeDeleteAccount<AccountDeletionDryRunResponse>({ dryRunOnly: true });
+  return response.preview;
 }
 
 export async function executeAccountDeletion(input: {
   confirmationText: string;
   expectedUserEmail: string;
 }): Promise<AccountDeletionExecuteResponse> {
-  const headers = await getAuthHeaders();
-  const res = await fetch(getDeleteAccountUrl(), {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
+  return invokeDeleteAccount<AccountDeletionExecuteResponse>(
+    {
       confirmationText: input.confirmationText,
       expectedUserEmail: input.expectedUserEmail,
       dryRunOnly: false,
-    }),
-  });
-
-  return parseDeleteAccountResponse<AccountDeletionExecuteResponse>(res, { allowStatuses: [409] });
+    },
+    { allowStatuses: [409] },
+  );
 }
 
 export async function requestManualDeletionReview(
   expectedUserEmail: string,
 ): Promise<AccountDeletionExecuteResponse> {
-  const headers = await getAuthHeaders();
-  const res = await fetch(getDeleteAccountUrl(), {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
+  return invokeDeleteAccount<AccountDeletionExecuteResponse>(
+    {
       confirmationText: 'MANUAL_REVIEW',
       expectedUserEmail,
       dryRunOnly: false,
-    }),
-  });
-
-  return parseDeleteAccountResponse<AccountDeletionExecuteResponse>(res, { allowStatuses: [409] });
+    },
+    { allowStatuses: [409] },
+  );
 }

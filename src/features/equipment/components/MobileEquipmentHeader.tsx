@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, QrCode, MapPin, Calendar, Trash2, Clock, ChevronRight } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 import { getStatusColor, EQUIPMENT_STATUS_OPTIONS } from '@/features/equipment/utils/equipmentHelpers';
+import { getCustomAttributeString } from '@/features/equipment/utils/getEquipmentCardDisplayModel';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { getEquipmentViewTransitionStyle } from '@/features/equipment/transitions/equipmentViewTransitionNames';
 import { useEquipmentCardTransitionState } from '@/features/equipment/transitions/useEquipmentCardTransitionState';
@@ -30,6 +31,9 @@ const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
   const { formatDate } = useFormatTimestamp();
   const { activeEquipmentId } = useEquipmentCardTransitionState();
   const isTransitionActive = activeEquipmentId === equipment.id;
+
+  const unitNumber = getCustomAttributeString(equipment.custom_attributes, 'unit_number');
+  const qrTag = getCustomAttributeString(equipment.custom_attributes, 'qr_tag');
 
   return (
     <div className="space-y-4">
@@ -68,14 +72,28 @@ const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
           <Badge className={`${getStatusColor(equipment.status || 'active')} rounded-full px-2 py-0.5 text-xs`} variant="outline">
             {EQUIPMENT_STATUS_OPTIONS.find(opt => opt.value === equipment.status)?.label || 'Active'}
           </Badge>
+          {unitNumber && (
+            <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-xs font-mono font-medium">
+              Unit #{unitNumber}
+            </Badge>
+          )}
         </div>
         <div style={getEquipmentViewTransitionStyle('meta', isTransitionActive)}>
           <p className="text-sm text-muted-foreground">
             {equipment.manufacturer} {equipment.model}
           </p>
-          <p className="text-sm text-muted-foreground">
-            S/N: {equipment.serial_number}
-          </p>
+          <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
+            <span>S/N: {equipment.serial_number}</span>
+            {qrTag && (
+              <>
+                <span aria-hidden="true">•</span>
+                <span className="inline-flex items-center gap-1 font-mono text-xs bg-muted/80 text-foreground/90 px-1.5 py-0.5 rounded border border-border/60">
+                  <QrCode className="h-3 w-3 text-primary" aria-hidden="true" />
+                  Tag #{qrTag}
+                </span>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

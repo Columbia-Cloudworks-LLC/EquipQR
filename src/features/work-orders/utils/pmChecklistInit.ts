@@ -19,7 +19,7 @@ export function parsePMChecklistData(
         typeof checklistItem.id === 'string' &&
         typeof checklistItem.title === 'string' &&
         typeof checklistItem.section === 'string' &&
-        typeof checklistItem.required === 'boolean' &&
+        (typeof checklistItem.required === 'boolean' || checklistItem.required === undefined) &&
         (checklistItem.condition === null ||
           checklistItem.condition === undefined ||
           (typeof checklistItem.condition === 'number' &&
@@ -36,12 +36,13 @@ export function parsePMChecklistData(
           title: String(checklistItem.title),
           description: checklistItem.description ? String(checklistItem.description) : undefined,
           section: String(checklistItem.section),
-          required: Boolean(checklistItem.required),
+          required: Boolean(checklistItem.required ?? true),
           condition:
             checklistItem.condition !== null && checklistItem.condition !== undefined
               ? (Number(checklistItem.condition) as PMChecklistCondition)
               : null,
           notes: checklistItem.notes ? String(checklistItem.notes) : undefined,
+          photo_url: checklistItem.photo_url ? String(checklistItem.photo_url) : undefined,
         };
       });
     } else {

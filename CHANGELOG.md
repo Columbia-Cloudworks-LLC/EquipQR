@@ -7,9 +7,30 @@ All notable changes to EquipQR by Columbia Cloudworks LLC will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Entries through 3.28.0 are more verbose than the current policy. Newer notes are short customer-facing outcomes. Editorial rules live in `.cursor/rules/changelog.mdc`.
+Entries through 3.28.0 are more verbose than the current policy. Newer notes are short customer-facing outcomes. Editorial rules live in `AGENTS.md` and `.agents/skills/git-and-deploy/SKILL.md`.
 
 ## [Unreleased]
+
+## [3.36.0] - 2026-10-11
+
+### Added
+
+- **Unit numbers and QR tags on equipment** — Equipment cards and the mobile equipment header show the unit number, and the mobile header shows the QR tag, when they are set in custom attributes.
+- **Defect photos on PM checklist items** — PM checklist items with an attached photo show a thumbnail and file name.
+- **QuickBooks export shortcut** — Completed work orders show an "Export to QuickBooks" button (or "Update Invoice #" once an invoice exists), and a "Synced" badge once the invoice has synced.
+- **Short equipment and inspection links** — `/assets/<id>` and `/inspections/<id>` links open the matching equipment or work order and keep any query parameters.
+- **Issue triage automation** — New GitHub issues are labeled by area, incomplete bug reports are asked for reproduction steps and logs, and maintainers can set issue status with `/ready`, `/block`, `/unblock`, and `/investigate`.
+
+### Changed
+
+- **Start Work Order action** — The equipment card's work order button now reads "Start Work Order".
+- **Note previews on PM checklist items** — Collapsed checklist items show a one-line preview of their notes.
+- **Ecosystem and UI library updates** — Updated Radix UI primitives, Supabase JS, React components, Vitest test tooling, and ESLint to current stable maintenance releases.
+- **Antigravity AI workspace configuration (#1632)** — Replaced legacy Cursor and Copilot configuration with a streamlined Antigravity workspace structure.
+
+### Security
+
+- **Stricter data access and edge function authorization (#1634)** — Data access uses strict schema types, and edge functions verify authorization more strictly.
 
 ## [3.35.0] - 2026-10-03
 

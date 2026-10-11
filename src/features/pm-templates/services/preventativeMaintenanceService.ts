@@ -17,6 +17,7 @@ export interface PMChecklistItem {
   required: boolean;
   notes?: string;
   section: string;
+  photo_url?: string;
 }
 
 export interface CreatePMData {

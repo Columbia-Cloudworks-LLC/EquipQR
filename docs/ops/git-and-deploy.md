@@ -36,7 +36,7 @@ Do **not** confuse git branch **`preview`** (integration train) with Vercel envi
 2. Implement and verify locally (`bash dev/linux/dev.sh stop` / `bash dev/linux/dev.sh start`, lint, tests, E2E).
 3. Push your work branch → Vercel builds a **Preview** deployment.
 4. Test on the **commit-specific `*.vercel.app` URL** and/or local stack.
-5. Open PR **`feat/*` → `preview`**. CI + Supabase ephemeral branch (when `supabase/**` changes) must pass. Accumulate short customer-facing CHANGELOG `[Unreleased]` bullets per `.cursor/rules/changelog.mdc`. **Do not** bump `package.json`.
+5. Open PR **`feat/*` → `preview`**. CI + Supabase ephemeral branch (when `supabase/**` changes) must pass. Accumulate short customer-facing CHANGELOG `[Unreleased]` bullets per `CHANGELOG.md` and `.agents/skills/git-and-deploy/SKILL.md`. **Do not** bump `package.json`.
 6. Merge to `preview` → Vercel updates **`preview.equipqr.app`**.
 7. When ready to ship: **`/release`** or open **`preview` → `main`** with version bump + empty Unreleased → **Production Release Readiness** → **`vercel promote`** → **equipqr.app**.
 
@@ -62,7 +62,7 @@ Retired: `preview-domain-alias.yml` (fast-forward `preview` from `main` + deploy
 
 ## Release / version tags
 
-- PRs into **`preview`**: short `[Unreleased]` notes per `.cursor/rules/changelog.mdc` only. Forbid app version bump.
+- PRs into **`preview`**: short `[Unreleased]` notes per `CHANGELOG.md` and `.agents/skills/git-and-deploy/SKILL.md` only. Forbid app version bump.
 - PRs into **`main`**: one SemVer bump for the promote, versioned CHANGELOG section, empty `[Unreleased]`.
 - Batch routine dependency maintenance into that promote. Do not cut a versioned release for one bump.
 - **`/release`** pushes release metadata onto **`preview`**, then opens **`preview` → `main`** (never a non-`preview` head into `main`).
@@ -79,7 +79,7 @@ See `docs/ops/preview-architecture-migration.md` for #1033 history and the #1282
 
 ## Agent work mode
 
-Default is **local-iterate** (`.cursor/rules/branching.mdc`). Stay on the
+Default is **local-iterate** (`.agents/skills/git-and-deploy/SKILL.md`). Stay on the
 current checkout. Do not create a branch, spawn a worktree, push, open a
 PR, or merge until the user asks to publish, land the issue on `preview`,
 or invokes a publish skill (`/itil-issue-resolver` with an issue to land,
@@ -130,7 +130,7 @@ deploy after merge.
 
 ## Related docs
 
-- `.cursor/rules/branching.mdc` — agent branching rules
+- `.agents/skills/git-and-deploy/SKILL.md` — agent branching rules
 - [stacked-pull-requests.md](./stacked-pull-requests.md) — stacked PR definition (chain of branches and PRs)
 - `docs/ops/ci-cd-pipeline.md` — GitHub Actions
 - `docs/ops/deployment.md` — Vercel/Supabase operations detail

@@ -266,4 +266,31 @@ describe('getEquipmentCardDisplayModel', () => {
       expect(result.workingHoursShortText).toBe('0 hrs');
     });
   });
+
+  describe('unitNumber', () => {
+    it('reads unit_number from custom attributes', () => {
+      const result = getEquipmentCardDisplayModel(
+        {
+          name: 'Excavator',
+          status: 'active',
+          custom_attributes: { unit_number: 'E-12' },
+        },
+        settings
+      );
+
+      expect(result.unitNumber).toBe('E-12');
+    });
+
+    it('returns null when unit_number is missing or not a string', () => {
+      expect(
+        getEquipmentCardDisplayModel({ name: 'A', status: 'active' }, settings).unitNumber
+      ).toBeNull();
+      expect(
+        getEquipmentCardDisplayModel(
+          { name: 'B', status: 'active', custom_attributes: { unit_number: 12 } },
+          settings
+        ).unitNumber
+      ).toBeNull();
+    });
+  });
 });
