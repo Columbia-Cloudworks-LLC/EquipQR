@@ -45,6 +45,16 @@ function getConditionText(condition: number | null | undefined): string {
   }
 }
 
+function getPhotoFileName(photoUrl: string): string {
+  const path = photoUrl.split(/[?#]/)[0];
+  const name = path.substring(path.lastIndexOf('/') + 1);
+  try {
+    return decodeURIComponent(name) || 'photo';
+  } catch {
+    return name || 'photo';
+  }
+}
+
 function isItemComplete(item: PMChecklistItem): boolean {
   return item.condition !== undefined && item.condition !== null;
 }
@@ -164,6 +174,31 @@ const PMChecklistItemRow = React.memo<PMChecklistItemRowProps>(function PMCheckl
             </div>
           </div>
         )}
+        {item.photo_url && (
+          <div className="mt-2.5 flex items-center gap-3 p-2 bg-muted/60 rounded-lg border border-border/70">
+            <img
+              src={item.photo_url}
+              alt="Inspection defect thumbnail"
+              className="h-12 w-12 rounded-md object-cover border border-border shadow-sm shrink-0"
+            />
+            <div className="min-w-0 flex-1">
+              <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <span className="inline-block w-2 h-2 rounded-full bg-destructive" />
+                Defect Photo Attached
+              </span>
+              <p className="text-[11px] text-muted-foreground truncate font-mono mt-0.5">
+                {getPhotoFileName(item.photo_url)}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {item.notes && !showNotes && editable && (
+          <div className="mt-1.5 text-xs text-muted-foreground truncate">
+            <span className="font-medium text-foreground/80">Note:</span> {item.notes}
+          </div>
+        )}
+
         {item.notes && (readOnly || pmStatus === 'completed') && (
           <div className="mt-2 p-2.5 bg-muted rounded text-sm text-foreground/90 border border-border/50">
             <strong className="text-foreground">Notes:</strong> {item.notes}

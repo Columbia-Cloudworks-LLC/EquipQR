@@ -31,6 +31,15 @@ const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
   const { activeEquipmentId } = useEquipmentCardTransitionState();
   const isTransitionActive = activeEquipmentId === equipment.id;
 
+  const customAttrs =
+    equipment.custom_attributes &&
+    typeof equipment.custom_attributes === 'object' &&
+    !Array.isArray(equipment.custom_attributes)
+      ? (equipment.custom_attributes as Record<string, unknown>)
+      : null;
+  const unitNumber = typeof customAttrs?.unit_number === 'string' ? customAttrs.unit_number : null;
+  const qrTag = typeof customAttrs?.qr_tag === 'string' ? customAttrs.qr_tag : null;
+
   return (
     <div className="space-y-4">
       {/* Navigation and Actions */}
@@ -68,14 +77,28 @@ const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
           <Badge className={`${getStatusColor(equipment.status || 'active')} rounded-full px-2 py-0.5 text-xs`} variant="outline">
             {EQUIPMENT_STATUS_OPTIONS.find(opt => opt.value === equipment.status)?.label || 'Active'}
           </Badge>
+          {unitNumber && (
+            <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-xs font-mono font-medium">
+              Unit #{unitNumber}
+            </Badge>
+          )}
         </div>
         <div style={getEquipmentViewTransitionStyle('meta', isTransitionActive)}>
           <p className="text-sm text-muted-foreground">
             {equipment.manufacturer} {equipment.model}
           </p>
-          <p className="text-sm text-muted-foreground">
-            S/N: {equipment.serial_number}
-          </p>
+          <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
+            <span>S/N: {equipment.serial_number}</span>
+            {qrTag && (
+              <>
+                <span aria-hidden="true">•</span>
+                <span className="inline-flex items-center gap-1 font-mono text-xs bg-muted/80 text-foreground/90 px-1.5 py-0.5 rounded border border-border/60">
+                  <QrCode className="h-3 w-3 text-primary" aria-hidden="true" />
+                  Tag #{qrTag}
+                </span>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

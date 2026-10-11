@@ -107,6 +107,7 @@
     "demo:v2:compose:on": "node dev/demo-record-v2.mjs run --scenario=executive-overview --compose-scenes --capture-scene-clips",
     "demo:v2:compose:off": "node dev/demo-record-v2.mjs run --scenario=executive-overview --no-compose-scenes",
     "demo:v2:dry-run": "node dev/demo-record-v2.mjs suite --suite=core --dry-run",
+    "marketing:screenshots": "tsx dev/capture-marketing-screenshots.ts",
     "pr-evidence:capture": "bash dev/linux/pr-evidence.sh capture",
     "pr-evidence:publish": "bash dev/linux/pr-evidence.sh upload",
     "pr-evidence": "bash dev/linux/pr-evidence.sh",

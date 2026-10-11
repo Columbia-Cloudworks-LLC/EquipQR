@@ -1,6 +1,7 @@
 import React from 'react';
 import { CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   QrCode,
   Forklift,
@@ -95,6 +96,11 @@ export function EquipmentCardGridView({
               >
                 {equipment.name}
               </CardTitle>
+              {display.unitNumber ? (
+                <Badge variant="secondary" className="rounded-full px-2 py-0.5 text-xs font-mono font-medium">
+                  Unit #{display.unitNumber}
+                </Badge>
+              ) : null}
               {isPendingSync ? <PendingSyncBadge className="flex-shrink-0" /> : null}
             </div>
             <div style={getEquipmentViewTransitionStyle('meta', isTransitionActive)}>

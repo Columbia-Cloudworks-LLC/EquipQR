@@ -21,6 +21,7 @@ export interface EquipmentCardDisplayModel {
   assetDescriptor: string;
   serialDisplay: string;
   locationDisplay: string;
+  unitNumber?: string | null;
 }
 
 interface EquipmentCardDisplayInput {
@@ -32,6 +33,7 @@ interface EquipmentCardDisplayInput {
   status: string;
   last_maintenance?: string;
   working_hours?: number | null;
+  custom_attributes?: Record<string, unknown> | null;
 }
 
 function buildAssetDescriptor(manufacturer?: string | null, model?: string | null): string {
@@ -87,6 +89,13 @@ export function getEquipmentCardDisplayModel(
     : null;
   const hours = equipment.working_hours ?? 0;
   const hoursFormatted = hours.toLocaleString();
+  const customAttrs =
+    equipment.custom_attributes &&
+    typeof equipment.custom_attributes === 'object' &&
+    !Array.isArray(equipment.custom_attributes)
+      ? (equipment.custom_attributes as Record<string, unknown>)
+      : null;
+  const unitNumber = typeof customAttrs?.unit_number === 'string' ? customAttrs.unit_number : null;
 
   return {
     imageAlt: `${equipment.name} equipment`,
@@ -105,5 +114,6 @@ export function getEquipmentCardDisplayModel(
     assetDescriptor: buildAssetDescriptor(equipment.manufacturer, equipment.model),
     serialDisplay: equipment.serial_number?.trim() ? equipment.serial_number : EMPTY_READOUT,
     locationDisplay: equipment.location?.trim() ? equipment.location : EMPTY_READOUT,
+    unitNumber,
   };
 }
