@@ -69,9 +69,12 @@ export function useQuickBooksLastExport(
   });
 }
 
+/** Shared key so other components can observe an export started elsewhere (useIsMutating). */
+export const QUICKBOOKS_EXPORT_MUTATION_KEY = ['quickbooks', 'export-invoice'] as const;
+
 /**
  * Hook to export a work order to QuickBooks
- * 
+ *
  * @returns TanStack Query mutation result for exporting a work order to QuickBooks,
  *          including status flags (isPending, isSuccess, isError), data, error,
  *          mutate/mutateAsync functions, and an `isLoading` alias for backward compatibility.
@@ -80,6 +83,7 @@ export function useExportToQuickBooks() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation<InvoiceExportResult, Error, string | { workOrderId: string; confirmation: InvoiceConfirmation }>({
+    mutationKey: QUICKBOOKS_EXPORT_MUTATION_KEY,
     mutationFn: async (input): Promise<InvoiceExportResult> => {
       if (typeof input === 'string') throw new Error('Review invoice details before exporting.');
       const { workOrderId, confirmation } = input;

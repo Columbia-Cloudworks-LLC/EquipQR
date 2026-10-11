@@ -572,7 +572,12 @@ export async function runCommentHandler({ github, context, core }) {
 
     switch (slash.command) {
       case 'ready':
-        await removeLabels(github, repo, issue.number, ['status:needs-triage', 'status:needs-info', 'status:needs-investigation'].filter(has));
+        await removeLabels(
+          github,
+          repo,
+          issue.number,
+          ['status:needs-triage', 'status:needs-info', 'status:needs-investigation', 'status:blocked'].filter(has),
+        );
         await addLabels(github, repo, issue.number, ['status:ready-for-dev']);
         break;
       case 'block':
@@ -597,6 +602,7 @@ export async function runCommentHandler({ github, context, core }) {
         await addLabels(github, repo, issue.number, ['status:ready-for-dev']);
         break;
       case 'investigate':
+        await removeLabels(github, repo, issue.number, ['status:ready-for-dev'].filter(has));
         await addLabels(github, repo, issue.number, ['status:needs-investigation']);
         break;
     }

@@ -392,6 +392,34 @@ describe('runCommentHandler', () => {
     assert.equal(names(github, 'reaction')[0].params.content, '+1');
   });
 
+  test('/ready after /block clears the blocked status', async () => {
+    const github = fakeGithub({ permission: 'admin' });
+    await runCommentHandler({
+      github,
+      core,
+      context: {
+        repo,
+        payload: { issue: { ...issue, labels: [{ name: 'status:blocked' }] }, comment: { id: 5, body: '/ready', user: { login: 'maint', type: 'User' } } },
+      },
+    });
+    assert.deepEqual(names(github, 'removeLabel').map((call) => call.params.name), ['status:blocked']);
+    assert.deepEqual(addedLabels(github), ['status:ready-for-dev']);
+  });
+
+  test('/investigate after /ready clears the ready status', async () => {
+    const github = fakeGithub({ permission: 'admin' });
+    await runCommentHandler({
+      github,
+      core,
+      context: {
+        repo,
+        payload: { issue: { ...issue, labels: [{ name: 'status:ready-for-dev' }] }, comment: { id: 5, body: '/investigate', user: { login: 'maint', type: 'User' } } },
+      },
+    });
+    assert.deepEqual(names(github, 'removeLabel').map((call) => call.params.name), ['status:ready-for-dev']);
+    assert.deepEqual(addedLabels(github), ['status:needs-investigation']);
+  });
+
   test('/block adds the label and posts a blocker notice', async () => {
     const github = fakeGithub({ permission: 'write' });
     await runCommentHandler({

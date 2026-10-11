@@ -1,8 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useIsMutating, useQuery } from '@tanstack/react-query';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { quickBooks } from '@/lib/queryKeys/integrations';
 import { getConnectionStatus, getTeamCustomerMapping } from '@/services/quickbooks';
-import { useExportToQuickBooks, useQuickBooksLastExport } from '@/hooks/useExportToQuickBooks';
+import { QUICKBOOKS_EXPORT_MUTATION_KEY, useQuickBooksLastExport } from '@/hooks/useExportToQuickBooks';
 import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
 import { isQuickBooksEnabled } from '@/lib/flags';
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
@@ -61,8 +61,21 @@ export function useWorkOrderQuickBooksExportState({
     !!workOrderId && canExport && featureEnabled && connectionStatus?.isConnected,
   );
 
-  const exportMutation = useExportToQuickBooks();
-  const isExporting = exportMutation.isPending;
+  // Exports run from InvoiceReviewDialog's own mutation; observe any in-flight
+  // export for this work order rather than an unused local mutation instance.
+  const isExporting =
+    useIsMutating({
+      mutationKey: QUICKBOOKS_EXPORT_MUTATION_KEY,
+      predicate: (mutation) => {
+        const variables: unknown = mutation.state.variables;
+        return (
+          typeof variables === 'object' &&
+          variables !== null &&
+          'workOrderId' in variables &&
+          variables.workOrderId === workOrderId
+        );
+      },
+    }) > 0;
 
   const { alreadyExported, hasInvoiceIdentifiers, invoiceDisplay } =
     getQuickBooksInvoiceDisplay(existingExport);
