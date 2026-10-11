@@ -206,6 +206,25 @@ describe('PMChecklistComponent', () => {
       });
     });
 
+    it('collapses existing notes to a one-line preview and expands them again', async () => {
+      const pm = createMockPM({
+        checklist_data: [
+          { id: 'item-1', title: 'Check oil level', section: 'Engine', required: true, condition: 1, notes: 'Topped up 1 qt' }
+        ] as unknown as PreventativeMaintenance['checklist_data']
+      });
+
+      renderPMChecklist(pm, { onUpdate: mockOnUpdate });
+      await openPmSectionAndWaitForItem('Engine', 'Check oil level');
+
+      expect(screen.queryByText('Note:')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /hide notes/i }));
+      expect(await screen.findByText('Note:')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /show notes/i }));
+      await waitFor(() => expect(screen.queryByText('Note:')).not.toBeInTheDocument());
+    });
+
     it('respects user manual collapse preference over auto-expand for negative conditions', async () => {
       const pm = createMockPM({
         checklist_data: [

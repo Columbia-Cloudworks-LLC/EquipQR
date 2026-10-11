@@ -2,8 +2,9 @@
 export const quickBooks = {
   root: ['quickbooks'] as const,
   connection: (orgId: string) => ['quickbooks', 'connection', orgId] as const,
-  teamMapping: (orgId: string, teamId: string) =>
-    ['quickbooks', 'team-mapping', orgId, teamId] as const,
+  /** Resolved QuickBooks customer ID (customer account, then legacy mapping). */
+  resolvedMapping: (orgId: string, teamId: string) =>
+    ['quickbooks', 'resolved-mapping', orgId, teamId] as const,
 };
 
 // Google Workspace keys

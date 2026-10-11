@@ -1,7 +1,8 @@
 import { useIsMutating, useQuery } from '@tanstack/react-query';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { quickBooks } from '@/lib/queryKeys/integrations';
-import { getConnectionStatus, getTeamCustomerMapping } from '@/services/quickbooks';
+import { getConnectionStatus } from '@/services/quickbooks';
+import { resolveQuickBooksCustomerId } from '@/features/teams/services/customerAccountService';
 import { QUICKBOOKS_EXPORT_MUTATION_KEY, useQuickBooksLastExport } from '@/hooks/useExportToQuickBooks';
 import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
 import { isQuickBooksEnabled } from '@/lib/flags';
@@ -44,13 +45,15 @@ export function useWorkOrderQuickBooksExportState({
     staleTime: 60 * 1000,
   });
 
-  const { data: teamMapping, isLoading: mappingLoading } = useQuery({
-    queryKey: quickBooks.teamMapping(organizationId ?? '', teamId ?? ''),
+  // Same resolution as the export backend: team customer account first, then
+  // the legacy quickbooks_team_customers mapping.
+  const { data: resolvedCustomerId, isLoading: mappingLoading } = useQuery({
+    queryKey: quickBooks.resolvedMapping(organizationId ?? '', teamId ?? ''),
     queryFn: () => {
       if (!organizationId || !teamId) {
         throw new Error('Organization and team are required for QuickBooks team mapping');
       }
-      return getTeamCustomerMapping(organizationId, teamId);
+      return resolveQuickBooksCustomerId(organizationId, teamId);
     },
     enabled:
       !!organizationId && !!teamId && canExport && featureEnabled && connectionStatus?.isConnected,
@@ -84,7 +87,7 @@ export function useWorkOrderQuickBooksExportState({
     isCompleted: workOrderStatus === 'completed',
     isConnected: connectionStatus?.isConnected,
     hasTeam: !!teamId,
-    hasMapping: !!teamMapping,
+    hasMapping: !!resolvedCustomerId,
     isExporting,
     alreadyExported,
     hasInvoiceIdentifiers,

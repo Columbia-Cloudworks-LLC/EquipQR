@@ -650,25 +650,30 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     }));
   }, []);
 
+  // Helper to determine if notes should be shown for an item
+  const shouldShowNotes = useCallback((item: PMChecklistItem) => {
+    // Respect user's manual collapse preference, including for items with notes
+    // (collapsed items with notes show a one-line preview instead)
+    if (manuallyCollapsed[item.id]) return false;
+
+    // Show if notes exist
+    if (item.notes && item.notes.trim() !== '') return true;
+
+    // Show if manually expanded
+    if (expandedNotes[item.id]) return true;
+
+    // Auto-expand for negative statuses (2-5) - only if not manually collapsed
+    if (item.condition !== null && item.condition !== undefined && isNegativePMCondition(item.condition)) return true;
+
+    return false;
+  }, [expandedNotes, manuallyCollapsed]);
+
   const toggleNotesVisibility = useCallback((itemId: string) => {
     // Find the item to check its current visibility state
     const item = checklistRef.current.find(i => i.id === itemId);
     if (!item) return;
-    
-    // Determine current visibility using the same logic as shouldShowNotes
-    const hasExistingNotes = item.notes && item.notes.trim() !== '';
-    const isManuallyCollapsedNow = manuallyCollapsed[itemId];
-    const isExplicitlyExpanded = expandedNotes[itemId];
-    const hasNegativeCondition =
-      item.condition !== null &&
-      item.condition !== undefined &&
-      isNegativePMCondition(item.condition);
-    
-    const isCurrentlyVisible = 
-      hasExistingNotes || 
-      (!isManuallyCollapsedNow && (isExplicitlyExpanded || hasNegativeCondition));
-    
-    if (isCurrentlyVisible) {
+
+    if (shouldShowNotes(item)) {
       // User is collapsing notes - track this preference
       setManuallyCollapsed(collapsed => ({ ...collapsed, [itemId]: true }));
       setExpandedNotes(prev => ({ ...prev, [itemId]: false }));
@@ -681,24 +686,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
       });
       setExpandedNotes(prev => ({ ...prev, [itemId]: true }));
     }
-  }, [expandedNotes, manuallyCollapsed]);
-
-  // Helper to determine if notes should be shown for an item
-  const shouldShowNotes = useCallback((item: PMChecklistItem) => {
-    // Always show if notes exist
-    if (item.notes && item.notes.trim() !== '') return true;
-    
-    // Respect user's manual collapse preference
-    if (manuallyCollapsed[item.id]) return false;
-    
-    // Show if manually expanded
-    if (expandedNotes[item.id]) return true;
-    
-    // Auto-expand for negative statuses (2-5) - only if not manually collapsed
-    if (item.condition !== null && item.condition !== undefined && isNegativePMCondition(item.condition)) return true;
-    
-    return false;
-  }, [expandedNotes, manuallyCollapsed]);
+  }, [shouldShowNotes]);
 
   // Helper function to get border styling based on item state
   const getItemBorderClass = useCallback((item: PMChecklistItem) => {

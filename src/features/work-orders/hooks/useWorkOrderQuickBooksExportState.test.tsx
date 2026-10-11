@@ -1,5 +1,5 @@
 import React from 'react';
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider, useMutation } from '@tanstack/react-query';
 import { useWorkOrderQuickBooksExportState } from './useWorkOrderQuickBooksExportState';
@@ -18,7 +18,12 @@ vi.mock('@/lib/flags', () => ({
 
 vi.mock('@/services/quickbooks', () => ({
   getConnectionStatus: async () => ({ isConnected: true }),
-  getTeamCustomerMapping: async () => ({ quickbooks_customer_id: 'cust-1' }),
+}));
+
+const mockResolveQuickBooksCustomerId = vi.fn();
+
+vi.mock('@/features/teams/services/customerAccountService', () => ({
+  resolveQuickBooksCustomerId: (...args: unknown[]) => mockResolveQuickBooksCustomerId(...args),
 }));
 
 vi.mock('@/hooks/useExportToQuickBooks', () => ({
@@ -45,6 +50,27 @@ function setup(workOrderId: string) {
 }
 
 describe('useWorkOrderQuickBooksExportState', () => {
+  beforeEach(() => {
+    mockResolveQuickBooksCustomerId.mockReset();
+    mockResolveQuickBooksCustomerId.mockResolvedValue('qb-cust-1');
+  });
+
+  it('treats a customer mapping resolved through the team customer account as configured', async () => {
+    const { result } = setup('wo-1');
+
+    await waitFor(() => expect(mockResolveQuickBooksCustomerId).toHaveBeenCalledWith('org-1', 'team-1'));
+    await waitFor(() => expect(result.current.state.isLoading).toBe(false));
+    expect(result.current.state.showSetupState).toBe(false);
+    expect(result.current.state.setupDisabled).toBe(false);
+  });
+
+  it('shows the setup state when no customer mapping resolves', async () => {
+    mockResolveQuickBooksCustomerId.mockResolvedValue(null);
+    const { result } = setup('wo-1');
+
+    await waitFor(() => expect(result.current.state.showSetupState).toBe(true));
+  });
+
   it('reports an export started by another component for the same work order', async () => {
     const { result } = setup('wo-1');
     expect(result.current.state.isExporting).toBe(false);
