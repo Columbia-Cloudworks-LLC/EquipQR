@@ -3,6 +3,7 @@ import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider, useMutation } from '@tanstack/react-query';
 import { useWorkOrderQuickBooksExportState } from './useWorkOrderQuickBooksExportState';
+import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 
 vi.mock('@/contexts/OrganizationContext', () => ({
   useOrganization: () => ({ currentOrganization: { id: 'org-1' } }),
@@ -26,19 +27,21 @@ vi.mock('@/features/teams/services/customerAccountService', () => ({
   resolveQuickBooksCustomerId: (...args: unknown[]) => mockResolveQuickBooksCustomerId(...args),
 }));
 
+const mockLastExport = vi.fn();
+
 vi.mock('@/hooks/useExportToQuickBooks', () => ({
   QUICKBOOKS_EXPORT_MUTATION_KEY: ['quickbooks', 'export-invoice'],
-  useQuickBooksLastExport: () => ({ data: null }),
+  useQuickBooksLastExport: () => ({ data: mockLastExport() }),
 }));
 
-function setup(workOrderId: string) {
+function setup(workOrderId: string, workOrderStatus: WorkOrderStatus = 'completed') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
   return renderHook(
     () => ({
-      state: useWorkOrderQuickBooksExportState({ workOrderId, teamId: 'team-1', workOrderStatus: 'completed' }),
+      state: useWorkOrderQuickBooksExportState({ workOrderId, teamId: 'team-1', workOrderStatus }),
       // Stands in for InvoiceReviewDialog, which runs the export with its own mutation.
       dialogExport: useMutation({
         mutationKey: ['quickbooks', 'export-invoice'],
@@ -53,6 +56,17 @@ describe('useWorkOrderQuickBooksExportState', () => {
   beforeEach(() => {
     mockResolveQuickBooksCustomerId.mockReset();
     mockResolveQuickBooksCustomerId.mockResolvedValue('qb-cust-1');
+    mockLastExport.mockReset();
+    mockLastExport.mockReturnValue(null);
+  });
+
+  it('disables updating a linked invoice once the work order is reopened', async () => {
+    mockLastExport.mockReturnValue({ quickbooks_invoice_id: 'inv-1', quickbooks_invoice_number: '1001' });
+    const { result } = setup('wo-1', 'in_progress');
+
+    await waitFor(() => expect(result.current.state.isLoading).toBe(false));
+    expect(result.current.state.hasLinkedInvoice).toBe(true);
+    expect(result.current.state.setupDisabled).toBe(true);
   });
 
   it('treats a customer mapping resolved through the team customer account as configured', async () => {

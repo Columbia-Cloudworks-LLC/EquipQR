@@ -108,7 +108,7 @@ export function useWorkOrderQuickBooksExportState({
     invoiceDisplay,
     tooltipMessage,
     showSetupState,
-    setupDisabled: isDisabled && !hasLinkedInvoice,
+    setupDisabled: isDisabled,
     updateLabel: invoiceDisplay ? `Update Invoice #${invoiceDisplay}` : 'Update Invoice',
   };
 }
