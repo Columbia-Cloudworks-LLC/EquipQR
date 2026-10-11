@@ -92,7 +92,10 @@ function fakeGithub({ labels = [], comments = [], permission = 'read' } = {}) {
         updateComment: record('updateComment'),
       },
       repos: {
-        getCollaboratorPermissionLevel: async () => ({ data: { permission } }),
+        // `permission` is one level for everyone, or a per-login map (default read).
+        getCollaboratorPermissionLevel: async ({ username }) => ({
+          data: { permission: typeof permission === 'string' ? permission : permission[username] || 'read' },
+        }),
       },
       reactions: {
         createForIssueComment: record('reaction'),
@@ -414,6 +417,46 @@ describe('runCommentHandler', () => {
     });
     assert.deepEqual(names(github, 'removeLabel').map((call) => call.params.name), ['status:blocked']);
     assert.deepEqual(addedLabels(github), ['status:ready-for-dev']);
+  });
+
+  test('an older /block that runs after a newer maintainer /unblock is skipped', async () => {
+    const github = fakeGithub({
+      permission: 'admin',
+      comments: [{ id: 9, user: { login: 'maint', type: 'User' }, body: '/unblock' }],
+    });
+    await runCommentHandler({
+      github,
+      core,
+      context: { repo, payload: { issue: { ...issue, labels: [] }, comment: { id: 8, body: '/block vendor outage', user: { login: 'maint', type: 'User' } } } },
+    });
+    assert.equal(names(github, 'addLabels').length, 0);
+    assert.equal(names(github, 'createComment').length, 0);
+  });
+
+  test('a newer command from a non-maintainer does not supersede', async () => {
+    const github = fakeGithub({
+      permission: { maint: 'admin' },
+      comments: [{ id: 9, user: { login: 'drive-by', type: 'User' }, body: '/unblock' }],
+    });
+    await runCommentHandler({
+      github,
+      core,
+      context: { repo, payload: { issue: { ...issue, labels: [] }, comment: { id: 8, body: '/block vendor outage', user: { login: 'maint', type: 'User' } } } },
+    });
+    assert.deepEqual(addedLabels(github), ['status:blocked']);
+  });
+
+  test('a newer non-conflicting command does not supersede', async () => {
+    const github = fakeGithub({
+      permission: 'admin',
+      comments: [{ id: 9, user: { login: 'maint', type: 'User' }, body: '/investigate' }],
+    });
+    await runCommentHandler({
+      github,
+      core,
+      context: { repo, payload: { issue: { ...issue, labels: [] }, comment: { id: 8, body: '/block vendor outage', user: { login: 'maint', type: 'User' } } } },
+    });
+    assert.deepEqual(addedLabels(github), ['status:blocked']);
   });
 
   test('a rerun of the same /block event does not post a second notice', async () => {

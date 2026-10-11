@@ -32,6 +32,19 @@ export const NEEDS_INFO_MARKER = '<!-- equipqr-issue-triage:needs-info -->';
 /** Repository permission levels allowed to run slash commands. */
 const MAINTAINER_PERMISSIONS = new Set(['admin', 'maintain', 'write']);
 
+/**
+ * Newer commands that undo an older one. Queued runs are not guaranteed to
+ * execute in event order, so an older command is skipped when one of these
+ * was posted after it.
+ * @type {Record<string, string[]>}
+ */
+const SUPERSEDED_BY = {
+  ready: ['block', 'investigate'],
+  block: ['unblock', 'ready'],
+  unblock: ['block'],
+  investigate: ['ready'],
+};
+
 /** @type {{ label: string, patterns: RegExp[] }[]} */
 const AREA_RULES = [
   {
@@ -490,6 +503,30 @@ async function isMaintainer(github, repo, username) {
 }
 
 /**
+ * Returns the newest maintainer command posted after `commentId` that undoes
+ * `command`, or null when none exists.
+ * @param {any} github
+ * @param {{ owner: string, repo: string }} repo
+ * @param {number} issueNumber
+ * @param {number} commentId
+ * @param {string} command
+ * @returns {Promise<string | null>}
+ */
+async function findNewerConflictingCommand(github, repo, issueNumber, commentId, command) {
+  const conflicts = SUPERSEDED_BY[command] || [];
+  const comments = await github.paginate(github.rest.issues.listComments, { ...repo, issue_number: issueNumber, per_page: 100 });
+  const candidates = comments
+    .filter((/** @type {{ id: number, body?: string, user?: { type?: string, login?: string } }} */ c) => c.id > commentId && !isBot(c.user))
+    .map((/** @type {{ id: number, body?: string, user?: { login?: string } }} */ c) => ({ c, parsed: parseSlashCommand(c.body || '') }))
+    .filter(({ parsed }) => parsed && conflicts.includes(parsed.command))
+    .sort((a, b) => b.c.id - a.c.id);
+  for (const { c, parsed } of candidates) {
+    if (c.user?.login && (await isMaintainer(github, repo, c.user.login))) return parsed?.command ?? null;
+  }
+  return null;
+}
+
+/**
  * @param {any} github
  * @param {{ owner: string, repo: string }} repo
  * @param {number} commentId
@@ -524,6 +561,12 @@ export async function runCommentHandler({ github, context, core }) {
     if (!(await isMaintainer(github, repo, comment.user.login))) {
       core.info(`${comment.user.login} is not a maintainer; ignoring /${slash.command}.`);
       await react(github, repo, comment.id, 'confused');
+      return;
+    }
+
+    const newer = await findNewerConflictingCommand(github, repo, issue.number, comment.id, slash.command);
+    if (newer) {
+      core.info(`/${slash.command} was superseded by a newer /${newer}; skipping.`);
       return;
     }
 
