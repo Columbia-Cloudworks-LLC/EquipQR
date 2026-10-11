@@ -464,6 +464,23 @@ describe('runCommentHandler', () => {
     assert.equal(names(github, 'removeLabel').at(-1).params.name, 'status:needs-triage');
   });
 
+  test('/unblock that overlaps a reporter reply clears the needs-triage it added', async () => {
+    const github = fakeGithub({ permission: 'admin' });
+    github.issueLabels = ['status:blocked', 'status:needs-info'];
+    const addLabelsImpl = github.rest.issues.addLabels;
+    github.rest.issues.addLabels = async (params) => {
+      // The reporter-reply run added needs-triage after this run's snapshot.
+      github.issueLabels = ['status:needs-triage', ...params.labels];
+      return addLabelsImpl(params);
+    };
+    await runCommentHandler({
+      github,
+      core,
+      context: { repo, payload: { issue, comment: { id: 6, body: '/unblock', user: { login: 'maint', type: 'User' } } } },
+    });
+    assert.equal(names(github, 'removeLabel').at(-1).params.name, 'status:needs-triage');
+  });
+
   test('replies from other users leave needs-info alone', async () => {
     const github = fakeGithub();
     await runCommentHandler({

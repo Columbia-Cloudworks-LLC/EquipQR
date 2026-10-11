@@ -434,8 +434,8 @@ async function currentLabelNames(github, repo, issueNumber) {
 }
 
 /**
- * `/ready` clears the triage statuses, but a reporter reply that overlaps it can
- * add `status:needs-triage` back. Both paths call this after writing so
+ * `status:ready-for-dev` (from `/ready` or `/unblock`) supersedes the triage
+ * statuses, but an overlapping reporter reply can add `status:needs-triage` back. Both paths call this after writing so
  * whichever run finishes last removes the stale status.
  * @param {any} github
  * @param {{ owner: string, repo: string }} repo
@@ -739,7 +739,7 @@ export async function runCommentHandler({ github, context, core }) {
         }),
       });
     }
-    if (slash.command === 'ready') await settleReadyStatus(github, repo, issue.number);
+    if (effects.add.includes('status:ready-for-dev')) await settleReadyStatus(github, repo, issue.number);
     await react(github, repo, comment.id, '+1');
     core.info(`Applied /${slash.command} for ${comment.user.login}.`);
     return;
