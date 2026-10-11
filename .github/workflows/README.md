@@ -69,6 +69,6 @@ Slash commands must be on the first line of the comment. Only users with `write`
 | Command | Effect |
 | --- | --- |
 | `/ready` | Removes `status:needs-triage`, `status:needs-info`, `status:needs-investigation`, and `status:blocked`. Adds `status:ready-for-dev`. |
-| `/block <reason>` | Adds `status:blocked`, removes `status:ready-for-dev`, and posts a blocker record with the reason, who raised it, when, and the next action. |
+| `/block <reason>` | Adds `status:blocked`, removes `status:ready-for-dev`, and posts a blocker record with the reason, who raised it, when, and the next action. The reason is required: a bare `/block` changes nothing and gets a usage reply. |
 | `/unblock` | Removes `status:blocked`. Adds `status:ready-for-dev`. |
 | `/investigate` | Removes `status:ready-for-dev`. Adds `status:needs-investigation`. |

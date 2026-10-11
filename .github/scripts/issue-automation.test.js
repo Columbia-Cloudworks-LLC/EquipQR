@@ -520,6 +520,24 @@ describe('runCommentHandler', () => {
     assert.deepEqual(addedLabels(github), ['status:blocked']);
   });
 
+  test('/block without a reason posts usage once and changes no labels', async () => {
+    const github = fakeGithub({ permission: 'admin' });
+    const payload = { issue: { ...issue, labels: [] }, comment: { id: 12, body: '/block', user: { login: 'maint', type: 'User' } } };
+    await runCommentHandler({ github, core, context: { repo, payload } });
+
+    assert.equal(names(github, 'addLabels').length, 0);
+    assert.equal(names(github, 'removeLabel').length, 0);
+    const usage = names(github, 'createComment');
+    assert.equal(usage.length, 1);
+    assert.match(usage[0].params.body, /needs a reason/);
+    assert.equal(names(github, 'reaction')[0].params.content, 'confused');
+
+    // A rerun finds the usage reply and does not post another.
+    const rerun = fakeGithub({ permission: 'admin', comments: [{ id: 99, user: { type: 'Bot' }, body: usage[0].params.body }] });
+    await runCommentHandler({ github: rerun, core, context: { repo, payload } });
+    assert.equal(names(rerun, 'createComment').length, 0);
+  });
+
   test('a rerun of the same /block event does not post a second notice', async () => {
     const github = fakeGithub({
       permission: 'write',

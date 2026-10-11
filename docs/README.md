@@ -179,7 +179,7 @@ To avoid redundancy and ensure consistency, each topic has a single **source of 
 | Database migrations | `ops/migrations.md` | `ops/migration-rules-quick-reference.md` (checklist) |
 | CI/CD pipeline | `ops/ci-cd-pipeline.md` | — |
 | Deployment | `ops/deployment.md` | — |
-| Coding standards | `technical/standards.md` | `.github/instructions/*.md` (reviewer checklists) |
+| Coding standards | `technical/standards.md` | `AGENTS.md` quality gates, `.agents/skills/verify-gate/SKILL.md` (agent checklists) |
 | Testing | `technical/testing-guidelines.md` | — |
 | Agent secrets / access tiers | `ops/agent-secrets-and-access.md` | `AGENTS.md` (index pointer only) |
 | Google Workspace Connect | `ops/google-workspace.md` | Support article `support/admin-integrations/google-workspace-connect.md` |
@@ -188,7 +188,7 @@ To avoid redundancy and ensure consistency, each topic has a single **source of 
 | Stacked pull requests | `ops/stacked-pull-requests.md` | `.agents/skills/git-and-deploy/SKILL.md`, `AGENTS.md` (index pointer only) |
 | Agent handbook maintenance | this file (Agent handbook) | `AGENTS.md` (index pointer only) |
 
-**For AI/reviewer checklists** (`.github/instructions/*`, `.github/copilot-instructions.md`):
+**For AI agent guidance** (`AGENTS.md`, `.agents/skills/**`):
 - These are short checklists for code review, not a second copy of the docs above
 - They should reference the full docs above, not duplicate content
 

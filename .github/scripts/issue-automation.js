@@ -579,6 +579,21 @@ export async function runCommentHandler({ github, context, core }) {
       return;
     }
 
+    // A blocker record needs its reason; reply with usage instead of applying a bare /block.
+    if (slash.command === 'block' && !slash.args) {
+      const marker = `<!-- equipqr-issue-block-usage:comment-${comment.id} -->`;
+      if (!(await findBotComment(github, repo, issue.number, marker))) {
+        await github.rest.issues.createComment({
+          ...repo,
+          issue_number: issue.number,
+          body: `${marker}\n@${comment.user.login} \`/block\` needs a reason, for example \`/block waiting on the Intuit sandbox\`. No labels were changed.`,
+        });
+      }
+      await react(github, repo, comment.id, 'confused');
+      core.info('/block without a reason; posted usage.');
+      return;
+    }
+
     const newer = await findNewerConflictingCommand(github, repo, issue.number, comment.id, slash.command);
     if (newer) {
       core.info(`/${slash.command} was superseded by a newer /${newer}; skipping.`);

@@ -210,7 +210,7 @@ describe('PMChecklistComponent', () => {
       const pm = createMockPM({
         checklist_data: [
           { id: 'item-1', title: 'Check oil level', section: 'Engine', required: true, condition: 1, notes: 'Topped up 1 qt' }
-        ] as unknown as PreventativeMaintenance['checklist_data']
+        ]
       });
 
       renderPMChecklist(pm, { onUpdate: mockOnUpdate });
