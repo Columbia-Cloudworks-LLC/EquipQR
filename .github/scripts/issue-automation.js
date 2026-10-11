@@ -391,11 +391,17 @@ async function upsertNeedsInfoComment(github, repo, issueNumber, body) {
 }
 
 /**
- * @param {{ labels?: ({ name?: string } | string)[] }} issue
- * @returns {string[]}
+ * Reads the issue's labels as they are now. The webhook payload is a snapshot
+ * from when the event fired, so a run queued behind another run on the same
+ * issue would otherwise act on labels the earlier run already changed.
+ * @param {any} github
+ * @param {{ owner: string, repo: string }} repo
+ * @param {number} issueNumber
+ * @returns {Promise<string[]>}
  */
-function labelNames(issue) {
-  return (issue.labels || []).map((label) => (typeof label === 'string' ? label : label.name || '')).filter(Boolean);
+async function currentLabelNames(github, repo, issueNumber) {
+  const labels = await github.paginate(github.rest.issues.listLabelsOnIssue, { ...repo, issue_number: issueNumber, per_page: 100 });
+  return labels.map((/** @type {{ name: string }} */ label) => label.name);
 }
 
 /**
@@ -407,13 +413,14 @@ export async function runTriage({ github, context, core }) {
   const repo = context.repo;
   const title = issue.title || '';
   const body = issue.body || '';
-  const current = labelNames(issue);
-  const has = (/** @type {string} */ name) => current.includes(name);
 
   if (issue.state !== 'open') {
     core.info(`Issue #${issue.number} is ${issue.state}; skipping triage.`);
     return;
   }
+
+  const current = await currentLabelNames(github, repo, issue.number);
+  const has = (/** @type {string} */ name) => current.includes(name);
 
   // Area labels are additive so maintainer corrections are never undone.
   const areas = classifyAreas(title, body).filter((label) => !has(label));
@@ -509,7 +516,7 @@ export async function runCommentHandler({ github, context, core }) {
     return;
   }
 
-  const current = labelNames(issue);
+  const current = await currentLabelNames(github, repo, issue.number);
   const has = (/** @type {string} */ name) => current.includes(name);
   const slash = parseSlashCommand(comment.body || '');
 

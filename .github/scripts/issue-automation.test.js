@@ -12,9 +12,25 @@ import {
   isBugReport,
   parseFormSections,
   parseSlashCommand,
-  runCommentHandler,
-  runTriage,
+  runCommentHandler as runCommentHandlerImpl,
+  runTriage as runTriageImpl,
 } from './issue-automation.js';
+
+/**
+ * The handlers read the issue's current labels from the API. Unless a test sets
+ * `github.issueLabels` itself, serve the labels from the event payload.
+ */
+function withCurrentLabels(run) {
+  return (args) => {
+    if (!args.github.issueLabels) {
+      args.github.issueLabels = (args.context.payload.issue.labels || []).map((label) => label.name);
+    }
+    return run(args);
+  };
+}
+
+const runTriage = withCurrentLabels(runTriageImpl);
+const runCommentHandler = withCurrentLabels(runCommentHandlerImpl);
 
 const BUG_FORM_COMPLETE = `### Describe the bug
 
@@ -58,11 +74,13 @@ function fakeGithub({ labels = [], comments = [], permission = 'read' } = {}) {
     paginate: async (method) => {
       if (method === github.rest.issues.listLabelsForRepo) return labels.map((name) => ({ name }));
       if (method === github.rest.issues.listComments) return comments;
+      if (method === github.rest.issues.listLabelsOnIssue) return (github.issueLabels || []).map((name) => ({ name }));
       return [];
     },
     rest: {
       issues: {
         listLabelsForRepo: () => {},
+        listLabelsOnIssue: () => {},
         listComments: () => {},
         createLabel: record('createLabel'),
         addLabels: record('addLabels'),
@@ -383,6 +401,19 @@ describe('runCommentHandler', () => {
     });
     assert.deepEqual(addedLabels(github), ['status:blocked']);
     assert.match(names(github, 'createComment')[0].params.body, /waiting on Intuit/);
+  });
+
+  test('/unblock acts on current labels, not the stale event snapshot', async () => {
+    const github = fakeGithub({ permission: 'admin' });
+    // A /block run that finished after this comment was posted added status:blocked.
+    github.issueLabels = ['status:blocked'];
+    await runCommentHandler({
+      github,
+      core,
+      context: { repo, payload: { issue: { ...issue, labels: [] }, comment: { id: 6, body: '/unblock', user: { login: 'maint', type: 'User' } } } },
+    });
+    assert.deepEqual(names(github, 'removeLabel').map((call) => call.params.name), ['status:blocked']);
+    assert.deepEqual(addedLabels(github), ['status:ready-for-dev']);
   });
 
   test('a rerun of the same /block event does not post a second notice', async () => {
