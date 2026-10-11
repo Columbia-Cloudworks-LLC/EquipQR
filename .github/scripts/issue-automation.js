@@ -563,6 +563,30 @@ async function findMaintainerCommandAfter(github, repo, issueNumber, commentId, 
 }
 
 /**
+ * Returns the label-changing maintainer slash commands posted after
+ * `commentId`, oldest first.
+ * @param {any} github
+ * @param {{ owner: string, repo: string }} repo
+ * @param {number} issueNumber
+ * @param {number} commentId
+ * @returns {Promise<string[]>}
+ */
+async function listMaintainerCommandsAfter(github, repo, issueNumber, commentId) {
+  const comments = await github.paginate(github.rest.issues.listComments, { ...repo, issue_number: issueNumber, per_page: 100 });
+  const candidates = comments
+    .filter((/** @type {{ id: number, body?: string, user?: { type?: string, login?: string } }} */ c) => c.id > commentId && !isBot(c.user))
+    .map((/** @type {{ id: number, body?: string, user?: { login?: string } }} */ c) => ({ c, parsed: parseSlashCommand(c.body || '') }))
+    .filter(({ parsed }) => parsed && !(parsed.command === 'block' && !parsed.args))
+    .sort((a, b) => a.c.id - b.c.id);
+  /** @type {string[]} */
+  const commands = [];
+  for (const { c, parsed } of candidates) {
+    if (parsed && c.user?.login && (await isMaintainer(github, repo, c.user.login))) commands.push(parsed.command);
+  }
+  return commands;
+}
+
+/**
  * @param {any} github
  * @param {{ owner: string, repo: string }} repo
  * @param {number} commentId
@@ -624,6 +648,18 @@ export async function runCommentHandler({ github, context, core }) {
     const effects = COMMAND_EFFECTS[slash.command];
     await removeLabels(github, repo, issue.number, effects.remove.filter(has));
     await addLabels(github, repo, issue.number, effects.add);
+
+    // A newer run can finish between the check above and these writes. If one
+    // conflicts, replay every newer command in order so the newest one wins.
+    const superseding = await findNewerConflictingCommand(github, repo, issue.number, comment.id, slash.command);
+    if (superseding) {
+      for (const newer of await listMaintainerCommandsAfter(github, repo, issue.number, comment.id)) {
+        await removeLabels(github, repo, issue.number, COMMAND_EFFECTS[newer].remove);
+        await addLabels(github, repo, issue.number, COMMAND_EFFECTS[newer].add);
+      }
+      core.info(`/${slash.command} was superseded by /${superseding} while applying; replayed newer commands.`);
+      return;
+    }
 
     // A rerun of the same /block event reuses its notice instead of posting another.
     if (slash.command === 'block' && !(await findBotComment(github, repo, issue.number, blockerMarker(comment.id)))) {

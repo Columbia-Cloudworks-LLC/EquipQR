@@ -523,6 +523,50 @@ describe('runCommentHandler', () => {
     assert.deepEqual(addedLabels(github), ['status:blocked']);
   });
 
+  test('a newer /unblock that lands while an older /block writes still wins', async () => {
+    const comments = [];
+    const github = fakeGithub({ permission: 'admin', comments });
+    const addLabelsImpl = github.rest.issues.addLabels;
+    github.rest.issues.addLabels = async (params) => {
+      // The newer run finishes between the older run's check and its writes.
+      if (comments.length === 0) comments.push({ id: 9, user: { login: 'maint', type: 'User' }, body: '/unblock' });
+      return addLabelsImpl(params);
+    };
+    await runCommentHandler({
+      github,
+      core,
+      context: { repo, payload: { issue: { ...issue, labels: [] }, comment: { id: 8, body: '/block vendor outage', user: { login: 'maint', type: 'User' } } } },
+    });
+    const writes = github.calls.filter((call) => call.name === 'addLabels' || call.name === 'removeLabel');
+    const last = writes.slice(-2).map((call) => call.params.labels || call.params.name);
+    assert.deepEqual(last, ['status:blocked', ['status:ready-for-dev']]);
+    assert.equal(names(github, 'createComment').length, 0);
+  });
+
+  test('replaying after a lost race applies every newer command in order', async () => {
+    const comments = [];
+    const github = fakeGithub({ permission: 'admin', comments });
+    const addLabelsImpl = github.rest.issues.addLabels;
+    github.rest.issues.addLabels = async (params) => {
+      if (comments.length === 0) {
+        comments.push(
+          { id: 10, user: { login: 'maint', type: 'User' }, body: '/investigate' },
+          { id: 9, user: { login: 'maint', type: 'User' }, body: '/unblock' },
+        );
+      }
+      return addLabelsImpl(params);
+    };
+    await runCommentHandler({
+      github,
+      core,
+      context: { repo, payload: { issue: { ...issue, labels: [] }, comment: { id: 8, body: '/block vendor outage', user: { login: 'maint', type: 'User' } } } },
+    });
+    // /block, then the replay of /unblock and /investigate; /investigate removes ready last.
+    assert.deepEqual(addedLabels(github), ['status:blocked', 'status:ready-for-dev', 'status:needs-investigation']);
+    const removals = names(github, 'removeLabel').map((call) => call.params.name);
+    assert.equal(removals.at(-1), 'status:ready-for-dev');
+  });
+
   test('a newer non-conflicting command does not supersede', async () => {
     const github = fakeGithub({
       permission: 'admin',
