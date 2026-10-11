@@ -302,6 +302,50 @@ describe('runTriage', () => {
     assert.ok(addedLabels(github).includes('status:needs-triage'));
   });
 
+  test('a bare /block does not stop initial triage', async () => {
+    const github = fakeGithub({ permission: 'admin', comments: [{ id: 3, user: { login: 'maint', type: 'User' }, body: '/block' }] });
+    await runTriage({
+      github,
+      core,
+      context: { repo, payload: { action: 'opened', issue: { ...baseIssue, body: BUG_FORM_EMPTY, labels: [] } } },
+    });
+    assert.ok(addedLabels(github).includes('status:needs-info'));
+  });
+
+  test('a maintainer command that lands during the opened write wins', async () => {
+    const comments = [];
+    const github = fakeGithub({ permission: 'admin', comments });
+    const addLabelsImpl = github.rest.issues.addLabels;
+    github.rest.issues.addLabels = async (params) => {
+      if (params.labels.includes('status:needs-triage')) comments.push({ id: 3, user: { login: 'maint', type: 'User' }, body: '/ready' });
+      return addLabelsImpl(params);
+    };
+    await runTriage({
+      github,
+      core,
+      context: { repo, payload: { action: 'opened', issue: { ...baseIssue, body: BUG_FORM_COMPLETE, labels: [] } } },
+    });
+    assert.ok(names(github, 'removeLabel').some((call) => call.params.name === 'status:needs-triage'));
+    assert.equal(addedLabels(github).at(-1), 'status:ready-for-dev');
+  });
+
+  test('an edit that completes the report during the opened write moves it to needs-triage', async () => {
+    const github = fakeGithub();
+    const addLabelsImpl = github.rest.issues.addLabels;
+    github.rest.issues.addLabels = async (params) => {
+      // The edited run finished before this needs-info label landed.
+      if (params.labels.includes('status:needs-info')) github.currentIssue = { ...github.currentIssue, body: BUG_FORM_COMPLETE };
+      return addLabelsImpl(params);
+    };
+    await runTriage({
+      github,
+      core,
+      context: { repo, payload: { action: 'opened', issue: { ...baseIssue, body: BUG_FORM_EMPTY, labels: [] } } },
+    });
+    assert.equal(names(github, 'removeLabel').at(-1).params.name, 'status:needs-info');
+    assert.equal(addedLabels(github).at(-1), 'status:needs-triage');
+  });
+
   test('editing in the missing details swaps needs-info for needs-triage and updates the comment', async () => {
     const github = fakeGithub({
       comments: [{ id: 99, user: { type: 'Bot' }, body: `${NEEDS_INFO_MARKER}\nold checklist` }],

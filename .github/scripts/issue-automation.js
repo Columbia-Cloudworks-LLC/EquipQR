@@ -448,6 +448,47 @@ async function settleReadyStatus(github, repo, issueNumber) {
 }
 
 /**
+ * A maintainer command or an edit can finish while the opened run is writing,
+ * and neither run sees the other's labels. Check both again after the write and
+ * leave the state the later run would have produced.
+ * @param {any} github
+ * @param {{ owner: string, repo: string }} repo
+ * @param {number} issueNumber
+ * @param {string} status the status label the opened run just added
+ * @param {any} core
+ */
+async function reconcileOpenedStatus(github, repo, issueNumber, status, core) {
+  const commands = await listMaintainerCommandsAfter(github, repo, issueNumber, 0);
+  if (commands.length > 0) {
+    await removeLabels(github, repo, issueNumber, [status]);
+    await replayCommands(github, repo, issueNumber, commands);
+    core.info(`A maintainer ran /${commands.at(-1)} during triage; replayed maintainer commands.`);
+    return;
+  }
+  if (status !== 'status:needs-info') return;
+  const { data: latest } = await github.rest.issues.get({ ...repo, issue_number: issueNumber });
+  if (findMissingBugInfo(latest.body || '').length > 0) return;
+  await removeLabels(github, repo, issueNumber, ['status:needs-info']);
+  await addLabels(github, repo, issueNumber, ['status:needs-triage']);
+  await upsertNeedsInfoComment(github, repo, issueNumber, buildNeedsInfoResolvedComment());
+  core.info('The report was completed during triage; moved to status:needs-triage.');
+}
+
+/**
+ * Applies each command's label effects in order, without trusting a label snapshot.
+ * @param {any} github
+ * @param {{ owner: string, repo: string }} repo
+ * @param {number} issueNumber
+ * @param {string[]} commands
+ */
+async function replayCommands(github, repo, issueNumber, commands) {
+  for (const command of commands) {
+    await removeLabels(github, repo, issueNumber, COMMAND_EFFECTS[command].remove);
+    await addLabels(github, repo, issueNumber, COMMAND_EFFECTS[command].add);
+  }
+}
+
+/**
  * Entry point for issue-triage.yml (`issues: opened, edited`).
  * @param {{ github: any, context: any, core: any }} args
  */
@@ -475,7 +516,7 @@ export async function runTriage({ github, context, core }) {
   if (action === 'opened') {
     // The opened run can start after a maintainer has already set status with a
     // slash command (run order is not guaranteed). Their status wins.
-    const maintainerCommand = await findMaintainerCommandAfter(github, repo, issue.number, 0, () => true);
+    const maintainerCommand = (await listMaintainerCommandsAfter(github, repo, issue.number, 0)).at(-1);
     if (maintainerCommand) {
       core.info(`A maintainer already ran /${maintainerCommand}; leaving status unchanged.`);
       return;
@@ -499,6 +540,7 @@ export async function runTriage({ github, context, core }) {
       await addLabels(github, repo, issue.number, ['status:needs-triage']);
       core.info('Bug report is complete; queued for triage.');
     }
+    await reconcileOpenedStatus(github, repo, issue.number, missing.length > 0 ? 'status:needs-info' : 'status:needs-triage', core);
     return;
   }
 
@@ -679,10 +721,7 @@ export async function runCommentHandler({ github, context, core }) {
     // conflicts, replay every newer command in order so the newest one wins.
     const superseding = await findNewerConflictingCommand(github, repo, issue.number, comment.id, slash.command);
     if (superseding) {
-      for (const newer of await listMaintainerCommandsAfter(github, repo, issue.number, comment.id)) {
-        await removeLabels(github, repo, issue.number, COMMAND_EFFECTS[newer].remove);
-        await addLabels(github, repo, issue.number, COMMAND_EFFECTS[newer].add);
-      }
+      await replayCommands(github, repo, issue.number, await listMaintainerCommandsAfter(github, repo, issue.number, comment.id));
       core.info(`/${slash.command} was superseded by /${superseding} while applying; replayed newer commands.`);
       return;
     }
