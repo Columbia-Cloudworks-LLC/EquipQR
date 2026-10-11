@@ -11,10 +11,9 @@ permissions:
   contents: read # sparse checkout of .github/scripts
   issues: write
 
-# Shared with issue-comment-handler.yml so label writes on one issue never race.
-concurrency:
-  group: issue-automation-${{ github.event.issue.number }}
-  cancel-in-progress: false
+# No concurrency group: GitHub keeps only one pending run per group and cancels
+# the rest, which would drop events. The script reads live labels, makes
+# idempotent writes, and resolves command order from the comment history.
 
 jobs:
   triage:

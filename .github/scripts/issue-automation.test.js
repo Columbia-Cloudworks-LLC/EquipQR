@@ -325,6 +325,22 @@ describe('runTriage', () => {
     assert.equal(names(github, 'removeLabel').length, 0);
   });
 
+  test('a late opened run keeps status set by an earlier maintainer command', async () => {
+    const github = fakeGithub({
+      permission: 'admin',
+      comments: [{ id: 3, user: { login: 'maint', type: 'User' }, body: '/block waiting on vendor' }],
+    });
+    github.issueLabels = ['status:blocked'];
+    await runTriage({
+      github,
+      core,
+      context: { repo, payload: { action: 'opened', issue: { ...baseIssue, body: BUG_FORM_EMPTY, labels: [] } } },
+    });
+    assert.deepEqual(addedLabels(github), ['area:work-orders']);
+    assert.equal(names(github, 'removeLabel').length, 0);
+    assert.equal(names(github, 'createComment').length, 0);
+  });
+
   test('feature requests get area labels only', async () => {
     const github = fakeGithub();
     await runTriage({

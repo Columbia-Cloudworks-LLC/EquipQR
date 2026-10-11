@@ -50,6 +50,30 @@ describe('MobileEquipmentHeader', () => {
       expect(screen.getByText('Test Equipment')).toBeInTheDocument();
     });
 
+    it('renders the QR tag and unit number from custom attributes', () => {
+      render(
+        <MobileEquipmentHeader
+          equipment={{ ...mockEquipment, custom_attributes: { qr_tag: 'Q-77', unit_number: 'E-12' } }}
+          onShowQRCode={mockOnShowQRCode}
+        />
+      );
+
+      expect(screen.getByText('Tag #Q-77')).toBeInTheDocument();
+      expect(screen.getByText('Unit #E-12')).toBeInTheDocument();
+    });
+
+    it('omits the QR tag and unit number when they are not set', () => {
+      render(
+        <MobileEquipmentHeader
+          equipment={{ ...mockEquipment, custom_attributes: { qr_tag: 77 } }}
+          onShowQRCode={mockOnShowQRCode}
+        />
+      );
+
+      expect(screen.queryByText(/Tag #/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Unit #/)).not.toBeInTheDocument();
+    });
+
     it('renders back button', () => {
       render(
         <MobileEquipmentHeader 

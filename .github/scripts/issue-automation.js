@@ -457,6 +457,13 @@ export async function runTriage({ github, context, core }) {
   core.info(`Area labels added: ${areas.join(', ') || 'none'}`);
 
   if (action === 'opened') {
+    // The opened run can start after a maintainer has already set status with a
+    // slash command (run order is not guaranteed). Their status wins.
+    const maintainerCommand = await findMaintainerCommandAfter(github, repo, issue.number, 0, () => true);
+    if (maintainerCommand) {
+      core.info(`A maintainer already ran /${maintainerCommand}; leaving status unchanged.`);
+      return;
+    }
     await removeLabels(github, repo, issue.number, FORBIDDEN_ON_OPEN.filter(has));
   }
 
@@ -529,11 +536,25 @@ async function isMaintainer(github, repo, username) {
  * @returns {Promise<string | null>}
  */
 async function findNewerConflictingCommand(github, repo, issueNumber, commentId, command) {
+  return findMaintainerCommandAfter(github, repo, issueNumber, commentId, (newer) => commandsConflict(command, newer));
+}
+
+/**
+ * Returns the newest maintainer slash command posted after `commentId` that
+ * matches `accept`, or null when none exists.
+ * @param {any} github
+ * @param {{ owner: string, repo: string }} repo
+ * @param {number} issueNumber
+ * @param {number} commentId 0 to consider every comment on the issue
+ * @param {(command: string) => boolean} accept
+ * @returns {Promise<string | null>}
+ */
+async function findMaintainerCommandAfter(github, repo, issueNumber, commentId, accept) {
   const comments = await github.paginate(github.rest.issues.listComments, { ...repo, issue_number: issueNumber, per_page: 100 });
   const candidates = comments
     .filter((/** @type {{ id: number, body?: string, user?: { type?: string, login?: string } }} */ c) => c.id > commentId && !isBot(c.user))
     .map((/** @type {{ id: number, body?: string, user?: { login?: string } }} */ c) => ({ c, parsed: parseSlashCommand(c.body || '') }))
-    .filter(({ parsed }) => parsed && commandsConflict(command, parsed.command))
+    .filter(({ parsed }) => parsed && accept(parsed.command))
     .sort((a, b) => b.c.id - a.c.id);
   for (const { c, parsed } of candidates) {
     if (c.user?.login && (await isMaintainer(github, repo, c.user.login))) return parsed?.command ?? null;

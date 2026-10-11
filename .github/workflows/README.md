@@ -27,7 +27,7 @@ The repository secret `OP_SERVICE_ACCOUNT_TOKEN` must stay until this change is 
 
 ## Issue automation
 
-`issue-triage.yml` and `issue-comment-handler.yml` keep the issue backlog labeled for daily review. Both load `.github/scripts/issue-automation.js` through `actions/github-script`, need only `issues: write` (plus `contents: read` for a sparse checkout of `.github/scripts`), and share a per-issue concurrency group so they never race on labels. GitHub runs `issues` and `issue_comment` workflows from the default branch, so changes take effect after they reach `main`.
+`issue-triage.yml` and `issue-comment-handler.yml` keep the issue backlog labeled for daily review. Both load `.github/scripts/issue-automation.js` through `actions/github-script`, and need only `issues: write` (plus `contents: read` for a sparse checkout of `.github/scripts`). They deliberately have no concurrency group, because GitHub keeps only one pending run per group and cancels the others, which would drop events. Instead, each run reads the issue's live labels, and command order is resolved from the comment history. GitHub runs `issues` and `issue_comment` workflows from the default branch, so changes take effect after they reach `main`.
 
 Every write is idempotent. Labels are created on first use, adding a label that is present or removing one that is missing never fails the run, and the needs-info checklist comment is updated in place instead of reposted.
 
@@ -57,6 +57,7 @@ Area labels come from keywords and file paths in the title and body. Empty issue
 - An issue is a bug report if it has the `bug` label, a `[Bug]` or `bug:` title prefix, or a "Steps to reproduce" form field.
 - On open, a bug report missing reproduction steps (a filled form field or a numbered list) or logs (a filled log/error/screenshot field, code block, screenshot, or error text) gets `status:needs-info` and a checklist comment naming what is missing. A complete bug report gets `status:needs-triage`.
 - On open, `status:in-progress` and `status:blocked` are removed.
+- If a maintainer already ran a slash command on the issue before the opened run started, that run only adds area labels and leaves status alone.
 - On edit, only issues in `status:needs-info` change status. When the missing details are added, the issue moves to `status:needs-triage`.
 - Closed issues are skipped.
 
