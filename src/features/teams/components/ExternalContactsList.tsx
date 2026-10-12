@@ -62,7 +62,7 @@ function TeamRoleContacts({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-clarity-mask="true">
       <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
         <Users className="h-3.5 w-3.5" />
         Team contacts
@@ -178,7 +178,7 @@ const ExternalContactsList: React.FC<ExternalContactsListProps> = ({
 
   return (
     <>
-      <Card className="shadow-elevation-2">
+      <Card className="shadow-elevation-2" data-clarity-mask="true">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>

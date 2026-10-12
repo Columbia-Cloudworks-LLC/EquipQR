@@ -8,6 +8,7 @@ import { UserProvider } from '@/contexts/UserContext';
 import { SessionProvider } from '@/contexts/SessionContext';
 import { CookieConsentProvider } from '@/contexts/CookieConsentContext';
 import { CookieConsentBanner } from '@/components/privacy/CookieConsentBanner';
+import { ClarityTelemetry } from '@/components/privacy/ClarityTelemetry';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as SonnerToaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -87,6 +88,7 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
               </AuthProvider>
             </TooltipProvider>
             <CookieConsentBanner />
+            <ClarityTelemetry />
             <Toaster />
             <AppSonnerToaster />
           </CookieConsentProvider>
@@ -109,6 +111,7 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
             </AuthProvider>
           </TooltipProvider>
           <CookieConsentBanner />
+          <ClarityTelemetry />
           <Toaster />
           <AppSonnerToaster />
         </CookieConsentProvider>

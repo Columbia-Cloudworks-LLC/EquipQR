@@ -11,6 +11,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Added
+
+- **Opt-in diagnostic session replay (#1636)** — You can choose to share masked session replays (Microsoft Clarity) to help improve EquipQR, from the cookie notice or Settings → Privacy. Nothing loads unless you opt in, and you can turn it off anytime.
+
 ## [3.36.0] - 2026-10-11
 
 ### Added

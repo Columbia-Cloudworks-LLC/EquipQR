@@ -69,6 +69,10 @@ vi.mock('@/components/privacy/CookieConsentBanner', () => ({
   CookieConsentBanner: () => <div data-testid="cookie-consent-banner" />,
 }));
 
+vi.mock('@/components/privacy/ClarityTelemetry', () => ({
+  ClarityTelemetry: () => null,
+}));
+
 describe('AppProviders', () => {
   let AppProviders: typeof AppProvidersComponent;
 

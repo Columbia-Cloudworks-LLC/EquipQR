@@ -39,7 +39,7 @@ const WorkOrderCostsSection: React.FC<WorkOrderCostsSectionProps> = ({
 
   if (isLoading) {
     return (
-      <Card className="shadow-elevation-2">
+      <Card className="shadow-elevation-2" data-clarity-mask="true">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5" />
@@ -56,7 +56,7 @@ const WorkOrderCostsSection: React.FC<WorkOrderCostsSectionProps> = ({
   const isMobileField = variant === 'mobileField';
 
   return (
-    <Card className="shadow-elevation-2">
+    <Card className="shadow-elevation-2" data-clarity-mask="true">
       <CardHeader className={isMobileField ? 'pb-2' : undefined}>
         <CardTitle className={isMobileField ? 'flex items-center gap-2 text-base' : 'flex items-center gap-2'}>
           <DollarSign className={isMobileField ? 'h-4 w-4' : 'h-5 w-5'} />

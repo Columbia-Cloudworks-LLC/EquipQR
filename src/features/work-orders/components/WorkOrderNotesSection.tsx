@@ -271,7 +271,7 @@ const WorkOrderNotesSection: React.FC<WorkOrderNotesSectionProps> = ({
   }
 
   return (
-    <div className="space-y-6 overflow-x-hidden">
+    <div className="space-y-6 overflow-x-hidden" data-clarity-mask="true">
       {/* Add Note Form - Always show if no notes exist or explicitly requested */}
       <NotesTabAddNoteSection
         noteCount={visibleNotes.length}

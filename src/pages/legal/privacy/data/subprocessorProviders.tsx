@@ -294,4 +294,41 @@ export const subprocessorProviders: SubprocessorProvider[] = [
                     'Your push subscription endpoint URL, encryption keys (required by the Web Push protocol), and browser user agent string.',
                 },
               ],
+  },
+  {
+    title: "4.11 Microsoft Clarity (Microsoft Corporation) — Optional, Opt-In Only",
+    items: [
+                {
+                  label: 'Purpose:',
+                  content:
+                    'We utilize Microsoft Clarity for strictly opt-in diagnostic usage metrics, heatmaps, and session replays to resolve interface friction and bugs. Sensitive text and form fields are masked at the browser level.',
+                },
+                {
+                  label: 'When it is active:',
+                  content:
+                    'Only after you choose "Accept All (Help Us Improve)" on the cookies notice or turn on "Help improve EquipQR with diagnostic session data" in Settings. The Clarity script is not loaded before that choice, and turning the setting off stops it.',
+                },
+                {
+                  label: 'Data sent to Microsoft:',
+                  content:
+                    'Masked page structure, clicks, scrolls, and navigation events, plus device and browser details (screen size, browser type, approximate location derived from IP address). Page text and form inputs are masked in your browser before anything is sent.',
+                },
+                {
+                  label: 'Data stored in EquipQR:',
+                  content:
+                    'Only your opt-in decision, stored in your browser (see Section 5). Clarity recordings are retained by Microsoft under its own retention policy.',
+                },
+                {
+                  label: 'More information:',
+                  content: (
+                    <>
+                      See{' '}
+                      <ExternalLink href="https://learn.microsoft.com/en-us/clarity/setup-and-installation/privacy-disclosure" className="hover:text-foreground">
+                        Microsoft Clarity privacy disclosure
+                      </ExternalLink>
+                      .
+                    </>
+                  ),
+                },
+              ],
   },];
