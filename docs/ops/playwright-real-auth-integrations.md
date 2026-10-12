@@ -109,7 +109,7 @@ The test exports a work order to Google Docs and opens the returned `document_ur
 |----------|----------------|-------------|
 | `E2E_REAL_AUTH_STORAGE_STATE` | All `@real-auth` tests | Path to captured storage JSON |
 | `E2E_REAL_AUTH_BASE_URL` | Optional | Defaults to `https://preview.equipqr.app` |
-| `VERCEL_AUTOMATION_BYPASS_SECRET` | Protected preview runs | Vercel Deployment Protection bypass secret from `op://EquipQR Agents/vercel-automation-bypass/VERCEL_AUTOMATION_BYPASS_SECRET` |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | Protected preview runs | Vercel Deployment Protection bypass secret (Vercel → Settings → Deployment Protection), exported in your shell |
 | `E2E_QBO_WORK_ORDER_ID` | Export test only | Known-safe **completed** preview work order UUID (`1660137f-a803-4510-9a0a-96c7048d0eb4`) |
 | `E2E_ALLOW_QBO_DRAFTS` | QBO export test only | Must be `true` to opt in to **sandbox** draft invoice create/update on preview |
 | `E2E_ALLOW_QBO_PRODUCTION_DRAFTS` | Rare prod QBO export test | When `true`, export test expects production QBO and opens `app.qbo.intuit.com` |

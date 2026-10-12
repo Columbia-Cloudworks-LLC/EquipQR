@@ -456,7 +456,7 @@ single production project for cloud runtime:
 
 `preview.equipqr.app` (Vercel Preview) currently uses
 **`VITE_SUPABASE_URL=https://supabase.equipqr.app`** from
-`app-env-preview-public`, not the retired `olsdirk` project URL. The approved
+the GitHub `preview` environment variable `SUPABASE_URL`, not the retired `olsdirk` project URL. The approved
 replacement is the persistent preview branch above, once its cutover checklist
 is implemented.
 

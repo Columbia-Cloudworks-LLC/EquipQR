@@ -320,9 +320,9 @@ async function main() {
   );
   const deploymentPromoteRef = deploymentPromoteRefFromEnv();
 
-  if (!token || token.startsWith('op://')) {
+  if (!token) {
     process.stderr.write(
-      '::error title=promote-vercel-production::VERCEL_TOKEN missing or unresolved (still an op:// reference).\n',
+      '::error title=promote-vercel-production::VERCEL_TOKEN is missing.\n',
     );
     process.exit(1);
   }

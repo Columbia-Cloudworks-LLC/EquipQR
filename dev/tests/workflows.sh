@@ -22,8 +22,6 @@ expect_failure bash dev/itil/workflow.sh context --issue '12;touch /tmp/not-allo
 expect_failure bash dev/itil/workflow.sh create-pr --issue 12 --branch preview --title test --body-file "$tmp/valid.md" --dry-run
 expect_failure bash dev/itil/workflow.sh nonsense --issue 12 --dry-run
 bash dev/itil/workflow.sh publish --issue 12 --body-file "$tmp/valid.md" --dry-run
-expect_failure bash dev/ops/supabase-secrets.sh --op-item unapproved --apply
-expect_failure bash dev/ops/github-secrets.sh --environment Production --apply
 expect_failure bash dev/e2e/env.sh unknown true
 [[ ! -e "$CALL_LOG" ]] || { echo 'Validation unexpectedly invoked GitHub.' >&2; exit 1; }
 bash dev/e2e/env.sh google-local bash -c '[[ "$E2E_REAL_AUTH_BASE_URL" == http://localhost:8080 && -n "$E2E_REAL_AUTH_STORAGE_STATE" ]]'
@@ -43,4 +41,3 @@ for name in paths:
             raise SystemExit(f'Unexpected Windows runtime: {name}')
 print('Linux workflow contracts passed.')
 PY
-bash dev/tests/secret-sync.sh

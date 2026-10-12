@@ -1,5 +1,7 @@
 # Preview Architecture Migration (#1033) — historical
 
+> **Historical record.** 1Password was removed from EquipQR in #1640. GitHub Environments are now the only configuration source; see [agent secrets and access](./agent-secrets-and-access.md). Script and vault-item names below are kept as written at the time.
+
 **Authoritative workflow today:** **`docs/ops/git-and-deploy.md`** (feat → preview → main after #1282).
 
 This document records the #1033 migration away from a persistent Supabase preview branch (`olsdirk`), then the #1282 restoration of git `preview` as the integration train.

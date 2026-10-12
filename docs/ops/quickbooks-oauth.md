@@ -28,7 +28,7 @@ Configure these secrets in Supabase Dashboard → Edge Functions → Secrets:
 
 | Tier | App `VITE_INTUIT_CLIENT_ID` | Edge `INTUIT_*` | `QBO_USE_SANDBOX` | QBO companies | Invoice UI |
 |------|------------------------------|-----------------|-------------------|---------------|--------------|
-| Local | Development | Development | `true` (via `bash dev/ops/local-env.sh`) | Sandbox | `app.sandbox.qbo.intuit.com` |
+| Local | Development | Development | `true` (in `supabase/functions/.env`) | Sandbox | `app.sandbox.qbo.intuit.com` |
 | Preview | Development | Development | `true` (via secrets sync) | Sandbox | `app.sandbox.qbo.intuit.com` |
 | Production | Production | Production | unset | Live | `app.qbo.intuit.com` |
 
@@ -36,7 +36,7 @@ Configure these secrets in Supabase Dashboard → Edge Functions → Secrets:
 
 After switching preview to sandbox, **disconnect and reconnect** QuickBooks on preview.equipqr.app so stored tokens match the sandbox realm.
 
-Client-side: align the deployed `VITE_INTUIT_CLIENT_ID` with `INTUIT_CLIENT_ID` in `edge-env-preview-secrets` (same Development client ID). The persistent preview uses an isolated Supabase project. Verify live branch-scoped Vercel values before syncing the public vault item; an older vault snapshot may still point at production.
+Client-side: align the deployed `VITE_INTUIT_CLIENT_ID` with `INTUIT_CLIENT_ID` in the GitHub `preview` environment (same Development client ID). The persistent preview uses an isolated Supabase project. Verify live branch-scoped Vercel values before syncing the public vault item; an older vault snapshot may still point at production.
 
 **OAuth redirect URI**
 
@@ -65,7 +65,7 @@ Required vault entries (names must match what the scheduler Edge Function expect
 
 | Secret Name | Description | Where operators load it |
 |-------------|-------------|-------------------------|
-| Project elevated API key vault entry | Used only by approved Edge Functions for scheduled refresh | Dashboard → Settings → API (secret key); inject via 1Password / sync scripts |
+| Project elevated API key vault entry | Used only by approved Edge Functions for scheduled refresh | Dashboard → Settings → API (secret key); stored as a GitHub `production` environment secret and synced by the release |
 | `supabase_url` | Supabase project URL | Dashboard → Settings → API → Project URL |
 
 Configure separately for each environment (preview, production).
@@ -200,7 +200,7 @@ deno test --allow-env --allow-net=quickbooks.api.intuit.com ./quickbooks-export-
 ### Local development
 
 1. Use Intuit **Development** app credentials (same keys as preview sandbox).
-2. Run `bash dev/ops/local-env.sh` so `supabase/functions/.env` includes `QBO_USE_SANDBOX=true`.
+2. Make sure `supabase/functions/.env` includes `QBO_USE_SANDBOX=true`.
 3. Register the local callback URI in the Intuit Developer Portal (Development app → Keys & OAuth).
 4. Capture the integration once: `npm run e2e:quickbooks-auth:capture` (see `docs/ops/playwright-real-auth-integrations.md`).
 5. Restart the **full** local stack after env changes (`bash dev/linux/dev.sh stop` then `bash dev/linux/dev.sh start`). Do not use ad-hoc `npx supabase stop` / `start`.
@@ -209,7 +209,7 @@ deno test --allow-env --allow-net=quickbooks.api.intuit.com ./quickbooks-export-
 ## Production invoice export
 
 Live QBO connections and team→customer mappings are org-specific (exact
-IDs live in the private ops runbook / 1Password, not in this repo).
+IDs live in the private ops runbook, not in this repo).
 EquipQR creates invoices for review from work order details via
 Export → QuickBooks (**Create New Invoice** / **Update Invoice #…** /
 **Open Invoice**). Export is gated on a completed work order +

@@ -231,9 +231,9 @@ async function main() {
     Number.parseInt(process.env.VERCEL_FETCH_TIMEOUT_MS || '45000', 10) || 45000,
   );
 
-  if (!token || token.startsWith('op://')) {
+  if (!token) {
     process.stderr.write(
-      '::error title=wait-for-vercel-deployment::VERCEL_TOKEN missing or unresolved (still an op:// reference).\n',
+      '::error title=wait-for-vercel-deployment::VERCEL_TOKEN is missing.\n',
     );
     process.exit(1);
   }

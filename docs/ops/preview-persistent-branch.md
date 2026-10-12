@@ -46,7 +46,7 @@ Important constraints locked by Product:
 | `preview.equipqr.app` backend | Create a **new persistent Supabase Database Branch** on the production project | Do **not** reuse retired branch `olsdirkvvfegvclbpgrg` as-is. |
 | Branch data | Create with **`with_data: false`** | Never clone production rows. Never seed production. |
 | Vercel Preview env for git `preview` | Point `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` at the persistent branch | The stable hostname remains `https://preview.equipqr.app`. |
-| Edge Function secrets | Restore `edge-env-preview-secrets` onto the persistent branch | Set `PUBLIC_SITE_URL=https://preview.equipqr.app` on that branch. |
+| Edge Function secrets | Sync the GitHub `preview` environment secrets onto the persistent branch | Set `PUBLIC_SITE_URL=https://preview.equipqr.app` on that branch. |
 | Preview Auth | Seed preview-only Quick Login and email/password personas through the **Auth Admin API** | Branch `service_role` is allowed for this seed on the persistent branch only. |
 | Production Auth | No change | Production never shows the Quick Login picker and never accepts preview-only passwords. |
 | PR schema validation | Keep existing ephemeral PR branches for `supabase/**` | This decision does **not** replace the GitHub Integration branching path. |
@@ -109,7 +109,7 @@ this checklist:
    `ymxkzronkhwxzcdcbnwq` with **`with_data: false`**.
 2. Verify the new branch ref is **not** `ymxkzronkhwxzcdcbnwq` and **not**
    `olsdirkvvfegvclbpgrg`.
-3. Restore `edge-env-preview-secrets` onto the new branch and confirm
+3. Sync the GitHub `preview` environment secrets onto the new branch and confirm
    `PUBLIC_SITE_URL=https://preview.equipqr.app`.
 4. Point the Vercel **Preview** env for git `preview` at the branch
    `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
