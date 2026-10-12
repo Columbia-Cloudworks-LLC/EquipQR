@@ -234,6 +234,8 @@ describe('run', () => {
     secrets.RESEND_API_KEY = `rotated-${STRONG}`;
     const { calls, fetchImpl } = fakeApi({
       [`GET /v10/projects/${project}/env`]: () => ({ envs: [] }),
+      // INTUIT_CLIENT_ID / GOOGLE_WORKSPACE_CLIENT_ID are also public VITE_ keys.
+      [`POST /v10/projects/${project}/env`]: () => ({}),
       'GET /v1/projects/ref123/secrets': () => remote,
       'POST /v1/projects/ref123/secrets': () => ({}),
     });
@@ -249,6 +251,16 @@ describe('run', () => {
       fetchImpl,
     });
     expect(code).toBe(0);
+    expect(calls).toContainEqual({
+      method: 'POST',
+      path: `/v10/projects/${project}/env`,
+      body: {
+        key: 'VITE_INTUIT_CLIENT_ID',
+        value: secrets.INTUIT_CLIENT_ID,
+        type: 'encrypted',
+        target: ['production'],
+      },
+    });
     expect(calls).toContainEqual({
       method: 'POST',
       path: '/v1/projects/ref123/secrets',
