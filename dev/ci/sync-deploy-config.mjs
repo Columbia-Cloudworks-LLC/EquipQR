@@ -7,10 +7,17 @@
  * This script is the only writer of Vercel env vars and Supabase Edge secrets.
  *
  * - Vercel: `VITE_<NAME>` for every NAME in VERCEL_PUBLIC_KEYS that GitHub defines
- *   (variable first, then secret). Keys missing in GitHub are skipped, never deleted.
- * - Supabase (production only): every NAME in EDGE_REQUIRED_KEYS / EDGE_OPTIONAL_KEYS.
- *   IMMUTABLE_EDGE_KEYS are never overwritten once set; rotating them needs a
- *   re-encryption plan, so a mismatch fails the run before any write.
+ *   as an environment **variable**. Secrets are never read for Vercel, because
+ *   VITE_ values ship in the browser bundle. Keys missing in GitHub are skipped,
+ *   never deleted. For preview, an existing override scoped to the `preview` git
+ *   branch is kept equal to the same GitHub value.
+ * - Supabase: every NAME in EDGE_REQUIRED_KEYS / EDGE_OPTIONAL_KEYS. Production
+ *   always; preview only when the preview environment sets the variable
+ *   SYNC_PREVIEW_EDGE=true (persistent preview branch) and its
+ *   SUPABASE_PROJECT_REF is not the production project.
+ *   IMMUTABLE_EDGE_KEYS must pass the Edge runtime entropy rules and are never
+ *   overwritten once set; rotating them needs a re-encryption plan, so a
+ *   mismatch fails the run before any write.
  *
  * Nothing is written until every check passes. Output lists names and statuses only.
  *
@@ -21,10 +28,10 @@
  *   SYNC_SECRETS_JSON      ${{ toJSON(secrets) }}
  *   VERCEL_TOKEN           required
  *   VERCEL_TEAM_ID / VERCEL_PROJECT_ID  optional overrides
- *   SUPABASE_ACCESS_TOKEN  required when SYNC_TARGET=production
+ *   SUPABASE_ACCESS_TOKEN  required when Edge secrets are synced
  *   SUPABASE_PROJECT_REF   default from SYNC_VARS_JSON.SUPABASE_PROJECT_REF
- *   SYNC_REDEPLOY_BRANCH   apply only: redeploy the newest deployment of this git
- *                          branch when Vercel values changed (preview uses `preview`)
+ *   SYNC_REDEPLOY_BRANCH   preview: git branch whose Vercel overrides are managed and
+ *                          whose newest deployment is redeployed after changes
  */
 
 import { createHash } from 'node:crypto';
@@ -34,6 +41,7 @@ const DEFAULT_TEAM = 'team_78VeGDURoofThjZNJOKEBpP5';
 const DEFAULT_PROJECT = 'prj_P9hRun4B2OdGy8ACCnb0f7jNG6UA';
 const VERCEL_API = 'https://api.vercel.com';
 const SUPABASE_API = 'https://api.supabase.com';
+const PRODUCTION_PROJECT_REF = 'ymxkzronkhwxzcdcbnwq';
 
 /** Browser-visible values. Vercel key is `VITE_` + name. */
 export const VERCEL_PUBLIC_KEYS = [
@@ -49,7 +57,6 @@ export const VERCEL_PUBLIC_KEYS = [
   'ENABLE_MFA',
   'ENABLE_OFFLINE_QUEUE',
   'PREVIEW_QUICK_LOGIN',
-  'DEV_TEST_PASSWORD',
 ];
 
 export const EDGE_REQUIRED_KEYS = [
@@ -84,6 +91,22 @@ export const IMMUTABLE_EDGE_KEYS = ['TOKEN_ENCRYPTION_KEY', 'KDF_SALT'];
 
 const PLACEHOLDER = /^\s*$|^(test|placeholder|todo|tbd|changeme|replace-me|dummy|none|null)$/i;
 
+/**
+ * Mirrors getTokenEncryptionKey() / hasLowEntropy() in
+ * supabase/functions/_shared/crypto.ts, so the sync never writes a key the Edge
+ * runtime would reject and then refuse to replace it.
+ */
+const MIN_KEY_LENGTH = 32;
+const MIN_UNIQUE_CHAR_RATIO = 0.3;
+const WEAK_KEY_PATTERNS = ['abcdefghijklmnopqrstuvwxyz', '0123456789', 'qwertyuiop', 'password', 'secret'];
+
+export function isWeakKey(value) {
+  if (value.length < MIN_KEY_LENGTH) return true;
+  if (new Set(value).size / value.length < MIN_UNIQUE_CHAR_RATIO) return true;
+  const lower = value.toLowerCase();
+  return WEAK_KEY_PATTERNS.some((pattern) => lower.includes(pattern));
+}
+
 function parseJsonObject(raw, label) {
   if (!raw) return {};
   let parsed;
@@ -107,6 +130,11 @@ export function resolveGithubValue(name, vars, secrets) {
   return undefined;
 }
 
+/** Browser-visible values come from variables only, never secrets. */
+function resolvePublicValue(name, vars) {
+  return resolveGithubValue(name, vars, {});
+}
+
 export function sha256Hex(value) {
   return createHash('sha256').update(value, 'utf8').digest('hex');
 }
@@ -122,8 +150,9 @@ function normalizeDigest(remote) {
  * @param {Array<{id:string,key:string,target:string[],gitBranch?:string|null,value?:string|null}>} p.remote
  *   Remote env records (value present when readable).
  * @param {string} p.target  preview | production
+ * @param {string} [p.branch]  preview: git branch whose scoped overrides are managed too
  */
-export function planVercel({ desired, remote, target }) {
+export function planVercel({ desired, remote, target, branch = '' }) {
   const actions = [];
   const report = [];
   const shared = remote.filter((env) => !env.gitBranch && (env.target || []).includes(target));
@@ -152,6 +181,24 @@ export function planVercel({ desired, remote, target }) {
     report.push({ key, status });
   }
 
+  // An override scoped to the managed branch wins over the shared Preview value
+  // for that branch's deployments, so keep it equal to the GitHub value.
+  if (branch) {
+    for (const [key, value] of Object.entries(desired)) {
+      const override = remote.find(
+        (env) => env.key === key && env.gitBranch === branch && (env.target || []).includes(target),
+      );
+      if (!override) continue;
+      const label = `${key}@${branch}`;
+      if (typeof override.value === 'string' && override.value === value) {
+        report.push({ key: label, status: 'MATCH' });
+        continue;
+      }
+      actions.push({ type: 'update', key: label, id: override.id, value });
+      report.push({ key: label, status: typeof override.value === 'string' ? 'DRIFT' : 'UNVERIFIABLE' });
+    }
+  }
+
   const managed = new Set(Object.keys(desired));
   const unmanaged = [
     ...new Set(shared.filter((env) => !managed.has(env.key)).map((env) => env.key)),
@@ -159,7 +206,13 @@ export function planVercel({ desired, remote, target }) {
   const branchOverrides = [
     ...new Set(
       remote
-        .filter((env) => env.gitBranch && managed.has(env.key) && (env.target || []).includes(target))
+        .filter(
+          (env) =>
+            env.gitBranch &&
+            env.gitBranch !== branch &&
+            managed.has(env.key) &&
+            (env.target || []).includes(target),
+        )
         .map((env) => `${env.key}@${env.gitBranch}`),
     ),
   ].sort();
@@ -182,8 +235,11 @@ export function planEdge({ desired, remote }) {
       errors.push(`${name} looks like a placeholder.`);
       continue;
     }
-    if (IMMUTABLE_EDGE_KEYS.includes(name) && Buffer.byteLength(value, 'utf8') < 32) {
-      errors.push(`${name} must be at least 32 bytes.`);
+    if (IMMUTABLE_EDGE_KEYS.includes(name) && isWeakKey(value)) {
+      errors.push(
+        `${name} is too weak for the Edge runtime (needs 32+ characters, varied characters, no common patterns). ` +
+          'Generate one with: openssl rand -base64 32',
+      );
       continue;
     }
     const current = remote.find((secret) => secret.name === name);
@@ -205,18 +261,23 @@ export function planEdge({ desired, remote }) {
   return { errors, report, writes };
 }
 
+/** Whether this run also syncs Supabase Edge secrets. */
+export function shouldSyncEdge(target, vars) {
+  return target === 'production' || (target === 'preview' && vars.SYNC_PREVIEW_EDGE === 'true');
+}
+
 export function collectDesired({ vars, secrets, target }) {
   const vercel = {};
   const skippedVercel = [];
   for (const name of VERCEL_PUBLIC_KEYS) {
-    const value = resolveGithubValue(name, vars, secrets);
+    const value = resolvePublicValue(name, vars);
     if (value === undefined) skippedVercel.push(name);
     else vercel[`VITE_${name}`] = value;
   }
 
   const edge = {};
   const missingEdge = [];
-  if (target === 'production') {
+  if (shouldSyncEdge(target, vars)) {
     for (const name of [...EDGE_REQUIRED_KEYS, ...EDGE_OPTIONAL_KEYS]) {
       const value = resolveGithubValue(name, vars, secrets);
       if (value !== undefined) edge[name] = value;
@@ -338,18 +399,22 @@ export async function run({ env = process.env, fetchImpl = fetch } = {}) {
   const errors = missingEdge.map((name) => `Required ${target} secret ${name} is not set in GitHub.`);
 
   // Plan everything before writing anything.
+  const branch = target === 'preview' ? env.SYNC_REDEPLOY_BRANCH || '' : '';
   const remoteVercel = await readVercelEnv({ fetchImpl, token: vercelToken, teamId, projectId, target });
-  const vercelPlan = planVercel({ desired: vercel, remote: remoteVercel, target });
+  const vercelPlan = planVercel({ desired: vercel, remote: remoteVercel, target, branch });
 
   let edgePlan = { errors: [], report: [], writes: [] };
   let supabaseToken = '';
   let projectRef = '';
-  if (target === 'production') {
+  if (shouldSyncEdge(target, vars)) {
     supabaseToken = env.SUPABASE_ACCESS_TOKEN || '';
     projectRef = env.SUPABASE_PROJECT_REF || resolveGithubValue('SUPABASE_PROJECT_REF', vars, secrets) || '';
-    if (!supabaseToken) errors.push('SUPABASE_ACCESS_TOKEN is required for production.');
-    if (!projectRef) errors.push('SUPABASE_PROJECT_REF is required for production.');
-    if (supabaseToken && projectRef) {
+    if (!supabaseToken) errors.push(`SUPABASE_ACCESS_TOKEN is required to sync ${target} Edge secrets.`);
+    if (!projectRef) errors.push(`SUPABASE_PROJECT_REF is required to sync ${target} Edge secrets.`);
+    if (target === 'preview' && projectRef === PRODUCTION_PROJECT_REF) {
+      errors.push('Preview Edge sync refuses the production Supabase project.');
+    }
+    if (supabaseToken && projectRef && errors.length === 0) {
       const remoteSecrets = await http(
         fetchImpl,
         `${SUPABASE_API}/v1/projects/${projectRef}/secrets`,
@@ -396,7 +461,6 @@ export async function run({ env = process.env, fetchImpl = fetch } = {}) {
     `Applied ${vercelPlan.report.filter((r) => r.status !== 'MATCH').length} Vercel and ${edgePlan.writes.length} Supabase change(s).\n`,
   );
 
-  const branch = env.SYNC_REDEPLOY_BRANCH || '';
   if (branch && vercelPlan.actions.length > 0) {
     const redeployed = await redeployBranch({ fetchImpl, token: vercelToken, teamId, projectId, branch });
     process.stdout.write(

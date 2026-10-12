@@ -36,7 +36,7 @@ npm run build
 
 **Solution:**
 ```bash
-# 1. Preferred: run one-click startup (generates .env from local Supabase)
+# 1. Preferred: run one-click startup (writes the local Supabase URL/key to .env.local)
 bash dev/linux/dev.sh start
 
 # 2. Check if .env file exists

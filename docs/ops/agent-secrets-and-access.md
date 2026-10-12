@@ -17,14 +17,15 @@ Operational reference for agents and headless automation. Columbia Cloudworks LL
 | Vercel Preview env (`VITE_*`) | `preview` environment | `sync-deploy-config.yml` on every push to `preview` (redeploys `preview` when a value changed) |
 | Vercel Production env (`VITE_*`) | `production` environment | `production-release-readiness.yml` before promote (promote rebuilds with Production env) |
 | Supabase Edge secrets (production project) | `production` environment | `production-release-readiness.yml` before `supabase functions deploy` |
-| Local stack `.env` / `supabase/functions/.env` | Local Supabase + your own untracked values | `bash dev/linux/dev.sh start`; integration keys are added by hand from `.env.example` |
+| Supabase Edge secrets (persistent preview branch) | `preview` environment | `sync-deploy-config.yml`, only when the `preview` variable `SYNC_PREVIEW_EDGE=true` (refuses the production project) |
+| Local stack | Local Supabase + your own untracked values | `bash dev/linux/dev.sh start` writes `.env.local`; optional integration keys go in `.env` / `supabase/functions/.env` by hand |
 | Agent platforms (Cursor, Codex, Copilot) | That platform's secret store | The platform injects env vars; repo scripts only read env |
 
 The managed key lists live at the top of `dev/ci/sync-deploy-config.mjs`:
 
-- `VERCEL_PUBLIC_KEYS`: GitHub `NAME` is written to Vercel as `VITE_NAME` (variable first, then secret). Names GitHub doesn't define are skipped, never deleted. A check run lists Vercel keys that GitHub doesn't manage.
+- `VERCEL_PUBLIC_KEYS`: the GitHub **variable** `NAME` is written to Vercel as `VITE_NAME`. Secrets are never used for `VITE_*`, because those values ship in the browser bundle. Names GitHub doesn't define are skipped, never deleted. For preview, an existing Vercel override scoped to the `preview` git branch is kept equal to the same value. A check run lists Vercel keys that GitHub doesn't manage.
 - `EDGE_REQUIRED_KEYS` / `EDGE_OPTIONAL_KEYS`: Supabase Edge secrets. A missing required key fails the run before any write.
-- `IMMUTABLE_EDGE_KEYS` (`TOKEN_ENCRYPTION_KEY`, `KDF_SALT`) are never overwritten once set, because changing them strands stored integration tokens. A mismatch fails the run.
+- `IMMUTABLE_EDGE_KEYS` (`TOKEN_ENCRYPTION_KEY`, `KDF_SALT`) must pass the same entropy rules as the Edge runtime (`supabase/functions/_shared/crypto.ts`), and are never overwritten once set, because changing them strands stored integration tokens. A mismatch fails the run.
 
 Output lists key names and `MATCH` / `DRIFT` / `MISSING` only, never values.
 

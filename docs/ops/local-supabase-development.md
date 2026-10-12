@@ -126,7 +126,7 @@ npx supabase status
 
 ### Step 6: Set Up Local Environment Variables
 
-Preferred: use `bash dev/linux/dev.sh start`. It generates base `.env` and edge env values automatically, then writes local Supabase URL overrides to `.env.local`.
+Preferred: use `bash dev/linux/dev.sh start`. It writes the local Supabase URL and key to `.env.local`. It reads, but never creates, `.env` and `supabase/functions/.env`; add optional app and Edge integration keys there by hand from `.env.example`, or those integrations stay unconfigured.
 
 Manual fallback: create a `.env.local` file for local Supabase development:
 

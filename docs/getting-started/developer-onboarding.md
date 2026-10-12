@@ -59,7 +59,7 @@ npm ci
 
 ### 3. Environment Setup
 
-The local stack generates `.env` from local Supabase, so core development needs no shared credentials.
+The local stack writes the local Supabase URL and key to `.env.local`, so core development needs no shared credentials. It only reads `.env` and `supabase/functions/.env`; create those yourself for optional integrations.
 Deployed configuration lives only in GitHub Environments; see [agent secrets and access](../ops/agent-secrets-and-access.md).
 
 ```bash
@@ -134,7 +134,7 @@ Visit `http://localhost:8080` to see the application running!
    ```
 
 3. **Configure local environment**:
-   - Preferred: run `bash dev/linux/dev.sh start` and let it generate env files from local Supabase
+   - Preferred: run `bash dev/linux/dev.sh start`; it writes the local Supabase URL and key to `.env.local`
    - Manual fallback: create `.env.local` with local Supabase credentials from `npx supabase status`
    - Use local Supabase URL from `supabase/config.toml` or `npx supabase status` (default: `http://localhost:54321`)
 

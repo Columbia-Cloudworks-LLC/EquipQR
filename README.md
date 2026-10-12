@@ -79,7 +79,7 @@ EquipQR uses external services. For exact environment variables and where theyâ€
     > Note: This repo intentionally installs `xlsx` from `cdn.sheetjs.com` (not npm registry). Ensure your CI and network policy allow access to that host during `npm install`.
 
 2. **Configure Environment**
-    Start the local stack; it generates `.env` from local Supabase. Add optional integration keys by hand from `.env.example`.
+    Start the local stack; it writes the local Supabase URL and key to `.env.local`. Optional integration keys go in `.env` (app) and `supabase/functions/.env` (Edge), copied by hand from `.env.example`.
 
     ```powershell
     .\dev\equipqr.bat start                # full stack (Supabase + functions + Vite)

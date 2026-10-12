@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   EDGE_REQUIRED_KEYS,
   collectDesired,
+  isWeakKey,
   planEdge,
   planVercel,
   resolveGithubValue,
@@ -10,7 +11,9 @@ import {
   sha256Hex,
 } from '@/dev/ci/sync-deploy-config.mjs';
 
-const STRONG = 'k'.repeat(16) + 'Zq8!vR2#pL9$wX4&';
+// Passes the Edge runtime entropy rules (32+ chars, varied, no weak patterns).
+const STRONG = 'Zq8!vR2#pL9$wX4&mN7^tB3*cH6@yJ1%';
+const STRONG_2 = 'gT5&kW9!xD2#rF7$nC4^vB8*hM1@pQ6%';
 
 function edgeSecrets(): Record<string, string> {
   return Object.fromEntries(EDGE_REQUIRED_KEYS.map((name) => [name, `${name}-${STRONG}`]));
@@ -36,13 +39,40 @@ describe('collectDesired', () => {
       VITE_CLARITY_PROJECT_ID: 'abc',
     });
     expect(skippedVercel).toContain('HCAPTCHA_SITEKEY');
-    // Preview never touches Supabase Edge secrets.
+    // Preview does not touch Supabase Edge secrets unless opted in.
     expect(edge).toEqual({});
   });
 
   it('lists required production edge secrets that are missing', () => {
     const { missingEdge } = collectDesired({ vars: {}, secrets: {}, target: 'production' });
     expect(missingEdge).toEqual(EDGE_REQUIRED_KEYS);
+  });
+
+  it('never publishes a GitHub secret into a browser-visible VITE_ key', () => {
+    const { vercel, skippedVercel } = collectDesired({
+      vars: {},
+      secrets: { SUPABASE_ANON_KEY: 'from-secret', PREVIEW_QUICK_LOGIN: 'true' },
+      target: 'preview',
+    });
+    expect(vercel).toEqual({});
+    expect(skippedVercel).toContain('SUPABASE_ANON_KEY');
+  });
+
+  it('syncs preview Edge secrets only when SYNC_PREVIEW_EDGE is true', () => {
+    const secrets = edgeSecrets();
+    expect(collectDesired({ vars: {}, secrets, target: 'preview' }).edge).toEqual({});
+    const optedIn = collectDesired({ vars: { SYNC_PREVIEW_EDGE: 'true' }, secrets, target: 'preview' });
+    expect(Object.keys(optedIn.edge)).toEqual(EDGE_REQUIRED_KEYS);
+  });
+});
+
+describe('isWeakKey', () => {
+  it('matches the Edge runtime entropy rules', () => {
+    expect(isWeakKey(STRONG)).toBe(false);
+    expect(isWeakKey('a'.repeat(32))).toBe(true);
+    expect(isWeakKey('short')).toBe(true);
+    expect(isWeakKey(`${STRONG}password`)).toBe(true);
+    expect(isWeakKey(`x0123456789${STRONG}`)).toBe(true);
   });
 });
 
@@ -81,14 +111,33 @@ describe('planVercel', () => {
     ]);
   });
 
-  it('ignores branch-specific records but reports them', () => {
+  it('ignores overrides for other branches but reports them', () => {
     const plan = planVercel({
       target: 'preview',
+      branch: 'preview',
       desired: { VITE_A: '1' },
       remote: [{ id: 'a', key: 'VITE_A', target: ['preview'], gitBranch: 'feature', value: '9' }],
     });
     expect(plan.actions).toEqual([{ type: 'create', key: 'VITE_A', value: '1', target: 'preview' }]);
     expect(plan.branchOverrides).toEqual(['VITE_A@feature']);
+  });
+
+  it('keeps the managed branch override equal to the GitHub value', () => {
+    const plan = planVercel({
+      target: 'preview',
+      branch: 'preview',
+      desired: { VITE_A: 'github', VITE_B: 'same' },
+      remote: [
+        { id: 'a', key: 'VITE_A', target: ['preview'], value: 'github' },
+        { id: 'a-br', key: 'VITE_A', target: ['preview'], gitBranch: 'preview', value: 'stale' },
+        { id: 'b', key: 'VITE_B', target: ['preview'], value: 'same' },
+        { id: 'b-br', key: 'VITE_B', target: ['preview'], gitBranch: 'preview', value: 'same' },
+      ],
+    });
+    expect(plan.actions).toEqual([{ type: 'update', key: 'VITE_A@preview', id: 'a-br', value: 'github' }]);
+    expect(plan.report).toContainEqual({ key: 'VITE_A@preview', status: 'DRIFT' });
+    expect(plan.report).toContainEqual({ key: 'VITE_B@preview', status: 'MATCH' });
+    expect(plan.branchOverrides).toEqual([]);
   });
 });
 
@@ -107,16 +156,24 @@ describe('planEdge', () => {
 
   it('refuses to overwrite an existing encryption key or salt', () => {
     const plan = planEdge({
-      desired: { TOKEN_ENCRYPTION_KEY: STRONG + STRONG },
-      remote: [{ name: 'TOKEN_ENCRYPTION_KEY', value: sha256Hex('live-key') }],
+      desired: { TOKEN_ENCRYPTION_KEY: STRONG },
+      remote: [{ name: 'TOKEN_ENCRYPTION_KEY', value: sha256Hex(STRONG_2) }],
     });
     expect(plan.writes).toEqual([]);
     expect(plan.errors[0]).toMatch(/TOKEN_ENCRYPTION_KEY differs/);
   });
 
-  it('rejects placeholders and short encryption keys', () => {
-    const plan = planEdge({ desired: { RESEND_API_KEY: 'changeme', KDF_SALT: 'short' }, remote: [] });
-    expect(plan.errors).toHaveLength(2);
+  it('rejects placeholders and keys the Edge runtime would refuse', () => {
+    const plan = planEdge({
+      desired: {
+        RESEND_API_KEY: 'changeme',
+        KDF_SALT: 'short',
+        TOKEN_ENCRYPTION_KEY: 'a'.repeat(32),
+      },
+      remote: [],
+    });
+    expect(plan.errors).toHaveLength(3);
+    expect(plan.errors[2]).toMatch(/TOKEN_ENCRYPTION_KEY is too weak/);
     expect(plan.writes).toEqual([]);
   });
 });
@@ -232,9 +289,14 @@ describe('run', () => {
     const secrets = edgeSecrets();
     const remote = Object.entries(secrets).map(([name, value]) => ({ name, value: sha256Hex(value) }));
     secrets.RESEND_API_KEY = `rotated-${STRONG}`;
+    // Public client IDs are GitHub variables; Edge reads them too.
+    const vars = {
+      SUPABASE_PROJECT_REF: 'ref123',
+      INTUIT_CLIENT_ID: secrets.INTUIT_CLIENT_ID,
+    };
+    delete secrets.INTUIT_CLIENT_ID;
     const { calls, fetchImpl } = fakeApi({
       [`GET /v10/projects/${project}/env`]: () => ({ envs: [] }),
-      // INTUIT_CLIENT_ID / GOOGLE_WORKSPACE_CLIENT_ID are also public VITE_ keys.
       [`POST /v10/projects/${project}/env`]: () => ({}),
       'GET /v1/projects/ref123/secrets': () => remote,
       'POST /v1/projects/ref123/secrets': () => ({}),
@@ -245,27 +307,53 @@ describe('run', () => {
         SYNC_MODE: 'apply',
         VERCEL_TOKEN: 't',
         SUPABASE_ACCESS_TOKEN: 's',
-        SYNC_VARS_JSON: JSON.stringify({ SUPABASE_PROJECT_REF: 'ref123' }),
+        SYNC_VARS_JSON: JSON.stringify(vars),
         SYNC_SECRETS_JSON: JSON.stringify(secrets),
       },
       fetchImpl,
     });
     expect(code).toBe(0);
-    expect(calls).toContainEqual({
-      method: 'POST',
-      path: `/v10/projects/${project}/env`,
-      body: {
-        key: 'VITE_INTUIT_CLIENT_ID',
-        value: secrets.INTUIT_CLIENT_ID,
-        type: 'encrypted',
-        target: ['production'],
+    // Only the variable reaches Vercel; GOOGLE_WORKSPACE_CLIENT_ID is a secret here.
+    const vercelWrites = calls.filter((c) => c.method === 'POST' && c.path === `/v10/projects/${project}/env`);
+    expect(vercelWrites).toEqual([
+      {
+        method: 'POST',
+        path: `/v10/projects/${project}/env`,
+        body: {
+          key: 'VITE_INTUIT_CLIENT_ID',
+          value: vars.INTUIT_CLIENT_ID,
+          type: 'encrypted',
+          target: ['production'],
+        },
       },
-    });
+    ]);
     expect(calls).toContainEqual({
       method: 'POST',
       path: '/v1/projects/ref123/secrets',
       body: [{ name: 'RESEND_API_KEY', value: secrets.RESEND_API_KEY }],
     });
+  });
+
+  it('preview Edge sync refuses the production Supabase project', async () => {
+    const { calls, fetchImpl } = fakeApi({
+      [`GET /v10/projects/${project}/env`]: () => ({ envs: [] }),
+    });
+    const code = await run({
+      env: {
+        SYNC_TARGET: 'preview',
+        SYNC_MODE: 'apply',
+        VERCEL_TOKEN: 't',
+        SUPABASE_ACCESS_TOKEN: 's',
+        SYNC_VARS_JSON: JSON.stringify({
+          SYNC_PREVIEW_EDGE: 'true',
+          SUPABASE_PROJECT_REF: 'ymxkzronkhwxzcdcbnwq',
+        }),
+        SYNC_SECRETS_JSON: JSON.stringify(edgeSecrets()),
+      },
+      fetchImpl,
+    });
+    expect(code).toBe(1);
+    expect(calls.every((c) => c.method === 'GET' && !c.path.includes('/secrets'))).toBe(true);
   });
 
   it('never prints secret values', async () => {

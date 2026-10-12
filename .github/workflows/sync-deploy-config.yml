@@ -1,9 +1,11 @@
 name: Sync deployment configuration
 
 # GitHub Environments are the only source of configuration. This workflow copies
-# the preview or production environment into Vercel env vars (VITE_*) and, for
-# production, Supabase Edge Function secrets. See dev/ci/sync-deploy-config.mjs
-# for the managed key list and safety rules. Values are never printed.
+# the preview or production environment into Vercel env vars (VITE_*, from
+# variables only) and Supabase Edge Function secrets (production always; preview
+# only when the preview variable SYNC_PREVIEW_EDGE=true). See
+# dev/ci/sync-deploy-config.mjs for the managed key list and safety rules.
+# Values are never printed.
 #
 # - Push to preview: applies the preview environment and redeploys the newest
 #   preview deployment when a Vercel value changed.

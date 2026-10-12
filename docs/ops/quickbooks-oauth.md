@@ -57,15 +57,17 @@ For the persistent preview branch, both the Supabase URL and callback must addre
 
 ### Vault secrets (token refresh scheduler)
 
-The token refresh scheduler reads secrets from the Supabase Vault. Configure them with the
-project secret sync scripts (`bash dev/ops/supabase-secrets.sh` or your
-environment's equivalent). Do not paste elevated API keys into tickets, chat, or docs.
+The token refresh scheduler reads secrets from the Supabase **Vault** (`vault.decrypted_secrets`),
+which is separate from Edge Function secrets. *Sync deployment configuration* does **not**
+write Vault entries. Create them once per project in the Supabase Dashboard
+(**Project Settings → Vault**) or with `select vault.create_secret('<value>', '<name>');`
+in the SQL editor. Do not paste elevated API keys into tickets, chat, or docs.
 
 Required vault entries (names must match what the scheduler Edge Function expects):
 
 | Secret Name | Description | Where operators load it |
 |-------------|-------------|-------------------------|
-| Project elevated API key vault entry | Used only by approved Edge Functions for scheduled refresh | Dashboard → Settings → API (secret key); stored as a GitHub `production` environment secret and synced by the release |
+| Project elevated API key vault entry | Used only by approved Edge Functions for scheduled refresh | Dashboard → Settings → API (secret key); add it to the Vault manually as described above |
 | `supabase_url` | Supabase project URL | Dashboard → Settings → API → Project URL |
 
 Configure separately for each environment (preview, production).
