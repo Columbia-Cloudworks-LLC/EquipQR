@@ -15,6 +15,13 @@ declare global {
 
 export const CLARITY_SCRIPT_ID = 'equipqr-clarity-script';
 
+/**
+ * Consent API v2 signal (required for EEA/UK/CH sessions since 2025-10-31).
+ * EquipQR runs no ads, so ad storage is always denied.
+ */
+export const CLARITY_CONSENT_GRANTED = { ad_Storage: 'denied', analytics_Storage: 'granted' } as const;
+export const CLARITY_CONSENT_DENIED = { ad_Storage: 'denied', analytics_Storage: 'denied' } as const;
+
 /** First-party cookies Clarity sets on the app domain. */
 const CLARITY_COOKIE_NAMES = ['_clck', '_clsk'] as const;
 
@@ -27,7 +34,7 @@ export function loadClarity(projectId: string): void {
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
   if (isClarityLoaded()) {
     // Re-granted consent after a mid-session revoke.
-    window.clarity?.('consent');
+    window.clarity?.('consentv2', CLARITY_CONSENT_GRANTED);
     return;
   }
 
@@ -43,14 +50,16 @@ export function loadClarity(projectId: string): void {
   script.async = true;
   script.src = `https://www.clarity.ms/tag/${encodeURIComponent(projectId)}`;
   document.head.appendChild(script);
-  window.clarity('consent');
+  window.clarity('consentv2', CLARITY_CONSENT_GRANTED);
 }
 
 /** Revoke consent for the running session and clear Clarity cookies. */
 export function stopClarity(): void {
   if (typeof window === 'undefined') return;
   try {
-    // consent(false) tells Clarity to stop tracking and erase its cookies.
+    window.clarity?.('consentv2', CLARITY_CONSENT_DENIED);
+    // Documented erase call: clears Clarity cookies and stops tracking until
+    // consent is granted again.
     window.clarity?.('consent', false);
   } catch {
     // ignore — best-effort

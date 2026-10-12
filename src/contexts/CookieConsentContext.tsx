@@ -84,11 +84,16 @@ export const CookieConsentProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const accept = useCallback(() => {
-    if (decision !== 'accepted' && !applyCookieConsentDecision('accepted')) {
-      toast.error('Could not save your cookie preference. Please try again.');
-      return;
+    // Only the first-visit notice decides preference storage. A user who already
+    // answered it (Accept or Reject) and is now asked only about diagnostics
+    // keeps that earlier choice.
+    if (decision === null) {
+      if (!applyCookieConsentDecision('accepted')) {
+        toast.error('Could not save your cookie preference. Please try again.');
+        return;
+      }
+      setDecision('accepted');
     }
-    setDecision('accepted');
     if (telemetryAvailable) {
       if (!setTelemetryConsentDecision('accepted')) {
         toast.error('Could not save your diagnostics preference. Please try again.');
@@ -99,8 +104,7 @@ export const CookieConsentProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [decision, telemetryAvailable]);
 
   const reject = useCallback(() => {
-    // A user who already accepted preferences and is only now being asked
-    // about diagnostics keeps their earlier preference choice.
+    // Same rule as accept: an earlier preference choice is never changed here.
     if (decision === null) {
       if (!applyCookieConsentDecision('rejected')) {
         toast.error('Could not save your cookie preference. Please try again.');

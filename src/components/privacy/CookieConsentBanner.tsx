@@ -42,10 +42,14 @@ export function CookieConsentBanner() {
         </div>
         <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
           <Button type="button" variant="outline" onClick={reject} className="min-h-11">
-            {telemetryAvailable ? 'Essential Only' : 'Reject'}
+            {telemetryOnly ? 'No Thanks' : telemetryAvailable ? 'Essential Only' : 'Reject'}
           </Button>
           <Button type="button" onClick={accept} className="min-h-11">
-            {telemetryAvailable ? 'Accept All (Help Us Improve)' : 'Accept'}
+            {telemetryOnly
+              ? 'Yes, Help Us Improve'
+              : telemetryAvailable
+                ? 'Accept All (Help Us Improve)'
+                : 'Accept'}
           </Button>
         </div>
       </div>

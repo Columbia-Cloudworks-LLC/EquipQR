@@ -152,6 +152,11 @@ describe('Settings Page', () => {
       expect(screen.getByTestId('sensitive-privacy-settings')).toBeInTheDocument();
     });
 
+    it('renders the diagnostic session data setting in Privacy', () => {
+      render(<Settings />);
+      expect(screen.getByTestId('telemetry-consent-settings')).toBeInTheDocument();
+    });
+
     it('renders privacy rights links', () => {
       render(<Settings />);
       expect(screen.getByText('Submit Privacy Request')).toBeInTheDocument();

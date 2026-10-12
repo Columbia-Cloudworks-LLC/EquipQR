@@ -9,7 +9,11 @@ import { CookieConsentProvider } from '@/contexts/CookieConsentContext';
 import { TelemetryConsentSettings } from '@/components/settings/TelemetryConsentSettings';
 import { COOKIE_CONSENT_STORAGE_KEY } from '@/lib/cookieConsent';
 import { TELEMETRY_CONSENT_STORAGE_KEY } from '@/lib/telemetryConsent';
-import { CLARITY_SCRIPT_ID } from '@/lib/clarity';
+import {
+  CLARITY_CONSENT_DENIED,
+  CLARITY_CONSENT_GRANTED,
+  CLARITY_SCRIPT_ID,
+} from '@/lib/clarity';
 
 vi.mock('sonner', () => ({
   toast: { error: vi.fn(), success: vi.fn() },
@@ -73,6 +77,8 @@ describe('ClarityTelemetry consent gating', () => {
     expect(localStorage.getItem(TELEMETRY_CONSENT_STORAGE_KEY)).toBe('accepted');
     expect(localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY)).toBe('accepted');
     expect(clarityScript()?.src).toBe('https://www.clarity.ms/tag/testproj123');
+    // Consent API v2 grant is queued for the tag to pick up.
+    expect(window.clarity?.q).toContainEqual(['consentv2', CLARITY_CONSENT_GRANTED]);
   });
 
   it('loads Clarity on mount when acceptance was stored previously', () => {
@@ -90,12 +96,24 @@ describe('ClarityTelemetry consent gating', () => {
     renderApp();
 
     expect(screen.getByText('Help improve EquipQR')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Essential Only' }));
+    await user.click(screen.getByRole('button', { name: 'No Thanks' }));
 
     // Earlier preference Accept is preserved; only telemetry is declined.
     expect(localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY)).toBe('accepted');
     expect(localStorage.getItem(TELEMETRY_CONSENT_STORAGE_KEY)).toBe('rejected');
     expect(clarityScript()).toBeNull();
+  });
+
+  it('keeps an earlier cookie Reject when diagnostics are accepted later', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'rejected');
+    renderApp();
+
+    await user.click(screen.getByRole('button', { name: 'Yes, Help Us Improve' }));
+
+    expect(localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY)).toBe('rejected');
+    expect(localStorage.getItem(TELEMETRY_CONSENT_STORAGE_KEY)).toBe('accepted');
+    expect(clarityScript()).not.toBeNull();
   });
 
   it('Settings toggle revokes consent and tells Clarity to stop', async () => {
@@ -114,6 +132,7 @@ describe('ClarityTelemetry consent gating', () => {
 
     expect(localStorage.getItem(TELEMETRY_CONSENT_STORAGE_KEY)).toBe('rejected');
     expect(toggle).not.toBeChecked();
+    expect(clarity).toHaveBeenCalledWith('consentv2', CLARITY_CONSENT_DENIED);
     expect(clarity).toHaveBeenCalledWith('consent', false);
   });
 
