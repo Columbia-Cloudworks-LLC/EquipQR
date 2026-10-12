@@ -49,6 +49,7 @@ environments:
       - VAPID_PRIVATE_KEY
       - VERCEL_TOKEN
     variables:
+      - CLARITY_PROJECT_ID
       - GOOGLE_MAPS_MAP_ID
       - GOOGLE_WORKSPACE_CLIENT_ID
       - GW_OAUTH_REDIRECT_BASE_URL
@@ -74,6 +75,7 @@ environments:
       - TOKEN_ENCRYPTION_KEY
       - VAPID_PRIVATE_KEY
     variables:
+      - CLARITY_PROJECT_ID
       - GOOGLE_MAPS_MAP_ID
       - GOOGLE_WORKSPACE_CLIENT_ID
       - INTUIT_CLIENT_ID
