@@ -9,9 +9,10 @@ export function PrivacyCookiesSection() {
       className="scroll-mt-24"
     >
             <p>
-              EquipQR uses minimal browser storage, exclusively for application functionality. We do
-              not use any third-party tracking cookies, advertising pixels, or browser
-              fingerprinting techniques.
+              EquipQR uses minimal browser storage for application functionality. We do not use
+              advertising pixels or browser fingerprinting techniques, and we do not use any
+              third-party tracking cookies unless you opt in to diagnostic session replay
+              (described below).
             </p>
 
             <p>
@@ -56,6 +57,15 @@ export function PrivacyCookiesSection() {
                     <>
                       &mdash; Stores your Accept or Reject decision for the cookies notice (strictly necessary
                       for remembering that choice).
+                    </>
+                  ),
+                },
+                {
+                  label: <code>equipqr_telemetry_consent</code>,
+                  content: (
+                    <>
+                      &mdash; Stores whether you opted in to or out of diagnostic session replay (strictly
+                      necessary for remembering that choice).
                     </>
                   ),
                 },
@@ -119,6 +129,21 @@ export function PrivacyCookiesSection() {
               and can be cleared at any time through your browser settings. Choosing Reject clears
               optional UI preference keys EquipQR controls and stops writing them until you Accept;
               strictly necessary keys listed above remain available.
+            </p>
+
+            <h3>Diagnostic Session Replay (Optional)</h3>
+            <p>
+              We utilize Microsoft Clarity for strictly opt-in diagnostic usage metrics, heatmaps, and
+              session replays to resolve interface friction and bugs. Sensitive text and form fields
+              are masked at the browser level.
+            </p>
+            <p>
+              Clarity never loads unless you choose &quot;Accept All (Help Us Improve)&quot; on the cookies
+              notice or turn on &quot;Help improve EquipQR with diagnostic session data&quot; in Settings.
+              Choosing &quot;Essential Only&quot; or turning the setting off stores your opt-out and stops
+              Clarity. When active, Clarity sets the first-party cookies <code>_clck</code> (up to one
+              year) and <code>_clsk</code> (one day) to group page views into a session; they are removed
+              when you opt out. See Section 4.11 for what is sent to Microsoft.
             </p>
 
             <h3>Session Storage</h3>

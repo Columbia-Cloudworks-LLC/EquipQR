@@ -65,6 +65,10 @@ vi.mock('@/components/settings/SensitivePrivacySettings', () => ({
   SensitivePrivacySettings: () => <div data-testid="sensitive-privacy-settings">Sensitive Privacy Settings</div>
 }));
 
+vi.mock('@/components/settings/TelemetryConsentSettings', () => ({
+  TelemetryConsentSettings: () => <div data-testid="telemetry-consent-settings" />,
+}));
+
 vi.mock('@/components/security/SecurityStatus', () => ({
   SecurityStatus: () => <div data-testid="security-status">Security Status</div>
 }));

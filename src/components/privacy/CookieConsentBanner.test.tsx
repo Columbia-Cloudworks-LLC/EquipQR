@@ -1,5 +1,5 @@
 import React from 'react';
-import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -38,6 +38,12 @@ describe('CookieConsentBanner', () => {
   beforeEach(() => {
     localStorage.clear();
     toastError.mockClear();
+    // Classic banner copy applies when no Clarity project is configured.
+    vi.stubEnv('VITE_CLARITY_PROJECT_ID', '');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('shows Accept and Reject with a privacy cookies link on first visit', () => {

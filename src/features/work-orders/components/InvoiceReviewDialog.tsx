@@ -195,7 +195,10 @@ export function InvoiceReviewDialog({ workOrderId, open, onOpenChange, onExportS
   }, [review.data?.was_deleted, workOrderId, currentOrganization?.id, queryClient]);
 
   return <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl" onClick={(event) => event.stopPropagation()}>
+    <DialogContent
+      className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl"
+      data-clarity-mask="true"
+      onClick={(event) => event.stopPropagation()}>
       <DialogHeader>
         <DialogTitle>Review invoice details</DialogTitle>
         <DialogDescription>Check what will appear on the customer invoice before exporting to QuickBooks.</DialogDescription>
