@@ -36,7 +36,6 @@
     ]
   },
   "entry": [
-    "dev/ops/read-yaml.mjs",
     "dev/invoice-export-smoke.deno.ts",
     "playwright.user.config.ts",
     "src/sw.ts",

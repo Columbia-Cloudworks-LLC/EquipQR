@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Credentials stay in the child process; never source or print vault content.
+# Credentials come from the caller's environment and stay in the child process; never print them.
 set -euo pipefail
 set +x
 # shellcheck source=dev/ops/common.sh
@@ -19,19 +19,15 @@ case "$profile" in
   quickbooks-developer-storage)
     export E2E_QB_DEVELOPER_AUTH_STORAGE_STATE="${E2E_QB_DEVELOPER_AUTH_STORAGE_STATE:-tmp/playwright/auth/quickbooks-developer-local.json}";;
   google-business)
-    need op
-    vault='mrviyowmjwrxv7syobdlhnmawa'; item='ukvy6bzwb2ikq5cfeambgcq5u4'
-    GOOGLE_BUSINESS_EMAIL="$(op read "op://$vault/$item/username")"
-    GOOGLE_BUSINESS_PASSWORD="$(op read "op://$vault/$item/password")"
-    GOOGLE_BUSINESS_TOTP_SECRET="$(op read "op://$vault/$item/totp" 2>/dev/null || true)"
-    GOOGLE_BUSINESS_BACKUP_CODES="$(op read "op://$vault/$item/backup_codes" 2>/dev/null || true)"
-    export GOOGLE_BUSINESS_EMAIL GOOGLE_BUSINESS_PASSWORD GOOGLE_BUSINESS_TOTP_SECRET GOOGLE_BUSINESS_BACKUP_CODES;;
+    : "${GOOGLE_BUSINESS_EMAIL:?Export GOOGLE_BUSINESS_EMAIL and GOOGLE_BUSINESS_PASSWORD in your shell first.}"
+    : "${GOOGLE_BUSINESS_PASSWORD:?Export GOOGLE_BUSINESS_PASSWORD in your shell first.}"
+    export GOOGLE_BUSINESS_EMAIL GOOGLE_BUSINESS_PASSWORD
+    export GOOGLE_BUSINESS_TOTP_SECRET="${GOOGLE_BUSINESS_TOTP_SECRET:-}" GOOGLE_BUSINESS_BACKUP_CODES="${GOOGLE_BUSINESS_BACKUP_CODES:-}";;
   quickbooks-developer|qbo-browser)
-    need op
-    QUICKBOOKS_DEVELOPER_EMAIL="$(op read 'op://EquipQR Agents/62ng22yntivrjdt25gmsjqrin4/username')"
-    QUICKBOOKS_DEVELOPER_PASSWORD="$(op read 'op://EquipQR Agents/62ng22yntivrjdt25gmsjqrin4/password')"
-    QUICKBOOKS_DEVELOPER_OTP="$(op read 'op://EquipQR Agents/62ng22yntivrjdt25gmsjqrin4/one-time password' 2>/dev/null || true)"
-    export QUICKBOOKS_DEVELOPER_EMAIL QUICKBOOKS_DEVELOPER_PASSWORD QUICKBOOKS_DEVELOPER_OTP
+    : "${QUICKBOOKS_DEVELOPER_EMAIL:?Export QUICKBOOKS_DEVELOPER_EMAIL and QUICKBOOKS_DEVELOPER_PASSWORD in your shell first.}"
+    : "${QUICKBOOKS_DEVELOPER_PASSWORD:?Export QUICKBOOKS_DEVELOPER_PASSWORD in your shell first.}"
+    export QUICKBOOKS_DEVELOPER_EMAIL QUICKBOOKS_DEVELOPER_PASSWORD
+    export QUICKBOOKS_DEVELOPER_TOTP_SECRET="${QUICKBOOKS_DEVELOPER_TOTP_SECRET:-}"
     if [[ "$profile" == qbo-browser ]]; then
       export QBO_USERNAME="$QUICKBOOKS_DEVELOPER_EMAIL" QBO_PASSWORD="$QUICKBOOKS_DEVELOPER_PASSWORD"
       export QBO_TARGET_URL="${QBO_TARGET_URL:-https://qbo.intuit.com/app/homepage}"

@@ -170,9 +170,9 @@ async function main() {
   step(`project_ref: ${PROJECT_REF}`);
   step(`migrations_dir: ${MIGRATIONS_DIR}`);
 
-  if (!token || token.startsWith('op://')) {
+  if (!token) {
     const msg =
-      'SUPABASE_ACCESS_TOKEN missing or unresolved — cannot verify schema drift. The repository secret is required for same-repo checks and is unavailable on fork pull requests.';
+      'SUPABASE_ACCESS_TOKEN missing — cannot verify schema drift. The repository secret is required for same-repo checks and is unavailable on fork pull requests.';
     if (strict) {
       ghError('schema-drift-check', msg);
       process.exit(1);

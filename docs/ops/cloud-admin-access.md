@@ -10,7 +10,7 @@ When gcloud MCP impersonation is insufficient (OAuth client redirect URIs, Works
 . bash dev/e2e/env.sh google-business
 ```
 
-See `docs/ops/agent-secrets-and-access.md` for vault UUID, item IDs, and `op://` rules.
+See `docs/ops/agent-secrets-and-access.md` for where credentials live (GitHub Environments, or your own shell for human logins).
 Use the Columbia Cloudworks Workspace tenant (`columbiacloudworks.com`)
 and Google account for GCP Console OAuth edits on `equipqr-prod`. Use the
 real EquipQR Connect flow for Google Workspace integration validation.

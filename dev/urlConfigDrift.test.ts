@@ -23,7 +23,6 @@ const SCAN_ROOTS = [
   'dev',
   'docs',
   '.env.example',
-  '.github/secrets-map.yml',
   'src/services/quickbooks/auth.ts',
   'src/services/google-workspace/auth.ts',
 ];

@@ -11,7 +11,6 @@ This guide covers setting up your local environment to work with Supabase, inclu
 - **Ubuntu 24.04** — the supported development OS (GitHub Codespaces, WSL2, or native Linux). See [Developer Setup](../technical/setup.md).
 - **Docker Engine** — required for local Supabase. Inside WSL2 this can be Docker Engine or Docker Desktop's WSL integration. On Windows, do not rely on a second Windows-only stack; `dev-start.bat` enters Ubuntu and uses Docker there.
 - **Git** - [Download here](https://git-scm.com/)
-- **1Password CLI (`op`)** — optional. Core local development uses keys from `npx supabase status` and does not require production credentials. The legacy Windows script can still sync ignored env files when `op` is available.
 
 ### Supabase CLI Installation
 
@@ -101,7 +100,7 @@ npx supabase functions pull quickbooks-oauth-callback
 
 ### Step 5: Start Local Supabase Instance
 
-> **Preferred workflow**: Run `bash dev/linux/dev.sh start` from the project root. It launches **`bash dev/linux/dev.sh start`**, front-loads 1Password sync when `op` is available, then starts Docker, Supabase, Edge Functions serve, the docs site, and Vite. Exit code **`0`** means all four passed health checks. **`-Force`** resets the local DB, regenerates TypeScript types, and re-seeds dev media (equipment/note/work-order images) after Supabase is up — run **`bash dev/linux/dev.sh stop`** first if the dev stack is already running. **`bash dev/linux/dev.sh stop`** launches **`bash dev/linux/dev.sh stop`** for teardown; **`-Force`** there also quits Docker Desktop.
+> **Preferred workflow**: Run `bash dev/linux/dev.sh start` from the project root. It launches **`bash dev/linux/dev.sh start`**, then starts Docker, Supabase, Edge Functions serve, the docs site, and Vite. Exit code **`0`** means all four passed health checks. **`-Force`** resets the local DB, regenerates TypeScript types, and re-seeds dev media (equipment/note/work-order images) after Supabase is up — run **`bash dev/linux/dev.sh stop`** first if the dev stack is already running. **`bash dev/linux/dev.sh stop`** launches **`bash dev/linux/dev.sh stop`** for teardown; **`-Force`** there also quits Docker Desktop.
 
 Start a local Supabase instance (PostgreSQL, PostgREST, Auth, Storage, Edge Functions):
 
@@ -127,9 +126,9 @@ npx supabase status
 
 ### Step 6: Set Up Local Environment Variables
 
-Preferred: use `bash dev/linux/dev.sh start` with 1Password CLI available. It syncs base `.env` and edge env values automatically, then writes local Supabase URL overrides to `.env.local`.
+Preferred: use `bash dev/linux/dev.sh start`. It writes the local Supabase URL and key to `.env.local`. It reads, but never creates, `.env` and `supabase/functions/.env`; add optional app and Edge integration keys there by hand from `.env.example`, or those integrations stay unconfigured.
 
-Manual fallback (without 1Password): create a `.env.local` file for local Supabase development:
+Manual fallback: create a `.env.local` file for local Supabase development:
 
 ```bash
 # Copy example environment file

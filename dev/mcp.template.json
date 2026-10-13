@@ -1,15 +1,14 @@
 {
-  "_comment_purpose": "Source-of-truth template for the user-level Cursor MCP config. Rendered by dev/ops/render-mcp.sh on Linux. The 1Password references in this file are resolved by 'op inject' against the EquipQR Agents 1Password vault using the OP service account token (headless) or interactive op signin (local Linux). The 7 plugin-managed MCPs (supabase, vercel, figma, betterstack, context7, browser, app-control) live in the Cursor projects mcps folder and are auto-loaded by Cursor's plugin system; they are intentionally absent here.",
-  "_comment_rotation": "Token rotation procedure: see the Rotate-and-verify playbook in docs/ops/agent-secrets-and-access.md.",
-  "_comment_required_op_items": "This template assumes the following items exist in the EquipQR Agents 1Password vault (UUID tgo2m6qbct5otqeqirjocn3joa): 'todiagram' (field: credential), 'github-read' (field: credential), 'github-write' (field: credential, used by the github-write MCP entry for mutating GitHub operations - dedup'd 2026-04-20), 'gcp-read' (handled by dev/ops/render-mcp.sh, not via op inject; legacy item name gcp-viewer is still probed as a fallback). The 'gcp-editor' item is vestigial under the hybrid impersonation pattern - the gcloud-write MCP entry reuses the viewer SA JSON from gcp-read (or legacy gcp-viewer) and impersonates the editor SA via CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT, so gcp-editor is no longer required by the renderer (recommend revocation in a follow-up CR after 30 days of green doctor runs). If any required item/field is missing, 'op inject' will fail with a clear error and dev/ops/render-mcp.sh will abort.",
-  "_comment_playwright_config": "The Playwright MCP --config path uses Cursor's dollar-curly userHome and pathSeparator placeholders so the rendered config is portable across users and operating systems. Cursor's MCP loader (not op-inject) expands these at MCP-server launch time; op-inject only touches secret-reference URIs and leaves dollar-curly placeholders intact. Do not put a literal dollar-curly with three-dots-as-name in this file - newer op-inject parses it as a template variable and rejects dot as an invalid character. Also do not put a literal secret-reference URI scheme (the four chars o, p, colon, slash, slash) in narrative text - op-inject will try to consume the rest of the line as a vault/item/field path.",
+  "_comment_purpose": "Source-of-truth template for the user-level Cursor MCP config. Installed by dev/ops/render-mcp.sh on Linux. Credentials are never stored here or in any vault CLI: Cursor resolves the env-colon placeholders from your shell environment when it launches each MCP server. Export TODIAGRAM_API_KEY, GITHUB_MCP_READ_TOKEN, and GITHUB_MCP_WRITE_TOKEN before starting Cursor. The 7 plugin-managed MCPs (supabase, vercel, figma, betterstack, context7, browser, app-control) live in the Cursor projects mcps folder and are auto-loaded by Cursor's plugin system; they are intentionally absent here.",
+  "_comment_rotation": "Rotate a token at its provider, then update the exported environment variable and restart Cursor.",
+  "_comment_playwright_config": "The Playwright MCP --config path uses Cursor's dollar-curly userHome and pathSeparator placeholders so the rendered config is portable across users and operating systems. Cursor's MCP loader expands these at MCP-server launch time.",
   "mcpServers": {
     "todiagram": {
       "type": "stdio",
       "command": "todiagram",
       "args": [],
       "env": {
-        "TODIAGRAM_API_KEY": "op://tgo2m6qbct5otqeqirjocn3joa/todiagram/credential"
+        "TODIAGRAM_API_KEY": "${env:TODIAGRAM_API_KEY}"
       }
     },
     "playwright-recording": {
@@ -25,25 +24,28 @@
       "type": "http",
       "url": "https://api.githubcopilot.com/mcp/",
       "headers": {
-        "Authorization": "Bearer op://tgo2m6qbct5otqeqirjocn3joa/github-read/credential",
+        "Authorization": "Bearer ${env:GITHUB_MCP_READ_TOKEN}",
         "X-MCP-Readonly": "true",
         "X-MCP-Toolsets": "repos,issues,pull_requests,actions,code_security"
       }
     },
-    "_comment_warning_github_write": "WRITE ACCESS - github-write omits the X-MCP-Readonly header so this entry can mutate GitHub state. Only invoke when explicitly authorizing a write action (creating/editing issues, PRs, comments, releases, secrets, etc.). The PAT scope set on the github-write 1Password item should match what the AI Administrator orchestration in issue 644 expects: full repo + admin:repo_hook + workflow + secrets:write + admin:org if applicable. Rotate per the Rotate-and-verify playbook in docs/ops/agent-secrets-and-access.md.",
+    "_comment_warning_github_write": "WRITE ACCESS - github-write omits the X-MCP-Readonly header so this entry can mutate GitHub state. Only invoke when explicitly authorizing a write action (creating/editing issues, PRs, comments, releases, secrets, etc.). The PAT in GITHUB_MCP_WRITE_TOKEN should match what the AI Administrator orchestration in issue 644 expects: full repo + admin:repo_hook + workflow + secrets:write + admin:org if applicable.",
     "github-write": {
       "type": "http",
       "url": "https://api.githubcopilot.com/mcp/",
       "headers": {
-        "Authorization": "Bearer op://tgo2m6qbct5otqeqirjocn3joa/github-write/credential",
+        "Authorization": "Bearer ${env:GITHUB_MCP_WRITE_TOKEN}",
         "X-MCP-Toolsets": "repos,issues,pull_requests,actions,code_security"
       }
     },
-    "_comment_datadog": "Datadog MCP intentionally disabled to reduce costs. To re-enable: restore the 'datadog' entry below (see git history of this file), update the URL site (mcp.{site}.datadoghq.com), confirm the API key value (NOT the key UUID) is in the Datadog API-key item (api_key field) of the EquipQR Agents 1Password vault (UUID tgo2m6qbct5otqeqirjocn3joa), then run dev/dev/ops/render-mcp.sh. Avoid restating the secret-reference URI scheme inline here; op-inject would otherwise consume the rest of this comment as a vault path and abort the render.",
+    "_comment_datadog": "Datadog MCP intentionally disabled to reduce costs. To re-enable: restore the 'datadog' entry (see git history of this file), update the URL site (mcp.{site}.datadoghq.com), and read the API key from an exported environment variable with an env-colon placeholder.",
     "gcloud": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@google-cloud/gcloud-mcp@0.5.3"],
+      "args": [
+        "-y",
+        "@google-cloud/gcloud-mcp@0.5.3"
+      ],
       "env": {
         "GOOGLE_APPLICATION_CREDENTIALS": "${userHome}${pathSeparator}.config${pathSeparator}gcloud${pathSeparator}equipqr-agent-viewer.json",
         "CLOUDSDK_CORE_PROJECT": "equipqr-prod"
@@ -53,12 +55,16 @@
     "gcloud-write": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@google-cloud/gcloud-mcp@0.5.3"],
+      "args": [
+        "-y",
+        "@google-cloud/gcloud-mcp@0.5.3"
+      ],
       "env": {
         "GOOGLE_APPLICATION_CREDENTIALS": "${userHome}${pathSeparator}.config${pathSeparator}gcloud${pathSeparator}equipqr-agent-viewer.json",
         "CLOUDSDK_CORE_PROJECT": "equipqr-prod",
         "CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT": "equipqr-cursor-agent-editor-pr@equipqr-prod.iam.gserviceaccount.com"
       }
     }
-  }
+  },
+  "_comment_gcloud": "gcloud entries read the viewer service-account JSON that dev/ops/render-mcp.sh installs from the file named by EQUIPQR_GCP_VIEWER_SA_JSON (skip with --skip-gcp)."
 }

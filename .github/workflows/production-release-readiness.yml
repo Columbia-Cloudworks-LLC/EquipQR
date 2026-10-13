@@ -16,6 +16,8 @@ name: Production Release Readiness
 #   - SUPABASE_ACCESS_TOKEN
 #   - SUPABASE_DB_PASSWORD
 #   - VERCEL_TOKEN
+# plus the Edge secrets and public variables listed in dev/ci/sync-deploy-config.mjs,
+# which the release applies to Vercel and Supabase before promoting.
 # These jobs are the only workflows that declare environment: production.
 # A push to main always applies. Pull requests do not run this workflow.
 
@@ -82,6 +84,18 @@ jobs:
           fi
           echo "Vercel token accepted. No project was linked, migrated, promoted, or deployed."
 
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Check deployment configuration drift (no writes)
+        env:
+          SYNC_TARGET: production
+          SYNC_MODE: check
+          SYNC_VARS_JSON: ${{ toJSON(vars) }}
+          SYNC_SECRETS_JSON: ${{ toJSON(secrets) }}
+          SUPABASE_PROJECT_REF: ${{ env.SUPABASE_PROJECT_REF }}
+        run: node dev/ci/sync-deploy-config.mjs
+
   production-release-readiness:
     name: Migrate, verify schema, promote Vercel, deploy edge
     if: github.event_name == 'push' || inputs.mode == 'apply'
@@ -138,6 +152,18 @@ jobs:
           SCHEMA_DRIFT_STRICT: 'true'
         run: node .github/scripts/check-schema-drift.js
 
+      # GitHub is the only source of configuration. Apply production values to
+      # Vercel (VITE_*) and Supabase Edge secrets before promote, which rebuilds
+      # the deployment with Production env vars, and before the edge deploy.
+      - name: Sync deployment configuration from GitHub
+        env:
+          SYNC_TARGET: production
+          SYNC_MODE: apply
+          SYNC_VARS_JSON: ${{ toJSON(vars) }}
+          SYNC_SECRETS_JSON: ${{ toJSON(secrets) }}
+          SUPABASE_PROJECT_REF: ${{ env.SUPABASE_PROJECT_REF }}
+        run: node dev/ci/sync-deploy-config.mjs
+
       - name: Wait for Vercel deployment (main, READY)
         id: wait_vercel
         env:
@@ -176,6 +202,7 @@ jobs:
             echo ""
             echo "- **Supabase:** migrations applied; strict schema drift check passed; Edge Functions deployed."
             echo "- **Vercel:** main deployment READY and **promoted to production** (\`equipqr.app\`)."
+            echo "- **Configuration:** Vercel env and Supabase Edge secrets synced from the GitHub production environment."
             echo "- **Deployment:** ${{ steps.wait_vercel.outputs.deployment_url }}"
             echo ""
             echo "No manual Vercel dashboard promote or \`supabase functions deploy\` is required when this workflow succeeds."
