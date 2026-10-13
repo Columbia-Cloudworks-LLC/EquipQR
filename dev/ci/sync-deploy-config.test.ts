@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   EDGE_OPTIONAL_KEYS,
   EDGE_REQUIRED_KEYS,
+  GITHUB_SECRET_EDGE_KEYS,
   collectDesired,
   readSecretEnv,
   isWeakKey,
@@ -404,16 +405,27 @@ describe('workflow secret wiring', () => {
     }
   });
 
-  it('passes only managed secrets, each under its own name', () => {
+  it('lists only managed Edge keys as secret-backed', () => {
     const managed = new Set([...EDGE_REQUIRED_KEYS, ...EDGE_OPTIONAL_KEYS]);
-    for (const file of workflows) {
-      const text = readFileSync(join(process.cwd(), file), 'utf-8');
-      const pairs = [...text.matchAll(/SYNC_SECRET_([A-Z0-9_]+): \$\{\{ secrets\.([A-Z0-9_]+) \}\}/g)];
-      expect(pairs.length, file).toBeGreaterThan(0);
-      for (const [, envName, secretName] of pairs) {
-        expect(envName).toBe(secretName);
-        expect(managed.has(envName), `${file}: ${envName}`).toBe(true);
-      }
+    for (const name of GITHUB_SECRET_EDGE_KEYS) expect(managed.has(name), name).toBe(true);
+  });
+
+  // Each step that runs the sync must pass exactly GITHUB_SECRET_EDGE_KEYS,
+  // each under its own name, so dropping one assignment fails here.
+  it.each([
+    ['.github/workflows/sync-deploy-config.yml', 1],
+    ['.github/workflows/production-release-readiness.yml', 2],
+  ])('%s passes exactly the managed secrets in each of its %i sync step(s)', (file, stepCount) => {
+    const text = readFileSync(join(process.cwd(), file), 'utf-8');
+    const syncSteps = text
+      .split(/\n\s*- name: /)
+      .filter((step) => step.includes('node dev/ci/sync-deploy-config.mjs'));
+    expect(syncSteps).toHaveLength(stepCount);
+    const expected = [...GITHUB_SECRET_EDGE_KEYS].sort();
+    for (const step of syncSteps) {
+      const pairs = [...step.matchAll(/SYNC_SECRET_([A-Z0-9_]+): \$\{\{ secrets\.([A-Z0-9_]+) \}\}/g)];
+      for (const [, envName, secretName] of pairs) expect(envName).toBe(secretName);
+      expect(pairs.map(([, envName]) => envName).sort()).toEqual(expected);
     }
   });
 

@@ -136,6 +136,25 @@ export function resolveGithubValue(name, vars, secrets) {
 /** Prefix for the per-secret env vars a workflow passes explicitly. */
 export const SECRET_ENV_PREFIX = 'SYNC_SECRET_';
 
+/**
+ * Managed Edge keys stored as GitHub **secrets** (the rest are variables). Every
+ * workflow step that runs this script passes exactly these as SYNC_SECRET_<NAME>;
+ * sync-deploy-config.test.ts enforces that.
+ */
+export const GITHUB_SECRET_EDGE_KEYS = [
+  'RESEND_API_KEY',
+  'HCAPTCHA_SECRET_KEY',
+  'TOKEN_ENCRYPTION_KEY',
+  'KDF_SALT',
+  'INTUIT_CLIENT_SECRET',
+  'GOOGLE_WORKSPACE_CLIENT_SECRET',
+  'GOOGLE_MAPS_SERVER_KEY',
+  'GOOGLE_MAPS_BROWSER_KEY',
+  'VAPID_PRIVATE_KEY',
+  'GITHUB_PAT',
+  'GITHUB_WEBHOOK_SECRET',
+];
+
 /** Collect the managed Edge secrets from SYNC_SECRET_<NAME> env vars. */
 export function readSecretEnv(env) {
   const secrets = {};
