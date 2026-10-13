@@ -17,7 +17,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Security
 
-- **Deployment configuration comes only from GitHub (#1640)** — Vercel and Supabase settings are synced from GitHub Environments, and the project no longer uses a password-manager integration.
+- **Deployment configuration comes only from GitHub (#1640)** — Vercel and Supabase settings are synced from GitHub Environments, and the project no longer uses a password-manager integration. The sync is passed only the secrets it manages.
 
 ## [3.36.0] - 2026-10-11
 

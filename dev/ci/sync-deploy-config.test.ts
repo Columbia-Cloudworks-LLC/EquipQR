@@ -1,8 +1,13 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  EDGE_OPTIONAL_KEYS,
   EDGE_REQUIRED_KEYS,
+  GITHUB_SECRET_EDGE_KEYS,
   collectDesired,
+  readSecretEnv,
   isWeakKey,
   planEdge,
   planVercel,
@@ -14,6 +19,11 @@ import {
 // Passes the Edge runtime entropy rules (32+ chars, varied, no weak patterns).
 const STRONG = 'Zq8!vR2#pL9$wX4&mN7^tB3*cH6@yJ1%';
 const STRONG_2 = 'gT5&kW9!xD2#rF7$nC4^vB8*hM1@pQ6%';
+
+/** Mirrors how workflows pass each managed secret as SYNC_SECRET_<NAME>. */
+function secretEnv(secrets: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(Object.entries(secrets).map(([name, value]) => [`SYNC_SECRET_${name}`, value]));
+}
 
 function edgeSecrets(): Record<string, string> {
   return Object.fromEntries(EDGE_REQUIRED_KEYS.map((name) => [name, `${name}-${STRONG}`]));
@@ -277,7 +287,7 @@ describe('run', () => {
         VERCEL_TOKEN: 't',
         SUPABASE_ACCESS_TOKEN: 's',
         SYNC_VARS_JSON: JSON.stringify({ SUPABASE_PROJECT_REF: 'ref123', CLARITY_PROJECT_ID: 'abc' }),
-        SYNC_SECRETS_JSON: JSON.stringify(secrets),
+        ...secretEnv(secrets),
       },
       fetchImpl,
     });
@@ -308,7 +318,7 @@ describe('run', () => {
         VERCEL_TOKEN: 't',
         SUPABASE_ACCESS_TOKEN: 's',
         SYNC_VARS_JSON: JSON.stringify(vars),
-        SYNC_SECRETS_JSON: JSON.stringify(secrets),
+        ...secretEnv(secrets),
       },
       fetchImpl,
     });
@@ -348,7 +358,7 @@ describe('run', () => {
           SYNC_PREVIEW_EDGE: 'true',
           SUPABASE_PROJECT_REF: 'ymxkzronkhwxzcdcbnwq',
         }),
-        SYNC_SECRETS_JSON: JSON.stringify(edgeSecrets()),
+        ...secretEnv(edgeSecrets()),
       },
       fetchImpl,
     });
@@ -369,11 +379,64 @@ describe('run', () => {
         VERCEL_TOKEN: 't',
         SUPABASE_ACCESS_TOKEN: 's',
         SYNC_VARS_JSON: JSON.stringify({ SUPABASE_PROJECT_REF: 'ref123' }),
-        SYNC_SECRETS_JSON: JSON.stringify(secrets),
+        ...secretEnv(secrets),
       },
       fetchImpl,
     });
     const printed = [...stdout.mock.calls, ...stderr.mock.calls].map((c) => String(c[0])).join('');
     for (const value of Object.values(secrets)) expect(printed).not.toContain(value);
+  });
+});
+
+describe('workflow secret wiring', () => {
+  const workflows = [
+    '.github/workflows/sync-deploy-config.yml',
+    '.github/workflows/production-release-readiness.yml',
+  ];
+
+  it('never hands a step every secret via toJSON(secrets)', () => {
+    for (const file of workflows) {
+      const text = readFileSync(join(process.cwd(), file), 'utf-8');
+      const code = text
+        .split('\n')
+        .filter((line) => !line.trim().startsWith('#'))
+        .join('\n');
+      expect(code, file).not.toMatch(/toJSON\(\s*secrets\s*\)/);
+    }
+  });
+
+  it('lists only managed Edge keys as secret-backed', () => {
+    const managed = new Set([...EDGE_REQUIRED_KEYS, ...EDGE_OPTIONAL_KEYS]);
+    for (const name of GITHUB_SECRET_EDGE_KEYS) expect(managed.has(name), name).toBe(true);
+  });
+
+  // Each step that runs the sync must pass exactly GITHUB_SECRET_EDGE_KEYS,
+  // each under its own name, so dropping one assignment fails here.
+  it.each([
+    ['.github/workflows/sync-deploy-config.yml', 1],
+    ['.github/workflows/production-release-readiness.yml', 2],
+  ])('%s passes exactly the managed secrets in each of its %i sync step(s)', (file, stepCount) => {
+    const text = readFileSync(join(process.cwd(), file), 'utf-8');
+    const syncSteps = text
+      .split(/\n\s*- name: /)
+      .filter((step) => step.includes('node dev/ci/sync-deploy-config.mjs'));
+    expect(syncSteps).toHaveLength(stepCount);
+    const expected = [...GITHUB_SECRET_EDGE_KEYS].sort();
+    for (const step of syncSteps) {
+      const pairs = [...step.matchAll(/SYNC_SECRET_([A-Z0-9_]+): \$\{\{ secrets\.([A-Z0-9_]+) \}\}/g)];
+      for (const [, envName, secretName] of pairs) expect(envName).toBe(secretName);
+      expect(pairs.map(([, envName]) => envName).sort()).toEqual(expected);
+    }
+  });
+
+  it('readSecretEnv ignores unrelated and empty env vars', () => {
+    expect(
+      readSecretEnv({
+        SYNC_SECRET_RESEND_API_KEY: 'r',
+        SYNC_SECRET_KDF_SALT: '',
+        SYNC_SECRET_UNRELATED: 'x',
+        RESEND_API_KEY: 'plain',
+      }),
+    ).toEqual({ RESEND_API_KEY: 'r' });
   });
 });
