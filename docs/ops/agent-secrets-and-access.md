@@ -32,7 +32,7 @@ Output lists key names and `MATCH` / `DRIFT` / `MISSING` only, never values.
 ## Adding or changing a value
 
 1. Set it in GitHub. Use a variable for public values (`gh variable set NAME --env preview --body VALUE`) and a secret for private ones (`gh secret set NAME --env production`, which reads the value from stdin).
-2. If it's new, add the name to the matching list in `dev/ci/sync-deploy-config.mjs` and to `.github/configuration-inventory.yml`.
+2. If it's new, add the name to the matching list in `dev/ci/sync-deploy-config.mjs` and to `.github/configuration-inventory.yml`. A new **secret** also needs its own `SYNC_SECRET_<NAME>: ${{ secrets.<NAME> }}` line in the sync steps of `sync-deploy-config.yml` and `production-release-readiness.yml`. Workflows list each secret explicitly and never pass `toJSON(secrets)`. GitHub flags that pattern as potentially malicious and blocks the run, and it would hand the step every secret.
 3. Apply it:
    - **Preview:** Actions → *Sync deployment configuration* → `environment=preview`, `mode=apply` (or push to `preview`).
    - **Production:** the next release to `main` applies it. To preview the effect first, run *Sync deployment configuration* with `environment=production`, `mode=check` from `main`, or *Production Release Readiness* in `dry-run` mode.

@@ -24,8 +24,11 @@
  * Env:
  *   SYNC_TARGET            preview | production (required)
  *   SYNC_MODE              check | apply (default check; check exits 1 on drift)
- *   SYNC_VARS_JSON         ${{ toJSON(vars) }}
- *   SYNC_SECRETS_JSON      ${{ toJSON(secrets) }}
+ *   SYNC_VARS_JSON         ${{ toJSON(vars) }} (variables are not secret)
+ *   SYNC_SECRET_<NAME>     one env var per GitHub secret the sync manages, e.g.
+ *                          SYNC_SECRET_RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}.
+ *                          Workflows list each secret explicitly; never pass
+ *                          toJSON(secrets), which hands the step every secret.
  *   VERCEL_TOKEN           required
  *   VERCEL_TEAM_ID / VERCEL_PROJECT_ID  optional overrides
  *   SUPABASE_ACCESS_TOKEN  required when Edge secrets are synced
@@ -128,6 +131,19 @@ export function resolveGithubValue(name, vars, secrets) {
     if (typeof value === 'string' && value.trim() !== '') return value;
   }
   return undefined;
+}
+
+/** Prefix for the per-secret env vars a workflow passes explicitly. */
+export const SECRET_ENV_PREFIX = 'SYNC_SECRET_';
+
+/** Collect the managed Edge secrets from SYNC_SECRET_<NAME> env vars. */
+export function readSecretEnv(env) {
+  const secrets = {};
+  for (const name of [...EDGE_REQUIRED_KEYS, ...EDGE_OPTIONAL_KEYS]) {
+    const value = env[`${SECRET_ENV_PREFIX}${name}`];
+    if (typeof value === 'string' && value !== '') secrets[name] = value;
+  }
+  return secrets;
 }
 
 /** Browser-visible values come from variables only, never secrets. */
@@ -389,7 +405,7 @@ export async function run({ env = process.env, fetchImpl = fetch } = {}) {
   if (mode !== 'check' && mode !== 'apply') throw new Error('SYNC_MODE must be check or apply.');
 
   const vars = parseJsonObject(env.SYNC_VARS_JSON, 'SYNC_VARS_JSON');
-  const secrets = parseJsonObject(env.SYNC_SECRETS_JSON, 'SYNC_SECRETS_JSON');
+  const secrets = readSecretEnv(env);
   const vercelToken = env.VERCEL_TOKEN || '';
   if (!vercelToken) throw new Error('VERCEL_TOKEN is required.');
   const teamId = env.VERCEL_TEAM_ID || DEFAULT_TEAM;
