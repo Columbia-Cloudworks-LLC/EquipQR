@@ -1,4 +1,8 @@
-import type { EquipmentFormData, EquipmentRecord } from '@/features/equipment/types/equipment';
+import {
+  generateEquipmentName,
+  type EquipmentFormData,
+  type EquipmentRecord,
+} from '@/features/equipment/types/equipment';
 import type { EquipmentCreateData, EquipmentUpdateData } from '@/features/equipment/services/EquipmentService';
 import { mapEquipmentFormSharedFields } from '@/features/equipment/utils/equipmentFormSharedFields';
 
@@ -57,10 +61,37 @@ export function buildEquipmentFormDefaultValues(
   };
 }
 
-export function toEquipmentCreateData(data: EquipmentFormData): EquipmentCreateData {
+/**
+ * Default values for "Add Another Like This" (issue #1643): inherit the shared
+ * specs of an existing unit (make, model, team, PM template, location) while
+ * leaving unique identifiers (serial number, media, notes, hours, service
+ * history, custom attributes such as unit number / QR tag) blank.
+ */
+export function buildEquipmentCloneDefaultValues(source: EquipmentRecord): EquipmentFormData {
+  return {
+    ...buildEquipmentFormDefaultValues(),
+    name: generateEquipmentName(source.manufacturer, source.model),
+    manufacturer: source.manufacturer,
+    model: source.model,
+    location: source.location,
+    team_id: source.team_id || '',
+    default_pm_template_id: source.default_pm_template_id || '',
+    assigned_location_street: source.assigned_location_street || '',
+    assigned_location_city: source.assigned_location_city || '',
+    assigned_location_state: source.assigned_location_state || '',
+    assigned_location_country: source.assigned_location_country || '',
+    assigned_location_lat: source.assigned_location_lat ?? undefined,
+    assigned_location_lng: source.assigned_location_lng ?? undefined,
+  };
+}
+
+export function toEquipmentCreateData(
+  data: EquipmentFormData,
+  options: { customerId?: string | null } = {},
+): EquipmentCreateData {
   return {
     ...mapEquipmentFormSharedFields(data),
-    customer_id: null,
+    customer_id: options.customerId ?? null,
     working_hours: 0,
     import_id: null,
   };
