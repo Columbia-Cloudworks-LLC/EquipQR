@@ -20,6 +20,8 @@ const STAFF_ROLE_MAP = Object.freeze({
 const TEAM_ROLES = new Set(['manager', 'technician', 'requestor', 'viewer']);
 const EQUIPMENT_STATUSES = new Set(['active', 'maintenance', 'inactive']);
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** Same prefix rule as the app's CSV exporters (formula-injection guard). */
+const CSV_FORMULA_PREFIX_RE = /^\s*[=+\-@]/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const DEFAULT_TEAM_NAME = 'Main Yard';
@@ -52,6 +54,16 @@ const CSV_HEADER_ALIASES = Object.freeze({
 /** @param {string} email */
 export function normalizeEmail(email) {
   return String(email ?? '').trim().toLowerCase();
+}
+
+/**
+ * True only for a real calendar date in YYYY-MM-DD form (rejects 2026-02-31).
+ * @param {string} value
+ */
+export function isIsoCalendarDate(value) {
+  if (!ISO_DATE_RE.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
 /** @param {string} header */
@@ -124,8 +136,8 @@ export function resolveManifest(manifest, options = {}) {
     }
 
     const installationDate = String(row?.installationDate ?? row?.installation_date ?? '').trim() || today;
-    if (!ISO_DATE_RE.test(installationDate)) {
-      errors.push(`${label}: installationDate must be YYYY-MM-DD (got "${installationDate}")`);
+    if (!isIsoCalendarDate(installationDate)) {
+      errors.push(`${label}: installationDate must be a valid YYYY-MM-DD date (got "${installationDate}")`);
     }
 
     const status = String(row?.status ?? 'active').trim().toLowerCase();
@@ -220,7 +232,11 @@ export function buildLabelsCsv(rows, { appUrl, organizationId }) {
       qr_url: equipmentQrUrl(appUrl, row.id, organizationId),
       qr_svg: `qr/${row.id}.svg`,
     })),
-    { columns: ['equipment_id', 'name', 'manufacturer', 'model', 'serial_number', 'qr_url', 'qr_svg'] },
+    {
+      columns: ['equipment_id', 'name', 'manufacturer', 'model', 'serial_number', 'qr_url', 'qr_svg'],
+      // Values come from customer spreadsheets and the output is opened in one.
+      escapeFormulae: CSV_FORMULA_PREFIX_RE,
+    },
   );
 }
 

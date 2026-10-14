@@ -88,6 +88,34 @@ CREATE TRIGGER update_organization_provisioned_members_updated_at
   BEFORE UPDATE ON public.organization_provisioned_members
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
+-- Deleting a team sets team_id to NULL via the FK; clear team_role in the same
+-- update so organization_provisioned_members_team_role_check cannot block the
+-- team delete.
+CREATE OR REPLACE FUNCTION public.clear_provisioned_member_team_role()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  IF NEW.team_id IS NULL THEN
+    NEW.team_role := NULL;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.clear_provisioned_member_team_role() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.clear_provisioned_member_team_role() FROM anon;
+REVOKE ALL ON FUNCTION public.clear_provisioned_member_team_role() FROM authenticated;
+
+DROP TRIGGER IF EXISTS clear_provisioned_member_team_role
+  ON public.organization_provisioned_members;
+CREATE TRIGGER clear_provisioned_member_team_role
+  BEFORE UPDATE OF team_id ON public.organization_provisioned_members
+  FOR EACH ROW
+  WHEN (NEW.team_id IS NULL AND NEW.team_role IS NOT NULL)
+  EXECUTE FUNCTION public.clear_provisioned_member_team_role();
+
 ALTER TABLE public.organization_provisioned_members ENABLE ROW LEVEL SECURITY;
 
 REVOKE ALL ON TABLE public.organization_provisioned_members FROM PUBLIC;

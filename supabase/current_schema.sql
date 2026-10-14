@@ -3048,6 +3048,22 @@ COMMENT ON FUNCTION "public"."cleanup_stale_gws_directory_users"() IS 'Removes G
 
 
 
+CREATE OR REPLACE FUNCTION "public"."clear_provisioned_member_team_role"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+BEGIN
+  IF NEW.team_id IS NULL THEN
+    NEW.team_role := NULL;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."clear_provisioned_member_team_role"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."clear_rls_context"() RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -19829,6 +19845,10 @@ COMMENT ON TRIGGER "broadcast_notification_trigger" ON "public"."notifications" 
 
 
 
+CREATE OR REPLACE TRIGGER "clear_provisioned_member_team_role" BEFORE UPDATE OF "team_id" ON "public"."organization_provisioned_members" FOR EACH ROW WHEN ((("new"."team_id" IS NULL) AND ("new"."team_role" IS NOT NULL))) EXECUTE FUNCTION "public"."clear_provisioned_member_team_role"();
+
+
+
 CREATE OR REPLACE TRIGGER "enforce_manual_external_contact_metadata" BEFORE INSERT OR UPDATE ON "public"."external_customer_contacts" FOR EACH ROW EXECUTE FUNCTION "public"."enforce_manual_external_contact_metadata"();
 
 
@@ -23455,6 +23475,11 @@ GRANT ALL ON FUNCTION "public"."cleanup_old_notifications"() TO "service_role";
 
 REVOKE ALL ON FUNCTION "public"."cleanup_stale_gws_directory_users"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."cleanup_stale_gws_directory_users"() TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."clear_provisioned_member_team_role"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."clear_provisioned_member_team_role"() TO "service_role";
 
 
 

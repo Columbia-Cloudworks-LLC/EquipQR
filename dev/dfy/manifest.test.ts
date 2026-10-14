@@ -4,6 +4,7 @@ import {
   DEFAULT_TEAM_NAME,
   buildLabelsCsv,
   equipmentQrUrl,
+  isIsoCalendarDate,
   normalizeEmail,
   parseEquipmentCsv,
   resolveManifest,
@@ -99,7 +100,7 @@ describe('resolveManifest', () => {
           'organization.name is required',
           'equipment[0]: name is required',
           'equipment[1]: duplicate serial number "DUP"',
-          expect.stringMatching(/equipment\[1\]: installationDate must be YYYY-MM-DD/),
+          expect.stringMatching(/equipment\[1\]: installationDate must be a valid YYYY-MM-DD date/),
           expect.stringMatching(/equipment\[1\]: status must be one of/),
           'staff[0]: a valid email is required',
           expect.stringMatching(/staff\[1\]: role must be one of/),
@@ -108,6 +109,21 @@ describe('resolveManifest', () => {
         ]),
       );
     }
+  });
+});
+
+describe('isIsoCalendarDate', () => {
+  it('accepts real dates and rejects impossible or malformed ones', () => {
+    expect(isIsoCalendarDate('2024-02-29')).toBe(true);
+    expect(isIsoCalendarDate('2026-02-31')).toBe(false);
+    expect(isIsoCalendarDate('2026-13-01')).toBe(false);
+    expect(isIsoCalendarDate('10/14/2026')).toBe(false);
+  });
+
+  it('makes dry-run reject impossible installation dates', () => {
+    expect(() =>
+      resolveManifest({ ...baseManifest, equipment: [{ name: 'Loader', installationDate: '2026-02-31' }] }),
+    ).toThrow(/installationDate must be a valid YYYY-MM-DD date/);
   });
 });
 
@@ -155,6 +171,20 @@ describe('labels', () => {
       'equipment_id,name,manufacturer,model,serial_number,qr_url,qr_svg',
       'eq-1,"Dozer, big",CAT,D6,VIN-4,https://equipqr.app/qr/equipment/eq-1?org=org-1,qr/eq-1.svg',
     ]);
+  });
+});
+
+describe('labels formula safety', () => {
+  it('neutralizes spreadsheet formulas from customer-supplied fields', () => {
+    const csv = buildLabelsCsv(
+      [{ id: 'eq-1', name: '=HYPERLINK("x")', manufacturer: ' +CAT', model: '-D6', serial_number: '@SUM(A1)' }],
+      { appUrl: 'https://equipqr.app', organizationId: 'org-1' },
+    );
+    const row = csv.split(/\r?\n/)[1];
+    expect(row).toContain(`"'=HYPERLINK(""x"")"`);
+    expect(row).toContain("' +CAT");
+    expect(row).toContain("'-D6");
+    expect(row).toContain("'@SUM(A1)");
   });
 });
 

@@ -17,6 +17,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 - **Opt-in Google Analytics (#1649)** — The same opt-in now also covers Google Analytics, so we can see which searches and links bring shops to EquipQR. Advertising features stay off, and record IDs and access links are removed before anything is sent.
 - **Google review request (#1649)** — Organization owners and admins see a one-time, dismissible request to review EquipQR on Google after their organization's 10th completed work order, or its 5th QuickBooks invoice export for users who manage QuickBooks.
 - **Richer search listing details (#1649)** — EquipQR's search metadata now links to the Columbia Cloudworks LLC Google Business Profile.
+- **Done-For-You yard setup (#1648)** — We can set up your organization, equipment, and QR labels before your team signs up. When your owner and mechanics first sign in with Google or an email link, they land directly in the ready-made yard with the right roles, and owners get a prompt to connect QuickBooks.
 
 ### Fixed
 

@@ -110,8 +110,13 @@ async function main() {
     'Create organization',
   );
 
+  const appUrl = values['app-url'];
+  const outDir = values.out ?? path.join('tmp', 'dfy', `${slugify(plan.organization.name)}-${org.id.slice(0, 8)}`);
+
   /** @type {Array<{ id: string, name: string, manufacturer: string, model: string, serial_number: string }>} */
   const createdEquipment = [];
+  /** @type {Array<{ email: string, role: string, status: string }>} */
+  let staged;
   try {
     const team = await checked(
       client.from('teams').insert({ organization_id: org.id, name: plan.teamName }).select('id').single(),
@@ -140,38 +145,43 @@ async function main() {
         `Stage ${s.email}`,
       );
     }
+
+    fs.mkdirSync(path.join(outDir, 'qr'), { recursive: true });
+    fs.writeFileSync(
+      path.join(outDir, 'labels.csv'),
+      buildLabelsCsv(createdEquipment, { appUrl, organizationId: org.id }),
+    );
+    for (const row of createdEquipment) {
+      const svg = await QRCode.toString(equipmentQrUrl(appUrl, row.id, org.id), {
+        type: 'svg',
+        errorCorrectionLevel: 'M',
+        margin: 1,
+      });
+      fs.writeFileSync(path.join(outDir, 'qr', `${row.id}.svg`), svg);
+    }
+
+    staged = await checked(
+      client
+        .from('organization_provisioned_members')
+        .select('email, role, status')
+        .eq('organization_id', org.id)
+        .order('created_at'),
+      'Read staged members',
+    );
   } catch (error) {
     // Leave nothing half-provisioned: the org delete cascades to team,
-    // equipment, and staged members.
-    await client.from('organizations').delete().eq('id', org.id);
-    throw error;
+    // equipment, staged members, and any memberships claimed while staging.
+    const { error: cleanupError } = await client.from('organizations').delete().eq('id', org.id);
+    const message = error instanceof Error ? error.message : String(error);
+    if (cleanupError) {
+      throw new Error(
+        `${message}\nRollback FAILED: organization ${org.id} is still present (${cleanupError.message}). Delete it manually.`,
+      );
+    }
+    throw new Error(`${message}\nRolled back: organization ${org.id} was deleted.`);
   }
 
-  const appUrl = values['app-url'];
-  const outDir = values.out ?? path.join('tmp', 'dfy', `${slugify(plan.organization.name)}-${org.id.slice(0, 8)}`);
-  fs.mkdirSync(path.join(outDir, 'qr'), { recursive: true });
-  fs.writeFileSync(
-    path.join(outDir, 'labels.csv'),
-    buildLabelsCsv(createdEquipment, { appUrl, organizationId: org.id }),
-  );
-  for (const row of createdEquipment) {
-    const svg = await QRCode.toString(equipmentQrUrl(appUrl, row.id, org.id), {
-      type: 'svg',
-      errorCorrectionLevel: 'M',
-      margin: 1,
-    });
-    fs.writeFileSync(path.join(outDir, 'qr', `${row.id}.svg`), svg);
-  }
-
-  const staged = await checked(
-    client
-      .from('organization_provisioned_members')
-      .select('email, role, status')
-      .eq('organization_id', org.id)
-      .order('created_at'),
-    'Read staged members',
-  );
-
+  // Invites are irreversible, so they go out only after everything above succeeded.
   if (values['send-invites']) {
     for (const s of staged.filter((row) => row.status === 'pending')) {
       const { error } = await client.auth.admin.inviteUserByEmail(s.email, { redirectTo: appUrl });

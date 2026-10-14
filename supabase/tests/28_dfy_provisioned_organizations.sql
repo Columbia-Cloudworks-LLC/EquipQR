@@ -2,7 +2,7 @@
 -- shadow-member staging, claim on verified sign-in, and RLS boundaries.
 
 BEGIN;
-SELECT plan(30);
+SELECT plan(32);
 
 -- -----------------------------------------------------------------------------
 -- Fixture: a provisioned yard with a team and equipment, and zero auth users.
@@ -370,6 +370,23 @@ SELECT is(
       AND status = 'pending'),
   0,
   'No staged rows remain pending after all claims'
+);
+
+-- -----------------------------------------------------------------------------
+-- Deleting a staged team must not be blocked by the team_role check.
+-- -----------------------------------------------------------------------------
+
+SELECT lives_ok(
+  $$DELETE FROM public.teams WHERE id = '93000000-0000-0000-0000-000000000011'::uuid$$,
+  'A team referenced by a staged member with a team role can be deleted'
+);
+
+SELECT results_eq(
+  $$SELECT team_id, team_role::text
+      FROM public.organization_provisioned_members
+     WHERE email = 'pgtap-dfy-mechanic@equipqr.test'$$,
+  $$VALUES (NULL::uuid, NULL::text)$$,
+  'Team deletion clears both team_id and team_role on the staged row'
 );
 
 SELECT * FROM finish();
