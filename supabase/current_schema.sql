@@ -16579,30 +16579,6 @@ $$;
 ALTER FUNCTION "public"."validate_invitation_for_account_creation"("p_invitation_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."validate_member_limit"() RETURNS "trigger"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
-    AS $$
-DECLARE
-  current_count INTEGER;
-  max_count INTEGER;
-BEGIN
-  IF NEW.status = 'active' THEN
-    SELECT member_count, max_members INTO current_count, max_count
-    FROM organizations WHERE id = NEW.organization_id;
-    
-    IF current_count >= max_count THEN
-      RAISE EXCEPTION 'Organization has reached maximum member limit of %', max_count;
-    END IF;
-  END IF;
-  RETURN NEW;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."validate_member_limit"() OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."validate_operator_checkin_settings_org_refs"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'public'
@@ -17863,6 +17839,10 @@ CREATE TABLE IF NOT EXISTS "public"."organizations" (
 
 
 ALTER TABLE "public"."organizations" OWNER TO "postgres";
+
+
+COMMENT ON COLUMN "public"."organizations"."max_members" IS 'Legacy, not enforced. Organizations have no member limit.';
+
 
 
 COMMENT ON COLUMN "public"."organizations"."billing_cycle" IS 'DEPRECATED: Billing removed 2025-01-15. Column preserved for historical data.';
@@ -20976,10 +20956,6 @@ CREATE OR REPLACE TRIGGER "trigger_update_pm_updated_at" BEFORE UPDATE ON "publi
 
 
 
-CREATE OR REPLACE TRIGGER "trigger_validate_member_limit" BEFORE INSERT OR UPDATE ON "public"."organization_members" FOR EACH ROW EXECUTE FUNCTION "public"."validate_member_limit"();
-
-
-
 CREATE OR REPLACE TRIGGER "update_inventory_items_updated_at" BEFORE UPDATE ON "public"."inventory_items" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
 
 
@@ -23693,10 +23669,6 @@ ALTER TABLE "public"."workspace_personal_org_merge_requests" ENABLE ROW LEVEL SE
 ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
 
 
-
-
-
-
 ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."organization_members";
 
 
@@ -25663,11 +25635,6 @@ GRANT ALL ON FUNCTION "public"."validate_google_workspace_oauth_session"("p_sess
 
 REVOKE ALL ON FUNCTION "public"."validate_invitation_for_account_creation"("p_invitation_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."validate_invitation_for_account_creation"("p_invitation_id" "uuid") TO "service_role";
-
-
-
-REVOKE ALL ON FUNCTION "public"."validate_member_limit"() FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."validate_member_limit"() TO "service_role";
 
 
 
