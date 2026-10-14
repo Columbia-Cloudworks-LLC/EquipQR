@@ -1,0 +1,34 @@
+name: Database tests (pgTAP)
+# Runs the pgTAP suites in supabase/tests against a disposable local stack
+# whenever migrations or database tests change, so the suites cannot drift
+# unnoticed again (see #1653).
+on:
+  pull_request:
+    branches: [preview, main]
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/tests/**'
+      - 'supabase/config.toml'
+      - '.github/workflows/database-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: database-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  pgtap:
+    name: pgTAP (npm run test:db)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Set up the shared Linux environment
+        run: bash dev/linux/setup.sh
+      - name: Start the local stack
+        run: bash dev/linux/dev.sh start
+      - name: Run database tests
+        run: bash dev/linux/run.sh npm run test:db
+      - name: Stop the stack
+        if: always()
+        run: bash dev/linux/dev.sh stop
