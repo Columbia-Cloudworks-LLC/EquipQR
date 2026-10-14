@@ -204,12 +204,14 @@ SELECT is(
   'InitPlan-wrapped tickets policy exists'
 );
 
+-- inventory_items_organization_isolation was superseded by per-command RBAC
+-- policies (20260629220803_add_parts_consumers_inventory_rbac); see 22_inventory_rbac.
 SELECT is(
   (SELECT count(*)::int FROM pg_policies
    WHERE schemaname = 'public' AND tablename = 'inventory_items'
-     AND policyname = 'inventory_items_organization_isolation'),
+     AND policyname = 'inventory_items_select'),
   1,
-  'InitPlan-wrapped inventory_items policy exists'
+  'inventory_items read policy exists (superseded organization_isolation)'
 );
 
 -- ============================================================================
@@ -268,9 +270,11 @@ SELECT has_index(
   'FK index on user_dashboard_preferences.organization_id exists'
 );
 
+-- The composite idx_dsr_request_events_request was dropped as unused
+-- (20260503120000); 20260602140000 restored a plain FK index instead.
 SELECT has_index(
-  'public', 'dsr_request_events', 'idx_dsr_request_events_request',
-  'Composite FK index on dsr_request_events(dsr_request_id, created_at) retained'
+  'public', 'dsr_request_events', 'idx_dsr_request_events_dsr_request_id',
+  'FK index on dsr_request_events.dsr_request_id exists'
 );
 
 -- ============================================================================

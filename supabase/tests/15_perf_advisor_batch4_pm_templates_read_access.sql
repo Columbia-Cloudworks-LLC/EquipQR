@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(3);
+SELECT plan(2);
 
 SELECT is(
   (SELECT count(*)::int FROM pg_policies
@@ -17,13 +17,8 @@ SELECT is(
   'pm_checklist_templates_select_consolidated policy retained'
 );
 
-SELECT is(
-  (SELECT count(*)::int FROM pg_policies
-   WHERE schemaname = 'public' AND tablename = 'pm_checklist_templates'
-     AND policyname = 'pm_templates_admin_manage'),
-  1,
-  'pm_templates_admin_manage policy retained'
-);
+-- pm_templates_admin_manage was later dropped on purpose by batch 5
+-- (20260602160603); 16_perf_advisor_batch5_pm_templates_admin_manage covers it.
 
 SELECT * FROM finish();
 ROLLBACK;
