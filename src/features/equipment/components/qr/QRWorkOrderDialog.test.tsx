@@ -36,6 +36,15 @@ vi.mock('@/features/equipment/services/equipmentQRActionService', async () => {
   };
 });
 
+// The dialog only mounts on the public QR route, which has no SimpleOrganizationProvider.
+// Mirror that here so a dashboard-only org hook in the tree fails the test.
+vi.mock('@/hooks/useSimpleOrganization', () => ({
+  useSimpleOrganization: () => {
+    throw new Error('useSimpleOrganization must be used within a SimpleOrganizationProvider');
+  },
+  useSimpleOrganizationSafe: () => null,
+}));
+
 vi.mock('@/hooks/useVoiceTextAppender', () => ({
   useVoiceTextAppender: () => ({
     isSupported: true,

@@ -1,6 +1,11 @@
 import { renderHook, act } from '@testing-library/react';
 import { vi, beforeEach, describe, it, expect } from 'vitest';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  QueryClient,
+  QueryClientProvider,
+  type QueryObserverPendingResult,
+  type QueryObserverSuccessResult,
+} from '@tanstack/react-query';
 import React from 'react';
 import {
   PM_TEMPLATE_NONE_VALUE,
@@ -8,8 +13,20 @@ import {
   type WorkOrderPMChecklistEquipment,
   type WorkOrderPMChecklistValues,
 } from './useWorkOrderPMChecklist';
-import * as usePMTemplatesModule from '@/features/pm-templates/hooks/usePMTemplates';
+import type { PMTemplateSummary } from '@/features/pm-templates/services/pmChecklistTemplatesService';
+import type { MatchingPMTemplateResult } from '@/features/pm-templates/types/pmTemplateCompatibility';
 import { getSimplifiedOrganizationRestrictions } from '@/utils/simplifiedOrganizationRestrictions';
+
+const baseRestrictions = vi.hoisted(() => ({
+  canManageTeams: true,
+  canAssignEquipmentToTeams: true,
+  canUploadImages: true,
+  canAccessFleetMap: true,
+  canInviteMembers: true,
+  canCreateCustomPMTemplates: true,
+  hasAvailableSlots: true,
+  upgradeMessage: '',
+}));
 
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
@@ -30,12 +47,14 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 vi.mock('@/features/pm-templates/hooks/usePMTemplates');
-vi.mock('@/features/organization/hooks/useSimplifiedOrganizationRestrictions');
+vi.mock('@/utils/simplifiedOrganizationRestrictions', () => ({
+  getSimplifiedOrganizationRestrictions: vi.fn(() => baseRestrictions),
+}));
 vi.mock('@/features/pm-templates/hooks/usePMTemplateCompatibility', () => ({
-  useMatchingPMTemplates: vi.fn(),
+  useMatchingPMTemplatesForOrganization: vi.fn(),
 }));
 
-const mockTemplates = [
+const mockTemplates: PMTemplateSummary[] = [
   {
     id: 'template-1',
     name: 'Forklift PM',
@@ -44,6 +63,8 @@ const mockTemplates = [
     is_protected: true,
     sections: [{ name: 'Engine', count: 2 }],
     itemCount: 2,
+    interval_value: null,
+    interval_type: null,
   },
   {
     id: 'template-2',
@@ -53,6 +74,8 @@ const mockTemplates = [
     is_protected: false,
     sections: [{ name: 'Safety', count: 1 }],
     itemCount: 1,
+    interval_value: null,
+    interval_type: null,
   },
   {
     id: 'template-3',
@@ -62,6 +85,8 @@ const mockTemplates = [
     is_protected: true,
     sections: [{ name: 'Hydraulics', count: 3 }],
     itemCount: 3,
+    interval_value: null,
+    interval_type: null,
   },
 ];
 
@@ -75,26 +100,83 @@ const wrapper = ({ children }: { children: React.ReactNode }) => {
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 };
 
-function mockPMTemplatesResult(
-  overrides: Partial<ReturnType<typeof usePMTemplatesModule.usePMTemplates>> = {},
-): ReturnType<typeof usePMTemplatesModule.usePMTemplates> {
+function successQueryResult<T>(data: T): QueryObserverSuccessResult<T, Error> {
   return {
-    data: mockTemplates,
-    isLoading: false,
-    isSuccess: true,
-    isError: false,
+    data,
     error: null,
+    isError: false,
+    isPending: false,
+    isLoading: false,
+    isLoadingError: false,
+    isRefetchError: false,
+    isSuccess: true,
+    isPlaceholderData: false,
     status: 'success',
     fetchStatus: 'idle',
-    ...overrides,
-  } as ReturnType<typeof usePMTemplatesModule.usePMTemplates>;
+    dataUpdatedAt: Date.now(),
+    errorUpdatedAt: 0,
+    failureCount: 0,
+    failureReason: null,
+    errorUpdateCount: 0,
+    isFetched: true,
+    isFetchedAfterMount: true,
+    isFetching: false,
+    isInitialLoading: false,
+    isPaused: false,
+    isRefetching: false,
+    isStale: false,
+    isEnabled: true,
+    refetch: vi.fn(),
+  };
 }
+
+function pendingQueryResult<T>(): QueryObserverPendingResult<T, Error> {
+  return {
+    data: undefined,
+    error: null,
+    isError: false,
+    isPending: true,
+    isLoading: true,
+    isLoadingError: false,
+    isRefetchError: false,
+    isSuccess: false,
+    isPlaceholderData: false,
+    status: 'pending',
+    fetchStatus: 'fetching',
+    dataUpdatedAt: 0,
+    errorUpdatedAt: 0,
+    failureCount: 0,
+    failureReason: null,
+    errorUpdateCount: 0,
+    isFetched: false,
+    isFetchedAfterMount: false,
+    isFetching: true,
+    isInitialLoading: true,
+    isPaused: false,
+    isRefetching: false,
+    isStale: false,
+    isEnabled: true,
+    refetch: vi.fn(),
+  };
+}
+
+const mockMatchingTemplates: MatchingPMTemplateResult[] = mockTemplates.map(t => ({
+  template_id: t.id,
+  template_name: t.name,
+  template_description: t.description ?? null,
+  is_protected: t.is_protected,
+  template_organization_id: t.organization_id,
+  match_type: 'manufacturer',
+  matched_manufacturer: 'Toyota',
+  matched_model: null,
+}));
 
 type PMChecklistHookOptions = {
   values?: { hasPM: boolean; pmTemplateId?: string | null };
   selectedEquipment?: Parameters<typeof useWorkOrderPMChecklist>[0]['selectedEquipment'];
   autoDefaultFromEquipment?: boolean;
   allowTemplateOverride?: boolean;
+  organizationId?: string;
 };
 
 function renderPMChecklistHook(options: PMChecklistHookOptions = {}) {
@@ -108,6 +190,7 @@ function renderPMChecklistHook(options: PMChecklistHookOptions = {}) {
         selectedEquipment: options.selectedEquipment,
         autoDefaultFromEquipment: options.autoDefaultFromEquipment,
         allowTemplateOverride: options.allowTemplateOverride,
+        organizationId: options.organizationId,
       }),
     { wrapper },
   );
@@ -118,50 +201,14 @@ describe('useWorkOrderPMChecklist', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    const { usePMTemplates } = await import('@/features/pm-templates/hooks/usePMTemplates');
-    const { useSimplifiedOrganizationRestrictions } = await import('@/features/organization/hooks/useSimplifiedOrganizationRestrictions');
-    const { useMatchingPMTemplates } = await import('@/features/pm-templates/hooks/usePMTemplateCompatibility');
+    const { usePMTemplatesForOrganization } = await import('@/features/pm-templates/hooks/usePMTemplates');
+    const { useMatchingPMTemplatesForOrganization } = await import('@/features/pm-templates/hooks/usePMTemplateCompatibility');
 
-    vi.mocked(usePMTemplates).mockReturnValue(mockPMTemplatesResult());
+    vi.mocked(usePMTemplatesForOrganization).mockReturnValue(successQueryResult(mockTemplates));
 
-    vi.mocked(useMatchingPMTemplates).mockReturnValue({
-      data: mockTemplates.map(t => ({ template_id: t.id, match_type: 'manufacturer' as const })),
-      isLoading: false,
-      isSuccess: true,
-      isError: false,
-      error: null,
-      status: 'success',
-      fetchStatus: 'idle',
-      refetch: vi.fn(),
-      isFetching: false,
-      isPending: false,
-      isRefetching: false,
-      isStale: false,
-      dataUpdatedAt: Date.now(),
-      errorUpdatedAt: 0,
-      failureCount: 0,
-      failureReason: null,
-      errorUpdateCount: 0,
-      isFetched: true,
-      isFetchedAfterMount: true,
-      isInitialLoading: false,
-      isLoadingError: false,
-      isPlaceholderData: false,
-      isRefetchError: false,
-      promise: Promise.resolve([]),
-    } as unknown as ReturnType<typeof useMatchingPMTemplates>);
+    vi.mocked(useMatchingPMTemplatesForOrganization).mockReturnValue(successQueryResult(mockMatchingTemplates));
 
-    vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
-      restrictions: {
-        ...getSimplifiedOrganizationRestrictions(),
-        canCreateCustomPMTemplates: true,
-      },
-      checkRestriction: vi.fn(),
-      getRestrictionMessage: vi.fn(),
-      isSingleUser: false,
-      canUpgrade: true,
-      isLoading: false,
-    });
+    vi.mocked(getSimplifiedOrganizationRestrictions).mockReturnValue(baseRestrictions);
   });
 
   describe('template filtering', () => {
@@ -172,20 +219,11 @@ describe('useWorkOrderPMChecklist', () => {
     });
 
     it('returns only global templates when user lacks custom PM template permissions', async () => {
-      const { useSimplifiedOrganizationRestrictions } = await import('@/features/organization/hooks/useSimplifiedOrganizationRestrictions');
-
-      vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
-        restrictions: {
-          ...getSimplifiedOrganizationRestrictions(),
-          canCreateCustomPMTemplates: false,
-          canAccessFleetMap: false,
-          upgradeMessage: 'Upgrade for more features',
-        },
-        checkRestriction: vi.fn(),
-        getRestrictionMessage: vi.fn(),
-        isSingleUser: true,
-        canUpgrade: true,
-        isLoading: false,
+      vi.mocked(getSimplifiedOrganizationRestrictions).mockReturnValue({
+        ...baseRestrictions,
+        canCreateCustomPMTemplates: false,
+        canAccessFleetMap: false,
+        upgradeMessage: 'Upgrade for more features',
       });
 
       const { result } = renderPMChecklistHook();
@@ -367,21 +405,32 @@ describe('useWorkOrderPMChecklist', () => {
 
   describe('loading state', () => {
     it('returns isLoading true when templates are loading', async () => {
-      const { usePMTemplates } = await import('@/features/pm-templates/hooks/usePMTemplates');
+      const { usePMTemplatesForOrganization } = await import('@/features/pm-templates/hooks/usePMTemplates');
 
-      vi.mocked(usePMTemplates).mockReturnValue(
-        mockPMTemplatesResult({
-          data: undefined,
-          isLoading: true,
-          isSuccess: false,
-          status: 'pending',
-          fetchStatus: 'fetching',
-        }) as unknown as ReturnType<typeof usePMTemplates>,
-      );
+      vi.mocked(usePMTemplatesForOrganization).mockReturnValue(pendingQueryResult<PMTemplateSummary[]>());
 
       const { result } = renderPMChecklistHook();
 
       expect(result.current.isLoading).toBe(true);
+    });
+  });
+  describe('organization scope', () => {
+    it('queries templates for an explicit organizationId without SimpleOrganizationProvider', async () => {
+      const { usePMTemplatesForOrganization } = await import('@/features/pm-templates/hooks/usePMTemplates');
+      const { useMatchingPMTemplatesForOrganization } = await import('@/features/pm-templates/hooks/usePMTemplateCompatibility');
+
+      const { result } = renderPMChecklistHook({
+        organizationId: 'org-from-qr',
+        selectedEquipment: { id: 'equipment-1', name: 'Forklift 17' },
+      });
+
+      expect(result.current.templates).toHaveLength(3);
+      expect(vi.mocked(usePMTemplatesForOrganization)).toHaveBeenCalledWith('org-from-qr');
+      expect(vi.mocked(useMatchingPMTemplatesForOrganization)).toHaveBeenCalledWith(
+        'org-from-qr',
+        'equipment-1',
+        { enabled: true },
+      );
     });
   });
 });

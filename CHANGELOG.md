@@ -18,6 +18,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 - **Google review request (#1649)** — Organization owners and admins see a one-time, dismissible request to review EquipQR on Google after their organization's 10th completed work order, or its 5th QuickBooks invoice export for users who manage QuickBooks.
 - **Richer search listing details (#1649)** — EquipQR's search metadata now links to the Columbia Cloudworks LLC Google Business Profile.
 
+### Fixed
+
+- **New Work Order from a QR scan** — Tapping New Work Order on a scanned equipment page opens the form and creates the work order again, instead of failing.
+
 ### Security
 
 - **Deployment configuration comes only from GitHub (#1640)** — Vercel and Supabase settings are synced from GitHub Environments, and the project no longer uses a password-manager integration. The sync is passed only the secrets it manages.

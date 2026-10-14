@@ -128,15 +128,14 @@ export const usePMTemplateCompatibilityRules = (
   });
 };
 
-/** Dashboard context: matching templates for current organization (distinct query cache from QR org-scoped key). */
-export const useMatchingPMTemplates = (
+/** Matching templates for an explicit org id (works outside OrganizationContext scope, e.g. QR flows). */
+export const useMatchingPMTemplatesForOrganization = (
+  organizationId: string | undefined,
   equipmentId: string | undefined,
   options?: Pick<QueryTimingOptions, 'staleTime' | 'enabled'>
-) => {
-  const { currentOrganization } = useOrganization();
-
-  return useMatchingTemplatesQuery(
-    currentOrganization?.id,
+) =>
+  useMatchingTemplatesQuery(
+    organizationId,
     equipmentId,
     pmTemplateCompatibilityKeys.matching(equipmentId || ''),
     {
@@ -144,7 +143,6 @@ export const useMatchingPMTemplates = (
       gcTime: DEFAULT_MATCHING_GC_TIME,
     }
   );
-};
 
 /**
  * Hook to count equipment matching a set of rules.
