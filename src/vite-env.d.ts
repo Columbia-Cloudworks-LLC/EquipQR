@@ -8,4 +8,6 @@ declare const __PUBLIC_RELEASES__: readonly import('@/features/releases/lib/publ
 interface ImportMetaEnv {
   readonly VITE_PREVIEW_QUICK_LOGIN?: string;
   readonly VITE_CLARITY_PROJECT_ID?: string;
+  readonly VITE_GA_MEASUREMENT_ID?: string;
+  readonly VITE_GBP_REVIEW_URL?: string;
 }

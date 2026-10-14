@@ -14,6 +14,9 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 ### Added
 
 - **Opt-in diagnostic session replay (#1636)** — You can choose to share masked session replays (Microsoft Clarity) to help improve EquipQR, from the cookie notice or Settings → Privacy. Nothing loads unless you opt in, and you can turn it off anytime.
+- **Opt-in Google Analytics (#1649)** — The same opt-in now also covers Google Analytics, so we can see which searches and links bring shops to EquipQR. Advertising features stay off, and record IDs and access links are removed before anything is sent.
+- **Google review request (#1649)** — Organization owners and admins see a one-time, dismissible request to review EquipQR on Google after their 10th completed work order or 5th QuickBooks invoice export.
+- **Richer search listing details (#1649)** — EquipQR's search metadata now links to the Columbia Cloudworks LLC Google Business Profile.
 
 ### Security
 

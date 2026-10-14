@@ -25,6 +25,8 @@ exceptions:
     reason: Developer documentation token. Not injected into CI.
   - name: todiagram
     reason: Developer MCP token. Not injected into CI.
+  - name: preview GA_MEASUREMENT_ID
+    reason: The GA4 stream is production-only so preview traffic does not skew equipqr.app analytics.
   - name: preview edge GW_OAUTH_REDIRECT_BASE_URL
     reason: Preview shares the production edge. Production has the variable.
 environments:
@@ -46,6 +48,8 @@ environments:
       - VERCEL_TOKEN
     variables:
       - CLARITY_PROJECT_ID
+      - GA_MEASUREMENT_ID
+      - GBP_REVIEW_URL
       - GOOGLE_MAPS_MAP_ID
       - GOOGLE_WORKSPACE_CLIENT_ID
       - GW_OAUTH_REDIRECT_BASE_URL
@@ -72,6 +76,7 @@ environments:
       - VAPID_PRIVATE_KEY
     variables:
       - CLARITY_PROJECT_ID
+      - GBP_REVIEW_URL
       - GOOGLE_MAPS_MAP_ID
       - GOOGLE_WORKSPACE_CLIENT_ID
       - INTUIT_CLIENT_ID

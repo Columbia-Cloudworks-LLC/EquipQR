@@ -30,9 +30,9 @@ interface CookieConsentContextValue {
   decision: CookieConsentDecision | null;
   needsConsent: boolean;
   canUsePreferences: boolean;
-  /** Opt-in diagnostic session replay (Microsoft Clarity) decision. */
+  /** Opt-in analytics (Google Analytics 4) and session replay (Microsoft Clarity) decision. */
   telemetryDecision: TelemetryConsentDecision | null;
-  /** True when a Clarity project id is configured for this build. */
+  /** True when a Clarity project id or GA4 measurement id is configured for this build. */
   telemetryAvailable: boolean;
   canUseTelemetry: boolean;
   /** Banner "Accept" / "Accept All": preferences + telemetry (when available). */

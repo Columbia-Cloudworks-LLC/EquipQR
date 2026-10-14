@@ -10,6 +10,7 @@ import WorkspaceOnboardingGuard from '@/components/auth/WorkspaceOnboardingGuard
 import ProductOnboardingGuard from '@/components/auth/ProductOnboardingGuard';
 import MFAEnforcementGuard from '@/components/auth/MFAEnforcementGuard';
 import IdleSessionTimeoutGuard from '@/components/auth/IdleSessionTimeoutGuard';
+import { GoogleReviewPrompt } from '@/features/reviews/components/GoogleReviewPrompt';
 import { BugReportProvider } from '@/features/tickets/context/BugReportContext';
 import { PendingSyncBanner } from '@/features/offline-queue/components/PendingSyncBanner';
 import { OFFLINE_QUEUE_ENABLED } from '@/lib/flags';
@@ -62,6 +63,7 @@ export const DashboardRouteLayout = () => (
                   <BugReportProvider>
                     <div className="flex min-h-screen w-full">
                       <IdleSessionTimeoutGuard />
+                      <GoogleReviewPrompt />
                       <Suspense
                         fallback={
                           <div className="w-64 border-r bg-sidebar">

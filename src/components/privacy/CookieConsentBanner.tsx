@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useCookieConsent } from '@/contexts/CookieConsentContext';
+import { describeTelemetryProviders } from '@/lib/telemetryConsent';
 
 /**
  * Global first-visit cookies / browser-storage notice with Accept and Reject.
@@ -29,7 +30,7 @@ export function CookieConsentBanner() {
               ? null
               : 'EquipQR uses cookies and browser storage for sign-in, security, and optional preferences such as sidebar layout. '}
             {telemetryAvailable
-              ? 'With your permission, we also use Microsoft Clarity for masked session replays and heatmaps that help us fix interface problems. It never loads unless you accept, and you can turn it off anytime in Settings. We do not use advertising cookies. See '
+              ? `With your permission, we also use ${describeTelemetryProviders()}. These never load unless you accept, and you can turn them off anytime in Settings. We do not use advertising cookies. See `
               : 'We do not use advertising or third-party tracking cookies. See '}
             <Link
               to="/privacy-policy#cookies"

@@ -5,6 +5,8 @@
  * Mirrors Clarity's official snippet (queue stub + async tag) without eval.
  */
 
+import { clearCookiesOnParentDomains } from '@/lib/clearCookies';
+
 type ClarityFn = ((...args: unknown[]) => void) & { q?: unknown[][] };
 
 declare global {
@@ -68,21 +70,5 @@ export function stopClarity(): void {
 }
 
 function clearClarityCookies(): void {
-  if (typeof document === 'undefined') return;
-  const host = globalThis.location?.hostname ?? '';
-  // Clarity scopes cookies to the registrable domain, so try host and parent.
-  const parts = host.split('.');
-  const domains = new Set<string>(['']);
-  for (let i = 0; i < parts.length - 1; i += 1) {
-    domains.add(`; domain=.${parts.slice(i).join('.')}`);
-  }
-  for (const name of CLARITY_COOKIE_NAMES) {
-    for (const domain of domains) {
-      try {
-        document.cookie = `${name}=; path=/; max-age=0${domain}`;
-      } catch {
-        // ignore
-      }
-    }
-  }
+  clearCookiesOnParentDomains(CLARITY_COOKIE_NAMES);
 }
