@@ -184,6 +184,8 @@ SELECT results_eq(
 );
 
 -- Personal org owner who signed up via invitation skips onboarding checklist
+RESET ROLE;
+
 INSERT INTO public.personal_organizations (user_id, organization_id)
 VALUES (
   '12000000-0000-0000-0000-000000000001'::uuid,

@@ -170,7 +170,7 @@ SELECT throws_ok($$
   ) VALUES (
     '660e8400-e29b-41d4-a716-446655440001'::uuid,
     'team',
-    '880e8400-e29b-41d4-a716-446655440005'::uuid,
+    '880e8400-e29b-41d4-a716-446655440003'::uuid,
     'default',
     'custom',
     30,
@@ -178,23 +178,23 @@ SELECT throws_ok($$
     'bb0e8400-e29b-41d4-a716-446655440005'::uuid,
     'bb0e8400-e29b-41d4-a716-446655440005'::uuid
   );
-$$, '42501', 'Non-admin org member cannot insert PM interval policies');
+$$, '42501', NULL, 'Non-admin org member cannot insert PM interval policies');
 
 SELECT is(
   (SELECT count(*)::int
    FROM public.pm_interval_policies
    WHERE organization_id = '660e8400-e29b-41d4-a716-446655440001'::uuid
-     AND team_id = '880e8400-e29b-41d4-a716-446655440005'::uuid),
+     AND team_id = '880e8400-e29b-41d4-a716-446655440003'::uuid),
   0,
   'Non-admin org member cannot insert PM interval policies'
 );
 
-SELECT throws_ok($$
+SELECT lives_ok($$
   UPDATE public.pm_interval_policies
   SET interval_value = 99
   WHERE organization_id = '660e8400-e29b-41d4-a716-446655440001'::uuid
     AND team_id = '880e8400-e29b-41d4-a716-446655440002'::uuid;
-$$, '42501', 'Non-admin org member cannot update PM interval policies');
+$$, 'Non-admin org member update is filtered to zero rows by RLS');
 
 SELECT is(
   (SELECT interval_value
@@ -205,11 +205,11 @@ SELECT is(
   'Non-admin org member cannot update PM interval policies'
 );
 
-SELECT throws_ok($$
+SELECT lives_ok($$
   DELETE FROM public.pm_interval_policies
   WHERE organization_id = '660e8400-e29b-41d4-a716-446655440001'::uuid
     AND equipment_id = 'aa0e8400-e29b-41d4-a716-446655440010'::uuid;
-$$, '42501', 'Non-admin org member cannot delete PM interval policies');
+$$, 'Non-admin org member delete is filtered to zero rows by RLS');
 
 SELECT is(
   (SELECT count(*)::int
@@ -242,7 +242,7 @@ SELECT lives_ok($$
   ) VALUES (
     '660e8400-e29b-41d4-a716-446655440001'::uuid,
     'team',
-    '880e8400-e29b-41d4-a716-446655440005'::uuid,
+    '880e8400-e29b-41d4-a716-446655440003'::uuid,
     'default',
     'custom',
     30,
