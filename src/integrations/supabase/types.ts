@@ -2167,6 +2167,7 @@ export type Database = {
           role: string
           slot_purchase_id: string | null
           status: string
+          support_grant_id: string | null
           user_id: string
         }
         Insert: {
@@ -2180,6 +2181,7 @@ export type Database = {
           role?: string
           slot_purchase_id?: string | null
           status?: string
+          support_grant_id?: string | null
           user_id: string
         }
         Update: {
@@ -2193,6 +2195,7 @@ export type Database = {
           role?: string
           slot_purchase_id?: string | null
           status?: string
+          support_grant_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -2201,6 +2204,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_members_support_grant_id_fkey"
+            columns: ["support_grant_id"]
+            isOneToOne: false
+            referencedRelation: "organization_support_grants"
             referencedColumns: ["id"]
           },
           {
@@ -2377,6 +2387,84 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_support_grants: {
+        Row: {
+          created_at: string
+          expires_at: string
+          granted_at: string
+          granted_by: string | null
+          id: string
+          organization_id: string
+          revoked_at: string | null
+          revoked_by: string | null
+          source: string
+          ticket_ref: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          organization_id: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          source: string
+          ticket_ref?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          organization_id?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          source?: string
+          ticket_ref?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_support_grants_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_support_grants_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "organization_support_grants_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_support_grants_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_support_grants_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -5249,6 +5337,7 @@ export type Database = {
         Args: never
         Returns: number
       }
+      cleanup_expired_support_access: { Args: never; Returns: number }
       cleanup_old_departure_queue: { Args: never; Returns: number }
       cleanup_old_export_logs: { Args: never; Returns: number }
       cleanup_old_notifications: { Args: never; Returns: undefined }
@@ -5988,6 +6077,16 @@ export type Database = {
           scopes: string
         }[]
       }
+      get_support_access_status: {
+        Args: { p_organization_id: string }
+        Returns: {
+          expires_at: string
+          grant_id: string
+          granted_at: string
+          granted_by_name: string
+          source: string
+        }[]
+      }
       get_system_user_id: { Args: never; Returns: string }
       get_user_invitations_safe: {
         Args: { org_id: string; user_uuid: string }
@@ -6074,6 +6173,17 @@ export type Database = {
           is_workspace_connected: boolean
           workspace_org_id: string
         }[]
+      }
+      grant_support_access: {
+        Args: {
+          p_duration_hours: number
+          p_granted_by: string
+          p_operator_ids: string[]
+          p_organization_id: string
+          p_source: string
+          p_ticket_ref?: string
+        }
+        Returns: Json
       }
       handle_invitation_account_creation: {
         Args: { p_invitation_id: string; p_user_id: string }
@@ -6476,6 +6586,10 @@ export type Database = {
         Args: { p_staged_member_id: string }
         Returns: undefined
       }
+      revoke_support_access: {
+        Args: { p_organization_id: string }
+        Returns: boolean
+      }
       rotate_operator_checkin_token: {
         Args: { p_settings_id: string }
         Returns: {
@@ -6552,6 +6666,7 @@ export type Database = {
         }
         Returns: Json
       }
+      support_grant_is_live: { Args: { p_grant_id: string }; Returns: boolean }
       synthesize_historical_timeline_events: {
         Args: {
           p_assignee_id?: string

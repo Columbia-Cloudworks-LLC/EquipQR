@@ -116,6 +116,10 @@ verify_jwt = true
 verify_jwt = true
 # EquipQR operators only: requireUser + DFY_OPERATOR_USER_IDS allowlist before any service-role call.
 
+[functions.support-access]
+verify_jwt = true
+# Org owner grants time-limited EquipQR Support access; owner checked with the caller's client before the service-role grant.
+
 # QuickBooks OAuth Integration
 [functions.quickbooks-oauth-callback]
 verify_jwt = false

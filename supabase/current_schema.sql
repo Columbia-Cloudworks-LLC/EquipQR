@@ -1942,7 +1942,7 @@ BEGIN
   FROM public.organization_members
   WHERE organization_id = p_organization_id
     AND user_id = p_user_id
-    AND status = 'active';
+    AND (status = 'active' OR (status = 'support' AND public.support_grant_is_live(support_grant_id)));
 
   IF v_role IN ('owner', 'admin') THEN
     RETURN TRUE;
@@ -2091,18 +2091,17 @@ CREATE OR REPLACE FUNCTION "public"."can_manage_inventory"("p_organization_id" "
 DECLARE
   v_role TEXT;
 BEGIN
-  -- Check organization role
   SELECT role INTO v_role
   FROM public.organization_members
   WHERE organization_id = p_organization_id
   AND user_id = p_user_id
-  AND status = 'active';
-  
+  AND (status = 'active' OR (status = 'support' AND public.support_grant_is_live(support_grant_id)));
+
   -- Owners and admins can always manage inventory
   IF v_role IN ('owner', 'admin') THEN
     RETURN TRUE;
   END IF;
-  
+
   -- Check if user is a parts manager
   RETURN public.is_parts_manager(p_organization_id, p_user_id);
 END;
@@ -2581,9 +2580,9 @@ CREATE OR REPLACE FUNCTION "public"."check_org_access_direct"("user_uuid" "uuid"
   SELECT EXISTS (
     SELECT 1
     FROM organization_members
-    WHERE user_id = user_uuid 
-      AND organization_id = org_id 
-      AND status = 'active'
+    WHERE user_id = user_uuid
+      AND organization_id = org_id
+      AND (status = 'active' OR (status = 'support' AND public.support_grant_is_live(support_grant_id)))
   );
 $$;
 
@@ -2598,9 +2597,9 @@ CREATE OR REPLACE FUNCTION "public"."check_org_access_secure"("user_uuid" "uuid"
   SELECT EXISTS (
     SELECT 1
     FROM public.organization_members
-    WHERE user_id = user_uuid 
-      AND organization_id = org_id 
-      AND status = 'active'
+    WHERE user_id = user_uuid
+      AND organization_id = org_id
+      AND (status = 'active' OR (status = 'support' AND public.support_grant_is_live(support_grant_id)))
   );
 $$;
 
@@ -2977,6 +2976,31 @@ ALTER FUNCTION "public"."cleanup_expired_quickbooks_oauth_sessions"() OWNER TO "
 
 COMMENT ON FUNCTION "public"."cleanup_expired_quickbooks_oauth_sessions"() IS 'Cleans up expired OAuth sessions older than 24 hours. Can be called periodically.';
 
+
+
+CREATE OR REPLACE FUNCTION "public"."cleanup_expired_support_access"() RETURNS integer
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_count integer;
+BEGIN
+  UPDATE public.organization_support_grants
+  SET revoked_at = expires_at
+  WHERE revoked_at IS NULL
+    AND expires_at <= now();
+
+  DELETE FROM public.organization_members om
+  WHERE om.status = 'support'
+    AND NOT public.support_grant_is_live(om.support_grant_id);
+  GET DIAGNOSTICS v_count = ROW_COUNT;
+
+  RETURN v_count;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."cleanup_expired_support_access"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."cleanup_inventory_grants_on_member_removal"() RETURNS "trigger"
@@ -8159,6 +8183,27 @@ COMMENT ON FUNCTION "public"."get_quickbooks_connection_status"("p_organization_
 
 
 
+CREATE OR REPLACE FUNCTION "public"."get_support_access_status"("p_organization_id" "uuid") RETURNS TABLE("grant_id" "uuid", "granted_at" timestamp with time zone, "expires_at" timestamp with time zone, "granted_by_name" "text", "source" "text")
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+  SELECT g.id, g.granted_at, g.expires_at, p.name, g.source
+  FROM public.organization_support_grants g
+  LEFT JOIN public.profiles p ON p.id = g.granted_by
+  WHERE g.organization_id = p_organization_id
+    AND g.revoked_at IS NULL
+    AND g.expires_at > now()
+    AND public.is_org_member((SELECT auth.uid()), p_organization_id);
+$$;
+
+
+ALTER FUNCTION "public"."get_support_access_status"("p_organization_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."get_support_access_status"("p_organization_id" "uuid") IS 'The live EquipQR Support grant for an organization, visible to its members.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."get_system_user_id"() RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -8267,9 +8312,9 @@ CREATE OR REPLACE FUNCTION "public"."get_user_org_role_direct"("user_uuid" "uuid
     AS $$
   SELECT role
   FROM organization_members
-  WHERE user_id = user_uuid 
-    AND organization_id = org_id 
-    AND status = 'active'
+  WHERE user_id = user_uuid
+    AND organization_id = org_id
+    AND (status = 'active' OR (status = 'support' AND public.support_grant_is_live(support_grant_id)))
   LIMIT 1;
 $$;
 
@@ -8283,9 +8328,9 @@ CREATE OR REPLACE FUNCTION "public"."get_user_org_role_secure"("user_uuid" "uuid
     AS $$
   SELECT role
   FROM public.organization_members
-  WHERE user_id = user_uuid 
-    AND organization_id = org_id 
-    AND status = 'active'
+  WHERE user_id = user_uuid
+    AND organization_id = org_id
+    AND (status = 'active' OR (status = 'support' AND public.support_grant_is_live(support_grant_id)))
   LIMIT 1;
 $$;
 
@@ -8299,7 +8344,8 @@ CREATE OR REPLACE FUNCTION "public"."get_user_organization_membership"("user_uui
     AS $$
   SELECT om.organization_id, om.role, om.status
   FROM public.organization_members om
-  WHERE om.user_id = user_uuid AND om.status = 'active';
+  WHERE om.user_id = user_uuid
+    AND (om.status = 'active' OR (om.status = 'support' AND public.support_grant_is_live(om.support_grant_id)));
 $$;
 
 
@@ -8312,8 +8358,8 @@ CREATE OR REPLACE FUNCTION "public"."get_user_organizations"("user_uuid" "uuid")
     AS $$
   SELECT om.organization_id
   FROM organization_members om
-  WHERE om.user_id = user_uuid 
-    AND om.status = 'active';
+  WHERE om.user_id = user_uuid
+    AND (om.status = 'active' OR (om.status = 'support' AND public.support_grant_is_live(om.support_grant_id)));
 $$;
 
 
@@ -8498,6 +8544,160 @@ ALTER FUNCTION "public"."get_workspace_onboarding_state"("p_user_id" "uuid") OWN
 
 COMMENT ON FUNCTION "public"."get_workspace_onboarding_state"("p_user_id" "uuid") IS 'Returns workspace onboarding and claimed-domain access posture for a user. Self-only when auth.uid() is present.';
 
+
+
+CREATE OR REPLACE FUNCTION "public"."grant_support_access"("p_organization_id" "uuid", "p_granted_by" "uuid", "p_operator_ids" "uuid"[], "p_duration_hours" integer, "p_source" "text", "p_ticket_ref" "text" DEFAULT NULL::"text") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_grant_id uuid;
+  v_expires_at timestamptz;
+  v_open record;
+  v_extended boolean := false;
+  v_operator uuid;
+BEGIN
+  IF p_duration_hours NOT IN (24, 72, 168) THEN
+    RAISE EXCEPTION 'Duration must be 24, 72, or 168 hours' USING ERRCODE = '22023';
+  END IF;
+
+  IF p_operator_ids IS NULL OR cardinality(p_operator_ids) = 0 THEN
+    RAISE EXCEPTION 'No EquipQR Support accounts are configured' USING ERRCODE = '22023';
+  END IF;
+
+  PERFORM 1 FROM public.organizations o WHERE o.id = p_organization_id FOR UPDATE;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = p_granted_by
+      AND om.role = 'owner'
+      AND om.status = 'active'
+  ) THEN
+    RAISE EXCEPTION 'Only the organization owner can grant support access' USING ERRCODE = '42501';
+  END IF;
+
+  v_expires_at := now() + make_interval(hours => p_duration_hours);
+
+  SELECT g.id, g.expires_at INTO v_open
+  FROM public.organization_support_grants g
+  WHERE g.organization_id = p_organization_id
+    AND g.revoked_at IS NULL
+  FOR UPDATE;
+
+  IF v_open.id IS NOT NULL AND v_open.expires_at > now() THEN
+    -- Live grant: the owner's new choice replaces the remaining time.
+    UPDATE public.organization_support_grants
+    SET expires_at = v_expires_at,
+        granted_at = now(),
+        granted_by = p_granted_by,
+        source = p_source,
+        ticket_ref = COALESCE(p_ticket_ref, ticket_ref)
+    WHERE id = v_open.id;
+    v_grant_id := v_open.id;
+    v_extended := true;
+  ELSE
+    IF v_open.id IS NOT NULL THEN
+      -- Expired but never closed: close it at its expiry before opening a new one.
+      UPDATE public.organization_support_grants
+      SET revoked_at = expires_at
+      WHERE id = v_open.id;
+    END IF;
+
+    INSERT INTO public.organization_support_grants (
+      organization_id, granted_by, expires_at, source, ticket_ref
+    )
+    VALUES (p_organization_id, p_granted_by, v_expires_at, p_source, p_ticket_ref)
+    RETURNING id INTO v_grant_id;
+  END IF;
+
+  PERFORM set_config('equipqr.support_access_write', 'on', true);
+
+  -- Stale support rows from an earlier grant are replaced.
+  DELETE FROM public.organization_members om
+  WHERE om.organization_id = p_organization_id
+    AND om.status = 'support'
+    AND om.support_grant_id IS DISTINCT FROM v_grant_id;
+
+  FOREACH v_operator IN ARRAY p_operator_ids
+  LOOP
+    -- Operators who are real members of this org keep their own membership.
+    INSERT INTO public.organization_members (
+      organization_id, user_id, role, status, access_source, support_grant_id
+    )
+    SELECT p_organization_id, v_operator, 'admin', 'support', 'support', v_grant_id
+    WHERE EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = v_operator)
+    ON CONFLICT (organization_id, user_id) DO NOTHING;
+  END LOOP;
+
+  PERFORM set_config('equipqr.support_access_write', 'off', true);
+
+  RETURN jsonb_build_object(
+    'grant_id', v_grant_id,
+    'expires_at', v_expires_at,
+    'extended', v_extended
+  );
+END;
+$$;
+
+
+ALTER FUNCTION "public"."grant_support_access"("p_organization_id" "uuid", "p_granted_by" "uuid", "p_operator_ids" "uuid"[], "p_duration_hours" integer, "p_source" "text", "p_ticket_ref" "text") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."grant_support_access"("p_organization_id" "uuid", "p_granted_by" "uuid", "p_operator_ids" "uuid"[], "p_duration_hours" integer, "p_source" "text", "p_ticket_ref" "text") IS 'Service role (support-access Edge Function): the active owner grants or extends EquipQR Support admin access for 24, 72, or 168 hours.';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."guard_support_invitations"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+BEGIN
+  IF v_user_id IS NOT NULL
+    AND EXISTS (
+      SELECT 1 FROM public.organization_members om
+      WHERE om.organization_id = NEW.organization_id
+        AND om.user_id = v_user_id
+        AND om.status = 'support'
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM public.organization_members om
+      WHERE om.organization_id = NEW.organization_id
+        AND om.user_id = v_user_id
+        AND om.status = 'active'
+    )
+  THEN
+    RAISE EXCEPTION 'Support access cannot manage invitations' USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."guard_support_invitations"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."guard_support_memberships"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+BEGIN
+  IF (
+    NEW.status = 'support'
+    OR COALESCE(NEW.access_source, '') = 'support'
+    OR (TG_OP = 'UPDATE' AND (OLD.status = 'support' OR COALESCE(OLD.access_source, '') = 'support'))
+  ) AND current_setting('equipqr.support_access_write', true) IS DISTINCT FROM 'on' THEN
+    RAISE EXCEPTION 'Support access can only be changed by the organization owner'
+      USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."guard_support_memberships"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."handle_invitation_account_creation"("p_invitation_id" "uuid", "p_user_id" "uuid") RETURNS "jsonb"
@@ -9265,12 +9465,12 @@ CREATE OR REPLACE FUNCTION "public"."is_org_admin"("user_uuid" "uuid", "org_id" 
     SET "row_security" TO 'off'
     AS $$
   SELECT EXISTS (
-    SELECT 1 
+    SELECT 1
     FROM organization_members
-    WHERE user_id = user_uuid 
-      AND organization_id = org_id 
+    WHERE user_id = user_uuid
+      AND organization_id = org_id
       AND role IN ('owner', 'admin')
-      AND status = 'active'
+      AND (status = 'active' OR (status = 'support' AND public.support_grant_is_live(support_grant_id)))
   );
 $$;
 
@@ -9288,11 +9488,11 @@ CREATE OR REPLACE FUNCTION "public"."is_org_member"("user_uuid" "uuid", "org_id"
     SET "row_security" TO 'off'
     AS $$
   SELECT EXISTS (
-    SELECT 1 
+    SELECT 1
     FROM organization_members
-    WHERE user_id = user_uuid 
-      AND organization_id = org_id 
-      AND status = 'active'
+    WHERE user_id = user_uuid
+      AND organization_id = org_id
+      AND (status = 'active' OR (status = 'support' AND public.support_grant_is_live(support_grant_id)))
   );
 $$;
 
@@ -9311,10 +9511,10 @@ CREATE OR REPLACE FUNCTION "public"."is_organization_admin"("user_uuid" "uuid", 
   SELECT EXISTS (
     SELECT 1
     FROM organization_members om
-    WHERE om.user_id = user_uuid 
-      AND om.organization_id = org_id 
+    WHERE om.user_id = user_uuid
+      AND om.organization_id = org_id
       AND om.role IN ('owner', 'admin')
-      AND om.status = 'active'
+      AND (om.status = 'active' OR (om.status = 'support' AND public.support_grant_is_live(om.support_grant_id)))
   );
 $$;
 
@@ -9333,9 +9533,9 @@ CREATE OR REPLACE FUNCTION "public"."is_organization_member"("user_uuid" "uuid",
   SELECT EXISTS (
     SELECT 1
     FROM organization_members om
-    WHERE om.user_id = user_uuid 
-      AND om.organization_id = org_id 
-      AND om.status = 'active'
+    WHERE om.user_id = user_uuid
+      AND om.organization_id = org_id
+      AND (om.status = 'active' OR (om.status = 'support' AND public.support_grant_is_live(om.support_grant_id)))
   );
 $$;
 
@@ -14384,6 +14584,47 @@ COMMENT ON FUNCTION "public"."revoke_provisioned_member"("p_staged_member_id" "u
 
 
 
+CREATE OR REPLACE FUNCTION "public"."revoke_support_access"("p_organization_id" "uuid") RETURNS boolean
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_revoked integer;
+BEGIN
+  IF v_user_id IS NULL OR NOT EXISTS (
+    SELECT 1 FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = v_user_id
+      AND om.role = 'owner'
+      AND om.status = 'active'
+  ) THEN
+    RAISE EXCEPTION 'Only the organization owner can revoke support access' USING ERRCODE = '42501';
+  END IF;
+
+  UPDATE public.organization_support_grants
+  SET revoked_at = now(),
+      revoked_by = v_user_id
+  WHERE organization_id = p_organization_id
+    AND revoked_at IS NULL;
+  GET DIAGNOSTICS v_revoked = ROW_COUNT;
+
+  DELETE FROM public.organization_members
+  WHERE organization_id = p_organization_id
+    AND status = 'support';
+
+  RETURN v_revoked > 0;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."revoke_support_access"("p_organization_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."revoke_support_access"("p_organization_id" "uuid") IS 'The organization owner ends EquipQR Support access immediately.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."rotate_operator_checkin_token"("p_settings_id" "uuid") RETURNS TABLE("raw_token" "text", "token_hash" "text")
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public', 'extensions'
@@ -15083,6 +15324,28 @@ $$;
 
 
 ALTER FUNCTION "public"."submit_quick_form_public"("p_token_hash" "text", "p_field_values" "jsonb", "p_client_context" "jsonb", "p_form_snapshot" "jsonb", "p_request_fingerprint" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."support_grant_is_live"("p_grant_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    SET "row_security" TO 'off'
+    AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.organization_support_grants g
+    WHERE g.id = p_grant_id
+      AND g.revoked_at IS NULL
+      AND g.expires_at > now()
+  );
+$$;
+
+
+ALTER FUNCTION "public"."support_grant_is_live"("p_grant_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."support_grant_is_live"("p_grant_id" "uuid") IS 'True while a support grant is neither revoked nor expired. RLS predicate helper.';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."sync_equipment_customer_from_team"() RETURNS "trigger"
@@ -16188,13 +16451,12 @@ CREATE OR REPLACE FUNCTION "public"."user_is_org_member"("org_id" "uuid", "check
     SET "search_path" TO 'public'
     AS $$
 BEGIN
-  -- This function runs with definer rights, bypassing RLS
   RETURN EXISTS (
-    SELECT 1 
-    FROM organization_members 
-    WHERE organization_id = org_id 
+    SELECT 1
+    FROM organization_members
+    WHERE organization_id = org_id
       AND user_id = check_user_id
-      AND status = 'active'
+      AND (status = 'active' OR (status = 'support' AND public.support_grant_is_live(support_grant_id)))
   );
 END;
 $$;
@@ -17455,7 +17717,9 @@ CREATE TABLE IF NOT EXISTS "public"."organization_members" (
     "can_manage_quickbooks" boolean DEFAULT false NOT NULL,
     "access_source" "text",
     "product_onboarding_completed_at" timestamp with time zone,
-    CONSTRAINT "organization_members_access_source_check" CHECK ((("access_source" IS NULL) OR ("access_source" = ANY (ARRAY['google_workspace'::"text", 'invitation'::"text", 'owner'::"text", 'manual'::"text", 'provisioned'::"text", 'support'::"text"]))))
+    "support_grant_id" "uuid",
+    CONSTRAINT "organization_members_access_source_check" CHECK ((("access_source" IS NULL) OR ("access_source" = ANY (ARRAY['google_workspace'::"text", 'invitation'::"text", 'owner'::"text", 'manual'::"text", 'provisioned'::"text", 'support'::"text"])))),
+    CONSTRAINT "organization_members_support_shape_check" CHECK ((((COALESCE("access_source", ''::"text") = 'support'::"text") = ("status" = 'support'::"text")) AND (("status" = 'support'::"text") = ("support_grant_id" IS NOT NULL)) AND (("status" <> 'support'::"text") OR ("role" = 'admin'::"text"))))
 );
 
 ALTER TABLE ONLY "public"."organization_members" REPLICA IDENTITY FULL;
@@ -17538,6 +17802,30 @@ CREATE TABLE IF NOT EXISTS "public"."organization_role_grants_pending" (
 
 
 ALTER TABLE "public"."organization_role_grants_pending" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."organization_support_grants" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "organization_id" "uuid" NOT NULL,
+    "granted_by" "uuid",
+    "granted_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "expires_at" timestamp with time zone NOT NULL,
+    "revoked_at" timestamp with time zone,
+    "revoked_by" "uuid",
+    "source" "text" NOT NULL,
+    "ticket_ref" "text",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "organization_support_grants_expiry_check" CHECK ((("expires_at" > "granted_at") AND ("expires_at" <= ("granted_at" + '7 days 00:01:00'::interval)))),
+    CONSTRAINT "organization_support_grants_source_check" CHECK (("source" = ANY (ARRAY['settings'::"text", 'bug_report'::"text"])))
+);
+
+
+ALTER TABLE "public"."organization_support_grants" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."organization_support_grants" IS 'Owner-granted, time-limited EquipQR Support access to one organization. Access ends at expires_at or revoked_at, enforced by the access helpers at query time.';
+
 
 
 CREATE TABLE IF NOT EXISTS "public"."organizations" (
@@ -19133,6 +19421,11 @@ ALTER TABLE ONLY "public"."organization_role_grants_pending"
 
 
 
+ALTER TABLE ONLY "public"."organization_support_grants"
+    ADD CONSTRAINT "organization_support_grants_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."organizations"
     ADD CONSTRAINT "organizations_pkey" PRIMARY KEY ("id");
 
@@ -19807,6 +20100,22 @@ CREATE INDEX "idx_org_provisioned_members_team_id" ON "public"."organization_pro
 
 
 
+CREATE INDEX "idx_org_support_grants_granted_by" ON "public"."organization_support_grants" USING "btree" ("granted_by");
+
+
+
+CREATE UNIQUE INDEX "idx_org_support_grants_one_open" ON "public"."organization_support_grants" USING "btree" ("organization_id") WHERE ("revoked_at" IS NULL);
+
+
+
+CREATE INDEX "idx_org_support_grants_org" ON "public"."organization_support_grants" USING "btree" ("organization_id", "granted_at" DESC);
+
+
+
+CREATE INDEX "idx_org_support_grants_revoked_by" ON "public"."organization_support_grants" USING "btree" ("revoked_by");
+
+
+
 CREATE INDEX "idx_organization_google_export_destinations_configured_by" ON "public"."organization_google_export_destinations" USING "btree" ("configured_by");
 
 
@@ -19852,6 +20161,10 @@ CREATE INDEX "idx_organization_members_org_status" ON "public"."organization_mem
 
 
 CREATE INDEX "idx_organization_members_organization_id" ON "public"."organization_members" USING "btree" ("organization_id");
+
+
+
+CREATE INDEX "idx_organization_members_support_grant_id" ON "public"."organization_members" USING "btree" ("support_grant_id");
 
 
 
@@ -20451,6 +20764,14 @@ CREATE OR REPLACE TRIGGER "expire_old_invitations_trigger" AFTER INSERT ON "publ
 
 
 
+CREATE OR REPLACE TRIGGER "guard_support_invitations" BEFORE INSERT OR UPDATE ON "public"."organization_invitations" FOR EACH ROW EXECUTE FUNCTION "public"."guard_support_invitations"();
+
+
+
+CREATE OR REPLACE TRIGGER "guard_support_memberships" BEFORE INSERT OR UPDATE ON "public"."organization_members" FOR EACH ROW EXECUTE FUNCTION "public"."guard_support_memberships"();
+
+
+
 CREATE OR REPLACE TRIGGER "handle_dsr_requests_updated_at" BEFORE UPDATE ON "public"."dsr_requests" FOR EACH ROW EXECUTE FUNCTION "public"."handle_updated_at"();
 
 
@@ -20676,6 +20997,10 @@ CREATE OR REPLACE TRIGGER "update_organization_invitations_updated_at" BEFORE UP
 
 
 CREATE OR REPLACE TRIGGER "update_organization_provisioned_members_updated_at" BEFORE UPDATE ON "public"."organization_provisioned_members" FOR EACH ROW EXECUTE FUNCTION "public"."handle_updated_at"();
+
+
+
+CREATE OR REPLACE TRIGGER "update_organization_support_grants_updated_at" BEFORE UPDATE ON "public"."organization_support_grants" FOR EACH ROW EXECUTE FUNCTION "public"."handle_updated_at"();
 
 
 
@@ -21111,6 +21436,11 @@ ALTER TABLE ONLY "public"."organization_members"
 
 
 ALTER TABLE ONLY "public"."organization_members"
+    ADD CONSTRAINT "organization_members_support_grant_id_fkey" FOREIGN KEY ("support_grant_id") REFERENCES "public"."organization_support_grants"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."organization_members"
     ADD CONSTRAINT "organization_members_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
 
 
@@ -21152,6 +21482,21 @@ ALTER TABLE ONLY "public"."organization_role_grants_pending"
 
 ALTER TABLE ONLY "public"."organization_role_grants_pending"
     ADD CONSTRAINT "organization_role_grants_pending_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."organization_support_grants"
+    ADD CONSTRAINT "organization_support_grants_granted_by_fkey" FOREIGN KEY ("granted_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."organization_support_grants"
+    ADD CONSTRAINT "organization_support_grants_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."organization_support_grants"
+    ADD CONSTRAINT "organization_support_grants_revoked_by_fkey" FOREIGN KEY ("revoked_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
 
 
 
@@ -22403,6 +22748,10 @@ CREATE POLICY "organization_members_delete_safe" ON "public"."organization_membe
 
 
 
+CREATE POLICY "organization_members_hide_dead_support" ON "public"."organization_members" AS RESTRICTIVE FOR SELECT TO "authenticated" USING ((("status" <> 'support'::"text") OR "public"."support_grant_is_live"("support_grant_id")));
+
+
+
 CREATE POLICY "organization_members_insert" ON "public"."organization_members" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."organization_members" "om"
   WHERE (("om"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("om"."organization_id" = "organization_members"."organization_id") AND ("om"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"])) AND ("om"."status" = 'active'::"text")))));
@@ -22452,6 +22801,13 @@ CREATE POLICY "organization_role_grants_pending_select_admin" ON "public"."organ
 CREATE POLICY "organization_role_grants_pending_update_admin" ON "public"."organization_role_grants_pending" FOR UPDATE USING (("organization_id" IN ( SELECT "om"."organization_id"
    FROM "public"."organization_members" "om"
   WHERE (("om"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("om"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"])) AND ("om"."status" = 'active'::"text")))));
+
+
+
+ALTER TABLE "public"."organization_support_grants" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "organization_support_grants_select" ON "public"."organization_support_grants" FOR SELECT TO "authenticated" USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
@@ -24055,6 +24411,11 @@ GRANT ALL ON FUNCTION "public"."cleanup_expired_quickbooks_oauth_sessions"() TO 
 
 
 
+REVOKE ALL ON FUNCTION "public"."cleanup_expired_support_access"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."cleanup_expired_support_access"() TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."cleanup_inventory_grants_on_member_removal"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."cleanup_inventory_grants_on_member_removal"() TO "service_role";
 
@@ -24520,6 +24881,12 @@ GRANT ALL ON FUNCTION "public"."get_quickbooks_connection_status"("p_organizatio
 
 
 
+REVOKE ALL ON FUNCTION "public"."get_support_access_status"("p_organization_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."get_support_access_status"("p_organization_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."get_support_access_status"("p_organization_id" "uuid") TO "authenticated";
+
+
+
 REVOKE ALL ON FUNCTION "public"."get_system_user_id"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."get_system_user_id"() TO "service_role";
 
@@ -24578,6 +24945,21 @@ GRANT ALL ON FUNCTION "public"."get_user_teams_for_notifications"("user_uuid" "u
 REVOKE ALL ON FUNCTION "public"."get_workspace_onboarding_state"("p_user_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."get_workspace_onboarding_state"("p_user_id" "uuid") TO "service_role";
 GRANT ALL ON FUNCTION "public"."get_workspace_onboarding_state"("p_user_id" "uuid") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."grant_support_access"("p_organization_id" "uuid", "p_granted_by" "uuid", "p_operator_ids" "uuid"[], "p_duration_hours" integer, "p_source" "text", "p_ticket_ref" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."grant_support_access"("p_organization_id" "uuid", "p_granted_by" "uuid", "p_operator_ids" "uuid"[], "p_duration_hours" integer, "p_source" "text", "p_ticket_ref" "text") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."guard_support_invitations"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."guard_support_invitations"() TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."guard_support_memberships"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."guard_support_memberships"() TO "service_role";
 
 
 
@@ -25036,6 +25418,12 @@ GRANT ALL ON FUNCTION "public"."revoke_provisioned_member"("p_staged_member_id" 
 
 
 
+REVOKE ALL ON FUNCTION "public"."revoke_support_access"("p_organization_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."revoke_support_access"("p_organization_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."revoke_support_access"("p_organization_id" "uuid") TO "authenticated";
+
+
+
 REVOKE ALL ON FUNCTION "public"."rotate_operator_checkin_token"("p_settings_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."rotate_operator_checkin_token"("p_settings_id" "uuid") TO "service_role";
 GRANT ALL ON FUNCTION "public"."rotate_operator_checkin_token"("p_settings_id" "uuid") TO "authenticated";
@@ -25106,6 +25494,12 @@ GRANT ALL ON FUNCTION "public"."submit_operator_checkin_public"("p_token_hash" "
 
 REVOKE ALL ON FUNCTION "public"."submit_quick_form_public"("p_token_hash" "text", "p_field_values" "jsonb", "p_client_context" "jsonb", "p_form_snapshot" "jsonb", "p_request_fingerprint" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."submit_quick_form_public"("p_token_hash" "text", "p_field_values" "jsonb", "p_client_context" "jsonb", "p_form_snapshot" "jsonb", "p_request_fingerprint" "text") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."support_grant_is_live"("p_grant_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."support_grant_is_live"("p_grant_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."support_grant_is_live"("p_grant_id" "uuid") TO "authenticated";
 
 
 
@@ -25543,6 +25937,11 @@ GRANT SELECT ON TABLE "public"."organization_provisioned_members" TO "authentica
 GRANT ALL ON TABLE "public"."organization_role_grants_pending" TO "anon";
 GRANT ALL ON TABLE "public"."organization_role_grants_pending" TO "authenticated";
 GRANT ALL ON TABLE "public"."organization_role_grants_pending" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."organization_support_grants" TO "service_role";
+GRANT SELECT ON TABLE "public"."organization_support_grants" TO "authenticated";
 
 
 

@@ -12,12 +12,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSimpleOrganizationSafe } from '@/hooks/useSimpleOrganization';
 import { useSubmitTicket } from '../hooks/useSubmitTicket';
 import { collectSessionDiagnostics } from '../utils/sessionDiagnostics';
+import {
+  DEFAULT_SUPPORT_ACCESS_HOURS,
+  grantSupportAccess,
+} from '@/features/organization/hooks/useSupportAccess';
 
 interface SubmitTicketDialogProps {
   open: boolean;
@@ -39,11 +44,15 @@ const SubmitTicketDialog: React.FC<SubmitTicketDialogProps> = ({
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [grantSupport, setGrantSupport] = useState(false);
+  const supportOrganizationId = orgContext?.currentOrganization?.id;
+  const isOwner = orgContext?.currentOrganization?.userRole === 'owner';
   const titleInputRef = useMountFocus<HTMLInputElement>(open);
 
   const resetForm = () => {
     setTitle('');
     setDescription('');
+    setGrantSupport(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -83,8 +92,23 @@ const SubmitTicketDialog: React.FC<SubmitTicketDialogProps> = ({
         metadata,
       },
       {
-        onSuccess: () => {
+        onSuccess: (result) => {
           toast.success('Issue reported successfully! Our team will review it shortly.');
+          if (grantSupport && isOwner && supportOrganizationId) {
+            grantSupportAccess({
+              organizationId: supportOrganizationId,
+              durationHours: DEFAULT_SUPPORT_ACCESS_HOURS,
+              source: 'bug_report',
+              ticketRef: result.ticketId,
+            })
+              .then(() => {
+                toast.success('EquipQR Support can access your organization for 72 hours.');
+                void queryClient.invalidateQueries({ queryKey: ['support-access', supportOrganizationId] });
+              })
+              .catch((error: unknown) =>
+                toast.error(error instanceof Error ? error.message : 'Could not grant support access'),
+              );
+          }
           resetForm();
           onOpenChange(false);
         },
@@ -143,6 +167,26 @@ const SubmitTicketDialog: React.FC<SubmitTicketDialogProps> = ({
               disabled={isPending}
             />
           </div>
+
+          {supportOrganizationId && (
+            isOwner ? (
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="ticket-grant-support"
+                  checked={grantSupport}
+                  onCheckedChange={(checked) => setGrantSupport(checked === true)}
+                  disabled={isPending}
+                />
+                <Label htmlFor="ticket-grant-support" className="text-sm font-normal leading-snug">
+                  Let EquipQR Support access my organization for 72 hours to look into this
+                </Label>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Ask your organization owner to grant support access.
+              </p>
+            )
+          )}
 
           <DialogFooter>
             <Button

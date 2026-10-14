@@ -13,6 +13,7 @@ import IdleSessionTimeoutGuard from '@/components/auth/IdleSessionTimeoutGuard';
 import { GoogleReviewPrompt } from '@/features/reviews/components/GoogleReviewPrompt';
 import { BugReportProvider } from '@/features/tickets/context/BugReportContext';
 import { PendingSyncBanner } from '@/features/offline-queue/components/PendingSyncBanner';
+import { SupportAccessBanner } from '@/features/organization/components/SupportAccessBanner';
 import { OFFLINE_QUEUE_ENABLED } from '@/lib/flags';
 import LegalFooter from '@/components/layout/LegalFooter';
 import { PageSkeleton } from '@/components/ui/PageSkeleton';
@@ -84,6 +85,7 @@ export const DashboardRouteLayout = () => (
                           <BrandedTopBar />
                         </Suspense>
                         {OFFLINE_QUEUE_ENABLED && <PendingSyncBanner />}
+                        <SupportAccessBanner />
                         <main
                           id="main-content"
                           tabIndex={-1}

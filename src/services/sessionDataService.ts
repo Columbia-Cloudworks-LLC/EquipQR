@@ -21,7 +21,7 @@ export class SessionDataService {
       .from('organization_members')
       .select('organization_id, role, status')
       .eq('user_id', userId)
-      .eq('status', 'active');
+      .in('status', ['active', 'support']);
 
     if (orgMemberError) {
       logger.error('Error fetching organization memberships:', orgMemberError);

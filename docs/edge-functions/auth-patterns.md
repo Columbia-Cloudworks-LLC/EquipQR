@@ -105,6 +105,7 @@ Authorization is per user ID, never per organization. `_shared/dfy-operator.ts` 
 | Function | Reason | Config |
 |----------|--------|--------|
 | `dfy-provisioning` | Done-For-You provisioning: creates and edits organizations nobody has claimed yet. The SQL functions are service-role only and refuse any organization that has an active member (`assert_org_operator_editable`). | `verify_jwt = true` |
+| `support-access` | Owner-granted EquipQR Support access. The caller must be the org's active owner, which is checked with the caller's own client and checked again in `grant_support_access`. The admin client is needed only to add the operators (from `DFY_OPERATOR_USER_IDS`) and look up their emails for the notification. Revoking is the owner-only RPC `revoke_support_access`, so it doesn't use this function. | `verify_jwt = true` |
 
 ### Special Cases (Hybrid)
 
