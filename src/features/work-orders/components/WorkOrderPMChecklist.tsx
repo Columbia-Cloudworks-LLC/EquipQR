@@ -92,6 +92,8 @@ interface WorkOrderPMChecklistProps {
   selectedEquipment?: WorkOrderPMChecklistEquipment | null;
   allowTemplateOverride?: boolean;
   autoDefaultFromEquipment?: boolean;
+  /** Explicit org scope for callers outside SimpleOrganizationProvider (QR scan page). */
+  organizationId?: string;
 }
 
 export const WorkOrderPMChecklist: React.FC<WorkOrderPMChecklistProps> = ({
@@ -100,6 +102,7 @@ export const WorkOrderPMChecklist: React.FC<WorkOrderPMChecklistProps> = ({
   selectedEquipment,
   allowTemplateOverride = false,
   autoDefaultFromEquipment = false,
+  organizationId,
 }) => {
   const {
     templates,
@@ -118,6 +121,7 @@ export const WorkOrderPMChecklist: React.FC<WorkOrderPMChecklistProps> = ({
     selectedEquipment,
     allowTemplateOverride,
     autoDefaultFromEquipment,
+    organizationId,
   });
 
   const { hasRole } = usePermissions();

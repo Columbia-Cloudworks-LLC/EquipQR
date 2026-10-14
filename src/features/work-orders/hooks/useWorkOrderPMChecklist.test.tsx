@@ -11,6 +11,17 @@ import {
 import * as usePMTemplatesModule from '@/features/pm-templates/hooks/usePMTemplates';
 import { getSimplifiedOrganizationRestrictions } from '@/utils/simplifiedOrganizationRestrictions';
 
+const baseRestrictions = vi.hoisted(() => ({
+  canManageTeams: true,
+  canAssignEquipmentToTeams: true,
+  canUploadImages: true,
+  canAccessFleetMap: true,
+  canInviteMembers: true,
+  canCreateCustomPMTemplates: true,
+  hasAvailableSlots: true,
+  upgradeMessage: '',
+}));
+
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     auth: {
@@ -30,9 +41,11 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 vi.mock('@/features/pm-templates/hooks/usePMTemplates');
-vi.mock('@/features/organization/hooks/useSimplifiedOrganizationRestrictions');
+vi.mock('@/utils/simplifiedOrganizationRestrictions', () => ({
+  getSimplifiedOrganizationRestrictions: vi.fn(() => baseRestrictions),
+}));
 vi.mock('@/features/pm-templates/hooks/usePMTemplateCompatibility', () => ({
-  useMatchingPMTemplates: vi.fn(),
+  useMatchingPMTemplatesForOrganization: vi.fn(),
 }));
 
 const mockTemplates = [
@@ -76,8 +89,8 @@ const wrapper = ({ children }: { children: React.ReactNode }) => {
 };
 
 function mockPMTemplatesResult(
-  overrides: Partial<ReturnType<typeof usePMTemplatesModule.usePMTemplates>> = {},
-): ReturnType<typeof usePMTemplatesModule.usePMTemplates> {
+  overrides: Partial<ReturnType<typeof usePMTemplatesModule.usePMTemplatesForOrganization>> = {},
+): ReturnType<typeof usePMTemplatesModule.usePMTemplatesForOrganization> {
   return {
     data: mockTemplates,
     isLoading: false,
@@ -87,7 +100,7 @@ function mockPMTemplatesResult(
     status: 'success',
     fetchStatus: 'idle',
     ...overrides,
-  } as ReturnType<typeof usePMTemplatesModule.usePMTemplates>;
+  } as ReturnType<typeof usePMTemplatesModule.usePMTemplatesForOrganization>;
 }
 
 type PMChecklistHookOptions = {
@@ -95,6 +108,7 @@ type PMChecklistHookOptions = {
   selectedEquipment?: Parameters<typeof useWorkOrderPMChecklist>[0]['selectedEquipment'];
   autoDefaultFromEquipment?: boolean;
   allowTemplateOverride?: boolean;
+  organizationId?: string;
 };
 
 function renderPMChecklistHook(options: PMChecklistHookOptions = {}) {
@@ -108,6 +122,7 @@ function renderPMChecklistHook(options: PMChecklistHookOptions = {}) {
         selectedEquipment: options.selectedEquipment,
         autoDefaultFromEquipment: options.autoDefaultFromEquipment,
         allowTemplateOverride: options.allowTemplateOverride,
+        organizationId: options.organizationId,
       }),
     { wrapper },
   );
@@ -118,13 +133,12 @@ describe('useWorkOrderPMChecklist', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    const { usePMTemplates } = await import('@/features/pm-templates/hooks/usePMTemplates');
-    const { useSimplifiedOrganizationRestrictions } = await import('@/features/organization/hooks/useSimplifiedOrganizationRestrictions');
-    const { useMatchingPMTemplates } = await import('@/features/pm-templates/hooks/usePMTemplateCompatibility');
+    const { usePMTemplatesForOrganization } = await import('@/features/pm-templates/hooks/usePMTemplates');
+    const { useMatchingPMTemplatesForOrganization } = await import('@/features/pm-templates/hooks/usePMTemplateCompatibility');
 
-    vi.mocked(usePMTemplates).mockReturnValue(mockPMTemplatesResult());
+    vi.mocked(usePMTemplatesForOrganization).mockReturnValue(mockPMTemplatesResult());
 
-    vi.mocked(useMatchingPMTemplates).mockReturnValue({
+    vi.mocked(useMatchingPMTemplatesForOrganization).mockReturnValue({
       data: mockTemplates.map(t => ({ template_id: t.id, match_type: 'manufacturer' as const })),
       isLoading: false,
       isSuccess: true,
@@ -149,19 +163,9 @@ describe('useWorkOrderPMChecklist', () => {
       isPlaceholderData: false,
       isRefetchError: false,
       promise: Promise.resolve([]),
-    } as unknown as ReturnType<typeof useMatchingPMTemplates>);
+    } as unknown as ReturnType<typeof useMatchingPMTemplatesForOrganization>);
 
-    vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
-      restrictions: {
-        ...getSimplifiedOrganizationRestrictions(),
-        canCreateCustomPMTemplates: true,
-      },
-      checkRestriction: vi.fn(),
-      getRestrictionMessage: vi.fn(),
-      isSingleUser: false,
-      canUpgrade: true,
-      isLoading: false,
-    });
+    vi.mocked(getSimplifiedOrganizationRestrictions).mockReturnValue(baseRestrictions);
   });
 
   describe('template filtering', () => {
@@ -172,20 +176,11 @@ describe('useWorkOrderPMChecklist', () => {
     });
 
     it('returns only global templates when user lacks custom PM template permissions', async () => {
-      const { useSimplifiedOrganizationRestrictions } = await import('@/features/organization/hooks/useSimplifiedOrganizationRestrictions');
-
-      vi.mocked(useSimplifiedOrganizationRestrictions).mockReturnValue({
-        restrictions: {
-          ...getSimplifiedOrganizationRestrictions(),
-          canCreateCustomPMTemplates: false,
-          canAccessFleetMap: false,
-          upgradeMessage: 'Upgrade for more features',
-        },
-        checkRestriction: vi.fn(),
-        getRestrictionMessage: vi.fn(),
-        isSingleUser: true,
-        canUpgrade: true,
-        isLoading: false,
+      vi.mocked(getSimplifiedOrganizationRestrictions).mockReturnValue({
+        ...baseRestrictions,
+        canCreateCustomPMTemplates: false,
+        canAccessFleetMap: false,
+        upgradeMessage: 'Upgrade for more features',
       });
 
       const { result } = renderPMChecklistHook();
@@ -367,21 +362,40 @@ describe('useWorkOrderPMChecklist', () => {
 
   describe('loading state', () => {
     it('returns isLoading true when templates are loading', async () => {
-      const { usePMTemplates } = await import('@/features/pm-templates/hooks/usePMTemplates');
+      const { usePMTemplatesForOrganization } = await import('@/features/pm-templates/hooks/usePMTemplates');
 
-      vi.mocked(usePMTemplates).mockReturnValue(
+      vi.mocked(usePMTemplatesForOrganization).mockReturnValue(
         mockPMTemplatesResult({
           data: undefined,
           isLoading: true,
           isSuccess: false,
           status: 'pending',
           fetchStatus: 'fetching',
-        }) as unknown as ReturnType<typeof usePMTemplates>,
+        }) as unknown as ReturnType<typeof usePMTemplatesForOrganization>,
       );
 
       const { result } = renderPMChecklistHook();
 
       expect(result.current.isLoading).toBe(true);
+    });
+  });
+  describe('organization scope', () => {
+    it('queries templates for an explicit organizationId without SimpleOrganizationProvider', async () => {
+      const { usePMTemplatesForOrganization } = await import('@/features/pm-templates/hooks/usePMTemplates');
+      const { useMatchingPMTemplatesForOrganization } = await import('@/features/pm-templates/hooks/usePMTemplateCompatibility');
+
+      const { result } = renderPMChecklistHook({
+        organizationId: 'org-from-qr',
+        selectedEquipment: { id: 'equipment-1', name: 'Forklift 17' },
+      });
+
+      expect(result.current.templates).toHaveLength(3);
+      expect(vi.mocked(usePMTemplatesForOrganization)).toHaveBeenCalledWith('org-from-qr');
+      expect(vi.mocked(useMatchingPMTemplatesForOrganization)).toHaveBeenCalledWith(
+        'org-from-qr',
+        'equipment-1',
+        { enabled: true },
+      );
     });
   });
 });
