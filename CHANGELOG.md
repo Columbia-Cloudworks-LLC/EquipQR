@@ -18,13 +18,21 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 - **Google review request (#1649)** — Organization owners and admins see a one-time, dismissible request to review EquipQR on Google after their organization's 10th completed work order, or its 5th QuickBooks invoice export for users who manage QuickBooks.
 - **Richer search listing details (#1649)** — EquipQR's search metadata now links to the Columbia Cloudworks LLC Google Business Profile.
 - **Done-For-You yard setup (#1648)** — We can set up your organization, equipment, and QR labels before your team signs up. When your owner and mechanics first sign in with Google or an email link, they land directly in the ready-made yard with the right roles, and owners get a prompt to connect QuickBooks.
+- **Time-limited EquipQR Support access (#1648)** — Organization owners can let EquipQR Support into their organization for 24 hours, 72 hours, or 7 days, from Organization settings or when reporting an issue. A banner shows when access ends, and the owner can extend or revoke it anytime.
+- **People waiting to sign in (#1648)** — Owners and admins of a Done-For-You organization can see who hasn't signed in yet on the Members page and remove anyone who shouldn't join.
+
+### Changed
+
+- **No member limit** — Organizations can have any number of members.
 
 ### Fixed
 
+- **Done-For-You sign-in never blocked (#1648)** — If a pre-set membership can't be applied, the person still signs in. Someone whose pre-set invite was removed before they verified their email gets their own organization instead of none.
 - **New Work Order from a QR scan** — Tapping New Work Order on a scanned equipment page opens the form and creates the work order again, instead of failing.
 
 ### Security
 
+- **No platform-wide admin (#1648)** — EquipQR staff can see an organization's data only while setting it up before anyone has joined, or while its owner has granted support access. The old cross-organization admin tool was removed.
 - **Deployment configuration comes only from GitHub (#1640)** — Vercel and Supabase settings are synced from GitHub Environments, and the project no longer uses a password-manager integration. The sync is passed only the secrets it manages.
 
 ## [3.36.0] - 2026-10-11
