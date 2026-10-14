@@ -47,6 +47,7 @@ once the cutover in `preview-persistent-branch.md` begins.
 | `PUBLIC_SITE_URL` | `send-invitation-email`, OAuth callbacks | `https://preview.equipqr.app` | **Canonical public app origin for preview** |
 | `PRODUCTION_URL` | Legacy fallback for `PUBLIC_SITE_URL` | `https://preview.equipqr.app` | Deprecated — migrate to `PUBLIC_SITE_URL` |
 | `SUPER_ADMIN_ORG_ID` | Admin validation functions | `your-org-id` | Organization ID for super admin access |
+| `DFY_OPERATOR_USER_IDS` | `dfy-provisioning` | `uuid-1,uuid-2` | Comma-separated `auth.users` IDs of EquipQR operators **in this project** (IDs differ per project). Empty or missing means nobody is an operator. Synced from the GitHub environment secret of the same name. |
 
 ### Email Service
 
@@ -124,6 +125,14 @@ OAuth callback URIs are derived from `SUPABASE_URL` — do **not** set `QB_OAUTH
 - `SUPABASE_URL` ✅
 - `SUPABASE_SERVICE_ROLE_KEY` ✅
 - `SUPER_ADMIN_ORG_ID` ✅
+
+### Operator Functions
+
+#### `dfy-provisioning`
+- `SUPABASE_URL` ✅
+- `SUPABASE_ANON_KEY` ✅
+- `SUPABASE_SERVICE_ROLE_KEY` ✅
+- `DFY_OPERATOR_USER_IDS` ✅ (without it the function refuses every caller)
 
 ### QuickBooks Functions
 

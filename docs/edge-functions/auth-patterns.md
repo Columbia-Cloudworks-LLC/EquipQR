@@ -98,6 +98,14 @@ The following functions are explicitly authorized to use `createAdminSupabaseCli
 |----------|--------|--------|
 | `list-organizations-admin` | Cross-org admin access; validated via `verifySuperAdminAccess()` | `verify_jwt = true` |
 
+### Operator Endpoints
+
+Authorization is per user ID, never per organization. `_shared/dfy-operator.ts` checks the caller (from `requireUser()`) against the `DFY_OPERATOR_USER_IDS` Edge secret and requires a confirmed email. A missing or empty allowlist allows nobody. The admin client is created only after that check passes.
+
+| Function | Reason | Config |
+|----------|--------|--------|
+| `dfy-provisioning` | Done-For-You provisioning: creates and edits organizations nobody has claimed yet. The SQL functions are service-role only and refuse any organization that has an active member (`assert_org_operator_editable`). | `verify_jwt = true` |
+
 ### Special Cases (Hybrid)
 
 | Function | Reason | Config |

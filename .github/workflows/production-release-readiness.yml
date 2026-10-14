@@ -104,8 +104,14 @@ jobs:
           SYNC_SECRET_VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           SYNC_SECRET_GITHUB_PAT: ${{ secrets.GITHUB_PAT }}
           SYNC_SECRET_GITHUB_WEBHOOK_SECRET: ${{ secrets.GITHUB_WEBHOOK_SECRET }}
+          SYNC_SECRET_DFY_OPERATOR_USER_IDS: ${{ secrets.DFY_OPERATOR_USER_IDS }}
           SUPABASE_PROJECT_REF: ${{ env.SUPABASE_PROJECT_REF }}
         run: node dev/ci/sync-deploy-config.mjs
+
+      - name: Check Supabase Auth settings that claiming relies on (no writes)
+        env:
+          SUPABASE_PROJECT_REF: ${{ env.SUPABASE_PROJECT_REF }}
+        run: node dev/ci/check-auth-config.mjs
 
   production-release-readiness:
     name: Migrate, verify schema, promote Vercel, deploy edge
@@ -183,6 +189,7 @@ jobs:
           SYNC_SECRET_VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           SYNC_SECRET_GITHUB_PAT: ${{ secrets.GITHUB_PAT }}
           SYNC_SECRET_GITHUB_WEBHOOK_SECRET: ${{ secrets.GITHUB_WEBHOOK_SECRET }}
+          SYNC_SECRET_DFY_OPERATOR_USER_IDS: ${{ secrets.DFY_OPERATOR_USER_IDS }}
           SUPABASE_PROJECT_REF: ${{ env.SUPABASE_PROJECT_REF }}
         run: node dev/ci/sync-deploy-config.mjs
 

@@ -719,6 +719,25 @@ $$;
 ALTER FUNCTION "public"."assert_inventory_read_access"("p_organization_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."assert_org_operator_editable"("p_organization_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+BEGIN
+  PERFORM 1 FROM public.organizations o WHERE o.id = p_organization_id FOR UPDATE;
+
+  IF NOT public.org_is_operator_editable(p_organization_id) THEN
+    RAISE EXCEPTION 'ORG_NOT_EDITABLE'
+      USING ERRCODE = '42501',
+            DETAIL = 'Operators can change a provisioned organization only before anyone has joined it.';
+  END IF;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."assert_org_operator_editable"("p_organization_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."audit_equipment_changes"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -11512,6 +11531,242 @@ $$;
 ALTER FUNCTION "public"."notify_team_member_security_events"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."operator_add_equipment"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_equipment" "jsonb") RETURNS integer
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_team_id uuid;
+  v_count integer;
+BEGIN
+  PERFORM public.assert_org_operator_editable(p_organization_id);
+
+  IF jsonb_typeof(p_equipment) IS DISTINCT FROM 'array' THEN
+    RAISE EXCEPTION 'Equipment must be an array' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT t.id INTO v_team_id
+  FROM public.teams t
+  WHERE t.organization_id = p_organization_id
+  ORDER BY t.created_at
+  LIMIT 1;
+
+  INSERT INTO public.equipment (
+    organization_id, team_id, name, manufacturer, model, serial_number,
+    location, installation_date, status, notes, import_id
+  )
+  SELECT
+    p_organization_id,
+    v_team_id,
+    btrim(e.name),
+    COALESCE(btrim(e.manufacturer), ''),
+    COALESCE(btrim(e.model), ''),
+    COALESCE(btrim(e.serial_number), ''),
+    COALESCE(NULLIF(btrim(e.location), ''), 'Yard'),
+    COALESCE(e.installation_date, current_date),
+    COALESCE(NULLIF(e.status, ''), 'active')::public.equipment_status,
+    NULLIF(btrim(e.notes), ''),
+    NULLIF(btrim(e.import_id), '')
+  FROM jsonb_to_recordset(p_equipment) AS e(
+    name text, manufacturer text, model text, serial_number text, location text,
+    installation_date date, status text, notes text, import_id text
+  );
+
+  GET DIAGNOSTICS v_count = ROW_COUNT;
+  RETURN v_count;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."operator_add_equipment"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_equipment" "jsonb") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."operator_delete_equipment"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_equipment_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+BEGIN
+  PERFORM public.assert_org_operator_editable(p_organization_id);
+
+  DELETE FROM public.equipment
+  WHERE id = p_equipment_id
+    AND organization_id = p_organization_id;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."operator_delete_equipment"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_equipment_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."operator_get_organization"("p_organization_id" "uuid") RETURNS "jsonb"
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+BEGIN
+  IF NOT public.org_is_operator_editable(p_organization_id) THEN
+    RAISE EXCEPTION 'ORG_NOT_EDITABLE' USING ERRCODE = '42501';
+  END IF;
+
+  RETURN jsonb_build_object(
+    'organization', (
+      SELECT jsonb_build_object('id', o.id, 'name', o.name, 'provisioned_at', o.provisioned_at)
+      FROM public.organizations o WHERE o.id = p_organization_id
+    ),
+    'teams', COALESCE((
+      SELECT jsonb_agg(jsonb_build_object('id', t.id, 'name', t.name) ORDER BY t.created_at)
+      FROM public.teams t WHERE t.organization_id = p_organization_id
+    ), '[]'::jsonb),
+    'staff', COALESCE((
+      SELECT jsonb_agg(jsonb_build_object(
+        'id', pm.id, 'email', pm.email, 'role', pm.role, 'team_role', pm.team_role, 'status', pm.status
+      ) ORDER BY pm.created_at)
+      FROM public.organization_provisioned_members pm
+      WHERE pm.organization_id = p_organization_id AND pm.status <> 'revoked'
+    ), '[]'::jsonb),
+    'equipment', COALESCE((
+      SELECT jsonb_agg(jsonb_build_object(
+        'id', e.id, 'name', e.name, 'manufacturer', e.manufacturer, 'model', e.model,
+        'serial_number', e.serial_number, 'location', e.location
+      ) ORDER BY e.name)
+      FROM public.equipment e WHERE e.organization_id = p_organization_id
+    ), '[]'::jsonb)
+  );
+END;
+$$;
+
+
+ALTER FUNCTION "public"."operator_get_organization"("p_organization_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."operator_list_unclaimed_organizations"() RETURNS TABLE("id" "uuid", "name" "text", "provisioned_at" timestamp with time zone, "provisioned_by" "uuid", "pending_staff" bigint, "equipment_count" bigint)
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+  SELECT
+    o.id,
+    o.name,
+    o.provisioned_at,
+    o.provisioned_by,
+    (SELECT count(*) FROM public.organization_provisioned_members pm
+      WHERE pm.organization_id = o.id AND pm.status = 'pending'),
+    (SELECT count(*) FROM public.equipment e WHERE e.organization_id = o.id)
+  FROM public.organizations o
+  WHERE public.org_is_operator_editable(o.id)
+  ORDER BY o.provisioned_at DESC;
+$$;
+
+
+ALTER FUNCTION "public"."operator_list_unclaimed_organizations"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."operator_revoke_staged_member"("p_operator_id" "uuid", "p_staged_member_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_org_id uuid;
+BEGIN
+  SELECT organization_id INTO v_org_id
+  FROM public.organization_provisioned_members
+  WHERE id = p_staged_member_id;
+
+  IF v_org_id IS NULL THEN
+    RAISE EXCEPTION 'Staged member not found' USING ERRCODE = '22023';
+  END IF;
+
+  PERFORM public.assert_org_operator_editable(v_org_id);
+
+  UPDATE public.organization_provisioned_members
+  SET status = 'revoked',
+      revoked_at = now(),
+      revoked_by = p_operator_id
+  WHERE id = p_staged_member_id
+    AND status = 'pending';
+END;
+$$;
+
+
+ALTER FUNCTION "public"."operator_revoke_staged_member"("p_operator_id" "uuid", "p_staged_member_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."operator_stage_member"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_email" "text", "p_role" "text", "p_team_id" "uuid" DEFAULT NULL::"uuid", "p_team_role" "public"."team_member_role" DEFAULT NULL::"public"."team_member_role", "p_attach_existing" boolean DEFAULT false) RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_id uuid;
+BEGIN
+  PERFORM public.assert_org_operator_editable(p_organization_id);
+
+  IF NOT p_attach_existing AND EXISTS (
+    SELECT 1 FROM public.operator_verified_account_emails(ARRAY[p_email])
+  ) THEN
+    RAISE EXCEPTION 'EXISTING_ACCOUNT'
+      USING ERRCODE = '22023',
+            DETAIL = format('%s already has a verified EquipQR account and would be attached immediately.', public.normalize_email(p_email));
+  END IF;
+
+  v_id := public.stage_provisioned_member(p_organization_id, p_email, p_role, p_team_id, p_team_role);
+
+  UPDATE public.organization_provisioned_members
+  SET staged_by = p_operator_id
+  WHERE id = v_id;
+
+  RETURN v_id;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."operator_stage_member"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_email" "text", "p_role" "text", "p_team_id" "uuid", "p_team_role" "public"."team_member_role", "p_attach_existing" boolean) OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."operator_verified_account_emails"("p_emails" "text"[]) RETURNS SETOF "text"
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+  SELECT DISTINCT public.normalize_email(u.email)
+  FROM auth.users u
+  WHERE u.email_confirmed_at IS NOT NULL
+    AND public.normalize_email(u.email) = ANY (
+      SELECT public.normalize_email(e) FROM unnest(p_emails) AS e
+    );
+$$;
+
+
+ALTER FUNCTION "public"."operator_verified_account_emails"("p_emails" "text"[]) OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."operator_verified_account_emails"("p_emails" "text"[]) IS 'Which of these emails already belong to a verified account (staging them attaches that account immediately).';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."org_is_operator_editable"("p_organization_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.organizations o
+    WHERE o.id = p_organization_id
+      AND o.provisioned_at IS NOT NULL
+      AND o.claimed_at IS NULL
+      AND NOT EXISTS (
+        SELECT 1
+        FROM public.organization_members om
+        WHERE om.organization_id = o.id
+          AND om.status = 'active'
+      )
+  );
+$$;
+
+
+ALTER FUNCTION "public"."org_is_operator_editable"("p_organization_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."org_is_operator_editable"("p_organization_id" "uuid") IS 'True while a provisioned organization has never been claimed and has no active members. Operators may read or edit it only then.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."peek_google_workspace_oauth_session"("p_session_token" "text", "p_nonce" "text") RETURNS TABLE("redirect_url" "text", "origin_url" "text")
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public', 'pg_temp'
@@ -12295,6 +12550,154 @@ ALTER FUNCTION "public"."process_departure_batch"("p_queue_id" "uuid", "p_batch_
 
 
 COMMENT ON FUNCTION "public"."process_departure_batch"("p_queue_id" "uuid", "p_batch_size" integer) IS 'Process a batch of records for a user departure. Updates denormalized name columns.';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."provision_organization"("p_request_id" "uuid", "p_operator_id" "uuid", "p_name" "text", "p_team_name" "text", "p_staff" "jsonb", "p_equipment" "jsonb", "p_attach_existing_emails" "text"[] DEFAULT '{}'::"text"[]) RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_org_id uuid;
+  v_existing_operator uuid;
+  v_team_id uuid;
+  v_staff jsonb;
+  v_email text;
+  v_team_role text;
+  v_attach text[];
+  v_staged_id uuid;
+BEGIN
+  IF p_request_id IS NULL OR p_operator_id IS NULL THEN
+    RAISE EXCEPTION 'request id and operator id are required' USING ERRCODE = '22023';
+  END IF;
+
+  IF coalesce(btrim(p_name), '') = '' THEN
+    RAISE EXCEPTION 'Organization name is required' USING ERRCODE = '22023';
+  END IF;
+
+  IF jsonb_typeof(p_staff) IS DISTINCT FROM 'array'
+    OR (SELECT count(*) FROM jsonb_array_elements(p_staff) s WHERE s->>'role' = 'owner') <> 1 THEN
+    RAISE EXCEPTION 'Staff must include exactly one owner' USING ERRCODE = '22023';
+  END IF;
+
+  IF p_equipment IS NOT NULL AND jsonb_typeof(p_equipment) <> 'array' THEN
+    RAISE EXCEPTION 'Equipment must be an array' USING ERRCODE = '22023';
+  END IF;
+
+  -- Idempotency: a retried request returns the organization it already made.
+  SELECT o.id, o.provisioned_by INTO v_org_id, v_existing_operator
+  FROM public.organizations o
+  WHERE o.provisioning_request_id = p_request_id;
+
+  IF v_org_id IS NOT NULL THEN
+    IF v_existing_operator IS DISTINCT FROM p_operator_id THEN
+      RAISE EXCEPTION 'Request id already used' USING ERRCODE = '42501';
+    END IF;
+    RETURN jsonb_build_object('organization_id', v_org_id, 'created', false);
+  END IF;
+
+  SELECT array_agg(public.normalize_email(e)) INTO v_attach
+  FROM unnest(coalesce(p_attach_existing_emails, '{}'::text[])) AS e;
+
+  INSERT INTO public.organizations (
+    name, plan, member_count, max_members, provisioned_at, provisioned_by, provisioning_request_id
+  )
+  VALUES (
+    btrim(p_name),
+    'free',
+    0,
+    GREATEST(5, jsonb_array_length(p_staff)),
+    now(),
+    p_operator_id,
+    p_request_id
+  )
+  RETURNING id INTO v_org_id;
+
+  INSERT INTO public.teams (organization_id, name)
+  VALUES (v_org_id, COALESCE(NULLIF(btrim(p_team_name), ''), 'Main Yard'))
+  RETURNING id INTO v_team_id;
+
+  IF p_equipment IS NOT NULL AND jsonb_array_length(p_equipment) > 0 THEN
+    INSERT INTO public.equipment (
+      organization_id, team_id, name, manufacturer, model, serial_number,
+      location, installation_date, status, notes, import_id
+    )
+    SELECT
+      v_org_id,
+      v_team_id,
+      btrim(e.name),
+      COALESCE(btrim(e.manufacturer), ''),
+      COALESCE(btrim(e.model), ''),
+      COALESCE(btrim(e.serial_number), ''),
+      COALESCE(NULLIF(btrim(e.location), ''), 'Yard'),
+      COALESCE(e.installation_date, current_date),
+      COALESCE(NULLIF(e.status, ''), 'active')::public.equipment_status,
+      NULLIF(btrim(e.notes), ''),
+      NULLIF(btrim(e.import_id), '')
+    FROM jsonb_to_recordset(p_equipment) AS e(
+      name text, manufacturer text, model text, serial_number text, location text,
+      installation_date date, status text, notes text, import_id text
+    );
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM public.operator_verified_account_emails(
+      ARRAY(SELECT s->>'email' FROM jsonb_array_elements(p_staff) s)
+    ) AS existing(email)
+    WHERE existing.email <> ALL (coalesce(v_attach, '{}'::text[]))
+  ) THEN
+    RAISE EXCEPTION 'EXISTING_ACCOUNT'
+      USING ERRCODE = '22023',
+            DETAIL = 'One or more staff emails already have a verified EquipQR account; confirm attaching them.';
+  END IF;
+
+  -- Existing verified accounts are attached the moment they are staged, so
+  -- stage everyone else first.
+  FOR v_staff IN
+    SELECT s
+    FROM jsonb_array_elements(p_staff) AS s
+    ORDER BY (public.normalize_email(s->>'email') = ANY (coalesce(v_attach, '{}'::text[])))
+  LOOP
+    v_email := public.normalize_email(v_staff->>'email');
+    v_team_role := NULLIF(v_staff->>'team_role', '');
+
+    v_staged_id := public.stage_provisioned_member(
+      v_org_id,
+      v_email,
+      v_staff->>'role',
+      CASE WHEN v_team_role IS NULL THEN NULL ELSE v_team_id END,
+      v_team_role::public.team_member_role
+    );
+
+    UPDATE public.organization_provisioned_members
+    SET staged_by = p_operator_id
+    WHERE id = v_staged_id;
+  END LOOP;
+
+  RETURN jsonb_build_object('organization_id', v_org_id, 'team_id', v_team_id, 'created', true);
+EXCEPTION WHEN unique_violation THEN
+  -- A concurrent retry of the same request won the insert.
+  IF EXISTS (
+    SELECT 1 FROM public.organizations o
+    WHERE o.provisioning_request_id = p_request_id
+      AND o.provisioned_by = p_operator_id
+  ) THEN
+    RETURN jsonb_build_object(
+      'organization_id',
+      (SELECT o.id FROM public.organizations o WHERE o.provisioning_request_id = p_request_id),
+      'created', false
+    );
+  END IF;
+  RAISE;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."provision_organization"("p_request_id" "uuid", "p_operator_id" "uuid", "p_name" "text", "p_team_name" "text", "p_staff" "jsonb", "p_equipment" "jsonb", "p_attach_existing_emails" "text"[]) OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."provision_organization"("p_request_id" "uuid", "p_operator_id" "uuid", "p_name" "text", "p_team_name" "text", "p_staff" "jsonb", "p_equipment" "jsonb", "p_attach_existing_emails" "text"[]) IS 'Operator tooling (service role): creates a Done-For-You organization with its team, equipment, and staged staff in one transaction. Idempotent per p_request_id.';
 
 
 
@@ -17093,6 +17496,7 @@ CREATE TABLE IF NOT EXISTS "public"."organization_provisioned_members" (
     "last_claim_error" "text",
     "revoked_at" timestamp with time zone,
     "revoked_by" "uuid",
+    "staged_by" "uuid",
     CONSTRAINT "organization_provisioned_members_claim_check" CHECK ((("status" = 'claimed'::"text") = ("claimed_at" IS NOT NULL))),
     CONSTRAINT "organization_provisioned_members_claimed_role_check" CHECK ((("claimed_role" IS NULL) OR ("claimed_role" = ANY (ARRAY['owner'::"text", 'admin'::"text", 'member'::"text"])))),
     CONSTRAINT "organization_provisioned_members_email_normalized_check" CHECK ((("email" = "public"."normalize_email"("email")) AND ("email" ~~ '%_@_%'::"text"))),
@@ -17164,7 +17568,9 @@ CREATE TABLE IF NOT EXISTS "public"."organizations" (
     "inventory_default_location_lng" double precision,
     "note_author_edit_window_hours" integer DEFAULT 24 NOT NULL,
     "provisioned_at" timestamp with time zone,
-    "claimed_at" timestamp with time zone
+    "claimed_at" timestamp with time zone,
+    "provisioned_by" "uuid",
+    "provisioning_request_id" "uuid"
 );
 
 
@@ -17236,6 +17642,14 @@ COMMENT ON COLUMN "public"."organizations"."provisioned_at" IS 'Set when the org
 
 
 COMMENT ON COLUMN "public"."organizations"."claimed_at" IS 'Set when the first staged owner of a pre-provisioned organization claimed it.';
+
+
+
+COMMENT ON COLUMN "public"."organizations"."provisioned_by" IS 'Operator (EquipQR staff user) who provisioned this Done-For-You organization.';
+
+
+
+COMMENT ON COLUMN "public"."organizations"."provisioning_request_id" IS 'Client-generated idempotency key for in-app provisioning; a retried request returns the same organization.';
 
 
 
@@ -19385,6 +19799,10 @@ CREATE INDEX "idx_org_provisioned_members_revoked_by" ON "public"."organization_
 
 
 
+CREATE INDEX "idx_org_provisioned_members_staged_by" ON "public"."organization_provisioned_members" USING "btree" ("staged_by");
+
+
+
 CREATE INDEX "idx_org_provisioned_members_team_id" ON "public"."organization_provisioned_members" USING "btree" ("team_id");
 
 
@@ -19454,6 +19872,14 @@ CREATE INDEX "idx_organization_role_grants_pending_applied_user_id" ON "public".
 
 
 CREATE INDEX "idx_organization_role_grants_pending_created_by" ON "public"."organization_role_grants_pending" USING "btree" ("created_by");
+
+
+
+CREATE INDEX "idx_organizations_provisioned_by" ON "public"."organizations" USING "btree" ("provisioned_by");
+
+
+
+CREATE UNIQUE INDEX "idx_organizations_provisioning_request_id" ON "public"."organizations" USING "btree" ("provisioning_request_id") WHERE ("provisioning_request_id" IS NOT NULL);
 
 
 
@@ -20705,6 +21131,11 @@ ALTER TABLE ONLY "public"."organization_provisioned_members"
 
 
 ALTER TABLE ONLY "public"."organization_provisioned_members"
+    ADD CONSTRAINT "organization_provisioned_members_staged_by_fkey" FOREIGN KEY ("staged_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."organization_provisioned_members"
     ADD CONSTRAINT "organization_provisioned_members_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE SET NULL;
 
 
@@ -20721,6 +21152,11 @@ ALTER TABLE ONLY "public"."organization_role_grants_pending"
 
 ALTER TABLE ONLY "public"."organization_role_grants_pending"
     ADD CONSTRAINT "organization_role_grants_pending_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."organizations"
+    ADD CONSTRAINT "organizations_provisioned_by_fkey" FOREIGN KEY ("provisioned_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
 
 
 
@@ -23376,6 +23812,11 @@ GRANT ALL ON FUNCTION "public"."assert_inventory_read_access"("p_organization_id
 
 
 
+REVOKE ALL ON FUNCTION "public"."assert_org_operator_editable"("p_organization_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."assert_org_operator_editable"("p_organization_id" "uuid") TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."audit_equipment_changes"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."audit_equipment_changes"() TO "service_role";
 
@@ -24397,6 +24838,46 @@ GRANT ALL ON FUNCTION "public"."notify_team_member_security_events"() TO "servic
 
 
 
+REVOKE ALL ON FUNCTION "public"."operator_add_equipment"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_equipment" "jsonb") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."operator_add_equipment"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_equipment" "jsonb") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."operator_delete_equipment"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_equipment_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."operator_delete_equipment"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_equipment_id" "uuid") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."operator_get_organization"("p_organization_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."operator_get_organization"("p_organization_id" "uuid") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."operator_list_unclaimed_organizations"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."operator_list_unclaimed_organizations"() TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."operator_revoke_staged_member"("p_operator_id" "uuid", "p_staged_member_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."operator_revoke_staged_member"("p_operator_id" "uuid", "p_staged_member_id" "uuid") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."operator_stage_member"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_email" "text", "p_role" "text", "p_team_id" "uuid", "p_team_role" "public"."team_member_role", "p_attach_existing" boolean) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."operator_stage_member"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_email" "text", "p_role" "text", "p_team_id" "uuid", "p_team_role" "public"."team_member_role", "p_attach_existing" boolean) TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."operator_verified_account_emails"("p_emails" "text"[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."operator_verified_account_emails"("p_emails" "text"[]) TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."org_is_operator_editable"("p_organization_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."org_is_operator_editable"("p_organization_id" "uuid") TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."peek_google_workspace_oauth_session"("p_session_token" "text", "p_nonce" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."peek_google_workspace_oauth_session"("p_session_token" "text", "p_nonce" "text") TO "service_role";
 
@@ -24439,6 +24920,11 @@ GRANT ALL ON FUNCTION "public"."process_all_pending_departures"() TO "service_ro
 
 REVOKE ALL ON FUNCTION "public"."process_departure_batch"("p_queue_id" "uuid", "p_batch_size" integer) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."process_departure_batch"("p_queue_id" "uuid", "p_batch_size" integer) TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."provision_organization"("p_request_id" "uuid", "p_operator_id" "uuid", "p_name" "text", "p_team_name" "text", "p_staff" "jsonb", "p_equipment" "jsonb", "p_attach_existing_emails" "text"[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."provision_organization"("p_request_id" "uuid", "p_operator_id" "uuid", "p_name" "text", "p_team_name" "text", "p_staff" "jsonb", "p_equipment" "jsonb", "p_attach_existing_emails" "text"[]) TO "service_role";
 
 
 

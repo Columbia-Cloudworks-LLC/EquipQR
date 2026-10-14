@@ -405,6 +405,12 @@ describe('workflow secret wiring', () => {
     }
   });
 
+  it('keeps the operator allowlist optional so a missing secret never blocks a sync', () => {
+    expect(EDGE_OPTIONAL_KEYS).toContain('DFY_OPERATOR_USER_IDS');
+    expect(EDGE_REQUIRED_KEYS).not.toContain('DFY_OPERATOR_USER_IDS');
+    expect(GITHUB_SECRET_EDGE_KEYS).toContain('DFY_OPERATOR_USER_IDS');
+  });
+
   it('lists only managed Edge keys as secret-backed', () => {
     const managed = new Set([...EDGE_REQUIRED_KEYS, ...EDGE_OPTIONAL_KEYS]);
     for (const name of GITHUB_SECRET_EDGE_KEYS) expect(managed.has(name), name).toBe(true);

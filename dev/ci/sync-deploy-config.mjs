@@ -85,6 +85,7 @@ export const EDGE_REQUIRED_KEYS = [
 export const EDGE_OPTIONAL_KEYS = [
   'GITHUB_PAT',
   'GITHUB_WEBHOOK_SECRET',
+  'DFY_OPERATOR_USER_IDS',
   'PRODUCTION_URL',
   'SUPER_ADMIN_ORG_ID',
   'GW_OAUTH_REDIRECT_BASE_URL',
@@ -155,6 +156,7 @@ export const GITHUB_SECRET_EDGE_KEYS = [
   'VAPID_PRIVATE_KEY',
   'GITHUB_PAT',
   'GITHUB_WEBHOOK_SECRET',
+  'DFY_OPERATOR_USER_IDS',
 ];
 
 /** Collect the managed Edge secrets from SYNC_SECRET_<NAME> env vars. */

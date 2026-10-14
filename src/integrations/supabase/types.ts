@@ -2232,6 +2232,7 @@ export type Database = {
           revoked_at: string | null
           revoked_by: string | null
           role: string
+          staged_by: string | null
           status: string
           team_id: string | null
           team_role: Database["public"]["Enums"]["team_member_role"] | null
@@ -2249,6 +2250,7 @@ export type Database = {
           revoked_at?: string | null
           revoked_by?: string | null
           role: string
+          staged_by?: string | null
           status?: string
           team_id?: string | null
           team_role?: Database["public"]["Enums"]["team_member_role"] | null
@@ -2266,6 +2268,7 @@ export type Database = {
           revoked_at?: string | null
           revoked_by?: string | null
           role?: string
+          staged_by?: string | null
           status?: string
           team_id?: string | null
           team_role?: Database["public"]["Enums"]["team_member_role"] | null
@@ -2303,6 +2306,20 @@ export type Database = {
           {
             foreignKeyName: "organization_provisioned_members_revoked_by_fkey"
             columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "organization_provisioned_members_staged_by_fkey"
+            columns: ["staged_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_provisioned_members_staged_by_fkey"
+            columns: ["staged_by"]
             isOneToOne: false
             referencedRelation: "user_entitlements"
             referencedColumns: ["user_id"]
@@ -2390,6 +2407,8 @@ export type Database = {
           note_author_edit_window_hours: number
           plan: Database["public"]["Enums"]["organization_plan"]
           provisioned_at: string | null
+          provisioned_by: string | null
+          provisioning_request_id: string | null
           scan_location_collection_enabled: boolean
           storage_used_mb: number | null
           updated_at: string
@@ -2420,6 +2439,8 @@ export type Database = {
           note_author_edit_window_hours?: number
           plan?: Database["public"]["Enums"]["organization_plan"]
           provisioned_at?: string | null
+          provisioned_by?: string | null
+          provisioning_request_id?: string | null
           scan_location_collection_enabled?: boolean
           storage_used_mb?: number | null
           updated_at?: string
@@ -2450,11 +2471,28 @@ export type Database = {
           note_author_edit_window_hours?: number
           plan?: Database["public"]["Enums"]["organization_plan"]
           provisioned_at?: string | null
+          provisioned_by?: string | null
+          provisioning_request_id?: string | null
           scan_location_collection_enabled?: boolean
           storage_used_mb?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "organizations_provisioned_by_fkey"
+            columns: ["provisioned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organizations_provisioned_by_fkey"
+            columns: ["provisioned_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       ownership_transfer_requests: {
         Row: {
@@ -5042,6 +5080,10 @@ export type Database = {
         Args: { p_organization_id: string }
         Returns: undefined
       }
+      assert_org_operator_editable: {
+        Args: { p_organization_id: string }
+        Returns: undefined
+      }
       auto_provision_workspace_organization: {
         Args: {
           p_domain: string
@@ -6243,6 +6285,61 @@ export type Database = {
         }
         Returns: undefined
       }
+      operator_add_equipment: {
+        Args: {
+          p_equipment: Json
+          p_operator_id: string
+          p_organization_id: string
+        }
+        Returns: number
+      }
+      operator_delete_equipment: {
+        Args: {
+          p_equipment_id: string
+          p_operator_id: string
+          p_organization_id: string
+        }
+        Returns: undefined
+      }
+      operator_get_organization: {
+        Args: { p_organization_id: string }
+        Returns: Json
+      }
+      operator_list_unclaimed_organizations: {
+        Args: never
+        Returns: {
+          equipment_count: number
+          id: string
+          name: string
+          pending_staff: number
+          provisioned_at: string
+          provisioned_by: string
+        }[]
+      }
+      operator_revoke_staged_member: {
+        Args: { p_operator_id: string; p_staged_member_id: string }
+        Returns: undefined
+      }
+      operator_stage_member: {
+        Args: {
+          p_attach_existing?: boolean
+          p_email: string
+          p_operator_id: string
+          p_organization_id: string
+          p_role: string
+          p_team_id?: string
+          p_team_role?: Database["public"]["Enums"]["team_member_role"]
+        }
+        Returns: string
+      }
+      operator_verified_account_emails: {
+        Args: { p_emails: string[] }
+        Returns: string[]
+      }
+      org_is_operator_editable: {
+        Args: { p_organization_id: string }
+        Returns: boolean
+      }
       peek_google_workspace_oauth_session: {
         Args: { p_nonce: string; p_session_token: string }
         Returns: {
@@ -6266,6 +6363,18 @@ export type Database = {
       process_all_pending_departures: { Args: never; Returns: Json }
       process_departure_batch: {
         Args: { p_batch_size?: number; p_queue_id: string }
+        Returns: Json
+      }
+      provision_organization: {
+        Args: {
+          p_attach_existing_emails?: string[]
+          p_equipment: Json
+          p_name: string
+          p_operator_id: string
+          p_request_id: string
+          p_staff: Json
+          p_team_name: string
+        }
         Returns: Json
       }
       reconcile_google_workspace_directory: {
