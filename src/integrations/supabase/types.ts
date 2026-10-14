@@ -2219,6 +2219,77 @@ export type Database = {
           },
         ]
       }
+      organization_provisioned_members: {
+        Row: {
+          claimed_at: string | null
+          claimed_user_id: string | null
+          created_at: string
+          email: string
+          id: string
+          organization_id: string
+          role: string
+          status: string
+          team_id: string | null
+          team_role: Database["public"]["Enums"]["team_member_role"] | null
+          updated_at: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          claimed_user_id?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          organization_id: string
+          role: string
+          status?: string
+          team_id?: string | null
+          team_role?: Database["public"]["Enums"]["team_member_role"] | null
+          updated_at?: string
+        }
+        Update: {
+          claimed_at?: string | null
+          claimed_user_id?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          organization_id?: string
+          role?: string
+          status?: string
+          team_id?: string | null
+          team_role?: Database["public"]["Enums"]["team_member_role"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_provisioned_members_claimed_user_id_fkey"
+            columns: ["claimed_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_provisioned_members_claimed_user_id_fkey"
+            columns: ["claimed_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "organization_provisioned_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_provisioned_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_role_grants_pending: {
         Row: {
           applied_at: string | null
@@ -2271,6 +2342,7 @@ export type Database = {
           background_color: string | null
           billable_members: number | null
           billing_cycle: string | null
+          claimed_at: string | null
           created_at: string
           customers_feature_enabled: boolean | null
           features: string[]
@@ -2291,6 +2363,7 @@ export type Database = {
           next_billing_date: string | null
           note_author_edit_window_hours: number
           plan: Database["public"]["Enums"]["organization_plan"]
+          provisioned_at: string | null
           scan_location_collection_enabled: boolean
           storage_used_mb: number | null
           updated_at: string
@@ -2299,6 +2372,7 @@ export type Database = {
           background_color?: string | null
           billable_members?: number | null
           billing_cycle?: string | null
+          claimed_at?: string | null
           created_at?: string
           customers_feature_enabled?: boolean | null
           features?: string[]
@@ -2319,6 +2393,7 @@ export type Database = {
           next_billing_date?: string | null
           note_author_edit_window_hours?: number
           plan?: Database["public"]["Enums"]["organization_plan"]
+          provisioned_at?: string | null
           scan_location_collection_enabled?: boolean
           storage_used_mb?: number | null
           updated_at?: string
@@ -2327,6 +2402,7 @@ export type Database = {
           background_color?: string | null
           billable_members?: number | null
           billing_cycle?: string | null
+          claimed_at?: string | null
           created_at?: string
           customers_feature_enabled?: boolean | null
           features?: string[]
@@ -2347,6 +2423,7 @@ export type Database = {
           next_billing_date?: string | null
           note_author_edit_window_hours?: number
           plan?: Database["public"]["Enums"]["organization_plan"]
+          provisioned_at?: string | null
           scan_location_collection_enabled?: boolean
           storage_used_mb?: number | null
           updated_at?: string
@@ -5078,6 +5155,10 @@ export type Database = {
         Args: { required_role: string; team_uuid: string; user_uuid: string }
         Returns: boolean
       }
+      claim_provisioned_memberships: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
       claim_quickbooks_invoice_status_events: {
         Args: { p_batch_size: number }
         Returns: {
@@ -6288,6 +6369,16 @@ export type Database = {
       snapshot_account_deletion_attribution: {
         Args: { p_user_id: string }
         Returns: undefined
+      }
+      stage_provisioned_member: {
+        Args: {
+          p_email: string
+          p_organization_id: string
+          p_role: string
+          p_team_id?: string
+          p_team_role?: Database["public"]["Enums"]["team_member_role"]
+        }
+        Returns: string
       }
       storage_object_path_segment_uuid: {
         Args: { p_object_name: string; p_segment_index: number }
