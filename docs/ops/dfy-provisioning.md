@@ -9,7 +9,8 @@ Use this runbook to set up a customer's EquipQR organization for them before any
 3. When a staged email signs in **with a verified address**, the staged row is claimed:
    - **Google sign-in:** claimed in `handle_new_user()` when the account is created.
    - **Magic link, invite link, or confirmed email signup:** claimed by the `on_auth_user_email_confirmed_claim` trigger when `email_confirmed_at` is set.
-4. Claiming creates an active membership with the staged role and adds mechanics to the yard team. It marks the product onboarding checklist complete, marks the staged row `claimed`, and records `organizations.claimed_at` when the owner claims. Staged people do not get an empty "My Organization", so the yard is their default organization and they land on its dashboard.
+4. Claiming creates an active membership with the staged role (`access_source = 'provisioned'`) and adds mechanics to the yard team. It marks the product onboarding checklist complete, marks the staged row `claimed` with the role actually granted in `claimed_role`, and records `organizations.claimed_at` when the owner claims. If the organization already has an active owner, a staged owner becomes an admin and `claimed_role` shows `admin`.
+   - Each staged row is claimed on its own. If one fails, the person still signs in, the row stays `pending`, and the error is saved in `last_claim_error`. Staged people do not get an empty "My Organization", so the yard is their default organization and they land on its dashboard.
 5. If an email already belongs to a verified account when you stage it, that account is attached immediately.
 
 Claiming depends on `mailer_autoconfirm = false` in production (see [auth-signup-email-workflow.md](./auth-signup-email-workflow.md)). An unconfirmed password signup that uses a staged email gets nothing.
@@ -71,5 +72,6 @@ Output (default `tmp/dfy/<slug>-<org-id-prefix>/`, which is gitignored):
   ```
 
   The org's owners and admins can also read this roster in the app through RLS.
-- **Revoke a staged person before they claim:** set `status = 'revoked'`. The unique index applies only to live rows, so you can stage the address again later.
+- **Revoke a staged person before they claim:** the org's owners and admins see a "Waiting to sign in" list on the Members page and can remove anyone there. The row becomes `revoked` with `revoked_by` and `revoked_at`. The unique index applies only to live rows, so the address can be staged again later.
+- **Revoked before they verified:** a person who signed up with a staged email but hadn't verified it yet gets a normal "My Organization" when they verify, so they never land with no organization.
 - **QuickBooks:** when the claiming owner first opens the dashboard and QuickBooks Online is not connected, they see a dismissible "Connect QuickBooks" card. It starts the normal OAuth flow, and the connection is stored on the existing organization.

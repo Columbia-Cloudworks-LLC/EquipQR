@@ -2222,11 +2222,15 @@ export type Database = {
       organization_provisioned_members: {
         Row: {
           claimed_at: string | null
+          claimed_role: string | null
           claimed_user_id: string | null
           created_at: string
           email: string
           id: string
+          last_claim_error: string | null
           organization_id: string
+          revoked_at: string | null
+          revoked_by: string | null
           role: string
           status: string
           team_id: string | null
@@ -2235,11 +2239,15 @@ export type Database = {
         }
         Insert: {
           claimed_at?: string | null
+          claimed_role?: string | null
           claimed_user_id?: string | null
           created_at?: string
           email: string
           id?: string
+          last_claim_error?: string | null
           organization_id: string
+          revoked_at?: string | null
+          revoked_by?: string | null
           role: string
           status?: string
           team_id?: string | null
@@ -2248,11 +2256,15 @@ export type Database = {
         }
         Update: {
           claimed_at?: string | null
+          claimed_role?: string | null
           claimed_user_id?: string | null
           created_at?: string
           email?: string
           id?: string
+          last_claim_error?: string | null
           organization_id?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
           role?: string
           status?: string
           team_id?: string | null
@@ -2280,6 +2292,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_provisioned_members_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_provisioned_members_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "organization_provisioned_members_team_id_fkey"
@@ -5464,6 +5490,10 @@ export type Database = {
         }
         Returns: Json
       }
+      ensure_personal_organization: {
+        Args: { p_user_id: string }
+        Returns: string
+      }
       export_equipment_csv_rows: {
         Args: {
           p_columns?: string[]
@@ -6332,6 +6362,10 @@ export type Database = {
       revert_work_order_status: {
         Args: { p_reason?: string; p_work_order_id: string }
         Returns: Json
+      }
+      revoke_provisioned_member: {
+        Args: { p_staged_member_id: string }
+        Returns: undefined
       }
       rotate_operator_checkin_token: {
         Args: { p_settings_id: string }

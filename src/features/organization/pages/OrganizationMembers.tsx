@@ -8,6 +8,7 @@ import { OrganizationSubnav } from '@/features/organization/components/Organizat
 import UnifiedMembersList from '@/features/organization/components/UnifiedMembersList';
 import RestrictedOrganizationAccess from '@/features/organization/components/RestrictedOrganizationAccess';
 import { WorkspaceMergeRequestsCard } from '@/features/organization/components/WorkspaceMergeRequestsCard';
+import { PendingProvisionedStaffCard } from '@/features/onboarding/components/PendingProvisionedStaffCard';
 import Page from '@/components/layout/Page';
 import { Users } from 'lucide-react';
 import { useMemo } from 'react';
@@ -107,6 +108,8 @@ const OrganizationMembers = () => {
           isLoading={membersLoading}
           canInviteMembers={!!permissions?.canInviteMembers}
         />
+
+        <PendingProvisionedStaffCard organizationId={currentOrganization.id} />
       </div>
     </Page>
   );

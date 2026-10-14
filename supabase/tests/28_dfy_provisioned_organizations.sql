@@ -235,7 +235,7 @@ SELECT results_eq(
       FROM public.organization_members
      WHERE user_id = '13000000-0000-0000-0000-000000000001'::uuid
        AND organization_id = '93000000-0000-0000-0000-000000000001'::uuid$$,
-  $$VALUES ('owner'::text, 'active'::text, 'invitation'::text, true)$$,
+  $$VALUES ('owner'::text, 'active'::text, 'provisioned'::text, true)$$,
   'Email verification binds the staged owner as active owner with onboarding completed'
 );
 

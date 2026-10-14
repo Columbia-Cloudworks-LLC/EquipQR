@@ -2704,87 +2704,108 @@ BEGIN
     RETURN 0;
   END IF;
 
-  -- Claim rows may reference profiles; handle_new_user creates the profile
-  -- first, but email-confirmation updates can race profile backfills.
   IF NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = p_user_id) THEN
     RETURN 0;
   END IF;
 
   FOR v_row IN
-    SELECT pm.*
+    SELECT pm.id, pm.organization_id, pm.role, pm.team_id, pm.team_role
     FROM public.organization_provisioned_members pm
     WHERE pm.email = v_email
       AND pm.status = 'pending'
     ORDER BY pm.created_at
-    FOR UPDATE
   LOOP
-    v_role := v_row.role;
+    -- A failed claim must never abort the auth.users write that called us
+    -- (Google sign-up or email confirmation); keep the row pending instead.
+    BEGIN
+      -- Serialize with operator edits on the same unclaimed organization.
+      PERFORM 1 FROM public.organizations o WHERE o.id = v_row.organization_id FOR UPDATE;
 
-    -- Never create a second owner; an org that already has an active owner
-    -- (e.g. claimed by someone else after an ownership transfer) gets an admin.
-    IF v_role = 'owner' AND EXISTS (
-      SELECT 1
-      FROM public.organization_members om
-      WHERE om.organization_id = v_row.organization_id
-        AND om.role = 'owner'
-        AND om.status = 'active'
-        AND om.user_id <> p_user_id
-    ) THEN
-      v_role := 'admin';
-    END IF;
+      -- Re-check under the lock: an operator may have revoked it meanwhile.
+      PERFORM 1
+      FROM public.organization_provisioned_members pm
+      WHERE pm.id = v_row.id
+        AND pm.status = 'pending'
+      FOR UPDATE;
+      IF NOT FOUND THEN
+        CONTINUE;
+      END IF;
 
-    INSERT INTO public.organization_members (
-      organization_id,
-      user_id,
-      role,
-      status,
-      access_source,
-      product_onboarding_completed_at
-    )
-    VALUES (
-      v_row.organization_id,
-      p_user_id,
-      v_role,
-      'active',
-      'invitation',
-      now()
-    )
-    ON CONFLICT (organization_id, user_id) DO UPDATE
-      SET status = 'active',
-          role = CASE
-            WHEN public.organization_members.role = 'owner' THEN 'owner'
-            WHEN EXCLUDED.role = 'owner' THEN 'owner'
-            WHEN EXCLUDED.role = 'admin' OR public.organization_members.role = 'admin' THEN 'admin'
-            ELSE public.organization_members.role
-          END,
-          product_onboarding_completed_at = COALESCE(
-            public.organization_members.product_onboarding_completed_at,
-            now()
-          );
+      v_role := v_row.role;
 
-    IF v_row.team_id IS NOT NULL THEN
-      INSERT INTO public.team_members (team_id, user_id, role)
-      VALUES (
-        v_row.team_id,
-        p_user_id,
-        COALESCE(v_row.team_role, 'technician'::public.team_member_role)
+      -- Never create a second owner.
+      IF v_role = 'owner' AND EXISTS (
+        SELECT 1
+        FROM public.organization_members om
+        WHERE om.organization_id = v_row.organization_id
+          AND om.role = 'owner'
+          AND om.status = 'active'
+          AND om.user_id <> p_user_id
+      ) THEN
+        v_role := 'admin';
+      END IF;
+
+      INSERT INTO public.organization_members (
+        organization_id,
+        user_id,
+        role,
+        status,
+        access_source,
+        product_onboarding_completed_at
       )
-      ON CONFLICT (team_id, user_id) DO NOTHING;
-    END IF;
+      VALUES (
+        v_row.organization_id,
+        p_user_id,
+        v_role,
+        'active',
+        'provisioned',
+        now()
+      )
+      ON CONFLICT (organization_id, user_id) DO UPDATE
+        SET status = 'active',
+            role = CASE
+              WHEN public.organization_members.role = 'owner' THEN 'owner'
+              WHEN EXCLUDED.role = 'owner' THEN 'owner'
+              WHEN EXCLUDED.role = 'admin' OR public.organization_members.role = 'admin' THEN 'admin'
+              ELSE public.organization_members.role
+            END,
+            product_onboarding_completed_at = COALESCE(
+              public.organization_members.product_onboarding_completed_at,
+              now()
+            )
+      RETURNING role INTO v_role;
 
-    UPDATE public.organization_provisioned_members
-    SET status = 'claimed',
-        claimed_user_id = p_user_id,
-        claimed_at = now()
-    WHERE id = v_row.id;
+      IF v_row.team_id IS NOT NULL THEN
+        INSERT INTO public.team_members (team_id, user_id, role)
+        VALUES (
+          v_row.team_id,
+          p_user_id,
+          COALESCE(v_row.team_role, 'technician'::public.team_member_role)
+        )
+        ON CONFLICT (team_id, user_id) DO NOTHING;
+      END IF;
 
-    IF v_role = 'owner' THEN
-      UPDATE public.organizations
-      SET claimed_at = COALESCE(claimed_at, now())
-      WHERE id = v_row.organization_id;
-    END IF;
+      UPDATE public.organization_provisioned_members
+      SET status = 'claimed',
+          claimed_user_id = p_user_id,
+          claimed_at = now(),
+          claimed_role = v_role,
+          last_claim_error = NULL
+      WHERE id = v_row.id;
 
-    v_count := v_count + 1;
+      IF v_role = 'owner' THEN
+        UPDATE public.organizations
+        SET claimed_at = COALESCE(claimed_at, now())
+        WHERE id = v_row.organization_id;
+      END IF;
+
+      v_count := v_count + 1;
+    EXCEPTION WHEN OTHERS THEN
+      UPDATE public.organization_provisioned_members
+      SET last_claim_error = left(SQLERRM, 500)
+      WHERE id = v_row.id;
+      RAISE WARNING 'claim_provisioned_memberships: staged row % not claimed: %', v_row.id, SQLERRM;
+    END;
   END LOOP;
 
   RETURN v_count;
@@ -2795,7 +2816,7 @@ $$;
 ALTER FUNCTION "public"."claim_provisioned_memberships"("p_user_id" "uuid") OWNER TO "postgres";
 
 
-COMMENT ON FUNCTION "public"."claim_provisioned_memberships"("p_user_id" "uuid") IS 'Binds pending organization_provisioned_members rows matching the user''s verified email to active memberships (issue #1648). Internal: called from auth.users triggers and stage_provisioned_member; no client EXECUTE.';
+COMMENT ON FUNCTION "public"."claim_provisioned_memberships"("p_user_id" "uuid") IS 'Binds pending organization_provisioned_members rows matching the user''s verified email to active memberships (access_source provisioned). Each row is claimed in its own subtransaction so a failure never aborts the sign-in. Internal: no client EXECUTE.';
 
 
 
@@ -5539,6 +5560,61 @@ $$;
 ALTER FUNCTION "public"."ensure_operator_template_active_for_enabled_assignment"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."ensure_personal_organization"("p_user_id" "uuid") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_org_id uuid;
+  v_name text;
+BEGIN
+  SELECT organization_id INTO v_org_id
+  FROM public.personal_organizations
+  WHERE user_id = p_user_id;
+
+  IF v_org_id IS NOT NULL THEN
+    RETURN v_org_id;
+  END IF;
+
+  SELECT COALESCE(u.raw_user_meta_data->>'organization_name', 'My Organization')
+  INTO v_name
+  FROM auth.users u
+  WHERE u.id = p_user_id;
+
+  IF v_name IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  INSERT INTO public.organizations (name, plan, member_count, max_members, features)
+  VALUES (
+    v_name,
+    'free',
+    1,
+    5,
+    ARRAY['Equipment Management', 'Work Orders', 'Team Management']
+  )
+  RETURNING id INTO v_org_id;
+
+  INSERT INTO public.personal_organizations (user_id, organization_id)
+  VALUES (p_user_id, v_org_id)
+  ON CONFLICT (user_id) DO NOTHING;
+
+  INSERT INTO public.organization_members (organization_id, user_id, role, status, access_source)
+  VALUES (v_org_id, p_user_id, 'owner', 'active', 'owner')
+  ON CONFLICT (organization_id, user_id) DO NOTHING;
+
+  RETURN v_org_id;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."ensure_personal_organization"("p_user_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."ensure_personal_organization"("p_user_id" "uuid") IS 'Creates the user''s personal "My Organization" when they have none. Internal: used when a Done-For-You staged row that suppressed the personal org was revoked before the user verified.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."expire_old_invitations"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -7963,7 +8039,7 @@ BEGIN
         WHERE om_other.user_id = v_user_id
           AND om_other.organization_id <> p_organization_id
           AND om_other.status = 'active'
-          AND om_other.access_source = 'invitation'
+          AND om_other.access_source IN ('invitation', 'provisioned')
       )
     ) THEN
     v_skip_invite_onboarding := true;
@@ -8817,6 +8893,28 @@ CREATE OR REPLACE FUNCTION "public"."handle_user_email_confirmed_claim"() RETURN
     AS $$
 BEGIN
   PERFORM public.claim_provisioned_memberships(NEW.id);
+
+  -- handle_new_user skipped the personal org because a staged row was pending
+  -- for this email. If that row was revoked before the user verified, they
+  -- would otherwise land with no organization at all.
+  IF OLD.email_confirmed_at IS NULL
+    AND NOT EXISTS (
+      SELECT 1 FROM public.organization_members om
+      WHERE om.user_id = NEW.id
+        AND om.status = 'active'
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM public.personal_organizations po
+      WHERE po.user_id = NEW.id
+    )
+    AND EXISTS (
+      SELECT 1 FROM public.organization_provisioned_members pm
+      WHERE pm.email = public.normalize_email(NEW.email)
+    )
+  THEN
+    PERFORM public.ensure_personal_organization(NEW.id);
+  END IF;
+
   RETURN NEW;
 END;
 $$;
@@ -8825,7 +8923,7 @@ $$;
 ALTER FUNCTION "public"."handle_user_email_confirmed_claim"() OWNER TO "postgres";
 
 
-COMMENT ON FUNCTION "public"."handle_user_email_confirmed_claim"() IS 'auth.users AFTER UPDATE trigger: claims pre-staged memberships once an email becomes verified (issue #1648).';
+COMMENT ON FUNCTION "public"."handle_user_email_confirmed_claim"() IS 'auth.users AFTER UPDATE trigger: claims pre-staged memberships once an email becomes verified, and creates the personal org when a revoked staged row had suppressed it (issue #1648).';
 
 
 
@@ -13842,6 +13940,47 @@ $$;
 ALTER FUNCTION "public"."revert_work_order_status"("p_work_order_id" "uuid", "p_reason" "text") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."revoke_provisioned_member"("p_staged_member_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_org_id uuid;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated' USING ERRCODE = '42501';
+  END IF;
+
+  SELECT pm.organization_id INTO v_org_id
+  FROM public.organization_provisioned_members pm
+  WHERE pm.id = p_staged_member_id;
+
+  IF v_org_id IS NULL OR NOT public.is_org_admin(v_user_id, v_org_id) THEN
+    RAISE EXCEPTION 'Staged member not found' USING ERRCODE = '42501';
+  END IF;
+
+  UPDATE public.organization_provisioned_members
+  SET status = 'revoked',
+      revoked_at = now(),
+      revoked_by = v_user_id
+  WHERE id = p_staged_member_id
+    AND status = 'pending';
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Only pending staged members can be revoked' USING ERRCODE = '22023';
+  END IF;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."revoke_provisioned_member"("p_staged_member_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."revoke_provisioned_member"("p_staged_member_id" "uuid") IS 'Org owners/admins revoke a Done-For-You staged person who has not signed in yet.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."rotate_operator_checkin_token"("p_settings_id" "uuid") RETURNS TABLE("raw_token" "text", "token_hash" "text")
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public', 'extensions'
@@ -16913,7 +17052,7 @@ CREATE TABLE IF NOT EXISTS "public"."organization_members" (
     "can_manage_quickbooks" boolean DEFAULT false NOT NULL,
     "access_source" "text",
     "product_onboarding_completed_at" timestamp with time zone,
-    CONSTRAINT "organization_members_access_source_check" CHECK ((("access_source" IS NULL) OR ("access_source" = ANY (ARRAY['google_workspace'::"text", 'invitation'::"text", 'owner'::"text", 'manual'::"text"]))))
+    CONSTRAINT "organization_members_access_source_check" CHECK ((("access_source" IS NULL) OR ("access_source" = ANY (ARRAY['google_workspace'::"text", 'invitation'::"text", 'owner'::"text", 'manual'::"text", 'provisioned'::"text", 'support'::"text"]))))
 );
 
 ALTER TABLE ONLY "public"."organization_members" REPLICA IDENTITY FULL;
@@ -16930,7 +17069,7 @@ COMMENT ON COLUMN "public"."organization_members"."can_manage_quickbooks" IS 'Wh
 
 
 
-COMMENT ON COLUMN "public"."organization_members"."access_source" IS 'How this membership was created: google_workspace import/claim, invitation, owner bootstrap, or manual admin add.';
+COMMENT ON COLUMN "public"."organization_members"."access_source" IS 'How this membership was created: google_workspace import/claim, invitation, owner bootstrap, manual admin add, provisioned (claimed Done-For-You staged membership), or support (owner-granted, time-limited EquipQR Support access).';
 
 
 
@@ -16950,7 +17089,12 @@ CREATE TABLE IF NOT EXISTS "public"."organization_provisioned_members" (
     "claimed_at" timestamp with time zone,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "claimed_role" "text",
+    "last_claim_error" "text",
+    "revoked_at" timestamp with time zone,
+    "revoked_by" "uuid",
     CONSTRAINT "organization_provisioned_members_claim_check" CHECK ((("status" = 'claimed'::"text") = ("claimed_at" IS NOT NULL))),
+    CONSTRAINT "organization_provisioned_members_claimed_role_check" CHECK ((("claimed_role" IS NULL) OR ("claimed_role" = ANY (ARRAY['owner'::"text", 'admin'::"text", 'member'::"text"])))),
     CONSTRAINT "organization_provisioned_members_email_normalized_check" CHECK ((("email" = "public"."normalize_email"("email")) AND ("email" ~~ '%_@_%'::"text"))),
     CONSTRAINT "organization_provisioned_members_role_check" CHECK (("role" = ANY (ARRAY['owner'::"text", 'admin'::"text", 'member'::"text"]))),
     CONSTRAINT "organization_provisioned_members_status_check" CHECK (("status" = ANY (ARRAY['pending'::"text", 'claimed'::"text", 'revoked'::"text"]))),
@@ -16962,6 +17106,14 @@ ALTER TABLE "public"."organization_provisioned_members" OWNER TO "postgres";
 
 
 COMMENT ON TABLE "public"."organization_provisioned_members" IS 'Pre-staged (shadow) memberships for operator-provisioned organizations, keyed by normalized email. Claimed automatically when a user with that verified email signs in (issue #1648). Service-role writes only.';
+
+
+
+COMMENT ON COLUMN "public"."organization_provisioned_members"."claimed_role" IS 'Organization role actually granted at claim time (differs from role when a staged owner was downgraded to admin).';
+
+
+
+COMMENT ON COLUMN "public"."organization_provisioned_members"."last_claim_error" IS 'Error from the most recent failed claim attempt; the row stays pending and the sign-in proceeds.';
 
 
 
@@ -19229,6 +19381,10 @@ CREATE INDEX "idx_org_provisioned_members_pending_email" ON "public"."organizati
 
 
 
+CREATE INDEX "idx_org_provisioned_members_revoked_by" ON "public"."organization_provisioned_members" USING "btree" ("revoked_by");
+
+
+
 CREATE INDEX "idx_org_provisioned_members_team_id" ON "public"."organization_provisioned_members" USING "btree" ("team_id");
 
 
@@ -20540,6 +20696,11 @@ ALTER TABLE ONLY "public"."organization_provisioned_members"
 
 ALTER TABLE ONLY "public"."organization_provisioned_members"
     ADD CONSTRAINT "organization_provisioned_members_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."organization_provisioned_members"
+    ADD CONSTRAINT "organization_provisioned_members_revoked_by_fkey" FOREIGN KEY ("revoked_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
 
 
 
@@ -23683,6 +23844,11 @@ GRANT ALL ON FUNCTION "public"."ensure_operator_template_active_for_enabled_assi
 
 
 
+REVOKE ALL ON FUNCTION "public"."ensure_personal_organization"("p_user_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."ensure_personal_organization"("p_user_id" "uuid") TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."expire_old_invitations"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."expire_old_invitations"() TO "service_role";
 
@@ -24375,6 +24541,12 @@ GRANT ALL ON FUNCTION "public"."revert_pm_completion"("p_pm_id" "uuid", "p_reaso
 REVOKE ALL ON FUNCTION "public"."revert_work_order_status"("p_work_order_id" "uuid", "p_reason" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."revert_work_order_status"("p_work_order_id" "uuid", "p_reason" "text") TO "service_role";
 GRANT ALL ON FUNCTION "public"."revert_work_order_status"("p_work_order_id" "uuid", "p_reason" "text") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."revoke_provisioned_member"("p_staged_member_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."revoke_provisioned_member"("p_staged_member_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."revoke_provisioned_member"("p_staged_member_id" "uuid") TO "authenticated";
 
 
 
