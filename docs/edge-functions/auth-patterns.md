@@ -92,12 +92,6 @@ The following functions are explicitly authorized to use `createAdminSupabaseCli
 |----------|--------|--------|
 | `quickbooks-refresh-tokens` | System cron job; requires service role to enumerate credentials | `verify_jwt = true` (requires service role JWT) |
 
-### Super Admin Endpoints
-
-| Function | Reason | Config |
-|----------|--------|--------|
-| `list-organizations-admin` | Cross-org admin access; validated via `verifySuperAdminAccess()` | `verify_jwt = true` |
-
 ### Operator Endpoints
 
 Authorization is per user ID, never per organization. `_shared/dfy-operator.ts` checks the caller (from `requireUser()`) against the `DFY_OPERATOR_USER_IDS` Edge secret and requires a confirmed email. A missing or empty allowlist allows nobody. The admin client is created only after that check passes.
@@ -250,7 +244,7 @@ All auth helpers are in `supabase/functions/_shared/`:
 - `supabase-clients.ts` - Client creation, auth helpers, `createErrorResponse` allowlist, `withCorrelationId` wrapper
 - `org-scoped-queries.ts` - Org membership/admin guards, `withOrgScope` / `withOrgAdminScope`, shared Zod request schemas, `parseJsonBody`, `applyOrganizationScope`
 - `require-secret.ts` - `requireSecret` / `optionalSecret` / `MissingSecretError`
-- `admin-validation.ts` - Super admin validation
+- `dfy-operator.ts` - EquipQR operator allowlist (`DFY_OPERATOR_USER_IDS`)
 - `cors.ts` - CORS headers (`corsHeaders` static + `getCorsHeaders(req)` validated-origin)
 - `crypto.ts` - Token encryption utilities
 - `error-message-allowlist.ts` - SAFE_ERROR_PATTERNS for client-facing error strings
