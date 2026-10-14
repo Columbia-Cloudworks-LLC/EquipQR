@@ -8,7 +8,10 @@ import { GoogleAnalyticsTelemetry } from './GoogleAnalyticsTelemetry';
 import { CookieConsentProvider } from '@/contexts/CookieConsentContext';
 import { TelemetryConsentSettings } from '@/components/settings/TelemetryConsentSettings';
 import { COOKIE_CONSENT_STORAGE_KEY } from '@/lib/cookieConsent';
-import { TELEMETRY_CONSENT_STORAGE_KEY } from '@/lib/telemetryConsent';
+import {
+  TELEMETRY_CONSENT_SCOPE_STORAGE_KEY,
+  TELEMETRY_CONSENT_STORAGE_KEY,
+} from '@/lib/telemetryConsent';
 import {
   GA_CONSENT_DENIED,
   GA_CONSENT_GRANTED,
@@ -145,10 +148,66 @@ describe('GoogleAnalyticsTelemetry consent gating', () => {
     expect(sessionStorage.getItem(LANDING_UTM_STORAGE_KEY)).toBeNull();
   });
 
+  it('asks again instead of loading GA for a Clarity-only acceptance saved before GA', async () => {
+    const user = userEvent.setup();
+    vi.stubEnv('VITE_CLARITY_PROJECT_ID', 'clarityproj');
+    localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'accepted');
+    // Legacy acceptance: no scope key, so it covered Clarity only.
+    localStorage.setItem(TELEMETRY_CONSENT_STORAGE_KEY, 'accepted');
+    renderApp();
+
+    expect(gaScript()).toBeNull();
+    expect(screen.getByText('Help improve EquipQR')).toBeInTheDocument();
+    expect(screen.getByText(/Google Analytics/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Yes, Help Us Improve' }));
+
+    expect(localStorage.getItem(TELEMETRY_CONSENT_SCOPE_STORAGE_KEY)).toBe('clarity,ga');
+    expect(gaScript()).not.toBeNull();
+  });
+
+  it('keeps a legacy rejection without asking again', () => {
+    localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'accepted');
+    localStorage.setItem(TELEMETRY_CONSENT_STORAGE_KEY, 'rejected');
+    renderApp();
+
+    expect(screen.queryByRole('region', { name: /cookie consent/i })).not.toBeInTheDocument();
+    expect(gaScript()).toBeNull();
+  });
+
+  it('sends landing UTM tags once when consent is given on the tagged URL itself', async () => {
+    const user = userEvent.setup();
+    renderApp('/?utm_source=google&utm_medium=gbp', <NavigateButton to="/features/quickbooks" />);
+
+    await user.click(screen.getByRole('button', { name: 'Accept All (Help Us Improve)' }));
+    await user.click(screen.getByRole('button', { name: 'go' }));
+
+    expect(pageViews().map((view) => view.page_location)).toEqual([
+      `${window.location.origin}/?utm_source=google&utm_medium=gbp`,
+      `${window.location.origin}/features/quickbooks`,
+    ]);
+  });
+
+  it.each([
+    ['/solutions/repair-shops', 'Repair Shops | EquipQR'],
+    ['/releases', 'Releases | EquipQR'],
+    ['/dashboard/work-orders', 'EquipQR'],
+    ['/qr/equipment/abc', 'EquipQR'],
+  ])('uses the real title only on public pages (%s)', (path, expected) => {
+    document.title = expected === 'EquipQR' ? 'Customer Truck 12 | EquipQR' : expected;
+    localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'accepted');
+    localStorage.setItem(TELEMETRY_CONSENT_STORAGE_KEY, 'accepted');
+    localStorage.setItem(TELEMETRY_CONSENT_SCOPE_STORAGE_KEY, 'ga');
+    renderApp(path);
+
+    expect(pageViews()[0].page_title).toBe(expected);
+  });
+
   it('sends one sanitized page view per route change without ids or tokens', async () => {
     const user = userEvent.setup();
     localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'accepted');
     localStorage.setItem(TELEMETRY_CONSENT_STORAGE_KEY, 'accepted');
+    localStorage.setItem(TELEMETRY_CONSENT_SCOPE_STORAGE_KEY, 'ga');
     renderApp(
       '/invitation/abc123secrettoken?email=a@b.co',
       <NavigateButton to="/dashboard/equipment/0f8fad5b-d9cb-469f-a165-70867728950e?tab=notes" />,
@@ -167,6 +226,7 @@ describe('GoogleAnalyticsTelemetry consent gating', () => {
     const user = userEvent.setup();
     localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'accepted');
     localStorage.setItem(TELEMETRY_CONSENT_STORAGE_KEY, 'accepted');
+    localStorage.setItem(TELEMETRY_CONSENT_SCOPE_STORAGE_KEY, 'ga');
     document.cookie = '_ga=GA1.1.123; path=/';
     document.cookie = '_ga_TEST12345=GS1.1.456; path=/';
     renderApp('/', <TelemetryConsentSettings />);

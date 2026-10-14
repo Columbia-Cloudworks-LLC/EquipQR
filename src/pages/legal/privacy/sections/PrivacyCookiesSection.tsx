@@ -70,6 +70,15 @@ export function PrivacyCookiesSection() {
                   ),
                 },
                 {
+                  label: <code>equipqr_telemetry_consent_scope</code>,
+                  content: (
+                    <>
+                      &mdash; Records which optional tools (Google Analytics, Microsoft Clarity) your opt-in
+                      covered, so we ask again before turning on a tool you have not agreed to.
+                    </>
+                  ),
+                },
+                {
                   label: <code>gbp_review_prompt_dismissed_at</code>,
                   content: (
                     <>

@@ -6,7 +6,11 @@
 
 /** Completed work orders in the organization that unlock the prompt. */
 export const REVIEW_MILESTONE_COMPLETED_WORK_ORDERS = 10;
-/** Successful QuickBooks invoice exports in the organization that unlock the prompt. */
+/**
+ * Successful QuickBooks invoice exports in the organization that unlock the
+ * prompt. Counted only for users who can manage QuickBooks (owners, and admins
+ * with that permission), because export logs are limited to them by RLS.
+ */
 export const REVIEW_MILESTONE_EXPORTED_INVOICES = 5;
 
 /**

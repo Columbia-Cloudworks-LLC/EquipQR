@@ -177,7 +177,9 @@ export function loadGoogleAnalytics(measurementId: string): void {
  */
 export function trackGooglePageView(pathname: string, search: string, title: string): void {
   if (typeof window === 'undefined' || !window.gtag) return;
-  const utm = pickUtmParams(search) || consumeLandingUtm();
+  // Always consume the stored copy so it rides on one page view only.
+  const storedUtm = consumeLandingUtm();
+  const utm = pickUtmParams(search) || storedUtm;
   const origin = globalThis.location?.origin ?? '';
   const pageLocation = `${origin}${sanitizeAnalyticsPath(pathname)}${utm ? `?${utm}` : ''}`;
   // `set` also covers enhanced-measurement events that read page_location.

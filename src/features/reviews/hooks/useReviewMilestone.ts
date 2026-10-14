@@ -16,7 +16,8 @@ async function fetchReviewMilestone(organizationId: string): Promise<boolean> {
   // Skip the second count when the first milestone is already met.
   if ((completedWorkOrders ?? 0) >= REVIEW_MILESTONE_COMPLETED_WORK_ORDERS) return true;
 
-  // RLS limits export logs to QuickBooks managers; others simply count zero.
+  // RLS limits export logs to QuickBooks managers (owners, and admins with the
+  // QuickBooks permission). Other admins count zero and qualify through work orders.
   const { count: exportedInvoices, error: exportError } = await supabase
     .from('quickbooks_export_logs')
     .select('id', { count: 'exact', head: true })

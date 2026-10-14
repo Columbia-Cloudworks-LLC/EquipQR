@@ -9,8 +9,8 @@ import {
   trackGooglePageView,
 } from '@/lib/googleAnalytics';
 
-/** Marketing and legal pages keep their real title; app titles may name customer data. */
-const PUBLIC_TITLE_PATHS = /^\/($|features\/|privacy-policy|terms-of-service|right-to-repair|auth)/;
+/** App, QR, and invitation titles may name customer data; public pages keep theirs. */
+const PRIVATE_TITLE_PATHS = /^\/(dashboard|qr|invitation|debug)(\/|-|$)/;
 
 /**
  * Injects Google Analytics 4 only after explicit telemetry consent, sends a
@@ -42,7 +42,7 @@ export function GoogleAnalyticsTelemetry() {
 
   useEffect(() => {
     if (!canUseTelemetry || !getGaMeasurementId()) return;
-    const title = PUBLIC_TITLE_PATHS.test(pathname) ? document.title : 'EquipQR';
+    const title = PRIVATE_TITLE_PATHS.test(pathname) ? 'EquipQR' : document.title;
     trackGooglePageView(pathname, searchRef.current, title);
   }, [canUseTelemetry, pathname]);
 
