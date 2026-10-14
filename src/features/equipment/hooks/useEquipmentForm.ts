@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { useAppToast } from '@/hooks/useAppToast';
 import { logEquipmentLocationChange } from '@/features/equipment/services/equipmentLocationHistoryService';
 import {
+  buildEquipmentCloneDefaultValues,
   buildEquipmentFormDefaultValues,
   toEquipmentCreateData,
   toEquipmentUpdateData,
@@ -49,6 +50,8 @@ export const useEquipmentForm = (
   onSuccess?: () => void,
   pendingMediaRef?: RefObject<EquipmentFormPendingMedia>,
   onCreated?: (equipmentId: string) => void,
+  /** Existing unit whose shared specs prefill a new record (issue #1643). Ignored when editing. */
+  cloneSource?: EquipmentRecord,
 ) => {
   const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -81,7 +84,10 @@ export const useEquipmentForm = (
 
   const form = useForm<EquipmentFormData>({
     resolver: zodResolver(validationSchema),
-    defaultValues: buildEquipmentFormDefaultValues(initialData),
+    defaultValues:
+      !initialData && cloneSource
+        ? buildEquipmentCloneDefaultValues(cloneSource)
+        : buildEquipmentFormDefaultValues(initialData),
   });
 
   const createMutation = useMutation({
@@ -91,7 +97,9 @@ export const useEquipmentForm = (
       }
 
       const service = new OfflineAwareWorkOrderService(currentOrganization.id, user.id);
-      const createData = toEquipmentCreateData(data);
+      const createData = toEquipmentCreateData(data, {
+        customerId: cloneSource?.customer_id ?? null,
+      });
       const result = await service.createEquipmentFull(createData);
 
       if (result.queuedOffline) {

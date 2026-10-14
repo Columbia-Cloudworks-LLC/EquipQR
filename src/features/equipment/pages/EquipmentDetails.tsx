@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TabsContent } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, ArrowLeft, Forklift, QrCode, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CopyPlus, Forklift, QrCode, Trash2 } from 'lucide-react';
 import type { EquipmentQRVariant } from '@/features/equipment/components/QRCodeDisplay';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -13,6 +13,7 @@ import { useSaveEquipmentAssignedLocation } from '@/features/equipment/hooks/use
 import type { EquipmentTeamSummary } from '@/features/equipment/services/EquipmentService';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useInventoryAccess } from '@/features/inventory/hooks/useInventoryAccess';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
 import { isOrgAdminRole, isRecordOnAccessibleTeam } from '@/features/teams/utils/teamAccessScope';
@@ -27,6 +28,7 @@ import ResponsiveEquipmentTabs from '@/features/equipment/components/ResponsiveE
 import { EquipmentDetailsDesktopSummary } from '@/features/equipment/components/EquipmentDetailsDesktopSummary';
 import { EquipmentLocationMapPanel } from '@/components/location/EquipmentLocationMapPanel';
 import { EquipmentDetailsModals } from '@/features/equipment/components/EquipmentDetailsModals';
+import EquipmentForm from '@/features/equipment/components/EquipmentForm';
 import { EquipmentQuickAccessDrawer } from '@/features/equipment/components/EquipmentQuickAccessDrawer';
 import { useEquipmentScanLogger } from '@/features/equipment/hooks/useEquipmentScanLogger';
 import { getEquipmentViewTransitionStyle } from '@/features/equipment/transitions/equipmentViewTransitionNames';
@@ -98,6 +100,7 @@ const EquipmentDetails = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isWorkingHoursModalOpen, setIsWorkingHoursModalOpen] = useState(false);
   const [isEditingSummaryLocation, setIsEditingSummaryLocation] = useState(false);
+  const [isCloneFormOpen, setIsCloneFormOpen] = useState(false);
 
   const tabParam = searchParams.get('tab');
   useEffect(() => {
@@ -163,6 +166,9 @@ const EquipmentDetails = () => {
   const { isLoaded: isPlacesLoadedForSummary } = useGoogleMapsLoader({
     enabled: isEditingSummaryLocation,
   });
+  const { canCreateEquipment, canCreateEquipmentForAnyTeam } = usePermissions();
+  const canCreateEquipmentHere = canCreateEquipment() || canCreateEquipmentForAnyTeam();
+  const handleOpenCloneForm = canCreateEquipmentHere ? () => setIsCloneFormOpen(true) : undefined;
   const isLoading = orgLoading || equipmentLoading || (!isOrgAdmin && teamsLoading);
   const isAdmin =
     currentOrganization?.userRole === 'owner' || currentOrganization?.userRole === 'admin';
@@ -259,6 +265,7 @@ const EquipmentDetails = () => {
               equipment={equipment}
               onShowQRCode={() => handleOpenQrCode()}
               onShowWorkingHours={() => setIsWorkingHoursModalOpen(true)}
+              onAddAnotherLikeThis={handleOpenCloneForm}
             />
             <Card className="shadow-elevation-2">
               <EquipmentLocationMapPanel
@@ -300,6 +307,12 @@ const EquipmentDetails = () => {
               ]}
               actions={
                 <div className="flex items-center gap-2">
+                  {handleOpenCloneForm && (
+                    <Button size="sm" variant="outline" onClick={handleOpenCloneForm}>
+                      <CopyPlus className="h-4 w-4 mr-2" />
+                      Add Another Like This
+                    </Button>
+                  )}
                   <Button size="sm" onClick={() => handleOpenQrCode()}>
                     <QrCode className="h-4 w-4 mr-2" />
                     QR Code
@@ -346,6 +359,7 @@ const EquipmentDetails = () => {
               onShowQrCode={(variant) => handleOpenQrCode(variant)}
               onCreateWorkOrder={() => setIsWorkOrderFormOpen(true)}
               onAddNote={() => setActiveTab('notes')}
+              onAddAnotherLikeThis={handleOpenCloneForm}
             />
           </>
         )}
@@ -492,6 +506,18 @@ const EquipmentDetails = () => {
           onDeleteSuccess={() => navigate('/dashboard/equipment')}
           onCloseWorkingHours={() => setIsWorkingHoursModalOpen(false)}
         />
+
+        {isCloneFormOpen && (
+          <EquipmentForm
+            open
+            onClose={() => setIsCloneFormOpen(false)}
+            cloneSource={equipment}
+            onCreated={(newEquipmentId) => {
+              setActiveTab('details');
+              navigate(`/dashboard/equipment/${newEquipmentId}`);
+            }}
+          />
+        )}
       </div>
     </Page>
   );
