@@ -49,6 +49,17 @@ describe('csp', () => {
     expect(devCsp).toContain('https://api.pwnedpasswords.com');
   });
 
+  it('production CSP allows the Google Analytics 4 tag and collection endpoints', () => {
+    const directives = buildCsp().split('; ');
+    const scriptSrc = directives.find((d) => d.startsWith('script-src '));
+    const connectSrc = directives.find((d) => d.startsWith('connect-src '));
+
+    expect(scriptSrc).toContain('https://www.googletagmanager.com');
+    expect(connectSrc).toContain('https://www.google-analytics.com');
+    expect(connectSrc).toContain('https://*.google-analytics.com');
+    expect(connectSrc).toContain('https://*.analytics.google.com');
+  });
+
   it('production CSP sets frame-ancestors self', () => {
     expect(buildCsp()).toContain("frame-ancestors 'self'");
   });

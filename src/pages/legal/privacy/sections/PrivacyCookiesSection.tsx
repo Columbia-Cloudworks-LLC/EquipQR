@@ -11,8 +11,8 @@ export function PrivacyCookiesSection() {
             <p>
               EquipQR uses minimal browser storage for application functionality. We do not use
               advertising pixels or browser fingerprinting techniques, and we do not use any
-              third-party tracking cookies unless you opt in to diagnostic session replay
-              (described below).
+              third-party tracking cookies unless you opt in to usage analytics and diagnostic
+              session replay (described below).
             </p>
 
             <p>
@@ -64,8 +64,26 @@ export function PrivacyCookiesSection() {
                   label: <code>equipqr_telemetry_consent</code>,
                   content: (
                     <>
-                      &mdash; Stores whether you opted in to or out of diagnostic session replay (strictly
-                      necessary for remembering that choice).
+                      &mdash; Stores whether you opted in to or out of usage analytics and diagnostic session
+                      replay (strictly necessary for remembering that choice).
+                    </>
+                  ),
+                },
+                {
+                  label: <code>equipqr_telemetry_consent_scope</code>,
+                  content: (
+                    <>
+                      &mdash; Records which optional tools (Google Analytics, Microsoft Clarity) your opt-in
+                      covered, so we ask again before turning on a tool you have not agreed to.
+                    </>
+                  ),
+                },
+                {
+                  label: <code>gbp_review_prompt_dismissed_at</code>,
+                  content: (
+                    <>
+                      &mdash; Records when we asked organization owners and admins for a Google review, so the
+                      request is shown only once. Contains a date only and is never sent anywhere.
                     </>
                   ),
                 },
@@ -131,6 +149,22 @@ export function PrivacyCookiesSection() {
               strictly necessary keys listed above remain available.
             </p>
 
+            <h3>Usage Analytics (Optional)</h3>
+            <p>
+              We utilize Google Analytics 4 for strictly opt-in, aggregate visitor analytics, such as
+              which searches, referrals, and campaigns bring people to EquipQR. Record IDs and access
+              tokens are removed from page addresses before anything is sent, and advertising features
+              are turned off.
+            </p>
+            <p>
+              Google Analytics shares the same choice as diagnostic session replay below: it never loads
+              unless you choose &quot;Accept All (Help Us Improve)&quot; on the cookies notice or turn on
+              &quot;Help improve EquipQR with usage analytics&quot; in Settings. When active, it sets the
+              first-party cookies <code>_ga</code> and <code>_ga_&lt;ID&gt;</code> (up to two years) to
+              tell visits apart; they are removed when you opt out. See Section 4.12 for what is sent to
+              Google.
+            </p>
+
             <h3>Diagnostic Session Replay (Optional)</h3>
             <p>
               We utilize Microsoft Clarity for strictly opt-in diagnostic usage metrics, heatmaps, and
@@ -139,7 +173,7 @@ export function PrivacyCookiesSection() {
             </p>
             <p>
               Clarity never loads unless you choose &quot;Accept All (Help Us Improve)&quot; on the cookies
-              notice or turn on &quot;Help improve EquipQR with diagnostic session data&quot; in Settings.
+              notice or turn on &quot;Help improve EquipQR with usage analytics&quot; in Settings.
               Choosing &quot;Essential Only&quot; or turning the setting off stores your opt-out and stops
               Clarity. When active, Clarity sets the first-party cookies <code>_clck</code> (up to one
               year) and <code>_clsk</code> (one day) to group page views into a session; they are removed
@@ -148,9 +182,14 @@ export function PrivacyCookiesSection() {
 
             <h3>Session Storage</h3>
             <p>
-              We use sessionStorage for one purpose: storing a pending redirect URL when a QR code
-              scan requires you to log in first. This value is cleared automatically after use or
-              when the browser tab is closed. It is strictly necessary for that sign-in flow.
+              We use sessionStorage for two purposes. First, storing a pending redirect URL when a QR
+              code scan requires you to log in first; this is strictly necessary for that sign-in flow.
+              Second, when you arrive from a tagged link (for example, our Google Business Profile), we
+              keep the campaign tags (<code>utm_source</code>, <code>utm_medium</code>,{' '}
+              <code>utm_campaign</code>) under <code>equipqr:landing-utm</code> so they can be attached
+              to your first page view if you opt in to usage analytics. These tags never leave your
+              browser unless you opt in. Both values are cleared after use or when the browser tab is
+              closed.
             </p>
 
             <h3>Authentication Session</h3>

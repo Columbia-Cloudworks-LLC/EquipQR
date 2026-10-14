@@ -38,8 +38,9 @@ describe('CookieConsentBanner', () => {
   beforeEach(() => {
     localStorage.clear();
     toastError.mockClear();
-    // Classic banner copy applies when no Clarity project is configured.
+    // Classic banner copy applies when no Clarity project or GA4 stream is configured.
     vi.stubEnv('VITE_CLARITY_PROJECT_ID', '');
+    vi.stubEnv('VITE_GA_MEASUREMENT_ID', '');
   });
 
   afterEach(() => {

@@ -20,7 +20,7 @@ describe('PrivacyPolicy', () => {
     const heading = screen.getByRole('heading', { level: 1 });
     expect(heading).toHaveTextContent('Privacy Policy');
     expect(screen.getByText(/Last updated:/)).toBeInTheDocument();
-    expect(screen.getByText(/October 12, 2026/)).toBeInTheDocument();
+    expect(screen.getByText(/October 14, 2026/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument();
     expect(screen.getAllByRole('heading').length).toBeGreaterThan(1);
 
@@ -95,6 +95,9 @@ describe('PrivacyPolicy', () => {
     expect(screen.getByText(/4\.5 Vercel/)).toBeInTheDocument();
     expect(screen.getByText(/4\.7 QuickBooks Online.*Optional Integration/)).toBeInTheDocument();
     expect(screen.getByText(/4\.8 Google Workspace.*Optional Integration/)).toBeInTheDocument();
+    expect(screen.getByText(/4\.11 Microsoft Clarity.*Opt-In Only/)).toBeInTheDocument();
+    expect(screen.getByText(/4\.12 Google Analytics 4.*Opt-In Only/)).toBeInTheDocument();
+    expect(screen.getByText('Usage Analytics (Optional)')).toBeInTheDocument();
 
     const cloudWorksLinks = screen.getAllByText('Columbia Cloudworks LLC');
     cloudWorksLinks.forEach((link) => {

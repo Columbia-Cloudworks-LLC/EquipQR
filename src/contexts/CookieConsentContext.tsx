@@ -18,10 +18,10 @@ import {
   type CookieConsentDecision,
 } from '@/lib/cookieConsent';
 import {
+  TELEMETRY_CONSENT_SCOPE_STORAGE_KEY,
   TELEMETRY_CONSENT_STORAGE_KEY,
   getTelemetryConsentDecision,
   isTelemetryAvailable,
-  isTelemetryConsentDecision,
   setTelemetryConsentDecision,
   type TelemetryConsentDecision,
 } from '@/lib/telemetryConsent';
@@ -30,9 +30,9 @@ interface CookieConsentContextValue {
   decision: CookieConsentDecision | null;
   needsConsent: boolean;
   canUsePreferences: boolean;
-  /** Opt-in diagnostic session replay (Microsoft Clarity) decision. */
+  /** Opt-in analytics (Google Analytics 4) and session replay (Microsoft Clarity) decision. */
   telemetryDecision: TelemetryConsentDecision | null;
-  /** True when a Clarity project id is configured for this build. */
+  /** True when a Clarity project id or GA4 measurement id is configured for this build. */
   telemetryAvailable: boolean;
   canUseTelemetry: boolean;
   /** Banner "Accept" / "Accept All": preferences + telemetry (when available). */
@@ -67,11 +67,12 @@ export const CookieConsentProvider: React.FC<{ children: React.ReactNode }> = ({
       if (event.key === COOKIE_CONSENT_STORAGE_KEY) {
         const next = event.newValue;
         setDecision(isCookieConsentDecision(next) ? next : getCookieConsentDecision());
-      } else if (event.key === TELEMETRY_CONSENT_STORAGE_KEY) {
-        const next = event.newValue;
-        setTelemetryDecision(
-          isTelemetryConsentDecision(next) ? next : getTelemetryConsentDecision(),
-        );
+      } else if (
+        event.key === TELEMETRY_CONSENT_STORAGE_KEY ||
+        event.key === TELEMETRY_CONSENT_SCOPE_STORAGE_KEY
+      ) {
+        // Re-read both keys: an acceptance only counts with a covering scope.
+        setTelemetryDecision(getTelemetryConsentDecision());
       }
     };
     window.addEventListener('storage', onStorage);

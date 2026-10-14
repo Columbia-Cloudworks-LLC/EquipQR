@@ -41,6 +41,7 @@ describe('ClarityTelemetry consent gating', () => {
     clarityScript()?.remove();
     delete window.clarity;
     vi.stubEnv('VITE_CLARITY_PROJECT_ID', 'testproj123');
+    vi.stubEnv('VITE_GA_MEASUREMENT_ID', '');
   });
 
   afterEach(() => {
@@ -125,7 +126,7 @@ describe('ClarityTelemetry consent gating', () => {
     window.clarity = clarity;
 
     const toggle = screen.getByRole('switch', {
-      name: 'Help improve EquipQR with diagnostic session data',
+      name: 'Help improve EquipQR with usage analytics',
     });
     expect(toggle).toBeChecked();
     await user.click(toggle);

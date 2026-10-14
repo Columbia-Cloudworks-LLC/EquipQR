@@ -1,4 +1,4 @@
-export const PRIVACY_POLICY_LAST_UPDATED = 'October 12, 2026';
+export const PRIVACY_POLICY_LAST_UPDATED = 'October 14, 2026';
 
 export const PRIVACY_POLICY_SEO = {
   title: 'Privacy Policy',

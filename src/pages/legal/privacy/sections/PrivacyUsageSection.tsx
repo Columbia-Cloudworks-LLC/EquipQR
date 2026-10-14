@@ -52,7 +52,7 @@ export function PrivacyUsageSection() {
                 {
                   label: 'Service improvement:',
                   content:
-                    'To analyze aggregate, de-identified usage patterns to improve platform reliability and user experience. We do not use third-party analytics services except optional, opt-in diagnostic session replay (Microsoft Clarity) described in Sections 4 and 5.',
+                    'To analyze aggregate, de-identified usage patterns to improve platform reliability and user experience. We do not use third-party analytics services except optional, opt-in visitor analytics (Google Analytics 4) and diagnostic session replay (Microsoft Clarity) described in Sections 4 and 5.',
                 },
                 {
                   label: 'Legal obligations:',
