@@ -47,5 +47,6 @@ EquipQR is a multi-tenant fleet maintenance application for equipment QR trackin
 | Permissions & RBAC | [docs/guides/permissions.md](docs/guides/permissions.md) |
 | Testing Guidelines | [docs/technical/testing-guidelines.md](docs/technical/testing-guidelines.md) |
 | Verification Gate Skill | [.agents/skills/verify-gate/SKILL.md](.agents/skills/verify-gate/SKILL.md) |
+| Code Review Skill | [.agents/skills/code-review/SKILL.md](.agents/skills/code-review/SKILL.md) |
 | Edge Functions Skill | [.agents/skills/edge-functions/SKILL.md](.agents/skills/edge-functions/SKILL.md) |
 | Git & Deploy Skill | [.agents/skills/git-and-deploy/SKILL.md](.agents/skills/git-and-deploy/SKILL.md) |
