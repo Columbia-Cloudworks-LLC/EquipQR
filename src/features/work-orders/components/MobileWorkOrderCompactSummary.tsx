@@ -1,6 +1,5 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AlertCircle, AlertTriangle, ChevronRight, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -21,6 +20,7 @@ import {
   parseCalendarDay,
   parseDue,
   persistDue,
+  todayLocal,
 } from '@/features/work-orders/calendar';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import InlineEditField from '@/features/equipment/components/InlineEditField';
@@ -29,6 +29,7 @@ import {
   mobileInlineEditValueClassName,
 } from '@/features/equipment/components/inlineEditStyles';
 import { InlineEditWorkOrderAssignee } from '@/features/work-orders/components/InlineEditWorkOrderAssignee';
+import { WorkOrderDueTimePicker } from '@/features/work-orders/components/WorkOrderDueTimePicker';
 import { useWorkOrderInlineFieldSave } from '@/features/work-orders/hooks/useWorkOrderInlineFieldSave';
 import QuickBooksInvoiceStatusBadge from '@/features/work-orders/components/QuickBooksInvoiceStatusBadge';
 import type { QuickBooksInvoiceStatus, WorkOrderStatus } from '@/features/work-orders/types/workOrder';
@@ -136,8 +137,7 @@ export const MobileWorkOrderCompactSummary: React.FC<MobileWorkOrderCompactSumma
       return;
     }
 
-    const day = parseCalendarDay(dueDayInputValue(due));
-    if (!day) return;
+    const day = parseCalendarDay(dueDayInputValue(due)) ?? todayLocal();
 
     const [hours, minutes] = raw.split(':').map(Number);
     await persistDueWrite(dueDateTimeInputWrite({
@@ -290,13 +290,12 @@ export const MobileWorkOrderCompactSummary: React.FC<MobileWorkOrderCompactSumma
                 displayNode={dueDateDisplayNode}
               />
               <div className="space-y-1.5">
-                <Label htmlFor="mobile-work-order-due-time">Due time</Label>
-                <Input
-                  id="mobile-work-order-due-time"
-                  type="time"
+                <Label htmlFor="mobile-work-order-due-time-hour">Due time</Label>
+                <WorkOrderDueTimePicker
+                  idPrefix="mobile-work-order-due-time"
                   value={dueTimeInputValue(due)}
-                  onChange={(e) => {
-                    void handleDueTimeChange(e.target.value);
+                  onChange={(nextValue) => {
+                    void handleDueTimeChange(nextValue);
                   }}
                 />
               </div>

@@ -11,7 +11,9 @@ import {
   parseCalendarDay,
   parseDue,
   persistDue,
+  todayLocal,
 } from '@/features/work-orders/calendar';
+import { WorkOrderDueTimePicker } from '@/features/work-orders/components/WorkOrderDueTimePicker';
 import { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
 
 interface WorkOrderSchedulingProps {
@@ -42,8 +44,7 @@ export const WorkOrderScheduling: React.FC<WorkOrderSchedulingProps> = ({
       return;
     }
 
-    const day = parseCalendarDay(dueDayInputValue(due));
-    if (!day) return;
+    const day = parseCalendarDay(dueDayInputValue(due)) ?? todayLocal();
 
     const [hours, minutes] = raw.split(':').map(Number);
     persistWrite(dueDateTimeInputWrite({
@@ -85,12 +86,11 @@ export const WorkOrderScheduling: React.FC<WorkOrderSchedulingProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="work-order-due-time">Due time</Label>
-          <Input
-            id="work-order-due-time"
-            type="time"
+          <Label htmlFor="work-order-due-time-hour">Due time</Label>
+          <WorkOrderDueTimePicker
+            idPrefix="work-order-due-time"
             value={dueTimeInputValue(due)}
-            onChange={(e) => handleDueTimeChange(e.target.value)}
+            onChange={handleDueTimeChange}
           />
           <p className="text-xs text-muted-foreground">
             Optional. Leave empty for an all-day due date.
