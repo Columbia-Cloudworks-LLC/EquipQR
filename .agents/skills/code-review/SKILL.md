@@ -15,15 +15,15 @@ When reviewing a pull request or diff in an agentic runner environment:
 
 ## 2. Supabase Migrations & RLS (`supabase/migrations/**`)
 - **Row Level Security (RLS):** Every new table must include `ALTER TABLE ... ENABLE ROW LEVEL SECURITY;` and tenant-scoped policies verifying organization membership.
-- **`SECURITY DEFINER` Functions:** Any new or altered `SECURITY DEFINER` function must:
-  1. Explicitly set `SET search_path = public` (or `pg_catalog, public`).
-  2. Explicitly verify `auth.uid()` and organization membership/role inside the function body before reading or mutating tenant data.
-  3. Update `dev/security-definer-rpc-allowlists.json` to match.
+- **`SECURITY DEFINER` Functions (`docs/ops/security-definer-rpc-policy.md`):** Any new or altered `SECURITY DEFINER` function must:
+  1. Pin `search_path` using `SET search_path = public, pg_temp` (or `SET search_path = ''` with fully schema-qualified references for trigger/cron helpers).
+  2. Enforce access boundaries by RPC category: require `auth.uid()` and organization membership/role verification for authenticated tenant RPCs, or verify the documented anonymous token, `service_role`, or trigger-only boundary for non-user flows.
+  3. Preserve default-deny `EXECUTE` grants (never grant to `PUBLIC`, and keep `service_role`/trigger-only helpers out of client allowlists); synchronize `dev/security-definer-rpc-allowlists.json` and SQL grants only for intentional client-callable RPCs or RLS predicate helpers.
 - **Migration Safety:** Ensure migrations use idempotent guards (`IF EXISTS` / `IF NOT EXISTS`) where appropriate and avoid unindexed foreign keys or destructive table locks on `equipment`, `work_orders`, and `inventory_items`.
 
 ## 3. Deno Edge Functions (`supabase/functions/**`)
-- **Auth & Tenant Verification:** Verify the `Authorization` JWT is validated via the Supabase client or explicit webhook signature verification. Never trust `organization_id` or `user_id` from the request payload without validating that the authenticated user belongs to that organization.
-- **Configuration & Secrets Hygiene:** Any new `Deno.env.get("...")` variable must be registered in `.github/secrets-map.yml` and `.github/configuration-inventory.yml`.
+- **Auth & Tenant Verification (`docs/edge-functions/auth-patterns.md`):** Default to user-scoped clients (`createUserSupabaseClient(req)` + `requireUser(req, supabase)`) and verify organization membership before trusting `organization_id` or `user_id` from request payloads. Preserve documented exceptions for approved `service_role`/cron, HMAC webhook, CAPTCHA-gated public intake, and QR token-scoped endpoints (`operator-check-in`, `quick-form`), where tenant/resource scope must be derived from the verified token rather than arbitrary payload IDs.
+- **Configuration & Secrets Hygiene (`docs/ops/agent-secrets-and-access.md`):** Load secrets through `_shared/require-secret.ts` (`requireSecret` / `optionalSecret`) rather than raw `Deno.env.get()` for secret-class keys. Any new runtime configuration key or secret (whether read via `requireSecret`, `optionalSecret`, or `Deno.env.get()`) must be registered in `.github/configuration-inventory.yml` and `dev/ci/sync-deploy-config.mjs`, with explicit `SYNC_SECRET_<NAME>` workflow mappings in `.github/workflows/sync-deploy-config.yml` and `.github/workflows/production-release-readiness.yml` for new secrets.
 - **Error Responses:** Ensure error responses return sanitized messages with CORS headers and never leak internal stack traces or database schema details.
 
 ## 4. Frontend RBAC, Multi-Tenancy & Accessibility (`src/**`)
