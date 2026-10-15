@@ -19,7 +19,9 @@ export interface ParsedDueTimeParts {
 }
 
 const HOURS_12 = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'] as const;
-const BASE_MINUTES = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'] as const;
+const MINUTES_60: readonly string[] = Array.from({ length: 60 }, (_, index) =>
+  String(index).padStart(2, '0'),
+);
 const PERIODS: readonly DueTimePeriod[] = ['AM', 'PM'];
 
 const TIME_24H_PATTERN = /^(\d{2}):(\d{2})$/;
@@ -90,41 +92,54 @@ export const WorkOrderDueTimePicker: React.FC<WorkOrderDueTimePickerProps> = ({
   disabled = false,
   className,
 }) => {
-  const parsed = parseDueTimeValue(value);
+  const [draftValue, setDraftValue] = React.useState(value);
+  const [prevPropValue, setPrevPropValue] = React.useState(value);
+  const draftValueRef = React.useRef(value);
 
-  const minuteOptions = React.useMemo(() => {
-    if (!parsed || BASE_MINUTES.includes(parsed.minute as (typeof BASE_MINUTES)[number])) {
-      return [...BASE_MINUTES];
-    }
-    return [...BASE_MINUTES, parsed.minute].sort((a, b) => Number(a) - Number(b));
-  }, [parsed]);
+  if (prevPropValue !== value) {
+    setPrevPropValue(value);
+    setDraftValue(value);
+    draftValueRef.current = value;
+  }
+
+  const effectiveValue = prevPropValue !== value ? value : draftValue;
+  const parsed = parseDueTimeValue(effectiveValue);
+
+  const emitChange = (nextValue: string) => {
+    draftValueRef.current = nextValue;
+    setDraftValue(nextValue);
+    onChange(nextValue);
+  };
 
   const handleHourChange = (nextHour: string) => {
-    onChange(
+    const current = parseDueTimeValue(draftValueRef.current);
+    emitChange(
       formatDueTimeParts(
         nextHour,
-        parsed?.minute ?? DEFAULT_MINUTE,
-        parsed?.period ?? DEFAULT_PERIOD,
+        current?.minute ?? DEFAULT_MINUTE,
+        current?.period ?? DEFAULT_PERIOD,
       ),
     );
   };
 
   const handleMinuteChange = (nextMinute: string) => {
-    onChange(
+    const current = parseDueTimeValue(draftValueRef.current);
+    emitChange(
       formatDueTimeParts(
-        parsed?.hour12 ?? DEFAULT_HOUR_12,
+        current?.hour12 ?? DEFAULT_HOUR_12,
         nextMinute,
-        parsed?.period ?? DEFAULT_PERIOD,
+        current?.period ?? DEFAULT_PERIOD,
       ),
     );
   };
 
   const handlePeriodChange = (nextPeriod: string) => {
+    const current = parseDueTimeValue(draftValueRef.current);
     const period: DueTimePeriod = nextPeriod === 'PM' ? 'PM' : 'AM';
-    onChange(
+    emitChange(
       formatDueTimeParts(
-        parsed?.hour12 ?? DEFAULT_HOUR_12,
-        parsed?.minute ?? DEFAULT_MINUTE,
+        current?.hour12 ?? DEFAULT_HOUR_12,
+        current?.minute ?? DEFAULT_MINUTE,
         period,
       ),
     );
@@ -171,7 +186,7 @@ export const WorkOrderDueTimePicker: React.FC<WorkOrderDueTimePickerProps> = ({
             <SelectValue placeholder="Min" />
           </SelectTrigger>
           <SelectContent className="min-w-[4.5rem]">
-            {minuteOptions.map((minute) => (
+            {MINUTES_60.map((minute) => (
               <SelectItem key={minute} value={minute}>
                 {minute}
               </SelectItem>
@@ -206,7 +221,7 @@ export const WorkOrderDueTimePicker: React.FC<WorkOrderDueTimePickerProps> = ({
           type="button"
           variant="ghost"
           size="sm"
-          onClick={() => onChange('')}
+          onClick={() => emitChange('')}
           disabled={disabled}
           aria-label="Clear due time"
           className="h-11 min-h-11 shrink-0 px-2.5 text-muted-foreground hover:text-foreground touch-manipulation"
