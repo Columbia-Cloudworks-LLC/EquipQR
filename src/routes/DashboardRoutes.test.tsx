@@ -40,6 +40,7 @@ vi.mock('@/routes/lazyDashboardPages', () => {
     DSRCasePage: stub('DSR Case Route'),
     OperatorCheckInsPage: stub('Operator Check-Ins Route'),
     QuickFormsPage: stub('Quick Forms Route'),
+    ProvisionYardPage: stub('Provision Yard Route'),
   };
 });
 

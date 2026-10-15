@@ -82,7 +82,7 @@ export const SimpleOrganizationProvider: React.FC<{ children: React.ReactNode }>
         .from('organization_members')
         .select('organization_id, role, status')
         .eq('user_id', user.id)
-        .eq('status', 'active');
+        .in('status', ['active', 'support']);
 
       if (membershipError) {
         logger.error('SimpleOrganizationProvider: Error fetching memberships', membershipError);

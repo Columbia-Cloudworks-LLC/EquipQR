@@ -33,6 +33,7 @@ environments:
   production:
     branch: main
     secrets:
+      - DFY_OPERATOR_USER_IDS
       - GOOGLE_MAPS_BROWSER_KEY
       - GOOGLE_MAPS_SERVER_KEY
       - GOOGLE_WORKSPACE_CLIENT_SECRET
@@ -64,6 +65,7 @@ environments:
   preview:
     branch: preview
     secrets:
+      - DFY_OPERATOR_USER_IDS
       - GOOGLE_MAPS_BROWSER_KEY
       - GOOGLE_MAPS_SERVER_KEY
       - GOOGLE_WORKSPACE_CLIENT_SECRET

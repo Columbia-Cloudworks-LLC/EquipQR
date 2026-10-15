@@ -100,30 +100,20 @@ export function parseEquipmentCsv(csvText) {
 }
 
 /**
- * Validate a provisioning manifest and resolve it into insertable shapes.
+ * Validate equipment rows (manifest objects and/or parsed CSV rows) and map
+ * them to insertable equipment columns.
  *
- * @param {unknown} manifest
- * @param {{ equipmentFromCsv?: Array<Record<string, string>>, today?: string }} [options]
+ * @param {unknown[]} rawEquipment
+ * @param {{ today?: string }} [options]
  */
-export function resolveManifest(manifest, options = {}) {
+export function resolveEquipmentRows(rawEquipment, options = {}) {
   /** @type {string[]} */
   const errors = [];
-  const m = /** @type {Record<string, any>} */ (manifest ?? {});
   const today = options.today ?? new Date().toISOString().slice(0, 10);
 
-  const orgName = typeof m.organization?.name === 'string' ? m.organization.name.trim() : '';
-  if (!orgName) errors.push('organization.name is required');
-
-  const teamName =
-    typeof m.team?.name === 'string' && m.team.name.trim() ? m.team.name.trim() : DEFAULT_TEAM_NAME;
-
-  const rawEquipment = [
-    ...(Array.isArray(m.equipment) ? m.equipment : []),
-    ...(options.equipmentFromCsv ?? []),
-  ];
-
   const seenSerials = new Set();
-  const equipment = rawEquipment.map((row, index) => {
+  const equipment = rawEquipment.map((input, index) => {
+    const row = /** @type {Record<string, any>} */ (input ?? {});
     const label = `equipment[${index}]`;
     const name = String(row?.name ?? '').trim();
     if (!name) errors.push(`${label}: name is required`);
@@ -161,9 +151,23 @@ export function resolveManifest(manifest, options = {}) {
     };
   });
 
+  return { equipment, errors };
+}
+
+/**
+ * Validate staff rows and map manifest roles to organization roles. Does not
+ * enforce the one-owner rule (resolveManifest does), so a single added person
+ * can be validated on its own.
+ *
+ * @param {unknown[]} rawStaff
+ */
+export function resolveStaffRows(rawStaff) {
+  /** @type {string[]} */
+  const errors = [];
   const seenEmails = new Set();
   let ownerCount = 0;
-  const staff = (Array.isArray(m.staff) ? m.staff : []).map((row, index) => {
+  const staff = rawStaff.map((input, index) => {
+    const row = /** @type {Record<string, any>} */ (input ?? {});
     const label = `staff[${index}]`;
     const email = normalizeEmail(row?.email);
     if (!EMAIL_RE.test(email)) errors.push(`${label}: a valid email is required`);
@@ -188,6 +192,36 @@ export function resolveManifest(manifest, options = {}) {
     return { email, role: role ?? 'member', teamRole };
   });
 
+  return { staff, errors, ownerCount };
+}
+
+/**
+ * Validate a provisioning manifest and resolve it into insertable shapes.
+ *
+ * @param {unknown} manifest
+ * @param {{ equipmentFromCsv?: Array<Record<string, string>>, today?: string }} [options]
+ */
+export function resolveManifest(manifest, options = {}) {
+  /** @type {string[]} */
+  const errors = [];
+  const m = /** @type {Record<string, any>} */ (manifest ?? {});
+
+  const orgName = typeof m.organization?.name === 'string' ? m.organization.name.trim() : '';
+  if (!orgName) errors.push('organization.name is required');
+
+  const teamName =
+    typeof m.team?.name === 'string' && m.team.name.trim() ? m.team.name.trim() : DEFAULT_TEAM_NAME;
+
+  const equipmentResult = resolveEquipmentRows(
+    [...(Array.isArray(m.equipment) ? m.equipment : []), ...(options.equipmentFromCsv ?? [])],
+    { today: options.today },
+  );
+  errors.push(...equipmentResult.errors);
+
+  const staffResult = resolveStaffRows(Array.isArray(m.staff) ? m.staff : []);
+  errors.push(...staffResult.errors);
+  const { staff, ownerCount } = staffResult;
+
   if (ownerCount === 0) errors.push('staff must include exactly one owner');
   if (ownerCount > 1) errors.push('staff must include exactly one owner (found more than one)');
 
@@ -200,7 +234,12 @@ export function resolveManifest(manifest, options = {}) {
     throw error;
   }
 
-  return { organization: { name: orgName, maxMembers }, teamName, equipment, staff };
+  return {
+    organization: { name: orgName, maxMembers },
+    teamName,
+    equipment: equipmentResult.equipment,
+    staff,
+  };
 }
 
 /**

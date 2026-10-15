@@ -92,11 +92,14 @@ The following functions are explicitly authorized to use `createAdminSupabaseCli
 |----------|--------|--------|
 | `quickbooks-refresh-tokens` | System cron job; requires service role to enumerate credentials | `verify_jwt = true` (requires service role JWT) |
 
-### Super Admin Endpoints
+### Operator Endpoints
+
+Authorization is per user ID, never per organization. `_shared/dfy-operator.ts` checks the caller (from `requireUser()`) against the `DFY_OPERATOR_USER_IDS` Edge secret and requires a confirmed email. A missing or empty allowlist allows nobody. The admin client is created only after that check passes.
 
 | Function | Reason | Config |
 |----------|--------|--------|
-| `list-organizations-admin` | Cross-org admin access; validated via `verifySuperAdminAccess()` | `verify_jwt = true` |
+| `dfy-provisioning` | Done-For-You provisioning: creates and edits organizations nobody has claimed yet. The SQL functions are service-role only and refuse any organization that has an active member (`assert_org_operator_editable`). | `verify_jwt = true` |
+| `support-access` | Owner-granted EquipQR Support access. The caller must be the org's active owner, which is checked with the caller's own client and checked again in `grant_support_access`. The admin client is needed only to add the operators (from `DFY_OPERATOR_USER_IDS`) and look up their emails for the notification. Revoking is the owner-only RPC `revoke_support_access`, so it doesn't use this function. | `verify_jwt = true` |
 
 ### Special Cases (Hybrid)
 
@@ -241,7 +244,7 @@ All auth helpers are in `supabase/functions/_shared/`:
 - `supabase-clients.ts` - Client creation, auth helpers, `createErrorResponse` allowlist, `withCorrelationId` wrapper
 - `org-scoped-queries.ts` - Org membership/admin guards, `withOrgScope` / `withOrgAdminScope`, shared Zod request schemas, `parseJsonBody`, `applyOrganizationScope`
 - `require-secret.ts` - `requireSecret` / `optionalSecret` / `MissingSecretError`
-- `admin-validation.ts` - Super admin validation
+- `dfy-operator.ts` - EquipQR operator allowlist (`DFY_OPERATOR_USER_IDS`)
 - `cors.ts` - CORS headers (`corsHeaders` static + `getCorsHeaders(req)` validated-origin)
 - `crypto.ts` - Token encryption utilities
 - `error-message-allowlist.ts` - SAFE_ERROR_PATTERNS for client-facing error strings

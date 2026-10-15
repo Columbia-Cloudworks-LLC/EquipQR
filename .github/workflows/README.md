@@ -21,6 +21,8 @@ GitHub is the source of truth for automation and deployment configuration. Workf
 
 Human logins and personal MCP tokens are not automation configuration and are not stored in GitHub. Developers export them locally when a helper needs them. GitHub Actions uses `GITHUB_TOKEN` instead of personal access tokens.
 
+`database-tests.yml` starts the disposable Linux stack and runs `npm run test:db` (pgTAP) on pull requests that change migrations, database tests, or `supabase/config.toml`.
+
 `production-release-readiness.yml` is the only workflow that declares `environment: production`. A push to `main` applies migrations, promotes Vercel, and deploys Edge Functions. A manual run defaults to `dry-run`, which only checks that the production environment injects credentials and that Supabase and Vercel accept them.
 
 ## Issue automation

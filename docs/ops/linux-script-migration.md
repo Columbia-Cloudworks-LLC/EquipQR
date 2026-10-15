@@ -87,7 +87,7 @@ production OAuth secrets into a development vault.
 | `dev/reset-docker-desktop.ps1` | `Retired implementation detail or Windows-only repair; use the shared Linux setup.` |
 | `dev/run-user-regression.ps1` | `dev/linux/user-regression.sh` |
 | `dev/seed-dev-media.ps1` | `dev/linux/dev.sh start` |
-| `dev/setup-billing-exemptions.ps1` | `dev/setup-billing-exemptions.sh` |
+| `dev/setup-billing-exemptions.ps1` | `Retired: the super-admin organization was removed; there is no platform-wide admin.` |
 | `dev/stop-dev-and-e2e.ps1` | `dev/linux/dev.sh stop` |
 | `dev/switch-runner-type.ps1` | `dev/ops/runner-type.sh` |
 | `dev/sync-1password-app-env.ps1` | `dev/ops/local-env.sh --app-only` |
