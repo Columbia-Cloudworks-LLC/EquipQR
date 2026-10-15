@@ -37,8 +37,12 @@ export function NewYardForm({ onCreated }: NewYardFormProps) {
   const [reviewed, setReviewed] = useState<ResolvedYard | null>(null);
   const [existingEmails, setExistingEmails] = useState<string[]>([]);
   const [attachConfirmed, setAttachConfirmed] = useState(false);
+  // Bumped on every input change so a review that finishes after an edit is
+  // discarded instead of restoring the old staff list.
+  const inputRevision = useRef(0);
 
   const resetReview = () => {
+    inputRevision.current += 1;
     setReviewed(null);
     setExistingEmails([]);
     setAttachConfirmed(false);
@@ -46,6 +50,7 @@ export function NewYardForm({ onCreated }: NewYardFormProps) {
 
   const review = useMutation({
     mutationFn: async () => {
+      const revision = inputRevision.current;
       const result = resolveYardForm({ name, teamName, staffText, equipmentCsv });
       if (!result.ok) {
         setErrors(result.errors);
@@ -53,6 +58,7 @@ export function NewYardForm({ onCreated }: NewYardFormProps) {
       }
       setErrors([]);
       const existing = await dfyProvisioning.checkExisting(result.yard.staff.map((s) => s.email));
+      if (revision !== inputRevision.current) return null;
       setExistingEmails(existing);
       setReviewed(result.yard);
       return result.yard;

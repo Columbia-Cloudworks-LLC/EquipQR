@@ -3,7 +3,7 @@
 -- and the guards that stop admins or support from making access permanent.
 
 BEGIN;
-SELECT plan(36);
+SELECT plan(39);
 
 -- Users: owner, admin, two operators, outsider. Each gets a personal org.
 INSERT INTO auth.users (
@@ -95,6 +95,9 @@ INSERT INTO pgtap_sa VALUES ('grant1', public.grant_support_access(
   ARRAY['16000000-0000-0000-0000-000000000003'::uuid, '16000000-0000-0000-0000-000000000004'::uuid],
   72, 'bug_report', '#123'));
 
+INSERT INTO pgtap_sa VALUES ('staged', jsonb_build_object('staged_id', public.stage_provisioned_member(
+  '96000000-0000-0000-0000-000000000001'::uuid, 'pgtap-sa-pending@equipqr.test', 'member')));
+
 SELECT is((SELECT (v->>'extended')::boolean FROM pgtap_sa WHERE k = 'grant1'), false, 'First grant is new');
 
 SELECT results_eq(
@@ -166,6 +169,20 @@ SELECT throws_ok(
   'Support cannot revoke (or otherwise manage) the grant'
 );
 
+SELECT throws_ok(
+  $$SELECT * FROM public.get_audit_log_timeline(
+      '96000000-0000-0000-0000-000000000001'::uuid, 'day', now() - interval '7 days', now())$$,
+  '42501', NULL,
+  'Support cannot read the audit log through its RPC'
+);
+
+SELECT throws_ok(
+  format('SELECT public.revoke_provisioned_member(%L::uuid)',
+    (SELECT v->>'staged_id' FROM pgtap_sa WHERE k = 'staged')),
+  '42501', NULL,
+  'Support cannot revoke pending staff'
+);
+
 -- The owner sees the live grant.
 SELECT set_config('request.jwt.claim.sub', '16000000-0000-0000-0000-000000000001', true);
 SELECT set_config('request.jwt.claims', json_build_object('sub', '16000000-0000-0000-0000-000000000001')::text, true);
@@ -174,6 +191,12 @@ SELECT is(
   (SELECT source FROM public.get_support_access_status('96000000-0000-0000-0000-000000000001'::uuid)),
   'bug_report',
   'Members see the live grant'
+);
+
+SELECT lives_ok(
+  $$SELECT * FROM public.get_audit_log_timeline(
+      '96000000-0000-0000-0000-000000000001'::uuid, 'day', now() - interval '7 days', now())$$,
+  'The owner can still read the audit log'
 );
 
 SELECT set_config('request.jwt.claim.sub', '16000000-0000-0000-0000-000000000005', true);

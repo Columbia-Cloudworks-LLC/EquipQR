@@ -42,4 +42,13 @@ describe('PendingProvisionedStaffCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Remove lead@acme.test' }));
     expect(state.mutate).toHaveBeenCalledWith('pm-2');
   });
+
+  it('hides Remove for EquipQR Support', () => {
+    state.pending = [
+      { id: 'pm-1', email: 'mike@acme.test', role: 'member', created_at: '2026-10-14', last_claim_error: null },
+    ];
+    render(<PendingProvisionedStaffCard organizationId="org-1" canRevoke={false} />);
+    expect(screen.getByText('mike@acme.test')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Remove/ })).not.toBeInTheDocument();
+  });
 });

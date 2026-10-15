@@ -3,7 +3,7 @@
 -- pending staff, and the personal-org fallback after a revoked staged row.
 
 BEGIN;
-SELECT plan(17);
+SELECT plan(18);
 
 INSERT INTO public.organizations (id, name, member_count, max_members, provisioned_at)
 VALUES
@@ -123,32 +123,35 @@ INSERT INTO auth.users (
   false, 'authenticated', 'authenticated', '', '', '', ''
 );
 
+-- Capture fixture IDs as postgres: once impersonating, roster RLS would hide
+-- rows from a non-admin and the RPC would only ever see NULL.
+CREATE TEMP TABLE pgtap_ids AS
+SELECT email, id FROM public.organization_provisioned_members
+WHERE organization_id = '94000000-0000-0000-0000-000000000001'::uuid;
+GRANT SELECT ON pgtap_ids TO authenticated;
+
+SELECT isnt(
+  (SELECT id FROM pgtap_ids WHERE email = 'pgtap-hard-pending@equipqr.test'),
+  NULL,
+  'Fixture: the pending staged member exists'
+);
+
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub', '14000000-0000-0000-0000-000000000002', true);
 SELECT set_config('request.jwt.claims',
   json_build_object('sub', '14000000-0000-0000-0000-000000000002')::text, true);
 
 SELECT throws_ok(
-  format(
-    'SELECT public.revoke_provisioned_member(%L::uuid)',
-    (SELECT id FROM public.organization_provisioned_members WHERE email = 'pgtap-hard-pending@equipqr.test')
-  ),
+  format('SELECT public.revoke_provisioned_member(%L::uuid)',
+    (SELECT id FROM pgtap_ids WHERE email = 'pgtap-hard-pending@equipqr.test')),
   '42501',
   NULL,
-  'A non-admin cannot revoke a staged member'
+  'A non-admin cannot revoke a real pending staged member'
 );
 
 SELECT set_config('request.jwt.claim.sub', '14000000-0000-0000-0000-000000000001', true);
 SELECT set_config('request.jwt.claims',
   json_build_object('sub', '14000000-0000-0000-0000-000000000001')::text, true);
-
-RESET ROLE;
--- Fixture lookup (the owner can read the roster, but do it as postgres for clarity).
-CREATE TEMP TABLE pgtap_ids AS
-SELECT email, id FROM public.organization_provisioned_members
-WHERE organization_id = '94000000-0000-0000-0000-000000000001'::uuid;
-GRANT SELECT ON pgtap_ids TO authenticated;
-SET LOCAL ROLE authenticated;
 
 SELECT lives_ok(
   format('SELECT public.revoke_provisioned_member(%L::uuid)',

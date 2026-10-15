@@ -150,3 +150,21 @@ Deno.test("invalid bodies are rejected with 400", () =>
     const res = await handleDfyProvisioning(post({ action: "create", requestId: "nope" }), "c", d);
     assertEquals(res.status, 400);
   }));
+
+Deno.test("a second staged owner is reported as OWNER_EXISTS", () =>
+  quiet(async () => {
+    const { d } = deps(user(OPERATOR_ID), [OPERATOR_ID], {
+      data: null,
+      error: {
+        code: "23505",
+        message: 'duplicate key value violates unique constraint "idx_org_provisioned_members_live_owner"',
+      },
+    });
+    const res = await handleDfyProvisioning(
+      post({ action: "stage", organizationId: ORG_ID, email: "boss@acme.test", role: "owner" }),
+      "c",
+      d,
+    );
+    assertEquals(res.status, 409);
+    assertEquals((await res.json()).error, "OWNER_EXISTS");
+  }));

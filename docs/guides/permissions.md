@@ -142,7 +142,7 @@ There is no platform-wide admin. EquipQR staff ("operators", listed by user ID i
 | Path | Accepts live support? |
 |------|------------------------|
 | `is_org_member`, `is_org_admin`, `is_organization_member`, `is_organization_admin`, `user_is_org_member`, `check_org_access_secure`, `check_org_access_direct`, `get_user_organizations`, `get_user_org_role_secure`, `get_user_org_role_direct`, `get_user_organization_membership`, `can_access_inventory`, `can_manage_inventory` (and every RLS policy built on them: equipment, work orders, PM, teams, inventory, notes, customers, scans, storage) | Yes, until expiry |
-| `user_is_org_admin` (member insert/update/delete), `organization_invitations` (guard trigger), ownership transfer, org deletion, `can_user_manage_quickbooks`, QuickBooks and Google Workspace credentials, audit log, DSR, and RLS policies that query `organization_members` directly with `status = 'active'` | No |
+| `user_is_org_admin` (member insert/update/delete), `organization_invitations` (guard trigger), `revoke_provisioned_member` (pending staff), `get_audit_log_timeline` (audit log RPC), ownership transfer, org deletion, `can_user_manage_quickbooks`, QuickBooks and Google Workspace credentials, audit log, DSR, and RLS policies that query `organization_members` directly with `status = 'active'` | No |
 | Edge Function membership helpers (`requireOrgMembership`, `requireOrgAdmin`, `verifyOrgMembership`, `verifyOrgAdmin`, `qbo-work-order-gate`) | No, they test `status = 'active'` |
 | Client organization list (`sessionDataService`, `SimpleOrganizationProvider`) | Yes. It reads `status in ('active', 'support')`, and RLS hides expired rows |
 

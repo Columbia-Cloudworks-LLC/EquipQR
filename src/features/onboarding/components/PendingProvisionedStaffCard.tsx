@@ -9,6 +9,8 @@ import {
 
 interface PendingProvisionedStaffCardProps {
   organizationId: string;
+  /** False for EquipQR Support: the server refuses support revokes too. */
+  canRevoke?: boolean;
 }
 
 /**
@@ -16,7 +18,7 @@ interface PendingProvisionedStaffCardProps {
  * (Done-For-You onboarding, issue #1648). Owners and admins can remove anyone
  * who should no longer join automatically.
  */
-export function PendingProvisionedStaffCard({ organizationId }: PendingProvisionedStaffCardProps) {
+export function PendingProvisionedStaffCard({ organizationId, canRevoke = true }: PendingProvisionedStaffCardProps) {
   const { data: pending = [] } = usePendingProvisionedStaff(organizationId);
   const revoke = useRevokePendingProvisionedStaff(organizationId);
 
@@ -49,16 +51,18 @@ export function PendingProvisionedStaffCard({ organizationId }: PendingProvision
               <Badge variant="secondary" className="capitalize">
                 {person.role}
               </Badge>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => revoke.mutate(person.id)}
-                disabled={revoke.isPending}
-                aria-label={`Remove ${person.email}`}
-              >
-                <UserX className="mr-1 h-4 w-4" aria-hidden />
-                Remove
-              </Button>
+              {canRevoke && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => revoke.mutate(person.id)}
+                  disabled={revoke.isPending}
+                  aria-label={`Remove ${person.email}`}
+                >
+                  <UserX className="mr-1 h-4 w-4" aria-hidden />
+                  Remove
+                </Button>
+              )}
             </div>
           </div>
         ))}

@@ -91,6 +91,14 @@ export const EDGE_OPTIONAL_KEYS = [
   'QB_OAUTH_REDIRECT_BASE_URL',
 ];
 
+/**
+ * Access-granting keys: when GitHub no longer defines one, it is deleted from
+ * Supabase instead of being left in place. An emptied operator allowlist must
+ * revoke access, not keep the previous operators. Absent on both sides is a
+ * no-op, so first-time setup never requires the key.
+ */
+export const CLEAR_WHEN_UNSET_EDGE_KEYS = ['DFY_OPERATOR_USER_IDS'];
+
 /** Encrypt stored integration tokens; changing them strands existing ciphertext. */
 export const IMMUTABLE_EDGE_KEYS = ['TOKEN_ENCRYPTION_KEY', 'KDF_SALT'];
 
@@ -268,6 +276,13 @@ export function planEdge({ desired, remote }) {
   const errors = [];
   const report = [];
   const writes = [];
+  const deletes = [];
+  for (const name of CLEAR_WHEN_UNSET_EDGE_KEYS) {
+    if (desired[name] === undefined && remote.some((secret) => secret.name === name)) {
+      deletes.push(name);
+      report.push({ key: name, status: 'REMOVE' });
+    }
+  }
   for (const [name, value] of Object.entries(desired)) {
     if (PLACEHOLDER.test(value)) {
       errors.push(`${name} looks like a placeholder.`);
@@ -296,7 +311,7 @@ export function planEdge({ desired, remote }) {
     writes.push({ name, value });
     report.push({ key: name, status: current ? 'DRIFT' : 'MISSING' });
   }
-  return { errors, report, writes };
+  return { errors, report, writes, deletes };
 }
 
 /** Whether this run also syncs Supabase Edge secrets. */
@@ -441,7 +456,7 @@ export async function run({ env = process.env, fetchImpl = fetch } = {}) {
   const remoteVercel = await readVercelEnv({ fetchImpl, token: vercelToken, teamId, projectId, target });
   const vercelPlan = planVercel({ desired: vercel, remote: remoteVercel, target, branch });
 
-  let edgePlan = { errors: [], report: [], writes: [] };
+  let edgePlan = { errors: [], report: [], writes: [], deletes: [] };
   let supabaseToken = '';
   let projectRef = '';
   if (shouldSyncEdge(target, vars)) {
@@ -481,7 +496,7 @@ export async function run({ env = process.env, fetchImpl = fetch } = {}) {
     return 1;
   }
 
-  const drift = vercelPlan.actions.length > 0 || edgePlan.writes.length > 0;
+  const drift = vercelPlan.actions.length > 0 || edgePlan.writes.length > 0 || edgePlan.deletes.length > 0;
   if (mode === 'check') {
     process.stdout.write(drift ? 'Drift detected. Run with SYNC_MODE=apply to fix.\n' : 'No drift.\n');
     return drift ? 1 : 0;
@@ -495,8 +510,15 @@ export async function run({ env = process.env, fetchImpl = fetch } = {}) {
       body: edgePlan.writes,
     });
   }
+  if (edgePlan.deletes.length > 0) {
+    await http(fetchImpl, `${SUPABASE_API}/v1/projects/${projectRef}/secrets`, {
+      method: 'DELETE',
+      token: supabaseToken,
+      body: edgePlan.deletes,
+    });
+  }
   process.stdout.write(
-    `Applied ${vercelPlan.report.filter((r) => r.status !== 'MATCH').length} Vercel and ${edgePlan.writes.length} Supabase change(s).\n`,
+    `Applied ${vercelPlan.report.filter((r) => r.status !== 'MATCH').length} Vercel and ${edgePlan.writes.length + edgePlan.deletes.length} Supabase change(s).\n`,
   );
 
   if (branch && vercelPlan.actions.length > 0) {

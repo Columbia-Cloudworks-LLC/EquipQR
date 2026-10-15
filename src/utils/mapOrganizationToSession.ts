@@ -39,6 +39,7 @@ function mapOrganizationRowToSessionOrganization(
       membership?.status === 'support'
         ? 'active'
         : (membership?.status as SessionOrganization['userStatus']) || 'active',
+    isSupportAccess: membership?.status === 'support',
   };
 }
 

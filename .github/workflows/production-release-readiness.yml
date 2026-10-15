@@ -153,6 +153,11 @@ jobs:
             exit 1
           fi
 
+      - name: Check Supabase Auth settings that claiming relies on (no writes)
+        env:
+          SUPABASE_PROJECT_REF: ${{ env.SUPABASE_PROJECT_REF }}
+        run: node dev/ci/check-auth-config.mjs
+
       - name: Apply migrations to production
         shell: bash
         run: |

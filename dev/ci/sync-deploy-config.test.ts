@@ -164,6 +164,39 @@ describe('planEdge', () => {
     expect(plan.writes).toEqual([{ name: 'HCAPTCHA_SECRET_KEY', value: 'new' }]);
   });
 
+  it('deletes the operator allowlist from Supabase when GitHub no longer defines it', () => {
+    const plan = planEdge({
+      desired: { RESEND_API_KEY: 'same' },
+      remote: [
+        { name: 'RESEND_API_KEY', value: sha256Hex('same') },
+        { name: 'DFY_OPERATOR_USER_IDS', value: sha256Hex('old-operator') },
+      ],
+    });
+    expect(plan.deletes).toEqual(['DFY_OPERATOR_USER_IDS']);
+    expect(plan.report).toContainEqual({ key: 'DFY_OPERATOR_USER_IDS', status: 'REMOVE' });
+    expect(plan.writes).toEqual([]);
+  });
+
+  it('does nothing when the operator allowlist was never configured anywhere', () => {
+    const plan = planEdge({ desired: {}, remote: [] });
+    expect(plan.deletes).toEqual([]);
+    expect(plan.errors).toEqual([]);
+  });
+
+  it('keeps a configured operator allowlist and only writes changes', () => {
+    const plan = planEdge({
+      desired: { DFY_OPERATOR_USER_IDS: 'new-operator' },
+      remote: [{ name: 'DFY_OPERATOR_USER_IDS', value: sha256Hex('old-operator') }],
+    });
+    expect(plan.deletes).toEqual([]);
+    expect(plan.writes).toEqual([{ name: 'DFY_OPERATOR_USER_IDS', value: 'new-operator' }]);
+  });
+
+  it('never deletes keys outside the access-granting list', () => {
+    const plan = planEdge({ desired: {}, remote: [{ name: 'GITHUB_PAT', value: sha256Hex('x') }] });
+    expect(plan.deletes).toEqual([]);
+  });
+
   it('refuses to overwrite an existing encryption key or salt', () => {
     const plan = planEdge({
       desired: { TOKEN_ENCRYPTION_KEY: STRONG },
@@ -293,6 +326,37 @@ describe('run', () => {
     });
     expect(code).toBe(1);
     expect(calls.every((c) => c.method === 'GET')).toBe(true);
+  });
+
+  it('production apply deletes an operator allowlist that GitHub emptied', async () => {
+    const secrets = edgeSecrets();
+    const remote = [
+      ...Object.entries(secrets).map(([name, value]) => ({ name, value: sha256Hex(value) })),
+      { name: 'DFY_OPERATOR_USER_IDS', value: sha256Hex('old-operator') },
+    ];
+    const { calls, fetchImpl } = fakeApi({
+      [`GET /v10/projects/${project}/env`]: () => ({ envs: [] }),
+      [`POST /v10/projects/${project}/env`]: () => ({}),
+      'GET /v1/projects/ref123/secrets': () => remote,
+      'DELETE /v1/projects/ref123/secrets': () => ({}),
+    });
+    const code = await run({
+      env: {
+        SYNC_TARGET: 'production',
+        SYNC_MODE: 'apply',
+        VERCEL_TOKEN: 't',
+        SUPABASE_ACCESS_TOKEN: 's',
+        SYNC_VARS_JSON: JSON.stringify({ SUPABASE_PROJECT_REF: 'ref123' }),
+        ...secretEnv({ ...secrets, DFY_OPERATOR_USER_IDS: '' }),
+      },
+      fetchImpl,
+    });
+    expect(code).toBe(0);
+    expect(calls).toContainEqual({
+      method: 'DELETE',
+      path: '/v1/projects/ref123/secrets',
+      body: ['DFY_OPERATOR_USER_IDS'],
+    });
   });
 
   it('production apply sends only changed edge secrets to Supabase', async () => {

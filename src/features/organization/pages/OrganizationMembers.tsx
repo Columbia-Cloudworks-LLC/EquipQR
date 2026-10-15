@@ -109,7 +109,10 @@ const OrganizationMembers = () => {
           canInviteMembers={!!permissions?.canInviteMembers}
         />
 
-        <PendingProvisionedStaffCard organizationId={currentOrganization.id} />
+        <PendingProvisionedStaffCard
+          organizationId={currentOrganization.id}
+          canRevoke={!currentOrganization.isSupportAccess}
+        />
       </div>
     </Page>
   );

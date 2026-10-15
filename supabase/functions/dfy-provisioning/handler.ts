@@ -132,6 +132,13 @@ function rpcErrorResponse(error: RpcError, req: Request): Response {
       opts,
     );
   }
+  if (error.code === "23505" && error.message.includes("idx_org_provisioned_members_live_owner")) {
+    return createJsonResponse(
+      { error: "OWNER_EXISTS", message: "This yard already has an owner staged. Remove that owner first, then add the new one." },
+      409,
+      opts,
+    );
+  }
   if (error.code === "23505") {
     return createJsonResponse(
       { error: "DUPLICATE", message: "That email is already staged for this organization." },

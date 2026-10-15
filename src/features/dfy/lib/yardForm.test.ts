@@ -72,8 +72,11 @@ describe('resolveStaffLine', () => {
     });
   });
 
-  it('refuses a second owner', () => {
-    expect(resolveStaffLine('boss@acme.co, owner').ok).toBe(false);
+  it('accepts a replacement owner (the database refuses a second live owner)', () => {
+    expect(resolveStaffLine('boss@acme.co, owner')).toEqual({
+      ok: true,
+      person: { email: 'boss@acme.co', role: 'owner', teamRole: null },
+    });
   });
 
   it('refuses an unknown role', () => {

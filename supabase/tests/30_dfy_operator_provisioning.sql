@@ -3,7 +3,7 @@
 -- existing-account guard, and operator reach ending once anyone joins.
 
 BEGIN;
-SELECT plan(26);
+SELECT plan(28);
 
 -- Operator account (needs a profile for provisioned_by / staged_by).
 INSERT INTO auth.users (
@@ -209,6 +209,27 @@ SELECT is(
   (SELECT revoked_by FROM public.organization_provisioned_members WHERE email = 'pgtap-op-late@equipqr.test'),
   '15000000-0000-0000-0000-000000000001'::uuid,
   'Operator revoke is attributed'
+);
+
+-- Correcting a mistaken owner: a second live owner is refused, but once the
+-- staged owner is removed a replacement can be staged.
+SELECT throws_ok(
+  format($$SELECT public.operator_stage_member(
+      '15000000-0000-0000-0000-000000000001'::uuid, %L::uuid, 'pgtap-op-owner-2@equipqr.test', 'owner')$$,
+    (SELECT id FROM pgtap_org)),
+  '23505', NULL,
+  'A second live staged owner is refused'
+);
+
+SELECT public.operator_revoke_staged_member(
+  '15000000-0000-0000-0000-000000000001'::uuid,
+  (SELECT id FROM public.organization_provisioned_members WHERE email = 'pgtap-op-owner@equipqr.test'));
+
+SELECT lives_ok(
+  format($$SELECT public.operator_stage_member(
+      '15000000-0000-0000-0000-000000000001'::uuid, %L::uuid, 'pgtap-op-owner-2@equipqr.test', 'owner')$$,
+    (SELECT id FROM pgtap_org)),
+  'After removing the staged owner, a replacement owner can be staged'
 );
 
 SELECT ok(

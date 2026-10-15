@@ -25,6 +25,7 @@ The managed key lists live at the top of `dev/ci/sync-deploy-config.mjs`:
 
 - `VERCEL_PUBLIC_KEYS`: the GitHub **variable** `NAME` is written to Vercel as `VITE_NAME`. Secrets are never used for `VITE_*`, because those values ship in the browser bundle. Names GitHub doesn't define are skipped, never deleted. For preview, an existing Vercel override scoped to the `preview` git branch is kept equal to the same value. A check run lists Vercel keys that GitHub doesn't manage.
 - `EDGE_REQUIRED_KEYS` / `EDGE_OPTIONAL_KEYS`: Supabase Edge secrets. A missing required key fails the run before any write.
+- `CLEAR_WHEN_UNSET_EDGE_KEYS` (`DFY_OPERATOR_USER_IDS`): access-granting keys. If GitHub no longer defines one, the sync deletes it from Supabase, so emptying the operator list in GitHub revokes operator access.
 - `IMMUTABLE_EDGE_KEYS` (`TOKEN_ENCRYPTION_KEY`, `KDF_SALT`) must pass the same entropy rules as the Edge runtime (`supabase/functions/_shared/crypto.ts`), and are never overwritten once set, because changing them strands stored integration tokens. A mismatch fails the run.
 
 Output lists key names and `MATCH` / `DRIFT` / `MISSING` only, never values.

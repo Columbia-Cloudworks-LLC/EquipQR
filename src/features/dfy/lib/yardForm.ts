@@ -68,7 +68,11 @@ function toEquipmentInput(row: ResolvedEquipmentRow): DfyEquipmentInput {
   };
 }
 
-/** Validate one `email, role[, teamRole]` line for adding a person to an existing yard. */
+/**
+ * Validate one `email, role[, teamRole]` line for adding a person to an existing
+ * yard. An owner is allowed so a mistaken owner can be replaced after removal;
+ * the database still refuses a second live owner.
+ */
 export function resolveStaffLine(
   line: string,
 ): { ok: true; person: DfyStaffInput } | { ok: false; errors: string[] } {
@@ -76,9 +80,6 @@ export function resolveStaffLine(
   if (rows.length !== 1) return { ok: false, errors: ['Enter one person: email, role'] };
   const result = resolveStaffRows(rows);
   if (result.errors.length > 0) return { ok: false, errors: result.errors };
-  if (result.ownerCount > 0) {
-    return { ok: false, errors: ['A yard has one owner; set the owner when you create the yard.'] };
-  }
   return { ok: true, person: toStaffInput(result.staff[0]) };
 }
 

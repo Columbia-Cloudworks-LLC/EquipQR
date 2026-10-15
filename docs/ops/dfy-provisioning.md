@@ -28,7 +28,7 @@ An operator can reach a yard only while nobody has joined it: `provisioned_at` i
 
 While the yard is still waiting for its first sign-in, select it under **Waiting for first sign-in** to:
 
-- add or remove staged people,
+- add or remove staged people, including replacing a mistyped owner: remove the staged owner first, then add the new one (a yard can have only one staged owner),
 - add equipment from another CSV or delete equipment,
 - download **Labels CSV** (`equipment_id`, name, make, model, serial, and `qr_url` = `/qr/equipment/<id>?org=<org>`) for a label printer's mail merge,
 - **Send sign-in invites**, which emails a Supabase invite link to each staged person who hasn't signed in yet.

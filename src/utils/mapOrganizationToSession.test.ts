@@ -29,7 +29,7 @@ function orgRow(id: string): OrganizationRow {
     name: `Org ${id}`,
     next_billing_date: null,
     note_author_edit_window_hours: 0,
-    plan: null,
+    plan: 'free',
     provisioned_at: null,
     provisioned_by: null,
     provisioning_request_id: null,
@@ -46,6 +46,7 @@ describe('mapOrganizationRowsToSessionOrganizations', () => {
     ]);
     expect(org.userRole).toBe('admin');
     expect(org.userStatus).toBe('active');
+    expect(org.isSupportAccess).toBe(true);
   });
 
   it('keeps other statuses as they are', () => {

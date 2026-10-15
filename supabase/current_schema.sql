@@ -6243,7 +6243,8 @@ BEGIN
   -- Owner/admin guard (issue #1122). Mirrors the audit_log SELECT policy.
   -- SECURITY DEFINER bypasses RLS, so the access check must be
   -- re-implemented here.
-  IF NOT public.is_org_admin((SELECT auth.uid()), p_organization_id) THEN
+  -- Active owners/admins only: live support (status 'support') is excluded.
+  IF NOT public.user_is_org_admin(p_organization_id, (SELECT auth.uid())) THEN
     RAISE EXCEPTION 'access denied' USING ERRCODE = '42501';
   END IF;
 
@@ -14559,7 +14560,8 @@ BEGIN
   FROM public.organization_provisioned_members pm
   WHERE pm.id = p_staged_member_id;
 
-  IF v_org_id IS NULL OR NOT public.is_org_admin(v_user_id, v_org_id) THEN
+  -- Active owners/admins only: live support (status 'support') is excluded.
+  IF v_org_id IS NULL OR NOT public.user_is_org_admin(v_org_id, v_user_id) THEN
     RAISE EXCEPTION 'Staged member not found' USING ERRCODE = '42501';
   END IF;
 
