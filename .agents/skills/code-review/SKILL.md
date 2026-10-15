@@ -14,7 +14,7 @@ When reviewing a pull request or diff in an agentic runner environment:
 - **Skip lint/formatting noise:** Never leave review comments on formatting, import sorting, or rules already enforced by `eslint.config.js` and `.markdownlint-cli2.jsonc`.
 
 ## 2. Supabase Migrations & RLS (`supabase/migrations/**`)
-- **Row Level Security (RLS):** Every new table must include `ALTER TABLE ... ENABLE ROW LEVEL SECURITY;` and tenant-scoped policies verifying organization membership.
+- **Row Level Security (RLS):** Every new user-accessible table must enable RLS; tenant-owned tables must enforce organization membership, while user-scoped, global, and internal tables must use caller-appropriate or default-deny policies.
 - **`SECURITY DEFINER` Functions (`docs/ops/security-definer-rpc-policy.md`):** Any new or altered `SECURITY DEFINER` function must:
   1. Pin `search_path` using `SET search_path = public, pg_temp` (or `SET search_path = ''` with fully schema-qualified references for trigger/cron helpers).
   2. Enforce access boundaries by RPC category: require `auth.uid()` and organization membership/role verification for authenticated tenant RPCs, or verify the documented anonymous token, `service_role`, or trigger-only boundary for non-user flows.
