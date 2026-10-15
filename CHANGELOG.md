@@ -27,6 +27,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Fixed
 
+- **Work order due time on mobile (#1638)** — Setting or clearing a work order's due time now uses Hour, Minute, and AM/PM dropdowns that fit on phone screens instead of opening a browser time popup with an off-screen Set button.
 - **Done-For-You sign-in never blocked (#1648)** — If a pre-set membership can't be applied, the person still signs in. Someone whose pre-set invite was removed before they verified their email gets their own organization instead of none.
 - **New Work Order from a QR scan** — Tapping New Work Order on a scanned equipment page opens the form and creates the work order again, instead of failing.
 
