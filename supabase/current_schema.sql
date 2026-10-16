@@ -719,6 +719,25 @@ $$;
 ALTER FUNCTION "public"."assert_inventory_read_access"("p_organization_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."assert_org_operator_editable"("p_organization_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+BEGIN
+  PERFORM 1 FROM public.organizations o WHERE o.id = p_organization_id FOR UPDATE;
+
+  IF NOT public.org_is_operator_editable(p_organization_id) THEN
+    RAISE EXCEPTION 'ORG_NOT_EDITABLE'
+      USING ERRCODE = '42501',
+            DETAIL = 'Operators can change a provisioned organization only before anyone has joined it.';
+  END IF;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."assert_org_operator_editable"("p_organization_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."audit_equipment_changes"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -1923,7 +1942,7 @@ BEGIN
   FROM public.organization_members
   WHERE organization_id = p_organization_id
     AND user_id = p_user_id
-    AND status = 'active';
+    AND (status = 'active' OR (status = 'support' AND public.support_grant_is_live(support_grant_id)));
 
   IF v_role IN ('owner', 'admin') THEN
     RETURN TRUE;
@@ -1954,7 +1973,7 @@ CREATE OR REPLACE FUNCTION "public"."can_access_work_order_costs"("p_work_order_
     FROM public.work_orders wo
     WHERE wo.id = p_work_order_id
       AND (
-        public.is_org_admin(p_user_id, wo.organization_id)
+        public.is_org_operational_admin(p_user_id, wo.organization_id)
         OR (
           public.is_org_member(p_user_id, wo.organization_id)
           AND (
@@ -2002,7 +2021,7 @@ BEGIN
     RETURN false;
   END IF;
 
-  IF public.is_org_admin(p_user_id, p_organization_id)
+  IF public.is_org_operational_admin(p_user_id, p_organization_id)
      OR public.is_equipment_team_manager(p_user_id, p_equipment_id) THEN
     RETURN true;
   END IF;
@@ -2043,7 +2062,7 @@ BEGIN
     RETURN false;
   END IF;
 
-  IF public.is_org_admin(p_user_id, p_organization_id)
+  IF public.is_org_operational_admin(p_user_id, p_organization_id)
      OR public.is_work_order_team_manager(p_user_id, p_work_order_id) THEN
     RETURN true;
   END IF;
@@ -2072,18 +2091,17 @@ CREATE OR REPLACE FUNCTION "public"."can_manage_inventory"("p_organization_id" "
 DECLARE
   v_role TEXT;
 BEGIN
-  -- Check organization role
   SELECT role INTO v_role
   FROM public.organization_members
   WHERE organization_id = p_organization_id
   AND user_id = p_user_id
-  AND status = 'active';
-  
+  AND (status = 'active' OR (status = 'support' AND public.support_grant_is_live(support_grant_id)));
+
   -- Owners and admins can always manage inventory
   IF v_role IN ('owner', 'admin') THEN
     RETURN TRUE;
   END IF;
-  
+
   -- Check if user is a parts manager
   RETURN public.is_parts_manager(p_organization_id, p_user_id);
 END;
@@ -2230,7 +2248,7 @@ CREATE OR REPLACE FUNCTION "public"."can_manage_manual_external_customer_contact
     WHERE c.id = p_customer_id
       AND c.organization_id = p_organization_id
       AND (
-        public.is_org_admin((SELECT auth.uid()), c.organization_id)
+        public.is_org_operational_admin((SELECT auth.uid()), c.organization_id)
         OR EXISTS (
           SELECT 1
           FROM public.teams t
@@ -2562,9 +2580,9 @@ CREATE OR REPLACE FUNCTION "public"."check_org_access_direct"("user_uuid" "uuid"
   SELECT EXISTS (
     SELECT 1
     FROM organization_members
-    WHERE user_id = user_uuid 
-      AND organization_id = org_id 
-      AND status = 'active'
+    WHERE user_id = user_uuid
+      AND organization_id = org_id
+      AND (status = 'active' OR (status = 'support' AND public.support_grant_is_live(support_grant_id)))
   );
 $$;
 
@@ -2579,9 +2597,9 @@ CREATE OR REPLACE FUNCTION "public"."check_org_access_secure"("user_uuid" "uuid"
   SELECT EXISTS (
     SELECT 1
     FROM public.organization_members
-    WHERE user_id = user_uuid 
-      AND organization_id = org_id 
-      AND status = 'active'
+    WHERE user_id = user_uuid
+      AND organization_id = org_id
+      AND (status = 'active' OR (status = 'support' AND public.support_grant_is_live(support_grant_id)))
   );
 $$;
 
@@ -2681,6 +2699,157 @@ $$;
 
 
 ALTER FUNCTION "public"."check_team_role_secure"("user_uuid" "uuid", "team_uuid" "uuid", "required_role" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."claim_provisioned_memberships"("p_user_id" "uuid") RETURNS integer
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_email text;
+  v_confirmed_at timestamptz;
+  v_row record;
+  v_role text;
+  v_count integer := 0;
+  v_failed boolean := false;
+BEGIN
+  SELECT public.normalize_email(u.email), u.email_confirmed_at
+  INTO v_email, v_confirmed_at
+  FROM auth.users u
+  WHERE u.id = p_user_id;
+
+  IF v_email IS NULL OR v_confirmed_at IS NULL THEN
+    RETURN 0;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = p_user_id) THEN
+    RETURN 0;
+  END IF;
+
+  FOR v_row IN
+    SELECT pm.id, pm.organization_id, pm.role, pm.team_id, pm.team_role
+    FROM public.organization_provisioned_members pm
+    WHERE pm.email = v_email
+      AND pm.status = 'pending'
+    ORDER BY pm.created_at
+  LOOP
+    BEGIN
+      PERFORM 1 FROM public.organizations o WHERE o.id = v_row.organization_id FOR UPDATE;
+
+      PERFORM 1
+      FROM public.organization_provisioned_members pm
+      WHERE pm.id = v_row.id
+        AND pm.status = 'pending'
+      FOR UPDATE;
+      IF NOT FOUND THEN
+        CONTINUE;
+      END IF;
+
+      v_role := v_row.role;
+
+      IF v_role = 'owner' AND EXISTS (
+        SELECT 1
+        FROM public.organization_members om
+        WHERE om.organization_id = v_row.organization_id
+          AND om.role = 'owner'
+          AND om.status = 'active'
+          AND om.user_id <> p_user_id
+      ) THEN
+        v_role := 'admin';
+      END IF;
+
+      INSERT INTO public.organization_members (
+        organization_id,
+        user_id,
+        role,
+        status,
+        access_source,
+        product_onboarding_completed_at
+      )
+      VALUES (
+        v_row.organization_id,
+        p_user_id,
+        v_role,
+        'active',
+        'provisioned',
+        now()
+      )
+      ON CONFLICT (organization_id, user_id) DO UPDATE
+        SET status = 'active',
+            role = CASE
+              WHEN public.organization_members.role = 'owner' THEN 'owner'
+              WHEN EXCLUDED.role = 'owner' THEN 'owner'
+              WHEN EXCLUDED.role = 'admin' OR public.organization_members.role = 'admin' THEN 'admin'
+              ELSE public.organization_members.role
+            END,
+            product_onboarding_completed_at = COALESCE(
+              public.organization_members.product_onboarding_completed_at,
+              now()
+            )
+      RETURNING role INTO v_role;
+
+      IF v_row.team_id IS NOT NULL THEN
+        INSERT INTO public.team_members (team_id, user_id, role)
+        VALUES (
+          v_row.team_id,
+          p_user_id,
+          COALESCE(v_row.team_role, 'technician'::public.team_member_role)
+        )
+        ON CONFLICT (team_id, user_id) DO NOTHING;
+      END IF;
+
+      UPDATE public.organization_provisioned_members
+      SET status = 'claimed',
+          claimed_user_id = p_user_id,
+          claimed_at = now(),
+          claimed_role = v_role,
+          last_claim_error = NULL
+      WHERE id = v_row.id;
+
+      IF v_role = 'owner' THEN
+        UPDATE public.organizations
+        SET claimed_at = COALESCE(claimed_at, now())
+        WHERE id = v_row.organization_id;
+      END IF;
+
+      v_count := v_count + 1;
+    EXCEPTION WHEN OTHERS THEN
+      v_failed := true;
+      UPDATE public.organization_provisioned_members
+      SET last_claim_error = left(SQLERRM, 500)
+      WHERE id = v_row.id;
+      RAISE WARNING 'claim_provisioned_memberships: staged row % not claimed: %', v_row.id, SQLERRM;
+    END;
+  END LOOP;
+
+  IF v_failed
+    AND NOT EXISTS (
+      SELECT 1 FROM public.organization_members om
+      WHERE om.user_id = p_user_id
+        AND om.status = 'active'
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM public.personal_organizations po
+      WHERE po.user_id = p_user_id
+    )
+  THEN
+    BEGIN
+      PERFORM public.ensure_personal_organization(p_user_id);
+    EXCEPTION WHEN OTHERS THEN
+      RAISE WARNING 'claim_provisioned_memberships: fallback personal org for % failed: %', p_user_id, SQLERRM;
+    END;
+  END IF;
+
+  RETURN v_count;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."claim_provisioned_memberships"("p_user_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."claim_provisioned_memberships"("p_user_id" "uuid") IS 'Binds pending organization_provisioned_members rows matching the user''s verified email to active memberships (access_source provisioned). Each row is claimed in its own subtransaction so a failure never aborts the sign-in, and a fallback personal org is created when all claims fail. Internal: no client EXECUTE.';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."claim_quickbooks_invoice_status_events"("p_batch_size" integer) RETURNS TABLE("id" "uuid", "organization_id" "uuid", "realm_id" "text", "entity_name" "text", "entity_id" "text", "operation" "text", "attempts" integer)
@@ -2823,6 +2992,31 @@ COMMENT ON FUNCTION "public"."cleanup_expired_quickbooks_oauth_sessions"() IS 'C
 
 
 
+CREATE OR REPLACE FUNCTION "public"."cleanup_expired_support_access"() RETURNS integer
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_count integer;
+BEGIN
+  UPDATE public.organization_support_grants
+  SET revoked_at = expires_at
+  WHERE revoked_at IS NULL
+    AND expires_at <= now();
+
+  DELETE FROM public.organization_members om
+  WHERE om.status = 'support'
+    AND NOT public.support_grant_is_live(om.support_grant_id);
+  GET DIAGNOSTICS v_count = ROW_COUNT;
+
+  RETURN v_count;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."cleanup_expired_support_access"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."cleanup_inventory_grants_on_member_removal"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -2932,6 +3126,22 @@ COMMENT ON FUNCTION "public"."cleanup_stale_gws_directory_users"() IS 'Removes G
 
 
 
+CREATE OR REPLACE FUNCTION "public"."clear_provisioned_member_team_role"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+BEGIN
+  IF NEW.team_id IS NULL THEN
+    NEW.team_role := NULL;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."clear_provisioned_member_team_role"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."clear_rls_context"() RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -3007,7 +3217,7 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Work order not found');
   END IF;
 
-  IF NOT public.is_org_admin(auth.uid(), v_work_order.organization_id) THEN
+  IF NOT public.is_org_operational_admin(auth.uid(), v_work_order.organization_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
 
@@ -3278,7 +3488,7 @@ DECLARE
     default_checklist JSONB;
 BEGIN
     -- Check if user is admin
-    IF NOT is_org_admin(auth.uid(), p_organization_id) THEN
+    IF NOT is_org_operational_admin(auth.uid(), p_organization_id) THEN
         RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
     END IF;
     
@@ -3437,7 +3647,7 @@ DECLARE
   v_timeline_events jsonb;
   v_replace_result jsonb;
 BEGIN
-  IF NOT public.is_org_admin(auth.uid(), p_organization_id) THEN
+  IF NOT public.is_org_operational_admin(auth.uid(), p_organization_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
 
@@ -4321,7 +4531,7 @@ BEGIN
   END IF;
 
   IF NOT (
-    public.is_org_admin(v_user_id, p_organization_id)
+    public.is_org_operational_admin(v_user_id, p_organization_id)
     OR public.is_equipment_team_manager(v_user_id, p_equipment_id)
     OR v_note.author_id = v_user_id
   ) THEN
@@ -4412,7 +4622,7 @@ BEGIN
   END IF;
 
   IF NOT (
-    public.is_org_admin(v_user_id, p_organization_id)
+    public.is_org_operational_admin(v_user_id, p_organization_id)
     OR public.is_equipment_team_manager(v_user_id, p_equipment_id)
     OR public.can_edit_equipment_note(v_user_id, p_organization_id, p_equipment_id, v_note.id)
     OR v_image.uploaded_by = v_user_id
@@ -4488,7 +4698,7 @@ BEGIN
     RAISE EXCEPTION 'Customer not found';
   END IF;
 
-  IF public.is_org_admin((SELECT auth.uid()), v_org_id) THEN
+  IF public.is_org_operational_admin((SELECT auth.uid()), v_org_id) THEN
     NULL;
   ELSIF v_source = 'manual'
     AND v_source_external_id IS NULL
@@ -4770,7 +4980,7 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Work order not found');
   END IF;
 
-  IF NOT public.is_org_admin(auth.uid(), v_org_id) THEN
+  IF NOT public.is_org_operational_admin(auth.uid(), v_org_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
 
@@ -4853,7 +5063,7 @@ BEGIN
   END IF;
 
   IF NOT (
-    public.is_org_admin(v_user_id, p_organization_id)
+    public.is_org_operational_admin(v_user_id, p_organization_id)
     OR public.is_work_order_team_manager(v_user_id, p_work_order_id)
     OR v_note.author_id = v_user_id
   ) THEN
@@ -4937,7 +5147,7 @@ BEGIN
   v_note_id := v_image.note_id;
 
   IF NOT (
-    public.is_org_admin(v_user_id, p_organization_id)
+    public.is_org_operational_admin(v_user_id, p_organization_id)
     OR public.is_work_order_team_manager(v_user_id, p_work_order_id)
     OR (v_note_id IS NOT NULL AND public.can_edit_work_order_note(v_user_id, p_organization_id, p_work_order_id, v_note_id))
     OR v_image.uploaded_by = v_user_id
@@ -5405,6 +5615,61 @@ $$;
 
 
 ALTER FUNCTION "public"."ensure_operator_template_active_for_enabled_assignment"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."ensure_personal_organization"("p_user_id" "uuid") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_org_id uuid;
+  v_name text;
+BEGIN
+  SELECT organization_id INTO v_org_id
+  FROM public.personal_organizations
+  WHERE user_id = p_user_id;
+
+  IF v_org_id IS NOT NULL THEN
+    RETURN v_org_id;
+  END IF;
+
+  SELECT COALESCE(u.raw_user_meta_data->>'organization_name', 'My Organization')
+  INTO v_name
+  FROM auth.users u
+  WHERE u.id = p_user_id;
+
+  IF v_name IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  INSERT INTO public.organizations (name, plan, member_count, max_members, features)
+  VALUES (
+    v_name,
+    'free',
+    1,
+    5,
+    ARRAY['Equipment Management', 'Work Orders', 'Team Management']
+  )
+  RETURNING id INTO v_org_id;
+
+  INSERT INTO public.personal_organizations (user_id, organization_id)
+  VALUES (p_user_id, v_org_id)
+  ON CONFLICT (user_id) DO NOTHING;
+
+  INSERT INTO public.organization_members (organization_id, user_id, role, status, access_source)
+  VALUES (v_org_id, p_user_id, 'owner', 'active', 'owner')
+  ON CONFLICT (organization_id, user_id) DO NOTHING;
+
+  RETURN v_org_id;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."ensure_personal_organization"("p_user_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."ensure_personal_organization"("p_user_id" "uuid") IS 'Creates the user''s personal "My Organization" when they have none. Internal: used when a Done-For-You staged row that suppressed the personal org was revoked before the user verified.';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."expire_old_invitations"() RETURNS "trigger"
@@ -5992,7 +6257,8 @@ BEGIN
   -- Owner/admin guard (issue #1122). Mirrors the audit_log SELECT policy.
   -- SECURITY DEFINER bypasses RLS, so the access check must be
   -- re-implemented here.
-  IF NOT public.is_org_admin((SELECT auth.uid()), p_organization_id) THEN
+  -- Active owners/admins only: live support (status 'support') is excluded.
+  IF NOT public.user_is_org_admin(p_organization_id, (SELECT auth.uid())) THEN
     RAISE EXCEPTION 'access denied' USING ERRCODE = '42501';
   END IF;
 
@@ -6250,7 +6516,7 @@ BEGIN
   request_context AS (
     SELECT
       auth.uid() AS user_id,
-      public.is_org_admin(auth.uid(), p_org_id) AS is_org_admin
+      public.is_org_operational_admin(auth.uid(), p_org_id) AS is_org_admin
   ),
   accessible_team_ids AS (
     SELECT tm.team_id
@@ -7831,7 +8097,7 @@ BEGIN
         WHERE om_other.user_id = v_user_id
           AND om_other.organization_id <> p_organization_id
           AND om_other.status = 'active'
-          AND om_other.access_source = 'invitation'
+          AND om_other.access_source IN ('invitation', 'provisioned')
       )
     ) THEN
     v_skip_invite_onboarding := true;
@@ -7929,6 +8195,27 @@ ALTER FUNCTION "public"."get_quickbooks_connection_status"("p_organization_id" "
 
 
 COMMENT ON FUNCTION "public"."get_quickbooks_connection_status"("p_organization_id" "uuid") IS 'Returns non-sensitive QuickBooks connection metadata for an organization. Only admin/owner can access. Does NOT expose OAuth tokens.';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."get_support_access_status"("p_organization_id" "uuid") RETURNS TABLE("grant_id" "uuid", "granted_at" timestamp with time zone, "expires_at" timestamp with time zone, "granted_by_name" "text", "source" "text")
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+  SELECT g.id, g.granted_at, g.expires_at, p.name, g.source
+  FROM public.organization_support_grants g
+  LEFT JOIN public.profiles p ON p.id = g.granted_by
+  WHERE g.organization_id = p_organization_id
+    AND g.revoked_at IS NULL
+    AND g.expires_at > now()
+    AND public.is_org_member((SELECT auth.uid()), p_organization_id);
+$$;
+
+
+ALTER FUNCTION "public"."get_support_access_status"("p_organization_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."get_support_access_status"("p_organization_id" "uuid") IS 'The live EquipQR Support grant for an organization, visible to its members.';
 
 
 
@@ -8040,9 +8327,9 @@ CREATE OR REPLACE FUNCTION "public"."get_user_org_role_direct"("user_uuid" "uuid
     AS $$
   SELECT role
   FROM organization_members
-  WHERE user_id = user_uuid 
-    AND organization_id = org_id 
-    AND status = 'active'
+  WHERE user_id = user_uuid
+    AND organization_id = org_id
+    AND (status = 'active' OR (status = 'support' AND public.support_grant_is_live(support_grant_id)))
   LIMIT 1;
 $$;
 
@@ -8056,9 +8343,9 @@ CREATE OR REPLACE FUNCTION "public"."get_user_org_role_secure"("user_uuid" "uuid
     AS $$
   SELECT role
   FROM public.organization_members
-  WHERE user_id = user_uuid 
-    AND organization_id = org_id 
-    AND status = 'active'
+  WHERE user_id = user_uuid
+    AND organization_id = org_id
+    AND (status = 'active' OR (status = 'support' AND public.support_grant_is_live(support_grant_id)))
   LIMIT 1;
 $$;
 
@@ -8072,7 +8359,8 @@ CREATE OR REPLACE FUNCTION "public"."get_user_organization_membership"("user_uui
     AS $$
   SELECT om.organization_id, om.role, om.status
   FROM public.organization_members om
-  WHERE om.user_id = user_uuid AND om.status = 'active';
+  WHERE om.user_id = user_uuid
+    AND (om.status = 'active' OR (om.status = 'support' AND public.support_grant_is_live(om.support_grant_id)));
 $$;
 
 
@@ -8085,8 +8373,8 @@ CREATE OR REPLACE FUNCTION "public"."get_user_organizations"("user_uuid" "uuid")
     AS $$
   SELECT om.organization_id
   FROM organization_members om
-  WHERE om.user_id = user_uuid 
-    AND om.status = 'active';
+  WHERE om.user_id = user_uuid
+    AND (om.status = 'active' OR (om.status = 'support' AND public.support_grant_is_live(om.support_grant_id)));
 $$;
 
 
@@ -8273,6 +8561,206 @@ COMMENT ON FUNCTION "public"."get_workspace_onboarding_state"("p_user_id" "uuid"
 
 
 
+CREATE OR REPLACE FUNCTION "public"."grant_support_access"("p_organization_id" "uuid", "p_granted_by" "uuid", "p_operator_ids" "uuid"[], "p_duration_hours" integer, "p_source" "text", "p_ticket_ref" "text" DEFAULT NULL::"text") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_grant_id uuid;
+  v_expires_at timestamptz;
+  v_open record;
+  v_extended boolean := false;
+  v_operator uuid;
+  v_granted_count integer := 0;
+BEGIN
+  IF p_duration_hours NOT IN (24, 72, 168) THEN
+    RAISE EXCEPTION 'Duration must be 24, 72, or 168 hours' USING ERRCODE = '22023';
+  END IF;
+
+  IF p_operator_ids IS NULL OR cardinality(p_operator_ids) = 0 THEN
+    RAISE EXCEPTION 'No EquipQR Support accounts are configured' USING ERRCODE = '22023';
+  END IF;
+
+  PERFORM 1 FROM public.organizations o WHERE o.id = p_organization_id FOR UPDATE;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = p_granted_by
+      AND om.role = 'owner'
+      AND om.status = 'active'
+  ) THEN
+    RAISE EXCEPTION 'Only the organization owner can grant support access' USING ERRCODE = '42501';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = ANY (p_operator_ids)
+      AND om.status = 'active'
+      AND om.role NOT IN ('owner', 'admin')
+  ) THEN
+    RAISE EXCEPTION 'Configured support operator already has a non-admin active membership in this organization'
+      USING ERRCODE = '22023';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.profiles p
+    WHERE p.id = ANY (p_operator_ids)
+  ) THEN
+    RAISE EXCEPTION 'No configured EquipQR Support accounts have an active profile'
+      USING ERRCODE = '22023';
+  END IF;
+
+  v_expires_at := now() + make_interval(hours => p_duration_hours);
+
+  SELECT g.id, g.expires_at INTO v_open
+  FROM public.organization_support_grants g
+  WHERE g.organization_id = p_organization_id
+    AND g.revoked_at IS NULL
+  FOR UPDATE;
+
+  IF v_open.id IS NOT NULL AND v_open.expires_at > now() THEN
+    v_expires_at := GREATEST(v_open.expires_at, v_expires_at);
+    UPDATE public.organization_support_grants
+    SET expires_at = v_expires_at,
+        granted_at = now(),
+        granted_by = p_granted_by,
+        source = p_source,
+        ticket_ref = COALESCE(p_ticket_ref, ticket_ref)
+    WHERE id = v_open.id;
+    v_grant_id := v_open.id;
+    v_extended := true;
+  ELSE
+    IF v_open.id IS NOT NULL THEN
+      UPDATE public.organization_support_grants
+      SET revoked_at = expires_at
+      WHERE id = v_open.id;
+    END IF;
+
+    INSERT INTO public.organization_support_grants (
+      organization_id, granted_by, expires_at, source, ticket_ref
+    )
+    VALUES (p_organization_id, p_granted_by, v_expires_at, p_source, p_ticket_ref)
+    RETURNING id INTO v_grant_id;
+  END IF;
+
+  PERFORM set_config('equipqr.support_access_write', 'on', true);
+
+  DELETE FROM public.organization_members om
+  WHERE (
+    om.status = 'support'
+    AND NOT (om.user_id = ANY (p_operator_ids))
+  ) OR (
+    om.organization_id = p_organization_id
+    AND (
+      (om.status = 'support' AND om.support_grant_id IS DISTINCT FROM v_grant_id)
+      OR (om.user_id = ANY (p_operator_ids) AND om.status NOT IN ('active', 'support'))
+    )
+  );
+
+  FOREACH v_operator IN ARRAY p_operator_ids
+  LOOP
+    INSERT INTO public.organization_members (
+      organization_id, user_id, role, status, access_source, support_grant_id
+    )
+    SELECT p_organization_id, v_operator, 'admin', 'support', 'support', v_grant_id
+    WHERE EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = v_operator)
+    ON CONFLICT (organization_id, user_id) DO UPDATE
+      SET role = 'admin',
+          status = 'support',
+          access_source = 'support',
+          support_grant_id = EXCLUDED.support_grant_id,
+          can_manage_quickbooks = false
+      WHERE public.organization_members.status <> 'active';
+  END LOOP;
+
+  PERFORM set_config('equipqr.support_access_write', 'off', true);
+
+  PERFORM public.reconcile_support_operators(p_operator_ids);
+
+  SELECT count(*)::integer INTO v_granted_count
+  FROM public.organization_members om
+  WHERE om.organization_id = p_organization_id
+    AND om.user_id = ANY (p_operator_ids)
+    AND (
+      (om.status = 'support' AND om.support_grant_id = v_grant_id)
+      OR (om.status = 'active' AND om.role IN ('owner', 'admin'))
+    );
+
+  IF v_granted_count = 0 THEN
+    RAISE EXCEPTION 'No configured EquipQR Support accounts could be granted access'
+      USING ERRCODE = '22023';
+  END IF;
+
+  RETURN jsonb_build_object(
+    'grant_id', v_grant_id,
+    'expires_at', v_expires_at,
+    'extended', v_extended
+  );
+END;
+$$;
+
+
+ALTER FUNCTION "public"."grant_support_access"("p_organization_id" "uuid", "p_granted_by" "uuid", "p_operator_ids" "uuid"[], "p_duration_hours" integer, "p_source" "text", "p_ticket_ref" "text") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."grant_support_access"("p_organization_id" "uuid", "p_granted_by" "uuid", "p_operator_ids" "uuid"[], "p_duration_hours" integer, "p_source" "text", "p_ticket_ref" "text") IS 'Service role (support-access Edge Function): the active owner grants or extends EquipQR Support admin access for 24, 72, or 168 hours.';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."guard_support_invitations"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+BEGIN
+  IF v_user_id IS NOT NULL
+    AND EXISTS (
+      SELECT 1 FROM public.organization_members om
+      WHERE om.organization_id = NEW.organization_id
+        AND om.user_id = v_user_id
+        AND om.status = 'support'
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM public.organization_members om
+      WHERE om.organization_id = NEW.organization_id
+        AND om.user_id = v_user_id
+        AND om.status = 'active'
+    )
+  THEN
+    RAISE EXCEPTION 'Support access cannot manage invitations' USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."guard_support_invitations"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."guard_support_memberships"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+BEGIN
+  IF (
+    NEW.status = 'support'
+    OR COALESCE(NEW.access_source, '') = 'support'
+    OR (TG_OP = 'UPDATE' AND (OLD.status = 'support' OR COALESCE(OLD.access_source, '') = 'support'))
+  ) AND current_setting('equipqr.support_access_write', true) IS DISTINCT FROM 'on' THEN
+    RAISE EXCEPTION 'Support access can only be changed by the organization owner'
+      USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."guard_support_memberships"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."handle_invitation_account_creation"("p_invitation_id" "uuid", "p_user_id" "uuid") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -8423,6 +8911,7 @@ DECLARE
   is_consumer_domain boolean := false;
   has_workspace_claim boolean := false;
   has_workspace_invite boolean := false;
+  has_provisioned_membership boolean := false;
   skip_personal_org boolean := false;
   skip_personal_onboarding boolean := false;
 BEGIN
@@ -8469,6 +8958,19 @@ BEGIN
         skip_personal_org := true;
       END IF;
     END IF;
+  END IF;
+
+  -- Issue #1648: staged people land in their pre-provisioned yard, not in an
+  -- empty "My Organization".
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.organization_provisioned_members pm
+    WHERE pm.email = public.normalize_email(NEW.email)
+      AND pm.status = 'pending'
+  ) INTO has_provisioned_membership;
+
+  IF has_provisioned_membership THEN
+    skip_personal_org := true;
   END IF;
 
   skip_personal_onboarding := EXISTS (
@@ -8558,6 +9060,11 @@ BEGIN
 
   PERFORM public.apply_pending_admin_grants_for_user(NEW.id);
 
+  -- Issue #1648: binds now for verified-at-insert identities (Google OAuth);
+  -- magic-link / invite / confirmed-signup users bind on confirmation via
+  -- on_auth_user_email_confirmed_claim.
+  PERFORM public.claim_provisioned_memberships(NEW.id);
+
   RETURN NEW;
 END;
 $$;
@@ -8566,7 +9073,7 @@ $$;
 ALTER FUNCTION "public"."handle_new_user"() OWNER TO "postgres";
 
 
-COMMENT ON FUNCTION "public"."handle_new_user"() IS 'Trigger for new user registration. Creates profile and personal org when allowed; invited signup users skip personal onboarding checklist.';
+COMMENT ON FUNCTION "public"."handle_new_user"() IS 'Trigger for new user registration. Creates profile and personal org when allowed; invited signup users skip personal onboarding checklist; pre-provisioned (DFY) staff skip the personal org and claim their staged memberships.';
 
 
 
@@ -8658,6 +9165,42 @@ $$;
 
 
 ALTER FUNCTION "public"."handle_updated_at"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."handle_user_email_confirmed_claim"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+BEGIN
+  PERFORM public.claim_provisioned_memberships(NEW.id);
+
+  IF NOT EXISTS (
+      SELECT 1 FROM public.organization_members om
+      WHERE om.user_id = NEW.id
+        AND om.status = 'active'
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM public.personal_organizations po
+      WHERE po.user_id = NEW.id
+    )
+    AND EXISTS (
+      SELECT 1 FROM public.organization_provisioned_members pm
+      WHERE pm.email = public.normalize_email(NEW.email)
+    )
+  THEN
+    PERFORM public.ensure_personal_organization(NEW.id);
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."handle_user_email_confirmed_claim"() OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."handle_user_email_confirmed_claim"() IS 'auth.users AFTER UPDATE trigger: claims pre-staged memberships once an email becomes verified or on subsequent sign-in, and creates the personal org when a revoked or failed staged row had suppressed it (issue #1648).';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."historical_timeline_allowed_next_statuses"("p_current_status" "public"."work_order_status") RETURNS "public"."work_order_status"[]
@@ -8979,10 +9522,10 @@ CREATE OR REPLACE FUNCTION "public"."is_org_admin"("user_uuid" "uuid", "org_id" 
     SET "row_security" TO 'off'
     AS $$
   SELECT EXISTS (
-    SELECT 1 
+    SELECT 1
     FROM organization_members
-    WHERE user_id = user_uuid 
-      AND organization_id = org_id 
+    WHERE user_id = user_uuid
+      AND organization_id = org_id
       AND role IN ('owner', 'admin')
       AND status = 'active'
   );
@@ -9002,11 +9545,11 @@ CREATE OR REPLACE FUNCTION "public"."is_org_member"("user_uuid" "uuid", "org_id"
     SET "row_security" TO 'off'
     AS $$
   SELECT EXISTS (
-    SELECT 1 
+    SELECT 1
     FROM organization_members
-    WHERE user_id = user_uuid 
-      AND organization_id = org_id 
-      AND status = 'active'
+    WHERE user_id = user_uuid
+      AND organization_id = org_id
+      AND (status = 'active' OR (status = 'support' AND public.support_grant_is_live(support_grant_id)))
   );
 $$;
 
@@ -9018,6 +9561,29 @@ COMMENT ON FUNCTION "public"."is_org_member"("user_uuid" "uuid", "org_id" "uuid"
 
 
 
+CREATE OR REPLACE FUNCTION "public"."is_org_operational_admin"("user_uuid" "uuid", "org_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    SET "row_security" TO 'off'
+    AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM organization_members
+    WHERE user_id = user_uuid
+      AND organization_id = org_id
+      AND role IN ('owner', 'admin')
+      AND (status = 'active' OR (status = 'support' AND public.support_grant_is_live(support_grant_id)))
+  );
+$$;
+
+
+ALTER FUNCTION "public"."is_org_operational_admin"("user_uuid" "uuid", "org_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."is_org_operational_admin"("user_uuid" "uuid", "org_id" "uuid") IS 'True for active org owners/admins and live owner-granted support sessions. Used only by operational policies and RPCs.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."is_organization_admin"("user_uuid" "uuid", "org_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -9025,8 +9591,8 @@ CREATE OR REPLACE FUNCTION "public"."is_organization_admin"("user_uuid" "uuid", 
   SELECT EXISTS (
     SELECT 1
     FROM organization_members om
-    WHERE om.user_id = user_uuid 
-      AND om.organization_id = org_id 
+    WHERE om.user_id = user_uuid
+      AND om.organization_id = org_id
       AND om.role IN ('owner', 'admin')
       AND om.status = 'active'
   );
@@ -9047,9 +9613,9 @@ CREATE OR REPLACE FUNCTION "public"."is_organization_member"("user_uuid" "uuid",
   SELECT EXISTS (
     SELECT 1
     FROM organization_members om
-    WHERE om.user_id = user_uuid 
-      AND om.organization_id = org_id 
-      AND om.status = 'active'
+    WHERE om.user_id = user_uuid
+      AND om.organization_id = org_id
+      AND (om.status = 'active' OR (om.status = 'support' AND public.support_grant_is_live(om.support_grant_id)))
   );
 $$;
 
@@ -11245,6 +11811,242 @@ $$;
 ALTER FUNCTION "public"."notify_team_member_security_events"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."operator_add_equipment"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_equipment" "jsonb") RETURNS integer
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_team_id uuid;
+  v_count integer;
+BEGIN
+  PERFORM public.assert_org_operator_editable(p_organization_id);
+
+  IF jsonb_typeof(p_equipment) IS DISTINCT FROM 'array' THEN
+    RAISE EXCEPTION 'Equipment must be an array' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT t.id INTO v_team_id
+  FROM public.teams t
+  WHERE t.organization_id = p_organization_id
+  ORDER BY t.created_at
+  LIMIT 1;
+
+  INSERT INTO public.equipment (
+    organization_id, team_id, name, manufacturer, model, serial_number,
+    location, installation_date, status, notes, import_id
+  )
+  SELECT
+    p_organization_id,
+    v_team_id,
+    btrim(e.name),
+    COALESCE(btrim(e.manufacturer), ''),
+    COALESCE(btrim(e.model), ''),
+    COALESCE(btrim(e.serial_number), ''),
+    COALESCE(NULLIF(btrim(e.location), ''), 'Yard'),
+    COALESCE(e.installation_date, current_date),
+    COALESCE(NULLIF(e.status, ''), 'active')::public.equipment_status,
+    NULLIF(btrim(e.notes), ''),
+    NULLIF(btrim(e.import_id), '')
+  FROM jsonb_to_recordset(p_equipment) AS e(
+    name text, manufacturer text, model text, serial_number text, location text,
+    installation_date date, status text, notes text, import_id text
+  );
+
+  GET DIAGNOSTICS v_count = ROW_COUNT;
+  RETURN v_count;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."operator_add_equipment"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_equipment" "jsonb") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."operator_delete_equipment"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_equipment_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+BEGIN
+  PERFORM public.assert_org_operator_editable(p_organization_id);
+
+  DELETE FROM public.equipment
+  WHERE id = p_equipment_id
+    AND organization_id = p_organization_id;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."operator_delete_equipment"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_equipment_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."operator_get_organization"("p_organization_id" "uuid") RETURNS "jsonb"
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+BEGIN
+  IF NOT public.org_is_operator_editable(p_organization_id) THEN
+    RAISE EXCEPTION 'ORG_NOT_EDITABLE' USING ERRCODE = '42501';
+  END IF;
+
+  RETURN jsonb_build_object(
+    'organization', (
+      SELECT jsonb_build_object('id', o.id, 'name', o.name, 'provisioned_at', o.provisioned_at)
+      FROM public.organizations o WHERE o.id = p_organization_id
+    ),
+    'teams', COALESCE((
+      SELECT jsonb_agg(jsonb_build_object('id', t.id, 'name', t.name) ORDER BY t.created_at)
+      FROM public.teams t WHERE t.organization_id = p_organization_id
+    ), '[]'::jsonb),
+    'staff', COALESCE((
+      SELECT jsonb_agg(jsonb_build_object(
+        'id', pm.id, 'email', pm.email, 'role', pm.role, 'team_role', pm.team_role, 'status', pm.status
+      ) ORDER BY pm.created_at)
+      FROM public.organization_provisioned_members pm
+      WHERE pm.organization_id = p_organization_id AND pm.status <> 'revoked'
+    ), '[]'::jsonb),
+    'equipment', COALESCE((
+      SELECT jsonb_agg(jsonb_build_object(
+        'id', e.id, 'name', e.name, 'manufacturer', e.manufacturer, 'model', e.model,
+        'serial_number', e.serial_number, 'location', e.location
+      ) ORDER BY e.name)
+      FROM public.equipment e WHERE e.organization_id = p_organization_id
+    ), '[]'::jsonb)
+  );
+END;
+$$;
+
+
+ALTER FUNCTION "public"."operator_get_organization"("p_organization_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."operator_list_unclaimed_organizations"() RETURNS TABLE("id" "uuid", "name" "text", "provisioned_at" timestamp with time zone, "provisioned_by" "uuid", "pending_staff" bigint, "equipment_count" bigint)
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+  SELECT
+    o.id,
+    o.name,
+    o.provisioned_at,
+    o.provisioned_by,
+    (SELECT count(*) FROM public.organization_provisioned_members pm
+      WHERE pm.organization_id = o.id AND pm.status = 'pending'),
+    (SELECT count(*) FROM public.equipment e WHERE e.organization_id = o.id)
+  FROM public.organizations o
+  WHERE public.org_is_operator_editable(o.id)
+  ORDER BY o.provisioned_at DESC;
+$$;
+
+
+ALTER FUNCTION "public"."operator_list_unclaimed_organizations"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."operator_revoke_staged_member"("p_operator_id" "uuid", "p_staged_member_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_org_id uuid;
+BEGIN
+  SELECT organization_id INTO v_org_id
+  FROM public.organization_provisioned_members
+  WHERE id = p_staged_member_id;
+
+  IF v_org_id IS NULL THEN
+    RAISE EXCEPTION 'Staged member not found' USING ERRCODE = '22023';
+  END IF;
+
+  PERFORM public.assert_org_operator_editable(v_org_id);
+
+  UPDATE public.organization_provisioned_members
+  SET status = 'revoked',
+      revoked_at = now(),
+      revoked_by = p_operator_id
+  WHERE id = p_staged_member_id
+    AND status = 'pending';
+END;
+$$;
+
+
+ALTER FUNCTION "public"."operator_revoke_staged_member"("p_operator_id" "uuid", "p_staged_member_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."operator_stage_member"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_email" "text", "p_role" "text", "p_team_id" "uuid" DEFAULT NULL::"uuid", "p_team_role" "public"."team_member_role" DEFAULT NULL::"public"."team_member_role", "p_attach_existing" boolean DEFAULT false) RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_id uuid;
+BEGIN
+  PERFORM public.assert_org_operator_editable(p_organization_id);
+
+  IF NOT p_attach_existing AND EXISTS (
+    SELECT 1 FROM public.operator_verified_account_emails(ARRAY[p_email])
+  ) THEN
+    RAISE EXCEPTION 'EXISTING_ACCOUNT'
+      USING ERRCODE = '22023',
+            DETAIL = format('%s already has a verified EquipQR account and would be attached immediately.', public.normalize_email(p_email));
+  END IF;
+
+  v_id := public.stage_provisioned_member(p_organization_id, p_email, p_role, p_team_id, p_team_role);
+
+  UPDATE public.organization_provisioned_members
+  SET staged_by = p_operator_id
+  WHERE id = v_id;
+
+  RETURN v_id;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."operator_stage_member"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_email" "text", "p_role" "text", "p_team_id" "uuid", "p_team_role" "public"."team_member_role", "p_attach_existing" boolean) OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."operator_verified_account_emails"("p_emails" "text"[]) RETURNS SETOF "text"
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+  SELECT DISTINCT public.normalize_email(u.email)
+  FROM auth.users u
+  WHERE u.email_confirmed_at IS NOT NULL
+    AND public.normalize_email(u.email) = ANY (
+      SELECT public.normalize_email(e) FROM unnest(p_emails) AS e
+    );
+$$;
+
+
+ALTER FUNCTION "public"."operator_verified_account_emails"("p_emails" "text"[]) OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."operator_verified_account_emails"("p_emails" "text"[]) IS 'Which of these emails already belong to a verified account (staging them attaches that account immediately).';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."org_is_operator_editable"("p_organization_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.organizations o
+    WHERE o.id = p_organization_id
+      AND o.provisioned_at IS NOT NULL
+      AND o.claimed_at IS NULL
+      AND NOT EXISTS (
+        SELECT 1
+        FROM public.organization_members om
+        WHERE om.organization_id = o.id
+          AND om.status = 'active'
+      )
+  );
+$$;
+
+
+ALTER FUNCTION "public"."org_is_operator_editable"("p_organization_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."org_is_operator_editable"("p_organization_id" "uuid") IS 'True while a provisioned organization has never been claimed and has no active members. Operators may read or edit it only then.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."peek_google_workspace_oauth_session"("p_session_token" "text", "p_nonce" "text") RETURNS TABLE("redirect_url" "text", "origin_url" "text")
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public', 'pg_temp'
@@ -12031,6 +12833,154 @@ COMMENT ON FUNCTION "public"."process_departure_batch"("p_queue_id" "uuid", "p_b
 
 
 
+CREATE OR REPLACE FUNCTION "public"."provision_organization"("p_request_id" "uuid", "p_operator_id" "uuid", "p_name" "text", "p_team_name" "text", "p_staff" "jsonb", "p_equipment" "jsonb", "p_attach_existing_emails" "text"[] DEFAULT '{}'::"text"[]) RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_org_id uuid;
+  v_existing_operator uuid;
+  v_team_id uuid;
+  v_staff jsonb;
+  v_email text;
+  v_team_role text;
+  v_attach text[];
+  v_staged_id uuid;
+BEGIN
+  IF p_request_id IS NULL OR p_operator_id IS NULL THEN
+    RAISE EXCEPTION 'request id and operator id are required' USING ERRCODE = '22023';
+  END IF;
+
+  IF coalesce(btrim(p_name), '') = '' THEN
+    RAISE EXCEPTION 'Organization name is required' USING ERRCODE = '22023';
+  END IF;
+
+  IF jsonb_typeof(p_staff) IS DISTINCT FROM 'array'
+    OR (SELECT count(*) FROM jsonb_array_elements(p_staff) s WHERE s->>'role' = 'owner') <> 1 THEN
+    RAISE EXCEPTION 'Staff must include exactly one owner' USING ERRCODE = '22023';
+  END IF;
+
+  IF p_equipment IS NOT NULL AND jsonb_typeof(p_equipment) <> 'array' THEN
+    RAISE EXCEPTION 'Equipment must be an array' USING ERRCODE = '22023';
+  END IF;
+
+  -- Idempotency: a retried request returns the organization it already made.
+  SELECT o.id, o.provisioned_by INTO v_org_id, v_existing_operator
+  FROM public.organizations o
+  WHERE o.provisioning_request_id = p_request_id;
+
+  IF v_org_id IS NOT NULL THEN
+    IF v_existing_operator IS DISTINCT FROM p_operator_id THEN
+      RAISE EXCEPTION 'Request id already used' USING ERRCODE = '42501';
+    END IF;
+    RETURN jsonb_build_object('organization_id', v_org_id, 'created', false);
+  END IF;
+
+  SELECT array_agg(public.normalize_email(e)) INTO v_attach
+  FROM unnest(coalesce(p_attach_existing_emails, '{}'::text[])) AS e;
+
+  INSERT INTO public.organizations (
+    name, plan, member_count, max_members, provisioned_at, provisioned_by, provisioning_request_id
+  )
+  VALUES (
+    btrim(p_name),
+    'free',
+    0,
+    GREATEST(5, jsonb_array_length(p_staff)),
+    now(),
+    p_operator_id,
+    p_request_id
+  )
+  RETURNING id INTO v_org_id;
+
+  INSERT INTO public.teams (organization_id, name)
+  VALUES (v_org_id, COALESCE(NULLIF(btrim(p_team_name), ''), 'Main Yard'))
+  RETURNING id INTO v_team_id;
+
+  IF p_equipment IS NOT NULL AND jsonb_array_length(p_equipment) > 0 THEN
+    INSERT INTO public.equipment (
+      organization_id, team_id, name, manufacturer, model, serial_number,
+      location, installation_date, status, notes, import_id
+    )
+    SELECT
+      v_org_id,
+      v_team_id,
+      btrim(e.name),
+      COALESCE(btrim(e.manufacturer), ''),
+      COALESCE(btrim(e.model), ''),
+      COALESCE(btrim(e.serial_number), ''),
+      COALESCE(NULLIF(btrim(e.location), ''), 'Yard'),
+      COALESCE(e.installation_date, current_date),
+      COALESCE(NULLIF(e.status, ''), 'active')::public.equipment_status,
+      NULLIF(btrim(e.notes), ''),
+      NULLIF(btrim(e.import_id), '')
+    FROM jsonb_to_recordset(p_equipment) AS e(
+      name text, manufacturer text, model text, serial_number text, location text,
+      installation_date date, status text, notes text, import_id text
+    );
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM public.operator_verified_account_emails(
+      ARRAY(SELECT s->>'email' FROM jsonb_array_elements(p_staff) s)
+    ) AS existing(email)
+    WHERE existing.email <> ALL (coalesce(v_attach, '{}'::text[]))
+  ) THEN
+    RAISE EXCEPTION 'EXISTING_ACCOUNT'
+      USING ERRCODE = '22023',
+            DETAIL = 'One or more staff emails already have a verified EquipQR account; confirm attaching them.';
+  END IF;
+
+  -- Existing verified accounts are attached the moment they are staged, so
+  -- stage everyone else first.
+  FOR v_staff IN
+    SELECT s
+    FROM jsonb_array_elements(p_staff) AS s
+    ORDER BY (public.normalize_email(s->>'email') = ANY (coalesce(v_attach, '{}'::text[])))
+  LOOP
+    v_email := public.normalize_email(v_staff->>'email');
+    v_team_role := NULLIF(v_staff->>'team_role', '');
+
+    v_staged_id := public.stage_provisioned_member(
+      v_org_id,
+      v_email,
+      v_staff->>'role',
+      CASE WHEN v_team_role IS NULL THEN NULL ELSE v_team_id END,
+      v_team_role::public.team_member_role
+    );
+
+    UPDATE public.organization_provisioned_members
+    SET staged_by = p_operator_id
+    WHERE id = v_staged_id;
+  END LOOP;
+
+  RETURN jsonb_build_object('organization_id', v_org_id, 'team_id', v_team_id, 'created', true);
+EXCEPTION WHEN unique_violation THEN
+  -- A concurrent retry of the same request won the insert.
+  IF EXISTS (
+    SELECT 1 FROM public.organizations o
+    WHERE o.provisioning_request_id = p_request_id
+      AND o.provisioned_by = p_operator_id
+  ) THEN
+    RETURN jsonb_build_object(
+      'organization_id',
+      (SELECT o.id FROM public.organizations o WHERE o.provisioning_request_id = p_request_id),
+      'created', false
+    );
+  END IF;
+  RAISE;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."provision_organization"("p_request_id" "uuid", "p_operator_id" "uuid", "p_name" "text", "p_team_name" "text", "p_staff" "jsonb", "p_equipment" "jsonb", "p_attach_existing_emails" "text"[]) OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."provision_organization"("p_request_id" "uuid", "p_operator_id" "uuid", "p_name" "text", "p_team_name" "text", "p_staff" "jsonb", "p_equipment" "jsonb", "p_attach_existing_emails" "text"[]) IS 'Operator tooling (service role): creates a Done-For-You organization with its team, equipment, and staged staff in one transaction. Idempotent per p_request_id.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."reconcile_google_workspace_directory"("p_organization_id" "uuid", "p_sync_started_at" timestamp with time zone) RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public', 'pg_temp'
@@ -12102,6 +13052,44 @@ ALTER FUNCTION "public"."reconcile_google_workspace_directory"("p_organization_i
 
 
 COMMENT ON FUNCTION "public"."reconcile_google_workspace_directory"("p_organization_id" "uuid", "p_sync_started_at" timestamp with time zone) IS 'Marks active directory users not refreshed during the sync run as suspended and revokes workspace-derived memberships/claims for inactive directory users.';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."reconcile_support_operators"("p_operator_ids" "uuid"[]) RETURNS integer
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_removed integer := 0;
+BEGIN
+  DELETE FROM public.organization_members om
+  WHERE om.status = 'support'
+    AND NOT (om.user_id = ANY (COALESCE(p_operator_ids, ARRAY[]::uuid[])));
+  GET DIAGNOSTICS v_removed = ROW_COUNT;
+
+  UPDATE public.organization_support_grants g
+  SET revoked_at = now()
+  WHERE g.revoked_at IS NULL
+    AND NOT EXISTS (
+      SELECT 1
+      FROM public.organization_members om
+      WHERE om.organization_id = g.organization_id
+        AND om.user_id = ANY (COALESCE(p_operator_ids, ARRAY[]::uuid[]))
+        AND (
+          (om.status = 'support' AND om.support_grant_id = g.id)
+          OR (om.status = 'active' AND om.role IN ('owner', 'admin'))
+        )
+    );
+
+  RETURN v_removed;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."reconcile_support_operators"("p_operator_ids" "uuid"[]) OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."reconcile_support_operators"("p_operator_ids" "uuid"[]) IS 'Service role / config sync: immediately removes support memberships for users absent from the current DFY_OPERATOR_USER_IDS allowlist and closes any open grant with no remaining support operators.';
 
 
 
@@ -12529,7 +13517,7 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Organization is required');
   END IF;
 
-  IF NOT public.is_org_admin(auth.uid(), p_organization_id) THEN
+  IF NOT public.is_org_operational_admin(auth.uid(), p_organization_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
 
@@ -13587,7 +14575,7 @@ BEGIN
   END IF;
   
   -- Check if user is admin
-  IF NOT is_org_admin(auth.uid(), org_id) THEN
+  IF NOT is_org_operational_admin(auth.uid(), org_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
   
@@ -13640,7 +14628,7 @@ BEGIN
   END IF;
   
   -- Check if user is admin
-  IF NOT is_org_admin(auth.uid(), org_id) THEN
+  IF NOT is_org_operational_admin(auth.uid(), org_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
   
@@ -13671,6 +14659,89 @@ $$;
 
 
 ALTER FUNCTION "public"."revert_work_order_status"("p_work_order_id" "uuid", "p_reason" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."revoke_provisioned_member"("p_staged_member_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_org_id uuid;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated' USING ERRCODE = '42501';
+  END IF;
+
+  SELECT pm.organization_id INTO v_org_id
+  FROM public.organization_provisioned_members pm
+  WHERE pm.id = p_staged_member_id;
+
+  -- Active owners/admins only: live support (status 'support') is excluded.
+  IF v_org_id IS NULL OR NOT public.user_is_org_admin(v_org_id, v_user_id) THEN
+    RAISE EXCEPTION 'Staged member not found' USING ERRCODE = '42501';
+  END IF;
+
+  UPDATE public.organization_provisioned_members
+  SET status = 'revoked',
+      revoked_at = now(),
+      revoked_by = v_user_id
+  WHERE id = p_staged_member_id
+    AND status = 'pending';
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Only pending staged members can be revoked' USING ERRCODE = '22023';
+  END IF;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."revoke_provisioned_member"("p_staged_member_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."revoke_provisioned_member"("p_staged_member_id" "uuid") IS 'Org owners/admins revoke a Done-For-You staged person who has not signed in yet.';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."revoke_support_access"("p_organization_id" "uuid") RETURNS boolean
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_revoked integer;
+BEGIN
+  IF v_user_id IS NULL OR NOT EXISTS (
+    SELECT 1 FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = v_user_id
+      AND om.role = 'owner'
+      AND om.status = 'active'
+  ) THEN
+    RAISE EXCEPTION 'Only the organization owner can revoke support access' USING ERRCODE = '42501';
+  END IF;
+
+  UPDATE public.organization_support_grants
+  SET revoked_at = now(),
+      revoked_by = v_user_id
+  WHERE organization_id = p_organization_id
+    AND revoked_at IS NULL;
+  GET DIAGNOSTICS v_revoked = ROW_COUNT;
+
+  DELETE FROM public.organization_members
+  WHERE organization_id = p_organization_id
+    AND status = 'support';
+
+  RETURN v_revoked > 0;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."revoke_support_access"("p_organization_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."revoke_support_access"("p_organization_id" "uuid") IS 'The organization owner ends EquipQR Support access immediately.';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."rotate_operator_checkin_token"("p_settings_id" "uuid") RETURNS TABLE("raw_token" "text", "token_hash" "text")
@@ -14123,6 +15194,67 @@ $$;
 ALTER FUNCTION "public"."snapshot_pm_working_hours"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."stage_provisioned_member"("p_organization_id" "uuid", "p_email" "text", "p_role" "text", "p_team_id" "uuid" DEFAULT NULL::"uuid", "p_team_role" "public"."team_member_role" DEFAULT NULL::"public"."team_member_role") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_email text := public.normalize_email(p_email);
+  v_id uuid;
+  v_existing_user_id uuid;
+BEGIN
+  IF v_email IS NULL OR v_email = '' THEN
+    RAISE EXCEPTION 'Email is required' USING ERRCODE = '22023';
+  END IF;
+
+  IF p_team_id IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM public.teams t
+    WHERE t.id = p_team_id
+      AND t.organization_id = p_organization_id
+  ) THEN
+    RAISE EXCEPTION 'Team % does not belong to organization %', p_team_id, p_organization_id
+      USING ERRCODE = '22023';
+  END IF;
+
+  INSERT INTO public.organization_provisioned_members (
+    organization_id,
+    email,
+    role,
+    team_id,
+    team_role
+  )
+  VALUES (
+    p_organization_id,
+    v_email,
+    p_role,
+    p_team_id,
+    CASE WHEN p_team_id IS NULL THEN NULL ELSE COALESCE(p_team_role, 'technician'::public.team_member_role) END
+  )
+  RETURNING id INTO v_id;
+
+  -- Someone who already has a verified account claims immediately.
+  SELECT u.id INTO v_existing_user_id
+  FROM auth.users u
+  WHERE public.normalize_email(u.email) = v_email
+    AND u.email_confirmed_at IS NOT NULL
+  LIMIT 1;
+
+  IF v_existing_user_id IS NOT NULL THEN
+    PERFORM public.claim_provisioned_memberships(v_existing_user_id);
+  END IF;
+
+  RETURN v_id;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."stage_provisioned_member"("p_organization_id" "uuid", "p_email" "text", "p_role" "text", "p_team_id" "uuid", "p_team_role" "public"."team_member_role") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."stage_provisioned_member"("p_organization_id" "uuid", "p_email" "text", "p_role" "text", "p_team_id" "uuid", "p_team_role" "public"."team_member_role") IS 'Operator tooling (service role): pre-stages an email-keyed membership on a provisioned organization; claims immediately when a verified account already exists (issue #1648).';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."storage_object_path_segment_uuid"("p_object_name" "text", "p_segment_index" integer) RETURNS "uuid"
     LANGUAGE "sql" IMMUTABLE
     SET "search_path" TO ''
@@ -14311,6 +15443,28 @@ $$;
 
 
 ALTER FUNCTION "public"."submit_quick_form_public"("p_token_hash" "text", "p_field_values" "jsonb", "p_client_context" "jsonb", "p_form_snapshot" "jsonb", "p_request_fingerprint" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."support_grant_is_live"("p_grant_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    SET "row_security" TO 'off'
+    AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.organization_support_grants g
+    WHERE g.id = p_grant_id
+      AND g.revoked_at IS NULL
+      AND g.expires_at > now()
+  );
+$$;
+
+
+ALTER FUNCTION "public"."support_grant_is_live"("p_grant_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."support_grant_is_live"("p_grant_id" "uuid") IS 'True while a support grant is neither revoked nor expired. RLS predicate helper.';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."sync_equipment_customer_from_team"() RETURNS "trigger"
@@ -14625,7 +15779,7 @@ BEGIN
 
   IF p_is_private IS NOT NULL AND p_is_private IS DISTINCT FROM v_note.is_private THEN
     IF NOT (
-      public.is_org_admin(v_user_id, p_organization_id)
+      public.is_org_operational_admin(v_user_id, p_organization_id)
       OR public.is_equipment_team_manager(v_user_id, p_equipment_id)
       OR (
         v_note.author_id = v_user_id
@@ -14701,7 +15855,7 @@ BEGIN
   
   -- Check permissions
   IF NOT (
-    is_org_admin(auth.uid(), org_id) 
+    is_org_operational_admin(auth.uid(), org_id) 
     OR (
       is_org_member(auth.uid(), org_id) 
       AND EXISTS (
@@ -14795,7 +15949,7 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Note timestamp is required');
   END IF;
 
-  IF NOT public.is_org_admin(auth.uid(), p_organization_id) THEN
+  IF NOT public.is_org_operational_admin(auth.uid(), p_organization_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
 
@@ -14919,7 +16073,7 @@ BEGIN
     RAISE EXCEPTION 'Customer not found';
   END IF;
 
-  IF public.is_org_admin((SELECT auth.uid()), v_org_id) THEN
+  IF public.is_org_operational_admin((SELECT auth.uid()), v_org_id) THEN
     NULL;
   ELSIF v_source = 'manual'
     AND v_source_external_id IS NULL
@@ -15320,7 +16474,7 @@ BEGIN
     WHERE wo.id = p_work_order_id;
 
     IF NOT (
-      public.is_org_admin(v_user_id, p_organization_id)
+      public.is_org_operational_admin(v_user_id, p_organization_id)
       OR public.is_work_order_team_manager(v_user_id, p_work_order_id)
       OR (
         v_note.author_id = v_user_id
@@ -15416,13 +16570,12 @@ CREATE OR REPLACE FUNCTION "public"."user_is_org_member"("org_id" "uuid", "check
     SET "search_path" TO 'public'
     AS $$
 BEGIN
-  -- This function runs with definer rights, bypassing RLS
   RETURN EXISTS (
-    SELECT 1 
-    FROM organization_members 
-    WHERE organization_id = org_id 
+    SELECT 1
+    FROM organization_members
+    WHERE organization_id = org_id
       AND user_id = check_user_id
-      AND status = 'active'
+      AND (status = 'active' OR (status = 'support' AND public.support_grant_is_live(support_grant_id)))
   );
 END;
 $$;
@@ -15543,30 +16696,6 @@ $$;
 
 
 ALTER FUNCTION "public"."validate_invitation_for_account_creation"("p_invitation_id" "uuid") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."validate_member_limit"() RETURNS "trigger"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
-    AS $$
-DECLARE
-  current_count INTEGER;
-  max_count INTEGER;
-BEGIN
-  IF NEW.status = 'active' THEN
-    SELECT member_count, max_members INTO current_count, max_count
-    FROM organizations WHERE id = NEW.organization_id;
-    
-    IF current_count >= max_count THEN
-      RAISE EXCEPTION 'Organization has reached maximum member limit of %', max_count;
-    END IF;
-  END IF;
-  RETURN NEW;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."validate_member_limit"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."validate_operator_checkin_settings_org_refs"() RETURNS "trigger"
@@ -16683,7 +17812,9 @@ CREATE TABLE IF NOT EXISTS "public"."organization_members" (
     "can_manage_quickbooks" boolean DEFAULT false NOT NULL,
     "access_source" "text",
     "product_onboarding_completed_at" timestamp with time zone,
-    CONSTRAINT "organization_members_access_source_check" CHECK ((("access_source" IS NULL) OR ("access_source" = ANY (ARRAY['google_workspace'::"text", 'invitation'::"text", 'owner'::"text", 'manual'::"text"]))))
+    "support_grant_id" "uuid",
+    CONSTRAINT "organization_members_access_source_check" CHECK ((("access_source" IS NULL) OR ("access_source" = ANY (ARRAY['google_workspace'::"text", 'invitation'::"text", 'owner'::"text", 'manual'::"text", 'provisioned'::"text", 'support'::"text"])))),
+    CONSTRAINT "organization_members_support_shape_check" CHECK ((((COALESCE("access_source", ''::"text") = 'support'::"text") = ("status" = 'support'::"text")) AND (("status" = 'support'::"text") = ("support_grant_id" IS NOT NULL)) AND (("status" <> 'support'::"text") OR ("role" = 'admin'::"text"))))
 );
 
 ALTER TABLE ONLY "public"."organization_members" REPLICA IDENTITY FULL;
@@ -16700,11 +17831,52 @@ COMMENT ON COLUMN "public"."organization_members"."can_manage_quickbooks" IS 'Wh
 
 
 
-COMMENT ON COLUMN "public"."organization_members"."access_source" IS 'How this membership was created: google_workspace import/claim, invitation, owner bootstrap, or manual admin add.';
+COMMENT ON COLUMN "public"."organization_members"."access_source" IS 'How this membership was created: google_workspace import/claim, invitation, owner bootstrap, manual admin add, provisioned (claimed Done-For-You staged membership), or support (owner-granted, time-limited EquipQR Support access).';
 
 
 
 COMMENT ON COLUMN "public"."organization_members"."product_onboarding_completed_at" IS 'When the org owner/admin completed the in-app getting-started wizard (team, equipment, QR).';
+
+
+
+CREATE TABLE IF NOT EXISTS "public"."organization_provisioned_members" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "organization_id" "uuid" NOT NULL,
+    "email" "text" NOT NULL,
+    "role" "text" NOT NULL,
+    "team_id" "uuid",
+    "team_role" "public"."team_member_role",
+    "status" "text" DEFAULT 'pending'::"text" NOT NULL,
+    "claimed_user_id" "uuid",
+    "claimed_at" timestamp with time zone,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "claimed_role" "text",
+    "last_claim_error" "text",
+    "revoked_at" timestamp with time zone,
+    "revoked_by" "uuid",
+    "staged_by" "uuid",
+    CONSTRAINT "organization_provisioned_members_claim_check" CHECK ((("status" = 'claimed'::"text") = ("claimed_at" IS NOT NULL))),
+    CONSTRAINT "organization_provisioned_members_claimed_role_check" CHECK ((("claimed_role" IS NULL) OR ("claimed_role" = ANY (ARRAY['owner'::"text", 'admin'::"text", 'member'::"text"])))),
+    CONSTRAINT "organization_provisioned_members_email_normalized_check" CHECK ((("email" = "public"."normalize_email"("email")) AND ("email" ~~ '%_@_%'::"text"))),
+    CONSTRAINT "organization_provisioned_members_role_check" CHECK (("role" = ANY (ARRAY['owner'::"text", 'admin'::"text", 'member'::"text"]))),
+    CONSTRAINT "organization_provisioned_members_status_check" CHECK (("status" = ANY (ARRAY['pending'::"text", 'claimed'::"text", 'revoked'::"text"]))),
+    CONSTRAINT "organization_provisioned_members_team_role_check" CHECK ((("team_role" IS NULL) OR ("team_id" IS NOT NULL)))
+);
+
+
+ALTER TABLE "public"."organization_provisioned_members" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."organization_provisioned_members" IS 'Pre-staged (shadow) memberships for operator-provisioned organizations, keyed by normalized email. Claimed automatically when a user with that verified email signs in (issue #1648). Service-role writes only.';
+
+
+
+COMMENT ON COLUMN "public"."organization_provisioned_members"."claimed_role" IS 'Organization role actually granted at claim time (differs from role when a staged owner was downgraded to admin).';
+
+
+
+COMMENT ON COLUMN "public"."organization_provisioned_members"."last_claim_error" IS 'Error from the most recent failed claim attempt; the row stays pending and the sign-in proceeds.';
 
 
 
@@ -16725,6 +17897,30 @@ CREATE TABLE IF NOT EXISTS "public"."organization_role_grants_pending" (
 
 
 ALTER TABLE "public"."organization_role_grants_pending" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."organization_support_grants" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "organization_id" "uuid" NOT NULL,
+    "granted_by" "uuid",
+    "granted_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "expires_at" timestamp with time zone NOT NULL,
+    "revoked_at" timestamp with time zone,
+    "revoked_by" "uuid",
+    "source" "text" NOT NULL,
+    "ticket_ref" "text",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "organization_support_grants_expiry_check" CHECK ((("expires_at" > "granted_at") AND ("expires_at" <= ("granted_at" + '7 days 00:01:00'::interval)))),
+    CONSTRAINT "organization_support_grants_source_check" CHECK (("source" = ANY (ARRAY['settings'::"text", 'bug_report'::"text"])))
+);
+
+
+ALTER TABLE "public"."organization_support_grants" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."organization_support_grants" IS 'Owner-granted, time-limited EquipQR Support access to one organization. Access ends at expires_at or revoked_at, enforced by the access helpers at query time.';
+
 
 
 CREATE TABLE IF NOT EXISTS "public"."organizations" (
@@ -16753,11 +17949,19 @@ CREATE TABLE IF NOT EXISTS "public"."organizations" (
     "inventory_default_location_country" "text",
     "inventory_default_location_lat" double precision,
     "inventory_default_location_lng" double precision,
-    "note_author_edit_window_hours" integer DEFAULT 24 NOT NULL
+    "note_author_edit_window_hours" integer DEFAULT 24 NOT NULL,
+    "provisioned_at" timestamp with time zone,
+    "claimed_at" timestamp with time zone,
+    "provisioned_by" "uuid",
+    "provisioning_request_id" "uuid"
 );
 
 
 ALTER TABLE "public"."organizations" OWNER TO "postgres";
+
+
+COMMENT ON COLUMN "public"."organizations"."max_members" IS 'Legacy, not enforced. Organizations have no member limit.';
+
 
 
 COMMENT ON COLUMN "public"."organizations"."billing_cycle" IS 'DEPRECATED: Billing removed 2025-01-15. Column preserved for historical data.';
@@ -16817,6 +18021,22 @@ COMMENT ON COLUMN "public"."organizations"."inventory_default_location_lng" IS '
 
 
 COMMENT ON COLUMN "public"."organizations"."note_author_edit_window_hours" IS 'Hours after creation that note authors may edit their own notes. Org admins and team managers are not time-limited.';
+
+
+
+COMMENT ON COLUMN "public"."organizations"."provisioned_at" IS 'Set when the organization was pre-provisioned by an operator (Done-For-You onboarding, issue #1648).';
+
+
+
+COMMENT ON COLUMN "public"."organizations"."claimed_at" IS 'Set when the first staged owner of a pre-provisioned organization claimed it.';
+
+
+
+COMMENT ON COLUMN "public"."organizations"."provisioned_by" IS 'Operator (EquipQR staff user) who provisioned this Done-For-You organization.';
+
+
+
+COMMENT ON COLUMN "public"."organizations"."provisioning_request_id" IS 'Client-generated idempotency key for in-app provisioning; a retried request returns the same organization.';
 
 
 
@@ -18290,8 +19510,18 @@ ALTER TABLE ONLY "public"."organization_members"
 
 
 
+ALTER TABLE ONLY "public"."organization_provisioned_members"
+    ADD CONSTRAINT "organization_provisioned_members_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."organization_role_grants_pending"
     ADD CONSTRAINT "organization_role_grants_pending_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."organization_support_grants"
+    ADD CONSTRAINT "organization_support_grants_pkey" PRIMARY KEY ("id");
 
 
 
@@ -18941,6 +20171,50 @@ CREATE INDEX "idx_org_members_user_org_status" ON "public"."organization_members
 
 
 
+CREATE INDEX "idx_org_provisioned_members_claimed_user" ON "public"."organization_provisioned_members" USING "btree" ("claimed_user_id");
+
+
+
+CREATE UNIQUE INDEX "idx_org_provisioned_members_live_email" ON "public"."organization_provisioned_members" USING "btree" ("organization_id", "email") WHERE ("status" <> 'revoked'::"text");
+
+
+
+CREATE UNIQUE INDEX "idx_org_provisioned_members_live_owner" ON "public"."organization_provisioned_members" USING "btree" ("organization_id") WHERE (("role" = 'owner'::"text") AND ("status" <> 'revoked'::"text"));
+
+
+
+CREATE INDEX "idx_org_provisioned_members_pending_email" ON "public"."organization_provisioned_members" USING "btree" ("email") WHERE ("status" = 'pending'::"text");
+
+
+
+CREATE INDEX "idx_org_provisioned_members_revoked_by" ON "public"."organization_provisioned_members" USING "btree" ("revoked_by");
+
+
+
+CREATE INDEX "idx_org_provisioned_members_staged_by" ON "public"."organization_provisioned_members" USING "btree" ("staged_by");
+
+
+
+CREATE INDEX "idx_org_provisioned_members_team_id" ON "public"."organization_provisioned_members" USING "btree" ("team_id");
+
+
+
+CREATE INDEX "idx_org_support_grants_granted_by" ON "public"."organization_support_grants" USING "btree" ("granted_by");
+
+
+
+CREATE UNIQUE INDEX "idx_org_support_grants_one_open" ON "public"."organization_support_grants" USING "btree" ("organization_id") WHERE ("revoked_at" IS NULL);
+
+
+
+CREATE INDEX "idx_org_support_grants_org" ON "public"."organization_support_grants" USING "btree" ("organization_id", "granted_at" DESC);
+
+
+
+CREATE INDEX "idx_org_support_grants_revoked_by" ON "public"."organization_support_grants" USING "btree" ("revoked_by");
+
+
+
 CREATE INDEX "idx_organization_google_export_destinations_configured_by" ON "public"."organization_google_export_destinations" USING "btree" ("configured_by");
 
 
@@ -18989,6 +20263,10 @@ CREATE INDEX "idx_organization_members_organization_id" ON "public"."organizatio
 
 
 
+CREATE INDEX "idx_organization_members_support_grant_id" ON "public"."organization_members" USING "btree" ("support_grant_id");
+
+
+
 CREATE INDEX "idx_organization_members_user_id" ON "public"."organization_members" USING "btree" ("user_id");
 
 
@@ -19006,6 +20284,14 @@ CREATE INDEX "idx_organization_role_grants_pending_applied_user_id" ON "public".
 
 
 CREATE INDEX "idx_organization_role_grants_pending_created_by" ON "public"."organization_role_grants_pending" USING "btree" ("created_by");
+
+
+
+CREATE INDEX "idx_organizations_provisioned_by" ON "public"."organizations" USING "btree" ("provisioned_by");
+
+
+
+CREATE UNIQUE INDEX "idx_organizations_provisioning_request_id" ON "public"."organizations" USING "btree" ("provisioning_request_id") WHERE ("provisioning_request_id" IS NOT NULL);
 
 
 
@@ -19553,6 +20839,10 @@ COMMENT ON TRIGGER "broadcast_notification_trigger" ON "public"."notifications" 
 
 
 
+CREATE OR REPLACE TRIGGER "clear_provisioned_member_team_role" BEFORE UPDATE OF "team_id" ON "public"."organization_provisioned_members" FOR EACH ROW WHEN ((("new"."team_id" IS NULL) AND ("new"."team_role" IS NOT NULL))) EXECUTE FUNCTION "public"."clear_provisioned_member_team_role"();
+
+
+
 CREATE OR REPLACE TRIGGER "enforce_manual_external_contact_metadata" BEFORE INSERT OR UPDATE ON "public"."external_customer_contacts" FOR EACH ROW EXECUTE FUNCTION "public"."enforce_manual_external_contact_metadata"();
 
 
@@ -19570,6 +20860,14 @@ CREATE OR REPLACE TRIGGER "expire_invitations_trigger" AFTER INSERT OR UPDATE ON
 
 
 CREATE OR REPLACE TRIGGER "expire_old_invitations_trigger" AFTER INSERT ON "public"."organization_invitations" FOR EACH STATEMENT EXECUTE FUNCTION "public"."expire_old_invitations"();
+
+
+
+CREATE OR REPLACE TRIGGER "guard_support_invitations" BEFORE INSERT OR UPDATE ON "public"."organization_invitations" FOR EACH ROW EXECUTE FUNCTION "public"."guard_support_invitations"();
+
+
+
+CREATE OR REPLACE TRIGGER "guard_support_memberships" BEFORE INSERT OR UPDATE ON "public"."organization_members" FOR EACH ROW EXECUTE FUNCTION "public"."guard_support_memberships"();
 
 
 
@@ -19777,10 +21075,6 @@ CREATE OR REPLACE TRIGGER "trigger_update_pm_updated_at" BEFORE UPDATE ON "publi
 
 
 
-CREATE OR REPLACE TRIGGER "trigger_validate_member_limit" BEFORE INSERT OR UPDATE ON "public"."organization_members" FOR EACH ROW EXECUTE FUNCTION "public"."validate_member_limit"();
-
-
-
 CREATE OR REPLACE TRIGGER "update_inventory_items_updated_at" BEFORE UPDATE ON "public"."inventory_items" FOR EACH ROW EXECUTE FUNCTION "public"."update_updated_at_column"();
 
 
@@ -19794,6 +21088,14 @@ CREATE OR REPLACE TRIGGER "update_notification_settings_updated_at" BEFORE UPDAT
 
 
 CREATE OR REPLACE TRIGGER "update_organization_invitations_updated_at" BEFORE UPDATE ON "public"."organization_invitations" FOR EACH ROW EXECUTE FUNCTION "public"."handle_updated_at"();
+
+
+
+CREATE OR REPLACE TRIGGER "update_organization_provisioned_members_updated_at" BEFORE UPDATE ON "public"."organization_provisioned_members" FOR EACH ROW EXECUTE FUNCTION "public"."handle_updated_at"();
+
+
+
+CREATE OR REPLACE TRIGGER "update_organization_support_grants_updated_at" BEFORE UPDATE ON "public"."organization_support_grants" FOR EACH ROW EXECUTE FUNCTION "public"."handle_updated_at"();
 
 
 
@@ -20229,7 +21531,37 @@ ALTER TABLE ONLY "public"."organization_members"
 
 
 ALTER TABLE ONLY "public"."organization_members"
+    ADD CONSTRAINT "organization_members_support_grant_id_fkey" FOREIGN KEY ("support_grant_id") REFERENCES "public"."organization_support_grants"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."organization_members"
     ADD CONSTRAINT "organization_members_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."organization_provisioned_members"
+    ADD CONSTRAINT "organization_provisioned_members_claimed_user_id_fkey" FOREIGN KEY ("claimed_user_id") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."organization_provisioned_members"
+    ADD CONSTRAINT "organization_provisioned_members_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."organization_provisioned_members"
+    ADD CONSTRAINT "organization_provisioned_members_revoked_by_fkey" FOREIGN KEY ("revoked_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."organization_provisioned_members"
+    ADD CONSTRAINT "organization_provisioned_members_staged_by_fkey" FOREIGN KEY ("staged_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."organization_provisioned_members"
+    ADD CONSTRAINT "organization_provisioned_members_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE SET NULL;
 
 
 
@@ -20245,6 +21577,26 @@ ALTER TABLE ONLY "public"."organization_role_grants_pending"
 
 ALTER TABLE ONLY "public"."organization_role_grants_pending"
     ADD CONSTRAINT "organization_role_grants_pending_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."organization_support_grants"
+    ADD CONSTRAINT "organization_support_grants_granted_by_fkey" FOREIGN KEY ("granted_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."organization_support_grants"
+    ADD CONSTRAINT "organization_support_grants_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."organization_support_grants"
+    ADD CONSTRAINT "organization_support_grants_revoked_by_fkey" FOREIGN KEY ("revoked_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
+
+
+
+ALTER TABLE ONLY "public"."organizations"
+    ADD CONSTRAINT "organizations_provisioned_by_fkey" FOREIGN KEY ("provisioned_by") REFERENCES "public"."profiles"("id") ON DELETE SET NULL;
 
 
 
@@ -20718,7 +22070,7 @@ ALTER TABLE ONLY "public"."workspace_personal_org_merge_requests"
 
 
 
-CREATE POLICY "Admins can create historical work orders" ON "public"."work_orders" FOR INSERT WITH CHECK ((("is_historical" = true) AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND ("created_by_admin" = ( SELECT "auth"."uid"() AS "uid"))));
+CREATE POLICY "Admins can create historical work orders" ON "public"."work_orders" FOR INSERT WITH CHECK ((("is_historical" = true) AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND ("created_by_admin" = ( SELECT "auth"."uid"() AS "uid"))));
 
 
 
@@ -20730,23 +22082,23 @@ CREATE POLICY "Admins can delete work orders" ON "public"."work_orders" FOR DELE
 
 CREATE POLICY "Admins can delete working hours history" ON "public"."equipment_working_hours_history" FOR DELETE USING ((EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
-  WHERE (("e"."id" = "equipment_working_hours_history"."equipment_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))));
+  WHERE (("e"."id" = "equipment_working_hours_history"."equipment_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))));
 
 
 
 CREATE POLICY "Admins can insert work order history" ON "public"."work_order_status_history" FOR INSERT WITH CHECK (((EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
-  WHERE (("wo"."id" = "work_order_status_history"."work_order_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))) AND ("changed_by" = ( SELECT "auth"."uid"() AS "uid"))));
+  WHERE (("wo"."id" = "work_order_status_history"."work_order_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))) AND ("changed_by" = ( SELECT "auth"."uid"() AS "uid"))));
 
 
 
-CREATE POLICY "Admins can update historical work orders" ON "public"."work_orders" FOR UPDATE USING ((("is_historical" = true) AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
+CREATE POLICY "Admins can update historical work orders" ON "public"."work_orders" FOR UPDATE USING ((("is_historical" = true) AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
 CREATE POLICY "Admins can update working hours history" ON "public"."equipment_working_hours_history" FOR UPDATE USING ((EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
-  WHERE (("e"."id" = "equipment_working_hours_history"."equipment_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))));
+  WHERE (("e"."id" = "equipment_working_hours_history"."equipment_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))));
 
 
 
@@ -20788,7 +22140,7 @@ CREATE POLICY "Users can create work orders in their organization" ON "public"."
 
 CREATE POLICY "Users can create working hours history for accessible equipment" ON "public"."equipment_working_hours_history" FOR INSERT WITH CHECK ((("updated_by" = ( SELECT "auth"."uid"() AS "uid")) AND (EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
-  WHERE (("e"."id" = "equipment_working_hours_history"."equipment_id") AND ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") OR ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") AND ("e"."team_id" IS NOT NULL) AND ("e"."team_id" IN ( SELECT "tm"."team_id"
+  WHERE (("e"."id" = "equipment_working_hours_history"."equipment_id") AND ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") OR ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") AND ("e"."team_id" IS NOT NULL) AND ("e"."team_id" IN ( SELECT "tm"."team_id"
            FROM "public"."team_members" "tm"
           WHERE ("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")))))))))));
 
@@ -20862,25 +22214,25 @@ CREATE POLICY "Users can view work orders in their organization" ON "public"."wo
 
 CREATE POLICY "Users can view working hours history for accessible equipment" ON "public"."equipment_working_hours_history" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
-  WHERE (("e"."id" = "equipment_working_hours_history"."equipment_id") AND ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") OR ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") AND ("e"."team_id" IS NOT NULL) AND ("e"."team_id" IN ( SELECT "tm"."team_id"
+  WHERE (("e"."id" = "equipment_working_hours_history"."equipment_id") AND ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") OR ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") AND ("e"."team_id" IS NOT NULL) AND ("e"."team_id" IN ( SELECT "tm"."team_id"
            FROM "public"."team_members" "tm"
           WHERE ("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid"))))))))));
 
 
 
-CREATE POLICY "admins_delete_teams" ON "public"."teams" FOR DELETE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "admins_delete_teams" ON "public"."teams" FOR DELETE USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
-CREATE POLICY "admins_delete_work_orders" ON "public"."work_orders" FOR DELETE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "admins_delete_work_orders" ON "public"."work_orders" FOR DELETE USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
-CREATE POLICY "admins_manage_teams" ON "public"."teams" USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "admins_manage_teams" ON "public"."teams" USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
-CREATE POLICY "admins_update_teams" ON "public"."teams" FOR UPDATE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "admins_update_teams" ON "public"."teams" FOR UPDATE USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
@@ -20892,19 +22244,19 @@ ALTER TABLE "public"."customer_contacts" ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "customer_contacts_admins_insert" ON "public"."customer_contacts" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
-  WHERE (("c"."id" = "customer_contacts"."customer_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
+  WHERE (("c"."id" = "customer_contacts"."customer_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
 
 
 
 CREATE POLICY "customer_contacts_admins_select" ON "public"."customer_contacts" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
-  WHERE (("c"."id" = "customer_contacts"."customer_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
+  WHERE (("c"."id" = "customer_contacts"."customer_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
 
 
 
 CREATE POLICY "customer_contacts_admins_update" ON "public"."customer_contacts" FOR UPDATE USING ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
-  WHERE (("c"."id" = "customer_contacts"."customer_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
+  WHERE (("c"."id" = "customer_contacts"."customer_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
 
 
 
@@ -20913,30 +22265,30 @@ ALTER TABLE "public"."customer_sites" ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "customer_sites_admins_insert" ON "public"."customer_sites" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
-  WHERE (("c"."id" = "customer_sites"."customer_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
+  WHERE (("c"."id" = "customer_sites"."customer_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
 
 
 
 CREATE POLICY "customer_sites_admins_select" ON "public"."customer_sites" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
-  WHERE (("c"."id" = "customer_sites"."customer_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
+  WHERE (("c"."id" = "customer_sites"."customer_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
 
 
 
 CREATE POLICY "customer_sites_admins_update" ON "public"."customer_sites" FOR UPDATE USING ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
-  WHERE (("c"."id" = "customer_sites"."customer_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
+  WHERE (("c"."id" = "customer_sites"."customer_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
 
 
 
 ALTER TABLE "public"."customers" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "customers_admins_insert" ON "public"."customers" FOR INSERT WITH CHECK ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "customers_admins_insert" ON "public"."customers" FOR INSERT WITH CHECK ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
-CREATE POLICY "customers_admins_update" ON "public"."customers" FOR UPDATE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "customers_admins_update" ON "public"."customers" FOR UPDATE USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
@@ -20984,11 +22336,11 @@ CREATE POLICY "dsr_requests_select" ON "public"."dsr_requests" FOR SELECT TO "au
 ALTER TABLE "public"."equipment" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "equipment_access_consolidated" ON "public"."equipment" USING (("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
+CREATE POLICY "equipment_access_consolidated" ON "public"."equipment" USING (("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
-CREATE POLICY "equipment_admin_access" ON "public"."equipment" USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "equipment_admin_access" ON "public"."equipment" USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
@@ -21024,7 +22376,7 @@ ALTER TABLE "public"."equipment_note_images" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "equipment_note_images_delete" ON "public"."equipment_note_images" FOR DELETE USING ((("uploaded_by" = ( SELECT "auth"."uid"() AS "uid")) OR (EXISTS ( SELECT 1
    FROM ("public"."equipment_notes" "en"
      JOIN "public"."equipment" "e" ON (("e"."id" = "en"."equipment_id")))
-  WHERE (("en"."id" = "equipment_note_images"."equipment_note_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id"))))));
+  WHERE (("en"."id" = "equipment_note_images"."equipment_note_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id"))))));
 
 
 
@@ -21047,7 +22399,7 @@ ALTER TABLE "public"."equipment_notes" ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "equipment_notes_delete" ON "public"."equipment_notes" FOR DELETE USING (((EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
-  WHERE (("e"."id" = "equipment_notes"."equipment_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))) OR ("author_id" = ( SELECT "auth"."uid"() AS "uid"))));
+  WHERE (("e"."id" = "equipment_notes"."equipment_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))) OR ("author_id" = ( SELECT "auth"."uid"() AS "uid"))));
 
 
 
@@ -21155,7 +22507,7 @@ ALTER TABLE "public"."external_customer_contacts" ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "external_customer_contacts_delete" ON "public"."external_customer_contacts" FOR DELETE USING ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
-  WHERE (("c"."id" = "external_customer_contacts"."customer_id") AND ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id") OR (("external_customer_contacts"."source" = 'manual'::"text") AND ("external_customer_contacts"."source_external_id" IS NULL) AND ("external_customer_contacts"."source_field" IS NULL) AND ("external_customer_contacts"."last_synced_at" IS NULL) AND ("external_customer_contacts"."source_payload" IS NULL) AND (EXISTS ( SELECT 1
+  WHERE (("c"."id" = "external_customer_contacts"."customer_id") AND ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id") OR (("external_customer_contacts"."source" = 'manual'::"text") AND ("external_customer_contacts"."source_external_id" IS NULL) AND ("external_customer_contacts"."source_field" IS NULL) AND ("external_customer_contacts"."last_synced_at" IS NULL) AND ("external_customer_contacts"."source_payload" IS NULL) AND (EXISTS ( SELECT 1
            FROM ("public"."teams" "t"
              JOIN "public"."team_members" "tm" ON (("tm"."team_id" = "t"."id")))
           WHERE (("t"."customer_id" = "c"."id") AND ("t"."organization_id" = "c"."organization_id") AND ("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."role" = 'manager'::"public"."team_member_role"))))))))));
@@ -21168,7 +22520,7 @@ COMMENT ON POLICY "external_customer_contacts_delete" ON "public"."external_cust
 
 CREATE POLICY "external_customer_contacts_insert" ON "public"."external_customer_contacts" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
-  WHERE (("c"."id" = "external_customer_contacts"."customer_id") AND ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id") OR (("external_customer_contacts"."source" = 'manual'::"text") AND ("external_customer_contacts"."source_external_id" IS NULL) AND ("external_customer_contacts"."source_field" IS NULL) AND ("external_customer_contacts"."last_synced_at" IS NULL) AND ("external_customer_contacts"."source_payload" IS NULL) AND (EXISTS ( SELECT 1
+  WHERE (("c"."id" = "external_customer_contacts"."customer_id") AND ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id") OR (("external_customer_contacts"."source" = 'manual'::"text") AND ("external_customer_contacts"."source_external_id" IS NULL) AND ("external_customer_contacts"."source_field" IS NULL) AND ("external_customer_contacts"."last_synced_at" IS NULL) AND ("external_customer_contacts"."source_payload" IS NULL) AND (EXISTS ( SELECT 1
            FROM ("public"."teams" "t"
              JOIN "public"."team_members" "tm" ON (("tm"."team_id" = "t"."id")))
           WHERE (("t"."customer_id" = "c"."id") AND ("t"."organization_id" = "c"."organization_id") AND ("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."role" = 'manager'::"public"."team_member_role"))))))))));
@@ -21187,12 +22539,12 @@ CREATE POLICY "external_customer_contacts_select" ON "public"."external_customer
 
 CREATE POLICY "external_customer_contacts_update" ON "public"."external_customer_contacts" FOR UPDATE USING ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
-  WHERE (("c"."id" = "external_customer_contacts"."customer_id") AND ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id") OR (("external_customer_contacts"."source" = 'manual'::"text") AND ("external_customer_contacts"."source_external_id" IS NULL) AND ("external_customer_contacts"."source_field" IS NULL) AND ("external_customer_contacts"."last_synced_at" IS NULL) AND ("external_customer_contacts"."source_payload" IS NULL) AND (EXISTS ( SELECT 1
+  WHERE (("c"."id" = "external_customer_contacts"."customer_id") AND ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id") OR (("external_customer_contacts"."source" = 'manual'::"text") AND ("external_customer_contacts"."source_external_id" IS NULL) AND ("external_customer_contacts"."source_field" IS NULL) AND ("external_customer_contacts"."last_synced_at" IS NULL) AND ("external_customer_contacts"."source_payload" IS NULL) AND (EXISTS ( SELECT 1
            FROM ("public"."teams" "t"
              JOIN "public"."team_members" "tm" ON (("tm"."team_id" = "t"."id")))
           WHERE (("t"."customer_id" = "c"."id") AND ("t"."organization_id" = "c"."organization_id") AND ("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."role" = 'manager'::"public"."team_member_role")))))))))) WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
-  WHERE (("c"."id" = "external_customer_contacts"."customer_id") AND ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id") OR (("external_customer_contacts"."source" = 'manual'::"text") AND ("external_customer_contacts"."source_external_id" IS NULL) AND ("external_customer_contacts"."source_field" IS NULL) AND ("external_customer_contacts"."last_synced_at" IS NULL) AND ("external_customer_contacts"."source_payload" IS NULL) AND (EXISTS ( SELECT 1
+  WHERE (("c"."id" = "external_customer_contacts"."customer_id") AND ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id") OR (("external_customer_contacts"."source" = 'manual'::"text") AND ("external_customer_contacts"."source_external_id" IS NULL) AND ("external_customer_contacts"."source_field" IS NULL) AND ("external_customer_contacts"."last_synced_at" IS NULL) AND ("external_customer_contacts"."source_payload" IS NULL) AND (EXISTS ( SELECT 1
            FROM ("public"."teams" "t"
              JOIN "public"."team_members" "tm" ON (("tm"."team_id" = "t"."id")))
           WHERE (("t"."customer_id" = "c"."id") AND ("t"."organization_id" = "c"."organization_id") AND ("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."role" = 'manager'::"public"."team_member_role"))))))))));
@@ -21296,7 +22648,7 @@ CREATE POLICY "google_workspace_oauth_sessions_update_deny" ON "public"."google_
 ALTER TABLE "public"."inventory_item_images" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "inventory_item_images_delete" ON "public"."inventory_item_images" FOR DELETE USING (((("uploaded_by" = ( SELECT "auth"."uid"() AS "uid")) AND "public"."can_manage_inventory"("organization_id")) OR "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
+CREATE POLICY "inventory_item_images_delete" ON "public"."inventory_item_images" FOR DELETE USING (((("uploaded_by" = ( SELECT "auth"."uid"() AS "uid")) AND "public"."can_manage_inventory"("organization_id")) OR "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
@@ -21313,7 +22665,7 @@ CREATE POLICY "inventory_item_images_select" ON "public"."inventory_item_images"
 ALTER TABLE "public"."inventory_items" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "inventory_items_delete" ON "public"."inventory_items" FOR DELETE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "inventory_items_delete" ON "public"."inventory_items" FOR DELETE USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
@@ -21367,7 +22719,7 @@ ALTER TABLE "public"."notes" ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "notes_delete_own_or_admin" ON "public"."notes" FOR DELETE USING ((("author_id" = ( SELECT "auth"."uid"() AS "uid")) OR (EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
-  WHERE (("e"."id" = "notes"."equipment_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id"))))));
+  WHERE (("e"."id" = "notes"."equipment_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id"))))));
 
 
 
@@ -21491,6 +22843,10 @@ CREATE POLICY "organization_members_delete_safe" ON "public"."organization_membe
 
 
 
+CREATE POLICY "organization_members_hide_dead_support" ON "public"."organization_members" AS RESTRICTIVE FOR SELECT TO "authenticated" USING ((("status" <> 'support'::"text") OR "public"."support_grant_is_live"("support_grant_id")));
+
+
+
 CREATE POLICY "organization_members_insert" ON "public"."organization_members" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."organization_members" "om"
   WHERE (("om"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("om"."organization_id" = "organization_members"."organization_id") AND ("om"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"])) AND ("om"."status" = 'active'::"text")))));
@@ -21515,6 +22871,13 @@ CREATE POLICY "organization_members_update_safe" ON "public"."organization_membe
 
 
 
+ALTER TABLE "public"."organization_provisioned_members" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "organization_provisioned_members_select" ON "public"."organization_provisioned_members" FOR SELECT TO "authenticated" USING ((("claimed_user_id" = ( SELECT "auth"."uid"() AS "uid")) OR "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
+
+
+
 ALTER TABLE "public"."organization_role_grants_pending" ENABLE ROW LEVEL SECURITY;
 
 
@@ -21533,6 +22896,13 @@ CREATE POLICY "organization_role_grants_pending_select_admin" ON "public"."organ
 CREATE POLICY "organization_role_grants_pending_update_admin" ON "public"."organization_role_grants_pending" FOR UPDATE USING (("organization_id" IN ( SELECT "om"."organization_id"
    FROM "public"."organization_members" "om"
   WHERE (("om"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("om"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"])) AND ("om"."status" = 'active'::"text")))));
+
+
+
+ALTER TABLE "public"."organization_support_grants" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "organization_support_grants_select" ON "public"."organization_support_grants" FOR SELECT TO "authenticated" USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
@@ -21726,30 +23096,30 @@ CREATE POLICY "personal_organizations_update_deny" ON "public"."personal_organiz
 ALTER TABLE "public"."pm_checklist_templates" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "pm_checklist_templates_admin_insert" ON "public"."pm_checklist_templates" FOR INSERT WITH CHECK ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "pm_checklist_templates_admin_insert" ON "public"."pm_checklist_templates" FOR INSERT WITH CHECK ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
-CREATE POLICY "pm_checklist_templates_admin_update" ON "public"."pm_checklist_templates" FOR UPDATE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "pm_checklist_templates_admin_update" ON "public"."pm_checklist_templates" FOR UPDATE USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
-CREATE POLICY "pm_checklist_templates_delete_consolidated" ON "public"."pm_checklist_templates" FOR DELETE USING (("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND ("is_protected" = false)));
+CREATE POLICY "pm_checklist_templates_delete_consolidated" ON "public"."pm_checklist_templates" FOR DELETE USING (("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND ("is_protected" = false)));
 
 
 
-CREATE POLICY "pm_checklist_templates_select_consolidated" ON "public"."pm_checklist_templates" FOR SELECT USING (((("organization_id" IS NULL) AND (( SELECT "auth"."uid"() AS "uid") IS NOT NULL)) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
+CREATE POLICY "pm_checklist_templates_select_consolidated" ON "public"."pm_checklist_templates" FOR SELECT USING (((("organization_id" IS NULL) AND (( SELECT "auth"."uid"() AS "uid") IS NOT NULL)) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
 ALTER TABLE "public"."pm_interval_policies" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "pm_interval_policies_delete" ON "public"."pm_interval_policies" FOR DELETE USING ("public"."is_org_admin"("auth"."uid"(), "organization_id"));
+CREATE POLICY "pm_interval_policies_delete" ON "public"."pm_interval_policies" FOR DELETE USING ("public"."is_org_operational_admin"("auth"."uid"(), "organization_id"));
 
 
 
-CREATE POLICY "pm_interval_policies_insert" ON "public"."pm_interval_policies" FOR INSERT WITH CHECK (("public"."is_org_admin"("auth"."uid"(), "organization_id") AND (("equipment_id" IS NULL) OR ("equipment_id" IN ( SELECT "e"."id"
+CREATE POLICY "pm_interval_policies_insert" ON "public"."pm_interval_policies" FOR INSERT WITH CHECK (("public"."is_org_operational_admin"("auth"."uid"(), "organization_id") AND (("equipment_id" IS NULL) OR ("equipment_id" IN ( SELECT "e"."id"
    FROM "public"."equipment" "e"
   WHERE ("e"."organization_id" = "pm_interval_policies"."organization_id")))) AND (("team_id" IS NULL) OR ("team_id" IN ( SELECT "t"."id"
    FROM "public"."teams" "t"
@@ -21765,7 +23135,7 @@ CREATE POLICY "pm_interval_policies_select" ON "public"."pm_interval_policies" F
 
 
 
-CREATE POLICY "pm_interval_policies_update" ON "public"."pm_interval_policies" FOR UPDATE USING ("public"."is_org_admin"("auth"."uid"(), "organization_id")) WITH CHECK (("public"."is_org_admin"("auth"."uid"(), "organization_id") AND (("equipment_id" IS NULL) OR ("equipment_id" IN ( SELECT "e"."id"
+CREATE POLICY "pm_interval_policies_update" ON "public"."pm_interval_policies" FOR UPDATE USING ("public"."is_org_operational_admin"("auth"."uid"(), "organization_id")) WITH CHECK (("public"."is_org_operational_admin"("auth"."uid"(), "organization_id") AND (("equipment_id" IS NULL) OR ("equipment_id" IN ( SELECT "e"."id"
    FROM "public"."equipment" "e"
   WHERE ("e"."organization_id" = "pm_interval_policies"."organization_id")))) AND (("team_id" IS NULL) OR ("team_id" IN ( SELECT "t"."id"
    FROM "public"."teams" "t"
@@ -21780,7 +23150,7 @@ ALTER TABLE "public"."pm_status_history" ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "pm_status_history_admin_insert" ON "public"."pm_status_history" FOR INSERT WITH CHECK (((EXISTS ( SELECT 1
    FROM "public"."preventative_maintenance" "pm"
-  WHERE (("pm"."id" = "pm_status_history"."pm_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "pm"."organization_id")))) AND ("changed_by" = ( SELECT "auth"."uid"() AS "uid"))));
+  WHERE (("pm"."id" = "pm_status_history"."pm_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "pm"."organization_id")))) AND ("changed_by" = ( SELECT "auth"."uid"() AS "uid"))));
 
 
 
@@ -21824,7 +23194,7 @@ ALTER TABLE "public"."pm_template_compatibility_rules" ENABLE ROW LEVEL SECURITY
 ALTER TABLE "public"."preventative_maintenance" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "preventative_maintenance_delete_consolidated" ON "public"."preventative_maintenance" FOR DELETE USING ((((("is_historical" = true) AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) OR (("is_historical" = false) AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id"))) AND (EXISTS ( SELECT 1
+CREATE POLICY "preventative_maintenance_delete_consolidated" ON "public"."preventative_maintenance" FOR DELETE USING ((((("is_historical" = true) AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) OR (("is_historical" = false) AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id"))) AND (EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
   WHERE (("wo"."id" = "preventative_maintenance"."work_order_id") AND ("wo"."status" <> ALL (ARRAY['completed'::"public"."work_order_status", 'cancelled'::"public"."work_order_status"])))))));
 
@@ -21834,7 +23204,7 @@ COMMENT ON POLICY "preventative_maintenance_delete_consolidated" ON "public"."pr
 
 
 
-CREATE POLICY "preventative_maintenance_insert_consolidated" ON "public"."preventative_maintenance" FOR INSERT WITH CHECK (((("is_historical" = true) AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
+CREATE POLICY "preventative_maintenance_insert_consolidated" ON "public"."preventative_maintenance" FOR INSERT WITH CHECK (((("is_historical" = true) AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
@@ -21842,7 +23212,7 @@ CREATE POLICY "preventative_maintenance_select_consolidated" ON "public"."preven
 
 
 
-CREATE POLICY "preventative_maintenance_update_consolidated" ON "public"."preventative_maintenance" FOR UPDATE USING (((("is_historical" = true) AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
+CREATE POLICY "preventative_maintenance_update_consolidated" ON "public"."preventative_maintenance" FOR UPDATE USING (((("is_historical" = true) AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
@@ -22054,7 +23424,7 @@ ALTER TABLE "public"."scans" ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "scans_delete_admins" ON "public"."scans" FOR DELETE USING ((EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
-  WHERE (("e"."id" = "scans"."equipment_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))));
+  WHERE (("e"."id" = "scans"."equipment_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))));
 
 
 
@@ -22157,7 +23527,7 @@ CREATE POLICY "team_members_admin_update" ON "public"."team_members" FOR UPDATE 
 
 
 
-CREATE POLICY "team_members_create_equipment" ON "public"."equipment" FOR INSERT WITH CHECK (("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND ("team_id" IS NOT NULL) AND (EXISTS ( SELECT 1
+CREATE POLICY "team_members_create_equipment" ON "public"."equipment" FOR INSERT WITH CHECK (("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND ("team_id" IS NOT NULL) AND (EXISTS ( SELECT 1
    FROM "public"."team_members" "tm"
   WHERE (("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."team_id" = "equipment"."team_id") AND ("tm"."role" = ANY (ARRAY['manager'::"public"."team_member_role", 'technician'::"public"."team_member_role"]))))))));
 
@@ -22172,19 +23542,19 @@ CREATE POLICY "team_members_select" ON "public"."team_members" FOR SELECT USING 
 ALTER TABLE "public"."teams" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "teams_admin_delete" ON "public"."teams" FOR DELETE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "teams_admin_delete" ON "public"."teams" FOR DELETE USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
-CREATE POLICY "teams_admin_insert" ON "public"."teams" FOR INSERT WITH CHECK ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "teams_admin_insert" ON "public"."teams" FOR INSERT WITH CHECK ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
-CREATE POLICY "teams_admin_update" ON "public"."teams" FOR UPDATE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "teams_admin_update" ON "public"."teams" FOR UPDATE USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
-CREATE POLICY "teams_select_consolidated" ON "public"."teams" FOR SELECT USING (("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
+CREATE POLICY "teams_select_consolidated" ON "public"."teams" FOR SELECT USING (("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
@@ -22245,7 +23615,7 @@ ALTER TABLE "public"."work_order_costs" ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "work_order_costs_delete_consolidated" ON "public"."work_order_costs" FOR DELETE USING (("public"."can_access_work_order_costs"("work_order_id", ( SELECT "auth"."uid"() AS "uid")) AND (("created_by" = ( SELECT "auth"."uid"() AS "uid")) OR (EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
-  WHERE (("wo"."id" = "work_order_costs"."work_order_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))))));
+  WHERE (("wo"."id" = "work_order_costs"."work_order_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))))));
 
 
 
@@ -22263,9 +23633,9 @@ COMMENT ON POLICY "work_order_costs_select_consolidated" ON "public"."work_order
 
 CREATE POLICY "work_order_costs_update_consolidated" ON "public"."work_order_costs" FOR UPDATE USING (("public"."can_access_work_order_costs"("work_order_id", ( SELECT "auth"."uid"() AS "uid")) AND (("created_by" = ( SELECT "auth"."uid"() AS "uid")) OR (EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
-  WHERE (("wo"."id" = "work_order_costs"."work_order_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id"))))))) WITH CHECK (("public"."can_access_work_order_costs"("work_order_id", ( SELECT "auth"."uid"() AS "uid")) AND (("created_by" = ( SELECT "auth"."uid"() AS "uid")) OR (EXISTS ( SELECT 1
+  WHERE (("wo"."id" = "work_order_costs"."work_order_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id"))))))) WITH CHECK (("public"."can_access_work_order_costs"("work_order_id", ( SELECT "auth"."uid"() AS "uid")) AND (("created_by" = ( SELECT "auth"."uid"() AS "uid")) OR (EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
-  WHERE (("wo"."id" = "work_order_costs"."work_order_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))))));
+  WHERE (("wo"."id" = "work_order_costs"."work_order_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))))));
 
 
 
@@ -22335,11 +23705,11 @@ COMMENT ON POLICY "work_order_notes_delete_own" ON "public"."work_order_notes" I
 
 CREATE POLICY "work_order_notes_insert_organization_members" ON "public"."work_order_notes" FOR INSERT WITH CHECK ((("author_id" = ( SELECT "auth"."uid"() AS "uid")) AND (EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
-  WHERE (("wo"."id" = "work_order_notes"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") AND ("wo"."status" <> 'cancelled'::"public"."work_order_status") AND ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") OR ("wo"."created_by" = ( SELECT "auth"."uid"() AS "uid")) OR (("wo"."team_id" IS NOT NULL) AND (EXISTS ( SELECT 1
+  WHERE (("wo"."id" = "work_order_notes"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") AND ("wo"."status" <> 'cancelled'::"public"."work_order_status") AND ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") OR ("wo"."created_by" = ( SELECT "auth"."uid"() AS "uid")) OR (("wo"."team_id" IS NOT NULL) AND (EXISTS ( SELECT 1
            FROM "public"."team_members" "tm"
           WHERE (("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."team_id" = "wo"."team_id") AND ("tm"."role" = ANY (ARRAY['owner'::"public"."team_member_role", 'manager'::"public"."team_member_role", 'technician'::"public"."team_member_role", 'requestor'::"public"."team_member_role"])))))))))) AND ((NOT "is_private") OR (EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
-  WHERE (("wo"."id" = "work_order_notes"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") AND ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") OR (("wo"."team_id" IS NOT NULL) AND (EXISTS ( SELECT 1
+  WHERE (("wo"."id" = "work_order_notes"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") AND ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") OR (("wo"."team_id" IS NOT NULL) AND (EXISTS ( SELECT 1
            FROM "public"."team_members" "tm"
           WHERE (("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."team_id" = "wo"."team_id") AND ("tm"."role" = ANY (ARRAY['owner'::"public"."team_member_role", 'manager'::"public"."team_member_role", 'technician'::"public"."team_member_role"])))))))))))));
 
@@ -22371,7 +23741,7 @@ ALTER TABLE "public"."work_order_status_history" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."work_orders" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "work_orders_insert_consolidated" ON "public"."work_orders" FOR INSERT WITH CHECK (((("is_historical" = true) AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND ("created_by_admin" = ( SELECT "auth"."uid"() AS "uid"))) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
+CREATE POLICY "work_orders_insert_consolidated" ON "public"."work_orders" FOR INSERT WITH CHECK (((("is_historical" = true) AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND ("created_by_admin" = ( SELECT "auth"."uid"() AS "uid"))) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
@@ -22379,7 +23749,7 @@ CREATE POLICY "work_orders_select_consolidated" ON "public"."work_orders" FOR SE
 
 
 
-CREATE POLICY "work_orders_update_consolidated" ON "public"."work_orders" FOR UPDATE USING (((("is_historical" = true) AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
+CREATE POLICY "work_orders_update_consolidated" ON "public"."work_orders" FOR UPDATE USING (((("is_historical" = true) AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
@@ -22889,6 +24259,11 @@ GRANT ALL ON FUNCTION "public"."assert_inventory_read_access"("p_organization_id
 
 
 
+REVOKE ALL ON FUNCTION "public"."assert_org_operator_editable"("p_organization_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."assert_org_operator_editable"("p_organization_id" "uuid") TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."audit_equipment_changes"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."audit_equipment_changes"() TO "service_role";
 
@@ -23097,6 +24472,11 @@ GRANT ALL ON FUNCTION "public"."check_team_role_secure"("user_uuid" "uuid", "tea
 
 
 
+REVOKE ALL ON FUNCTION "public"."claim_provisioned_memberships"("p_user_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."claim_provisioned_memberships"("p_user_id" "uuid") TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."claim_quickbooks_invoice_status_events"("p_batch_size" integer) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."claim_quickbooks_invoice_status_events"("p_batch_size" integer) TO "service_role";
 
@@ -23122,6 +24502,11 @@ GRANT ALL ON FUNCTION "public"."cleanup_expired_quickbooks_oauth_sessions"() TO 
 
 
 
+REVOKE ALL ON FUNCTION "public"."cleanup_expired_support_access"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."cleanup_expired_support_access"() TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."cleanup_inventory_grants_on_member_removal"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."cleanup_inventory_grants_on_member_removal"() TO "service_role";
 
@@ -23144,6 +24529,11 @@ GRANT ALL ON FUNCTION "public"."cleanup_old_notifications"() TO "service_role";
 
 REVOKE ALL ON FUNCTION "public"."cleanup_stale_gws_directory_users"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."cleanup_stale_gws_directory_users"() TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."clear_provisioned_member_team_role"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."clear_provisioned_member_team_role"() TO "service_role";
 
 
 
@@ -23344,6 +24734,11 @@ GRANT ALL ON FUNCTION "public"."enqueue_export_job"("p_organization_id" "uuid", 
 
 REVOKE ALL ON FUNCTION "public"."ensure_operator_template_active_for_enabled_assignment"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."ensure_operator_template_active_for_enabled_assignment"() TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."ensure_personal_organization"("p_user_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."ensure_personal_organization"("p_user_id" "uuid") TO "service_role";
 
 
 
@@ -23577,6 +24972,12 @@ GRANT ALL ON FUNCTION "public"."get_quickbooks_connection_status"("p_organizatio
 
 
 
+REVOKE ALL ON FUNCTION "public"."get_support_access_status"("p_organization_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."get_support_access_status"("p_organization_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."get_support_access_status"("p_organization_id" "uuid") TO "authenticated";
+
+
+
 REVOKE ALL ON FUNCTION "public"."get_system_user_id"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."get_system_user_id"() TO "service_role";
 
@@ -23638,6 +25039,21 @@ GRANT ALL ON FUNCTION "public"."get_workspace_onboarding_state"("p_user_id" "uui
 
 
 
+REVOKE ALL ON FUNCTION "public"."grant_support_access"("p_organization_id" "uuid", "p_granted_by" "uuid", "p_operator_ids" "uuid"[], "p_duration_hours" integer, "p_source" "text", "p_ticket_ref" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."grant_support_access"("p_organization_id" "uuid", "p_granted_by" "uuid", "p_operator_ids" "uuid"[], "p_duration_hours" integer, "p_source" "text", "p_ticket_ref" "text") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."guard_support_invitations"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."guard_support_invitations"() TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."guard_support_memberships"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."guard_support_memberships"() TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."handle_invitation_account_creation"("p_invitation_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."handle_invitation_account_creation"("p_invitation_id" "uuid", "p_user_id" "uuid") TO "service_role";
 
@@ -23665,6 +25081,11 @@ GRANT ALL ON FUNCTION "public"."handle_team_manager_removal"("user_uuid" "uuid",
 
 REVOKE ALL ON FUNCTION "public"."handle_updated_at"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."handle_updated_at"() TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."handle_user_email_confirmed_claim"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."handle_user_email_confirmed_claim"() TO "service_role";
 
 
 
@@ -23706,6 +25127,12 @@ GRANT ALL ON FUNCTION "public"."is_org_admin"("user_uuid" "uuid", "org_id" "uuid
 REVOKE ALL ON FUNCTION "public"."is_org_member"("user_uuid" "uuid", "org_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."is_org_member"("user_uuid" "uuid", "org_id" "uuid") TO "service_role";
 GRANT ALL ON FUNCTION "public"."is_org_member"("user_uuid" "uuid", "org_id" "uuid") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."is_org_operational_admin"("user_uuid" "uuid", "org_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."is_org_operational_admin"("user_uuid" "uuid", "org_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."is_org_operational_admin"("user_uuid" "uuid", "org_id" "uuid") TO "authenticated";
 
 
 
@@ -23890,6 +25317,46 @@ GRANT ALL ON FUNCTION "public"."notify_team_member_security_events"() TO "servic
 
 
 
+REVOKE ALL ON FUNCTION "public"."operator_add_equipment"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_equipment" "jsonb") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."operator_add_equipment"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_equipment" "jsonb") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."operator_delete_equipment"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_equipment_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."operator_delete_equipment"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_equipment_id" "uuid") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."operator_get_organization"("p_organization_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."operator_get_organization"("p_organization_id" "uuid") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."operator_list_unclaimed_organizations"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."operator_list_unclaimed_organizations"() TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."operator_revoke_staged_member"("p_operator_id" "uuid", "p_staged_member_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."operator_revoke_staged_member"("p_operator_id" "uuid", "p_staged_member_id" "uuid") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."operator_stage_member"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_email" "text", "p_role" "text", "p_team_id" "uuid", "p_team_role" "public"."team_member_role", "p_attach_existing" boolean) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."operator_stage_member"("p_operator_id" "uuid", "p_organization_id" "uuid", "p_email" "text", "p_role" "text", "p_team_id" "uuid", "p_team_role" "public"."team_member_role", "p_attach_existing" boolean) TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."operator_verified_account_emails"("p_emails" "text"[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."operator_verified_account_emails"("p_emails" "text"[]) TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."org_is_operator_editable"("p_organization_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."org_is_operator_editable"("p_organization_id" "uuid") TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."peek_google_workspace_oauth_session"("p_session_token" "text", "p_nonce" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."peek_google_workspace_oauth_session"("p_session_token" "text", "p_nonce" "text") TO "service_role";
 
@@ -23935,8 +25402,18 @@ GRANT ALL ON FUNCTION "public"."process_departure_batch"("p_queue_id" "uuid", "p
 
 
 
+REVOKE ALL ON FUNCTION "public"."provision_organization"("p_request_id" "uuid", "p_operator_id" "uuid", "p_name" "text", "p_team_name" "text", "p_staff" "jsonb", "p_equipment" "jsonb", "p_attach_existing_emails" "text"[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."provision_organization"("p_request_id" "uuid", "p_operator_id" "uuid", "p_name" "text", "p_team_name" "text", "p_staff" "jsonb", "p_equipment" "jsonb", "p_attach_existing_emails" "text"[]) TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."reconcile_google_workspace_directory"("p_organization_id" "uuid", "p_sync_started_at" timestamp with time zone) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."reconcile_google_workspace_directory"("p_organization_id" "uuid", "p_sync_started_at" timestamp with time zone) TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."reconcile_support_operators"("p_operator_ids" "uuid"[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."reconcile_support_operators"("p_operator_ids" "uuid"[]) TO "service_role";
 
 
 
@@ -24037,6 +25514,18 @@ GRANT ALL ON FUNCTION "public"."revert_work_order_status"("p_work_order_id" "uui
 
 
 
+REVOKE ALL ON FUNCTION "public"."revoke_provisioned_member"("p_staged_member_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."revoke_provisioned_member"("p_staged_member_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."revoke_provisioned_member"("p_staged_member_id" "uuid") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."revoke_support_access"("p_organization_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."revoke_support_access"("p_organization_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."revoke_support_access"("p_organization_id" "uuid") TO "authenticated";
+
+
+
 REVOKE ALL ON FUNCTION "public"."rotate_operator_checkin_token"("p_settings_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."rotate_operator_checkin_token"("p_settings_id" "uuid") TO "service_role";
 GRANT ALL ON FUNCTION "public"."rotate_operator_checkin_token"("p_settings_id" "uuid") TO "authenticated";
@@ -24090,6 +25579,11 @@ GRANT ALL ON FUNCTION "public"."snapshot_pm_working_hours"() TO "service_role";
 
 
 
+REVOKE ALL ON FUNCTION "public"."stage_provisioned_member"("p_organization_id" "uuid", "p_email" "text", "p_role" "text", "p_team_id" "uuid", "p_team_role" "public"."team_member_role") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."stage_provisioned_member"("p_organization_id" "uuid", "p_email" "text", "p_role" "text", "p_team_id" "uuid", "p_team_role" "public"."team_member_role") TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."storage_object_path_segment_uuid"("p_object_name" "text", "p_segment_index" integer) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."storage_object_path_segment_uuid"("p_object_name" "text", "p_segment_index" integer) TO "service_role";
 
@@ -24102,6 +25596,12 @@ GRANT ALL ON FUNCTION "public"."submit_operator_checkin_public"("p_token_hash" "
 
 REVOKE ALL ON FUNCTION "public"."submit_quick_form_public"("p_token_hash" "text", "p_field_values" "jsonb", "p_client_context" "jsonb", "p_form_snapshot" "jsonb", "p_request_fingerprint" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."submit_quick_form_public"("p_token_hash" "text", "p_field_values" "jsonb", "p_client_context" "jsonb", "p_form_snapshot" "jsonb", "p_request_fingerprint" "text") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."support_grant_is_live"("p_grant_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."support_grant_is_live"("p_grant_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."support_grant_is_live"("p_grant_id" "uuid") TO "authenticated";
 
 
 
@@ -24265,11 +25765,6 @@ GRANT ALL ON FUNCTION "public"."validate_google_workspace_oauth_session"("p_sess
 
 REVOKE ALL ON FUNCTION "public"."validate_invitation_for_account_creation"("p_invitation_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."validate_invitation_for_account_creation"("p_invitation_id" "uuid") TO "service_role";
-
-
-
-REVOKE ALL ON FUNCTION "public"."validate_member_limit"() FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."validate_member_limit"() TO "service_role";
 
 
 
@@ -24531,9 +26026,19 @@ GRANT ALL ON TABLE "public"."organization_members" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."organization_provisioned_members" TO "service_role";
+GRANT SELECT ON TABLE "public"."organization_provisioned_members" TO "authenticated";
+
+
+
 GRANT ALL ON TABLE "public"."organization_role_grants_pending" TO "anon";
 GRANT ALL ON TABLE "public"."organization_role_grants_pending" TO "authenticated";
 GRANT ALL ON TABLE "public"."organization_role_grants_pending" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."organization_support_grants" TO "service_role";
+GRANT SELECT ON TABLE "public"."organization_support_grants" TO "authenticated";
 
 
 

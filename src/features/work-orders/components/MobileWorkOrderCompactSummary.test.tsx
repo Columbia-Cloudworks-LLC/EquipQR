@@ -1,6 +1,6 @@
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MobileWorkOrderCompactSummary } from './MobileWorkOrderCompactSummary';
 
@@ -140,5 +140,139 @@ describe('MobileWorkOrderCompactSummary', () => {
     expect(next.getDate()).toBe(25);
     expect(next.getHours()).toBe(12);
     expect(next.getMinutes()).toBe(0);
+  });
+
+  it('sets and clears due time via discrete hour/minute/period selects', async () => {
+    const dueAt = new Date(2026, 5, 23, 15, 40, 0, 0);
+
+    const { rerender } = render(
+      <MobileWorkOrderCompactSummary
+        workOrder={{
+          ...baseWorkOrder,
+          due_date: '2026-06-23',
+          due_date_has_time: false,
+        }}
+        organizationId="org-1"
+        canEditFields
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('combobox', { name: 'Due hour' }));
+    const listbox = await screen.findByRole('listbox');
+    fireEvent.click(within(listbox).getByRole('option', { name: '3' }));
+
+    await waitFor(() => {
+      expect(savePatch).toHaveBeenCalledWith(expect.objectContaining({
+        dueDateHasTime: true,
+      }));
+    });
+    const saved = savePatch.mock.calls[0]?.[0] as { dueDate?: string };
+    const next = new Date(String(saved.dueDate));
+    expect(next.getFullYear()).toBe(2026);
+    expect(next.getMonth()).toBe(5);
+    expect(next.getDate()).toBe(23);
+    expect(next.getHours()).toBe(3);
+    expect(next.getMinutes()).toBe(0);
+
+    savePatch.mockClear();
+    rerender(
+      <MobileWorkOrderCompactSummary
+        workOrder={{
+          ...baseWorkOrder,
+          due_date: dueAt.toISOString(),
+          due_date_has_time: true,
+        }}
+        organizationId="org-1"
+        canEditFields
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear due time' }));
+    await waitFor(() => {
+      expect(savePatch).toHaveBeenCalledWith({
+        dueDate: '2026-06-23',
+        dueDateHasTime: false,
+      });
+    });
+  });
+
+  it('defaults to today when setting due time on a work order without a due date', async () => {
+    render(
+      <MobileWorkOrderCompactSummary
+        workOrder={{
+          ...baseWorkOrder,
+          due_date: undefined,
+          due_date_has_time: false,
+        }}
+        organizationId="org-1"
+        canEditFields
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('combobox', { name: 'Due hour' }));
+    const listbox = await screen.findByRole('listbox');
+    fireEvent.click(within(listbox).getByRole('option', { name: '4' }));
+
+    expect(savePatch).toHaveBeenCalledWith(expect.objectContaining({
+      dueDateHasTime: true,
+    }));
+  });
+
+  it('preserves consecutive hour, minute, and period selections while savePatch is delayed', async () => {
+    let resolveFirstSave: (() => void) | undefined;
+    savePatch
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveFirstSave = resolve;
+          }),
+      )
+      .mockResolvedValue(undefined);
+
+    render(
+      <MobileWorkOrderCompactSummary
+        workOrder={{
+          ...baseWorkOrder,
+          due_date: '2026-06-23',
+          due_date_has_time: false,
+        }}
+        organizationId="org-1"
+        canEditFields
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('combobox', { name: 'Due hour' }));
+    const hourListbox = await screen.findByRole('listbox');
+    fireEvent.click(within(hourListbox).getByRole('option', { name: '3' }));
+
+    fireEvent.click(screen.getByRole('combobox', { name: 'Due minute' }));
+    const minuteListbox = await screen.findByRole('listbox');
+    fireEvent.click(within(minuteListbox).getByRole('option', { name: '40' }));
+
+    fireEvent.click(screen.getByRole('combobox', { name: 'Due period' }));
+    const periodListbox = await screen.findByRole('listbox');
+    fireEvent.click(within(periodListbox).getByRole('option', { name: 'PM' }));
+
+    expect(savePatch).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveFirstSave?.();
+    });
+
+    await waitFor(() => {
+      expect(savePatch).toHaveBeenCalledTimes(2);
+    });
+
+    const finalPatch = savePatch.mock.calls[1]?.[0] as {
+      dueDate?: string;
+      dueDateHasTime?: boolean;
+    };
+    expect(finalPatch.dueDateHasTime).toBe(true);
+    const finalDate = new Date(String(finalPatch.dueDate));
+    expect(finalDate.getFullYear()).toBe(2026);
+    expect(finalDate.getMonth()).toBe(5);
+    expect(finalDate.getDate()).toBe(23);
+    expect(finalDate.getHours()).toBe(15);
+    expect(finalDate.getMinutes()).toBe(40);
   });
 });

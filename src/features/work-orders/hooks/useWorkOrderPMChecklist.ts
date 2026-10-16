@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
-import { useMatchingPMTemplates } from '@/features/pm-templates/hooks/usePMTemplateCompatibility';
-import { useSimplifiedOrganizationRestrictions } from '@/features/organization/hooks/useSimplifiedOrganizationRestrictions';
+import { usePMTemplatesForOrganization } from '@/features/pm-templates/hooks/usePMTemplates';
+import { useMatchingPMTemplatesForOrganization } from '@/features/pm-templates/hooks/usePMTemplateCompatibility';
+import { useSimpleOrganizationSafe } from '@/hooks/useSimpleOrganization';
+import { getSimplifiedOrganizationRestrictions } from '@/utils/simplifiedOrganizationRestrictions';
 import type { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
 
 export const PM_TEMPLATE_NONE_VALUE = '__none__';
@@ -25,6 +26,11 @@ interface UseWorkOrderPMChecklistProps {
   allowTemplateOverride?: boolean;
   /** When true, selecting equipment applies its default PM template or None. */
   autoDefaultFromEquipment?: boolean;
+  /**
+   * Explicit org scope. Required outside SimpleOrganizationProvider (public QR scan page);
+   * defaults to the current dashboard organization.
+   */
+  organizationId?: string;
 }
 
 export const useWorkOrderPMChecklist = ({
@@ -33,14 +39,18 @@ export const useWorkOrderPMChecklist = ({
   selectedEquipment,
   allowTemplateOverride = false,
   autoDefaultFromEquipment = false,
+  organizationId,
 }: UseWorkOrderPMChecklistProps) => {
-  const templatesQuery = usePMTemplates();
+  const orgContext = useSimpleOrganizationSafe();
+  const resolvedOrganizationId = organizationId ?? orgContext?.currentOrganization?.id;
+  const templatesQuery = usePMTemplatesForOrganization(resolvedOrganizationId);
   const { data: allTemplates = [], isLoading: isLoadingTemplates } = templatesQuery;
-  const { restrictions } = useSimplifiedOrganizationRestrictions();
+  const restrictions = getSimplifiedOrganizationRestrictions();
   const lastEquipmentIdRef = useRef<string | null>(null);
   const userSelectedTemplateRef = useRef(false);
 
-  const matchingQuery = useMatchingPMTemplates(
+  const matchingQuery = useMatchingPMTemplatesForOrganization(
+    resolvedOrganizationId,
     selectedEquipment?.id,
     { enabled: !!selectedEquipment?.id },
   );

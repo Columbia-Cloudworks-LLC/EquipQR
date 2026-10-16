@@ -18,7 +18,7 @@ Cloud agents **do not** run `npx supabase start` in Docker. Cursor Cloud VMs hav
 ## What the scripts do
 
 1. `dev/cloud-agent-ephemeral-stack.sh`
-   - Loads `SUPABASE_ACCESS_TOKEN` (env or `op://tgo2m6qbct5otqeqirjocn3joa/supabase-write/SUPABASE_ACCESS_TOKEN`)
+   - Requires `SUPABASE_ACCESS_TOKEN` from the agent environment
    - Deletes stale `agent-*` branches older than TTL (default **4 hours**; invalid TTL fails closed)
 
    - Creates `agent-<session>` via **Management API** with `git_branch=preview` (required so migrations deploy; CLI-only creates often hit `MIGRATIONS_FAILED`)
@@ -35,19 +35,18 @@ Cloud agents **do not** run `npx supabase start` in Docker. Cursor Cloud VMs hav
 
 Setup scripts:
 
-- Setup: `bash dev/cloud-agent-frontend-setup.sh` (Node 24, 1Password `.env`, `npm ci`)
+- Setup: `bash dev/cloud-agent-frontend-setup.sh` (Node 24, `.env`, `npm ci`)
 - Start: `bash dev/cloud-agent-ephemeral-stack.sh`
 
 Cloud Agent secrets must include at least:
 
-- `OP_SERVICE_ACCOUNT_TOKEN` (for bootstrap + token read), **or**
-- `SUPABASE_ACCESS_TOKEN` directly
+- `SUPABASE_ACCESS_TOKEN`
 
 ## Quick Login contract
 
 Same emails/password contract as local Dev Quick Login (`DevQuickLogin.tsx` / local seeds). Auth users are created with the **Auth Admin API** (hosted-safe). Direct `auth.users` SQL inserts are never used against hosted projects.
 
-Password: set `CLOUD_AGENT_QUICK_LOGIN_PASSWORD` or `VITE_DEV_TEST_PASSWORD`, or ensure `.env` has `VITE_DEV_TEST_PASSWORD` or `DEV_LOGIN_PASSWORD` (agent-bootstrap / `app-env-local-dev` writes `DEV_LOGIN_PASSWORD`). The stack does **not** write the password into app `.env` or any sidecar file — it keeps the value in process environment only (`export VITE_DEV_TEST_PASSWORD`). For `--skip-vite`, re-export the same env var before `npm run dev`. No hardcoded password fallback. The branch `service_role` key is fetched and used only inside Node (never assigned to a bash variable or printed).
+Password: set `CLOUD_AGENT_QUICK_LOGIN_PASSWORD` or `VITE_DEV_TEST_PASSWORD`, or ensure `.env` has `VITE_DEV_TEST_PASSWORD` or `DEV_LOGIN_PASSWORD` (set it in the agent platform's secrets). The stack does **not** write the password into app `.env` or any sidecar file — it keeps the value in process environment only (`export VITE_DEV_TEST_PASSWORD`). For `--skip-vite`, re-export the same env var before `npm run dev`. No hardcoded password fallback. The branch `service_role` key is fetched and used only inside Node (never assigned to a bash variable or printed).
 
 Primary smoke persona: `owner@apex.test` — org upgraded with one team + `CAT 320 Excavator`.
 

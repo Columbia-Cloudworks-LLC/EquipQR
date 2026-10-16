@@ -11,7 +11,10 @@ import {
   parseCalendarDay,
   parseDue,
   persistDue,
+  todayLocal,
+  type DueDate,
 } from '@/features/work-orders/calendar';
+import { WorkOrderDueTimePicker } from '@/features/work-orders/components/WorkOrderDueTimePicker';
 import { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
 
 interface WorkOrderSchedulingProps {
@@ -25,13 +28,29 @@ export const WorkOrderScheduling: React.FC<WorkOrderSchedulingProps> = ({
   errors,
   setValue
 }) => {
-  const due = parseDue({
-    dueDate: values.dueDate,
-    dueDateHasTime: values.dueDateHasTime ?? false,
-  });
+  const propDue = React.useMemo(
+    () =>
+      parseDue({
+        dueDate: values.dueDate,
+        dueDateHasTime: values.dueDateHasTime ?? false,
+      }),
+    [values.dueDate, values.dueDateHasTime],
+  );
+  const [draftDue, setDraftDue] = React.useState<DueDate>(propDue);
+  const draftDueRef = React.useRef<DueDate>(propDue);
+
+  React.useEffect(() => {
+    draftDueRef.current = propDue;
+    setDraftDue(propDue);
+  }, [propDue]);
+
+  const due = draftDue;
 
   const persistWrite = (write: Parameters<typeof applyDueWrite>[1]) => {
-    const persisted = persistDue(applyDueWrite(due, write));
+    const nextDue = applyDueWrite(draftDueRef.current, write);
+    draftDueRef.current = nextDue;
+    setDraftDue(nextDue);
+    const persisted = persistDue(nextDue);
     setValue('dueDate', persisted.dueDate ?? undefined);
     setValue('dueDateHasTime', persisted.dueDateHasTime);
   };
@@ -42,8 +61,7 @@ export const WorkOrderScheduling: React.FC<WorkOrderSchedulingProps> = ({
       return;
     }
 
-    const day = parseCalendarDay(dueDayInputValue(due));
-    if (!day) return;
+    const day = parseCalendarDay(dueDayInputValue(draftDueRef.current)) ?? todayLocal();
 
     const [hours, minutes] = raw.split(':').map(Number);
     persistWrite(dueDateTimeInputWrite({
@@ -76,7 +94,7 @@ export const WorkOrderScheduling: React.FC<WorkOrderSchedulingProps> = ({
             id="work-order-due-date"
             type="date"
             value={dueDayInputValue(due)}
-            onChange={(e) => persistWrite(dueDayInputWrite(due, e.target.value))}
+            onChange={(e) => persistWrite(dueDayInputWrite(draftDueRef.current, e.target.value))}
           />
           {errors.dueDate && (
             <p className="text-sm text-destructive">{errors.dueDate}</p>
@@ -85,12 +103,11 @@ export const WorkOrderScheduling: React.FC<WorkOrderSchedulingProps> = ({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="work-order-due-time">Due time</Label>
-          <Input
-            id="work-order-due-time"
-            type="time"
+          <Label htmlFor="work-order-due-time-hour">Due time</Label>
+          <WorkOrderDueTimePicker
+            idPrefix="work-order-due-time"
             value={dueTimeInputValue(due)}
-            onChange={(e) => handleDueTimeChange(e.target.value)}
+            onChange={handleDueTimeChange}
           />
           <p className="text-xs text-muted-foreground">
             Optional. Leave empty for an all-day due date.

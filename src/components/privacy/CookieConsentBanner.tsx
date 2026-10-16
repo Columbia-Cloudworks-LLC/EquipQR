@@ -1,15 +1,19 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useCookieConsent } from '@/contexts/CookieConsentContext';
+import { describeTelemetryProviders } from '@/lib/telemetryConsent';
 
 /**
  * Global first-visit cookies / browser-storage notice with Accept and Reject.
  * Mounted from AppProviders so it covers landing, auth, public QR, and dashboard.
  */
 export function CookieConsentBanner() {
-  const { needsConsent, accept, reject } = useCookieConsent();
+  const { needsConsent, decision, telemetryAvailable, accept, reject } = useCookieConsent();
 
   if (!needsConsent) return null;
+
+  // Users who already answered the cookie notice are only asked about diagnostics.
+  const telemetryOnly = telemetryAvailable && decision !== null;
 
   return (
     <section
@@ -18,10 +22,16 @@ export function CookieConsentBanner() {
     >
       <div className="mx-auto flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
         <div className="space-y-1 text-sm text-muted-foreground">
-          <p className="font-medium text-foreground">Cookies and browser storage</p>
+          <p className="font-medium text-foreground">
+            {telemetryOnly ? 'Help improve EquipQR' : 'Cookies and browser storage'}
+          </p>
           <p>
-            EquipQR uses cookies and browser storage for sign-in, security, and optional preferences
-            such as sidebar layout. We do not use advertising or third-party tracking cookies. See{' '}
+            {telemetryOnly
+              ? null
+              : 'EquipQR uses cookies and browser storage for sign-in, security, and optional preferences such as sidebar layout. '}
+            {telemetryAvailable
+              ? `With your permission, we also use ${describeTelemetryProviders()}. These never load unless you accept, and you can turn them off anytime in Settings. We do not use advertising cookies. See `
+              : 'We do not use advertising or third-party tracking cookies. See '}
             <Link
               to="/privacy-policy#cookies"
               className="text-primary underline underline-offset-2"
@@ -33,10 +43,14 @@ export function CookieConsentBanner() {
         </div>
         <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
           <Button type="button" variant="outline" onClick={reject} className="min-h-11">
-            Reject
+            {telemetryOnly ? 'No Thanks' : telemetryAvailable ? 'Essential Only' : 'Reject'}
           </Button>
           <Button type="button" onClick={accept} className="min-h-11">
-            Accept
+            {telemetryOnly
+              ? 'Yes, Help Us Improve'
+              : telemetryAvailable
+                ? 'Accept All (Help Us Improve)'
+                : 'Accept'}
           </Button>
         </div>
       </div>

@@ -9,6 +9,7 @@ import PersonalizationSettings from '@/components/settings/PersonalizationSettin
 import ProfileSettings from '@/components/settings/ProfileSettings';
 import { EmailPrivacySettings } from '@/components/settings/EmailPrivacySettings';
 import { SensitivePrivacySettings } from '@/components/settings/SensitivePrivacySettings';
+import { TelemetryConsentSettings } from '@/components/settings/TelemetryConsentSettings';
 import { SecurityStatus } from '@/components/security/SecurityStatus';
 import { SessionStatus } from '@/components/session/SessionStatus';
 import NotificationSettings from '@/components/settings/NotificationSettings';
@@ -159,6 +160,8 @@ const SettingsContent = () => {
                   currentLimitSensitivePi={(profile as Record<string, unknown>)?.limit_sensitive_pi === true}
                   onUpdate={() => refetchProfile()}
                 />
+
+                <TelemetryConsentSettings />
 
                 {/* Privacy Rights */}
                 <div className="pt-2 space-y-3">

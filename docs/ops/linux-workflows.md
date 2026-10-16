@@ -15,24 +15,14 @@ Repository, Supabase, and Vercel mutations require appropriate vendor permission
 
 ```bash
 bash dev/ops/doctor.sh
-bash dev/ops/local-env.sh                  # app and Edge development configuration
-bash dev/ops/local-env.sh --app-only
-bash dev/ops/local-env.sh --edge-only
-bash dev/ops/render-mcp.sh                 # optional Cursor configuration
+bash dev/ops/render-mcp.sh                 # optional Cursor configuration (tokens from your env)
 bash dev/ops/worktree-env.sh               # copy missing ignored development env files
-bash dev/ops/github-secrets.sh --check     # timestamp drift only
-bash dev/ops/vercel-env.sh --check         # variable presence only
-bash dev/ops/supabase-secrets.sh --op-item edge-env-prod-secrets --check
-``\
+```
 
-The three secret synchronization commands are read-only by default. Use `--apply\
-only for an authorized synchronization. Supabase compares SHA-256 digests and
-validates the production project/item allowlist before writing. The committed fanout manifest is empty because GitHub Environments are now the
-configuration source of truth. An explicitly supplied `--manifest FILE` supports
-authorized legacy fanout without reviving it in CI. GitHub timestamp
-checks and Vercel presence checks do not prove value equality.
-`op-item.sh create|edit` accepts native `op item` arguments and requires the
-write-tier token `OP_SAT_EquipQR`; `--dry-run` performs no mutation.
+Deployed configuration is synced from GitHub Environments by the
+*Sync deployment configuration* workflow (`dev/ci/sync-deploy-config.mjs`), not
+from a developer machine. Run it with `mode=check` to compare GitHub with Vercel
+and Supabase; Supabase is compared by SHA-256 digest and values are never printed.
 `runner-type.sh hosted|self-hosted` selects GitHub's hosted Linux runners or an
 explicitly Linux-labelled self-hosted runner.
 

@@ -5,6 +5,10 @@ import {
   pickProductionDeployment,
   verifyProductionDeployment,
 } from '@/dev/release/promote-vercel-production.mjs';
+import {
+  pickReadyDeployment,
+  terminalErrorStates,
+} from '@/dev/release/wait-for-vercel-deployment.mjs';
 
 const CURRENT_SHA = '74caa4bab501458e80117b7eef0a91ed4f79552e';
 const PREVIOUS_SHA = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
@@ -49,6 +53,48 @@ function jsonResponse(body: unknown, status = 200) {
     headers: { 'content-type': 'application/json' },
   });
 }
+
+describe('pickReadyDeployment and terminalErrorStates', () => {
+  it('waits when a newer post-sync redeploy for the same sha is still BUILDING even if the pre-sync deployment is READY', () => {
+    const stalePreSync = makeDeployment({
+      uid: 'dpl_pre_sync',
+      createdAt: 100,
+      readyState: 'READY',
+    });
+    const postSyncRedeploy = makeDeployment({
+      uid: 'dpl_post_sync',
+      createdAt: 200,
+      readyState: 'BUILDING',
+    });
+
+    expect(pickReadyDeployment([stalePreSync, postSyncRedeploy], CURRENT_SHA, 'main')).toBeNull();
+    expect(terminalErrorStates([stalePreSync, postSyncRedeploy], CURRENT_SHA, 'main')).toEqual([]);
+
+    const readyRedeploy = makeDeployment({
+      uid: 'dpl_post_sync',
+      createdAt: 200,
+      readyState: 'READY',
+    });
+    expect(pickReadyDeployment([stalePreSync, readyRedeploy], CURRENT_SHA, 'main')).toMatchObject({
+      uid: 'dpl_post_sync',
+    });
+  });
+
+  it('ignores an older CANCELED deployment when superseded by a newer redeploy', () => {
+    const canceledPreSync = makeDeployment({
+      uid: 'dpl_canceled',
+      createdAt: 100,
+      readyState: 'CANCELED',
+    });
+    const buildingRedeploy = makeDeployment({
+      uid: 'dpl_redeploy',
+      createdAt: 200,
+      readyState: 'BUILDING',
+    });
+
+    expect(terminalErrorStates([canceledPreSync, buildingRedeploy], CURRENT_SHA, 'main')).toEqual([]);
+  });
+});
 
 describe('pickProductionDeployment', () => {
   it('prefers the newest production deployment on the requested branch', () => {

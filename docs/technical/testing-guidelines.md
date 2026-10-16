@@ -244,6 +244,16 @@ npm run test:db
 
 Validates RLS policies, triggers, and schema constraints. Requires local Supabase — not run inside Vitest.
 
+CI runs every suite in `.github/workflows/database-tests.yml` on pull requests to `preview` and `main` that change `supabase/migrations/`, `supabase/tests/`, or `supabase/config.toml`.
+
+Always run through `npm run test:db`. The Linux stack runs under the `equipqr-linux` project from `tmp/linux-stack/runtime`, so a bare `npx supabase test db` from the repo root looks for the default project's containers and fails. To run selected files, pass the runtime workdir:
+
+```bash
+npx supabase test db --workdir tmp/linux-stack/runtime supabase/tests/20_product_onboarding_status.sql
+```
+
+Each test file must contain a single `plan()`/`finish()` transaction. After impersonating a user with `SET LOCAL ROLE authenticated`, run `RESET ROLE` before fixture setup or superuser-only checks.
+
 ## Coverage Expectations
 
 - **Unit + component**: Broad happy paths and critical error states

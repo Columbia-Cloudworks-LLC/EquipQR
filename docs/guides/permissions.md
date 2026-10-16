@@ -130,6 +130,22 @@ Customer steps: [inventory storage locations](../support/inventory-parts/invento
 
 The organization audit log is restricted to **owners and admins** at every layer: the page lives under **Organization → Audit Log** with an in-page role guard, `audit_log` SELECT RLS requires an active owner/admin membership, and the `get_audit_log_timeline` RPC re-checks `is_org_admin`. Audit entries never appear on operational pages (work order or inventory detail) and are never included in data exports outside the dedicated audit CSV/JSON export path, which notifies admins on every export.
 
+## EquipQR Support access
+
+There is no platform-wide admin. EquipQR staff ("operators", listed by user ID in the `DFY_OPERATOR_USER_IDS` Edge secret) can reach a customer's data only through a time-limited grant from that organization's **owner**:
+
+- The owner grants it from **Organization settings → EquipQR Support access** (24 hours, 72 hours, or 7 days; 72 hours by default) or by ticking the checkbox in **Report an Issue** (72 hours). Granting again while access is live extends the grant to the later of the current or newly requested expiry. The owner can revoke at any time from the settings card or the banner that every member sees while access is live.
+- Each operator gets an `organization_members` row with `role = 'admin'`, `status = 'support'`, `access_source = 'support'`, and `support_grant_id`. Support rows don't count toward `member_count`, billing, or Google Workspace reconciliation, because all of those key on `status = 'active'` or `access_source`.
+- Expiry is checked when access is checked: every helper that accepts support calls `support_grant_is_live()`, and a restrictive RLS policy hides expired support rows from direct queries. An hourly `cleanup_expired_support_access` job only removes rows whose access has already ended.
+- Support rows can be written only by `grant_support_access` (a guard trigger blocks every other insert or update), so neither an admin nor the operator can make access permanent. When `DFY_OPERATOR_USER_IDS` is reduced or cleared by deployment configuration sync, `reconcile_support_operators` immediately removes offboarded operators' live support rows across all organizations and closes any grant with no remaining operators.
+
+| Path | Accepts live support? |
+|------|------------------------|
+| `is_org_member`, `is_org_operational_admin`, `is_organization_member`, `user_is_org_member`, `check_org_access_secure`, `check_org_access_direct`, `get_user_organizations`, `get_user_org_role_secure`, `get_user_org_role_direct`, `get_user_organization_membership`, `can_access_inventory`, `can_manage_inventory` (and operational RLS policies and RPCs opted into them: equipment, work orders, PM, teams, `team_members` SELECT, inventory, notes, customers, scans, storage) | Yes, until expiry |
+| `is_org_admin`, `is_organization_admin`, `user_is_org_admin` (member insert/update/delete), `team_members` writes (`team_members_admin_insert`, `team_members_admin_update`, `team_members_admin_delete`), organization settings/billing updates (`orgs_update_admins`), public QR bearer token secrets and management (`operator_checkin_token_secrets`, `quick_form_token_secrets`, `create_operator_checkin_assignment`, `rotate_operator_checkin_token`, `create_quick_form`, `rotate_quick_form_token`), `organization_invitations` (guard trigger), `revoke_provisioned_member` (pending staff), `get_audit_log_timeline` (audit log RPC), bulk export RPCs (`enqueue_export_job`, `export_equipment_csv_rows`, `export_work_orders_csv_rows`), ownership transfer, org deletion, `can_user_manage_quickbooks`, QuickBooks and Google Workspace credentials, audit log, DSR, and RLS policies that query `organization_members` directly with `status = 'active'` | No |
+| Edge Function membership helpers (`requireOrgMembership`, `requireOrgAdmin`, `verifyOrgMembership`, `verifyOrgAdmin`, `qbo-work-order-gate`) | No, they test `status = 'active'` |
+| Client organization list (`sessionDataService`, `SimpleOrganizationProvider`) | Yes. It reads `status in ('active', 'support')`, and RLS hides expired rows |
+
 ## DSR cockpit permissions (Phase one)
 
 ### Route and action policy

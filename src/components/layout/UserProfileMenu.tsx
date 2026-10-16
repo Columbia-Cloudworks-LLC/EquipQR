@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Settings, HelpCircle, Bug, LogOut, BookOpen } from 'lucide-react';
+import { Settings, HelpCircle, Bug, LogOut, BookOpen, PackagePlus } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUser } from '@/contexts/useUser';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useBugReport } from '@/features/tickets/context/BugReportContext';
+import { useIsDfyOperator } from '@/features/dfy/hooks/useDfyOperator';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useOrganizationNotifications } from '@/hooks/useOrganizationNotifications';
 import { useResolvedAvatarUrl } from '@/hooks/useResolvedAvatarUrl';
@@ -35,6 +36,8 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ className }) => {
   const { organizationId } = useOrganization();
   const isMobile = useIsMobile();
   const { openBugReport } = useBugReport();
+  // Checked only once the menu opens; the server enforces operator access.
+  const { data: isDfyOperator = false } = useIsDfyOperator(menuOpen);
   const { notifications, unreadCount } = useOrganizationNotifications(organizationId);
   const { data: resolvedAvatarUrl } = useResolvedAvatarUrl(currentUser?.avatar_url);
 
@@ -154,6 +157,14 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({ className }) => {
           Report an Issue
           <span className="ml-auto text-xs text-muted-foreground">Ctrl+Shift+B</span>
         </DropdownMenuItem>
+        {isDfyOperator && (
+          <DropdownMenuItem asChild>
+            <Link to="/dashboard/operator/provision" className="text-sm cursor-pointer">
+              <PackagePlus className="mr-2 h-4 w-4" />
+              Provision a yard
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="text-sm cursor-pointer">
           <LogOut className="mr-2 h-4 w-4" />

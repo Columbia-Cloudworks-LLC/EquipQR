@@ -294,4 +294,78 @@ export const subprocessorProviders: SubprocessorProvider[] = [
                     'Your push subscription endpoint URL, encryption keys (required by the Web Push protocol), and browser user agent string.',
                 },
               ],
+  },
+  {
+    title: "4.11 Microsoft Clarity (Microsoft Corporation) — Optional, Opt-In Only",
+    items: [
+                {
+                  label: 'Purpose:',
+                  content:
+                    'We utilize Microsoft Clarity for strictly opt-in diagnostic usage metrics, heatmaps, and session replays to resolve interface friction and bugs. Sensitive text and form fields are masked at the browser level.',
+                },
+                {
+                  label: 'When it is active:',
+                  content:
+                    'Only after you choose "Accept All (Help Us Improve)" on the cookies notice or turn on "Help improve EquipQR with usage analytics" in Settings. The Clarity script is not loaded before that choice, and turning the setting off stops it.',
+                },
+                {
+                  label: 'Data sent to Microsoft:',
+                  content:
+                    'Masked page structure, clicks, scrolls, and navigation events, plus device and browser details (screen size, browser type, approximate location derived from IP address). Page text and form inputs are masked in your browser before anything is sent.',
+                },
+                {
+                  label: 'Data stored in EquipQR:',
+                  content:
+                    'Only your opt-in decision, stored in your browser (see Section 5). Clarity recordings are retained by Microsoft under its own retention policy.',
+                },
+                {
+                  label: 'More information:',
+                  content: (
+                    <>
+                      See{' '}
+                      <ExternalLink href="https://learn.microsoft.com/en-us/clarity/setup-and-installation/privacy-disclosure" className="hover:text-foreground">
+                        Microsoft Clarity privacy disclosure
+                      </ExternalLink>
+                      .
+                    </>
+                  ),
+                },
+              ],
+  },
+  {
+    title: "4.12 Google Analytics 4 (Google LLC) — Optional, Opt-In Only",
+    items: [
+                {
+                  label: 'Purpose:',
+                  content:
+                    'We utilize Google Analytics 4 for strictly opt-in, aggregate visitor analytics: which search results, referrals, and campaigns (for example, our Google Business Profile) bring people to EquipQR, and which pages they use.',
+                },
+                {
+                  label: 'When it is active:',
+                  content:
+                    'Only after you choose "Accept All (Help Us Improve)" on the cookies notice or turn on "Help improve EquipQR with usage analytics" in Settings. The Google tag is not loaded before that choice, and turning the setting off stops it. Google Consent Mode is set with advertising storage, ad user data, and ad personalization always denied; Google signals and ad personalization are turned off.',
+                },
+                {
+                  label: 'Data sent to Google:',
+                  content:
+                    'Page views with record IDs and access tokens removed from the address, page titles on public pages only, campaign (UTM) tags, referring site, and device and browser details (screen size, browser type, approximate location derived from IP address). Google Analytics 4 does not log or store IP addresses.',
+                },
+                {
+                  label: 'Data stored in EquipQR:',
+                  content:
+                    'Only your opt-in decision, stored in your browser (see Section 5). Analytics data is retained by Google under the retention setting of our Google Analytics property.',
+                },
+                {
+                  label: 'More information:',
+                  content: (
+                    <>
+                      See{' '}
+                      <ExternalLink href="https://business.safety.google/privacy/" className="hover:text-foreground">
+                        Google business data responsibility
+                      </ExternalLink>
+                      .
+                    </>
+                  ),
+                },
+              ],
   },];

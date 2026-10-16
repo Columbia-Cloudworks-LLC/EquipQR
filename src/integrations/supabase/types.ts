@@ -2167,6 +2167,7 @@ export type Database = {
           role: string
           slot_purchase_id: string | null
           status: string
+          support_grant_id: string | null
           user_id: string
         }
         Insert: {
@@ -2180,6 +2181,7 @@ export type Database = {
           role?: string
           slot_purchase_id?: string | null
           status?: string
+          support_grant_id?: string | null
           user_id: string
         }
         Update: {
@@ -2193,6 +2195,7 @@ export type Database = {
           role?: string
           slot_purchase_id?: string | null
           status?: string
+          support_grant_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -2201,6 +2204,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_members_support_grant_id_fkey"
+            columns: ["support_grant_id"]
+            isOneToOne: false
+            referencedRelation: "organization_support_grants"
             referencedColumns: ["id"]
           },
           {
@@ -2216,6 +2226,120 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "user_entitlements"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      organization_provisioned_members: {
+        Row: {
+          claimed_at: string | null
+          claimed_role: string | null
+          claimed_user_id: string | null
+          created_at: string
+          email: string
+          id: string
+          last_claim_error: string | null
+          organization_id: string
+          revoked_at: string | null
+          revoked_by: string | null
+          role: string
+          staged_by: string | null
+          status: string
+          team_id: string | null
+          team_role: Database["public"]["Enums"]["team_member_role"] | null
+          updated_at: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          claimed_role?: string | null
+          claimed_user_id?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          last_claim_error?: string | null
+          organization_id: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          role: string
+          staged_by?: string | null
+          status?: string
+          team_id?: string | null
+          team_role?: Database["public"]["Enums"]["team_member_role"] | null
+          updated_at?: string
+        }
+        Update: {
+          claimed_at?: string | null
+          claimed_role?: string | null
+          claimed_user_id?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          last_claim_error?: string | null
+          organization_id?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          role?: string
+          staged_by?: string | null
+          status?: string
+          team_id?: string | null
+          team_role?: Database["public"]["Enums"]["team_member_role"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_provisioned_members_claimed_user_id_fkey"
+            columns: ["claimed_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_provisioned_members_claimed_user_id_fkey"
+            columns: ["claimed_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "organization_provisioned_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_provisioned_members_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_provisioned_members_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "organization_provisioned_members_staged_by_fkey"
+            columns: ["staged_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_provisioned_members_staged_by_fkey"
+            columns: ["staged_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "organization_provisioned_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -2266,11 +2390,90 @@ export type Database = {
           },
         ]
       }
+      organization_support_grants: {
+        Row: {
+          created_at: string
+          expires_at: string
+          granted_at: string
+          granted_by: string | null
+          id: string
+          organization_id: string
+          revoked_at: string | null
+          revoked_by: string | null
+          source: string
+          ticket_ref: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          organization_id: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          source: string
+          ticket_ref?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          organization_id?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          source?: string
+          ticket_ref?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_support_grants_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_support_grants_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "organization_support_grants_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_support_grants_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_support_grants_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           background_color: string | null
           billable_members: number | null
           billing_cycle: string | null
+          claimed_at: string | null
           created_at: string
           customers_feature_enabled: boolean | null
           features: string[]
@@ -2291,6 +2494,9 @@ export type Database = {
           next_billing_date: string | null
           note_author_edit_window_hours: number
           plan: Database["public"]["Enums"]["organization_plan"]
+          provisioned_at: string | null
+          provisioned_by: string | null
+          provisioning_request_id: string | null
           scan_location_collection_enabled: boolean
           storage_used_mb: number | null
           updated_at: string
@@ -2299,6 +2505,7 @@ export type Database = {
           background_color?: string | null
           billable_members?: number | null
           billing_cycle?: string | null
+          claimed_at?: string | null
           created_at?: string
           customers_feature_enabled?: boolean | null
           features?: string[]
@@ -2319,6 +2526,9 @@ export type Database = {
           next_billing_date?: string | null
           note_author_edit_window_hours?: number
           plan?: Database["public"]["Enums"]["organization_plan"]
+          provisioned_at?: string | null
+          provisioned_by?: string | null
+          provisioning_request_id?: string | null
           scan_location_collection_enabled?: boolean
           storage_used_mb?: number | null
           updated_at?: string
@@ -2327,6 +2537,7 @@ export type Database = {
           background_color?: string | null
           billable_members?: number | null
           billing_cycle?: string | null
+          claimed_at?: string | null
           created_at?: string
           customers_feature_enabled?: boolean | null
           features?: string[]
@@ -2347,11 +2558,29 @@ export type Database = {
           next_billing_date?: string | null
           note_author_edit_window_hours?: number
           plan?: Database["public"]["Enums"]["organization_plan"]
+          provisioned_at?: string | null
+          provisioned_by?: string | null
+          provisioning_request_id?: string | null
           scan_location_collection_enabled?: boolean
           storage_used_mb?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "organizations_provisioned_by_fkey"
+            columns: ["provisioned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organizations_provisioned_by_fkey"
+            columns: ["provisioned_by"]
+            isOneToOne: false
+            referencedRelation: "user_entitlements"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       ownership_transfer_requests: {
         Row: {
@@ -4939,6 +5168,10 @@ export type Database = {
         Args: { p_organization_id: string }
         Returns: undefined
       }
+      assert_org_operator_editable: {
+        Args: { p_organization_id: string }
+        Returns: undefined
+      }
       auto_provision_workspace_organization: {
         Args: {
           p_domain: string
@@ -5078,6 +5311,10 @@ export type Database = {
         Args: { required_role: string; team_uuid: string; user_uuid: string }
         Returns: boolean
       }
+      claim_provisioned_memberships: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
       claim_quickbooks_invoice_status_events: {
         Args: { p_batch_size: number }
         Returns: {
@@ -5100,6 +5337,7 @@ export type Database = {
         Args: never
         Returns: number
       }
+      cleanup_expired_support_access: { Args: never; Returns: number }
       cleanup_old_departure_queue: { Args: never; Returns: number }
       cleanup_old_export_logs: { Args: never; Returns: number }
       cleanup_old_notifications: { Args: never; Returns: undefined }
@@ -5382,6 +5620,10 @@ export type Database = {
           p_report_type: string
         }
         Returns: Json
+      }
+      ensure_personal_organization: {
+        Args: { p_user_id: string }
+        Returns: string
       }
       export_equipment_csv_rows: {
         Args: {
@@ -5835,6 +6077,16 @@ export type Database = {
           scopes: string
         }[]
       }
+      get_support_access_status: {
+        Args: { p_organization_id: string }
+        Returns: {
+          expires_at: string
+          grant_id: string
+          granted_at: string
+          granted_by_name: string
+          source: string
+        }[]
+      }
       get_system_user_id: { Args: never; Returns: string }
       get_user_invitations_safe: {
         Args: { org_id: string; user_uuid: string }
@@ -5922,6 +6174,17 @@ export type Database = {
           workspace_org_id: string
         }[]
       }
+      grant_support_access: {
+        Args: {
+          p_duration_hours: number
+          p_granted_by: string
+          p_operator_ids: string[]
+          p_organization_id: string
+          p_source: string
+          p_ticket_ref?: string
+        }
+        Returns: Json
+      }
       handle_invitation_account_creation: {
         Args: { p_invitation_id: string; p_user_id: string }
         Returns: Json
@@ -5956,6 +6219,10 @@ export type Database = {
         Returns: boolean
       }
       is_org_member: {
+        Args: { org_id: string; user_uuid: string }
+        Returns: boolean
+      }
+      is_org_operational_admin: {
         Args: { org_id: string; user_uuid: string }
         Returns: boolean
       }
@@ -6132,6 +6399,61 @@ export type Database = {
         }
         Returns: undefined
       }
+      operator_add_equipment: {
+        Args: {
+          p_equipment: Json
+          p_operator_id: string
+          p_organization_id: string
+        }
+        Returns: number
+      }
+      operator_delete_equipment: {
+        Args: {
+          p_equipment_id: string
+          p_operator_id: string
+          p_organization_id: string
+        }
+        Returns: undefined
+      }
+      operator_get_organization: {
+        Args: { p_organization_id: string }
+        Returns: Json
+      }
+      operator_list_unclaimed_organizations: {
+        Args: never
+        Returns: {
+          equipment_count: number
+          id: string
+          name: string
+          pending_staff: number
+          provisioned_at: string
+          provisioned_by: string
+        }[]
+      }
+      operator_revoke_staged_member: {
+        Args: { p_operator_id: string; p_staged_member_id: string }
+        Returns: undefined
+      }
+      operator_stage_member: {
+        Args: {
+          p_attach_existing?: boolean
+          p_email: string
+          p_operator_id: string
+          p_organization_id: string
+          p_role: string
+          p_team_id?: string
+          p_team_role?: Database["public"]["Enums"]["team_member_role"]
+        }
+        Returns: string
+      }
+      operator_verified_account_emails: {
+        Args: { p_emails: string[] }
+        Returns: string[]
+      }
+      org_is_operator_editable: {
+        Args: { p_organization_id: string }
+        Returns: boolean
+      }
       peek_google_workspace_oauth_session: {
         Args: { p_nonce: string; p_session_token: string }
         Returns: {
@@ -6155,6 +6477,18 @@ export type Database = {
       process_all_pending_departures: { Args: never; Returns: Json }
       process_departure_batch: {
         Args: { p_batch_size?: number; p_queue_id: string }
+        Returns: Json
+      }
+      provision_organization: {
+        Args: {
+          p_attach_existing_emails?: string[]
+          p_equipment: Json
+          p_name: string
+          p_operator_id: string
+          p_request_id: string
+          p_staff: Json
+          p_team_name: string
+        }
         Returns: Json
       }
       reconcile_google_workspace_directory: {
@@ -6252,6 +6586,14 @@ export type Database = {
         Args: { p_reason?: string; p_work_order_id: string }
         Returns: Json
       }
+      revoke_provisioned_member: {
+        Args: { p_staged_member_id: string }
+        Returns: undefined
+      }
+      revoke_support_access: {
+        Args: { p_organization_id: string }
+        Returns: boolean
+      }
       rotate_operator_checkin_token: {
         Args: { p_settings_id: string }
         Returns: {
@@ -6289,6 +6631,16 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      stage_provisioned_member: {
+        Args: {
+          p_email: string
+          p_organization_id: string
+          p_role: string
+          p_team_id?: string
+          p_team_role?: Database["public"]["Enums"]["team_member_role"]
+        }
+        Returns: string
+      }
       storage_object_path_segment_uuid: {
         Args: { p_object_name: string; p_segment_index: number }
         Returns: string
@@ -6318,6 +6670,7 @@ export type Database = {
         }
         Returns: Json
       }
+      support_grant_is_live: { Args: { p_grant_id: string }; Returns: boolean }
       synthesize_historical_timeline_events: {
         Args: {
           p_assignee_id?: string
@@ -6656,3 +7009,4 @@ export const Constants = {
     },
   },
 } as const
+

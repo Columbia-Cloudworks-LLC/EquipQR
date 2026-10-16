@@ -4,7 +4,7 @@
 
 <a href="https://equipqr.app"><img src="public/images/brand/icons/EquipQR-Icon-Purple-Medium.png" alt="EquipQRâ„¢ Logo" width="150" /></a>
 
-![Version](https://img.shields.io/badge/version-3.36.0-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-3.37.0-blue?style=for-the-badge)
 
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
@@ -79,19 +79,13 @@ EquipQR uses external services. For exact environment variables and where theyâ€
     > Note: This repo intentionally installs `xlsx` from `cdn.sheetjs.com` (not npm registry). Ensure your CI and network policy allow access to that host during `npm install`.
 
 2. **Configure Environment**
-    Preferred: if you have access, use 1Password CLI + `.\dev\dev-start.bat` so env files are synced automatically.
+    Start the local stack; it writes the local Supabase URL and key to `.env.local`. Optional integration keys go in `.env` (app) and `supabase/functions/.env` (Edge), copied by hand from `.env.example`.
 
     ```powershell
-    op --version
-    .\dev\dev-start.bat                    # full stack (Supabase + functions + Vite)
-    .\dev\dev-setup-cursor-mcp.bat         # optional: refresh Cursor MCP config
+    .\dev\equipqr.bat start                # full stack (Supabase + functions + Vite)
     ```
 
-    Manual fallback:
-
-    ```bash
-    cp .env.example .env
-    ```
+    Deployed configuration lives only in GitHub Environments (`preview`, `production`). See [agent secrets and access](./docs/ops/agent-secrets-and-access.md).
 
     > See [Setup Guide](./docs/technical/setup.md) for required API keys.
 

@@ -113,6 +113,10 @@ vi.mock('@/features/tickets/context/BugReportContext', () => ({
   BugReportProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
+vi.mock('@/features/reviews/components/GoogleReviewPrompt', () => ({
+  GoogleReviewPrompt: () => null,
+}));
+
 vi.mock('@/features/offline-queue/components/PendingSyncBanner', () => ({
   PendingSyncBanner: () => <div>Pending sync</div>,
 }));

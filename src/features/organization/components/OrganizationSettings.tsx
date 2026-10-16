@@ -17,6 +17,7 @@ import { updateOrganization, uploadOrganizationLogo, deleteOrganizationLogo } fr
 import type { OrganizationUpdatePayload } from '@/features/organization/types/organization';
 import { organizationFormSchema, OrganizationFormData } from './organizationSettingsSchema';
 import { DangerZoneSection } from './DangerZoneSection';
+import { SupportAccessCard } from './SupportAccessCard';
 import { OrganizationInventoryDefaultLocationSection } from './OrganizationInventoryDefaultLocationSection';
 import { useOrganizationMembersQuery } from '@/features/organization/hooks/useOrganizationMembers';
 import SingleImageUpload from '@/components/common/SingleImageUpload';
@@ -299,6 +300,8 @@ export const OrganizationSettings: React.FC<OrganizationSettingsProps> = ({
         organization={organization}
         onSaved={invalidateOrgCache}
       />
+
+      {currentUserRole === 'owner' && <SupportAccessCard organizationId={organization.id} />}
 
       {/* Danger Zone */}
       <div className="pt-8">

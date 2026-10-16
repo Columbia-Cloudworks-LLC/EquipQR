@@ -17,13 +17,30 @@ import {
   isPreferenceStorageAllowed,
   type CookieConsentDecision,
 } from '@/lib/cookieConsent';
+import {
+  TELEMETRY_CONSENT_SCOPE_STORAGE_KEY,
+  TELEMETRY_CONSENT_STORAGE_KEY,
+  getTelemetryConsentDecision,
+  isTelemetryAvailable,
+  setTelemetryConsentDecision,
+  type TelemetryConsentDecision,
+} from '@/lib/telemetryConsent';
 
 interface CookieConsentContextValue {
   decision: CookieConsentDecision | null;
   needsConsent: boolean;
   canUsePreferences: boolean;
+  /** Opt-in analytics (Google Analytics 4) and session replay (Microsoft Clarity) decision. */
+  telemetryDecision: TelemetryConsentDecision | null;
+  /** True when a Clarity project id or GA4 measurement id is configured for this build. */
+  telemetryAvailable: boolean;
+  canUseTelemetry: boolean;
+  /** Banner "Accept" / "Accept All": preferences + telemetry (when available). */
   accept: () => void;
+  /** Banner "Reject" / "Essential Only": declines everything not yet accepted. */
   reject: () => void;
+  /** Settings toggle — changes telemetry only. @returns true when persisted. */
+  setTelemetryConsent: (enabled: boolean) => boolean;
 }
 
 const CookieConsentContext = createContext<CookieConsentContextValue | undefined>(undefined);
@@ -32,15 +49,31 @@ export const CookieConsentProvider: React.FC<{ children: React.ReactNode }> = ({
   const [decision, setDecision] = useState<CookieConsentDecision | null>(() =>
     getCookieConsentDecision(),
   );
+  const [telemetryDecision, setTelemetryDecision] = useState<TelemetryConsentDecision | null>(
+    () => getTelemetryConsentDecision(),
+  );
+  const telemetryAvailable = isTelemetryAvailable();
 
   useEffect(() => {
     const syncFromStorage = () => {
       setDecision(getCookieConsentDecision());
+      setTelemetryDecision(getTelemetryConsentDecision());
     };
     const onStorage = (event: StorageEvent) => {
-      if (event.key !== null && event.key !== COOKIE_CONSENT_STORAGE_KEY) return;
-      const next = event.newValue;
-      setDecision(isCookieConsentDecision(next) ? next : getCookieConsentDecision());
+      if (event.key === null) {
+        syncFromStorage();
+        return;
+      }
+      if (event.key === COOKIE_CONSENT_STORAGE_KEY) {
+        const next = event.newValue;
+        setDecision(isCookieConsentDecision(next) ? next : getCookieConsentDecision());
+      } else if (
+        event.key === TELEMETRY_CONSENT_STORAGE_KEY ||
+        event.key === TELEMETRY_CONSENT_SCOPE_STORAGE_KEY
+      ) {
+        // Re-read both keys: an acceptance only counts with a covering scope.
+        setTelemetryDecision(getTelemetryConsentDecision());
+      }
     };
     window.addEventListener('storage', onStorage);
     // Same-tab clears (e.g. DevTools) won't fire `storage`; focus re-syncs.
@@ -52,19 +85,51 @@ export const CookieConsentProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const accept = useCallback(() => {
-    if (!applyCookieConsentDecision('accepted')) {
-      toast.error('Could not save your cookie preference. Please try again.');
-      return;
+    // Only the first-visit notice decides preference storage. A user who already
+    // answered it (Accept or Reject) and is now asked only about diagnostics
+    // keeps that earlier choice.
+    if (decision === null) {
+      if (!applyCookieConsentDecision('accepted')) {
+        toast.error('Could not save your cookie preference. Please try again.');
+        return;
+      }
+      setDecision('accepted');
     }
-    setDecision('accepted');
-  }, []);
+    if (telemetryAvailable) {
+      if (!setTelemetryConsentDecision('accepted')) {
+        toast.error('Could not save your diagnostics preference. Please try again.');
+        return;
+      }
+      setTelemetryDecision('accepted');
+    }
+  }, [decision, telemetryAvailable]);
 
   const reject = useCallback(() => {
-    if (!applyCookieConsentDecision('rejected')) {
-      toast.error('Could not save your cookie preference. Please try again.');
-      return;
+    // Same rule as accept: an earlier preference choice is never changed here.
+    if (decision === null) {
+      if (!applyCookieConsentDecision('rejected')) {
+        toast.error('Could not save your cookie preference. Please try again.');
+        return;
+      }
+      setDecision('rejected');
     }
-    setDecision('rejected');
+    if (telemetryAvailable) {
+      if (!setTelemetryConsentDecision('rejected')) {
+        toast.error('Could not save your diagnostics preference. Please try again.');
+        return;
+      }
+      setTelemetryDecision('rejected');
+    }
+  }, [decision, telemetryAvailable]);
+
+  const setTelemetryConsent = useCallback((enabled: boolean) => {
+    const next: TelemetryConsentDecision = enabled ? 'accepted' : 'rejected';
+    if (!setTelemetryConsentDecision(next)) {
+      toast.error('Could not save your diagnostics preference. Please try again.');
+      return false;
+    }
+    setTelemetryDecision(next);
+    return true;
   }, []);
 
   // Prefer React `decision` as the sole gate — re-reading storage inside the
@@ -72,12 +137,16 @@ export const CookieConsentProvider: React.FC<{ children: React.ReactNode }> = ({
   const value = useMemo<CookieConsentContextValue>(
     () => ({
       decision,
-      needsConsent: decision === null,
+      needsConsent: decision === null || (telemetryAvailable && telemetryDecision === null),
       canUsePreferences: decision === 'accepted',
+      telemetryDecision,
+      telemetryAvailable,
+      canUseTelemetry: telemetryAvailable && telemetryDecision === 'accepted',
       accept,
       reject,
+      setTelemetryConsent,
     }),
-    [accept, decision, reject],
+    [accept, decision, reject, setTelemetryConsent, telemetryAvailable, telemetryDecision],
   );
 
   return (

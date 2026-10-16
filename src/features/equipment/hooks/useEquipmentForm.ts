@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { useAppToast } from '@/hooks/useAppToast';
 import { logEquipmentLocationChange } from '@/features/equipment/services/equipmentLocationHistoryService';
 import {
+  buildEquipmentCloneDefaultValues,
   buildEquipmentFormDefaultValues,
   toEquipmentCreateData,
   toEquipmentUpdateData,
@@ -49,6 +50,8 @@ export const useEquipmentForm = (
   onSuccess?: () => void,
   pendingMediaRef?: RefObject<EquipmentFormPendingMedia>,
   onCreated?: (equipmentId: string) => void,
+  /** Existing unit whose shared specs prefill a new record (issue #1643). Ignored when editing. */
+  cloneSource?: EquipmentRecord,
 ) => {
   const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -79,9 +82,30 @@ export const useEquipmentForm = (
     return createEquipmentValidationSchema(context);
   }, [currentOrganization, initialData, sessionData?.teamMemberships]);
 
+  const canUseCloneSourceTeam = useMemo(() => {
+    if (!cloneSource?.team_id || !currentOrganization) return true;
+    const isOrgAdmin =
+      currentOrganization.userRole === 'owner' || currentOrganization.userRole === 'admin';
+    if (isOrgAdmin) return true;
+    return (
+      sessionData?.teamMemberships.some(
+        (membership) =>
+          membership.teamId === cloneSource.team_id &&
+          (membership.role === 'manager' ||
+            membership.role === 'technician' ||
+            membership.role === 'admin'),
+      ) ?? false
+    );
+  }, [cloneSource?.team_id, currentOrganization, sessionData?.teamMemberships]);
+
   const form = useForm<EquipmentFormData>({
     resolver: zodResolver(validationSchema),
-    defaultValues: buildEquipmentFormDefaultValues(initialData),
+    defaultValues:
+      !initialData && cloneSource
+        ? buildEquipmentCloneDefaultValues(cloneSource, {
+            canUseSourceTeam: canUseCloneSourceTeam,
+          })
+        : buildEquipmentFormDefaultValues(initialData),
   });
 
   const createMutation = useMutation({
@@ -91,7 +115,9 @@ export const useEquipmentForm = (
       }
 
       const service = new OfflineAwareWorkOrderService(currentOrganization.id, user.id);
-      const createData = toEquipmentCreateData(data);
+      const createData = toEquipmentCreateData(data, {
+        customerId: cloneSource?.customer_id ?? null,
+      });
       const result = await service.createEquipmentFull(createData);
 
       if (result.queuedOffline) {

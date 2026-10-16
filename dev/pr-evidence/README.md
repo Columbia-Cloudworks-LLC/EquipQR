@@ -39,7 +39,7 @@ bash dev/docs-media/workflow.sh verify
 - Local stack at `http://localhost:8080` (or pass `-BaseUrl`)
 - Playwright Chromium: `npx playwright install chromium`
 - `ffmpeg` and `ffprobe` on PATH (WebM → H.264 MP4 uses shared recording profile from `dev/lib/recording-quality.mjs`)
-- `OP_SERVICE_ACCOUNT_TOKEN` (User scope) for preview Supabase screenshot uploads — `bash dev/linux/pr-evidence.sh` and `bash dev/docs-media/workflow.sh publish` call `Set-PrEvidenceUploadEnvironment`, which materializes `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from 1Password for the session (see `dev/README-upload-screenshot.md` for manual setup)
+- `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` exported in your shell for screenshot uploads — `bash dev/linux/pr-evidence.sh` and `bash dev/docs-media/workflow.sh publish` read them from the environment (see `dev/README-upload-screenshot.md`)
 - **`GH_SESSION_TOKEN` (User scope)** for GitHub inline video upload — a GitHub `user_session` cookie, **not** a PAT. One-time setup:
   See the current [Bash workflow commands](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/preview/docs/ops/linux-workflows.md) for this operation.
   Refresh when GitHub invalidates the session (`gh image check-token`).

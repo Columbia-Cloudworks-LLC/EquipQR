@@ -65,6 +65,10 @@ vi.mock('@/components/settings/SensitivePrivacySettings', () => ({
   SensitivePrivacySettings: () => <div data-testid="sensitive-privacy-settings">Sensitive Privacy Settings</div>
 }));
 
+vi.mock('@/components/settings/TelemetryConsentSettings', () => ({
+  TelemetryConsentSettings: () => <div data-testid="telemetry-consent-settings" />,
+}));
+
 vi.mock('@/components/security/SecurityStatus', () => ({
   SecurityStatus: () => <div data-testid="security-status">Security Status</div>
 }));
@@ -146,6 +150,11 @@ describe('Settings Page', () => {
     it('renders sensitive privacy settings section', () => {
       render(<Settings />);
       expect(screen.getByTestId('sensitive-privacy-settings')).toBeInTheDocument();
+    });
+
+    it('renders the diagnostic session data setting in Privacy', () => {
+      render(<Settings />);
+      expect(screen.getByTestId('telemetry-consent-settings')).toBeInTheDocument();
     });
 
     it('renders privacy rights links', () => {

@@ -20,7 +20,7 @@ describe('PrivacyPolicy', () => {
     const heading = screen.getByRole('heading', { level: 1 });
     expect(heading).toHaveTextContent('Privacy Policy');
     expect(screen.getByText(/Last updated:/)).toBeInTheDocument();
-    expect(screen.getByText(/July 20, 2026/)).toBeInTheDocument();
+    expect(screen.getByText(/October 14, 2026/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument();
     expect(screen.getAllByRole('heading').length).toBeGreaterThan(1);
 
@@ -31,7 +31,7 @@ describe('PrivacyPolicy', () => {
     expect(screen.getByText(/3\. Information We Collect.*Organization Level/)).toBeInTheDocument();
     expect(screen.getByText(/Organizations that use EquipQR store business data/)).toBeInTheDocument();
     expect(screen.getByText('5. Cookies, Local Storage, and Session Data')).toBeInTheDocument();
-    expect(screen.getByText(/We do not use any third-party tracking cookies/)).toBeInTheDocument();
+    expect(screen.getByText(/we do not use any\s+third-party tracking cookies unless you opt in/)).toBeInTheDocument();
     expect(screen.getByText('6. How We Use Your Information')).toBeInTheDocument();
     expect(screen.getByText(/We use the information described above for the following specific purposes/)).toBeInTheDocument();
     expect(screen.getByText('7. How We Share Your Information')).toBeInTheDocument();
@@ -95,6 +95,9 @@ describe('PrivacyPolicy', () => {
     expect(screen.getByText(/4\.5 Vercel/)).toBeInTheDocument();
     expect(screen.getByText(/4\.7 QuickBooks Online.*Optional Integration/)).toBeInTheDocument();
     expect(screen.getByText(/4\.8 Google Workspace.*Optional Integration/)).toBeInTheDocument();
+    expect(screen.getByText(/4\.11 Microsoft Clarity.*Opt-In Only/)).toBeInTheDocument();
+    expect(screen.getByText(/4\.12 Google Analytics 4.*Opt-In Only/)).toBeInTheDocument();
+    expect(screen.getByText('Usage Analytics (Optional)')).toBeInTheDocument();
 
     const cloudWorksLinks = screen.getAllByText('Columbia Cloudworks LLC');
     cloudWorksLinks.forEach((link) => {

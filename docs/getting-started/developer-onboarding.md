@@ -57,23 +57,20 @@ npm ci
 
 > **Note**: We use `npm ci` for consistent, reproducible installs. Never use other package managers.
 
-### 3. Environment Setup (1Password Preferred)
+### 3. Environment Setup
 
-If you have 1Password access for EquipQR, use it as the default setup path.
-`dev-start.bat` now syncs both app `.env` and `supabase/functions/.env` from 1Password before continuing startup.
+The local stack writes the local Supabase URL and key to `.env.local`, so core development needs no shared credentials. It only reads `.env` and `supabase/functions/.env`; create those yourself for optional integrations.
+Deployed configuration lives only in GitHub Environments; see [agent secrets and access](../ops/agent-secrets-and-access.md).
 
 ```bash
-# Optional: verify 1Password CLI is installed
-op --version
-
-# Start the full local stack (prompts for 1Password auth early)
+# Start the full local stack
 bash dev/linux/dev.sh start
 
-# Optional: refresh Cursor MCP config only (restart Cursor afterwards)
+# Optional: install the Cursor MCP config (tokens come from your exported env vars)
 bash dev/ops/render-mcp.sh
 ```
 
-If you do not have 1Password access, use the manual fallback:
+For optional integrations, add the keys you need by hand:
 
 ```bash
 cp .env.example .env
@@ -137,7 +134,7 @@ Visit `http://localhost:8080` to see the application running!
    ```
 
 3. **Configure local environment**:
-   - Preferred: run `bash dev/linux/dev.sh start` and let it sync env files automatically (including 1Password-backed sync when available)
+   - Preferred: run `bash dev/linux/dev.sh start`; it writes the local Supabase URL and key to `.env.local`
    - Manual fallback: create `.env.local` with local Supabase credentials from `npx supabase status`
    - Use local Supabase URL from `supabase/config.toml` or `npx supabase status` (default: `http://localhost:54321`)
 

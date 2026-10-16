@@ -33,7 +33,13 @@ function mapOrganizationRowToSessionOrganization(
     inventoryDefaultLocationLat: org.inventory_default_location_lat ?? undefined,
     inventoryDefaultLocationLng: org.inventory_default_location_lng ?? undefined,
     userRole: (membership?.role as SessionOrganization['userRole']) || 'member',
-    userStatus: (membership?.status as SessionOrganization['userStatus']) || 'active',
+    // A support membership is returned only while its grant is live (RLS), so
+    // it is usable exactly like an active one until it expires.
+    userStatus:
+      membership?.status === 'support'
+        ? 'active'
+        : (membership?.status as SessionOrganization['userStatus']) || 'active',
+    isSupportAccess: membership?.status === 'support',
   };
 }
 

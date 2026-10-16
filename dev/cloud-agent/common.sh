@@ -8,8 +8,6 @@ STATE_FILE="${CLOUD_AGENT_STATE_FILE:-${STATE_DIR}/ephemeral-stack.json}"
 ENV_BACKUP_FILE="${CLOUD_AGENT_ENV_BACKUP:-${STATE_DIR}/.env.pre-ephemeral}"
 DEFAULT_TTL_HOURS="${CLOUD_AGENT_BRANCH_TTL_HOURS:-4}"
 BRANCH_NAME_PREFIX="${CLOUD_AGENT_BRANCH_PREFIX:-agent}"
-# EquipQR Agents vault UUID (spaced names break some op CLI paths).
-OP_EQUIPQR_AGENTS_VAULT_ID="${CLOUD_AGENT_OP_VAULT_ID:-tgo2m6qbct5otqeqirjocn3joa}"
 
 ca_log() { echo "  [cloud-agent] $*"; }
 ca_ok() { echo "  [cloud-agent] OK   $*"; }
@@ -28,27 +26,8 @@ ca_load_supabase_access_token() {
     return 0
   fi
 
-  if [[ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]]; then
-    ca_fail "SUPABASE_ACCESS_TOKEN is unset and OP_SERVICE_ACCOUNT_TOKEN is unavailable."
-    ca_fail "Set SUPABASE_ACCESS_TOKEN (or OP_SERVICE_ACCOUNT_TOKEN for 1Password read)."
-    return 1
-  fi
-
-  if ! command -v op >/dev/null 2>&1; then
-    ca_fail "1Password CLI (op) is required to load SUPABASE_ACCESS_TOKEN."
-    return 1
-  fi
-
-  local token
-  token="$(op read "op://${OP_EQUIPQR_AGENTS_VAULT_ID}/supabase-write/SUPABASE_ACCESS_TOKEN" 2>/dev/null || true)"
-  token="$(printf '%s' "$token" | tr -d '\r\n')"
-  if [[ -z "$token" ]]; then
-    ca_fail "Could not read op://${OP_EQUIPQR_AGENTS_VAULT_ID}/supabase-write/SUPABASE_ACCESS_TOKEN"
-    return 1
-  fi
-
-  export SUPABASE_ACCESS_TOKEN="$token"
-  ca_ok "Loaded SUPABASE_ACCESS_TOKEN from 1Password"
+  ca_fail "SUPABASE_ACCESS_TOKEN is unset. Provide it through the agent platform's secret environment."
+  return 1
 }
 
 ca_ensure_state_dir() {
@@ -80,8 +59,8 @@ ca_env_value() {
 }
 
 ca_resolve_quick_login_password() {
-  # Prefer explicit agent overrides, then Vite-prefixed, then app-env-local-dev's
-  # DEV_LOGIN_PASSWORD (what agent-bootstrap writes into cloud .env).
+  # Prefer explicit agent overrides, then Vite-prefixed, then DEV_LOGIN_PASSWORD
+  # from the cloud .env.
   local resolved="${CLOUD_AGENT_QUICK_LOGIN_PASSWORD:-${VITE_DEV_TEST_PASSWORD:-}}"
   if [[ -z "$resolved" ]]; then
     resolved="$(ca_env_value VITE_DEV_TEST_PASSWORD)"

@@ -10,8 +10,8 @@ SELECT plan(9);
 SELECT has_function(
   'public',
   'get_dashboard_trends',
-  ARRAY['uuid', 'uuid[]', 'boolean', 'integer'],
-  'public.get_dashboard_trends(uuid, uuid[], boolean, integer) exists'
+  ARRAY['uuid', 'integer', 'uuid', 'boolean'],
+  'public.get_dashboard_trends(uuid, integer, uuid, boolean) exists'
 );
 
 -- 2. Function is SECURITY DEFINER (matches advisor-compliant pattern).
@@ -38,8 +38,8 @@ SELECT ok(
 -- 4. EXECUTE not granted to PUBLIC.
 SELECT is(
   (SELECT has_function_privilege(
-             'PUBLIC',
-             'public.get_dashboard_trends(uuid, uuid[], boolean, integer)',
+             'public',
+             'public.get_dashboard_trends(uuid, integer, uuid, boolean)',
              'EXECUTE')),
   false,
   'EXECUTE on get_dashboard_trends not granted to PUBLIC'
@@ -49,7 +49,7 @@ SELECT is(
 SELECT is(
   (SELECT has_function_privilege(
              'authenticated',
-             'public.get_dashboard_trends(uuid, uuid[], boolean, integer)',
+             'public.get_dashboard_trends(uuid, integer, uuid, boolean)',
              'EXECUTE')),
   true,
   'EXECUTE on get_dashboard_trends granted to authenticated'
@@ -61,7 +61,7 @@ SELECT is(
 --    public.is_org_member(auth.uid(), p_org_id) which returns false for the
 --    anonymous/null auth.uid() context; the RAISE path must fire.
 SELECT throws_ok(
-  $$SELECT * FROM public.get_dashboard_trends('00000000-0000-0000-0000-000000000000'::uuid, ARRAY[]::uuid[], false, 7)$$,
+  $$SELECT * FROM public.get_dashboard_trends('00000000-0000-0000-0000-000000000000'::uuid, 7, NULL::uuid, false)$$,
   '42501',
   NULL,
   'get_dashboard_trends raises 42501 for non-member'
@@ -85,7 +85,7 @@ SELECT matches(
      FROM pg_proc
      WHERE proname = 'get_dashboard_trends'
        AND pronamespace = 'public'::regnamespace),
-  'is_org_admin\(auth\.uid\(\), p_org_id\)',
+  'is_org_(operational_)?admin\(auth\.uid\(\), p_org_id\)',
   'get_dashboard_trends checks org admin scope server-side'
 );
 

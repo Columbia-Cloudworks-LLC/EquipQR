@@ -1,6 +1,5 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AlertCircle, AlertTriangle, ChevronRight, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -21,6 +20,9 @@ import {
   parseCalendarDay,
   parseDue,
   persistDue,
+  todayLocal,
+  type DueDate,
+  type DuePersist,
 } from '@/features/work-orders/calendar';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import InlineEditField from '@/features/equipment/components/InlineEditField';
@@ -29,6 +31,7 @@ import {
   mobileInlineEditValueClassName,
 } from '@/features/equipment/components/inlineEditStyles';
 import { InlineEditWorkOrderAssignee } from '@/features/work-orders/components/InlineEditWorkOrderAssignee';
+import { WorkOrderDueTimePicker } from '@/features/work-orders/components/WorkOrderDueTimePicker';
 import { useWorkOrderInlineFieldSave } from '@/features/work-orders/hooks/useWorkOrderInlineFieldSave';
 import QuickBooksInvoiceStatusBadge from '@/features/work-orders/components/QuickBooksInvoiceStatusBadge';
 import type { QuickBooksInvoiceStatus, WorkOrderStatus } from '@/features/work-orders/types/workOrder';
@@ -103,11 +106,38 @@ export const MobileWorkOrderCompactSummary: React.FC<MobileWorkOrderCompactSumma
 }) => {
   const { formatDate, formatDateTime } = useFormatTimestamp();
   const { saveField, savePatch } = useWorkOrderInlineFieldSave(workOrder.id, workOrder.updated_at);
-  const due = parseDue({
-    dueDate: workOrder.due_date,
-    dueDateHasTime: workOrder.due_date_has_time ?? false,
-  });
-  const dueDate = workOrder.due_date;
+  const serverDue = React.useMemo(
+    () =>
+      parseDue({
+        dueDate: workOrder.due_date,
+        dueDateHasTime: workOrder.due_date_has_time ?? false,
+      }),
+    [workOrder.due_date, workOrder.due_date_has_time],
+  );
+  const [draftDue, setDraftDue] = React.useState<DueDate>(serverDue);
+  const draftDueRef = React.useRef<DueDate>(serverDue);
+  const serverDueRef = React.useRef<DueDate>(serverDue);
+  serverDueRef.current = serverDue;
+  const queuedPersistRef = React.useRef<DuePersist | null>(null);
+  const inFlightSavePromiseRef = React.useRef<Promise<void> | null>(null);
+
+  React.useEffect(() => {
+    queuedPersistRef.current = null;
+    inFlightSavePromiseRef.current = null;
+    draftDueRef.current = serverDueRef.current;
+    setDraftDue(serverDueRef.current);
+  }, [workOrder.id]);
+
+  React.useEffect(() => {
+    if (inFlightSavePromiseRef.current || queuedPersistRef.current !== null) {
+      return;
+    }
+    draftDueRef.current = serverDue;
+    setDraftDue(serverDue);
+  }, [serverDue]);
+
+  const due = draftDue;
+  const dueDate = due.kind !== 'none';
   const overdue = isDueOverdue(due, workOrder.status);
   const dueSoon =
     !overdue &&
@@ -123,11 +153,37 @@ export const MobileWorkOrderCompactSummary: React.FC<MobileWorkOrderCompactSumma
   });
 
   const persistDueWrite = async (write: Parameters<typeof applyDueWrite>[1]) => {
-    const persisted = persistDue(applyDueWrite(due, write));
-    await savePatch({
-      dueDate: persisted.dueDate ?? '',
-      dueDateHasTime: persisted.dueDateHasTime,
-    });
+    const nextDue = applyDueWrite(draftDueRef.current, write);
+    draftDueRef.current = nextDue;
+    setDraftDue(nextDue);
+    queuedPersistRef.current = persistDue(nextDue);
+
+    if (inFlightSavePromiseRef.current) {
+      return inFlightSavePromiseRef.current;
+    }
+
+    const flushPromise = (async () => {
+      try {
+        while (queuedPersistRef.current !== null) {
+          const nextPatch = queuedPersistRef.current;
+          queuedPersistRef.current = null;
+          await savePatch({
+            dueDate: nextPatch.dueDate ?? '',
+            dueDateHasTime: nextPatch.dueDateHasTime,
+          });
+        }
+      } catch (error) {
+        queuedPersistRef.current = null;
+        draftDueRef.current = serverDueRef.current;
+        setDraftDue(serverDueRef.current);
+        throw error;
+      } finally {
+        inFlightSavePromiseRef.current = null;
+      }
+    })();
+
+    inFlightSavePromiseRef.current = flushPromise;
+    return flushPromise;
   };
 
   const handleDueTimeChange = async (raw: string) => {
@@ -136,8 +192,8 @@ export const MobileWorkOrderCompactSummary: React.FC<MobileWorkOrderCompactSumma
       return;
     }
 
-    const day = parseCalendarDay(dueDayInputValue(due));
-    if (!day) return;
+    const currentDue = draftDueRef.current;
+    const day = parseCalendarDay(dueDayInputValue(currentDue)) ?? todayLocal();
 
     const [hours, minutes] = raw.split(':').map(Number);
     await persistDueWrite(dueDateTimeInputWrite({
@@ -281,7 +337,7 @@ export const MobileWorkOrderCompactSummary: React.FC<MobileWorkOrderCompactSumma
               <InlineEditField
                 value={dueDayInputValue(due)}
                 onSave={async (value) => {
-                  await persistDueWrite(dueDayInputWrite(due, value));
+                  await persistDueWrite(dueDayInputWrite(draftDueRef.current, value));
                 }}
                 canEdit={canEditFields}
                 type="date"
@@ -290,13 +346,12 @@ export const MobileWorkOrderCompactSummary: React.FC<MobileWorkOrderCompactSumma
                 displayNode={dueDateDisplayNode}
               />
               <div className="space-y-1.5">
-                <Label htmlFor="mobile-work-order-due-time">Due time</Label>
-                <Input
-                  id="mobile-work-order-due-time"
-                  type="time"
+                <Label htmlFor="mobile-work-order-due-time-hour">Due time</Label>
+                <WorkOrderDueTimePicker
+                  idPrefix="mobile-work-order-due-time"
                   value={dueTimeInputValue(due)}
-                  onChange={(e) => {
-                    void handleDueTimeChange(e.target.value);
+                  onChange={(nextValue) => {
+                    void handleDueTimeChange(nextValue);
                   }}
                 />
               </div>

@@ -60,7 +60,7 @@ configuration and linked project state are not modified. Database data persists 
 Docker volumes. `reset` is the only command that deliberately clears it.
 
 The core stack does not require production credentials, hosted Supabase branches,
-or a 1Password login. Google sign-in is disabled in the generated configuration
+or any password manager. Google sign-in is disabled in the generated configuration
 when its development OAuth credentials are absent; test email/password login works.
 Optional app configuration comes from `.env`, `.env.local`, and the process
 environment. In local mode, the launcher overrides the browser's Supabase URL/key to use
@@ -140,5 +140,5 @@ See [Bash workflow commands](linux-workflows.md) for secret synchronization,
 ITIL, PR feedback, editor hooks, browser integration credentials, and media uploads.
 The [migration map](linux-script-migration.md) accounts for each retired script.
 `npm run test:linux` enforces the single Windows entrypoint policy.
-Setup also installs the native 1Password CLI and checksum-verified Deno 2.9.7.
+Setup also installs checksum-verified Deno 2.9.7.
 Vendor authentication is separate from installing these tools.

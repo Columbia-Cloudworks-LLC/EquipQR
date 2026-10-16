@@ -12,6 +12,7 @@ import type {
 } from '@/services/quickbooks/types';
 import { isQuickBooksEnabled } from '@/lib/flags';
 import { getInvokeErrorPayload } from '@/services/google-workspace/invokeError';
+import { invalidateReviewMilestone } from '@/features/reviews/hooks/useReviewMilestone';
 import { toast } from 'sonner';
 import type { InvoiceConfirmation } from '@/services/quickbooks/invoiceReview';
 
@@ -132,6 +133,7 @@ export function useExportToQuickBooks() {
         ? `Invoice ${result.invoiceNumber} updated in QuickBooks`
         : `Invoice ${result.invoiceNumber} created in QuickBooks`;
       toast.success(message);
+      void invalidateReviewMilestone(queryClient);
     },
     onError: (error: Error) => {
       toast.error(`Export failed: ${error.message}`);

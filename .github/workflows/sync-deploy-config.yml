@@ -1,0 +1,83 @@
+name: Sync deployment configuration
+
+# GitHub Environments are the only source of configuration. This workflow copies
+# the preview or production environment into Vercel env vars (VITE_*, from
+# variables only) and Supabase Edge Function secrets (production always; preview
+# only when the preview variable SYNC_PREVIEW_EDGE=true). See
+# dev/ci/sync-deploy-config.mjs for the managed key list and safety rules.
+# Values are never printed.
+#
+# - Push to preview: applies the preview environment and redeploys the newest
+#   preview deployment when a Vercel value changed.
+# - Manual run: choose environment and mode (check reports drift, apply writes).
+#   production can only be selected from main (environment branch policy).
+# - Production releases also apply this sync in production-release-readiness.yml
+#   before promoting Vercel and deploying Edge Functions.
+#
+# After changing a GitHub variable or secret, run this workflow with mode=apply
+# (preview), or let the next production release apply it.
+
+on:
+  push:
+    branches: [preview]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: GitHub environment to sync from
+        type: choice
+        options:
+          - preview
+          - production
+        default: preview
+      mode:
+        description: check reports drift only. apply writes Vercel and Supabase.
+        type: choice
+        options:
+          - check
+          - apply
+        default: check
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-deploy-config-${{ github.event_name == 'push' && 'preview' || inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sync ${{ github.event_name == 'push' && 'preview' || inputs.environment }} (${{ github.event_name == 'push' && 'apply' || inputs.mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: ${{ github.event_name == 'push' && 'preview' || inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+
+      - name: Sync configuration
+        env:
+          SYNC_TARGET: ${{ github.event_name == 'push' && 'preview' || inputs.environment }}
+          SYNC_MODE: ${{ github.event_name == 'push' && 'apply' || inputs.mode }}
+          SYNC_REDEPLOY_BRANCH: ${{ (github.event_name == 'push' || inputs.environment == 'preview') && 'preview' || 'main' }}
+          SYNC_VARS_JSON: ${{ toJSON(vars) }}
+          # Only the secrets the sync manages (never toJSON(secrets)).
+          SYNC_SECRET_RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          SYNC_SECRET_HCAPTCHA_SECRET_KEY: ${{ secrets.HCAPTCHA_SECRET_KEY }}
+          SYNC_SECRET_TOKEN_ENCRYPTION_KEY: ${{ secrets.TOKEN_ENCRYPTION_KEY }}
+          SYNC_SECRET_KDF_SALT: ${{ secrets.KDF_SALT }}
+          SYNC_SECRET_INTUIT_CLIENT_SECRET: ${{ secrets.INTUIT_CLIENT_SECRET }}
+          SYNC_SECRET_GOOGLE_WORKSPACE_CLIENT_SECRET: ${{ secrets.GOOGLE_WORKSPACE_CLIENT_SECRET }}
+          SYNC_SECRET_GOOGLE_MAPS_SERVER_KEY: ${{ secrets.GOOGLE_MAPS_SERVER_KEY }}
+          SYNC_SECRET_GOOGLE_MAPS_BROWSER_KEY: ${{ secrets.GOOGLE_MAPS_BROWSER_KEY }}
+          SYNC_SECRET_VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          SYNC_SECRET_GITHUB_PAT: ${{ secrets.GITHUB_PAT }}
+          SYNC_SECRET_GITHUB_WEBHOOK_SECRET: ${{ secrets.GITHUB_WEBHOOK_SECRET }}
+          SYNC_SECRET_DFY_OPERATOR_USER_IDS: ${{ secrets.DFY_OPERATOR_USER_IDS }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: node dev/ci/sync-deploy-config.mjs
