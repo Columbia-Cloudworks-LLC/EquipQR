@@ -1,9 +1,26 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
   REVIEW_MILESTONE_COMPLETED_WORK_ORDERS,
   hasReachedReviewMilestone,
 } from '@/features/reviews/lib/googleReviewPrompt';
+
+export const REVIEW_MILESTONE_QUERY_KEY_ROOT = 'google-review-milestone' as const;
+
+export function reviewMilestoneQueryKey(organizationId: string | undefined) {
+  return [REVIEW_MILESTONE_QUERY_KEY_ROOT, organizationId] as const;
+}
+
+export function invalidateReviewMilestone(
+  queryClient: QueryClient,
+  organizationId?: string,
+): Promise<void> {
+  return queryClient.invalidateQueries({
+    queryKey: organizationId
+      ? reviewMilestoneQueryKey(organizationId)
+      : [REVIEW_MILESTONE_QUERY_KEY_ROOT],
+  });
+}
 
 async function fetchReviewMilestone(organizationId: string): Promise<boolean> {
   const { count: completedWorkOrders, error: workOrderError } = await supabase
@@ -34,7 +51,7 @@ async function fetchReviewMilestone(organizationId: string): Promise<boolean> {
 /** Whether the organization has reached the Google review prompt milestone. */
 export function useReviewMilestone(organizationId: string | undefined, enabled: boolean) {
   return useQuery({
-    queryKey: ['google-review-milestone', organizationId],
+    queryKey: reviewMilestoneQueryKey(organizationId),
     queryFn: () => fetchReviewMilestone(organizationId ?? ''),
     enabled: enabled && Boolean(organizationId),
     staleTime: 30 * 60 * 1000,

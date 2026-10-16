@@ -8621,6 +8621,7 @@ BEGIN
   FOR UPDATE;
 
   IF v_open.id IS NOT NULL AND v_open.expires_at > now() THEN
+    v_expires_at := GREATEST(v_open.expires_at, v_expires_at);
     UPDATE public.organization_support_grants
     SET expires_at = v_expires_at,
         granted_at = now(),

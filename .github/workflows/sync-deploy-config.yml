@@ -63,7 +63,7 @@ jobs:
         env:
           SYNC_TARGET: ${{ github.event_name == 'push' && 'preview' || inputs.environment }}
           SYNC_MODE: ${{ github.event_name == 'push' && 'apply' || inputs.mode }}
-          SYNC_REDEPLOY_BRANCH: ${{ (github.event_name == 'push' || inputs.environment == 'preview') && 'preview' || '' }}
+          SYNC_REDEPLOY_BRANCH: ${{ (github.event_name == 'push' || inputs.environment == 'preview') && 'preview' || 'main' }}
           SYNC_VARS_JSON: ${{ toJSON(vars) }}
           # Only the secrets the sync manages (never toJSON(secrets)).
           SYNC_SECRET_RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}

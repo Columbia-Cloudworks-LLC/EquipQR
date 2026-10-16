@@ -3,7 +3,7 @@
 -- and the guards that stop admins or support from making access permanent.
 
 BEGIN;
-SELECT plan(56);
+SELECT plan(57);
 
 -- Users: owner, admin, two operators, outsider. Each gets a personal org.
 INSERT INTO auth.users (
@@ -330,11 +330,18 @@ SELECT ok(
   'Extending a live grant after removing an operator revokes the removed operator''s support membership'
 );
 
--- Restore both operators before testing expiry cleanup.
+-- Restore both operators with a 24-hour request while 168 hours remain; expiry must not be shortened.
 INSERT INTO pgtap_sa VALUES ('grant2_restore', public.grant_support_access(
   '96000000-0000-0000-0000-000000000001'::uuid, '16000000-0000-0000-0000-000000000001'::uuid,
   ARRAY['16000000-0000-0000-0000-000000000003'::uuid, '16000000-0000-0000-0000-000000000004'::uuid],
-  168, 'settings'));
+  24, 'settings'));
+
+SELECT ok(
+  (SELECT expires_at > now() + interval '167 hours'
+     FROM public.organization_support_grants
+    WHERE organization_id = '96000000-0000-0000-0000-000000000001'::uuid),
+  'Extending a live 7-day grant with a 24-hour selection never shortens the remaining expiry'
+);
 
 -- -----------------------------------------------------------------------------
 -- Expiry is enforced at query time, before any cleanup

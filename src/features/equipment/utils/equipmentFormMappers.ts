@@ -67,14 +67,18 @@ export function buildEquipmentFormDefaultValues(
  * leaving unique identifiers (serial number, media, notes, hours, service
  * history, custom attributes such as unit number / QR tag) blank.
  */
-export function buildEquipmentCloneDefaultValues(source: EquipmentRecord): EquipmentFormData {
+export function buildEquipmentCloneDefaultValues(
+  source: EquipmentRecord,
+  options: { canUseSourceTeam?: boolean } = {},
+): EquipmentFormData {
+  const canUseSourceTeam = options.canUseSourceTeam ?? true;
   return {
     ...buildEquipmentFormDefaultValues(),
     name: generateEquipmentName(source.manufacturer, source.model),
     manufacturer: source.manufacturer,
     model: source.model,
     location: source.location,
-    team_id: source.team_id || '',
+    team_id: canUseSourceTeam ? source.team_id || '' : '',
     default_pm_template_id: source.default_pm_template_id || '',
     assigned_location_street: source.assigned_location_street || '',
     assigned_location_city: source.assigned_location_city || '',

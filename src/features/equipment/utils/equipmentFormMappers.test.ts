@@ -81,6 +81,11 @@ describe('buildEquipmentCloneDefaultValues', () => {
     expect(createData.working_hours).toBe(0);
     expect(createData.image_url).toBeNull();
   });
+
+  it('clears the source team_id when the caller cannot create equipment in that team', () => {
+    const values = buildEquipmentCloneDefaultValues(source, { canUseSourceTeam: false });
+    expect(values.team_id).toBe('');
+  });
 });
 
 describe('toEquipmentCreateData', () => {

@@ -405,6 +405,42 @@ describe('run', () => {
     });
   });
 
+  it('production apply reconciles operators idempotently even when DFY_OPERATOR_USER_IDS already matches the remote secret digest', async () => {
+    const secrets = edgeSecrets();
+    const opKeep = '00000000-0000-4000-8000-000000000011';
+    const remote = [
+      ...Object.entries(secrets).map(([name, value]) => ({ name, value: sha256Hex(value) })),
+      { name: 'DFY_OPERATOR_USER_IDS', value: sha256Hex(opKeep) },
+    ];
+    const { calls, fetchImpl } = fakeApi({
+      [`GET /v10/projects/${project}/env`]: () => ({ envs: [] }),
+      'GET /v1/projects/ref123/secrets': () => remote,
+      'POST /v1/projects/ref123/database/query': () => [],
+    });
+    const code = await run({
+      env: {
+        SYNC_TARGET: 'production',
+        SYNC_MODE: 'apply',
+        VERCEL_TOKEN: 't',
+        SUPABASE_ACCESS_TOKEN: 's',
+        SYNC_VARS_JSON: JSON.stringify({ SUPABASE_PROJECT_REF: 'ref123' }),
+        ...secretEnv({ ...secrets, DFY_OPERATOR_USER_IDS: opKeep }),
+      },
+      fetchImpl,
+    });
+    expect(code).toBe(0);
+    expect(calls.some((c) => c.method === 'POST' && c.path === '/v1/projects/ref123/secrets')).toBe(
+      false,
+    );
+    expect(calls).toContainEqual({
+      method: 'POST',
+      path: '/v1/projects/ref123/database/query',
+      body: {
+        query: `SELECT public.reconcile_support_operators(ARRAY['${opKeep}'::uuid]);`,
+      },
+    });
+  });
+
   it('production apply sends only changed edge secrets to Supabase', async () => {
     const secrets = edgeSecrets();
     const remote = Object.entries(secrets).map(([name, value]) => ({ name, value: sha256Hex(value) }));
@@ -420,6 +456,7 @@ describe('run', () => {
       [`POST /v10/projects/${project}/env`]: () => ({}),
       'GET /v1/projects/ref123/secrets': () => remote,
       'POST /v1/projects/ref123/secrets': () => ({}),
+      'POST /v1/projects/ref123/database/query': () => [],
     });
     const code = await run({
       env: {
@@ -465,6 +502,7 @@ describe('run', () => {
       [`GET /v10/projects/${project}/env`]: () => ({ envs: [] }),
       [`POST /v10/projects/${project}/env`]: () => ({}),
       'GET /v1/projects/ref123/secrets': () => remote,
+      'POST /v1/projects/ref123/database/query': () => [],
       'GET /v6/deployments': () => ({
         deployments: [
           {
@@ -509,6 +547,7 @@ describe('run', () => {
       [`GET /v10/projects/${project}/env`]: () => ({ envs: [] }),
       [`POST /v10/projects/${project}/env`]: () => ({}),
       'GET /v1/projects/ref123/secrets': () => remote,
+      'POST /v1/projects/ref123/database/query': () => [],
       'GET /v6/deployments': () => ({ deployments: [] }),
     });
     const code = await run({

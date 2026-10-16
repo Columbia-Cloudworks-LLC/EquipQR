@@ -166,8 +166,10 @@ const EquipmentDetails = () => {
   const { isLoaded: isPlacesLoadedForSummary } = useGoogleMapsLoader({
     enabled: isEditingSummaryLocation,
   });
-  const { canCreateEquipment, canCreateEquipmentForAnyTeam } = usePermissions();
-  const canCreateEquipmentHere = canCreateEquipment() || canCreateEquipmentForAnyTeam();
+  const { canCreateEquipment, canCreateEquipmentForTeam } = usePermissions();
+  const canCreateEquipmentHere = equipment?.team_id
+    ? canCreateEquipmentForTeam(equipment.team_id)
+    : canCreateEquipment();
   const handleOpenCloneForm = canCreateEquipmentHere ? () => setIsCloneFormOpen(true) : undefined;
   const isLoading = orgLoading || equipmentLoading || (!isOrgAdmin && teamsLoading);
   const isAdmin =

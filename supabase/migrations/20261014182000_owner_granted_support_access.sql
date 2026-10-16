@@ -655,7 +655,8 @@ BEGIN
   FOR UPDATE;
 
   IF v_open.id IS NOT NULL AND v_open.expires_at > now() THEN
-    -- Live grant: the owner's new choice replaces the remaining time.
+    -- Live grant: never shorten an existing later expiry when extending.
+    v_expires_at := GREATEST(v_open.expires_at, v_expires_at);
     UPDATE public.organization_support_grants
     SET expires_at = v_expires_at,
         granted_at = now(),

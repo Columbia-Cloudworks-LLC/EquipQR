@@ -60,4 +60,22 @@ describe('review prompt dismissal', () => {
     expect(localStorage.getItem(GBP_REVIEW_PROMPT_STORAGE_KEY)).toBe('2026-10-14T12:00:00.000Z');
     expect(isReviewPromptDismissed()).toBe(true);
   });
+
+  it('treats unavailable or throwing localStorage getter as already dismissed', () => {
+    const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new DOMException('Access is denied for this document.', 'SecurityError');
+      },
+    });
+    try {
+      expect(isReviewPromptDismissed()).toBe(true);
+      expect(() => markReviewPromptDismissed()).not.toThrow();
+    } finally {
+      if (descriptor) {
+        Object.defineProperty(globalThis, 'localStorage', descriptor);
+      }
+    }
+  });
 });

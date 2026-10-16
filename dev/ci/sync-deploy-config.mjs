@@ -548,10 +548,7 @@ export async function run({ env = process.env, fetchImpl = fetch } = {}) {
       body: edgePlan.deletes,
     });
   }
-  const operatorAllowlistChanged =
-    edgePlan.writes.some((w) => w.name === 'DFY_OPERATOR_USER_IDS') ||
-    edgePlan.deletes.includes('DFY_OPERATOR_USER_IDS');
-  if (operatorAllowlistChanged) {
+  if (shouldSyncEdge(target, vars) && supabaseToken && projectRef) {
     await http(fetchImpl, `${SUPABASE_API}/v1/projects/${projectRef}/database/query`, {
       method: 'POST',
       token: supabaseToken,

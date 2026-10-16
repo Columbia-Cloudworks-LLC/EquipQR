@@ -58,7 +58,12 @@ function getLocalStorage(): Storage | null {
 
 export function isReviewPromptDismissed(): boolean {
   try {
-    return Boolean(getLocalStorage()?.getItem(GBP_REVIEW_PROMPT_STORAGE_KEY));
+    const storage = getLocalStorage();
+    if (!storage) {
+      // Unwritable/unavailable storage: stay quiet rather than risk asking repeatedly.
+      return true;
+    }
+    return Boolean(storage.getItem(GBP_REVIEW_PROMPT_STORAGE_KEY));
   } catch {
     // Unreadable storage: stay quiet rather than risk asking repeatedly.
     return true;

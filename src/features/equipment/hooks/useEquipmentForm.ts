@@ -82,11 +82,29 @@ export const useEquipmentForm = (
     return createEquipmentValidationSchema(context);
   }, [currentOrganization, initialData, sessionData?.teamMemberships]);
 
+  const canUseCloneSourceTeam = useMemo(() => {
+    if (!cloneSource?.team_id || !currentOrganization) return true;
+    const isOrgAdmin =
+      currentOrganization.userRole === 'owner' || currentOrganization.userRole === 'admin';
+    if (isOrgAdmin) return true;
+    return (
+      sessionData?.teamMemberships.some(
+        (membership) =>
+          membership.teamId === cloneSource.team_id &&
+          (membership.role === 'manager' ||
+            membership.role === 'technician' ||
+            membership.role === 'admin'),
+      ) ?? false
+    );
+  }, [cloneSource?.team_id, currentOrganization, sessionData?.teamMemberships]);
+
   const form = useForm<EquipmentFormData>({
     resolver: zodResolver(validationSchema),
     defaultValues:
       !initialData && cloneSource
-        ? buildEquipmentCloneDefaultValues(cloneSource)
+        ? buildEquipmentCloneDefaultValues(cloneSource, {
+            canUseSourceTeam: canUseCloneSourceTeam,
+          })
         : buildEquipmentFormDefaultValues(initialData),
   });
 
