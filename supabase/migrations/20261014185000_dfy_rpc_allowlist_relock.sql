@@ -127,6 +127,7 @@ DECLARE
     'check_org_access_secure',
     'is_org_admin',
     'is_org_member',
+    'is_org_operational_admin',
     'support_grant_is_live',
     'user_is_org_admin',
     'user_is_org_member'

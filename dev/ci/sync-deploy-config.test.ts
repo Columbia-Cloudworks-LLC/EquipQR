@@ -408,6 +408,79 @@ describe('run', () => {
     });
   });
 
+  it('production apply redeploys main with target=production when a VITE_ variable drifts', async () => {
+    const secrets = edgeSecrets();
+    const remote = Object.entries(secrets).map(([name, value]) => ({ name, value: sha256Hex(value) }));
+    const vars = {
+      SUPABASE_PROJECT_REF: 'ref123',
+      CLARITY_PROJECT_ID: 'prod-clarity-id',
+    };
+    const { calls, fetchImpl } = fakeApi({
+      [`GET /v10/projects/${project}/env`]: () => ({ envs: [] }),
+      [`POST /v10/projects/${project}/env`]: () => ({}),
+      'GET /v1/projects/ref123/secrets': () => remote,
+      'GET /v6/deployments': () => ({
+        deployments: [
+          {
+            uid: 'dpl_main_sha',
+            name: 'equipqr',
+            createdAt: 10,
+            meta: { githubCommitRef: 'main', githubCommitSha: 'sha123' },
+          },
+        ],
+      }),
+      'POST /v13/deployments': () => ({ id: 'dpl_redeploy_prod' }),
+    });
+    const code = await run({
+      env: {
+        SYNC_TARGET: 'production',
+        SYNC_MODE: 'apply',
+        SYNC_REDEPLOY_BRANCH: 'main',
+        GITHUB_SHA: 'sha123',
+        VERCEL_TOKEN: 't',
+        SUPABASE_ACCESS_TOKEN: 's',
+        SYNC_VARS_JSON: JSON.stringify(vars),
+        ...secretEnv(secrets),
+      },
+      fetchImpl,
+    });
+    expect(code).toBe(0);
+    expect(calls).toContainEqual({
+      method: 'POST',
+      path: '/v13/deployments',
+      body: { name: 'equipqr', deploymentId: 'dpl_main_sha', target: 'production' },
+    });
+  });
+
+  it('production apply fails if VITE_ drifted but no main deployment exists to redeploy', async () => {
+    const secrets = edgeSecrets();
+    const remote = Object.entries(secrets).map(([name, value]) => ({ name, value: sha256Hex(value) }));
+    const vars = {
+      SUPABASE_PROJECT_REF: 'ref123',
+      CLARITY_PROJECT_ID: 'prod-clarity-id',
+    };
+    const { fetchImpl } = fakeApi({
+      [`GET /v10/projects/${project}/env`]: () => ({ envs: [] }),
+      [`POST /v10/projects/${project}/env`]: () => ({}),
+      'GET /v1/projects/ref123/secrets': () => remote,
+      'GET /v6/deployments': () => ({ deployments: [] }),
+    });
+    const code = await run({
+      env: {
+        SYNC_TARGET: 'production',
+        SYNC_MODE: 'apply',
+        SYNC_REDEPLOY_BRANCH: 'main',
+        GITHUB_SHA: 'sha123',
+        VERCEL_TOKEN: 't',
+        SUPABASE_ACCESS_TOKEN: 's',
+        SYNC_VARS_JSON: JSON.stringify(vars),
+        ...secretEnv(secrets),
+      },
+      fetchImpl,
+    });
+    expect(code).toBe(1);
+  });
+
   it('preview Edge sync refuses the production Supabase project', async () => {
     const { calls, fetchImpl } = fakeApi({
       [`GET /v10/projects/${project}/env`]: () => ({ envs: [] }),

@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 missing=false
-for tool in curl git jq rg python3 unzip xz flock gcc shellcheck ffmpeg gh op; do
+for tool in curl git jq rg python3 unzip xz flock gcc shellcheck ffmpeg gh; do
   command -v "$tool" >/dev/null || missing=true
 done
 if $missing; then

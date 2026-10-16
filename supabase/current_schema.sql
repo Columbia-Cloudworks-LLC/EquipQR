@@ -1973,7 +1973,7 @@ CREATE OR REPLACE FUNCTION "public"."can_access_work_order_costs"("p_work_order_
     FROM public.work_orders wo
     WHERE wo.id = p_work_order_id
       AND (
-        public.is_org_admin(p_user_id, wo.organization_id)
+        public.is_org_operational_admin(p_user_id, wo.organization_id)
         OR (
           public.is_org_member(p_user_id, wo.organization_id)
           AND (
@@ -2021,7 +2021,7 @@ BEGIN
     RETURN false;
   END IF;
 
-  IF public.is_org_admin(p_user_id, p_organization_id)
+  IF public.is_org_operational_admin(p_user_id, p_organization_id)
      OR public.is_equipment_team_manager(p_user_id, p_equipment_id) THEN
     RETURN true;
   END IF;
@@ -2062,7 +2062,7 @@ BEGIN
     RETURN false;
   END IF;
 
-  IF public.is_org_admin(p_user_id, p_organization_id)
+  IF public.is_org_operational_admin(p_user_id, p_organization_id)
      OR public.is_work_order_team_manager(p_user_id, p_work_order_id) THEN
     RETURN true;
   END IF;
@@ -2248,7 +2248,7 @@ CREATE OR REPLACE FUNCTION "public"."can_manage_manual_external_customer_contact
     WHERE c.id = p_customer_id
       AND c.organization_id = p_organization_id
       AND (
-        public.is_org_admin((SELECT auth.uid()), c.organization_id)
+        public.is_org_operational_admin((SELECT auth.uid()), c.organization_id)
         OR EXISTS (
           SELECT 1
           FROM public.teams t
@@ -3203,7 +3203,7 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Work order not found');
   END IF;
 
-  IF NOT public.is_org_admin(auth.uid(), v_work_order.organization_id) THEN
+  IF NOT public.is_org_operational_admin(auth.uid(), v_work_order.organization_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
 
@@ -3474,7 +3474,7 @@ DECLARE
     default_checklist JSONB;
 BEGIN
     -- Check if user is admin
-    IF NOT is_org_admin(auth.uid(), p_organization_id) THEN
+    IF NOT is_org_operational_admin(auth.uid(), p_organization_id) THEN
         RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
     END IF;
     
@@ -3633,7 +3633,7 @@ DECLARE
   v_timeline_events jsonb;
   v_replace_result jsonb;
 BEGIN
-  IF NOT public.is_org_admin(auth.uid(), p_organization_id) THEN
+  IF NOT public.is_org_operational_admin(auth.uid(), p_organization_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
 
@@ -4517,7 +4517,7 @@ BEGIN
   END IF;
 
   IF NOT (
-    public.is_org_admin(v_user_id, p_organization_id)
+    public.is_org_operational_admin(v_user_id, p_organization_id)
     OR public.is_equipment_team_manager(v_user_id, p_equipment_id)
     OR v_note.author_id = v_user_id
   ) THEN
@@ -4608,7 +4608,7 @@ BEGIN
   END IF;
 
   IF NOT (
-    public.is_org_admin(v_user_id, p_organization_id)
+    public.is_org_operational_admin(v_user_id, p_organization_id)
     OR public.is_equipment_team_manager(v_user_id, p_equipment_id)
     OR public.can_edit_equipment_note(v_user_id, p_organization_id, p_equipment_id, v_note.id)
     OR v_image.uploaded_by = v_user_id
@@ -4684,7 +4684,7 @@ BEGIN
     RAISE EXCEPTION 'Customer not found';
   END IF;
 
-  IF public.is_org_admin((SELECT auth.uid()), v_org_id) THEN
+  IF public.is_org_operational_admin((SELECT auth.uid()), v_org_id) THEN
     NULL;
   ELSIF v_source = 'manual'
     AND v_source_external_id IS NULL
@@ -4966,7 +4966,7 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Work order not found');
   END IF;
 
-  IF NOT public.is_org_admin(auth.uid(), v_org_id) THEN
+  IF NOT public.is_org_operational_admin(auth.uid(), v_org_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
 
@@ -5049,7 +5049,7 @@ BEGIN
   END IF;
 
   IF NOT (
-    public.is_org_admin(v_user_id, p_organization_id)
+    public.is_org_operational_admin(v_user_id, p_organization_id)
     OR public.is_work_order_team_manager(v_user_id, p_work_order_id)
     OR v_note.author_id = v_user_id
   ) THEN
@@ -5133,7 +5133,7 @@ BEGIN
   v_note_id := v_image.note_id;
 
   IF NOT (
-    public.is_org_admin(v_user_id, p_organization_id)
+    public.is_org_operational_admin(v_user_id, p_organization_id)
     OR public.is_work_order_team_manager(v_user_id, p_work_order_id)
     OR (v_note_id IS NOT NULL AND public.can_edit_work_order_note(v_user_id, p_organization_id, p_work_order_id, v_note_id))
     OR v_image.uploaded_by = v_user_id
@@ -6502,7 +6502,7 @@ BEGIN
   request_context AS (
     SELECT
       auth.uid() AS user_id,
-      public.is_org_admin(auth.uid(), p_org_id) AS is_org_admin
+      public.is_org_operational_admin(auth.uid(), p_org_id) AS is_org_admin
   ),
   accessible_team_ids AS (
     SELECT tm.team_id
@@ -8587,7 +8587,6 @@ BEGIN
   FOR UPDATE;
 
   IF v_open.id IS NOT NULL AND v_open.expires_at > now() THEN
-    -- Live grant: the owner's new choice replaces the remaining time.
     UPDATE public.organization_support_grants
     SET expires_at = v_expires_at,
         granted_at = now(),
@@ -8599,7 +8598,6 @@ BEGIN
     v_extended := true;
   ELSE
     IF v_open.id IS NOT NULL THEN
-      -- Expired but never closed: close it at its expiry before opening a new one.
       UPDATE public.organization_support_grants
       SET revoked_at = expires_at
       WHERE id = v_open.id;
@@ -8614,15 +8612,17 @@ BEGIN
 
   PERFORM set_config('equipqr.support_access_write', 'on', true);
 
-  -- Stale support rows from an earlier grant are replaced.
+  -- Stale support rows from an earlier grant or operators removed from the current allowlist are replaced.
   DELETE FROM public.organization_members om
   WHERE om.organization_id = p_organization_id
     AND om.status = 'support'
-    AND om.support_grant_id IS DISTINCT FROM v_grant_id;
+    AND (
+      om.support_grant_id IS DISTINCT FROM v_grant_id
+      OR NOT (om.user_id = ANY (p_operator_ids))
+    );
 
   FOREACH v_operator IN ARRAY p_operator_ids
   LOOP
-    -- Operators who are real members of this org keep their own membership.
     INSERT INTO public.organization_members (
       organization_id, user_id, role, status, access_source, support_grant_id
     )
@@ -9471,7 +9471,7 @@ CREATE OR REPLACE FUNCTION "public"."is_org_admin"("user_uuid" "uuid", "org_id" 
     WHERE user_id = user_uuid
       AND organization_id = org_id
       AND role IN ('owner', 'admin')
-      AND (status = 'active' OR (status = 'support' AND public.support_grant_is_live(support_grant_id)))
+      AND status = 'active'
   );
 $$;
 
@@ -9505,6 +9505,29 @@ COMMENT ON FUNCTION "public"."is_org_member"("user_uuid" "uuid", "org_id" "uuid"
 
 
 
+CREATE OR REPLACE FUNCTION "public"."is_org_operational_admin"("user_uuid" "uuid", "org_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'public'
+    SET "row_security" TO 'off'
+    AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM organization_members
+    WHERE user_id = user_uuid
+      AND organization_id = org_id
+      AND role IN ('owner', 'admin')
+      AND (status = 'active' OR (status = 'support' AND public.support_grant_is_live(support_grant_id)))
+  );
+$$;
+
+
+ALTER FUNCTION "public"."is_org_operational_admin"("user_uuid" "uuid", "org_id" "uuid") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."is_org_operational_admin"("user_uuid" "uuid", "org_id" "uuid") IS 'True for active org owners/admins and live owner-granted support sessions. Used only by operational policies and RPCs.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."is_organization_admin"("user_uuid" "uuid", "org_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -9515,7 +9538,7 @@ CREATE OR REPLACE FUNCTION "public"."is_organization_admin"("user_uuid" "uuid", 
     WHERE om.user_id = user_uuid
       AND om.organization_id = org_id
       AND om.role IN ('owner', 'admin')
-      AND (om.status = 'active' OR (om.status = 'support' AND public.support_grant_is_live(om.support_grant_id)))
+      AND om.status = 'active'
   );
 $$;
 
@@ -13400,7 +13423,7 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Organization is required');
   END IF;
 
-  IF NOT public.is_org_admin(auth.uid(), p_organization_id) THEN
+  IF NOT public.is_org_operational_admin(auth.uid(), p_organization_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
 
@@ -14458,7 +14481,7 @@ BEGIN
   END IF;
   
   -- Check if user is admin
-  IF NOT is_org_admin(auth.uid(), org_id) THEN
+  IF NOT is_org_operational_admin(auth.uid(), org_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
   
@@ -14511,7 +14534,7 @@ BEGIN
   END IF;
   
   -- Check if user is admin
-  IF NOT is_org_admin(auth.uid(), org_id) THEN
+  IF NOT is_org_operational_admin(auth.uid(), org_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
   
@@ -15662,7 +15685,7 @@ BEGIN
 
   IF p_is_private IS NOT NULL AND p_is_private IS DISTINCT FROM v_note.is_private THEN
     IF NOT (
-      public.is_org_admin(v_user_id, p_organization_id)
+      public.is_org_operational_admin(v_user_id, p_organization_id)
       OR public.is_equipment_team_manager(v_user_id, p_equipment_id)
       OR (
         v_note.author_id = v_user_id
@@ -15738,7 +15761,7 @@ BEGIN
   
   -- Check permissions
   IF NOT (
-    is_org_admin(auth.uid(), org_id) 
+    is_org_operational_admin(auth.uid(), org_id) 
     OR (
       is_org_member(auth.uid(), org_id) 
       AND EXISTS (
@@ -15832,7 +15855,7 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Note timestamp is required');
   END IF;
 
-  IF NOT public.is_org_admin(auth.uid(), p_organization_id) THEN
+  IF NOT public.is_org_operational_admin(auth.uid(), p_organization_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
   END IF;
 
@@ -15956,7 +15979,7 @@ BEGIN
     RAISE EXCEPTION 'Customer not found';
   END IF;
 
-  IF public.is_org_admin((SELECT auth.uid()), v_org_id) THEN
+  IF public.is_org_operational_admin((SELECT auth.uid()), v_org_id) THEN
     NULL;
   ELSIF v_source = 'manual'
     AND v_source_external_id IS NULL
@@ -16357,7 +16380,7 @@ BEGIN
     WHERE wo.id = p_work_order_id;
 
     IF NOT (
-      public.is_org_admin(v_user_id, p_organization_id)
+      public.is_org_operational_admin(v_user_id, p_organization_id)
       OR public.is_work_order_team_manager(v_user_id, p_work_order_id)
       OR (
         v_note.author_id = v_user_id
@@ -21953,7 +21976,7 @@ ALTER TABLE ONLY "public"."workspace_personal_org_merge_requests"
 
 
 
-CREATE POLICY "Admins can create historical work orders" ON "public"."work_orders" FOR INSERT WITH CHECK ((("is_historical" = true) AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND ("created_by_admin" = ( SELECT "auth"."uid"() AS "uid"))));
+CREATE POLICY "Admins can create historical work orders" ON "public"."work_orders" FOR INSERT WITH CHECK ((("is_historical" = true) AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND ("created_by_admin" = ( SELECT "auth"."uid"() AS "uid"))));
 
 
 
@@ -21965,23 +21988,23 @@ CREATE POLICY "Admins can delete work orders" ON "public"."work_orders" FOR DELE
 
 CREATE POLICY "Admins can delete working hours history" ON "public"."equipment_working_hours_history" FOR DELETE USING ((EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
-  WHERE (("e"."id" = "equipment_working_hours_history"."equipment_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))));
+  WHERE (("e"."id" = "equipment_working_hours_history"."equipment_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))));
 
 
 
 CREATE POLICY "Admins can insert work order history" ON "public"."work_order_status_history" FOR INSERT WITH CHECK (((EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
-  WHERE (("wo"."id" = "work_order_status_history"."work_order_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))) AND ("changed_by" = ( SELECT "auth"."uid"() AS "uid"))));
+  WHERE (("wo"."id" = "work_order_status_history"."work_order_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))) AND ("changed_by" = ( SELECT "auth"."uid"() AS "uid"))));
 
 
 
-CREATE POLICY "Admins can update historical work orders" ON "public"."work_orders" FOR UPDATE USING ((("is_historical" = true) AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
+CREATE POLICY "Admins can update historical work orders" ON "public"."work_orders" FOR UPDATE USING ((("is_historical" = true) AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
 CREATE POLICY "Admins can update working hours history" ON "public"."equipment_working_hours_history" FOR UPDATE USING ((EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
-  WHERE (("e"."id" = "equipment_working_hours_history"."equipment_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))));
+  WHERE (("e"."id" = "equipment_working_hours_history"."equipment_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))));
 
 
 
@@ -22023,7 +22046,7 @@ CREATE POLICY "Users can create work orders in their organization" ON "public"."
 
 CREATE POLICY "Users can create working hours history for accessible equipment" ON "public"."equipment_working_hours_history" FOR INSERT WITH CHECK ((("updated_by" = ( SELECT "auth"."uid"() AS "uid")) AND (EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
-  WHERE (("e"."id" = "equipment_working_hours_history"."equipment_id") AND ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") OR ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") AND ("e"."team_id" IS NOT NULL) AND ("e"."team_id" IN ( SELECT "tm"."team_id"
+  WHERE (("e"."id" = "equipment_working_hours_history"."equipment_id") AND ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") OR ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") AND ("e"."team_id" IS NOT NULL) AND ("e"."team_id" IN ( SELECT "tm"."team_id"
            FROM "public"."team_members" "tm"
           WHERE ("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")))))))))));
 
@@ -22097,25 +22120,25 @@ CREATE POLICY "Users can view work orders in their organization" ON "public"."wo
 
 CREATE POLICY "Users can view working hours history for accessible equipment" ON "public"."equipment_working_hours_history" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
-  WHERE (("e"."id" = "equipment_working_hours_history"."equipment_id") AND ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") OR ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") AND ("e"."team_id" IS NOT NULL) AND ("e"."team_id" IN ( SELECT "tm"."team_id"
+  WHERE (("e"."id" = "equipment_working_hours_history"."equipment_id") AND ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") OR ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") AND ("e"."team_id" IS NOT NULL) AND ("e"."team_id" IN ( SELECT "tm"."team_id"
            FROM "public"."team_members" "tm"
           WHERE ("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid"))))))))));
 
 
 
-CREATE POLICY "admins_delete_teams" ON "public"."teams" FOR DELETE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "admins_delete_teams" ON "public"."teams" FOR DELETE USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
-CREATE POLICY "admins_delete_work_orders" ON "public"."work_orders" FOR DELETE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "admins_delete_work_orders" ON "public"."work_orders" FOR DELETE USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
-CREATE POLICY "admins_manage_teams" ON "public"."teams" USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "admins_manage_teams" ON "public"."teams" USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
-CREATE POLICY "admins_update_teams" ON "public"."teams" FOR UPDATE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "admins_update_teams" ON "public"."teams" FOR UPDATE USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
@@ -22127,19 +22150,19 @@ ALTER TABLE "public"."customer_contacts" ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "customer_contacts_admins_insert" ON "public"."customer_contacts" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
-  WHERE (("c"."id" = "customer_contacts"."customer_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
+  WHERE (("c"."id" = "customer_contacts"."customer_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
 
 
 
 CREATE POLICY "customer_contacts_admins_select" ON "public"."customer_contacts" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
-  WHERE (("c"."id" = "customer_contacts"."customer_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
+  WHERE (("c"."id" = "customer_contacts"."customer_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
 
 
 
 CREATE POLICY "customer_contacts_admins_update" ON "public"."customer_contacts" FOR UPDATE USING ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
-  WHERE (("c"."id" = "customer_contacts"."customer_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
+  WHERE (("c"."id" = "customer_contacts"."customer_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
 
 
 
@@ -22148,30 +22171,30 @@ ALTER TABLE "public"."customer_sites" ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "customer_sites_admins_insert" ON "public"."customer_sites" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
-  WHERE (("c"."id" = "customer_sites"."customer_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
+  WHERE (("c"."id" = "customer_sites"."customer_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
 
 
 
 CREATE POLICY "customer_sites_admins_select" ON "public"."customer_sites" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
-  WHERE (("c"."id" = "customer_sites"."customer_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
+  WHERE (("c"."id" = "customer_sites"."customer_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
 
 
 
 CREATE POLICY "customer_sites_admins_update" ON "public"."customer_sites" FOR UPDATE USING ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
-  WHERE (("c"."id" = "customer_sites"."customer_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
+  WHERE (("c"."id" = "customer_sites"."customer_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id")))));
 
 
 
 ALTER TABLE "public"."customers" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "customers_admins_insert" ON "public"."customers" FOR INSERT WITH CHECK ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "customers_admins_insert" ON "public"."customers" FOR INSERT WITH CHECK ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
-CREATE POLICY "customers_admins_update" ON "public"."customers" FOR UPDATE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "customers_admins_update" ON "public"."customers" FOR UPDATE USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
@@ -22219,11 +22242,11 @@ CREATE POLICY "dsr_requests_select" ON "public"."dsr_requests" FOR SELECT TO "au
 ALTER TABLE "public"."equipment" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "equipment_access_consolidated" ON "public"."equipment" USING (("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
+CREATE POLICY "equipment_access_consolidated" ON "public"."equipment" USING (("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
-CREATE POLICY "equipment_admin_access" ON "public"."equipment" USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "equipment_admin_access" ON "public"."equipment" USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
@@ -22259,7 +22282,7 @@ ALTER TABLE "public"."equipment_note_images" ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "equipment_note_images_delete" ON "public"."equipment_note_images" FOR DELETE USING ((("uploaded_by" = ( SELECT "auth"."uid"() AS "uid")) OR (EXISTS ( SELECT 1
    FROM ("public"."equipment_notes" "en"
      JOIN "public"."equipment" "e" ON (("e"."id" = "en"."equipment_id")))
-  WHERE (("en"."id" = "equipment_note_images"."equipment_note_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id"))))));
+  WHERE (("en"."id" = "equipment_note_images"."equipment_note_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id"))))));
 
 
 
@@ -22282,7 +22305,7 @@ ALTER TABLE "public"."equipment_notes" ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "equipment_notes_delete" ON "public"."equipment_notes" FOR DELETE USING (((EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
-  WHERE (("e"."id" = "equipment_notes"."equipment_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))) OR ("author_id" = ( SELECT "auth"."uid"() AS "uid"))));
+  WHERE (("e"."id" = "equipment_notes"."equipment_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))) OR ("author_id" = ( SELECT "auth"."uid"() AS "uid"))));
 
 
 
@@ -22390,7 +22413,7 @@ ALTER TABLE "public"."external_customer_contacts" ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "external_customer_contacts_delete" ON "public"."external_customer_contacts" FOR DELETE USING ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
-  WHERE (("c"."id" = "external_customer_contacts"."customer_id") AND ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id") OR (("external_customer_contacts"."source" = 'manual'::"text") AND ("external_customer_contacts"."source_external_id" IS NULL) AND ("external_customer_contacts"."source_field" IS NULL) AND ("external_customer_contacts"."last_synced_at" IS NULL) AND ("external_customer_contacts"."source_payload" IS NULL) AND (EXISTS ( SELECT 1
+  WHERE (("c"."id" = "external_customer_contacts"."customer_id") AND ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id") OR (("external_customer_contacts"."source" = 'manual'::"text") AND ("external_customer_contacts"."source_external_id" IS NULL) AND ("external_customer_contacts"."source_field" IS NULL) AND ("external_customer_contacts"."last_synced_at" IS NULL) AND ("external_customer_contacts"."source_payload" IS NULL) AND (EXISTS ( SELECT 1
            FROM ("public"."teams" "t"
              JOIN "public"."team_members" "tm" ON (("tm"."team_id" = "t"."id")))
           WHERE (("t"."customer_id" = "c"."id") AND ("t"."organization_id" = "c"."organization_id") AND ("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."role" = 'manager'::"public"."team_member_role"))))))))));
@@ -22403,7 +22426,7 @@ COMMENT ON POLICY "external_customer_contacts_delete" ON "public"."external_cust
 
 CREATE POLICY "external_customer_contacts_insert" ON "public"."external_customer_contacts" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
-  WHERE (("c"."id" = "external_customer_contacts"."customer_id") AND ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id") OR (("external_customer_contacts"."source" = 'manual'::"text") AND ("external_customer_contacts"."source_external_id" IS NULL) AND ("external_customer_contacts"."source_field" IS NULL) AND ("external_customer_contacts"."last_synced_at" IS NULL) AND ("external_customer_contacts"."source_payload" IS NULL) AND (EXISTS ( SELECT 1
+  WHERE (("c"."id" = "external_customer_contacts"."customer_id") AND ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id") OR (("external_customer_contacts"."source" = 'manual'::"text") AND ("external_customer_contacts"."source_external_id" IS NULL) AND ("external_customer_contacts"."source_field" IS NULL) AND ("external_customer_contacts"."last_synced_at" IS NULL) AND ("external_customer_contacts"."source_payload" IS NULL) AND (EXISTS ( SELECT 1
            FROM ("public"."teams" "t"
              JOIN "public"."team_members" "tm" ON (("tm"."team_id" = "t"."id")))
           WHERE (("t"."customer_id" = "c"."id") AND ("t"."organization_id" = "c"."organization_id") AND ("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."role" = 'manager'::"public"."team_member_role"))))))))));
@@ -22422,12 +22445,12 @@ CREATE POLICY "external_customer_contacts_select" ON "public"."external_customer
 
 CREATE POLICY "external_customer_contacts_update" ON "public"."external_customer_contacts" FOR UPDATE USING ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
-  WHERE (("c"."id" = "external_customer_contacts"."customer_id") AND ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id") OR (("external_customer_contacts"."source" = 'manual'::"text") AND ("external_customer_contacts"."source_external_id" IS NULL) AND ("external_customer_contacts"."source_field" IS NULL) AND ("external_customer_contacts"."last_synced_at" IS NULL) AND ("external_customer_contacts"."source_payload" IS NULL) AND (EXISTS ( SELECT 1
+  WHERE (("c"."id" = "external_customer_contacts"."customer_id") AND ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id") OR (("external_customer_contacts"."source" = 'manual'::"text") AND ("external_customer_contacts"."source_external_id" IS NULL) AND ("external_customer_contacts"."source_field" IS NULL) AND ("external_customer_contacts"."last_synced_at" IS NULL) AND ("external_customer_contacts"."source_payload" IS NULL) AND (EXISTS ( SELECT 1
            FROM ("public"."teams" "t"
              JOIN "public"."team_members" "tm" ON (("tm"."team_id" = "t"."id")))
           WHERE (("t"."customer_id" = "c"."id") AND ("t"."organization_id" = "c"."organization_id") AND ("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."role" = 'manager'::"public"."team_member_role")))))))))) WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."customers" "c"
-  WHERE (("c"."id" = "external_customer_contacts"."customer_id") AND ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id") OR (("external_customer_contacts"."source" = 'manual'::"text") AND ("external_customer_contacts"."source_external_id" IS NULL) AND ("external_customer_contacts"."source_field" IS NULL) AND ("external_customer_contacts"."last_synced_at" IS NULL) AND ("external_customer_contacts"."source_payload" IS NULL) AND (EXISTS ( SELECT 1
+  WHERE (("c"."id" = "external_customer_contacts"."customer_id") AND ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "c"."organization_id") OR (("external_customer_contacts"."source" = 'manual'::"text") AND ("external_customer_contacts"."source_external_id" IS NULL) AND ("external_customer_contacts"."source_field" IS NULL) AND ("external_customer_contacts"."last_synced_at" IS NULL) AND ("external_customer_contacts"."source_payload" IS NULL) AND (EXISTS ( SELECT 1
            FROM ("public"."teams" "t"
              JOIN "public"."team_members" "tm" ON (("tm"."team_id" = "t"."id")))
           WHERE (("t"."customer_id" = "c"."id") AND ("t"."organization_id" = "c"."organization_id") AND ("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."role" = 'manager'::"public"."team_member_role"))))))))));
@@ -22531,7 +22554,7 @@ CREATE POLICY "google_workspace_oauth_sessions_update_deny" ON "public"."google_
 ALTER TABLE "public"."inventory_item_images" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "inventory_item_images_delete" ON "public"."inventory_item_images" FOR DELETE USING (((("uploaded_by" = ( SELECT "auth"."uid"() AS "uid")) AND "public"."can_manage_inventory"("organization_id")) OR "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
+CREATE POLICY "inventory_item_images_delete" ON "public"."inventory_item_images" FOR DELETE USING (((("uploaded_by" = ( SELECT "auth"."uid"() AS "uid")) AND "public"."can_manage_inventory"("organization_id")) OR "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
@@ -22548,7 +22571,7 @@ CREATE POLICY "inventory_item_images_select" ON "public"."inventory_item_images"
 ALTER TABLE "public"."inventory_items" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "inventory_items_delete" ON "public"."inventory_items" FOR DELETE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "inventory_items_delete" ON "public"."inventory_items" FOR DELETE USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
@@ -22602,7 +22625,7 @@ ALTER TABLE "public"."notes" ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "notes_delete_own_or_admin" ON "public"."notes" FOR DELETE USING ((("author_id" = ( SELECT "auth"."uid"() AS "uid")) OR (EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
-  WHERE (("e"."id" = "notes"."equipment_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id"))))));
+  WHERE (("e"."id" = "notes"."equipment_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id"))))));
 
 
 
@@ -22785,7 +22808,7 @@ CREATE POLICY "organization_role_grants_pending_update_admin" ON "public"."organ
 ALTER TABLE "public"."organization_support_grants" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "organization_support_grants_select" ON "public"."organization_support_grants" FOR SELECT TO "authenticated" USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "organization_support_grants_select" ON "public"."organization_support_grants" FOR SELECT TO "authenticated" USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
@@ -22979,30 +23002,30 @@ CREATE POLICY "personal_organizations_update_deny" ON "public"."personal_organiz
 ALTER TABLE "public"."pm_checklist_templates" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "pm_checklist_templates_admin_insert" ON "public"."pm_checklist_templates" FOR INSERT WITH CHECK ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "pm_checklist_templates_admin_insert" ON "public"."pm_checklist_templates" FOR INSERT WITH CHECK ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
-CREATE POLICY "pm_checklist_templates_admin_update" ON "public"."pm_checklist_templates" FOR UPDATE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "pm_checklist_templates_admin_update" ON "public"."pm_checklist_templates" FOR UPDATE USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
-CREATE POLICY "pm_checklist_templates_delete_consolidated" ON "public"."pm_checklist_templates" FOR DELETE USING (("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND ("is_protected" = false)));
+CREATE POLICY "pm_checklist_templates_delete_consolidated" ON "public"."pm_checklist_templates" FOR DELETE USING (("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND ("is_protected" = false)));
 
 
 
-CREATE POLICY "pm_checklist_templates_select_consolidated" ON "public"."pm_checklist_templates" FOR SELECT USING (((("organization_id" IS NULL) AND (( SELECT "auth"."uid"() AS "uid") IS NOT NULL)) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
+CREATE POLICY "pm_checklist_templates_select_consolidated" ON "public"."pm_checklist_templates" FOR SELECT USING (((("organization_id" IS NULL) AND (( SELECT "auth"."uid"() AS "uid") IS NOT NULL)) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
 ALTER TABLE "public"."pm_interval_policies" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "pm_interval_policies_delete" ON "public"."pm_interval_policies" FOR DELETE USING ("public"."is_org_admin"("auth"."uid"(), "organization_id"));
+CREATE POLICY "pm_interval_policies_delete" ON "public"."pm_interval_policies" FOR DELETE USING ("public"."is_org_operational_admin"("auth"."uid"(), "organization_id"));
 
 
 
-CREATE POLICY "pm_interval_policies_insert" ON "public"."pm_interval_policies" FOR INSERT WITH CHECK (("public"."is_org_admin"("auth"."uid"(), "organization_id") AND (("equipment_id" IS NULL) OR ("equipment_id" IN ( SELECT "e"."id"
+CREATE POLICY "pm_interval_policies_insert" ON "public"."pm_interval_policies" FOR INSERT WITH CHECK (("public"."is_org_operational_admin"("auth"."uid"(), "organization_id") AND (("equipment_id" IS NULL) OR ("equipment_id" IN ( SELECT "e"."id"
    FROM "public"."equipment" "e"
   WHERE ("e"."organization_id" = "pm_interval_policies"."organization_id")))) AND (("team_id" IS NULL) OR ("team_id" IN ( SELECT "t"."id"
    FROM "public"."teams" "t"
@@ -23018,7 +23041,7 @@ CREATE POLICY "pm_interval_policies_select" ON "public"."pm_interval_policies" F
 
 
 
-CREATE POLICY "pm_interval_policies_update" ON "public"."pm_interval_policies" FOR UPDATE USING ("public"."is_org_admin"("auth"."uid"(), "organization_id")) WITH CHECK (("public"."is_org_admin"("auth"."uid"(), "organization_id") AND (("equipment_id" IS NULL) OR ("equipment_id" IN ( SELECT "e"."id"
+CREATE POLICY "pm_interval_policies_update" ON "public"."pm_interval_policies" FOR UPDATE USING ("public"."is_org_operational_admin"("auth"."uid"(), "organization_id")) WITH CHECK (("public"."is_org_operational_admin"("auth"."uid"(), "organization_id") AND (("equipment_id" IS NULL) OR ("equipment_id" IN ( SELECT "e"."id"
    FROM "public"."equipment" "e"
   WHERE ("e"."organization_id" = "pm_interval_policies"."organization_id")))) AND (("team_id" IS NULL) OR ("team_id" IN ( SELECT "t"."id"
    FROM "public"."teams" "t"
@@ -23033,7 +23056,7 @@ ALTER TABLE "public"."pm_status_history" ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "pm_status_history_admin_insert" ON "public"."pm_status_history" FOR INSERT WITH CHECK (((EXISTS ( SELECT 1
    FROM "public"."preventative_maintenance" "pm"
-  WHERE (("pm"."id" = "pm_status_history"."pm_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "pm"."organization_id")))) AND ("changed_by" = ( SELECT "auth"."uid"() AS "uid"))));
+  WHERE (("pm"."id" = "pm_status_history"."pm_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "pm"."organization_id")))) AND ("changed_by" = ( SELECT "auth"."uid"() AS "uid"))));
 
 
 
@@ -23077,7 +23100,7 @@ ALTER TABLE "public"."pm_template_compatibility_rules" ENABLE ROW LEVEL SECURITY
 ALTER TABLE "public"."preventative_maintenance" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "preventative_maintenance_delete_consolidated" ON "public"."preventative_maintenance" FOR DELETE USING ((((("is_historical" = true) AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) OR (("is_historical" = false) AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id"))) AND (EXISTS ( SELECT 1
+CREATE POLICY "preventative_maintenance_delete_consolidated" ON "public"."preventative_maintenance" FOR DELETE USING ((((("is_historical" = true) AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) OR (("is_historical" = false) AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id"))) AND (EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
   WHERE (("wo"."id" = "preventative_maintenance"."work_order_id") AND ("wo"."status" <> ALL (ARRAY['completed'::"public"."work_order_status", 'cancelled'::"public"."work_order_status"])))))));
 
@@ -23087,7 +23110,7 @@ COMMENT ON POLICY "preventative_maintenance_delete_consolidated" ON "public"."pr
 
 
 
-CREATE POLICY "preventative_maintenance_insert_consolidated" ON "public"."preventative_maintenance" FOR INSERT WITH CHECK (((("is_historical" = true) AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
+CREATE POLICY "preventative_maintenance_insert_consolidated" ON "public"."preventative_maintenance" FOR INSERT WITH CHECK (((("is_historical" = true) AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
@@ -23095,7 +23118,7 @@ CREATE POLICY "preventative_maintenance_select_consolidated" ON "public"."preven
 
 
 
-CREATE POLICY "preventative_maintenance_update_consolidated" ON "public"."preventative_maintenance" FOR UPDATE USING (((("is_historical" = true) AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
+CREATE POLICY "preventative_maintenance_update_consolidated" ON "public"."preventative_maintenance" FOR UPDATE USING (((("is_historical" = true) AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
@@ -23307,7 +23330,7 @@ ALTER TABLE "public"."scans" ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "scans_delete_admins" ON "public"."scans" FOR DELETE USING ((EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
-  WHERE (("e"."id" = "scans"."equipment_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))));
+  WHERE (("e"."id" = "scans"."equipment_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))));
 
 
 
@@ -23394,23 +23417,23 @@ ALTER TABLE "public"."team_members" ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "team_members_admin_delete" ON "public"."team_members" FOR DELETE USING ((EXISTS ( SELECT 1
    FROM "public"."teams" "t"
-  WHERE (("t"."id" = "team_members"."team_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "t"."organization_id")))));
+  WHERE (("t"."id" = "team_members"."team_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "t"."organization_id")))));
 
 
 
 CREATE POLICY "team_members_admin_insert" ON "public"."team_members" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."teams" "t"
-  WHERE (("t"."id" = "team_members"."team_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "t"."organization_id")))));
+  WHERE (("t"."id" = "team_members"."team_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "t"."organization_id")))));
 
 
 
 CREATE POLICY "team_members_admin_update" ON "public"."team_members" FOR UPDATE USING ((EXISTS ( SELECT 1
    FROM "public"."teams" "t"
-  WHERE (("t"."id" = "team_members"."team_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "t"."organization_id")))));
+  WHERE (("t"."id" = "team_members"."team_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "t"."organization_id")))));
 
 
 
-CREATE POLICY "team_members_create_equipment" ON "public"."equipment" FOR INSERT WITH CHECK (("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND ("team_id" IS NOT NULL) AND (EXISTS ( SELECT 1
+CREATE POLICY "team_members_create_equipment" ON "public"."equipment" FOR INSERT WITH CHECK (("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND ("team_id" IS NOT NULL) AND (EXISTS ( SELECT 1
    FROM "public"."team_members" "tm"
   WHERE (("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."team_id" = "equipment"."team_id") AND ("tm"."role" = ANY (ARRAY['manager'::"public"."team_member_role", 'technician'::"public"."team_member_role"]))))))));
 
@@ -23425,19 +23448,19 @@ CREATE POLICY "team_members_select" ON "public"."team_members" FOR SELECT USING 
 ALTER TABLE "public"."teams" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "teams_admin_delete" ON "public"."teams" FOR DELETE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "teams_admin_delete" ON "public"."teams" FOR DELETE USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
-CREATE POLICY "teams_admin_insert" ON "public"."teams" FOR INSERT WITH CHECK ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "teams_admin_insert" ON "public"."teams" FOR INSERT WITH CHECK ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
-CREATE POLICY "teams_admin_update" ON "public"."teams" FOR UPDATE USING ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+CREATE POLICY "teams_admin_update" ON "public"."teams" FOR UPDATE USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
-CREATE POLICY "teams_select_consolidated" ON "public"."teams" FOR SELECT USING (("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
+CREATE POLICY "teams_select_consolidated" ON "public"."teams" FOR SELECT USING (("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
@@ -23498,7 +23521,7 @@ ALTER TABLE "public"."work_order_costs" ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "work_order_costs_delete_consolidated" ON "public"."work_order_costs" FOR DELETE USING (("public"."can_access_work_order_costs"("work_order_id", ( SELECT "auth"."uid"() AS "uid")) AND (("created_by" = ( SELECT "auth"."uid"() AS "uid")) OR (EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
-  WHERE (("wo"."id" = "work_order_costs"."work_order_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))))));
+  WHERE (("wo"."id" = "work_order_costs"."work_order_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))))));
 
 
 
@@ -23516,9 +23539,9 @@ COMMENT ON POLICY "work_order_costs_select_consolidated" ON "public"."work_order
 
 CREATE POLICY "work_order_costs_update_consolidated" ON "public"."work_order_costs" FOR UPDATE USING (("public"."can_access_work_order_costs"("work_order_id", ( SELECT "auth"."uid"() AS "uid")) AND (("created_by" = ( SELECT "auth"."uid"() AS "uid")) OR (EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
-  WHERE (("wo"."id" = "work_order_costs"."work_order_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id"))))))) WITH CHECK (("public"."can_access_work_order_costs"("work_order_id", ( SELECT "auth"."uid"() AS "uid")) AND (("created_by" = ( SELECT "auth"."uid"() AS "uid")) OR (EXISTS ( SELECT 1
+  WHERE (("wo"."id" = "work_order_costs"."work_order_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id"))))))) WITH CHECK (("public"."can_access_work_order_costs"("work_order_id", ( SELECT "auth"."uid"() AS "uid")) AND (("created_by" = ( SELECT "auth"."uid"() AS "uid")) OR (EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
-  WHERE (("wo"."id" = "work_order_costs"."work_order_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))))));
+  WHERE (("wo"."id" = "work_order_costs"."work_order_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))))));
 
 
 
@@ -23588,11 +23611,11 @@ COMMENT ON POLICY "work_order_notes_delete_own" ON "public"."work_order_notes" I
 
 CREATE POLICY "work_order_notes_insert_organization_members" ON "public"."work_order_notes" FOR INSERT WITH CHECK ((("author_id" = ( SELECT "auth"."uid"() AS "uid")) AND (EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
-  WHERE (("wo"."id" = "work_order_notes"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") AND ("wo"."status" <> 'cancelled'::"public"."work_order_status") AND ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") OR ("wo"."created_by" = ( SELECT "auth"."uid"() AS "uid")) OR (("wo"."team_id" IS NOT NULL) AND (EXISTS ( SELECT 1
+  WHERE (("wo"."id" = "work_order_notes"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") AND ("wo"."status" <> 'cancelled'::"public"."work_order_status") AND ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") OR ("wo"."created_by" = ( SELECT "auth"."uid"() AS "uid")) OR (("wo"."team_id" IS NOT NULL) AND (EXISTS ( SELECT 1
            FROM "public"."team_members" "tm"
           WHERE (("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."team_id" = "wo"."team_id") AND ("tm"."role" = ANY (ARRAY['owner'::"public"."team_member_role", 'manager'::"public"."team_member_role", 'technician'::"public"."team_member_role", 'requestor'::"public"."team_member_role"])))))))))) AND ((NOT "is_private") OR (EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
-  WHERE (("wo"."id" = "work_order_notes"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") AND ("public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") OR (("wo"."team_id" IS NOT NULL) AND (EXISTS ( SELECT 1
+  WHERE (("wo"."id" = "work_order_notes"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") AND ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") OR (("wo"."team_id" IS NOT NULL) AND (EXISTS ( SELECT 1
            FROM "public"."team_members" "tm"
           WHERE (("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."team_id" = "wo"."team_id") AND ("tm"."role" = ANY (ARRAY['owner'::"public"."team_member_role", 'manager'::"public"."team_member_role", 'technician'::"public"."team_member_role"])))))))))))));
 
@@ -23624,7 +23647,7 @@ ALTER TABLE "public"."work_order_status_history" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."work_orders" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "work_orders_insert_consolidated" ON "public"."work_orders" FOR INSERT WITH CHECK (((("is_historical" = true) AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND ("created_by_admin" = ( SELECT "auth"."uid"() AS "uid"))) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
+CREATE POLICY "work_orders_insert_consolidated" ON "public"."work_orders" FOR INSERT WITH CHECK (((("is_historical" = true) AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND ("created_by_admin" = ( SELECT "auth"."uid"() AS "uid"))) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
@@ -23632,7 +23655,7 @@ CREATE POLICY "work_orders_select_consolidated" ON "public"."work_orders" FOR SE
 
 
 
-CREATE POLICY "work_orders_update_consolidated" ON "public"."work_orders" FOR UPDATE USING (((("is_historical" = true) AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
+CREATE POLICY "work_orders_update_consolidated" ON "public"."work_orders" FOR UPDATE USING (((("is_historical" = true) AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
@@ -25010,6 +25033,12 @@ GRANT ALL ON FUNCTION "public"."is_org_admin"("user_uuid" "uuid", "org_id" "uuid
 REVOKE ALL ON FUNCTION "public"."is_org_member"("user_uuid" "uuid", "org_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."is_org_member"("user_uuid" "uuid", "org_id" "uuid") TO "service_role";
 GRANT ALL ON FUNCTION "public"."is_org_member"("user_uuid" "uuid", "org_id" "uuid") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."is_org_operational_admin"("user_uuid" "uuid", "org_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."is_org_operational_admin"("user_uuid" "uuid", "org_id" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."is_org_operational_admin"("user_uuid" "uuid", "org_id" "uuid") TO "authenticated";
 
 
 

@@ -405,26 +405,37 @@ async function applyVercel({ fetchImpl, token, teamId, projectId, actions }) {
   }
 }
 
-async function redeployBranch({ fetchImpl, token, teamId, projectId, branch }) {
+async function redeployBranch({ fetchImpl, token, teamId, projectId, branch, target = 'preview', sha = '' }) {
   const list = await http(
     fetchImpl,
-    vercelUrl('/v6/deployments', teamId, { projectId, limit: '20', target: 'preview' }),
+    vercelUrl('/v6/deployments', teamId, {
+      projectId,
+      limit: '20',
+      target,
+      ...(sha ? { sha } : {}),
+    }),
     { token },
   );
   const latest = (list?.deployments || [])
     .filter((d) => {
       const ref = d.meta?.githubCommitRef || '';
-      return ref === branch || ref === `refs/heads/${branch}`;
+      if (ref !== branch && ref !== `refs/heads/${branch}`) return false;
+      if (sha && d.meta?.githubCommitSha && d.meta.githubCommitSha !== sha) return false;
+      return true;
     })
     .sort((a, b) => (b.createdAt || b.created || 0) - (a.createdAt || a.created || 0))[0];
   if (!latest) return null;
   const created = await http(fetchImpl, vercelUrl('/v13/deployments', teamId), {
     method: 'POST',
     token,
-    // No target: the redeploy keeps the original (preview) target and git metadata.
-    body: { name: latest.name, deploymentId: latest.uid },
+    // Preview keeps the original (preview) target; production explicitly targets production.
+    body: {
+      name: latest.name,
+      deploymentId: latest.uid,
+      ...(target === 'production' ? { target: 'production' } : {}),
+    },
   });
-  return created?.url || created?.id || 'requested';
+  return created?.url || created?.id || created?.uid || 'requested';
 }
 
 function printReport(title, rows) {
@@ -452,7 +463,8 @@ export async function run({ env = process.env, fetchImpl = fetch } = {}) {
   const errors = missingEdge.map((name) => `Required ${target} secret ${name} is not set in GitHub.`);
 
   // Plan everything before writing anything.
-  const branch = target === 'preview' ? env.SYNC_REDEPLOY_BRANCH || '' : '';
+  const branch = env.SYNC_REDEPLOY_BRANCH || '';
+  const sha = env.GITHUB_SHA || env.VERCEL_COMMIT_SHA || '';
   const remoteVercel = await readVercelEnv({ fetchImpl, token: vercelToken, teamId, projectId, target });
   const vercelPlan = planVercel({ desired: vercel, remote: remoteVercel, target, branch });
 
@@ -463,7 +475,7 @@ export async function run({ env = process.env, fetchImpl = fetch } = {}) {
     supabaseToken = env.SUPABASE_ACCESS_TOKEN || '';
     projectRef = env.SUPABASE_PROJECT_REF || resolveGithubValue('SUPABASE_PROJECT_REF', vars, secrets) || '';
     if (!supabaseToken) errors.push(`SUPABASE_ACCESS_TOKEN is required to sync ${target} Edge secrets.`);
-    if (!projectRef) errors.push(`SUPABASE_PROJECT_REF is required to sync ${target} Edge secrets.`);
+    if ( !projectRef) errors.push(`SUPABASE_PROJECT_REF is required to sync ${target} Edge secrets.`);
     if (target === 'preview' && projectRef === PRODUCTION_PROJECT_REF) {
       errors.push('Preview Edge sync refuses the production Supabase project.');
     }
@@ -522,7 +534,21 @@ export async function run({ env = process.env, fetchImpl = fetch } = {}) {
   );
 
   if (branch && vercelPlan.actions.length > 0) {
-    const redeployed = await redeployBranch({ fetchImpl, token: vercelToken, teamId, projectId, branch });
+    const redeployed = await redeployBranch({
+      fetchImpl,
+      token: vercelToken,
+      teamId,
+      projectId,
+      branch,
+      target,
+      sha,
+    });
+    if (!redeployed && target === 'production') {
+      process.stderr.write(
+        `::error title=sync-deploy-config::No ${branch} deployment found to redeploy after updating production Vercel configuration.\n`,
+      );
+      return 1;
+    }
     process.stdout.write(
       redeployed
         ? `Redeploy of ${branch} requested so the build picks up the new values.\n`

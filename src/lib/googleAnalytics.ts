@@ -56,6 +56,11 @@ export function getGaMeasurementId(): string | null {
   return trimmed ? trimmed : null;
 }
 
+/** True when a route path carries a bearer token segment that must never reach session replay. */
+export function isTokenBearingPath(pathname: string): boolean {
+  return TOKEN_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
 /** Replace ids and tokens in a pathname so page paths are aggregate and secret-free. */
 export function sanitizeAnalyticsPath(pathname: string): string {
   for (const prefix of TOKEN_ROUTE_PREFIXES) {

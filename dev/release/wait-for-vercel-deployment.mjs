@@ -22,6 +22,8 @@
  */
 
 
+import { pathToFileURL } from 'node:url';
+
 const DEFAULT_TEAM = 'team_78VeGDURoofThjZNJOKEBpP5';
 const DEFAULT_PROJECT = 'prj_P9hRun4B2OdGy8ACCnb0f7jNG6UA';
 
@@ -56,34 +58,46 @@ function shaMatches(meta, sha) {
   return msha === sha;
 }
 
-function terminalErrorStates(deployments, sha, branch) {
-  return deployments.filter((d) => {
-    const st = d.readyState || d.state || '';
-    if (!['ERROR', 'CANCELED', 'DELETED'].includes(st)) return false;
-    const meta = d.meta || {};
-    if (!shaMatches(meta, sha)) return false;
-    return commitRefMatches(meta, branch);
-  });
+function matchingDeploymentsNewestFirst(deployments, sha, branch) {
+  return deployments
+    .filter((d) => {
+      const meta = d.meta || {};
+      if (!shaMatches(meta, sha)) return false;
+      return commitRefMatches(meta, branch);
+    })
+    .sort((a, b) => (b.createdAt || b.created || 0) - (a.createdAt || a.created || 0));
 }
 
-function pickReadyDeployment(deployments, sha, branch) {
-  const candidates = deployments.filter((d) => {
-    const st = d.readyState || d.state || '';
-    if (st !== 'READY') return false;
-    const meta = d.meta || {};
-    if (!shaMatches(meta, sha)) return false;
-    if (!commitRefMatches(meta, branch)) return false;
-    return true;
-  });
-  if (candidates.length === 0) return null;
+export function terminalErrorStates(deployments, sha, branch) {
+  const matching = matchingDeploymentsNewestFirst(deployments, sha, branch);
+  if (matching.length === 0) return [];
+  const newest = matching[0];
+  const st = newest.readyState || newest.state || '';
+  return ['ERROR', 'CANCELED', 'DELETED'].includes(st) ? [newest] : [];
+}
 
-  const preferNoTarget = candidates.filter((d) => d.target == null);
-  if (preferNoTarget.length > 0) {
-    preferNoTarget.sort((a, b) => (b.createdAt || b.created || 0) - (a.createdAt || a.created || 0));
-    return preferNoTarget[0];
-  }
-  candidates.sort((a, b) => (b.createdAt || b.created || 0) - (a.createdAt || a.created || 0));
-  return candidates[0];
+export function pickReadyDeployment(deployments, sha, branch) {
+  const matching = matchingDeploymentsNewestFirst(deployments, sha, branch).filter((d) => {
+    const st = d.readyState || d.state || '';
+    return !['CANCELED', 'DELETED'].includes(st);
+  });
+  if (matching.length === 0) return null;
+
+  // Never pick an older READY deployment while a newer redeploy for the same
+  // commit/branch (such as one triggered after syncing VITE_* vars) is still building.
+  const newest = matching[0];
+  const newestState = newest.readyState || newest.state || '';
+  if (newestState !== 'READY') return null;
+
+  const readyAtNewestTimestamp = matching.filter((d) => {
+    const st = d.readyState || d.state || '';
+    return (
+      st === 'READY' &&
+      (d.createdAt || d.created || 0) === (newest.createdAt || newest.created || 0)
+    );
+  });
+  const preferNoTarget = readyAtNewestTimestamp.filter((d) => d.target == null);
+  return preferNoTarget[0] || newest;
 }
 
 /**
@@ -347,9 +361,11 @@ async function main() {
   process.exit(1);
 }
 
-main().catch((err) => {
-  process.stderr.write(
-    `::error title=wait-for-vercel-deployment::${err instanceof Error ? err.message : String(err)}\n`,
-  );
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((err) => {
+    process.stderr.write(
+      `::error title=wait-for-vercel-deployment::${err instanceof Error ? err.message : String(err)}\n`,
+    );
+    process.exit(1);
+  });
+}

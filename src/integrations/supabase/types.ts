@@ -6222,6 +6222,10 @@ export type Database = {
         Args: { org_id: string; user_uuid: string }
         Returns: boolean
       }
+      is_org_operational_admin: {
+        Args: { org_id: string; user_uuid: string }
+        Returns: boolean
+      }
       is_organization_admin: {
         Args: { org_id: string; user_uuid: string }
         Returns: boolean
@@ -7005,3 +7009,4 @@ export const Constants = {
     },
   },
 } as const
+

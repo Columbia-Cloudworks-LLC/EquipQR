@@ -175,12 +175,14 @@ jobs:
         run: node .github/scripts/check-schema-drift.js
 
       # GitHub is the only source of configuration. Apply production values to
-      # Vercel (VITE_*) and Supabase Edge secrets before promote, which rebuilds
-      # the deployment with Production env vars, and before the edge deploy.
+      # Vercel (VITE_*) and Supabase Edge secrets before promote (triggering a
+      # fresh main build when VITE_* values changed) and before the edge deploy.
       - name: Sync deployment configuration from GitHub
         env:
           SYNC_TARGET: production
           SYNC_MODE: apply
+          SYNC_REDEPLOY_BRANCH: main
+          GITHUB_SHA: ${{ github.sha }}
           SYNC_VARS_JSON: ${{ toJSON(vars) }}
           # Only the secrets the sync manages (never toJSON(secrets)).
           SYNC_SECRET_RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}

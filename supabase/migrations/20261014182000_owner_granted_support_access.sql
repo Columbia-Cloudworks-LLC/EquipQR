@@ -192,7 +192,12 @@ AS $function$
   );
 $function$;
 
-CREATE OR REPLACE FUNCTION public.is_org_admin(user_uuid uuid, org_id uuid)
+-- Shared permanent-admin predicates (is_org_admin, is_organization_admin,
+-- user_is_org_admin) remain restricted to active owners/admins so non-operational
+-- surfaces (organization settings/billing updates, public QR bearer token secrets,
+-- invitations, member management, audit logs, bulk exports) never grant support.
+-- Operational policies and RPCs opt into is_org_operational_admin explicitly.
+CREATE OR REPLACE FUNCTION public.is_org_operational_admin(user_uuid uuid, org_id uuid)
 RETURNS boolean
 LANGUAGE sql
 STABLE SECURITY DEFINER
@@ -209,6 +214,14 @@ AS $function$
   );
 $function$;
 
+COMMENT ON FUNCTION public.is_org_operational_admin(uuid, uuid) IS
+  'True for active org owners/admins and live owner-granted support sessions. Used only by operational policies and RPCs.';
+
+REVOKE ALL ON FUNCTION public.is_org_operational_admin(uuid, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.is_org_operational_admin(uuid, uuid) FROM anon;
+-- rpc-authenticated-grant-allowed: is_org_operational_admin
+GRANT EXECUTE ON FUNCTION public.is_org_operational_admin(uuid, uuid) TO authenticated, service_role;
+
 CREATE OR REPLACE FUNCTION public.is_organization_member(user_uuid uuid, org_id uuid)
 RETURNS boolean
 LANGUAGE sql
@@ -224,21 +237,118 @@ AS $function$
   );
 $function$;
 
-CREATE OR REPLACE FUNCTION public.is_organization_admin(user_uuid uuid, org_id uuid)
-RETURNS boolean
-LANGUAGE sql
-STABLE SECURITY DEFINER
-SET search_path TO 'public'
-AS $function$
-  SELECT EXISTS (
-    SELECT 1
-    FROM organization_members om
-    WHERE om.user_id = user_uuid
-      AND om.organization_id = org_id
-      AND om.role IN ('owner', 'admin')
-      AND (om.status = 'active' OR (om.status = 'support' AND public.support_grant_is_live(om.support_grant_id)))
-  );
-$function$;
+-- Owners and admins (including live support admins) can review grants.
+DROP POLICY IF EXISTS organization_support_grants_select ON public.organization_support_grants;
+CREATE POLICY organization_support_grants_select
+  ON public.organization_support_grants
+  FOR SELECT
+  TO authenticated
+  USING (public.is_org_operational_admin((SELECT auth.uid()), organization_id));
+
+-- Opt operational RLS policies and operational RPCs into is_org_operational_admin
+-- while leaving org settings/billing, public QR token secrets/management,
+-- invitations, member management, audit logs, and bulk exports on is_org_admin.
+DO $opt_support_into_operational$
+DECLARE
+  pol record;
+  fn record;
+  alter_sql text;
+  func_def text;
+  operational_tables text[] := ARRAY[
+    'customer_contacts',
+    'customer_sites',
+    'customers',
+    'equipment',
+    'equipment_note_images',
+    'equipment_notes',
+    'equipment_working_hours_history',
+    'external_customer_contacts',
+    'inventory_item_images',
+    'inventory_items',
+    'notes',
+    'organization_support_grants',
+    'pm_checklist_templates',
+    'pm_interval_policies',
+    'pm_status_history',
+    'preventative_maintenance',
+    'scans',
+    'team_members',
+    'teams',
+    'work_order_costs',
+    'work_order_notes',
+    'work_order_status_history',
+    'work_orders'
+  ];
+  operational_rpcs text[] := ARRAY[
+    'can_access_work_order_costs',
+    'can_edit_equipment_note',
+    'can_edit_work_order_note',
+    'can_manage_manual_external_customer_contact',
+    'convert_work_order_to_historical',
+    'create_historical_work_order_with_pm',
+    'delete_equipment_note',
+    'delete_equipment_note_image_audited',
+    'delete_manual_external_customer_contact',
+    'delete_work_order_cascade',
+    'delete_work_order_note',
+    'delete_work_order_note_image_audited',
+    'get_dashboard_trends',
+    'replace_historical_work_order_timeline',
+    'revert_pm_completion',
+    'revert_work_order_status',
+    'update_equipment_note',
+    'update_equipment_working_hours',
+    'update_historical_work_order_note_timestamp',
+    'update_manual_external_customer_contact',
+    'update_work_order_note'
+  ];
+BEGIN
+  FOR pol IN
+    SELECT schemaname, tablename, policyname, qual, with_check
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = ANY (operational_tables)
+      AND (
+        COALESCE(qual, '') ~ '(^|[^a-zA-Z0-9_])is_org_admin\('
+        OR COALESCE(with_check, '') ~ '(^|[^a-zA-Z0-9_])is_org_admin\('
+      )
+  LOOP
+    alter_sql := format('ALTER POLICY %I ON %I.%I', pol.policyname, pol.schemaname, pol.tablename);
+    IF pol.qual IS NOT NULL THEN
+      alter_sql := alter_sql || format(
+        ' USING (%s)',
+        regexp_replace(pol.qual, '(^|[^a-zA-Z0-9_])is_org_admin\(', '\1is_org_operational_admin(', 'g')
+      );
+    END IF;
+    IF pol.with_check IS NOT NULL THEN
+      alter_sql := alter_sql || format(
+        ' WITH CHECK (%s)',
+        regexp_replace(pol.with_check, '(^|[^a-zA-Z0-9_])is_org_admin\(', '\1is_org_operational_admin(', 'g')
+      );
+    END IF;
+    EXECUTE alter_sql;
+  END LOOP;
+
+  FOR fn IN
+    SELECT p.oid
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.prokind = 'f'
+      AND p.proname = ANY (operational_rpcs)
+  LOOP
+    func_def := pg_get_functiondef(fn.oid);
+    IF func_def ~ '(^|[^a-zA-Z0-9_])is_org_admin\(' THEN
+      EXECUTE regexp_replace(
+        func_def,
+        '(^|[^a-zA-Z0-9_])is_org_admin\(',
+        '\1is_org_operational_admin(',
+        'g'
+      );
+    END IF;
+  END LOOP;
+END;
+$opt_support_into_operational$;
 
 -- Read access to the member list; user_is_org_admin (member writes) is
 -- deliberately unchanged so support cannot manage people.
@@ -513,11 +623,14 @@ BEGIN
 
   PERFORM set_config('equipqr.support_access_write', 'on', true);
 
-  -- Stale support rows from an earlier grant are replaced.
+  -- Stale support rows from an earlier grant or operators removed from the current allowlist are replaced.
   DELETE FROM public.organization_members om
   WHERE om.organization_id = p_organization_id
     AND om.status = 'support'
-    AND om.support_grant_id IS DISTINCT FROM v_grant_id;
+    AND (
+      om.support_grant_id IS DISTINCT FROM v_grant_id
+      OR NOT (om.user_id = ANY (p_operator_ids))
+    );
 
   FOREACH v_operator IN ARRAY p_operator_ids
   LOOP

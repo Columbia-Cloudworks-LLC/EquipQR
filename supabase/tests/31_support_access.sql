@@ -3,7 +3,7 @@
 -- and the guards that stop admins or support from making access permanent.
 
 BEGIN;
-SELECT plan(39);
+SELECT plan(46);
 
 -- Users: owner, admin, two operators, outsider. Each gets a personal org.
 INSERT INTO auth.users (
@@ -35,7 +35,7 @@ VALUES ('96000000-0000-0000-0000-000000000021'::uuid, '96000000-0000-0000-0000-0
   'pgTAP Support Dozer', 'Cat', 'D6', 'SA-1', 'Yard', current_date);
 
 CREATE TEMP TABLE pgtap_sa (k text PRIMARY KEY, v jsonb);
-GRANT SELECT ON pgtap_sa TO authenticated;
+GRANT SELECT, INSERT ON pgtap_sa TO authenticated;
 
 -- -----------------------------------------------------------------------------
 -- Surface
@@ -132,14 +132,23 @@ SELECT is(
 
 SELECT ok(public.is_org_member('16000000-0000-0000-0000-000000000003'::uuid, '96000000-0000-0000-0000-000000000001'::uuid),
   'Live support counts as membership');
-SELECT ok(public.is_org_admin('16000000-0000-0000-0000-000000000003'::uuid, '96000000-0000-0000-0000-000000000001'::uuid),
-  'Live support has admin data access');
+SELECT ok(public.is_org_operational_admin('16000000-0000-0000-0000-000000000003'::uuid, '96000000-0000-0000-0000-000000000001'::uuid),
+  'Live support has operational admin data access');
+SELECT ok(NOT public.is_org_admin('16000000-0000-0000-0000-000000000003'::uuid, '96000000-0000-0000-0000-000000000001'::uuid),
+  'Support never passes the permanent org-admin check');
 SELECT ok(NOT public.user_is_org_admin('96000000-0000-0000-0000-000000000001'::uuid, '16000000-0000-0000-0000-000000000003'::uuid),
   'Support never passes the member-management check');
 SELECT ok(NOT public.can_user_manage_quickbooks('16000000-0000-0000-0000-000000000003'::uuid, '96000000-0000-0000-0000-000000000001'::uuid),
   'Support cannot manage QuickBooks');
 
+-- Seed a Quick Form as the owner so a token secret row exists in the org.
 SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub', '16000000-0000-0000-0000-000000000001', true);
+SELECT set_config('request.jwt.claims', json_build_object('sub', '16000000-0000-0000-0000-000000000001')::text, true);
+INSERT INTO pgtap_sa
+SELECT 'owner_qf', jsonb_build_object('quick_form_id', quick_form_id)
+FROM public.create_quick_form('96000000-0000-0000-0000-000000000001'::uuid, 'Owner Quick Form', NULL, '{}'::jsonb);
+
 SELECT set_config('request.jwt.claim.sub', '16000000-0000-0000-0000-000000000003', true);
 SELECT set_config('request.jwt.claims', json_build_object('sub', '16000000-0000-0000-0000-000000000003')::text, true);
 
@@ -147,6 +156,46 @@ SELECT is(
   (SELECT count(*)::integer FROM public.equipment WHERE organization_id = '96000000-0000-0000-0000-000000000001'::uuid),
   1,
   'Operator sees the organization''s equipment while the grant is live'
+);
+
+UPDATE public.equipment
+SET location = 'Bay 2'
+WHERE id = '96000000-0000-0000-0000-000000000021'::uuid;
+
+SELECT is(
+  (SELECT location FROM public.equipment WHERE id = '96000000-0000-0000-0000-000000000021'::uuid),
+  'Bay 2',
+  'Operator can update operational equipment records while the grant is live'
+);
+
+UPDATE public.organizations
+SET name = 'Hijacked Yard'
+WHERE id = '96000000-0000-0000-0000-000000000001'::uuid;
+
+SELECT is(
+  (SELECT name FROM public.organizations WHERE id = '96000000-0000-0000-0000-000000000001'::uuid),
+  'pgTAP Support Yard',
+  'Support cannot update organization settings or billing fields'
+);
+
+SELECT is(
+  (SELECT count(*)::integer FROM public.quick_form_token_secrets WHERE organization_id = '96000000-0000-0000-0000-000000000001'::uuid),
+  0,
+  'Support cannot read public QR bearer token secrets'
+);
+
+SELECT throws_ok(
+  $$SELECT * FROM public.create_quick_form(
+      '96000000-0000-0000-0000-000000000001'::uuid, 'Sneaky QF', NULL, '{}'::jsonb)$$,
+  'P0001', 'Forbidden',
+  'Support cannot mint public QR bearer tokens'
+);
+
+SELECT throws_ok(
+  $$SELECT public.enqueue_export_job(
+      '96000000-0000-0000-0000-000000000001'::uuid, 'equipment', '{}'::jsonb)$$,
+  '42501', NULL,
+  'Support cannot enqueue admin bulk exports'
 );
 
 SELECT ok(
@@ -246,6 +295,23 @@ SELECT results_eq(
   'Granting again while live extends the same grant'
 );
 
+-- Extending after an operator is removed from p_operator_ids prunes the removed operator immediately.
+INSERT INTO pgtap_sa VALUES ('grant2_prune', public.grant_support_access(
+  '96000000-0000-0000-0000-000000000001'::uuid, '16000000-0000-0000-0000-000000000001'::uuid,
+  ARRAY['16000000-0000-0000-0000-000000000003'::uuid],
+  168, 'settings'));
+
+SELECT ok(
+  NOT public.is_org_member('16000000-0000-0000-0000-000000000004'::uuid, '96000000-0000-0000-0000-000000000001'::uuid),
+  'Extending a live grant after removing an operator revokes the removed operator''s support membership'
+);
+
+-- Restore both operators before testing expiry cleanup.
+INSERT INTO pgtap_sa VALUES ('grant2_restore', public.grant_support_access(
+  '96000000-0000-0000-0000-000000000001'::uuid, '16000000-0000-0000-0000-000000000001'::uuid,
+  ARRAY['16000000-0000-0000-0000-000000000003'::uuid, '16000000-0000-0000-0000-000000000004'::uuid],
+  168, 'settings'));
+
 -- -----------------------------------------------------------------------------
 -- Expiry is enforced at query time, before any cleanup
 -- -----------------------------------------------------------------------------
@@ -256,8 +322,8 @@ WHERE organization_id = '96000000-0000-0000-0000-000000000001'::uuid;
 
 SELECT ok(NOT public.is_org_member('16000000-0000-0000-0000-000000000003'::uuid, '96000000-0000-0000-0000-000000000001'::uuid),
   'Expired support is not membership, with the row still present');
-SELECT ok(NOT public.is_org_admin('16000000-0000-0000-0000-000000000003'::uuid, '96000000-0000-0000-0000-000000000001'::uuid),
-  'Expired support has no admin access');
+SELECT ok(NOT public.is_org_operational_admin('16000000-0000-0000-0000-000000000003'::uuid, '96000000-0000-0000-0000-000000000001'::uuid),
+  'Expired support has no operational admin access');
 SELECT ok(
   '96000000-0000-0000-0000-000000000001'::uuid NOT IN (
     SELECT organization_id FROM public.get_user_organizations('16000000-0000-0000-0000-000000000003'::uuid)),

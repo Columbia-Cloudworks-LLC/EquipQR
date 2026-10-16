@@ -85,7 +85,7 @@ SELECT matches(
      FROM pg_proc
      WHERE proname = 'get_dashboard_trends'
        AND pronamespace = 'public'::regnamespace),
-  'is_org_admin\(auth\.uid\(\), p_org_id\)',
+  'is_org_(operational_)?admin\(auth\.uid\(\), p_org_id\)',
   'get_dashboard_trends checks org admin scope server-side'
 );
 

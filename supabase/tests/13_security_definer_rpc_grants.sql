@@ -315,6 +315,7 @@ SELECT is(
           'initiate_ownership_transfer',
           'is_org_admin',
           'is_org_member',
+          'is_org_operational_admin',
           'is_parts_consumer',
           'latest_scans_for_equipment_ids',
           'leave_organization',
