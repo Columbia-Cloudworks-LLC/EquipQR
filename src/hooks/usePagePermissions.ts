@@ -12,7 +12,8 @@ export const usePagePermissions = (organization: SessionOrganization | null): Pa
     };
   }
 
-  const canInviteMembers = ['owner', 'admin'].includes(organization.userRole || '');
+  const canInviteMembers =
+    !organization.isSupportAccess && ['owner', 'admin'].includes(organization.userRole || '');
 
   return {
     canInviteMembers

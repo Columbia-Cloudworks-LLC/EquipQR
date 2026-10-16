@@ -3,7 +3,7 @@
 -- and the guards that stop admins or support from making access permanent.
 
 BEGIN;
-SELECT plan(46);
+SELECT plan(56);
 
 -- Users: owner, admin, two operators, outsider. Each gets a personal org.
 INSERT INTO auth.users (
@@ -30,6 +30,12 @@ VALUES
   ('96000000-0000-0000-0000-000000000001'::uuid, '16000000-0000-0000-0000-000000000001'::uuid, 'owner', 'active', 'owner'),
   ('96000000-0000-0000-0000-000000000001'::uuid, '16000000-0000-0000-0000-000000000002'::uuid, 'admin', 'active', 'manual');
 
+INSERT INTO public.teams (id, organization_id, name)
+VALUES ('96000000-0000-0000-0000-000000000031'::uuid, '96000000-0000-0000-0000-000000000001'::uuid, 'Yard Crew');
+
+INSERT INTO public.team_members (team_id, user_id, role)
+VALUES ('96000000-0000-0000-0000-000000000031'::uuid, '16000000-0000-0000-0000-000000000002'::uuid, 'technician');
+
 INSERT INTO public.equipment (id, organization_id, name, manufacturer, model, serial_number, location, installation_date)
 VALUES ('96000000-0000-0000-0000-000000000021'::uuid, '96000000-0000-0000-0000-000000000001'::uuid,
   'pgTAP Support Dozer', 'Cat', 'D6', 'SA-1', 'Yard', current_date);
@@ -45,6 +51,11 @@ SELECT is(
   has_function_privilege('authenticated', 'public.grant_support_access(uuid, uuid, uuid[], integer, text, text)', 'EXECUTE'),
   false,
   'authenticated cannot call grant_support_access directly'
+);
+SELECT is(
+  has_function_privilege('authenticated', 'public.reconcile_support_operators(uuid[])', 'EXECUTE'),
+  false,
+  'authenticated cannot call reconcile_support_operators directly'
 );
 SELECT is(
   has_function_privilege('authenticated', 'public.revoke_support_access(uuid)', 'EXECUTE'),
@@ -166,6 +177,19 @@ SELECT is(
   (SELECT location FROM public.equipment WHERE id = '96000000-0000-0000-0000-000000000021'::uuid),
   'Bay 2',
   'Operator can update operational equipment records while the grant is live'
+);
+
+SELECT is(
+  (SELECT count(*)::integer FROM public.team_members WHERE team_id = '96000000-0000-0000-0000-000000000031'::uuid),
+  1,
+  'Support can read team_members rows while the grant is live'
+);
+
+SELECT throws_ok(
+  $$INSERT INTO public.team_members (team_id, user_id, role)
+    VALUES ('96000000-0000-0000-0000-000000000031'::uuid, '16000000-0000-0000-0000-000000000003'::uuid, 'manager')$$,
+  '42501', NULL,
+  'Support cannot insert into team_members (or self-enroll as team manager)'
 );
 
 UPDATE public.organizations
@@ -385,6 +409,71 @@ SELECT is(
     WHERE organization_id = '96000000-0000-0000-0000-000000000001'::uuid AND status = 'support'),
   0,
   'Revoke removes support memberships'
+);
+
+-- -----------------------------------------------------------------------------
+-- Existing memberships & allowlist reconciliation
+-- -----------------------------------------------------------------------------
+
+-- 1) An existing non-active membership row is reconciled into a live support row.
+INSERT INTO public.organization_members (organization_id, user_id, role, status, access_source)
+VALUES ('96000000-0000-0000-0000-000000000001'::uuid, '16000000-0000-0000-0000-000000000003'::uuid, 'member', 'inactive', 'manual');
+
+INSERT INTO pgtap_sa VALUES ('grant_reconcile_inactive', public.grant_support_access(
+  '96000000-0000-0000-0000-000000000001'::uuid, '16000000-0000-0000-0000-000000000001'::uuid,
+  ARRAY['16000000-0000-0000-0000-000000000003'::uuid, '16000000-0000-0000-0000-000000000004'::uuid],
+  24, 'settings'));
+
+SELECT results_eq(
+  $$SELECT role, status, access_source FROM public.organization_members
+     WHERE organization_id = '96000000-0000-0000-0000-000000000001'::uuid
+       AND user_id = '16000000-0000-0000-0000-000000000003'::uuid$$,
+  $$VALUES ('admin'::text, 'support'::text, 'support'::text)$$,
+  'grant_support_access reconciles an existing inactive membership into a live support membership'
+);
+
+-- 2) Shrinking DFY_OPERATOR_USER_IDS via reconcile_support_operators immediately revokes the removed operator.
+SELECT is(
+  public.reconcile_support_operators(ARRAY['16000000-0000-0000-0000-000000000003'::uuid]),
+  1,
+  'reconcile_support_operators removes the offboarded operator immediately'
+);
+
+SELECT ok(
+  NOT public.is_org_member('16000000-0000-0000-0000-000000000004'::uuid, '96000000-0000-0000-0000-000000000001'::uuid),
+  'Offboarded operator immediately loses membership across live grants'
+);
+
+SELECT ok(
+  public.is_org_member('16000000-0000-0000-0000-000000000003'::uuid, '96000000-0000-0000-0000-000000000001'::uuid),
+  'Remaining allowlisted operator retains live support membership'
+);
+
+-- 3) Clearing the allowlist via reconcile_support_operators removes all remaining support rows and closes open grants.
+SELECT is(
+  public.reconcile_support_operators(ARRAY[]::uuid[]),
+  1,
+  'reconcile_support_operators([]) removes remaining live support rows'
+);
+
+SELECT is(
+  (SELECT count(*)::integer FROM public.organization_support_grants
+    WHERE organization_id = '96000000-0000-0000-0000-000000000001'::uuid AND revoked_at IS NULL),
+  0,
+  'reconcile_support_operators([]) closes open grants that no longer have any live operators'
+);
+
+-- 4) An active non-admin membership collision for a configured operator is rejected visibly with 22023.
+INSERT INTO public.organization_members (organization_id, user_id, role, status, access_source)
+VALUES ('96000000-0000-0000-0000-000000000001'::uuid, '16000000-0000-0000-0000-000000000003'::uuid, 'member', 'active', 'manual');
+
+SELECT throws_ok(
+  $$SELECT public.grant_support_access(
+      '96000000-0000-0000-0000-000000000001'::uuid, '16000000-0000-0000-0000-000000000001'::uuid,
+      ARRAY['16000000-0000-0000-0000-000000000003'::uuid],
+      24, 'settings')$$,
+  '22023', NULL,
+  'grant_support_access rejects when a configured operator holds an active non-admin membership'
 );
 
 SELECT * FROM finish();

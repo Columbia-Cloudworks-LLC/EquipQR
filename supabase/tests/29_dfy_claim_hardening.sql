@@ -3,7 +3,7 @@
 -- pending staff, and the personal-org fallback after a revoked staged row.
 
 BEGIN;
-SELECT plan(18);
+SELECT plan(20);
 
 INSERT INTO public.organizations (id, name, member_count, max_members, provisioned_at)
 VALUES
@@ -266,6 +266,24 @@ SELECT is(
     WHERE organization_id = '94000000-0000-0000-0000-000000000002'::uuid),
   0,
   'The broken yard still has no members after the failed claim'
+);
+
+SELECT is(
+  (SELECT count(*)::integer FROM public.personal_organizations
+    WHERE user_id = '14000000-0000-0000-0000-000000000004'::uuid),
+  1,
+  'Verified-at-insert user whose staged claim failed receives a fallback personal org immediately'
+);
+
+UPDATE auth.users
+SET last_sign_in_at = now()
+WHERE id = '14000000-0000-0000-0000-000000000004'::uuid;
+
+SELECT is(
+  (SELECT status FROM public.organization_provisioned_members
+    WHERE email = 'pgtap-hard-broken@equipqr.test'),
+  'claimed',
+  'Subsequent sign-in retries and claims the previously failed staged membership'
 );
 
 SELECT * FROM finish();

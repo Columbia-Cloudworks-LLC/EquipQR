@@ -2711,13 +2711,13 @@ DECLARE
   v_row record;
   v_role text;
   v_count integer := 0;
+  v_failed boolean := false;
 BEGIN
   SELECT public.normalize_email(u.email), u.email_confirmed_at
   INTO v_email, v_confirmed_at
   FROM auth.users u
   WHERE u.id = p_user_id;
 
-  -- Only a verified email may claim a staged membership.
   IF v_email IS NULL OR v_confirmed_at IS NULL THEN
     RETURN 0;
   END IF;
@@ -2733,13 +2733,9 @@ BEGIN
       AND pm.status = 'pending'
     ORDER BY pm.created_at
   LOOP
-    -- A failed claim must never abort the auth.users write that called us
-    -- (Google sign-up or email confirmation); keep the row pending instead.
     BEGIN
-      -- Serialize with operator edits on the same unclaimed organization.
       PERFORM 1 FROM public.organizations o WHERE o.id = v_row.organization_id FOR UPDATE;
 
-      -- Re-check under the lock: an operator may have revoked it meanwhile.
       PERFORM 1
       FROM public.organization_provisioned_members pm
       WHERE pm.id = v_row.id
@@ -2751,7 +2747,6 @@ BEGIN
 
       v_role := v_row.role;
 
-      -- Never create a second owner.
       IF v_role = 'owner' AND EXISTS (
         SELECT 1
         FROM public.organization_members om
@@ -2819,12 +2814,31 @@ BEGIN
 
       v_count := v_count + 1;
     EXCEPTION WHEN OTHERS THEN
+      v_failed := true;
       UPDATE public.organization_provisioned_members
       SET last_claim_error = left(SQLERRM, 500)
       WHERE id = v_row.id;
       RAISE WARNING 'claim_provisioned_memberships: staged row % not claimed: %', v_row.id, SQLERRM;
     END;
   END LOOP;
+
+  IF v_failed
+    AND NOT EXISTS (
+      SELECT 1 FROM public.organization_members om
+      WHERE om.user_id = p_user_id
+        AND om.status = 'active'
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM public.personal_organizations po
+      WHERE po.user_id = p_user_id
+    )
+  THEN
+    BEGIN
+      PERFORM public.ensure_personal_organization(p_user_id);
+    EXCEPTION WHEN OTHERS THEN
+      RAISE WARNING 'claim_provisioned_memberships: fallback personal org for % failed: %', p_user_id, SQLERRM;
+    END;
+  END IF;
 
   RETURN v_count;
 END;
@@ -2834,7 +2848,7 @@ $$;
 ALTER FUNCTION "public"."claim_provisioned_memberships"("p_user_id" "uuid") OWNER TO "postgres";
 
 
-COMMENT ON FUNCTION "public"."claim_provisioned_memberships"("p_user_id" "uuid") IS 'Binds pending organization_provisioned_members rows matching the user''s verified email to active memberships (access_source provisioned). Each row is claimed in its own subtransaction so a failure never aborts the sign-in. Internal: no client EXECUTE.';
+COMMENT ON FUNCTION "public"."claim_provisioned_memberships"("p_user_id" "uuid") IS 'Binds pending organization_provisioned_members rows matching the user''s verified email to active memberships (access_source provisioned). Each row is claimed in its own subtransaction so a failure never aborts the sign-in, and a fallback personal org is created when all claims fail. Internal: no client EXECUTE.';
 
 
 
@@ -8557,6 +8571,7 @@ DECLARE
   v_open record;
   v_extended boolean := false;
   v_operator uuid;
+  v_granted_count integer := 0;
 BEGIN
   IF p_duration_hours NOT IN (24, 72, 168) THEN
     RAISE EXCEPTION 'Duration must be 24, 72, or 168 hours' USING ERRCODE = '22023';
@@ -8576,6 +8591,25 @@ BEGIN
       AND om.status = 'active'
   ) THEN
     RAISE EXCEPTION 'Only the organization owner can grant support access' USING ERRCODE = '42501';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = ANY (p_operator_ids)
+      AND om.status = 'active'
+      AND om.role NOT IN ('owner', 'admin')
+  ) THEN
+    RAISE EXCEPTION 'Configured support operator already has a non-admin active membership in this organization'
+      USING ERRCODE = '22023';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.profiles p
+    WHERE p.id = ANY (p_operator_ids)
+  ) THEN
+    RAISE EXCEPTION 'No configured EquipQR Support accounts have an active profile'
+      USING ERRCODE = '22023';
   END IF;
 
   v_expires_at := now() + make_interval(hours => p_duration_hours);
@@ -8612,14 +8646,17 @@ BEGIN
 
   PERFORM set_config('equipqr.support_access_write', 'on', true);
 
-  -- Stale support rows from an earlier grant or operators removed from the current allowlist are replaced.
   DELETE FROM public.organization_members om
-  WHERE om.organization_id = p_organization_id
-    AND om.status = 'support'
+  WHERE (
+    om.status = 'support'
+    AND NOT (om.user_id = ANY (p_operator_ids))
+  ) OR (
+    om.organization_id = p_organization_id
     AND (
-      om.support_grant_id IS DISTINCT FROM v_grant_id
-      OR NOT (om.user_id = ANY (p_operator_ids))
-    );
+      (om.status = 'support' AND om.support_grant_id IS DISTINCT FROM v_grant_id)
+      OR (om.user_id = ANY (p_operator_ids) AND om.status NOT IN ('active', 'support'))
+    )
+  );
 
   FOREACH v_operator IN ARRAY p_operator_ids
   LOOP
@@ -8628,10 +8665,32 @@ BEGIN
     )
     SELECT p_organization_id, v_operator, 'admin', 'support', 'support', v_grant_id
     WHERE EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = v_operator)
-    ON CONFLICT (organization_id, user_id) DO NOTHING;
+    ON CONFLICT (organization_id, user_id) DO UPDATE
+      SET role = 'admin',
+          status = 'support',
+          access_source = 'support',
+          support_grant_id = EXCLUDED.support_grant_id,
+          can_manage_quickbooks = false
+      WHERE public.organization_members.status <> 'active';
   END LOOP;
 
   PERFORM set_config('equipqr.support_access_write', 'off', true);
+
+  PERFORM public.reconcile_support_operators(p_operator_ids);
+
+  SELECT count(*)::integer INTO v_granted_count
+  FROM public.organization_members om
+  WHERE om.organization_id = p_organization_id
+    AND om.user_id = ANY (p_operator_ids)
+    AND (
+      (om.status = 'support' AND om.support_grant_id = v_grant_id)
+      OR (om.status = 'active' AND om.role IN ('owner', 'admin'))
+    );
+
+  IF v_granted_count = 0 THEN
+    RAISE EXCEPTION 'No configured EquipQR Support accounts could be granted access'
+      USING ERRCODE = '22023';
+  END IF;
 
   RETURN jsonb_build_object(
     'grant_id', v_grant_id,
@@ -9114,11 +9173,7 @@ CREATE OR REPLACE FUNCTION "public"."handle_user_email_confirmed_claim"() RETURN
 BEGIN
   PERFORM public.claim_provisioned_memberships(NEW.id);
 
-  -- handle_new_user skipped the personal org because a staged row was pending
-  -- for this email. If that row was revoked before the user verified, they
-  -- would otherwise land with no organization at all.
-  IF OLD.email_confirmed_at IS NULL
-    AND NOT EXISTS (
+  IF NOT EXISTS (
       SELECT 1 FROM public.organization_members om
       WHERE om.user_id = NEW.id
         AND om.status = 'active'
@@ -9143,7 +9198,7 @@ $$;
 ALTER FUNCTION "public"."handle_user_email_confirmed_claim"() OWNER TO "postgres";
 
 
-COMMENT ON FUNCTION "public"."handle_user_email_confirmed_claim"() IS 'auth.users AFTER UPDATE trigger: claims pre-staged memberships once an email becomes verified, and creates the personal org when a revoked staged row had suppressed it (issue #1648).';
+COMMENT ON FUNCTION "public"."handle_user_email_confirmed_claim"() IS 'auth.users AFTER UPDATE trigger: claims pre-staged memberships once an email becomes verified or on subsequent sign-in, and creates the personal org when a revoked or failed staged row had suppressed it (issue #1648).';
 
 
 
@@ -12996,6 +13051,44 @@ ALTER FUNCTION "public"."reconcile_google_workspace_directory"("p_organization_i
 
 
 COMMENT ON FUNCTION "public"."reconcile_google_workspace_directory"("p_organization_id" "uuid", "p_sync_started_at" timestamp with time zone) IS 'Marks active directory users not refreshed during the sync run as suspended and revokes workspace-derived memberships/claims for inactive directory users.';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."reconcile_support_operators"("p_operator_ids" "uuid"[]) RETURNS integer
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public', 'pg_temp'
+    AS $$
+DECLARE
+  v_removed integer := 0;
+BEGIN
+  DELETE FROM public.organization_members om
+  WHERE om.status = 'support'
+    AND NOT (om.user_id = ANY (COALESCE(p_operator_ids, ARRAY[]::uuid[])));
+  GET DIAGNOSTICS v_removed = ROW_COUNT;
+
+  UPDATE public.organization_support_grants g
+  SET revoked_at = now()
+  WHERE g.revoked_at IS NULL
+    AND NOT EXISTS (
+      SELECT 1
+      FROM public.organization_members om
+      WHERE om.organization_id = g.organization_id
+        AND om.user_id = ANY (COALESCE(p_operator_ids, ARRAY[]::uuid[]))
+        AND (
+          (om.status = 'support' AND om.support_grant_id = g.id)
+          OR (om.status = 'active' AND om.role IN ('owner', 'admin'))
+        )
+    );
+
+  RETURN v_removed;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."reconcile_support_operators"("p_operator_ids" "uuid"[]) OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."reconcile_support_operators"("p_operator_ids" "uuid"[]) IS 'Service role / config sync: immediately removes support memberships for users absent from the current DFY_OPERATOR_USER_IDS allowlist and closes any open grant with no remaining support operators.';
 
 
 
@@ -23417,19 +23510,19 @@ ALTER TABLE "public"."team_members" ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "team_members_admin_delete" ON "public"."team_members" FOR DELETE USING ((EXISTS ( SELECT 1
    FROM "public"."teams" "t"
-  WHERE (("t"."id" = "team_members"."team_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "t"."organization_id")))));
+  WHERE (("t"."id" = "team_members"."team_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "t"."organization_id")))));
 
 
 
 CREATE POLICY "team_members_admin_insert" ON "public"."team_members" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."teams" "t"
-  WHERE (("t"."id" = "team_members"."team_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "t"."organization_id")))));
+  WHERE (("t"."id" = "team_members"."team_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "t"."organization_id")))));
 
 
 
 CREATE POLICY "team_members_admin_update" ON "public"."team_members" FOR UPDATE USING ((EXISTS ( SELECT 1
    FROM "public"."teams" "t"
-  WHERE (("t"."id" = "team_members"."team_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "t"."organization_id")))));
+  WHERE (("t"."id" = "team_members"."team_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "t"."organization_id")))));
 
 
 
@@ -25315,6 +25408,11 @@ GRANT ALL ON FUNCTION "public"."provision_organization"("p_request_id" "uuid", "
 
 REVOKE ALL ON FUNCTION "public"."reconcile_google_workspace_directory"("p_organization_id" "uuid", "p_sync_started_at" timestamp with time zone) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."reconcile_google_workspace_directory"("p_organization_id" "uuid", "p_sync_started_at" timestamp with time zone) TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."reconcile_support_operators"("p_operator_ids" "uuid"[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."reconcile_support_operators"("p_operator_ids" "uuid"[]) TO "service_role";
 
 
 

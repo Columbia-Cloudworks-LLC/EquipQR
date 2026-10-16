@@ -328,7 +328,7 @@ describe('run', () => {
     expect(calls.every((c) => c.method === 'GET')).toBe(true);
   });
 
-  it('production apply deletes an operator allowlist that GitHub emptied', async () => {
+  it('production apply deletes an operator allowlist that GitHub emptied and reconciles live support memberships', async () => {
     const secrets = edgeSecrets();
     const remote = [
       ...Object.entries(secrets).map(([name, value]) => ({ name, value: sha256Hex(value) })),
@@ -339,6 +339,7 @@ describe('run', () => {
       [`POST /v10/projects/${project}/env`]: () => ({}),
       'GET /v1/projects/ref123/secrets': () => remote,
       'DELETE /v1/projects/ref123/secrets': () => ({}),
+      'POST /v1/projects/ref123/database/query': () => [],
     });
     const code = await run({
       env: {
@@ -356,6 +357,51 @@ describe('run', () => {
       method: 'DELETE',
       path: '/v1/projects/ref123/secrets',
       body: ['DFY_OPERATOR_USER_IDS'],
+    });
+    expect(calls).toContainEqual({
+      method: 'POST',
+      path: '/v1/projects/ref123/database/query',
+      body: { query: 'SELECT public.reconcile_support_operators(ARRAY[]::uuid[]);' },
+    });
+  });
+
+  it('production apply reconciles live support memberships when DFY_OPERATOR_USER_IDS shrinks', async () => {
+    const secrets = edgeSecrets();
+    const opKeep = '00000000-0000-4000-8000-000000000011';
+    const opRemove = '00000000-0000-4000-8000-000000000022';
+    const remote = [
+      ...Object.entries(secrets).map(([name, value]) => ({ name, value: sha256Hex(value) })),
+      { name: 'DFY_OPERATOR_USER_IDS', value: sha256Hex(`${opKeep},${opRemove}`) },
+    ];
+    const { calls, fetchImpl } = fakeApi({
+      [`GET /v10/projects/${project}/env`]: () => ({ envs: [] }),
+      'GET /v1/projects/ref123/secrets': () => remote,
+      'POST /v1/projects/ref123/secrets': () => ({}),
+      'POST /v1/projects/ref123/database/query': () => [],
+    });
+    const code = await run({
+      env: {
+        SYNC_TARGET: 'production',
+        SYNC_MODE: 'apply',
+        VERCEL_TOKEN: 't',
+        SUPABASE_ACCESS_TOKEN: 's',
+        SYNC_VARS_JSON: JSON.stringify({ SUPABASE_PROJECT_REF: 'ref123' }),
+        ...secretEnv({ ...secrets, DFY_OPERATOR_USER_IDS: opKeep }),
+      },
+      fetchImpl,
+    });
+    expect(code).toBe(0);
+    expect(calls).toContainEqual({
+      method: 'POST',
+      path: '/v1/projects/ref123/secrets',
+      body: [{ name: 'DFY_OPERATOR_USER_IDS', value: opKeep }],
+    });
+    expect(calls).toContainEqual({
+      method: 'POST',
+      path: '/v1/projects/ref123/database/query',
+      body: {
+        query: `SELECT public.reconcile_support_operators(ARRAY['${opKeep}'::uuid]);`,
+      },
     });
   });
 

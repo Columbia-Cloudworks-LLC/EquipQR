@@ -97,7 +97,6 @@ DECLARE
     'pm_status_history',
     'preventative_maintenance',
     'scans',
-    'team_members',
     'teams',
     'work_order_costs',
     'work_order_notes',
@@ -154,6 +153,33 @@ BEGIN
     EXECUTE alter_sql;
   END LOOP;
 
+  -- Keep team_members write policies restricted to permanent active admins.
+  FOR pol IN
+    SELECT schemaname, tablename, policyname, qual, with_check
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'team_members'
+      AND (
+        COALESCE(qual, '') ~ '(^|[^a-zA-Z0-9_])is_org_operational_admin\('
+        OR COALESCE(with_check, '') ~ '(^|[^a-zA-Z0-9_])is_org_operational_admin\('
+      )
+  LOOP
+    alter_sql := format('ALTER POLICY %I ON %I.%I', pol.policyname, pol.schemaname, pol.tablename);
+    IF pol.qual IS NOT NULL THEN
+      alter_sql := alter_sql || format(
+        ' USING (%s)',
+        regexp_replace(pol.qual, '(^|[^a-zA-Z0-9_])is_org_operational_admin\(', '\1is_org_admin(', 'g')
+      );
+    END IF;
+    IF pol.with_check IS NOT NULL THEN
+      alter_sql := alter_sql || format(
+        ' WITH CHECK (%s)',
+        regexp_replace(pol.with_check, '(^|[^a-zA-Z0-9_])is_org_operational_admin\(', '\1is_org_admin(', 'g')
+      );
+    END IF;
+    EXECUTE alter_sql;
+  END LOOP;
+
   FOR fn IN
     SELECT p.oid
     FROM pg_proc p
@@ -175,6 +201,46 @@ BEGIN
 END;
 $opt_support_into_operational$;
 
+CREATE OR REPLACE FUNCTION public.reconcile_support_operators(p_operator_ids uuid[])
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_removed integer := 0;
+BEGIN
+  DELETE FROM public.organization_members om
+  WHERE om.status = 'support'
+    AND NOT (om.user_id = ANY (COALESCE(p_operator_ids, ARRAY[]::uuid[])));
+  GET DIAGNOSTICS v_removed = ROW_COUNT;
+
+  UPDATE public.organization_support_grants g
+  SET revoked_at = now()
+  WHERE g.revoked_at IS NULL
+    AND NOT EXISTS (
+      SELECT 1
+      FROM public.organization_members om
+      WHERE om.organization_id = g.organization_id
+        AND om.user_id = ANY (COALESCE(p_operator_ids, ARRAY[]::uuid[]))
+        AND (
+          (om.status = 'support' AND om.support_grant_id = g.id)
+          OR (om.status = 'active' AND om.role IN ('owner', 'admin'))
+        )
+    );
+
+  RETURN v_removed;
+END;
+$$;
+
+COMMENT ON FUNCTION public.reconcile_support_operators(uuid[]) IS
+  'Service role / config sync: immediately removes support memberships for users absent from the current DFY_OPERATOR_USER_IDS allowlist and closes any open grant with no remaining support operators.';
+
+REVOKE ALL ON FUNCTION public.reconcile_support_operators(uuid[]) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.reconcile_support_operators(uuid[]) FROM anon;
+REVOKE ALL ON FUNCTION public.reconcile_support_operators(uuid[]) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.reconcile_support_operators(uuid[]) TO service_role;
+
 CREATE OR REPLACE FUNCTION public.grant_support_access(
   p_organization_id uuid,
   p_granted_by uuid,
@@ -194,6 +260,7 @@ DECLARE
   v_open record;
   v_extended boolean := false;
   v_operator uuid;
+  v_granted_count integer := 0;
 BEGIN
   IF p_duration_hours NOT IN (24, 72, 168) THEN
     RAISE EXCEPTION 'Duration must be 24, 72, or 168 hours' USING ERRCODE = '22023';
@@ -213,6 +280,25 @@ BEGIN
       AND om.status = 'active'
   ) THEN
     RAISE EXCEPTION 'Only the organization owner can grant support access' USING ERRCODE = '42501';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM public.organization_members om
+    WHERE om.organization_id = p_organization_id
+      AND om.user_id = ANY (p_operator_ids)
+      AND om.status = 'active'
+      AND om.role NOT IN ('owner', 'admin')
+  ) THEN
+    RAISE EXCEPTION 'Configured support operator already has a non-admin active membership in this organization'
+      USING ERRCODE = '22023';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.profiles p
+    WHERE p.id = ANY (p_operator_ids)
+  ) THEN
+    RAISE EXCEPTION 'No configured EquipQR Support accounts have an active profile'
+      USING ERRCODE = '22023';
   END IF;
 
   v_expires_at := now() + make_interval(hours => p_duration_hours);
@@ -249,14 +335,18 @@ BEGIN
 
   PERFORM set_config('equipqr.support_access_write', 'on', true);
 
-  -- Stale support rows from an earlier grant or operators removed from the current allowlist are replaced.
+  -- Stale support rows, removed operators across all orgs, and non-active rows for target operators are replaced.
   DELETE FROM public.organization_members om
-  WHERE om.organization_id = p_organization_id
-    AND om.status = 'support'
+  WHERE (
+    om.status = 'support'
+    AND NOT (om.user_id = ANY (p_operator_ids))
+  ) OR (
+    om.organization_id = p_organization_id
     AND (
-      om.support_grant_id IS DISTINCT FROM v_grant_id
-      OR NOT (om.user_id = ANY (p_operator_ids))
-    );
+      (om.status = 'support' AND om.support_grant_id IS DISTINCT FROM v_grant_id)
+      OR (om.user_id = ANY (p_operator_ids) AND om.status NOT IN ('active', 'support'))
+    )
+  );
 
   FOREACH v_operator IN ARRAY p_operator_ids
   LOOP
@@ -265,10 +355,32 @@ BEGIN
     )
     SELECT p_organization_id, v_operator, 'admin', 'support', 'support', v_grant_id
     WHERE EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = v_operator)
-    ON CONFLICT (organization_id, user_id) DO NOTHING;
+    ON CONFLICT (organization_id, user_id) DO UPDATE
+      SET role = 'admin',
+          status = 'support',
+          access_source = 'support',
+          support_grant_id = EXCLUDED.support_grant_id,
+          can_manage_quickbooks = false
+      WHERE public.organization_members.status <> 'active';
   END LOOP;
 
   PERFORM set_config('equipqr.support_access_write', 'off', true);
+
+  PERFORM public.reconcile_support_operators(p_operator_ids);
+
+  SELECT count(*)::integer INTO v_granted_count
+  FROM public.organization_members om
+  WHERE om.organization_id = p_organization_id
+    AND om.user_id = ANY (p_operator_ids)
+    AND (
+      (om.status = 'support' AND om.support_grant_id = v_grant_id)
+      OR (om.status = 'active' AND om.role IN ('owner', 'admin'))
+    );
+
+  IF v_granted_count = 0 THEN
+    RAISE EXCEPTION 'No configured EquipQR Support accounts could be granted access'
+      USING ERRCODE = '22023';
+  END IF;
 
   RETURN jsonb_build_object(
     'grant_id', v_grant_id,

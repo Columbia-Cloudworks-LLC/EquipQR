@@ -59,6 +59,7 @@ const escapeHtml = (unsafe: string): string =>
 /** The operations this function needs (adapter keeps tests cast-free). */
 export interface SupportAccessBackend {
   isActiveOwner(organizationId: string, userId: string): Promise<boolean>;
+  reconcileOperators?(operatorIds: string[]): Promise<void>;
   grant(args: {
     organizationId: string;
     grantedBy: string;
@@ -87,6 +88,11 @@ function liveBackend(req: Request): SupportAccessBackend {
         .eq("status", "active")
         .maybeSingle();
       return !error && data?.role === "owner";
+    },
+    reconcileOperators: async (operatorIds) => {
+      await adminClient().rpc("reconcile_support_operators", {
+        p_operator_ids: operatorIds,
+      });
     },
     grant: async (args) => {
       const { data, error } = await adminClient().rpc("grant_support_access", {
@@ -172,6 +178,11 @@ export async function handleSupportAccess(
   const operatorIds = deps.operatorIds();
   if (operatorIds.length === 0) {
     logStep("Operator allowlist empty", correlationId, { orgId: body.organizationId });
+    try {
+      await backend.reconcileOperators?.([]);
+    } catch {
+      // Best-effort cleanup when the allowlist is empty.
+    }
     return createJsonResponse(
       { error: "SUPPORT_UNAVAILABLE", message: "Support access isn't available right now. Please contact EquipQR Support." },
       503,
@@ -191,6 +202,13 @@ export async function handleSupportAccess(
     console.error(`[${FUNCTION_NAME}] grant failed`, { code: error.code });
     if (error.code === "42501") {
       return createErrorResponse("Only organization owners can grant support access", 403, opts);
+    }
+    if (error.code === "22023") {
+      return createErrorResponse(
+        "Support access cannot be granted because a configured support operator has a conflicting membership",
+        409,
+        opts,
+      );
     }
     return createErrorResponse("Failed to update support access", 500, opts);
   }

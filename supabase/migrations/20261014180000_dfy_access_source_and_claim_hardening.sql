@@ -152,6 +152,7 @@ DECLARE
   v_row record;
   v_role text;
   v_count integer := 0;
+  v_failed boolean := false;
 BEGIN
   SELECT public.normalize_email(u.email), u.email_confirmed_at
   INTO v_email, v_confirmed_at
@@ -260,6 +261,7 @@ BEGIN
 
       v_count := v_count + 1;
     EXCEPTION WHEN OTHERS THEN
+      v_failed := true;
       UPDATE public.organization_provisioned_members
       SET last_claim_error = left(SQLERRM, 500)
       WHERE id = v_row.id;
@@ -267,12 +269,34 @@ BEGIN
     END;
   END LOOP;
 
+  -- If handle_new_user skipped the personal org for a verified-at-insert user
+  -- (e.g. Google OAuth) and every pending staged claim failed, create their
+  -- fallback personal org so they never land with zero organizations while the
+  -- staged row stays pending with last_claim_error for retry.
+  IF v_failed
+    AND NOT EXISTS (
+      SELECT 1 FROM public.organization_members om
+      WHERE om.user_id = p_user_id
+        AND om.status = 'active'
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM public.personal_organizations po
+      WHERE po.user_id = p_user_id
+    )
+  THEN
+    BEGIN
+      PERFORM public.ensure_personal_organization(p_user_id);
+    EXCEPTION WHEN OTHERS THEN
+      RAISE WARNING 'claim_provisioned_memberships: fallback personal org for % failed: %', p_user_id, SQLERRM;
+    END;
+  END IF;
+
   RETURN v_count;
 END;
 $$;
 
 COMMENT ON FUNCTION public.claim_provisioned_memberships(uuid) IS
-  'Binds pending organization_provisioned_members rows matching the user''s verified email to active memberships (access_source provisioned). Each row is claimed in its own subtransaction so a failure never aborts the sign-in. Internal: no client EXECUTE.';
+  'Binds pending organization_provisioned_members rows matching the user''s verified email to active memberships (access_source provisioned). Each row is claimed in its own subtransaction so a failure never aborts the sign-in, and a fallback personal org is created when all claims fail. Internal: no client EXECUTE.';
 
 REVOKE ALL ON FUNCTION public.claim_provisioned_memberships(uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.claim_provisioned_memberships(uuid) FROM anon;
@@ -280,7 +304,7 @@ REVOKE ALL ON FUNCTION public.claim_provisioned_memberships(uuid) FROM authentic
 GRANT EXECUTE ON FUNCTION public.claim_provisioned_memberships(uuid) TO service_role;
 
 -- =============================================================================
--- Email confirmation: claim, then restore the personal org if DFY skipped it
+-- Email confirmation / sign-in: claim, then restore the personal org if skipped
 -- =============================================================================
 
 CREATE OR REPLACE FUNCTION public.handle_user_email_confirmed_claim()
@@ -293,10 +317,9 @@ BEGIN
   PERFORM public.claim_provisioned_memberships(NEW.id);
 
   -- handle_new_user skipped the personal org because a staged row was pending
-  -- for this email. If that row was revoked before the user verified, they
-  -- would otherwise land with no organization at all.
-  IF OLD.email_confirmed_at IS NULL
-    AND NOT EXISTS (
+  -- for this email. If that row was revoked before the user verified or failed
+  -- to claim, ensure they still have a fallback personal org.
+  IF NOT EXISTS (
       SELECT 1 FROM public.organization_members om
       WHERE om.user_id = NEW.id
         AND om.status = 'active'
@@ -318,11 +341,33 @@ END;
 $$;
 
 COMMENT ON FUNCTION public.handle_user_email_confirmed_claim() IS
-  'auth.users AFTER UPDATE trigger: claims pre-staged memberships once an email becomes verified, and creates the personal org when a revoked staged row had suppressed it (issue #1648).';
+  'auth.users AFTER UPDATE trigger: claims pre-staged memberships once an email becomes verified or on subsequent sign-in, and creates the personal org when a revoked or failed staged row had suppressed it (issue #1648).';
 
 REVOKE ALL ON FUNCTION public.handle_user_email_confirmed_claim() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.handle_user_email_confirmed_claim() FROM anon;
 REVOKE ALL ON FUNCTION public.handle_user_email_confirmed_claim() FROM authenticated;
+
+DO $$
+BEGIN
+  BEGIN
+    DROP TRIGGER IF EXISTS on_auth_user_email_confirmed_claim ON auth.users;
+
+    CREATE TRIGGER on_auth_user_email_confirmed_claim
+      AFTER UPDATE OF email, email_confirmed_at, last_sign_in_at ON auth.users
+      FOR EACH ROW
+      WHEN (
+        NEW.email_confirmed_at IS NOT NULL
+        AND (
+          OLD.email_confirmed_at IS NULL
+          OR OLD.email IS DISTINCT FROM NEW.email
+          OR NEW.last_sign_in_at IS DISTINCT FROM OLD.last_sign_in_at
+        )
+      )
+      EXECUTE FUNCTION public.handle_user_email_confirmed_claim();
+  EXCEPTION WHEN insufficient_privilege THEN
+    RAISE WARNING 'Insufficient privileges to create trigger on_auth_user_email_confirmed_claim on auth.users.';
+  END;
+END $$;
 
 -- =============================================================================
 -- Owner/admin revoke of a still-pending staged person

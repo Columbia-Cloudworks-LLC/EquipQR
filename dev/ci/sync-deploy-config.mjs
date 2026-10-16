@@ -438,6 +438,25 @@ async function redeployBranch({ fetchImpl, token, teamId, projectId, branch, tar
   return created?.url || created?.id || created?.uid || 'requested';
 }
 
+const OPERATOR_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+export function parseOperatorUserIds(raw) {
+  if (!raw || typeof raw !== 'string') return [];
+  const ids = new Set();
+  for (const part of raw.split(',')) {
+    const id = part.trim().toLowerCase();
+    if (OPERATOR_UUID_RE.test(id)) ids.add(id);
+  }
+  return [...ids];
+}
+
+export function buildReconcileOperatorsQuery(raw) {
+  const ids = parseOperatorUserIds(raw);
+  const arrayExpr =
+    ids.length === 0 ? 'ARRAY[]::uuid[]' : `ARRAY[${ids.map((id) => `'${id}'::uuid`).join(', ')}]`;
+  return `SELECT public.reconcile_support_operators(${arrayExpr});`;
+}
+
 function printReport(title, rows) {
   if (rows.length === 0) return;
   process.stdout.write(`${title}\n`);
@@ -527,6 +546,16 @@ export async function run({ env = process.env, fetchImpl = fetch } = {}) {
       method: 'DELETE',
       token: supabaseToken,
       body: edgePlan.deletes,
+    });
+  }
+  const operatorAllowlistChanged =
+    edgePlan.writes.some((w) => w.name === 'DFY_OPERATOR_USER_IDS') ||
+    edgePlan.deletes.includes('DFY_OPERATOR_USER_IDS');
+  if (operatorAllowlistChanged) {
+    await http(fetchImpl, `${SUPABASE_API}/v1/projects/${projectRef}/database/query`, {
+      method: 'POST',
+      token: supabaseToken,
+      body: { query: buildReconcileOperatorsQuery(edge.DFY_OPERATOR_USER_IDS) },
     });
   }
   process.stdout.write(
