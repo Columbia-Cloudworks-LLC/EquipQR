@@ -14,6 +14,7 @@ import { WidgetCatalog } from '@/features/dashboard/components/WidgetCatalog';
 import { WidgetManager } from '@/features/dashboard/components/WidgetManager';
 import { DashboardNoTeamsCard } from '@/features/dashboard/components/DashboardNoTeamsCard';
 import { DashboardStatsGrid } from '@/features/dashboard/components/DashboardStatsGrid';
+import { ProvisionedYardQuickBooksPrompt } from '@/features/onboarding/components/ProvisionedYardQuickBooksPrompt';
 import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -296,6 +297,8 @@ const Dashboard = () => {
             </div>
             {toolbar}
           </div>
+
+          <ProvisionedYardQuickBooksPrompt />
 
           {isMobile && (
             <>

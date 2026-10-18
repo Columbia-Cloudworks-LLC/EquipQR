@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, QrCode, MapPin, Calendar, Trash2, Clock, ChevronRight } from 'lucide-react';
+import { ArrowLeft, CopyPlus, QrCode, MapPin, Calendar, Trash2, Clock, ChevronRight } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 import { getStatusColor, EQUIPMENT_STATUS_OPTIONS } from '@/features/equipment/utils/equipmentHelpers';
 import { getCustomAttributeString } from '@/features/equipment/utils/getEquipmentCardDisplayModel';
@@ -18,6 +18,8 @@ interface MobileEquipmentHeaderProps {
   canDelete?: boolean;
   onDelete?: () => void;
   onShowWorkingHours?: () => void;
+  /** Opens the create form prefilled with this unit's specs (issue #1643). */
+  onAddAnotherLikeThis?: () => void;
 }
 
 const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
@@ -26,6 +28,7 @@ const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
   canDelete = false,
   onDelete,
   onShowWorkingHours,
+  onAddAnotherLikeThis,
 }) => {
   const navigate = useNavigate();
   const { formatDate } = useFormatTimestamp();
@@ -49,6 +52,11 @@ const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
           Equipment
         </Button>
         <div className="flex items-center gap-2">
+          {onAddAnotherLikeThis && (
+            <Button size="sm" variant="outline" className="min-h-[44px] px-3" onClick={onAddAnotherLikeThis} aria-label="Add another like this">
+              <CopyPlus className="h-4 w-4" />
+            </Button>
+          )}
           <Button size="sm" variant="outline" className="min-h-[44px] px-3" onClick={onShowQRCode} aria-label="Show QR code">
             <QrCode className="h-4 w-4" />
           </Button>

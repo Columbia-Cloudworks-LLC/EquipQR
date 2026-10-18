@@ -19,6 +19,8 @@ export interface SessionOrganization {
   inventoryDefaultLocationLng?: number;
   userRole: 'owner' | 'admin' | 'member';
   userStatus: 'active' | 'pending' | 'inactive';
+  /** True when the user is here through a live, owner-granted EquipQR Support grant. */
+  isSupportAccess?: boolean;
 }
 
 export interface SessionTeamMembership {

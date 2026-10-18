@@ -43,9 +43,20 @@ interface EquipmentFormProps {
   equipment?: EquipmentRecord;
   /** Called after a successful online create with the persisted equipment id. */
   onCreated?: (equipmentId: string) => void;
+  /**
+   * "Add Another Like This" (issue #1643): prefill a new record with this
+   * unit's shared specs. Mount the form fresh per clone so defaults apply.
+   */
+  cloneSource?: EquipmentRecord;
 }
 
-const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment, onCreated }) => {
+const EquipmentForm: React.FC<EquipmentFormProps> = ({
+  open,
+  onClose,
+  equipment,
+  onCreated,
+  cloneSource,
+}) => {
   const { attributes } = useCustomAttributes();
   const pendingMediaRef = useRef<EquipmentFormPendingMedia>({ files: [], displayIndex: 0 });
   const { form, onSubmit, isEdit, isPending } = useEquipmentForm(
@@ -53,7 +64,9 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment,
     onClose,
     pendingMediaRef,
     onCreated,
+    cloneSource,
   );
+  const isClone = !isEdit && !!cloneSource;
   const { hasRole } = usePermissions();
   const isAdmin = hasRole(['owner', 'admin']);
 
@@ -159,11 +172,28 @@ const EquipmentForm: React.FC<EquipmentFormProps> = ({ open, onClose, equipment,
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl max-h-[calc(100dvh-2rem)] overflow-y-auto">
+        <DialogContent
+          className="max-w-4xl max-h-[calc(100dvh-2rem)] overflow-y-auto"
+          onOpenAutoFocus={
+            isClone
+              ? (event) => {
+                  // Only the unique identifiers are left to enter — jump straight to them.
+                  event.preventDefault();
+                  form.setFocus('serial_number');
+                }
+              : undefined
+          }
+        >
           <DialogHeader>
-            <DialogTitle>{isEdit ? 'Edit Equipment' : 'Create New Equipment'}</DialogTitle>
+            <DialogTitle>
+              {isEdit ? 'Edit Equipment' : isClone ? 'Add Another Like This' : 'Create New Equipment'}
+            </DialogTitle>
             <DialogDescription>
-              {isEdit ? 'Update equipment information' : 'Enter the details for the new equipment'}
+              {isEdit
+                ? 'Update equipment information'
+                : isClone
+                  ? `Specs copied from ${cloneSource?.name ?? 'the original unit'}. Enter the serial number and anything else unique to this unit.`
+                  : 'Enter the details for the new equipment'}
             </DialogDescription>
             <OfflineFormBanner />
           </DialogHeader>

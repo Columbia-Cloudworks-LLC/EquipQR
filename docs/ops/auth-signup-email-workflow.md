@@ -22,7 +22,7 @@ This runbook documents the production email signup path after the Resend SMTP cu
 | Per-recipient SMTP frequency | `60` seconds |
 | Email confirmation | Required |
 
-Secrets are not stored in this document. The SMTP password is a Resend API key configured in Supabase Auth settings. The app's separate Edge Function `RESEND_API_KEY` remains managed through 1Password-backed Supabase secrets.
+Secrets are not stored in this document. The SMTP password is a Resend API key configured in Supabase Auth settings. The app's separate Edge Function `RESEND_API_KEY` is a GitHub `production` environment secret synced to Supabase by the production release.
 
 ## Workflow Diagram
 
@@ -100,7 +100,7 @@ Use this checklist after any Auth, SMTP, DNS, or signup-flow change.
 
 ## Important Boundaries
 
-- Resend SMTP for Supabase Auth is separate from Edge Function email sending. Edge Functions use `RESEND_API_KEY` from Supabase secrets (`edge-env-prod-secrets`).
+- Resend SMTP for Supabase Auth is separate from Edge Function email sending. Edge Functions use `RESEND_API_KEY` from Supabase secrets (synced from the GitHub `production` environment).
 - Member invitations call `send-invitation-email` **synchronously** (not pgmq / `queue-worker`). Send via `_shared/resend-send-email.ts` native fetch — do **not** import `npm:resend` in Deno (react-dom crash). From address: `EquipQR™ <invite@equipqr.app>`.
 - Do not paste confirmation links, signup tokens, SMTP passwords, or Resend API keys into chat, commits, screenshots, or documentation.
 - A Resend bounce is not the same as a Supabase signup failure. If Supabase returns `200` and Resend records the message, the signup system is functioning and the issue is recipient deliverability.

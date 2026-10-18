@@ -30,7 +30,7 @@ const CustomerAccountCard: React.FC<CustomerAccountCardProps> = ({
   const status = customer.status ?? 'active';
 
   return (
-    <Card className="shadow-elevation-2">
+    <Card className="shadow-elevation-2" data-clarity-mask="true">
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Building2 className="h-4 w-4" />

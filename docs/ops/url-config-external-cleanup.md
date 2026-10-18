@@ -1,5 +1,7 @@
 # URL Config External Cleanup Checklist
 
+> **Historical record.** 1Password was removed from EquipQR in #1640. GitHub Environments are now the only configuration source; see [agent secrets and access](./agent-secrets-and-access.md). Script and vault-item names below are kept as written at the time.
+
 After the URL simplification code ships, clean up environment secrets and vendor consoles so stale OAuth redirect knobs cannot be reintroduced by sync scripts.
 
 ## Canonical inputs per environment

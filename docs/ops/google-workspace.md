@@ -46,8 +46,8 @@ Workspace Connect. Register `http://localhost:54321` and
 Production callbacks use `https://supabase.equipqr.app` (Google console
 and Vercel `VITE_SUPABASE_URL`). Keep
 `GW_OAUTH_REDIRECT_BASE_URL=https://supabase.equipqr.app` on
-`edge-env-prod-secrets` and sync with
-`bash dev/ops/supabase-secrets.sh -OpItem edge-env-prod-secrets`.
+the GitHub `production` environment; the production release syncs it to
+Supabase (`dev/ci/sync-deploy-config.mjs`).
 
 A derived-URL cleanup is tracked in
 [url-config-external-cleanup.md](./url-config-external-cleanup.md).
@@ -62,6 +62,6 @@ Google OAuth Verification Center expects a live
 
 ## Preview client-ID drift
 
-App (`app-env-preview-public` / `GOOGLE_WORKSPACE_CLIENT_ID`) and edge
-(`edge-env-prod-secrets`) must match. Check and rotate via
+App (`preview` variable `GOOGLE_WORKSPACE_CLIENT_ID`) and edge
+(`production` Edge secret of the same name) must match. Check and rotate via
 [agent-secrets-and-access.md](./agent-secrets-and-access.md).

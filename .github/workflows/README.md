@@ -1,6 +1,6 @@
 # EquipQR GitHub Actions workflows
 
-GitHub is the source of truth for automation and deployment configuration. Workflows read `secrets.*` and `vars.*`. They do not load 1Password at runtime.
+GitHub is the source of truth for automation and deployment configuration. Workflows read `secrets.*` and `vars.*`. Nothing in this repository reads a password manager. Public values are environment **variables**; secrets are environment **secrets**.
 
 ## Environments
 
@@ -15,13 +15,13 @@ GitHub is the source of truth for automation and deployment configuration. Workf
 
 `secrets-fanout.yml` and `secrets-drift-check.yml` declare `environment: preview` and fail if a preview secret or variable is empty. They do not print values. `GITHUB_TOKEN` cannot list environment secret names. `dev/ci/check-github-environment-names.mjs` is the admin-token name inventory used outside Actions.
 
-## Intentional 1Password exceptions
+## Syncing to Vercel and Supabase
 
-Human logins (`quickbooks-developer`, `google-login`, `Oracle`) and personal MCP credentials (`gcp-read`, `gcp-editor`, `datadog-prod`, `figma`, `context7`, `todiagram`) are not copied into GitHub. GitHub Actions uses `GITHUB_TOKEN` instead of the `github-write` or `github-read` personal access tokens.
+`sync-deploy-config.yml` copies an environment into Vercel env vars (`VITE_*`) and, for production, Supabase Edge secrets, using `dev/ci/sync-deploy-config.mjs`. It applies `preview` on every push to `preview`. Run it manually with `mode=check` to see drift, or `mode=apply` to write. `production-release-readiness.yml` applies the production environment before promoting Vercel and deploying Edge Functions. See [agent secrets and access](../../docs/ops/agent-secrets-and-access.md) for the managed keys and safety rules.
 
-`bash dev/ops/local-env.sh`, `bash dev/ops/vercel-env.sh`, and `bash dev/ops/supabase-secrets.sh` stay in the tree as rollback until `main` no longer needs them. Active workflows do not call them.
+Human logins and personal MCP tokens are not automation configuration and are not stored in GitHub. Developers export them locally when a helper needs them. GitHub Actions uses `GITHUB_TOKEN` instead of personal access tokens.
 
-The repository secret `OP_SERVICE_ACCOUNT_TOKEN` must stay until this change is on `main`. Deleting it earlier breaks the current production workflows. Do not delete 1Password vault items.
+`database-tests.yml` starts the disposable Linux stack and runs `npm run test:db` (pgTAP) on pull requests that change migrations, database tests, or `supabase/config.toml`.
 
 `production-release-readiness.yml` is the only workflow that declares `environment: production`. A push to `main` applies migrations, promotes Vercel, and deploys Edge Functions. A manual run defaults to `dry-run`, which only checks that the production environment injects credentials and that Supabase and Vercel accept them.
 

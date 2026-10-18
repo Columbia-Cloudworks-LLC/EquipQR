@@ -36,7 +36,6 @@
     ]
   },
   "entry": [
-    "dev/ops/read-yaml.mjs",
     "dev/invoice-export-smoke.deno.ts",
     "playwright.user.config.ts",
     "src/sw.ts",
@@ -51,6 +50,7 @@
     "dev/test-ci-entry.mjs",
     "dev/test-ci-sharded.mjs",
     "dev/upload-screenshot.ts",
+    "dev/dfy/provision-yard.mjs",
     "dev/docs-media/print-storage-path.ts",
     "dev/run-vitest-local.test.mjs",
     "dev/vitest-perf/report-vitest-durations.test.mjs",

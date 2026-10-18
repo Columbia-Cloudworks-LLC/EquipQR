@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ClipboardSignature, MessageSquarePlus, Plus, QrCode } from 'lucide-react';
+import { ClipboardSignature, CopyPlus, MessageSquarePlus, Plus, QrCode } from 'lucide-react';
 import {
   QuickAccessDrawer,
   type QuickAccessSection,
@@ -14,6 +14,8 @@ interface EquipmentQuickAccessDrawerProps {
   onShowQrCode: (variant?: EquipmentQRVariant) => void;
   onCreateWorkOrder: () => void;
   onAddNote: () => void;
+  /** Omitted when the user cannot create equipment (issue #1643). */
+  onAddAnotherLikeThis?: () => void;
 }
 
 /**
@@ -28,6 +30,7 @@ export function EquipmentQuickAccessDrawer({
   onShowQrCode,
   onCreateWorkOrder,
   onAddNote,
+  onAddAnotherLikeThis,
 }: EquipmentQuickAccessDrawerProps) {
   const { data: checkinAssignments = [] } = useEquipmentOperatorCheckinAssignments(
     equipmentId,
@@ -82,8 +85,25 @@ export function EquipmentQuickAccessDrawer({
           },
         ],
       },
+      ...(onAddAnotherLikeThis
+        ? [
+            {
+              id: 'equipment',
+              title: 'Equipment',
+              actions: [
+                {
+                  id: 'add-another-like-this',
+                  label: 'Add another like this',
+                  sublabel: 'New unit with the same make, model, and team',
+                  icon: CopyPlus,
+                  onSelect: onAddAnotherLikeThis,
+                },
+              ],
+            },
+          ]
+        : []),
     ];
-  }, [checkinAssignments, onShowQrCode, onCreateWorkOrder, onAddNote]);
+  }, [checkinAssignments, onShowQrCode, onCreateWorkOrder, onAddNote, onAddAnotherLikeThis]);
 
   return (
     <QuickAccessDrawer

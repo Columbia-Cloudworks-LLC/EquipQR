@@ -4,7 +4,8 @@
 //
 // Signs into app.qbo.intuit.com using credentials provided via env
 // (QBO_USERNAME / QBO_PASSWORD, loaded by bash dev/e2e/env.sh qbo-browser) and a
-// fresh TOTP read from 1Password at challenge time. The session persists in a
+// fresh TOTP generated from QUICKBOOKS_DEVELOPER_TOTP_SECRET (base32, from your
+// shell environment) at challenge time. The session persists in a
 // local Playwright profile so subsequent runs skip sign-in entirely.
 //
 // Usage (via wrapper):
@@ -12,7 +13,7 @@
 //
 // Exit codes: 0 signed in, 1 sign-in failed, 2 missing env.
 import { chromium } from '@playwright/test';
-import { execFileSync } from 'node:child_process';
+import { createHmac } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 
 const USERNAME = process.env.QBO_USERNAME;
@@ -25,12 +26,33 @@ if (!USERNAME || !PASSWORD) {
 const TARGET_URL = process.env.QBO_TARGET_URL || 'https://qbo.intuit.com/app/homepage';
 const PROFILE_DIR = process.env.QBO_PROFILE_DIR || 'tmp/qbo-automation/profile';
 const SHOTS_DIR = process.env.QBO_SHOTS_DIR || 'tmp/qbo-automation/shots';
-const OP_TOTP_REF = process.env.QBO_OP_TOTP_REF
-  || 'op://EquipQR Agents/quickbooks-developer/one-time password?attribute=otp';
+const TOTP_SECRET = (process.env.QUICKBOOKS_DEVELOPER_TOTP_SECRET || '').replace(/[\s=-]/g, '').toUpperCase();
 mkdirSync(SHOTS_DIR, { recursive: true });
 
+function base32Decode(input) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let bits = '';
+  for (const char of input) {
+    const index = alphabet.indexOf(char);
+    if (index === -1) throw new Error('QUICKBOOKS_DEVELOPER_TOTP_SECRET is not valid base32.');
+    bits += index.toString(2).padStart(5, '0');
+  }
+  const bytes = [];
+  for (let i = 0; i + 8 <= bits.length; i += 8) bytes.push(Number.parseInt(bits.slice(i, i + 8), 2));
+  return Buffer.from(bytes);
+}
+
+// RFC 6238 TOTP (SHA-1, 30-second step, 6 digits) — what authenticator apps use.
 function freshOtp() {
-  return execFileSync('op', ['read', OP_TOTP_REF], { encoding: 'utf8' }).trim();
+  if (!TOTP_SECRET) {
+    throw new Error('QUICKBOOKS_DEVELOPER_TOTP_SECRET is required to answer the TOTP challenge.');
+  }
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 1000 / 30)));
+  const hmac = createHmac('sha1', base32Decode(TOTP_SECRET)).update(counter).digest();
+  const offset = hmac[hmac.length - 1] & 0x0f;
+  const code = (hmac.readUInt32BE(offset) & 0x7fffffff) % 1_000_000;
+  return String(code).padStart(6, '0');
 }
 
 const ctx = await chromium.launchPersistentContext(PROFILE_DIR, {

@@ -37,6 +37,7 @@ function toPersistedSessionOrganization(org: SessionOrganization): SessionOrgani
     inventoryDefaultLocationName: org.inventoryDefaultLocationName,
     userRole: org.userRole,
     userStatus: org.userStatus,
+    isSupportAccess: org.isSupportAccess,
   };
 }
 

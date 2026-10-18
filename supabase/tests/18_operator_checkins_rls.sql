@@ -263,12 +263,18 @@ SELECT throws_ok(
   'purge rejects cross-org submission references without nulling template_id'
 );
 
+-- The org-2 submission is invisible to this org-1 caller, so verify as superuser.
+RESET role;
+
 SELECT ok(
   (SELECT template_id FROM public.operator_checkin_submissions
     WHERE id = '31000000-eeee-0000-0000-000000000098'::uuid)
     = '31000000-cccc-0000-0000-000000000004'::uuid,
   'cross-org submission template_id is preserved when purge is rejected'
 );
+
+SET LOCAL role TO authenticated;
+SET LOCAL request.jwt.claim.sub TO '31000000-0000-0000-0000-000000000001';
 
 SELECT ok(
   public.delete_operator_checklist_template('31000000-cccc-0000-0000-000000000001'::uuid) = 1,

@@ -218,6 +218,7 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
             values={pmValues}
             setValue={setPmValue}
             selectedEquipment={selectedEquipment}
+            organizationId={equipment.organizationId}
             autoDefaultFromEquipment
           />
 

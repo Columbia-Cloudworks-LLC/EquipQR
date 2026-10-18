@@ -16,6 +16,8 @@ name: Production Release Readiness
 #   - SUPABASE_ACCESS_TOKEN
 #   - SUPABASE_DB_PASSWORD
 #   - VERCEL_TOKEN
+# plus the Edge secrets and public variables listed in dev/ci/sync-deploy-config.mjs,
+# which the release applies to Vercel and Supabase before promoting.
 # These jobs are the only workflows that declare environment: production.
 # A push to main always applies. Pull requests do not run this workflow.
 
@@ -82,6 +84,35 @@ jobs:
           fi
           echo "Vercel token accepted. No project was linked, migrated, promoted, or deployed."
 
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Check deployment configuration drift (no writes)
+        env:
+          SYNC_TARGET: production
+          SYNC_MODE: check
+          SYNC_VARS_JSON: ${{ toJSON(vars) }}
+          # Only the secrets the sync manages (never toJSON(secrets)).
+          SYNC_SECRET_RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          SYNC_SECRET_HCAPTCHA_SECRET_KEY: ${{ secrets.HCAPTCHA_SECRET_KEY }}
+          SYNC_SECRET_TOKEN_ENCRYPTION_KEY: ${{ secrets.TOKEN_ENCRYPTION_KEY }}
+          SYNC_SECRET_KDF_SALT: ${{ secrets.KDF_SALT }}
+          SYNC_SECRET_INTUIT_CLIENT_SECRET: ${{ secrets.INTUIT_CLIENT_SECRET }}
+          SYNC_SECRET_GOOGLE_WORKSPACE_CLIENT_SECRET: ${{ secrets.GOOGLE_WORKSPACE_CLIENT_SECRET }}
+          SYNC_SECRET_GOOGLE_MAPS_SERVER_KEY: ${{ secrets.GOOGLE_MAPS_SERVER_KEY }}
+          SYNC_SECRET_GOOGLE_MAPS_BROWSER_KEY: ${{ secrets.GOOGLE_MAPS_BROWSER_KEY }}
+          SYNC_SECRET_VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          SYNC_SECRET_GITHUB_PAT: ${{ secrets.GITHUB_PAT }}
+          SYNC_SECRET_GITHUB_WEBHOOK_SECRET: ${{ secrets.GITHUB_WEBHOOK_SECRET }}
+          SYNC_SECRET_DFY_OPERATOR_USER_IDS: ${{ secrets.DFY_OPERATOR_USER_IDS }}
+          SUPABASE_PROJECT_REF: ${{ env.SUPABASE_PROJECT_REF }}
+        run: node dev/ci/sync-deploy-config.mjs
+
+      - name: Check Supabase Auth settings that claiming relies on (no writes)
+        env:
+          SUPABASE_PROJECT_REF: ${{ env.SUPABASE_PROJECT_REF }}
+        run: node dev/ci/check-auth-config.mjs
+
   production-release-readiness:
     name: Migrate, verify schema, promote Vercel, deploy edge
     if: github.event_name == 'push' || inputs.mode == 'apply'
@@ -122,6 +153,11 @@ jobs:
             exit 1
           fi
 
+      - name: Check Supabase Auth settings that claiming relies on (no writes)
+        env:
+          SUPABASE_PROJECT_REF: ${{ env.SUPABASE_PROJECT_REF }}
+        run: node dev/ci/check-auth-config.mjs
+
       - name: Apply migrations to production
         shell: bash
         run: |
@@ -137,6 +173,32 @@ jobs:
           GITHUB_BASE_REF: ''
           SCHEMA_DRIFT_STRICT: 'true'
         run: node .github/scripts/check-schema-drift.js
+
+      # GitHub is the only source of configuration. Apply production values to
+      # Vercel (VITE_*) and Supabase Edge secrets before promote (triggering a
+      # fresh main build when VITE_* values changed) and before the edge deploy.
+      - name: Sync deployment configuration from GitHub
+        env:
+          SYNC_TARGET: production
+          SYNC_MODE: apply
+          SYNC_REDEPLOY_BRANCH: main
+          GITHUB_SHA: ${{ github.sha }}
+          SYNC_VARS_JSON: ${{ toJSON(vars) }}
+          # Only the secrets the sync manages (never toJSON(secrets)).
+          SYNC_SECRET_RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          SYNC_SECRET_HCAPTCHA_SECRET_KEY: ${{ secrets.HCAPTCHA_SECRET_KEY }}
+          SYNC_SECRET_TOKEN_ENCRYPTION_KEY: ${{ secrets.TOKEN_ENCRYPTION_KEY }}
+          SYNC_SECRET_KDF_SALT: ${{ secrets.KDF_SALT }}
+          SYNC_SECRET_INTUIT_CLIENT_SECRET: ${{ secrets.INTUIT_CLIENT_SECRET }}
+          SYNC_SECRET_GOOGLE_WORKSPACE_CLIENT_SECRET: ${{ secrets.GOOGLE_WORKSPACE_CLIENT_SECRET }}
+          SYNC_SECRET_GOOGLE_MAPS_SERVER_KEY: ${{ secrets.GOOGLE_MAPS_SERVER_KEY }}
+          SYNC_SECRET_GOOGLE_MAPS_BROWSER_KEY: ${{ secrets.GOOGLE_MAPS_BROWSER_KEY }}
+          SYNC_SECRET_VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          SYNC_SECRET_GITHUB_PAT: ${{ secrets.GITHUB_PAT }}
+          SYNC_SECRET_GITHUB_WEBHOOK_SECRET: ${{ secrets.GITHUB_WEBHOOK_SECRET }}
+          SYNC_SECRET_DFY_OPERATOR_USER_IDS: ${{ secrets.DFY_OPERATOR_USER_IDS }}
+          SUPABASE_PROJECT_REF: ${{ env.SUPABASE_PROJECT_REF }}
+        run: node dev/ci/sync-deploy-config.mjs
 
       - name: Wait for Vercel deployment (main, READY)
         id: wait_vercel
@@ -176,6 +238,7 @@ jobs:
             echo ""
             echo "- **Supabase:** migrations applied; strict schema drift check passed; Edge Functions deployed."
             echo "- **Vercel:** main deployment READY and **promoted to production** (\`equipqr.app\`)."
+            echo "- **Configuration:** Vercel env and Supabase Edge secrets synced from the GitHub production environment."
             echo "- **Deployment:** ${{ steps.wait_vercel.outputs.deployment_url }}"
             echo ""
             echo "No manual Vercel dashboard promote or \`supabase functions deploy\` is required when this workflow succeeds."

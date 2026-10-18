@@ -15,14 +15,19 @@ export const CSP_DIRECTIVES: readonly string[] = [
   // Google Maps' WebGL vector basemap compiles WASM in its shared label
   // worker (shared-label-worker.js); without this the Fleet Map floods the
   // console with CompileError CSP violations and label rendering degrades.
-  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://hcaptcha.com https://*.hcaptcha.com https://js.sentry-cdn.com https://maps.googleapis.com https://apis.google.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com",
+  // `*.clarity.ms` / `c.bing.com`: Microsoft Clarity, injected only after
+  // opt-in diagnostic telemetry consent (src/components/privacy/ClarityTelemetry.tsx).
+  // `www.googletagmanager.com` / `*.google-analytics.com` /
+  // `*.analytics.google.com`: Google Analytics 4 (gtag.js), injected only after
+  // the same consent (src/components/privacy/GoogleAnalyticsTelemetry.tsx).
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://hcaptcha.com https://*.hcaptcha.com https://js.sentry-cdn.com https://maps.googleapis.com https://apis.google.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com https://*.clarity.ms https://www.googletagmanager.com",
   "style-src 'self' 'unsafe-inline' https://hcaptcha.com https://*.hcaptcha.com https://*.googleapis.com https://*.gstatic.com",
   "frame-src 'self' https://hcaptcha.com https://*.hcaptcha.com https://accounts.google.com https://docs.google.com https://drive.google.com",
   // `data:` is required because Google Maps' vector basemap worker
   // (shared-label-worker.js) loads inline label sprite assets via
   // fetch('data:image/png;base64,...'). Without it the map renders
   // but labels degrade and the console floods with CSP violations.
-  "connect-src 'self' data: https://hcaptcha.com https://*.hcaptcha.com https://api.pwnedpasswords.com https://*.sentry.io https://*.supabase.co https://*.equipqr.app https://*.vercel.app https://maps.googleapis.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com wss://*.supabase.co wss://*.equipqr.app wss://*.vercel.app",
+  "connect-src 'self' data: https://hcaptcha.com https://*.hcaptcha.com https://api.pwnedpasswords.com https://*.sentry.io https://*.supabase.co https://*.equipqr.app https://*.vercel.app https://maps.googleapis.com https://accounts.google.com https://*.googleapis.com https://*.gstatic.com https://*.clarity.ms https://c.bing.com https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com wss://*.supabase.co wss://*.equipqr.app wss://*.vercel.app",
   "img-src 'self' data: blob: https: https://*.googleapis.com https://*.gstatic.com",
   "media-src 'self' blob: https://*.supabase.co https://*.equipqr.app",
   "font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com",

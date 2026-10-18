@@ -10,8 +10,10 @@ import WorkspaceOnboardingGuard from '@/components/auth/WorkspaceOnboardingGuard
 import ProductOnboardingGuard from '@/components/auth/ProductOnboardingGuard';
 import MFAEnforcementGuard from '@/components/auth/MFAEnforcementGuard';
 import IdleSessionTimeoutGuard from '@/components/auth/IdleSessionTimeoutGuard';
+import { GoogleReviewPrompt } from '@/features/reviews/components/GoogleReviewPrompt';
 import { BugReportProvider } from '@/features/tickets/context/BugReportContext';
 import { PendingSyncBanner } from '@/features/offline-queue/components/PendingSyncBanner';
+import { SupportAccessBanner } from '@/features/organization/components/SupportAccessBanner';
 import { OFFLINE_QUEUE_ENABLED } from '@/lib/flags';
 import LegalFooter from '@/components/layout/LegalFooter';
 import { PageSkeleton } from '@/components/ui/PageSkeleton';
@@ -62,6 +64,7 @@ export const DashboardRouteLayout = () => (
                   <BugReportProvider>
                     <div className="flex min-h-screen w-full">
                       <IdleSessionTimeoutGuard />
+                      <GoogleReviewPrompt />
                       <Suspense
                         fallback={
                           <div className="w-64 border-r bg-sidebar">
@@ -82,6 +85,7 @@ export const DashboardRouteLayout = () => (
                           <BrandedTopBar />
                         </Suspense>
                         {OFFLINE_QUEUE_ENABLED && <PendingSyncBanner />}
+                        <SupportAccessBanner />
                         <main
                           id="main-content"
                           tabIndex={-1}

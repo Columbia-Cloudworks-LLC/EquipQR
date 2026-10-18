@@ -12,6 +12,7 @@ export {
   isDueOverdue,
   placeWorkOrder,
   calendarDayInTimeZone,
+  todayLocal,
 } from '@/features/work-orders/calendar/dueDate';
 export type {
   CalendarDay,

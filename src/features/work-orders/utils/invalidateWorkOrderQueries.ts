@@ -1,5 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { workOrderKeys } from '@/features/work-orders/hooks/useWorkOrders';
+import { reviewMilestoneQueryKey } from '@/features/reviews/hooks/useReviewMilestone';
 import { organization, workOrders } from '@/lib/queryKeys';
 
 /**
@@ -41,6 +42,7 @@ export function invalidateWorkOrderLists(
   void queryClient.invalidateQueries({ queryKey: workOrders.teamBasedList(organizationId) });
   void queryClient.invalidateQueries({ queryKey: workOrders.pagedList(organizationId) });
   void queryClient.invalidateQueries({ queryKey: organization(organizationId).dashboardStats() });
+  void queryClient.invalidateQueries({ queryKey: reviewMilestoneQueryKey(organizationId) });
   void queryClient.invalidateQueries({ queryKey: workOrders.root, exact: false });
 }
 
