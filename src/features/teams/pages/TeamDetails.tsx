@@ -31,6 +31,7 @@ import { TeamPMScheduleCard } from '@/features/teams/components/TeamPMScheduleCa
 import CustomerAccountCard from '@/features/teams/components/CustomerAccountCard';
 import TeamExternalContactsSection from '@/features/teams/components/TeamExternalContactsSection';
 import { TeamViewSwitcher } from '@/features/teams/components/TeamViewSwitcher';
+import { HierarchicalDocumentsPanel } from '@/features/documents/components/HierarchicalDocumentsPanel';
 import { updateTeam } from '@/features/teams/services/teamService';
 import { TEAM_VIEW_LABELS, isTeamView, type TeamView } from '@/features/teams/types/team';
 
@@ -481,6 +482,14 @@ const TeamDetails = () => {
       })}
 
       {/* Dialogs */}
+      <HierarchicalDocumentsPanel
+        organizationId={currentOrganization.id}
+        scopeType="team"
+        scopeId={team.id}
+        isOrgAdmin={currentOrganization.userRole === 'owner' || currentOrganization.userRole === 'admin'}
+        teamRole={canEdit ? 'manager' : null}
+      />
+
       <TeamMetadataEditor
         open={showMetadataEditor}
         onClose={() => setShowMetadataEditor(false)}

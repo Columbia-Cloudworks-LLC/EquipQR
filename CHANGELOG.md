@@ -11,6 +11,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Added
+
+- **Google Drive documents across organizations, teams, equipment, and work orders (#1422)** — Attach Google Drive policies, manuals, certificates, and rental insurance at the organization, team, or equipment level with automatic inheritance, confirm who receives Google Drive access before sharing, track renewal sign-offs, and check whether an equipment unit's rental insurance is signed and current.
+
 ## [3.37.0] - 2026-10-16
 
 ### Added
