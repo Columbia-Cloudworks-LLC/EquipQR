@@ -1,0 +1,172 @@
+.pm-story,
+.pm-qr-hero,
+.pm-machine,
+.pm-meter-panel,
+.pm-hours-2480,
+.pm-hours-2500,
+.pm-due-pill,
+.pm-arc-progress,
+.pm-card-checklist,
+.pm-check-a,
+.pm-check-b,
+.pm-check-c,
+.pm-check-d,
+.pm-tech-evidence,
+.pm-card-next,
+.pm-next-arc {
+  animation-duration: 7.5s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-fill-mode: both;
+}
+
+.pm-story { animation-name: pm-clock; }
+.pm-qr-hero { animation-name: pm-qr-hero; }
+.pm-machine { animation-name: pm-machine; }
+.pm-meter-panel { animation-name: pm-meter-panel; }
+.pm-hours-2480 { animation-name: pm-hours-2480; }
+.pm-hours-2500 { animation-name: pm-hours-2500; }
+.pm-due-pill { animation-name: pm-due-pill; }
+.pm-card-checklist { animation-name: pm-card-checklist; }
+.pm-tech-evidence { animation-name: pm-tech-evidence; }
+.pm-card-next { animation-name: pm-card-next; }
+
+.pm-arc-progress {
+  stroke-dasharray: 126;
+  stroke-dashoffset: 38;
+  animation-name: pm-arc-progress;
+}
+
+.pm-next-arc {
+  stroke-dasharray: 180;
+  stroke-dashoffset: 180;
+  animation-name: pm-next-arc;
+}
+
+.pm-check-a,
+.pm-check-b,
+.pm-check-c,
+.pm-check-d {
+  stroke-dasharray: 14;
+  stroke-dashoffset: 14;
+}
+
+.pm-check-a { animation-name: pm-check-a; }
+.pm-check-b { animation-name: pm-check-b; }
+.pm-check-c { animation-name: pm-check-c; }
+.pm-check-d { animation-name: pm-check-d; }
+
+@keyframes pm-clock {
+  from { opacity: 1; }
+  to { opacity: 1; }
+}
+
+@keyframes pm-qr-hero {
+  0%, 10% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  20%, 94% { opacity: 0; transform: translate(-61%, -81%) scale(0.28); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes pm-machine {
+  0%, 8% { opacity: 0; transform: scale(0.96); }
+  18%, 90% { opacity: 1; transform: scale(1); }
+  96%, 100% { opacity: 0; transform: scale(0.96); }
+}
+
+@keyframes pm-meter-panel {
+  0%, 14% { opacity: 0; transform: translateY(6px) scale(0.95); }
+  20%, 88% { opacity: 1; transform: translateY(0) scale(1); }
+  95%, 100% { opacity: 0; transform: translateY(4px) scale(0.95); }
+}
+
+@keyframes pm-hours-2480 {
+  0%, 26% { opacity: 1; }
+  30%, 100% { opacity: 0; }
+}
+
+@keyframes pm-hours-2500 {
+  0%, 27% { opacity: 0; }
+  31%, 94% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes pm-arc-progress {
+  0%, 22% { stroke-dashoffset: 38; }
+  31%, 92% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 38; }
+}
+
+@keyframes pm-due-pill {
+  0%, 29% { opacity: 0; transform: scale(0.88); }
+  34%, 72% { opacity: 1; transform: scale(1); }
+  78%, 100% { opacity: 0; transform: scale(0.92); }
+}
+
+@keyframes pm-card-checklist {
+  0%, 34% { opacity: 0; transform: translateY(8px); }
+  40%, 73% { opacity: 1; transform: translateY(0); }
+  78%, 100% { opacity: 0; transform: translateY(-4px); }
+}
+
+@keyframes pm-check-a {
+  0%, 45% { stroke-dashoffset: 14; }
+  49%, 76% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 14; }
+}
+
+@keyframes pm-check-b {
+  0%, 50% { stroke-dashoffset: 14; }
+  54%, 76% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 14; }
+}
+
+@keyframes pm-check-c {
+  0%, 55% { stroke-dashoffset: 14; }
+  59%, 76% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 14; }
+}
+
+@keyframes pm-check-d {
+  0%, 60% { stroke-dashoffset: 14; }
+  64%, 76% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 14; }
+}
+
+@keyframes pm-tech-evidence {
+  0%, 62% { opacity: 0; transform: translateY(4px); }
+  66%, 75% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(0); }
+}
+
+@keyframes pm-card-next {
+  0%, 74% { opacity: 0; transform: translateY(8px); }
+  79%, 93% { opacity: 1; transform: translateY(0); }
+  97%, 100% { opacity: 0; transform: translateY(4px); }
+}
+
+@keyframes pm-next-arc {
+  0%, 79% { stroke-dashoffset: 180; }
+  85%, 94% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 180; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pm-story,
+  .pm-qr-hero,
+  .pm-machine,
+  .pm-meter-panel,
+  .pm-hours-2480,
+  .pm-hours-2500,
+  .pm-due-pill,
+  .pm-arc-progress,
+  .pm-card-checklist,
+  .pm-check-a,
+  .pm-check-b,
+  .pm-check-c,
+  .pm-check-d,
+  .pm-tech-evidence,
+  .pm-card-next,
+  .pm-next-arc {
+    animation: none;
+  }
+}

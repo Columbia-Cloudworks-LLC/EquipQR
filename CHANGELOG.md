@@ -11,6 +11,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Added
+
+- **Preventive maintenance lifecycle hero workflow (#1563)** — The homepage workflow gallery now includes a "Preventive maintenance" story illustrating how equipment meter hours trigger a PM checklist across fluids, grease points, tracks, and safety, record technician completion, and schedule the next service interval.
+
 ## [3.37.0] - 2026-10-16
 
 ### Added
