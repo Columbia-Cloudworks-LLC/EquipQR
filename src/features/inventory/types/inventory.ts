@@ -13,6 +13,7 @@ import { Tables } from '@/integrations/supabase/types';
 
 export type InventoryItemRow = Tables<'inventory_items'>;
 export type InventoryTransactionRow = Tables<'inventory_transactions'>;
+export type InventoryPurchaseRequestRow = Tables<'inventory_purchase_requests'>;
 export type EquipmentPartCompatibilityRow = Tables<'equipment_part_compatibility'>;
 
 // Note: InventoryItemManagerRow has been deprecated.
@@ -453,4 +454,40 @@ export type InventoryTransactionType =
   | 'adjustment'
   | 'initial'
   | 'work_order';
+
+// ============================================
+// Purchase Request Types (#1442)
+// ============================================
+
+export type InventoryPurchaseRequestStatus =
+  | 'requested'
+  | 'ordered'
+  | 'received'
+  | 'cancelled';
+
+export interface InventoryPurchaseRequest extends InventoryPurchaseRequestRow {
+  status: InventoryPurchaseRequestStatus;
+  inventoryItemName?: string;
+  inventoryItemSku?: string | null;
+  inventoryItemQuantityOnHand?: number;
+  inventoryItemLowStockThreshold?: number;
+  inventoryItemLocation?: string | null;
+  createdByName?: string;
+}
+
+export interface CreateInventoryPurchaseRequestInput {
+  inventoryItemId: string;
+  requestedQuantity: number;
+  vendorName?: string | null;
+  notes?: string | null;
+}
+
+export interface ReceiveInventoryPurchaseRequestInput {
+  requestId: string;
+  receivedQuantity: number;
+  invoiceNumber?: string | null;
+  receivedUnitCost?: number | null;
+  notes?: string | null;
+}
+
 

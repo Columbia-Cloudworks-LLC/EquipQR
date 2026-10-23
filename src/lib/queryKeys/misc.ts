@@ -24,6 +24,10 @@ export const inventory = {
     ['inventory-item-images', orgId, itemId] as const,
   itemAlternates: (orgId: string, itemId: string) =>
     ['inventory-item-alternates', orgId, itemId] as const,
+  purchaseRequestsRoot: (orgId: string) =>
+    ['inventory-purchase-requests', orgId] as const,
+  purchaseRequests: (orgId: string, status?: string, itemId?: string) =>
+    ['inventory-purchase-requests', orgId, status ?? 'all', itemId ?? 'all'] as const,
 };
 
 export const partsRoles = {

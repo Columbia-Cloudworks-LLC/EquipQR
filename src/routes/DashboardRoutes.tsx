@@ -23,6 +23,7 @@ import {
   Reports,
   InventoryList,
   BulkInventory,
+  PurchaseRequestsPage,
   InventoryItemDetail,
   PartLookup,
   AlternateGroupsPage,
@@ -69,6 +70,7 @@ export const dashboardRouteElements = (
     <Route path="/operator/provision" element={<ProvisionYardPage />} />
     <Route path="/inventory" element={<InventoryAccessGuard><InventoryList /></InventoryAccessGuard>} />
     <Route path="/inventory/bulk" element={<InventoryAccessGuard><BulkInventory /></InventoryAccessGuard>} />
+    <Route path="/inventory/purchase-requests" element={<InventoryAccessGuard><PurchaseRequestsPage /></InventoryAccessGuard>} />
     <Route path="/inventory/:itemId" element={<InventoryAccessGuard><InventoryItemDetail /></InventoryAccessGuard>} />
     <Route path="/part-lookup" element={<InventoryAccessGuard title="Part lookup access required"><PartLookup /></InventoryAccessGuard>} />
     <Route path="/alternate-groups" element={<InventoryAccessGuard title="Alternate groups access required"><AlternateGroupsPage /></InventoryAccessGuard>} />
