@@ -376,6 +376,9 @@ const InventoryList = () => {
               onOpenManagersSheet={() => setShowManagersSheet(true)}
               onAddItem={handleAddItem}
               onNavigateBulk={() => navigate('/dashboard/inventory/bulk')}
+              onNavigatePurchaseRequests={() =>
+                navigate('/dashboard/inventory/purchase-requests')
+              }
             />
           }
         />

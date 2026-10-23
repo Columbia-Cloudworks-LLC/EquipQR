@@ -33,6 +33,7 @@ export const GettingStartedOnboarding = lazyWithRetry(
 );
 export const InventoryList = lazyWithRetry(() => import('@/features/inventory/pages/InventoryList'), 'InventoryList');
 export const BulkInventory = lazyWithRetry(() => import('@/features/inventory/pages/BulkInventory'), 'BulkInventory');
+export const PurchaseRequestsPage = lazyWithRetry(() => import('@/features/inventory/pages/PurchaseRequestsPage'), 'PurchaseRequestsPage');
 export const InventoryItemDetail = lazyWithRetry(() => import('@/features/inventory/pages/InventoryItemDetail'), 'InventoryItemDetail');
 export const PartLookup = lazyWithRetry(() => import('@/features/inventory/pages/PartLookup'), 'PartLookup');
 export const AlternateGroupsPage = lazyWithRetry(() => import('@/features/inventory/pages/AlternateGroupsPage'), 'AlternateGroupsPage');

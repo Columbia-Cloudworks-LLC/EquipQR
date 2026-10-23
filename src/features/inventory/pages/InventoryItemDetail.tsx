@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Package, History, Link2, Plus, QrCode } from 'lucide-react';
+import { ArrowLeft, Package, History, Link2, Plus, QrCode, ShoppingCart } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useInventoryItem, useInventoryTransactions, useDeleteInventoryItem, useAdjustInventoryQuantity, useUpdateInventoryItem, useCompatibleEquipmentForItem, useBulkLinkEquipmentToItem, useCompatibilityRulesForItem, useBulkSetCompatibilityRules, useEquipmentMatchingItemRules } from '@/features/inventory/hooks/useInventory';
@@ -42,6 +42,7 @@ import { useInventoryItemAdjustQuantity } from '@/features/inventory/hooks/useIn
 import { useInventoryItemEquipmentDialog } from '@/features/inventory/hooks/useInventoryItemEquipmentDialog';
 import { useInventoryItemAlternateGroupDialogs } from '@/features/inventory/hooks/useInventoryItemAlternateGroupDialogs';
 import { InventoryItemDetailDialogs } from '@/features/inventory/pages/components/InventoryItemDetailDialogs';
+import { RequestRestockDialog } from '@/features/inventory/components/RequestRestockDialog';
 
 const InventoryItemDetail = () => {
   const { itemId } = useParams<{ itemId: string }>();
@@ -67,6 +68,7 @@ const InventoryItemDetail = () => {
   const [editingRules, setEditingRules] = useState<PartCompatibilityRuleFormData[]>([]);
   const [showAddEquipmentDialog, setShowAddEquipmentDialog] = useState(false);
   const [showAddToGroupDialog, setShowAddToGroupDialog] = useState(false);
+  const [showRequestRestockDialog, setShowRequestRestockDialog] = useState(false);
 
   useEffect(() => {
     if (searchParams.get('alternateAction') === 'add' && canEdit) {
@@ -311,16 +313,28 @@ const InventoryItemDetail = () => {
           actions={
             <div className="flex flex-wrap items-center gap-2 md:flex-nowrap">
               {canEdit && (
-                <Button
-                  variant="default"
-                  onClick={() => adjustQuantity.setShowAdjustDialog(true)}
-                  className="min-h-[44px] flex-1 md:flex-initial"
-                  aria-label="Adjust Quantity"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  <span className="inline md:hidden">Adjust Qty</span>
-                  <span className="hidden md:inline">Adjust Quantity</span>
-                </Button>
+                <>
+                  <Button
+                    variant="default"
+                    onClick={() => adjustQuantity.setShowAdjustDialog(true)}
+                    className="min-h-[44px] flex-1 md:flex-initial"
+                    aria-label="Adjust Quantity"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    <span className="inline md:hidden">Adjust Qty</span>
+                    <span className="hidden md:inline">Adjust Quantity</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowRequestRestockDialog(true)}
+                    className="min-h-[44px] flex-1 md:flex-initial"
+                    aria-label="Request Restock"
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    <span className="inline md:hidden">Restock</span>
+                    <span className="hidden md:inline">Request Restock</span>
+                  </Button>
+                </>
               )}
               <TooltipProvider delayDuration={150}>
                 <Tooltip>
@@ -517,6 +531,13 @@ const InventoryItemDetail = () => {
             onDelete={handleDelete}
           />
         )}
+
+        <RequestRestockDialog
+          open={showRequestRestockDialog}
+          onOpenChange={setShowRequestRestockDialog}
+          organizationId={currentOrganization.id}
+          item={item}
+        />
       </div>
     </Page>
   );

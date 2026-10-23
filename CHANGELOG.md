@@ -11,6 +11,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Added
+
+- **Inventory restock purchase requests (#1442)** — Parts Managers and organization admins can request restock for any inventory item, mark orders placed, and receive shipments directly into inventory with optional invoice numbers and unit costs.
+
 ## [3.37.0] - 2026-10-16
 
 ### Added

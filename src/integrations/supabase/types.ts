@@ -1439,6 +1439,97 @@ export type Database = {
           },
         ]
       }
+      inventory_purchase_requests: {
+        Row: {
+          cancelled_at: string | null
+          cancelled_by: string | null
+          created_at: string
+          created_by: string
+          id: string
+          inventory_item_id: string
+          inventory_transaction_id: string | null
+          invoice_number: string | null
+          notes: string | null
+          ordered_at: string | null
+          ordered_by: string | null
+          organization_id: string
+          received_at: string | null
+          received_by: string | null
+          received_quantity: number | null
+          received_unit_cost: number | null
+          requested_quantity: number
+          status: string
+          updated_at: string
+          vendor_name: string | null
+        }
+        Insert: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          inventory_item_id: string
+          inventory_transaction_id?: string | null
+          invoice_number?: string | null
+          notes?: string | null
+          ordered_at?: string | null
+          ordered_by?: string | null
+          organization_id: string
+          received_at?: string | null
+          received_by?: string | null
+          received_quantity?: number | null
+          received_unit_cost?: number | null
+          requested_quantity: number
+          status?: string
+          updated_at?: string
+          vendor_name?: string | null
+        }
+        Update: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          inventory_item_id?: string
+          inventory_transaction_id?: string | null
+          invoice_number?: string | null
+          notes?: string | null
+          ordered_at?: string | null
+          ordered_by?: string | null
+          organization_id?: string
+          received_at?: string | null
+          received_by?: string | null
+          received_quantity?: number | null
+          received_unit_cost?: number | null
+          requested_quantity?: number
+          status?: string
+          updated_at?: string
+          vendor_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_purchase_requests_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_purchase_requests_inventory_transaction_id_fkey"
+            columns: ["inventory_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_purchase_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_transactions: {
         Row: {
           change_amount: number
@@ -6494,6 +6585,16 @@ export type Database = {
       reconcile_google_workspace_directory: {
         Args: { p_organization_id: string; p_sync_started_at: string }
         Returns: Json
+      }
+      receive_inventory_purchase_request: {
+        Args: {
+          p_invoice_number?: string | null
+          p_notes?: string | null
+          p_received_quantity: number
+          p_received_unit_cost?: number | null
+          p_request_id: string
+        }
+        Returns: Database["public"]["Tables"]["inventory_purchase_requests"]["Row"]
       }
       refresh_quickbooks_tokens_manual: {
         Args: never
