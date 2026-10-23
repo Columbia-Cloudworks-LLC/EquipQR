@@ -11,6 +11,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Added
+
+- **Customer QR service request hero workflow (#1562)** — The homepage workflow gallery now includes a "Customer request" story showing how a customer scans a machine's QR label to report an issue, how the shop assigns a technician, and how the completed repair updates both the requester and the equipment record.
+
 ## [3.37.0] - 2026-10-16
 
 ### Added

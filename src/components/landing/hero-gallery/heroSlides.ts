@@ -6,8 +6,11 @@ import HeroAnimation, {
 import type { HeroSlideDefinition, HeroSlideProps } from './types';
 import { ScanMachineStatic } from './scan/ScanMachineStatic';
 import { ScanPoster } from './scan/ScanPoster';
+import { CustomerRequestStatic } from './request/CustomerRequestStatic';
+import { CustomerRequestPoster } from './request/CustomerRequestPoster';
 
 const ScanMachineSlide = lazy(() => import('./scan/ScanMachineSlide'));
+const CustomerRequestSlide = lazy(() => import('./request/CustomerRequestSlide'));
 
 function FleetObservabilityStage({ onLoopComplete }: HeroSlideProps) {
   return createElement(HeroAnimation, { stageOnly: true, onLoopComplete });
@@ -15,8 +18,8 @@ function FleetObservabilityStage({ onLoopComplete }: HeroSlideProps) {
 
 /**
  * Production stories. Additional workflows register here without changing the
- * gallery shell. Customer request, preventive maintenance, and QuickBooks
- * stories stay separate issues until their animations exist.
+ * gallery shell. Preventive maintenance and QuickBooks stories stay separate
+ * issues until their animations exist.
  */
 export const HERO_SLIDES: HeroSlideDefinition[] = [
   {
@@ -38,5 +41,15 @@ export const HERO_SLIDES: HeroSlideDefinition[] = [
     Stage: ScanMachineSlide,
     StaticFrame: ScanMachineStatic,
     Fallback: ScanPoster,
+  },
+  {
+    id: 'customer-request',
+    label: 'Customer request',
+    description:
+      'A customer scans the QR tag to report a hydraulic leak, the shop assigns a technician, and the completed repair updates the machine record.',
+    preload: () => import('./request/CustomerRequestSlide'),
+    Stage: CustomerRequestSlide,
+    StaticFrame: CustomerRequestStatic,
+    Fallback: CustomerRequestPoster,
   },
 ];

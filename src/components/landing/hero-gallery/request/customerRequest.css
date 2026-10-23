@@ -1,0 +1,190 @@
+.req-story,
+.req-qr-hero,
+.req-machine,
+.req-phone,
+.req-beam,
+.req-pulse,
+.req-flow-rail,
+.req-packet,
+.req-card-request,
+.req-card-triage,
+.req-status-new,
+.req-status-assigned,
+.req-tech-badge,
+.req-card-work,
+.req-check-a,
+.req-check-b,
+.req-evidence-pill,
+.req-card-complete,
+.req-customer-pulse {
+  animation-duration: 7.5s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-fill-mode: both;
+}
+
+.req-story { animation-name: req-clock; }
+.req-qr-hero { animation-name: req-qr-hero; }
+.req-machine { animation-name: req-machine; }
+.req-phone { animation-name: req-phone; }
+.req-beam { animation-name: req-beam; }
+.req-pulse { animation-name: req-pulse; }
+.req-flow-rail { animation-name: req-flow-rail; }
+.req-packet { animation-name: req-packet; }
+.req-card-request { animation-name: req-card-request; }
+.req-card-triage { animation-name: req-card-triage; }
+.req-status-new { animation-name: req-status-new; }
+.req-status-assigned { animation-name: req-status-assigned; }
+.req-tech-badge { animation-name: req-tech-badge; }
+.req-card-work { animation-name: req-card-work; }
+.req-evidence-pill { animation-name: req-evidence-pill; }
+.req-card-complete { animation-name: req-card-complete; }
+.req-customer-pulse { animation-name: req-customer-pulse; }
+
+.req-check-a,
+.req-check-b {
+  stroke-dasharray: 14;
+  stroke-dashoffset: 14;
+}
+
+.req-check-a { animation-name: req-check-a; }
+.req-check-b { animation-name: req-check-b; }
+
+@keyframes req-clock {
+  from { opacity: 1; }
+  to { opacity: 1; }
+}
+
+@keyframes req-qr-hero {
+  0%, 10% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  20%, 94% { opacity: 0; transform: translate(-61%, -81%) scale(0.28); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes req-machine {
+  0%, 8% { opacity: 0; transform: scale(0.96); }
+  18%, 90% { opacity: 1; transform: scale(1); }
+  96%, 100% { opacity: 0; transform: scale(0.96); }
+}
+
+@keyframes req-phone {
+  0%, 14% { opacity: 0; transform: translateX(16px); }
+  20%, 34% { opacity: 1; transform: translateX(0); }
+  40%, 100% { opacity: 0; transform: translateX(12px); }
+}
+
+@keyframes req-beam {
+  0%, 18% { opacity: 0; transform: scaleX(0.2); }
+  23% { opacity: 0.9; transform: scaleX(1); }
+  30%, 100% { opacity: 0; transform: scaleX(1); }
+}
+
+@keyframes req-pulse {
+  0%, 20% { opacity: 0; transform: scale(0.4); }
+  25% { opacity: 0.85; transform: scale(1); }
+  32%, 100% { opacity: 0; transform: scale(1.35); }
+}
+
+@keyframes req-flow-rail {
+  0%, 20% { opacity: 0; }
+  26%, 90% { opacity: 1; }
+  96%, 100% { opacity: 0; }
+}
+
+@keyframes req-packet {
+  0%, 24% { opacity: 0; transform: translateX(0%); }
+  28%, 36% { opacity: 1; transform: translateX(0%); }
+  44%, 56% { opacity: 1; transform: translateX(46%); }
+  64%, 78% { opacity: 1; transform: translateX(92%); }
+  84%, 90% { opacity: 1; transform: translateX(0%); }
+  95%, 100% { opacity: 0; transform: translateX(0%); }
+}
+
+@keyframes req-card-request {
+  0%, 22% { opacity: 0; transform: translateY(8px); }
+  27%, 39% { opacity: 1; transform: translateY(0); }
+  44%, 100% { opacity: 0; transform: translateY(-4px); }
+}
+
+@keyframes req-card-triage {
+  0%, 40% { opacity: 0; transform: translateY(8px); }
+  45%, 60% { opacity: 1; transform: translateY(0); }
+  65%, 100% { opacity: 0; transform: translateY(-4px); }
+}
+
+@keyframes req-status-new {
+  0%, 44% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@keyframes req-status-assigned {
+  0%, 49% { opacity: 0; }
+  51%, 64% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes req-tech-badge {
+  0%, 48% { opacity: 0; transform: translateX(10px); }
+  52%, 64% { opacity: 1; transform: translateX(0); }
+  100% { opacity: 0; transform: translateX(0); }
+}
+
+@keyframes req-card-work {
+  0%, 61% { opacity: 0; transform: translateY(8px); }
+  66%, 79% { opacity: 1; transform: translateY(0); }
+  83%, 100% { opacity: 0; transform: translateY(-4px); }
+}
+
+@keyframes req-check-a {
+  0%, 67% { stroke-dashoffset: 14; }
+  71%, 82% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 14; }
+}
+
+@keyframes req-check-b {
+  0%, 71% { stroke-dashoffset: 14; }
+  75%, 82% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 14; }
+}
+
+@keyframes req-evidence-pill {
+  0%, 72% { opacity: 0; transform: scale(0.92); }
+  76%, 82% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.92); }
+}
+
+@keyframes req-card-complete {
+  0%, 79% { opacity: 0; transform: translateY(8px); }
+  84%, 93% { opacity: 1; transform: translateY(0); }
+  97%, 100% { opacity: 0; transform: translateY(4px); }
+}
+
+@keyframes req-customer-pulse {
+  0%, 82% { opacity: 0; transform: scale(0.85); }
+  86%, 93% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .req-story,
+  .req-qr-hero,
+  .req-machine,
+  .req-phone,
+  .req-beam,
+  .req-pulse,
+  .req-flow-rail,
+  .req-packet,
+  .req-card-request,
+  .req-card-triage,
+  .req-status-new,
+  .req-status-assigned,
+  .req-tech-badge,
+  .req-card-work,
+  .req-check-a,
+  .req-check-b,
+  .req-evidence-pill,
+  .req-card-complete,
+  .req-customer-pulse {
+    animation: none;
+  }
+}
