@@ -11,6 +11,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Added
+
+- **Recommended label printers & outdoor tag media on the homepage (#1630)** — The homepage now includes a "Ready for the Field: Recommended Hardware" guide covering plain-paper pilot testing and three field-proven label printer tiers (Brady M210 with B-595 outdoor vinyl, Brother P-Touch EDGE PT-E310BTVP with TZe laminated tape, and desktop thermal transfer printers with resin ribbon).
+
 ## [3.37.0] - 2026-10-16
 
 ### Added
