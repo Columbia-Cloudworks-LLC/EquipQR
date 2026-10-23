@@ -130,4 +130,41 @@ describe('PendingSyncBanner', () => {
 
     expect(screen.getByText(/1 item pending sync/i)).toBeInTheDocument();
   });
+
+  it('opens the OfflineQueueManagerDrawer when Review Queue is clicked (#1645)', async () => {
+    const mockRemoveItem = vi.fn();
+    mockContextValue.isOnline = false;
+    mockContextValue.pendingCount = 1;
+    mockContextValue.removeItem = mockRemoveItem;
+    mockContextValue.queuedItems = [
+      {
+        id: 'q-item-1',
+        type: 'equipment_create_full',
+        organizationId: 'org-1',
+        userId: 'user-1',
+        timestamp: Date.now(),
+        retryCount: 0,
+        maxRetries: 5,
+        status: 'pending',
+        payloadSizeBytes: 512,
+        payload: {
+          name: 'Bobcat T66',
+          manufacturer: 'Bobcat',
+          model: 'T66',
+          serial_number: 'BC-101',
+        },
+      },
+    ] as never;
+
+    render(<PendingSyncBanner />);
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /review queue/i }));
+
+    expect(screen.getByText('Offline Sync Queue')).toBeInTheDocument();
+    expect(screen.getByText(/Bobcat T66/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /delete draft/i }));
+    expect(mockRemoveItem).toHaveBeenCalledWith('q-item-1');
+  });
 });

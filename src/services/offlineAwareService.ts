@@ -316,14 +316,19 @@ export class OfflineAwareWorkOrderService {
 
   async createEquipmentFull(
     data: EquipmentCreateData,
+    options?: {
+      images?: File[];
+      displayImageIndex?: number;
+      claimTagId?: string;
+    },
   ): Promise<OfflineAwareResult<{ id: string; [key: string]: unknown }>> {
-    if (!navigator.onLine) return this.queueEquipmentCreateFull(data);
+    if (!navigator.onLine) return this.queueEquipmentCreateFull(data, options);
     try {
       const result = await EquipmentService.create(this.orgId, data);
       if (!result.success || !result.data) throw new Error(result.error || 'Failed to create equipment');
       return { data: result.data, queuedOffline: false };
     } catch (error) {
-      if (isNetworkError(error)) return this.queueEquipmentCreateFull(data);
+      if (isNetworkError(error)) return this.queueEquipmentCreateFull(data, options);
       throw error;
     }
   }
@@ -467,13 +472,30 @@ export class OfflineAwareWorkOrderService {
     }
   }
 
-  private queueEquipmentCreateFull(
+  private async queueEquipmentCreateFull(
     data: EquipmentCreateData,
-  ): OfflineAwareResult<{ id: string; [key: string]: unknown }> {
+    options?: {
+      images?: File[];
+      displayImageIndex?: number;
+      claimTagId?: string;
+    },
+  ): Promise<OfflineAwareResult<{ id: string; [key: string]: unknown }>> {
     try {
+      let imageRefs: OfflineQueueImageRef[] | undefined;
+      if (options?.images?.length) {
+        imageRefs = await stageQueueImageRefs(this.userId, this.orgId, options.images);
+      }
+
       const item = this.queueService.enqueue({
         type: 'equipment_create_full',
-        payload: data,
+        payload: {
+          ...data,
+          ...(imageRefs?.length ? { imageRefs } : {}),
+          ...(options?.displayImageIndex !== undefined
+            ? { displayImageIndex: options.displayImageIndex }
+            : {}),
+          ...(options?.claimTagId ? { claimTagId: options.claimTagId } : {}),
+        },
         organizationId: this.orgId,
         userId: this.userId,
       });
@@ -482,6 +504,81 @@ export class OfflineAwareWorkOrderService {
     } catch (err) {
       if (err instanceof OfflineQueuePayloadError) throw err;
       logger.error('Failed to enqueue offline equipment create', err);
+      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
+    }
+  }
+
+  // ── Equipment Scan (preserves original scan timestamp) ───────────────────
+
+  async logEquipmentScan(input: {
+    equipmentId: string;
+    scannedAt?: string;
+    location?: string | null;
+    notes?: string | null;
+  }): Promise<OfflineAwareResult<{ id: string }>> {
+    const scannedAt = input.scannedAt ?? new Date().toISOString();
+    const location = input.location ?? null;
+    const notes = input.notes ?? null;
+
+    if (!navigator.onLine) {
+      return this.queueEquipmentScan({
+        equipmentId: input.equipmentId,
+        scannedAt,
+        location,
+        notes,
+      });
+    }
+
+    try {
+      const { data: scan, error } = await supabase
+        .from('scans')
+        .insert({
+          equipment_id: input.equipmentId,
+          scanned_by: this.userId,
+          scanned_at: scannedAt,
+          location,
+          notes,
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+      return { data: { id: scan.id }, queuedOffline: false };
+    } catch (error) {
+      if (isNetworkError(error)) {
+        return this.queueEquipmentScan({
+          equipmentId: input.equipmentId,
+          scannedAt,
+          location,
+          notes,
+        });
+      }
+      throw error;
+    }
+  }
+
+  private queueEquipmentScan(payload: {
+    equipmentId: string;
+    scannedAt: string;
+    location: string | null;
+    notes: string | null;
+  }): OfflineAwareResult<{ id: string }> {
+    try {
+      const item = this.queueService.enqueue({
+        type: 'equipment_scan',
+        payload,
+        organizationId: this.orgId,
+        userId: this.userId,
+      });
+      logger.info('Equipment scan queued offline', {
+        queueItemId: item.id,
+        equipmentId: payload.equipmentId,
+        scannedAt: payload.scannedAt,
+      });
+      return { data: null, queuedOffline: true, queueItemId: item.id };
+    } catch (err) {
+      if (err instanceof OfflineQueuePayloadError) throw err;
+      logger.error('Failed to enqueue offline equipment scan', err);
       throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
     }
   }

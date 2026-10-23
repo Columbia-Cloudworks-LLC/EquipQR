@@ -88,10 +88,12 @@ export function isFetchableSignedStorageUrl(url: string): boolean {
   }
 }
 
-/** Safe `<img src>` for resolved equipment/team/private-bucket display URLs. */
+/** Safe `<img src>` for resolved equipment/team/private-bucket display URLs and local optimistic blob URLs. */
 export function displayableImageSrc(url: string | null | undefined): string | null {
   if (!url?.trim()) return null;
-  const absolute = toAbsoluteSignedStorageUrl(url.trim());
+  const trimmed = url.trim();
+  if (/^blob:/i.test(trimmed)) return trimmed;
+  const absolute = toAbsoluteSignedStorageUrl(trimmed);
   if (!absolute) return null;
   return isFetchableSignedStorageUrl(absolute) ? absolute : null;
 }

@@ -35,6 +35,7 @@ import type {
   OfflineQueueEquipmentUpdateItem,
   OfflineQueueEquipmentHoursItem,
   OfflineQueueEquipmentNoteItem,
+  OfflineQueueEquipmentScanItem,
   OfflineQueuePMInitItem,
   OfflineQueuePMUpdateItem,
   OfflineQueuePMDeleteItem,
@@ -42,7 +43,11 @@ import type {
 import { OfflineQueueService } from './offlineQueueService';
 import { EquipmentService } from '@/features/equipment/services/EquipmentService';
 import { updateEquipmentWorkingHours } from '@/features/equipment/services/equipmentWorkingHoursService';
-import { createEquipmentNoteWithImages } from '@/features/equipment/services/equipmentNotesService';
+import {
+  createEquipmentNoteWithImages,
+  updateEquipmentDisplayImage,
+} from '@/features/equipment/services/equipmentNotesService';
+import { extractEquipmentDisplayImagePath } from '@/services/imageUploadService';
 import { createWorkOrderNoteWithImages } from '@/features/work-orders/services/workOrderNotesService';
 import {
   createPM,
@@ -375,18 +380,56 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
   }) as QueueItemHandler<never>,
 
   equipment_create_full: (async (item: OfflineQueueEquipmentCreateFullItem, replay, queueService) => {
-    const existingId = getSyncedEquipmentId(item);
-    if (existingId) {
-      replay.registerEquipment(item.id, existingId, queueService);
-      return { success: true };
+    let serverId = getSyncedEquipmentId(item);
+    if (!serverId) {
+      const {
+        imageRefs: _imageRefs,
+        displayImageIndex: _displayImageIndex,
+        creationImagesSynced: _creationImagesSynced,
+        claimTagId: _claimTagId,
+        ...equipmentPayload
+      } = item.payload;
+      void _imageRefs;
+      void _displayImageIndex;
+      void _creationImagesSynced;
+      void _claimTagId;
+
+      const result = await EquipmentService.create(item.organizationId, equipmentPayload);
+      if (!result.success || !result.data) {
+        throw new Error(result.error || 'Sync failed: equipment create (full)');
+      }
+      serverId = String(result.data.id);
+      persistSyncedEquipmentId(item, serverId, queueService);
     }
-    const result = await EquipmentService.create(item.organizationId, item.payload);
-    if (!result.success || !result.data) {
-      throw new Error(result.error || 'Sync failed: equipment create (full)');
-    }
-    const serverId = String(result.data.id);
-    persistSyncedEquipmentId(item, serverId, queueService);
     replay.registerEquipment(item.id, serverId, queueService);
+
+    if (item.payload.imageRefs?.length && !item.payload.creationImagesSynced) {
+      const images = await loadQueueItemImageFiles(
+        item.userId,
+        item.organizationId,
+        item.payload.imageRefs,
+      );
+      const note = await createEquipmentNoteWithImages(
+        serverId,
+        images.length === 1
+          ? 'Uploaded display image from offline intake'
+          : `Uploaded ${images.length} images from offline intake`,
+        0,
+        false,
+        images,
+        item.organizationId,
+      );
+      const displayIdx = item.payload.displayImageIndex ?? 0;
+      const displayImage = note.images?.[displayIdx] ?? note.images?.[0] ?? null;
+      if (displayImage?.file_url) {
+        const path =
+          extractEquipmentDisplayImagePath(displayImage.file_url) ?? displayImage.file_url;
+        await updateEquipmentDisplayImage(item.organizationId, serverId, path);
+      }
+      queueService.updatePayload(item.id, { creationImagesSynced: true });
+      item.payload.creationImagesSynced = true;
+    }
+
     return { success: true };
   }) as QueueItemHandler<never>,
 
@@ -426,6 +469,24 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
       item.organizationId,
       machineHours,
     );
+    return { success: true };
+  }) as QueueItemHandler<never>,
+
+  equipment_scan: (async (item: OfflineQueueEquipmentScanItem, replay) => {
+    const claims = await requireAuthClaims('Session expired — please sign in again');
+    const resolvedEquipmentId = replay.resolveEquipmentId(item.payload.equipmentId);
+
+    const { error } = await supabase
+      .from('scans')
+      .insert({
+        equipment_id: resolvedEquipmentId,
+        scanned_by: claims.sub,
+        scanned_at: item.payload.scannedAt,
+        location: item.payload.location,
+        notes: item.payload.notes,
+      });
+
+    if (error) throw error;
     return { success: true };
   }) as QueueItemHandler<never>,
 

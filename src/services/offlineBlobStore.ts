@@ -11,6 +11,19 @@ import { toast } from 'sonner';
 import { validateImageFile } from '@/services/imageUploadService';
 
 const STORE_PREFIX = 'equipqr-offline-blob';
+const objectUrlCache = new Map<string, string>();
+
+function revokeCachedObjectUrl(key: string): void {
+  const existing = objectUrlCache.get(key);
+  if (existing) {
+    try {
+      URL.revokeObjectURL(existing);
+    } catch {
+      // best-effort
+    }
+    objectUrlCache.delete(key);
+  }
+}
 
 export interface OfflineBlobRecord {
   blob: Blob;
@@ -102,6 +115,30 @@ export async function loadOfflineImageFiles(
   return files;
 }
 
+/**
+ * Resolve a local `blob:` URL for a staged offline image so technicians can
+ * preview captured nameplate/equipment photos immediately while offline.
+ */
+export async function loadOfflineBlobObjectUrl(
+  userId: string,
+  orgId: string,
+  refId: string,
+): Promise<string | null> {
+  const key = blobKey(userId, orgId, refId);
+  const cached = objectUrlCache.get(key);
+  if (cached) return cached;
+
+  try {
+    const record = await get<OfflineBlobRecord>(key);
+    if (!record?.blob) return null;
+    const url = URL.createObjectURL(record.blob);
+    objectUrlCache.set(key, url);
+    return url;
+  } catch {
+    return null;
+  }
+}
+
 /** Best-effort cleanup after a queue item (and its blobs) syncs or is removed. */
 export async function deleteOfflineImageRefs(
   userId: string,
@@ -110,8 +147,10 @@ export async function deleteOfflineImageRefs(
 ): Promise<void> {
   await Promise.all(
     refIds.map(async (refId) => {
+      const key = blobKey(userId, orgId, refId);
+      revokeCachedObjectUrl(key);
       try {
-        await del(blobKey(userId, orgId, refId));
+        await del(key);
       } catch {
         // best-effort
       }
@@ -122,6 +161,11 @@ export async function deleteOfflineImageRefs(
 /** Remove all blobs for a user across every org scope (sign-out cleanup). */
 export async function clearOfflineBlobsForUser(userId: string): Promise<void> {
   const prefix = `${STORE_PREFIX}:${userId}:`;
+  for (const key of [...objectUrlCache.keys()]) {
+    if (key.startsWith(prefix)) {
+      revokeCachedObjectUrl(key);
+    }
+  }
   try {
     const allKeys = await keys<IDBValidKey>();
     const scoped = allKeys.filter(

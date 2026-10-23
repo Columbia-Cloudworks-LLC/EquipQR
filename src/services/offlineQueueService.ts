@@ -56,11 +56,18 @@ export type OfflineQueueItemType =
   | 'equipment_update'
   | 'equipment_hours'
   | 'equipment_note'
+  | 'equipment_scan'
   | 'pm_init'
   | 'pm_update'
   | 'pm_delete';
 
 export type OfflineQueueItemStatus = 'pending' | 'processing' | 'failed';
+
+/** Exponential backoff delay in ms for retry count (1s, 2s, 4s, 8s, 16s, capped at 30s). */
+export function computeOfflineRetryDelayMs(retryCount: number): number {
+  const exponent = Math.max(0, retryCount - 1);
+  return Math.min(1000 * Math.pow(2, exponent), 30_000);
+}
 
 /** Metadata pointer to a blob in offlineBlobStore — never embed binary in JSON. */
 export interface OfflineQueueImageRef {
@@ -81,6 +88,10 @@ interface OfflineQueueItemBase {
   status: OfflineQueueItemStatus;
   payloadSizeBytes: number;
   lastError?: string;
+  /** Epoch ms when the next exponential-backoff retry is eligible. */
+  nextRetryAt?: number;
+  /** Flagged when a server conflict (e.g., already-claimed QR tag) requires operator resolution. */
+  conflictState?: 'sync_conflict';
   /**
    * Server equipment id after a successful equipment_create* replay. Stored
    * outside payload so persistence is not subject to payload size limits.
@@ -158,9 +169,16 @@ export interface OfflineQueueEquipmentCreateItem extends OfflineQueueItemBase {
   payload: QuickEquipmentCreateData;
 }
 
+export type OfflineQueuedEquipmentCreateFullPayload = EquipmentCreateData & {
+  imageRefs?: OfflineQueueImageRef[];
+  displayImageIndex?: number;
+  creationImagesSynced?: boolean;
+  claimTagId?: string;
+};
+
 export interface OfflineQueueEquipmentCreateFullItem extends OfflineQueueItemBase {
   type: 'equipment_create_full';
-  payload: EquipmentCreateData;
+  payload: OfflineQueuedEquipmentCreateFullPayload;
 }
 
 export interface OfflineQueueEquipmentUpdateItem extends OfflineQueueItemBase {
@@ -189,6 +207,16 @@ export interface OfflineQueueEquipmentNoteItem extends OfflineQueueItemBase {
     machineHours?: number;
     isPrivate?: boolean;
     imageRefs?: OfflineQueueImageRef[];
+  };
+}
+
+export interface OfflineQueueEquipmentScanItem extends OfflineQueueItemBase {
+  type: 'equipment_scan';
+  payload: {
+    equipmentId: string;
+    scannedAt: string;
+    location: string | null;
+    notes: string | null;
   };
 }
 
@@ -267,6 +295,7 @@ export type OfflineQueueItem =
   | OfflineQueueEquipmentUpdateItem
   | OfflineQueueEquipmentHoursItem
   | OfflineQueueEquipmentNoteItem
+  | OfflineQueueEquipmentScanItem
   | OfflineQueuePMInitItem
   | OfflineQueuePMUpdateItem
   | OfflineQueuePMDeleteItem;
@@ -644,11 +673,34 @@ export class OfflineQueueService {
     this.persist(queue);
   }
 
-  /** Increment retryCount and keep status as 'pending' for the next sync attempt. */
-  updateRetry(id: string, retryCount: number, lastError?: string): void {
+  /** Increment retryCount and keep status as 'pending' with exponential backoff. */
+  updateRetry(id: string, retryCount: number, lastError?: string, nextRetryAt?: number): void {
+    const resolvedNextRetryAt =
+      nextRetryAt ?? Date.now() + computeOfflineRetryDelayMs(retryCount);
     const queue = this.getAll().map(i => {
       if (i.id !== id) return i;
-      return { ...i, retryCount, status: 'pending' as const, lastError: lastError ?? i.lastError };
+      return {
+        ...i,
+        retryCount,
+        status: 'pending' as const,
+        lastError: lastError ?? i.lastError,
+        nextRetryAt: resolvedNextRetryAt,
+      };
+    });
+    this.persist(queue);
+  }
+
+  /** Flag a queue item as `sync_conflict` when server state conflicts (e.g. claimed QR tag). */
+  markConflict(id: string, details: string): void {
+    const queue = this.getAll().map(i => {
+      if (i.id !== id) return i;
+      return {
+        ...i,
+        status: 'failed' as const,
+        conflictState: 'sync_conflict' as const,
+        lastError: details,
+        nextRetryAt: undefined,
+      };
     });
     this.persist(queue);
   }
@@ -732,7 +784,14 @@ export class OfflineQueueService {
   retryFailedItems(): void {
     const queue = this.getAll().map(i => {
       if (i.status !== 'failed') return i;
-      return { ...i, status: 'pending' as const, retryCount: 0, lastError: undefined };
+      return {
+        ...i,
+        status: 'pending' as const,
+        retryCount: 0,
+        lastError: undefined,
+        nextRetryAt: undefined,
+        conflictState: undefined,
+      };
     });
     this.persist(queue);
   }

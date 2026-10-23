@@ -14,11 +14,12 @@
  * @see https://github.com/Columbia-Cloudworks-LLC/EquipQR/issues/536
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { WifiOff, Wifi, RefreshCw, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
+import { WifiOff, Wifi, RefreshCw, AlertTriangle, CheckCircle, Loader2, ListChecks } from 'lucide-react';
 import { useOfflineQueue } from '@/contexts/OfflineQueueContext';
+import { OfflineQueueManagerDrawer } from './OfflineQueueManagerDrawer';
 
 export const PendingSyncBanner: React.FC = () => {
   const {
@@ -30,6 +31,7 @@ export const PendingSyncBanner: React.FC = () => {
     retryFailed,
     clearQueue,
   } = useOfflineQueue();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const totalActionable = pendingCount + failedCount;
 
@@ -41,31 +43,46 @@ export const PendingSyncBanner: React.FC = () => {
   // ── Syncing state ──────────────────────────────────────────────────────
   if (isSyncing) {
     return (
-      <BannerWrapper variant="info">
-        <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-        <div className="flex-1 min-w-0">
-          <AlertTitle className="text-sm font-medium">Syncing</AlertTitle>
-          <AlertDescription className="text-xs">
-            Syncing {pendingCount} offline item{pendingCount !== 1 ? 's' : ''}...
-          </AlertDescription>
-        </div>
-      </BannerWrapper>
+      <>
+        <BannerWrapper variant="info">
+          <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+          <div className="flex-1 min-w-0">
+            <AlertTitle className="text-sm font-medium">Syncing</AlertTitle>
+            <AlertDescription className="text-xs">
+              Syncing {pendingCount} offline item{pendingCount !== 1 ? 's' : ''}...
+            </AlertDescription>
+          </div>
+        </BannerWrapper>
+        <OfflineQueueManagerDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
+      </>
     );
   }
 
   // ── Offline with queued items ──────────────────────────────────────────
   if (!isOnline && totalActionable > 0) {
     return (
-      <BannerWrapper variant="warning">
-        <WifiOff className="h-4 w-4 shrink-0" />
-        <div className="flex-1 min-w-0">
-          <AlertTitle className="text-sm font-medium">You are offline</AlertTitle>
-          <AlertDescription className="text-xs">
-            {totalActionable} item{totalActionable !== 1 ? 's' : ''} saved locally.
-            They will sync automatically when your connection returns.
-          </AlertDescription>
-        </div>
-      </BannerWrapper>
+      <>
+        <BannerWrapper variant="warning">
+          <WifiOff className="h-4 w-4 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <AlertTitle className="text-sm font-medium">You are offline</AlertTitle>
+            <AlertDescription className="text-xs">
+              {totalActionable} item{totalActionable !== 1 ? 's' : ''} saved locally.
+              They will sync automatically when your connection returns.
+            </AlertDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs shrink-0"
+            onClick={() => setDrawerOpen(true)}
+          >
+            <ListChecks className="h-3 w-3 mr-1" />
+            Review Queue
+          </Button>
+        </BannerWrapper>
+        <OfflineQueueManagerDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
+      </>
     );
   }
 
@@ -86,59 +103,85 @@ export const PendingSyncBanner: React.FC = () => {
   // ── Failed items ───────────────────────────────────────────────────────
   if (failedCount > 0) {
     return (
-      <BannerWrapper variant="destructive">
-        <AlertTriangle className="h-4 w-4 shrink-0" />
-        <div className="flex-1 min-w-0">
-          <AlertTitle className="text-sm font-medium">Sync issue</AlertTitle>
-          <AlertDescription className="text-xs">
-            {failedCount} item{failedCount !== 1 ? 's' : ''} failed to sync after retries.
-            {pendingCount > 0 && ` ${pendingCount} more pending.`}
-          </AlertDescription>
-        </div>
-        <div className="flex gap-2 shrink-0">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-xs"
-            onClick={() => retryFailed()}
-          >
-            <RefreshCw className="h-3 w-3 mr-1" />
-            Retry
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs"
-            onClick={clearQueue}
-          >
-            Dismiss
-          </Button>
-        </div>
-      </BannerWrapper>
+      <>
+        <BannerWrapper variant="destructive">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <AlertTitle className="text-sm font-medium">Sync issue</AlertTitle>
+            <AlertDescription className="text-xs">
+              {failedCount} item{failedCount !== 1 ? 's' : ''} failed to sync after retries.
+              {pendingCount > 0 && ` ${pendingCount} more pending.`}
+            </AlertDescription>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => setDrawerOpen(true)}
+            >
+              <ListChecks className="h-3 w-3 mr-1" />
+              Review Queue
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => retryFailed()}
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Retry
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={clearQueue}
+            >
+              Dismiss
+            </Button>
+          </div>
+        </BannerWrapper>
+        <OfflineQueueManagerDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
+      </>
     );
   }
 
   // ── Online with pending items ──────────────────────────────────────────
   if (pendingCount > 0) {
     return (
-      <BannerWrapper variant="success">
-        <Wifi className="h-4 w-4 shrink-0" />
-        <div className="flex-1 min-w-0">
-          <AlertTitle className="text-sm font-medium">Back online</AlertTitle>
-          <AlertDescription className="text-xs">
-            {pendingCount} item{pendingCount !== 1 ? 's' : ''} pending sync.
-          </AlertDescription>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-7 text-xs shrink-0"
-          onClick={() => syncNow()}
-        >
-          <CheckCircle className="h-3 w-3 mr-1" />
-          Sync Now
-        </Button>
-      </BannerWrapper>
+      <>
+        <BannerWrapper variant="success">
+          <Wifi className="h-4 w-4 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <AlertTitle className="text-sm font-medium">Back online</AlertTitle>
+            <AlertDescription className="text-xs">
+              {pendingCount} item{pendingCount !== 1 ? 's' : ''} pending sync.
+            </AlertDescription>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => setDrawerOpen(true)}
+            >
+              <ListChecks className="h-3 w-3 mr-1" />
+              Review Queue
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
+              onClick={() => syncNow()}
+            >
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Sync Now
+            </Button>
+          </div>
+        </BannerWrapper>
+        <OfflineQueueManagerDrawer open={drawerOpen} onOpenChange={setDrawerOpen} />
+      </>
     );
   }
 
