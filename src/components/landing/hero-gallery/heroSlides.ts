@@ -6,8 +6,11 @@ import HeroAnimation, {
 import type { HeroSlideDefinition, HeroSlideProps } from './types';
 import { ScanMachineStatic } from './scan/ScanMachineStatic';
 import { ScanPoster } from './scan/ScanPoster';
+import { PmLifecycleStatic } from './pm/PmLifecycleStatic';
+import { PmLifecyclePoster } from './pm/PmLifecyclePoster';
 
 const ScanMachineSlide = lazy(() => import('./scan/ScanMachineSlide'));
+const PmLifecycleSlide = lazy(() => import('./pm/PmLifecycleSlide'));
 
 function FleetObservabilityStage({ onLoopComplete }: HeroSlideProps) {
   return createElement(HeroAnimation, { stageOnly: true, onLoopComplete });
@@ -15,8 +18,8 @@ function FleetObservabilityStage({ onLoopComplete }: HeroSlideProps) {
 
 /**
  * Production stories. Additional workflows register here without changing the
- * gallery shell. Customer request, preventive maintenance, and QuickBooks
- * stories stay separate issues until their animations exist.
+ * gallery shell. Customer request and QuickBooks stories stay separate issues
+ * until their animations exist.
  */
 export const HERO_SLIDES: HeroSlideDefinition[] = [
   {
@@ -38,5 +41,15 @@ export const HERO_SLIDES: HeroSlideDefinition[] = [
     Stage: ScanMachineSlide,
     StaticFrame: ScanMachineStatic,
     Fallback: ScanPoster,
+  },
+  {
+    id: 'preventive-maintenance',
+    label: 'Preventive maintenance',
+    description:
+      'Meter hours reach 2,500 h to trigger a 500-hour PM checklist, the technician logs inspection results, and EquipQR schedules the next service at 3,000 h.',
+    preload: () => import('./pm/PmLifecycleSlide'),
+    Stage: PmLifecycleSlide,
+    StaticFrame: PmLifecycleStatic,
+    Fallback: PmLifecyclePoster,
   },
 ];
