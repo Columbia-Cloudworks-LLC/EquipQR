@@ -13,6 +13,7 @@ import { OrganizationSettings } from '@/features/organization/components/Organiz
 import { OrganizationSubnav } from '@/features/organization/components/OrganizationSubnav';
 import RestrictedOrganizationAccess from '@/features/organization/components/RestrictedOrganizationAccess';
 import { WorkspaceMergeRequestsCard } from '@/features/organization/components/WorkspaceMergeRequestsCard';
+import { HierarchicalDocumentsPanel } from '@/features/documents/components/HierarchicalDocumentsPanel';
 import { usePermissions } from '@/hooks/usePermissions';
 import Page from '@/components/layout/Page';
 import { Card, CardContent } from '@/components/ui/card';
@@ -125,6 +126,13 @@ const Organization = () => {
             <OrganizationSettings organization={currentOrganization} currentUserRole={currentUserRole} />
           </CardContent>
         </Card>
+
+        <HierarchicalDocumentsPanel
+          organizationId={currentOrganization.id}
+          scopeType="organization"
+          scopeId={currentOrganization.id}
+          isOrgAdmin={currentUserRole === 'owner' || currentUserRole === 'admin'}
+        />
       </div>
     </Page>
   );

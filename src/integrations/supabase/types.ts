@@ -1956,6 +1956,261 @@ export type Database = {
           },
         ]
       }
+      document_attachments: {
+        Row: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          document_id: string
+          granted_reader_emails: string[]
+          id: string
+          is_override: boolean
+          organization_id: string
+          scope_id: string
+          scope_type: string
+          snapshot_file_id: string
+          snapshot_renewal_days: number | null
+          snapshot_title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          document_id: string
+          granted_reader_emails?: string[]
+          id?: string
+          is_override?: boolean
+          organization_id: string
+          scope_id: string
+          scope_type: string
+          snapshot_file_id: string
+          snapshot_renewal_days?: number | null
+          snapshot_title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          document_id?: string
+          granted_reader_emails?: string[]
+          id?: string
+          is_override?: boolean
+          organization_id?: string
+          scope_id?: string
+          scope_type?: string
+          snapshot_file_id?: string
+          snapshot_renewal_days?: number | null
+          snapshot_title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_attachments_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "organization_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_attachments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_signoffs: {
+        Row: {
+          action: string
+          document_id: string
+          id: string
+          new_file_id: string
+          notes: string | null
+          organization_id: string
+          previous_file_id: string | null
+          signed_at: string
+          signed_by: string
+        }
+        Insert: {
+          action: string
+          document_id: string
+          id?: string
+          new_file_id: string
+          notes?: string | null
+          organization_id: string
+          previous_file_id?: string | null
+          signed_at?: string
+          signed_by: string
+        }
+        Update: {
+          action?: string
+          document_id?: string
+          id?: string
+          new_file_id?: string
+          notes?: string | null
+          organization_id?: string
+          previous_file_id?: string | null
+          signed_at?: string
+          signed_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_signoffs_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "organization_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_signoffs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_documents: {
+        Row: {
+          created_at: string
+          created_by: string
+          deleted_at: string | null
+          document_type: string
+          file_id: string
+          id: string
+          is_required: boolean
+          last_signed_at: string | null
+          last_signed_by: string | null
+          mime_type: string | null
+          notification_recipient_emails: string[]
+          organization_id: string
+          reminder_offsets: number[]
+          renewal_days: number | null
+          superseded_at: string | null
+          title: string
+          updated_at: string
+          web_view_link: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          deleted_at?: string | null
+          document_type?: string
+          file_id: string
+          id?: string
+          is_required?: boolean
+          last_signed_at?: string | null
+          last_signed_by?: string | null
+          mime_type?: string | null
+          notification_recipient_emails?: string[]
+          organization_id: string
+          reminder_offsets?: number[]
+          renewal_days?: number | null
+          superseded_at?: string | null
+          title: string
+          updated_at?: string
+          web_view_link?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          deleted_at?: string | null
+          document_type?: string
+          file_id?: string
+          id?: string
+          is_required?: boolean
+          last_signed_at?: string | null
+          last_signed_by?: string | null
+          mime_type?: string | null
+          notification_recipient_emails?: string[]
+          organization_id?: string
+          reminder_offsets?: number[]
+          renewal_days?: number | null
+          superseded_at?: string | null
+          title?: string
+          updated_at?: string
+          web_view_link?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_documents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_order_drive_folders: {
+        Row: {
+          created_at: string
+          created_by: string
+          equipment_id: string
+          folder_id: string
+          folder_name: string
+          granted_writer_emails: string[]
+          id: string
+          lifecycle_state: string
+          organization_id: string
+          updated_at: string
+          web_view_link: string | null
+          work_order_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          equipment_id: string
+          folder_id: string
+          folder_name: string
+          granted_writer_emails?: string[]
+          id?: string
+          lifecycle_state?: string
+          organization_id: string
+          updated_at?: string
+          web_view_link?: string | null
+          work_order_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          equipment_id?: string
+          folder_id?: string
+          folder_name?: string
+          granted_writer_emails?: string[]
+          id?: string
+          lifecycle_state?: string
+          organization_id?: string
+          updated_at?: string
+          web_view_link?: string | null
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_drive_folders_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_drive_folders_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_drive_folders_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: true
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_google_export_destinations: {
         Row: {
           configured_by: string | null
@@ -5330,6 +5585,10 @@ export type Database = {
       cleanup_expired_export_results: {
         Args: { p_retention_days?: number }
         Returns: number
+      }
+      check_equipment_rental_readiness: {
+        Args: { p_equipment_id: string }
+        Returns: Json
       }
       cleanup_expired_gws_oauth_sessions: { Args: never; Returns: number }
       cleanup_expired_invitations: { Args: never; Returns: number }

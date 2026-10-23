@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { EquipmentPrimaryMediaPanel } from "@/features/equipment/components/media/EquipmentPrimaryMediaPanel";
 import { getEquipmentViewTransitionStyle } from "@/features/equipment/transitions/equipmentViewTransitionNames";
 import { useEquipmentCardTransitionState } from "@/features/equipment/transitions/useEquipmentCardTransitionState";
+import { HierarchicalDocumentsPanel } from "@/features/documents/components/HierarchicalDocumentsPanel";
 
 type Equipment = Tables<'equipment'>;
 
@@ -223,6 +224,20 @@ const EquipmentDetailsTab: React.FC<EquipmentDetailsTabProps> = ({
         notesFieldId={notesFieldId}
         onFieldUpdate={handleFieldUpdate}
       />
+
+      {organizationId ? (
+        <HierarchicalDocumentsPanel
+          organizationId={organizationId}
+          scopeType="equipment"
+          scopeId={equipment.id}
+          parentTeamId={equipment.team_id}
+          isOrgAdmin={
+            currentOrganization?.userRole === 'owner' ||
+            currentOrganization?.userRole === 'admin'
+          }
+          teamRole={canEdit ? 'manager' : null}
+        />
+      ) : null}
 
       {showWorkingHoursModal && (
         <Suspense fallback={null}>
