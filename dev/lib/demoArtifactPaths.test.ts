@@ -5,7 +5,7 @@ import {
   formatRunSuffix,
   buildCanonicalArtifactFilename,
   buildCanonicalArtifactRelativePath
-} from './demoArtifactPaths.mjs';
+} from './demo/artifacts.mjs';
 
 describe('formatArtifactTimestamp', () => {
   it('formats lexically sortable timestamp', () => {

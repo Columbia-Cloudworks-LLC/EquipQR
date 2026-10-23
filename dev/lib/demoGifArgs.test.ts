@@ -6,7 +6,7 @@ import {
   resolveSmokeWebmRelativePath,
   resolveScenarioWebmRelativePath,
   isLocalhostBaseUrl
-} from './demoGifArgs.mjs';
+} from './demo/scenarios.mjs';
 
 describe('parseDemoGifArgs', () => {
   it('enables videoOnly when --smoke is set', () => {

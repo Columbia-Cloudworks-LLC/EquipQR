@@ -357,4 +357,4 @@ See [Deployment Guide - Self-Hosted Runner Setup](./deployment.md#self-hosted-ru
 | `vercel.json` | Vercel deployment configuration |
 | `supabase/config.toml` | Supabase CLI configuration |
 | `bash dev/ops/runner-type.sh` | Toggle self-hosted/GitHub-hosted runners |
-| `dev/test-ci.mjs` | CI test runner with coverage validation |
+| `dev/test-runner.mjs` | Unified local, CI, and sharded Vitest runner with coverage validation |

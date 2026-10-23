@@ -5,13 +5,10 @@ Demo System v2 is a scenario-driven recording platform designed for customer-rea
 ## Architecture
 
 - Scenario registry: `dev/demo-scenarios.v2.json`
-- Scenario/schema engine: `dev/lib/demoScenarioEngine.mjs`
-- Macro expansion: `dev/lib/demoStepMacros.mjs`
-- Action primitives + execution: `dev/lib/demoStepRunner.mjs`
+- Scenario/schema engine, macro expansion, and planning: `dev/lib/demo/scenarios.mjs`
+- Action primitives + execution: `dev/lib/demo/recording.mjs`
 - Orchestrator entrypoint: `dev/demo-record-v2.mjs`
-- Diagnostics + metadata sidecars: `dev/lib/demoDiagnostics.mjs`
-- Quality gates: `dev/lib/demoQualityGate.mjs`
-- Optional composition: `dev/lib/demoComposer.mjs`
+- Artifacts, diagnostics, quality gates, and composition: `dev/lib/demo/artifacts.mjs`
 
 ## Canonical Artifact Contract
 

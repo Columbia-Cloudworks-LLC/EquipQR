@@ -124,9 +124,6 @@ Browse them on GitHub or in your local checkout:
 
 ## Additional resources
 
-### Archived Documentation
-- **[Historical Fixes](./archive/historical-fixes/README.md)** - Historical documentation of fixes and improvements
-
 ### PM Templates
 - **[PM Checklists](./pm-templates/)** - Preventative maintenance checklist templates
 

@@ -3,27 +3,26 @@ import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 import {
   allocateCanonicalArtifactRelativePath,
-  ensureDemoDirectory
-} from './lib/demoArtifactPaths.mjs';
-import {
-  loadScenarioRegistry,
-  listScenarioSummaries,
-  expandScenarioSteps,
-  createSubstitutionContext
-} from './lib/demoScenarioEngine.mjs';
-import {
+  ensureDemoDirectory,
   buildDiagnostics,
   buildDiagnosticsPath,
   buildMetadataPath,
   buildRunMetadata,
   buildSceneClipPath,
-  writeJsonArtifact
-} from './lib/demoDiagnostics.mjs';
-import { evaluateDemoQualityGate } from './lib/demoQualityGate.mjs';
-import { createDemoStepRunner } from './lib/demoStepRunner.mjs';
-import { resolveComposeEnabled, composeSceneClips } from './lib/demoComposer.mjs';
+  writeJsonArtifact,
+  evaluateDemoQualityGate,
+  resolveComposeEnabled,
+  composeSceneClips
+} from './lib/demo/artifacts.mjs';
+import { createDemoStepRunner } from './lib/demo/recording.mjs';
+import {
+  loadScenarioRegistry,
+  listScenarioSummaries,
+  expandScenarioSteps,
+  createSubstitutionContext,
+  buildOrchestratorPlan
+} from './lib/demo/scenarios.mjs';
 import { runProdRecordingPreflight } from './lib/playwrightPreflight.mjs';
-import { buildOrchestratorPlan } from './lib/demoOrchestratorPlan.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');

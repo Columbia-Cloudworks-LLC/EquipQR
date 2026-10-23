@@ -43,7 +43,7 @@
   "otherPortsAttributes": {
     "onAutoForward": "silent"
   },
-  "postCreateCommand": "bash dev/linux/setup.sh",
+  "postCreateCommand": "bash dev/linux/setup.sh --target=devcontainer",
   "postStartCommand": "bash dev/linux/dev.sh start",
   "waitFor": "postStartCommand",
   "remoteUser": "vscode",

@@ -1,6 +1,40 @@
 #!/usr/bin/env bash
-# Common setup for WSL2 and Linux cloud environments.
+# Common setup for WSL2, devcontainers, and Linux cloud/agent environments.
+# Usage: bash dev/linux/setup.sh [--target=agent|devcontainer|host]
 set -euo pipefail
+TARGET="${EQUIPQR_SETUP_TARGET:-host}"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --target=*)
+      TARGET="${1#--target=}"
+      shift
+      ;;
+    --target)
+      if [[ $# -lt 2 ]]; then
+        echo "Missing value for --target (expected agent|devcontainer|host)" >&2
+        exit 2
+      fi
+      TARGET="$2"
+      shift 2
+      ;;
+    *)
+      echo "Unknown option: $1 (expected --target=agent|devcontainer|host)" >&2
+      exit 2
+      ;;
+  esac
+done
+case "$TARGET" in
+  agent)
+    export EQUIPQR_BACKEND=hosted
+    ;;
+  devcontainer|host)
+    export EQUIPQR_BACKEND="${EQUIPQR_BACKEND:-local}"
+    ;;
+  *)
+    echo "Invalid --target=$TARGET (expected agent|devcontainer|host)" >&2
+    exit 2
+    ;;
+esac
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 missing=false

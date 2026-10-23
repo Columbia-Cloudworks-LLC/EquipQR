@@ -7,13 +7,11 @@ on:
   push:
     paths:
       - .github/workflows/copilot-setup-steps.yml
-      - dev/agent-bootstrap.sh
-      - dev/cloud-agent-frontend-setup.sh
+      - dev/linux/setup.sh
   pull_request:
     paths:
       - .github/workflows/copilot-setup-steps.yml
-      - dev/agent-bootstrap.sh
-      - dev/cloud-agent-frontend-setup.sh
+      - dev/linux/setup.sh
 
 jobs:
   # MUST be named exactly `copilot-setup-steps` to be picked up by the agent.

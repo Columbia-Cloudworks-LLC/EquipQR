@@ -5,7 +5,7 @@ import {
   resolveScenarioSelection,
   applyTokens,
   createSubstitutionContext
-} from './demoScenarioEngine.mjs';
+} from './demo/scenarios.mjs';
 
 const validRegistry = {
   version: 2,

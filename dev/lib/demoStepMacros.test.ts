@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { expandDemoMacro, listDemoMacros } from './demoStepMacros.mjs';
+import { expandDemoMacro, listDemoMacros } from './demo/scenarios.mjs';
 
 describe('demo step macros', () => {
   it('lists known macro names', () => {
