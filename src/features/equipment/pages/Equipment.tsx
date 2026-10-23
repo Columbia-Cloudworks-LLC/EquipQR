@@ -29,6 +29,7 @@ import EquipmentLoadingState from '@/features/equipment/components/EquipmentLoad
 // users on this page never open the importer, so lazy-load it to keep the
 // list page slim on Slow 4G.
 const ImportCsvWizard = lazy(() => import('@/features/equipment/components/ImportCsvWizard'));
+const BatchPrintQRTagsDialog = lazy(() => import('@/features/equipment/components/qr/BatchPrintQRTagsDialog'));
 import EquipmentColumnPicker from '@/features/equipment/components/EquipmentColumnPicker';
 import EquipmentPaginationFooter from '@/features/equipment/components/EquipmentPaginationFooter';
 import { EQUIPMENT_TABLE_COLUMN_META } from '@/features/equipment/components/equipmentTableColumns';
@@ -71,6 +72,7 @@ const Equipment = () => {
   const [editingEquipment, setEditingEquipment] = useState<EquipmentRecord | null>(null);
   const [showQRCode, setShowQRCode] = useState<string | null>(null);
   const [showImportCsv, setShowImportCsv] = useState<boolean>(false);
+  const [showBatchPrintTags, setShowBatchPrintTags] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<EquipmentViewMode>(() => readEquipmentViewMode(isMobile));
   const viewModeRef = useRef(viewMode);
   viewModeRef.current = viewMode;
@@ -257,6 +259,11 @@ const Equipment = () => {
                     <DropdownMenuItem onSelect={() => navigate('/dashboard/equipment/bulk')}>
                       Bulk Edit (Grid)
                     </DropdownMenuItem>
+                    {canImport && (
+                      <DropdownMenuItem onSelect={() => setShowBatchPrintTags(true)}>
+                        Print Blank QR Tags
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )
@@ -349,6 +356,17 @@ const Equipment = () => {
           <ImportCsvWizard
             open={showImportCsv}
             onClose={() => setShowImportCsv(false)}
+            organizationId={currentOrganization.id}
+            organizationName={currentOrganization.name}
+          />
+        </Suspense>
+      )}
+
+      {showBatchPrintTags && (
+        <Suspense fallback={null}>
+          <BatchPrintQRTagsDialog
+            open={showBatchPrintTags}
+            onClose={() => setShowBatchPrintTags(false)}
             organizationId={currentOrganization.id}
             organizationName={currentOrganization.name}
           />

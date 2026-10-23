@@ -24,6 +24,11 @@ import {
   insertScan,
   type EquipmentQRPayload,
 } from '@/features/equipment/services/equipmentQRPermissions';
+import {
+  UnassignedQRTagDetectedError,
+  type UnassignedQRTagContext,
+} from '@/features/equipment/services/equipmentQRTagService';
+import { UnassignedQRTagClaimCard } from '@/features/equipment/components/qr/UnassignedQRTagClaimCard';
 import { recordScanFollowUpEvent } from '@/features/equipment/services/scanFollowUpEventService';
 import { logger } from '@/utils/logger';
 import { useLatestCompletedPMDetails } from '@/features/pm-templates/hooks/usePMData';
@@ -87,6 +92,9 @@ const EquipmentQRScan = (): React.JSX.Element => {
     enabled: teamsReady,
   });
   const [payload, setPayload] = useState<EquipmentQRPayload | null>(null);
+  const [unassignedTagContext, setUnassignedTagContext] = useState<UnassignedQRTagContext | null>(
+    null,
+  );
   const latestPmQuery = useLatestCompletedPMDetails(
     payload?.equipment.id,
     payload?.organization.id
@@ -117,6 +125,7 @@ const EquipmentQRScan = (): React.JSX.Element => {
     let cancelled = false;
     setIsLoading(true);
     setError(null);
+    setUnassignedTagContext(null);
 
     fetchEquipmentQRPayload(equipmentId, orgIdFromUrl)
       .then(result => {
@@ -127,6 +136,10 @@ const EquipmentQRScan = (): React.JSX.Element => {
       })
       .catch(loadError => {
         if (!cancelled) {
+          if (loadError instanceof UnassignedQRTagDetectedError) {
+            setUnassignedTagContext(loadError.context);
+            return;
+          }
           setError(loadError instanceof Error ? loadError.message : 'Unable to load equipment');
         }
       })
@@ -250,8 +263,75 @@ const EquipmentQRScan = (): React.JSX.Element => {
     window.location.assign(`/dashboard/equipment/${payload.equipment.id}`);
   }, [payload, scanId]);
 
+  const handleTagClaimed = useCallback(
+    (claimedEquipmentId: string) => {
+      const targetOrgId = unassignedTagContext?.organization.id ?? orgIdFromUrl;
+      setIsLoading(true);
+      setError(null);
+      setUnassignedTagContext(null);
+
+      fetchEquipmentQRPayload(claimedEquipmentId, targetOrgId)
+        .then((result) => {
+          setPayload(result);
+          setPayloadLoadGeneration((g) => g + 1);
+        })
+        .catch((loadError) => {
+          setError(loadError instanceof Error ? loadError.message : 'Unable to load equipment');
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    },
+    [orgIdFromUrl, unassignedTagContext?.organization.id],
+  );
+
   if (authLoading || isLoading) {
     return <QrPageLoadingShell />;
+  }
+
+  const currentYear = new Date().getFullYear();
+
+  const renderPageFrame = (
+    subtitle: string,
+    badgeElement: React.ReactNode,
+    children: React.ReactNode,
+  ) => (
+    <div className="min-h-screen bg-background text-foreground">
+      <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col px-4 py-5 sm:py-8">
+        <div className="mb-5 flex items-center justify-between">
+          <a
+            href={PRODUCTION_URL}
+            className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            aria-label="Open EquipQR production site"
+          >
+            <EquipQRIcon className="h-9 w-9" title="" />
+            <div>
+              <p className="text-sm font-semibold">EquipQR</p>
+              <p className="text-xs text-muted-foreground">{subtitle}</p>
+            </div>
+          </a>
+          {badgeElement}
+        </div>
+
+        {children}
+
+        <footer className="mt-5 text-center text-[11px] leading-relaxed text-muted-foreground">
+          <p>© {currentYear} Columbia Cloudworks LLC. All rights reserved.</p>
+          <p>EquipQR™ is a trademark of Columbia Cloudworks LLC.</p>
+        </footer>
+      </main>
+    </div>
+  );
+
+  if (unassignedTagContext) {
+    return renderPageFrame(
+      'Tag First, Fill Later',
+      <Badge variant="outline">Unassigned QR Tag</Badge>,
+      <UnassignedQRTagClaimCard
+        context={unassignedTagContext}
+        onClaimed={handleTagClaimed}
+      />,
+    );
   }
 
   if (error || !payload) {
@@ -298,30 +378,14 @@ const EquipmentQRScan = (): React.JSX.Element => {
   }
 
   const { equipment, organization } = payload;
-  const currentYear = new Date().getFullYear();
   const heroImageSrc = heroImageUrl && !heroImageFailed ? heroImageUrl : null;
 
-  return (
-    <div className="min-h-screen bg-background text-foreground">
-      <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col px-4 py-5 sm:py-8">
-        <div className="mb-5 flex items-center justify-between">
-          <a
-            href={PRODUCTION_URL}
-            className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            aria-label="Open EquipQR production site"
-          >
-            <EquipQRIcon className="h-9 w-9" title="" />
-            <div>
-              <p className="text-sm font-semibold">EquipQR</p>
-              <p className="text-xs text-muted-foreground">Scanned equipment</p>
-            </div>
-          </a>
-          <Badge variant="outline" className={getStatusClasses(equipment.status)}>
-            {getStatusLabel(equipment.status)}
-          </Badge>
-        </div>
-
-        <Card className="overflow-hidden">
+  return renderPageFrame(
+    'Scanned equipment',
+    <Badge variant="outline" className={getStatusClasses(equipment.status)}>
+      {getStatusLabel(equipment.status)}
+    </Badge>,
+    <Card className="overflow-hidden">
           <div className="aspect-[16/10] bg-muted">
             {heroImageSrc ? (
               <img
@@ -427,14 +491,7 @@ const EquipmentQRScan = (): React.JSX.Element => {
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </CardContent>
-        </Card>
-
-        <footer className="mt-5 text-center text-[11px] leading-relaxed text-muted-foreground">
-          <p>© {currentYear} Columbia Cloudworks LLC. All rights reserved.</p>
-          <p>EquipQR™ is a trademark of Columbia Cloudworks LLC.</p>
-        </footer>
-      </main>
-    </div>
+        </Card>,
   );
 };
 

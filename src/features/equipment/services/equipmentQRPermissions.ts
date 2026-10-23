@@ -7,6 +7,9 @@ import {
   extractEquipmentDisplayImagePath,
 } from '@/services/imageUploadService';
 import { logger } from '@/utils/logger';
+import {
+  UnassignedQRTagDetectedError,
+} from '@/features/equipment/services/equipmentQRTagService';
 
 type EquipmentStatus = Database['public']['Enums']['equipment_status'];
 
@@ -204,6 +207,118 @@ function buildEquipmentQRPayloadFromRow(
   };
 }
 
+interface EquipmentQRTagFallbackRow {
+  id: string;
+  organization_id: string;
+  short_code: string;
+  label_batch_name: string | null;
+  status: string;
+  claimed_equipment_id: string | null;
+  created_at: string;
+  organizations: OrganizationRelation | OrganizationRelation[];
+}
+
+const EQUIPMENT_QR_TAG_SELECT = `
+  id,
+  organization_id,
+  short_code,
+  label_batch_name,
+  status,
+  claimed_equipment_id,
+  created_at,
+  organizations!inner(id, name, scan_location_collection_enabled)
+`;
+
+async function handleResolvedQRTagRow(
+  tagRow: EquipmentQRTagFallbackRow,
+  userRole: string,
+): Promise<EquipmentQRPayload> {
+  const organization = firstRelation(tagRow.organizations);
+  if (!organization) throw new Error('Equipment organization not found');
+
+  if (tagRow.status === 'claimed' && tagRow.claimed_equipment_id) {
+    const { data: claimedEquipment, error: claimedError } = await supabase
+      .from('equipment')
+      .select(EQUIPMENT_QR_SELECT)
+      .eq('organization_id', tagRow.organization_id)
+      .eq('id', tagRow.claimed_equipment_id)
+      .maybeSingle();
+
+    if (claimedError) throw new Error(claimedError.message);
+    if (!claimedEquipment) throw new Error('Claimed equipment not found');
+
+    const claimedRow: EquipmentQRRow = claimedEquipment;
+    return buildEquipmentQRPayloadFromRow(claimedRow, userRole);
+  }
+
+  throw new UnassignedQRTagDetectedError({
+    tag: {
+      id: tagRow.id,
+      organizationId: tagRow.organization_id,
+      shortCode: tagRow.short_code,
+      labelBatchName: tagRow.label_batch_name,
+      status: tagRow.status === 'claimed' ? 'claimed' : 'unassigned',
+      claimedEquipmentId: tagRow.claimed_equipment_id,
+      createdAt: tagRow.created_at,
+    },
+    organization: {
+      id: organization.id,
+      name: organization.name,
+      scanLocationCollectionEnabled: organization.scan_location_collection_enabled,
+    },
+    userRole,
+  });
+}
+
+async function resolveQRTagFallbackForOrg(
+  tagId: string,
+  organizationId: string,
+  userRole: string,
+): Promise<EquipmentQRPayload | null> {
+  const queryBuilder = supabase.from('equipment_qr_tags');
+  if (!queryBuilder || typeof queryBuilder.select !== 'function') {
+    return null;
+  }
+
+  const { data: tagData, error: tagError } = await queryBuilder
+    .select(EQUIPMENT_QR_TAG_SELECT)
+    .eq('organization_id', organizationId)
+    .eq('id', tagId)
+    .maybeSingle();
+
+  if (tagError) throw new Error(tagError.message);
+  if (!tagData) return null;
+
+  const tagRow: EquipmentQRTagFallbackRow = tagData;
+  return handleResolvedQRTagRow(tagRow, userRole);
+}
+
+async function resolveQRTagFallbackMultiOrg(
+  tagId: string,
+  membershipByOrganizationId: Map<string, string>,
+): Promise<EquipmentQRPayload | null> {
+  const scopedOrganizationIds = [...membershipByOrganizationId.keys()];
+  const queryBuilder = supabase.from('equipment_qr_tags');
+  if (!queryBuilder || typeof queryBuilder.select !== 'function') {
+    return null;
+  }
+
+  const { data: tagData, error: tagError } = await queryBuilder
+    .select(EQUIPMENT_QR_TAG_SELECT)
+    .in('organization_id', scopedOrganizationIds)
+    .eq('id', tagId)
+    .maybeSingle();
+
+  if (tagError) throw new Error(tagError.message);
+  if (!tagData) return null;
+
+  const tagRow: EquipmentQRTagFallbackRow = tagData;
+  const scopedRole = membershipByOrganizationId.get(tagRow.organization_id);
+  if (!scopedRole) throw new Error('You do not have access to this equipment');
+
+  return handleResolvedQRTagRow(tagRow, scopedRole);
+}
+
 export async function fetchEquipmentQRPayload(
   equipmentId: string,
   organizationId?: string
@@ -231,9 +346,17 @@ export async function fetchEquipmentQRPayload(
       .maybeSingle();
 
     if (error) throw new Error(error.message);
-    if (!data) throw new Error('Equipment not found');
+    if (!data) {
+      const tagFallback = await resolveQRTagFallbackForOrg(
+        equipmentId,
+        organizationId,
+        membership.role,
+      );
+      if (tagFallback) return tagFallback;
+      throw new Error('Equipment not found');
+    }
 
-    const row = data as unknown as EquipmentQRRow;
+    const row: EquipmentQRRow = data;
     return buildEquipmentQRPayloadFromRow(row, membership.role);
   }
 
@@ -262,9 +385,13 @@ export async function fetchEquipmentQRPayload(
     .maybeSingle();
 
   if (error) throw new Error(error.message);
-  if (!data) throw new Error('Equipment not found');
+  if (!data) {
+    const tagFallback = await resolveQRTagFallbackMultiOrg(equipmentId, membershipByOrganizationId);
+    if (tagFallback) return tagFallback;
+    throw new Error('Equipment not found');
+  }
 
-  const row = data as unknown as EquipmentQRRow;
+  const row: EquipmentQRRow = data;
   const scopedRole = membershipByOrganizationId.get(row.organization_id);
   if (!scopedRole) throw new Error('You do not have access to this equipment');
 
