@@ -882,6 +882,63 @@ export type Database = {
           },
         ]
       }
+      equipment_qr_tags: {
+        Row: {
+          claimed_at: string | null
+          claimed_by: string | null
+          claimed_equipment_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          label_batch_name: string | null
+          organization_id: string
+          short_code: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          claimed_equipment_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label_batch_name?: string | null
+          organization_id: string
+          short_code: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          claimed_equipment_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label_batch_name?: string | null
+          organization_id?: string
+          short_code?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_qr_tags_claimed_equipment_id_fkey"
+            columns: ["claimed_equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_qr_tags_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment_status_history: {
         Row: {
           changed_at: string
@@ -5258,6 +5315,22 @@ export type Database = {
       cancel_ownership_transfer: {
         Args: { p_transfer_id: string }
         Returns: Json
+      }
+      claim_equipment_qr_tag: {
+        Args: { p_equipment_id: string; p_tag_id: string }
+        Returns: {
+          claimed_at: string | null
+          claimed_by: string | null
+          claimed_equipment_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          label_batch_name: string | null
+          organization_id: string
+          short_code: string
+          status: string
+          updated_at: string
+        }
       }
       check_admin_bypass_fixed: {
         Args: { org_id: string; user_uuid: string }

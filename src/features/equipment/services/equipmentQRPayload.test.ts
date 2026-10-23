@@ -27,6 +27,7 @@ vi.mock('@/lib/authClaims', () => ({
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: vi.fn(),
+    rpc: vi.fn(),
   },
 }));
 
@@ -36,6 +37,13 @@ import {
   fetchEquipmentQRPayload,
   resolveEquipmentQRDisplayImageUrl,
 } from '@/features/equipment/services/equipmentQRPermissions';
+import {
+  UnassignedQRTagDetectedError,
+  generateShortTagCode,
+  createQRTagBatch,
+  listUnassignedQRTags,
+  claimQRTagForEquipment,
+} from '@/features/equipment/services/equipmentQRTagService';
 
 const canonicalPath =
   'da1368a1-9ed1-46ef-a7dc-56bf15ebeee4/eq-id/note/1769226798314.jpg';
@@ -166,6 +174,186 @@ describe('fetchEquipmentQRPayload', () => {
 
     expect(mockBatchResolve).not.toHaveBeenCalled();
     expect(payload.equipment.imageReference).toBe(canonicalPath);
+  });
+
+  it('throws UnassignedQRTagDetectedError when equipment is missing and an unassigned QR tag exists', async () => {
+    const membershipBuilder = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: { role: 'admin' }, error: null }),
+    };
+
+    const equipmentBuilder = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+    };
+
+    const tagBuilder = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: {
+          id: 'tag-uuid-1',
+          organization_id: 'org-1',
+          short_code: 'EQ-A9X4-7K2M',
+          status: 'unassigned',
+          claimed_equipment_id: null,
+          label_batch_name: 'Yard Roll 1',
+          created_at: '2026-10-23T12:00:00Z',
+          organizations: {
+            id: 'org-1',
+            name: 'Org One',
+            scan_location_collection_enabled: false,
+          },
+        },
+        error: null,
+      }),
+    };
+
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
+      if (table === 'organization_members') return membershipBuilder as never;
+      if (table === 'equipment') return equipmentBuilder as never;
+      if (table === 'equipment_qr_tags') return tagBuilder as never;
+      throw new Error(`Unexpected table ${table}`);
+    });
+
+    await expect(fetchEquipmentQRPayload('tag-uuid-1', 'org-1')).rejects.toBeInstanceOf(
+      UnassignedQRTagDetectedError,
+    );
+  });
+
+  it('resolves claimed equipment when a pre-printed QR tag has been claimed', async () => {
+    const membershipBuilder = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: { role: 'member' }, error: null }),
+    };
+
+    let equipmentQueryCount = 0;
+    const equipmentBuilder = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockImplementation(async () => {
+        equipmentQueryCount += 1;
+        if (equipmentQueryCount === 1) {
+          return { data: null, error: null };
+        }
+        return {
+          data: baseEquipmentRow({ id: 'claimed-eq-99', name: 'Claimed Forklift' }),
+          error: null,
+        };
+      }),
+    };
+
+    const tagBuilder = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: {
+          id: 'tag-uuid-99',
+          organization_id: 'org-1',
+          short_code: 'EQ-C9M1-2B4N',
+          status: 'claimed',
+          claimed_equipment_id: 'claimed-eq-99',
+          label_batch_name: 'Yard Roll 1',
+          created_at: '2026-10-23T12:00:00Z',
+          organizations: {
+            id: 'org-1',
+            name: 'Org One',
+            scan_location_collection_enabled: false,
+          },
+        },
+        error: null,
+      }),
+    };
+
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
+      if (table === 'organization_members') return membershipBuilder as never;
+      if (table === 'equipment') return equipmentBuilder as never;
+      if (table === 'equipment_qr_tags') return tagBuilder as never;
+      throw new Error(`Unexpected table ${table}`);
+    });
+
+    const payload = await fetchEquipmentQRPayload('tag-uuid-99', 'org-1');
+    expect(payload.equipment.id).toBe('claimed-eq-99');
+    expect(payload.equipment.name).toBe('Claimed Forklift');
+  });
+});
+
+describe('equipmentQRTagService (#1644)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('generates unambiguous short tag codes in TAG-XXXXXX format', () => {
+    const code = generateShortTagCode();
+    expect(code).toMatch(/^TAG-[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{6}$/);
+  });
+
+  it('mints a batch of unassigned QR tags and lists unassigned tags', async () => {
+    const mockRows = [
+      {
+        id: 'tag-1',
+        organization_id: 'org-1',
+        short_code: 'EQ-2345-6789',
+        status: 'unassigned',
+        claimed_equipment_id: null,
+        claimed_at: null,
+        claimed_by: null,
+        created_by: 'user-test-1',
+        label_batch_name: 'Shop Intake',
+        created_at: '2026-10-23T12:00:00Z',
+        updated_at: '2026-10-23T12:00:00Z',
+      },
+    ];
+
+    const tagTableBuilder = {
+      insert: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: mockRows, error: null }),
+    };
+    tagTableBuilder.select.mockImplementation(() => ({
+      ...tagTableBuilder,
+      then: (resolve: (val: unknown) => unknown) =>
+        Promise.resolve({ data: mockRows, error: null }).then(resolve),
+    }));
+
+    vi.mocked(supabase.from).mockReturnValue(tagTableBuilder as never);
+
+    const created = await createQRTagBatch({
+      organizationId: 'org-1',
+      count: 1,
+      labelBatchName: 'Shop Intake',
+    });
+    expect(created).toHaveLength(1);
+    expect(created[0].short_code).toBe('EQ-2345-6789');
+
+    const listed = await listUnassignedQRTags('org-1', 12);
+    expect(listed).toHaveLength(1);
+  });
+
+  it('claims an unassigned QR tag via claim_equipment_qr_tag RPC', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: {
+        id: 'tag-1',
+        organization_id: 'org-1',
+        short_code: 'EQ-2345-6789',
+        status: 'claimed',
+        claimed_equipment_id: 'eq-99',
+      },
+      error: null,
+    } as never);
+
+    const claimed = await claimQRTagForEquipment('tag-1', 'eq-99');
+    expect(supabase.rpc).toHaveBeenCalledWith('claim_equipment_qr_tag', {
+      p_tag_id: 'tag-1',
+      p_equipment_id: 'eq-99',
+    });
+    expect(claimed.status).toBe('claimed');
+    expect(claimed.claimed_equipment_id).toBe('eq-99');
   });
 });
 

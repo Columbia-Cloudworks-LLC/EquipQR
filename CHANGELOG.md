@@ -11,6 +11,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Added
+
+- **Pre-printed unassigned QR tags ("Tag First, Fill Later") (#1644)** — Organization owners and admins can generate and print batches of blank QR labels (Avery sheets or 2"×2" thermal rolls) from the Equipment page. Scanning an unassigned tag on a machine opens a Claim / Adopt screen where you can create a new unit (including cloning a similar unit) or attach the tag to existing equipment on the spot.
+
 ## [3.37.0] - 2026-10-16
 
 ### Added

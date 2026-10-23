@@ -1,8 +1,11 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import EquipmentQRScan from '@/features/equipment/pages/EquipmentQRScan';
+import { useAuth } from '@/hooks/useAuth';
+import { fetchEquipmentQRPayload } from '@/features/equipment/services/equipmentQRPermissions';
+import { UnassignedQRTagDetectedError } from '@/features/equipment/services/equipmentQRTagService';
 
 const replaceMock = vi.fn();
 
@@ -72,5 +75,51 @@ describe('EquipmentQRScan (#1074)', () => {
       );
     });
     expect(replaceMock).toHaveBeenCalledWith('/auth?tab=signin');
+  });
+
+  it('renders the Claim / Adopt This Equipment card when an unassigned QR tag is scanned (#1644)', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: { id: 'user-1', email: 'tech@example.com' } as never,
+      isLoading: false,
+      signIn: vi.fn(),
+      signUp: vi.fn(),
+      signOut: vi.fn(),
+      signInWithGoogle: vi.fn(),
+      resetPassword: vi.fn(),
+    });
+
+    vi.mocked(fetchEquipmentQRPayload).mockRejectedValue(
+      new UnassignedQRTagDetectedError({
+        tag: {
+          id: 'aa0e8400-e29b-41d4-a716-446655440000',
+          organizationId: 'org-1',
+          shortCode: 'EQ-7K9P-2M4X',
+          labelBatchName: 'Yard Roll A',
+          createdAt: '2026-10-23T12:00:00Z',
+        },
+        organization: {
+          id: 'org-1',
+          name: 'Apex Rentals',
+          scanLocationCollectionEnabled: false,
+        },
+        userRole: 'admin',
+      }),
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/qr/equipment/aa0e8400-e29b-41d4-a716-446655440000?org=org-1']}>
+        <Routes>
+          <Route path="/qr/equipment/:equipmentId" element={<EquipmentQRScan />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Claim / Adopt This Equipment')).toBeInTheDocument();
+    });
+    expect(screen.getByText('New / Unassigned Tag Detected')).toBeInTheDocument();
+    expect(screen.getByText('EQ-7K9P-2M4X')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Create New Machine/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Search & Attach to Existing/i })).toBeInTheDocument();
   });
 });
