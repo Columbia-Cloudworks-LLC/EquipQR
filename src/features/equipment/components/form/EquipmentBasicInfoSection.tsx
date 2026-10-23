@@ -8,6 +8,16 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentManufacturersAndModels } from '@/features/equipment/hooks/useEquipment';
 import { type EquipmentFormData, generateEquipmentName } from '@/features/equipment/types/equipment';
 import { useManufacturerModelSuggestions } from '@/features/equipment/utils/manufacturerModelLookup';
+import {
+  inferEquipmentFromPartialInput,
+  mergeManufacturerModelSuggestions,
+  type EquipmentSpecSuggestion,
+} from '@/features/equipment/utils/equipmentTaxonomyInference';
+import {
+  useOrganizationEquipmentSpecCache,
+  useRecordAcceptedEquipmentSpec,
+} from '@/features/equipment/hooks/useEquipmentSpecInference';
+import { EquipmentSpecSuggestionBanner } from '@/features/equipment/components/form/EquipmentSpecSuggestionBanner';
 import type { DuplicateEquipmentMatch } from '@/features/equipment/services/EquipmentService';
 import { DuplicateSerialWarning } from '@/features/equipment/components/DuplicateSerialWarning';
 
@@ -30,14 +40,27 @@ const EquipmentBasicInfoSection: React.FC<EquipmentBasicInfoSectionProps> = ({
   const { data: manufacturersData = [] } = useEquipmentManufacturersAndModels(
     currentOrganization?.id
   );
+  const { data: fleetSpecCache = [] } = useOrganizationEquipmentSpecCache(
+    currentOrganization?.id,
+  );
+  const recordAcceptedSpecMutation = useRecordAcceptedEquipmentSpec();
+
+  const mergedManufacturersData = useMemo(
+    () => mergeManufacturerModelSuggestions(manufacturersData, fleetSpecCache),
+    [manufacturersData, fleetSpecCache],
+  );
 
   // Track if name has been manually edited (only for new equipment)
   const [nameManuallyEdited, setNameManuallyEdited] = useState(false);
+  const [ignoredSuggestionKeys, setIgnoredSuggestionKeys] = useState<string[]>([]);
+  const [externalSuggestion, setExternalSuggestion] =
+    useState<EquipmentSpecSuggestion | null>(null);
 
   // Watch manufacturer and model for auto-generating name
   const manufacturer = form.watch('manufacturer');
   const model = form.watch('model');
   const name = form.watch('name');
+  const serialNumber = form.watch('serial_number');
 
   // Check if this is an edit (has existing name) on mount
   const isEdit = useMemo(() => {
@@ -56,9 +79,86 @@ const EquipmentBasicInfoSection: React.FC<EquipmentBasicInfoSectionProps> = ({
   }, [manufacturer, model, nameManuallyEdited, isEdit, form, name]);
 
   const { manufacturers, modelsForManufacturer } = useManufacturerModelSuggestions(
-    manufacturersData,
+    mergedManufacturersData,
     manufacturer,
   );
+
+  const partialSuggestion = useMemo(
+    () =>
+      inferEquipmentFromPartialInput({
+        manufacturerInput: manufacturer || '',
+        modelInput: model || '',
+        fleetCache: fleetSpecCache,
+      }),
+    [manufacturer, model, fleetSpecCache],
+  );
+
+  const activeSuggestion = useMemo(() => {
+    const candidate = externalSuggestion ?? partialSuggestion;
+    if (!candidate) return null;
+    if (ignoredSuggestionKeys.includes(candidate.key)) return null;
+    return candidate;
+  }, [externalSuggestion, partialSuggestion, ignoredSuggestionKeys]);
+
+  const handleAcceptSuggestion = useCallback(
+    (suggestion: EquipmentSpecSuggestion) => {
+      const nextManufacturer = suggestion.manufacturer || manufacturer || '';
+      const nextModel = suggestion.model || model || '';
+
+      if (suggestion.manufacturer) {
+        form.setValue('manufacturer', suggestion.manufacturer, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+      if (suggestion.model) {
+        form.setValue('model', suggestion.model, {
+          shouldDirty: true,
+          shouldValidate: true,
+        });
+      }
+
+      const currentAttrs = form.getValues('custom_attributes') ?? {};
+      const nextAttrs: Record<string, string> = { ...currentAttrs };
+      if (suggestion.category && !nextAttrs.category) {
+        nextAttrs.category = suggestion.category;
+      }
+      if (suggestion.subtype && !nextAttrs.subtype) {
+        nextAttrs.subtype = suggestion.subtype;
+      }
+      for (const [specKey, specVal] of Object.entries(suggestion.specs)) {
+        if (specVal && !nextAttrs[specKey]) {
+          nextAttrs[specKey] = specVal;
+        }
+      }
+      nextAttrs.spec_provenance = `${suggestion.source}:${Math.round(
+        suggestion.confidence * 100,
+      )}%:${new Date().toISOString()}`;
+      form.setValue('custom_attributes', nextAttrs, { shouldDirty: true });
+
+      if (currentOrganization?.id && nextManufacturer && nextModel) {
+        recordAcceptedSpecMutation.mutate({
+          organizationId: currentOrganization.id,
+          manufacturer: nextManufacturer,
+          model: nextModel,
+          category: suggestion.category,
+          subtype: suggestion.subtype,
+          specs: suggestion.specs,
+          source: suggestion.source,
+          confidence: suggestion.confidence,
+        });
+      }
+
+      setIgnoredSuggestionKeys((prev) => [...prev, suggestion.key]);
+      setExternalSuggestion(null);
+    },
+    [currentOrganization?.id, form, manufacturer, model, recordAcceptedSpecMutation],
+  );
+
+  const handleIgnoreSuggestion = useCallback((suggestionKey: string) => {
+    setIgnoredSuggestionKeys((prev) => [...prev, suggestionKey]);
+    setExternalSuggestion(null);
+  }, []);
 
   // Handle name field focus - mark as manually edited if user types
   const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>, fieldOnChange: (value: string) => void) => {
@@ -183,6 +283,14 @@ const EquipmentBasicInfoSection: React.FC<EquipmentBasicInfoSectionProps> = ({
               )}
             </FormItem>
           )}
+        />
+
+        <EquipmentSpecSuggestionBanner
+          suggestion={activeSuggestion}
+          serialNumber={serialNumber || ''}
+          onAcceptSuggestion={handleAcceptSuggestion}
+          onIgnoreSuggestion={handleIgnoreSuggestion}
+          onExternalSuggestionResolved={(resolved) => setExternalSuggestion(resolved)}
         />
       </CardContent>
     </Card>

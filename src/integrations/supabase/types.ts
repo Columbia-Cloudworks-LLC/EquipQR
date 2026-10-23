@@ -1956,6 +1956,68 @@ export type Database = {
           },
         ]
       }
+      organization_equipment_spec_cache: {
+        Row: {
+          category: string | null
+          confidence: number
+          confirmed_at: string
+          confirmed_by: string | null
+          created_at: string
+          id: string
+          manufacturer: string
+          manufacturer_norm: string
+          model: string
+          model_norm: string
+          organization_id: string
+          source: string
+          specs: Json
+          subtype: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          confidence?: number
+          confirmed_at?: string
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          manufacturer: string
+          manufacturer_norm: string
+          model: string
+          model_norm: string
+          organization_id: string
+          source?: string
+          specs?: Json
+          subtype?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          confidence?: number
+          confirmed_at?: string
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          manufacturer?: string
+          manufacturer_norm?: string
+          model?: string
+          model_norm?: string
+          organization_id?: string
+          source?: string
+          specs?: Json
+          subtype?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_equipment_spec_cache_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_google_export_destinations: {
         Row: {
           configured_by: string | null
