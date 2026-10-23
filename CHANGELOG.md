@@ -11,6 +11,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Added
+
+- **Equipment make/model taxonomy and spec suggestions (#1510)** — Typing a partial make or model (such as `cat 320` or `8FGU25`), decoding a 17-character highway VIN, or entering a 12-character EPA engine family code suggests canonical manufacturer, model, category, and baseline specs that you can accept or ignore.
+
 ## [3.37.0] - 2026-10-16
 
 ### Added

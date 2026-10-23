@@ -26336,6 +26336,52 @@ GRANT ALL ON TABLE "public"."workspace_personal_org_merge_requests" TO "anon";
 GRANT ALL ON TABLE "public"."workspace_personal_org_merge_requests" TO "authenticated";
 GRANT ALL ON TABLE "public"."workspace_personal_org_merge_requests" TO "service_role";
 
+CREATE TABLE IF NOT EXISTS "public"."organization_equipment_spec_cache" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "organization_id" "uuid" NOT NULL,
+    "manufacturer_norm" "text" NOT NULL,
+    "model_norm" "text" NOT NULL,
+    "manufacturer" "text" NOT NULL,
+    "model" "text" NOT NULL,
+    "category" "text",
+    "subtype" "text",
+    "specs" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
+    "source" "text" DEFAULT 'shop'::"text" NOT NULL,
+    "confidence" numeric(4,2) DEFAULT 1.00 NOT NULL,
+    "confirmed_by" "uuid",
+    "confirmed_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "organization_equipment_spec_cache_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "organization_equipment_spec_cache_org_make_model_key" UNIQUE ("organization_id", "manufacturer_norm", "model_norm"),
+    CONSTRAINT "organization_equipment_spec_cache_confidence_check" CHECK ((("confidence" >= 0) AND ("confidence" <= 1))),
+    CONSTRAINT "organization_equipment_spec_cache_source_check" CHECK (("source" = ANY (ARRAY['taxonomy'::"text", 'vpic'::"text", 'epa'::"text", 'shop'::"text"])))
+);
+
+ALTER TABLE "public"."organization_equipment_spec_cache" OWNER TO "postgres";
+
+ALTER TABLE ONLY "public"."organization_equipment_spec_cache"
+    ADD CONSTRAINT "organization_equipment_spec_cache_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE CASCADE;
+
+ALTER TABLE ONLY "public"."organization_equipment_spec_cache"
+    ADD CONSTRAINT "organization_equipment_spec_cache_confirmed_by_fkey" FOREIGN KEY ("confirmed_by") REFERENCES "auth"."users"("id") ON DELETE SET NULL;
+
+CREATE INDEX "idx_org_equipment_spec_cache_org_id" ON "public"."organization_equipment_spec_cache" USING "btree" ("organization_id");
+
+ALTER TABLE "public"."organization_equipment_spec_cache" ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "organization_equipment_spec_cache_select" ON "public"."organization_equipment_spec_cache" FOR SELECT USING ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+
+CREATE POLICY "organization_equipment_spec_cache_insert" ON "public"."organization_equipment_spec_cache" FOR INSERT WITH CHECK (("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND (("confirmed_by" IS NULL) OR ("confirmed_by" = ( SELECT "auth"."uid"() AS "uid")))));
+
+CREATE POLICY "organization_equipment_spec_cache_update" ON "public"."organization_equipment_spec_cache" FOR UPDATE USING ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) WITH CHECK ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+
+CREATE POLICY "organization_equipment_spec_cache_delete" ON "public"."organization_equipment_spec_cache" FOR DELETE USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
+
+GRANT ALL ON TABLE "public"."organization_equipment_spec_cache" TO "anon";
+GRANT ALL ON TABLE "public"."organization_equipment_spec_cache" TO "authenticated";
+GRANT ALL ON TABLE "public"."organization_equipment_spec_cache" TO "service_role";
+
 
 
 
