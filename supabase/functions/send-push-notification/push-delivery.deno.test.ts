@@ -1,14 +1,30 @@
-import { assertEquals } from "jsr:@std/assert@1";
+import { assertEquals, assertStringIncludes } from "jsr:@std/assert@1";
 import { stub } from "jsr:@std/testing@1/mock";
 import webpush from "npm:web-push@3.6.7";
 import { handlePushNotification } from "./index.ts";
 import { runDrainLoopForQueue, type QueueMessage } from "../queue-worker/index.ts";
+import {
+  buildWorkOrderDigestEmail,
+  buildWorkOrderNotificationEmail,
+  type WorkOrderNotificationSafeView,
+} from "../_shared/work-order-notification-email.ts";
 
 const payload = {
   user_id: "00000000-0000-0000-0000-000000000001",
   title: "Work Order Assigned",
   body: "A work order has been assigned.",
   data: { notification_id: "test-notification" },
+};
+
+const sampleSafeView: WorkOrderNotificationSafeView = {
+  work_order_id: "00000000-0000-0000-0000-000000000099",
+  title: "Hydraulic Leak Inspection",
+  new_status: "in_progress",
+  priority: "high",
+  equipment_name: "CAT 320 Excavator",
+  team_name: "Heavy Fleet Team",
+  organization_name: "Acme Construction",
+  deep_link_path: "/dashboard/work-orders/00000000-0000-0000-0000-000000000099",
 };
 
 async function withDelivery(
@@ -146,4 +162,82 @@ Deno.test("expired-subscription cleanup failures preserve retry", async () => {
   await withDelivery([410], async (call) => {
     assertEquals((await call()).status, 503);
   }, { cleanupError: true });
+});
+
+Deno.test("safe-view email builder renders only pre-redacted fields and escapes HTML", () => {
+  const { subject, html } = buildWorkOrderNotificationEmail(
+    {
+      ...sampleSafeView,
+      title: "Boom <script>alert(1)</script> & Cylinder",
+    },
+    "https://equipqr.app",
+  );
+  assertStringIncludes(subject, "[High Priority] [Acme Construction] Work Order In Progress");
+  assertStringIncludes(html, "Boom &lt;script&gt;alert(1)&lt;/script&gt; &amp; Cylinder");
+  assertStringIncludes(html, "CAT 320 Excavator");
+  assertStringIncludes(html, "Heavy Fleet Team");
+  assertStringIncludes(html, "https://equipqr.app/dashboard/work-orders/00000000-0000-0000-0000-000000000099");
+});
+
+Deno.test("daily digest email builder renders summary table for multiple safe views", () => {
+  const { subject, html } = buildWorkOrderDigestEmail(
+    "Acme Construction",
+    [sampleSafeView],
+    "https://equipqr.app",
+  );
+  assertEquals(subject, "[Acme Construction] Daily Work Order Digest (1 update)");
+  assertStringIncludes(html, "Hydraulic Leak Inspection");
+  assertStringIncludes(html, "Heavy Fleet Team");
+});
+
+Deno.test("email channel delivers safe-view notification via Resend", async () => {
+  const env = {
+    SUPABASE_URL: "http://127.0.0.1:54321",
+    SUPABASE_SERVICE_ROLE_KEY: "test-service-key",
+    RESEND_API_KEY: "re_test_key",
+  };
+  const previous = new Map(Object.keys(env).map((key) => [key, Deno.env.get(key)]));
+  for (const [key, value] of Object.entries(env)) Deno.env.set(key, value);
+
+  let resendBodies: string[] = [];
+  const fetchStub = stub(globalThis, "fetch", async (input, init) => {
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    if (url.pathname.endsWith("/profiles")) {
+      return Response.json({ email: "tech@example.com", deleted_at: null });
+    }
+    if (url.hostname === "api.resend.com") {
+      resendBodies.push(String(init?.body ?? ""));
+      return Response.json({ id: "email-123" });
+    }
+    throw new Error(`Unexpected network request: ${url.href}`);
+  });
+
+  try {
+    const response = await handlePushNotification(
+      new Request("http://localhost/push", {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer test-service-key",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          channel: "email",
+          user_id: "00000000-0000-0000-0000-000000000001",
+          organization_id: "00000000-0000-0000-0000-000000000010",
+          safe_view: sampleSafeView,
+        }),
+      }),
+    );
+    assertEquals(response.status, 200);
+    assertEquals(await response.json(), { success: true, sent: 1, emailId: "email-123" });
+    assertEquals(resendBodies.length, 1);
+    assertStringIncludes(resendBodies[0], "tech@example.com");
+    assertStringIncludes(resendBodies[0], "Hydraulic Leak Inspection");
+  } finally {
+    fetchStub.restore();
+    for (const [key, value] of previous) {
+      if (value === undefined) Deno.env.delete(key);
+      else Deno.env.set(key, value);
+    }
+  }
 });

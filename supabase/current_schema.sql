@@ -17572,6 +17572,41 @@ COMMENT ON COLUMN "public"."notes"."author_name" IS 'Denormalized author name. P
 
 
 
+CREATE TABLE IF NOT EXISTS "public"."notification_digest_pending" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "organization_id" "uuid" NOT NULL,
+    "work_order_id" "uuid",
+    "event_type" "text" NOT NULL,
+    "safe_view" "jsonb" NOT NULL,
+    "channels" "jsonb" DEFAULT '{"email": true, "web_push": false}'::"jsonb" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "processed_at" timestamp with time zone
+);
+
+
+ALTER TABLE "public"."notification_digest_pending" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."notification_digest_pending" IS 'Pending non-high-priority work order notification safe views queued for daily digest delivery (#1438).';
+
+
+CREATE TABLE IF NOT EXISTS "public"."user_org_notification_preferences" (
+    "user_id" "uuid" NOT NULL,
+    "organization_id" "uuid" NOT NULL,
+    "preferences" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "user_org_notification_preferences_is_object" CHECK (("jsonb_typeof"("preferences") = 'object'::"text"))
+);
+
+
+ALTER TABLE "public"."user_org_notification_preferences" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."user_org_notification_preferences" IS 'Per-user, per-organization notification routing preferences (channels, quiet_hours, digest, high_priority_only, teams status matrix). Issue #1438.';
+
+
 CREATE TABLE IF NOT EXISTS "public"."notification_preferences" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "user_id" "uuid" NOT NULL,
@@ -26370,6 +26405,20 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
+
+ALTER TABLE ONLY "public"."user_org_notification_preferences"
+    ADD CONSTRAINT "user_org_notification_preferences_pkey" PRIMARY KEY ("user_id", "organization_id");
+
+ALTER TABLE ONLY "public"."notification_digest_pending"
+    ADD CONSTRAINT "notification_digest_pending_pkey" PRIMARY KEY ("id");
+
+ALTER TABLE "public"."user_org_notification_preferences" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."notification_digest_pending" ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "user_org_notification_preferences_user_policy" ON "public"."user_org_notification_preferences" TO "authenticated" USING (("user_id" = ( SELECT "auth"."uid"() AS "uid"))) WITH CHECK (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
+
+CREATE POLICY "notification_digest_pending_select_own" ON "public"."notification_digest_pending" FOR SELECT TO "authenticated" USING (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
+
 
 
 
