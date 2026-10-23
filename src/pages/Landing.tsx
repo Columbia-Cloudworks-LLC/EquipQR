@@ -7,6 +7,9 @@ import { usePrefersReducedMotion } from '@/hooks/use-prefers-reduced-motion';
 
 const WhyDifferentSection = lazy(() => import('@/components/landing/WhyDifferentSection'));
 const HowItWorksSection = lazy(() => import('@/components/landing/HowItWorksSection'));
+const RecommendedHardwareSection = lazy(
+  () => import('@/components/landing/RecommendedHardwareSection'),
+);
 const FeaturesSection = lazy(() => import('@/components/landing/FeaturesSection'));
 const SocialProofSection = lazy(() => import('@/components/landing/SocialProofSection'));
 const AboutSection = lazy(() => import('@/components/landing/AboutSection'));
@@ -84,6 +87,7 @@ const Landing: React.FC = () => {
           <Suspense fallback={<BelowFoldFallback />}>
             <WhyDifferentSection />
             <HowItWorksSection />
+            <RecommendedHardwareSection />
             <FeaturesSection id="features" />
             <AboutSection id="about" />
             <SocialProofSection />
