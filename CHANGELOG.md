@@ -11,6 +11,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Added
+
+- **Work order notification channels, quiet hours, and daily digests (#1438)** — In Settings → Notifications, you can choose per organization whether work order updates arrive in-app, by email, or via browser push, limit alerts to high-priority work orders, set quiet hours in your local timezone, or batch non-urgent updates into a daily digest while keeping per-team status controls.
+
 ## [3.37.0] - 2026-10-16
 
 ### Added

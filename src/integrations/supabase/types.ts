@@ -1630,6 +1630,57 @@ export type Database = {
           },
         ]
       }
+      notification_digest_pending: {
+        Row: {
+          channels: Json
+          created_at: string
+          event_type: string
+          id: string
+          organization_id: string
+          processed_at: string | null
+          safe_view: Json
+          user_id: string
+          work_order_id: string | null
+        }
+        Insert: {
+          channels?: Json
+          created_at?: string
+          event_type: string
+          id?: string
+          organization_id: string
+          processed_at?: string | null
+          safe_view: Json
+          user_id: string
+          work_order_id?: string | null
+        }
+        Update: {
+          channels?: Json
+          created_at?: string
+          event_type?: string
+          id?: string
+          organization_id?: string
+          processed_at?: string | null
+          safe_view?: Json
+          user_id?: string
+          work_order_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_digest_pending_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_digest_pending_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           created_at: string
@@ -4431,6 +4482,38 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "user_departure_queue_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_org_notification_preferences: {
+        Row: {
+          created_at: string
+          organization_id: string
+          preferences: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          organization_id: string
+          preferences?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          organization_id?: string
+          preferences?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_org_notification_preferences_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"

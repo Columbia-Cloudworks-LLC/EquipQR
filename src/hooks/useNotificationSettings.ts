@@ -1,20 +1,42 @@
 import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { getAuthClaims } from '@/lib/authClaims';
 
-export interface NotificationSetting {
-  id: string;
-  user_id: string;
-  organization_id: string;
-  team_id: string;
+export interface NotificationChannelsPreference {
+  in_app: boolean;
+  email: boolean;
+  web_push: boolean;
+}
+
+export interface NotificationQuietHoursPreference {
+  enabled: boolean;
+  start: string;
+  end: string;
+  timezone: string;
+}
+
+export type NotificationDigestMode = 'realtime' | 'daily';
+
+export interface NotificationDigestPreference {
+  mode: NotificationDigestMode;
+}
+
+export interface TeamStatusPreference {
   enabled: boolean;
   statuses: string[];
-  created_at: string;
-  updated_at: string;
+}
+
+export interface UserOrgNotificationPreferencesDocument {
+  channels: NotificationChannelsPreference;
+  quiet_hours: NotificationQuietHoursPreference;
+  digest: NotificationDigestPreference;
+  high_priority_only: boolean;
+  teams: Record<string, TeamStatusPreference>;
 }
 
 export interface UserTeamForNotifications {
@@ -26,6 +48,148 @@ export interface UserTeamForNotifications {
   has_access: boolean;
 }
 
+export function getBrowserDefaultTimezone(): string {
+  try {
+    const resolved = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return resolved && resolved.trim().length > 0 ? resolved : 'UTC';
+  } catch {
+    return 'UTC';
+  }
+}
+
+export function getDefaultNotificationPreferences(
+  defaultTimezone: string = getBrowserDefaultTimezone(),
+): UserOrgNotificationPreferencesDocument {
+  return {
+    channels: {
+      in_app: true,
+      email: true,
+      web_push: true,
+    },
+    quiet_hours: {
+      enabled: false,
+      start: '22:00',
+      end: '07:00',
+      timezone: defaultTimezone,
+    },
+    digest: {
+      mode: 'realtime',
+    },
+    high_priority_only: false,
+    teams: {},
+  };
+}
+
+function isJsonRecord(value: Json | undefined): value is { [key: string]: Json | undefined } {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+export function normalizeNotificationPreferences(
+  raw: Json | undefined,
+  defaultTimezone: string = getBrowserDefaultTimezone(),
+): UserOrgNotificationPreferencesDocument {
+  const defaults = getDefaultNotificationPreferences(defaultTimezone);
+  if (!isJsonRecord(raw)) {
+    return defaults;
+  }
+
+  const rawChannels = isJsonRecord(raw.channels) ? raw.channels : {};
+  const channels: NotificationChannelsPreference = {
+    in_app: typeof rawChannels.in_app === 'boolean' ? rawChannels.in_app : defaults.channels.in_app,
+    email: typeof rawChannels.email === 'boolean' ? rawChannels.email : defaults.channels.email,
+    web_push:
+      typeof rawChannels.web_push === 'boolean' ? rawChannels.web_push : defaults.channels.web_push,
+  };
+
+  const rawQuiet = isJsonRecord(raw.quiet_hours) ? raw.quiet_hours : {};
+  const quietEnabled =
+    typeof rawQuiet.enabled === 'boolean' ? rawQuiet.enabled : defaults.quiet_hours.enabled;
+  const rawTimezone =
+    typeof rawQuiet.timezone === 'string' && rawQuiet.timezone.trim().length > 0
+      ? rawQuiet.timezone.trim()
+      : '';
+  // When quiet hours have not been enabled and the stored timezone is missing or 'UTC' from
+  // the initial migration, default to the user's browser timezone on UI load.
+  const resolvedTimezone =
+    rawTimezone.length > 0 && (quietEnabled || rawTimezone !== 'UTC')
+      ? rawTimezone
+      : defaultTimezone;
+
+  const quiet_hours: NotificationQuietHoursPreference = {
+    enabled: quietEnabled,
+    start:
+      typeof rawQuiet.start === 'string' && rawQuiet.start.trim().length > 0
+        ? rawQuiet.start.trim()
+        : defaults.quiet_hours.start,
+    end:
+      typeof rawQuiet.end === 'string' && rawQuiet.end.trim().length > 0
+        ? rawQuiet.end.trim()
+        : defaults.quiet_hours.end,
+    timezone: resolvedTimezone,
+  };
+
+  const rawDigest = isJsonRecord(raw.digest) ? raw.digest : {};
+  const digestMode: NotificationDigestMode =
+    rawDigest.mode === 'daily' ? 'daily' : 'realtime';
+
+  const high_priority_only =
+    typeof raw.high_priority_only === 'boolean'
+      ? raw.high_priority_only
+      : defaults.high_priority_only;
+
+  const teams: Record<string, TeamStatusPreference> = {};
+  if (isJsonRecord(raw.teams)) {
+    for (const [teamId, teamVal] of Object.entries(raw.teams)) {
+      if (isJsonRecord(teamVal)) {
+        const enabled = typeof teamVal.enabled === 'boolean' ? teamVal.enabled : false;
+        const statuses = Array.isArray(teamVal.statuses)
+          ? teamVal.statuses.filter((item): item is string => typeof item === 'string')
+          : [];
+        teams[teamId] = { enabled, statuses };
+      }
+    }
+  }
+
+  return {
+    channels,
+    quiet_hours,
+    digest: { mode: digestMode },
+    high_priority_only,
+    teams,
+  };
+}
+
+export function serializeNotificationPreferences(
+  doc: UserOrgNotificationPreferencesDocument,
+): Json {
+  const teamsJson: { [key: string]: Json } = {};
+  for (const [teamId, teamPref] of Object.entries(doc.teams)) {
+    teamsJson[teamId] = {
+      enabled: teamPref.enabled,
+      statuses: teamPref.statuses,
+    };
+  }
+
+  return {
+    channels: {
+      in_app: doc.channels.in_app,
+      email: doc.channels.email,
+      web_push: doc.channels.web_push,
+    },
+    quiet_hours: {
+      enabled: doc.quiet_hours.enabled,
+      start: doc.quiet_hours.start,
+      end: doc.quiet_hours.end,
+      timezone: doc.quiet_hours.timezone,
+    },
+    digest: {
+      mode: doc.digest.mode,
+    },
+    high_priority_only: doc.high_priority_only,
+    teams: teamsJson,
+  };
+}
+
 // Hook to get user's teams across all organizations for notification settings
 export const useUserTeamsForNotifications = () => {
   return useQuery({
@@ -35,64 +199,66 @@ export const useUserTeamsForNotifications = () => {
       if (!claims) return [];
 
       const { data, error } = await supabase.rpc('get_user_teams_for_notifications', {
-        user_uuid: claims.sub
+        user_uuid: claims.sub,
       });
 
       if (error) throw error;
-      return data as UserTeamForNotifications[];
-    }
+      return (data ?? []) as UserTeamForNotifications[];
+    },
   });
 };
 
-// Hook to get user's notification settings
-export const useNotificationSettings = () => {
+// Hook to get per-organization notification preference documents (#1438)
+export const useOrgNotificationPreferences = () => {
   return useQuery({
-    queryKey: ['notification-settings'],
-    queryFn: async () => {
+    queryKey: ['org-notification-preferences'],
+    queryFn: async (): Promise<Record<string, UserOrgNotificationPreferencesDocument>> => {
       const claims = await getAuthClaims();
-      if (!claims) return [];
+      if (!claims) return {};
 
       const { data, error } = await supabase
-        .from('notification_settings')
-        .select('*')
+        .from('user_org_notification_preferences')
+        .select('organization_id, preferences')
         .eq('user_id', claims.sub);
 
       if (error) throw error;
-      return data as NotificationSetting[];
-    }
+
+      const byOrg: Record<string, UserOrgNotificationPreferencesDocument> = {};
+      for (const row of data ?? []) {
+        byOrg[row.organization_id] = normalizeNotificationPreferences(row.preferences);
+      }
+      return byOrg;
+    },
   });
 };
 
-// Hook to update notification settings
-export const useUpdateNotificationSettings = () => {
+// Hook to upsert an organization's notification preference document (#1438)
+export const useUpsertOrgNotificationPreferences = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({
       organizationId,
-      teamId,
-      enabled,
-      statuses
+      preferences,
     }: {
       organizationId: string;
-      teamId: string;
-      enabled: boolean;
-      statuses: string[];
+      preferences: UserOrgNotificationPreferencesDocument;
     }) => {
       const claims = await getAuthClaims();
       if (!claims) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
-        .from('notification_settings')
-        .upsert({
-          user_id: claims.sub,
-          organization_id: organizationId,
-          team_id: teamId,
-          enabled,
-          statuses
-        }, {
-          onConflict: 'user_id,organization_id,team_id'
-        })
+        .from('user_org_notification_preferences')
+        .upsert(
+          {
+            user_id: claims.sub,
+            organization_id: organizationId,
+            preferences: serializeNotificationPreferences(preferences),
+          },
+          {
+            onConflict: 'user_id,organization_id',
+          },
+        )
         .select()
         .single();
 
@@ -100,13 +266,14 @@ export const useUpdateNotificationSettings = () => {
       return data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['org-notification-preferences'] });
       queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
-      toast.success('Notification settings updated');
+      toast.success('Notification preferences updated');
     },
     onError: (error) => {
-      console.error('Error updating notification settings:', error);
-      toast.error('Failed to update notification settings');
-    }
+      logger.error('Error updating notification preferences:', error);
+      toast.error('Failed to update notification preferences');
+    },
   });
 };
 
@@ -142,14 +309,12 @@ export const useRealTimeNotifications = (organizationId: string) => {
 
       if (globalError) throw globalError;
 
-      // Combine and sort by created_at
-      // Pre-compute timestamps to avoid creating Date objects inside the sort comparator
       const allNotifications = [...(orgNotifications || []), ...(globalNotifications || [])];
       const createdAtTimestamps = new Map<string, number>();
       for (const notification of allNotifications) {
         createdAtTimestamps.set(
           notification.id,
-          new Date(notification.created_at).getTime()
+          new Date(notification.created_at).getTime(),
         );
       }
 
@@ -162,19 +327,12 @@ export const useRealTimeNotifications = (organizationId: string) => {
       return allNotifications;
     },
     enabled: !!organizationId,
-    refetchInterval: false, // We'll use real-time subscriptions instead
+    refetchInterval: false,
   });
 };
 
 /**
  * Hook to set up real-time subscription for notifications using Supabase Broadcast.
- * 
- * This uses the scalable Broadcast pattern instead of postgres_changes:
- * - Private channel per user: `notifications:user:<user_id>`
- * - Lightweight broadcast payloads trigger query invalidation
- * - Requires Realtime Authorization (RLS on realtime.messages)
- * 
- * @param organizationId - Current organization ID (used for query invalidation)
  */
 export const useNotificationSubscription = (organizationId: string) => {
   const queryClient = useQueryClient();
@@ -186,37 +344,30 @@ export const useNotificationSubscription = (organizationId: string) => {
 
     const setupSubscription = async () => {
       try {
-        // Get current user
         const claims = await getAuthClaims();
         if (!claims || !isMounted) return;
 
         const userId = claims.sub;
         userIdRef.current = userId;
 
-        // Clean up any existing channel for this user
         if (channelRef.current) {
           await supabase.removeChannel(channelRef.current);
           channelRef.current = null;
         }
 
-        // Set auth for private channels (required for Realtime Authorization)
         await supabase.realtime.setAuth();
 
-        // Check again after async operations - component may have unmounted
         if (!isMounted) return;
 
-        // Create private channel for this user's notifications
         const channel = supabase
           .channel(`notifications:user:${userId}`, {
-            config: { private: true }
+            config: { private: true },
           })
           .on('broadcast', { event: 'new_notification' }, (payload) => {
             if (!isMounted) return;
-            
+
             logger.debug('Received notification broadcast', payload);
-            
-            // Invalidate notifications queries to refetch fresh data
-            // This keeps broadcast payloads small while ensuring UI updates
+
             queryClient.invalidateQueries({ queryKey: ['notifications', organizationId] });
             queryClient.invalidateQueries({ queryKey: ['notifications'] });
           })
@@ -230,9 +381,7 @@ export const useNotificationSubscription = (organizationId: string) => {
             }
           });
 
-        // Final check before storing channel reference - prevent race condition
         if (!isMounted) {
-          // Component unmounted during setup, clean up the channel we just created
           await supabase.removeChannel(channel);
           return;
         }
@@ -247,7 +396,6 @@ export const useNotificationSubscription = (organizationId: string) => {
       setupSubscription();
     }
 
-    // Cleanup on unmount or when organizationId changes
     return () => {
       isMounted = false;
       if (channelRef.current) {
@@ -257,7 +405,6 @@ export const useNotificationSubscription = (organizationId: string) => {
     };
   }, [organizationId, queryClient]);
 
-  // Return channel info for debugging (optional)
   return {
     isSubscribed: !!channelRef.current,
     userId: userIdRef.current,
@@ -288,8 +435,8 @@ export const useMarkAllNotificationsAsRead = () => {
       toast.success('All notifications marked as read');
     },
     onError: (error) => {
-      console.error('Error marking notifications as read:', error);
+      logger.error('Error marking notifications as read:', error);
       toast.error('Failed to mark notifications as read');
-    }
+    },
   });
 };
