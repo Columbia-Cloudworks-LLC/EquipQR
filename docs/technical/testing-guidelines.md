@@ -32,7 +32,7 @@ As the product and test suite scale:
 | Subject | Test file |
 | --- | --- |
 | `src/features/equipment/components/Foo.tsx` | `src/features/equipment/components/Foo.test.tsx` |
-| `dev/lib/demoScenarioEngine.mjs` | `dev/lib/demoScenarioEngine.test.ts` |
+| `dev/lib/demo/scenarios.mjs` | `dev/lib/demoScenarioEngine.test.ts` |
 | `e2e/pr-evidence/shared/evidence-helpers.ts` | `e2e/pr-evidence/shared/evidence-helpers.test.ts` (or a dedicated helper test beside it) |
 
 Shared Vitest harness (setup, fixtures, mocks, journey renderers) lives at repo-root **`vitest/`** and is imported as `@vitest-harness/...`. It is not a place for product suites.
@@ -275,7 +275,7 @@ src/features/equipment/
 │   ├── Foo.tsx
 │   └── Foo.test.tsx              # Sibling colocation
 dev/lib/
-├── demoScenarioEngine.mjs
+├── demo/scenarios.mjs
 └── demoScenarioEngine.test.ts
 e2e/user/                         # Playwright (not Vitest)
 ```

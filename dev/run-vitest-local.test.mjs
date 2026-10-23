@@ -2,8 +2,52 @@ import { describe, expect, it } from 'vitest';
 import {
   getVitestPathFilters,
   parseReporterArgs,
+  parseTestRunnerArgs,
   parseVitestLocalArgs,
 } from './lib/parse-vitest-local-args.mjs';
+
+describe('parseTestRunnerArgs', () => {
+  it('defaults to local mode and strips --local flag', () => {
+    expect(parseTestRunnerArgs(['--local', '--project', 'unit'])).toEqual({
+      mode: 'local',
+      localArgs: ['--project', 'unit'],
+    });
+  });
+
+  it('selects ci mode when --ci is passed', () => {
+    expect(parseTestRunnerArgs(['--ci'])).toEqual({
+      mode: 'ci',
+      localArgs: [],
+    });
+  });
+
+  it('selects shard mode when --shard=N/M is passed', () => {
+    expect(parseTestRunnerArgs(['--shard=2/4'])).toEqual({
+      mode: 'shard',
+      shard: '--shard=2/4',
+      shardIndex: 2,
+      shardTotal: 4,
+      localArgs: [],
+    });
+  });
+
+  it('throws on invalid --shard value', () => {
+    expect(() => parseTestRunnerArgs(['--shard=5/4'])).toThrow('Invalid --shard=5/4 argument');
+    expect(() => parseTestRunnerArgs(['--shard=abc'])).toThrow('Invalid --shard=abc argument');
+  });
+
+  it('selects sharded mode when --shards=N is passed', () => {
+    expect(parseTestRunnerArgs(['--shards=4'])).toEqual({
+      mode: 'sharded',
+      shardTotal: 4,
+      localArgs: [],
+    });
+  });
+
+  it('throws on invalid --shards value', () => {
+    expect(() => parseTestRunnerArgs(['--shards=0'])).toThrow('Invalid --shards=N value');
+  });
+});
 
 describe('run-vitest-local argv parsing', () => {
   it('preserves --coverage when --project is absent', () => {

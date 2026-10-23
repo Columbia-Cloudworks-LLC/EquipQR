@@ -2,8 +2,6 @@
 
 This document tracks security vulnerabilities that have been identified and resolved in the EquipQR™ project, along with current security best practices.
 
-> **Historical Context**: For detailed documentation of past security fixes, see [Historical Security Fixes](../archive/historical-fixes/README.md).
-
 ## 🔒 Current Security Status
 
 - **✅ All critical vulnerabilities resolved** as of 2024

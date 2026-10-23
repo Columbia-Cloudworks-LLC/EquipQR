@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url';
 import {
   allocateCanonicalArtifactRelativePath,
   ensureDemoDirectory
-} from './lib/demoArtifactPaths.mjs';
+} from './lib/demo/artifacts.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');

@@ -3,9 +3,9 @@ import { parseArgs } from './demo-record-v2.mjs';
 import {
   loadScenarioRegistry,
   expandScenarioSteps,
-  createSubstitutionContext
-} from './lib/demoScenarioEngine.mjs';
-import { buildOrchestratorPlan } from './lib/demoOrchestratorPlan.mjs';
+  createSubstitutionContext,
+  buildOrchestratorPlan
+} from './lib/demo/scenarios.mjs';
 
 describe('demo-record-v2 planning smoke', () => {
   it('parses dry-run suite args and builds executable plan', async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateDemoQualityGate } from './demoQualityGate.mjs';
+import { evaluateDemoQualityGate } from './demo/artifacts.mjs';
 
 describe('evaluateDemoQualityGate', () => {
   it('passes for healthy duration/activity/checkpoints', () => {

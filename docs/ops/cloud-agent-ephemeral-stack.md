@@ -35,7 +35,7 @@ Cloud agents **do not** run `npx supabase start` in Docker. Cursor Cloud VMs hav
 
 Setup scripts:
 
-- Setup: `bash dev/cloud-agent-frontend-setup.sh` (Node 24, `.env`, `npm ci`)
+- Setup: `bash dev/linux/setup.sh --target=agent` (Node 24, `.env`, `npm ci`)
 - Start: `bash dev/cloud-agent-ephemeral-stack.sh`
 
 Cloud Agent secrets must include at least:

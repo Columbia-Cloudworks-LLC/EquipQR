@@ -32,6 +32,11 @@ EquipQR is a multi-tenant fleet maintenance application for equipment QR trackin
    - Touch only the files and systems explicitly requested.
    - Do not refactor adjacent modules, rewrite working patterns, or add unneeded dependencies.
 
+5. **Anti-Sprawl & Tooling Hygiene:**
+   - **No Ad-Hoc Scripts:** Never create new standalone scripts in `dev/`, `.github/scripts/`, or the repository root unless explicitly requested by the user. Top-level `dev/` scripts are gated by `etc/root-layout.json` (`npm run verify:root-layout`).
+   - **Extend Existing Entrypoints:** Always prefer extending existing CLI tools (`dev/linux/dev.sh`, `dev/linux/setup.sh`, `dev/test-runner.mjs`, `dev/lint-catalog.mjs`) via flags or subcommands instead of adding new wrapper files.
+   - **No Ephemeral Artifacts in Git:** Never commit ad-hoc markdown bug summaries, `.tsv` audit dumps, or issue-specific SQL hotfix files. Put root-cause analysis and verification notes in PR descriptions or GitHub issue comments, and put all schema/data fixes in versioned `supabase/migrations/`.
+
 ---
 
 ## 2. Core Documentation & References

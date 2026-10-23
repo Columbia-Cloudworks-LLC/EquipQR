@@ -4,7 +4,7 @@ import {
   buildDiagnosticsPath,
   buildMetadataPath,
   buildRunMetadata
-} from './demoDiagnostics.mjs';
+} from './demo/artifacts.mjs';
 
 describe('demo diagnostics helpers', () => {
   it('builds deterministic sidecar paths', () => {

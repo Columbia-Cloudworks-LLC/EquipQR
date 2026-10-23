@@ -2,24 +2,28 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import { parseDemoGifArgs, isLocalhostBaseUrl } from './lib/demoGifArgs.mjs';
-import { allocateCanonicalArtifactRelativePath, ensureDemoDirectory } from './lib/demoArtifactPaths.mjs';
+import { allocateCanonicalArtifactRelativePath, ensureDemoDirectory } from './lib/demo/artifacts.mjs';
 import {
   demoGifRepoRoot,
   runCommand,
   runPlaywrightCommand,
   sleep,
   ensureBinaryAvailable,
-} from './lib/demoGifPlaywright.mjs';
-import { loginAsAlexApex, loginWithPersona, waitForDashboardOrThrow } from './lib/demoGifAuth.mjs';
+  loginAsAlexApex,
+  loginWithPersona,
+  waitForDashboardOrThrow,
+  stopVideoAtPath,
+  runSmokeVideoRecording,
+  runScenarioSteps,
+} from './lib/demo/recording.mjs';
 import {
+  parseDemoGifArgs,
+  isLocalhostBaseUrl,
   loadManifest,
   printScenarioList,
   loadScenario,
   resolveViewportConfig,
-  runScenarioSteps,
-} from './lib/demoGifScenario.mjs';
-import { stopVideoAtPath, runSmokeVideoRecording } from './lib/demoGifRecording.mjs';
+} from './lib/demo/scenarios.mjs';
 import {
   buildRecordingGifFfmpegFilter,
   probeVideoDimensions,

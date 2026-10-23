@@ -227,7 +227,7 @@ jobs:
         npm ci --prefer-offline --no-audit || (rm -f package-lock.json && npm install --package-lock-only --no-audit && npm ci --prefer-offline --no-audit)
 
     - name: Run shard ${{ matrix.shard }}/${{ matrix.shard_total }}
-      run: node dev/test-ci-shard.mjs --shard=${{ matrix.shard }}/${{ matrix.shard_total }}
+      run: node dev/test-runner.mjs --shard=${{ matrix.shard }}/${{ matrix.shard_total }}
       env:
         CI: 'true'
         NODE_OPTIONS: '--max-old-space-size=4096'
