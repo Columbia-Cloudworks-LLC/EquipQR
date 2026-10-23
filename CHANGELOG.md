@@ -11,6 +11,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Added
+
+- **Offline-first equipment intake & background photo sync (#1645)** — You can create equipment records, attach camera and nameplate photos, and log QR scans while offline. Captured photos display immediately on pending equipment cards and upload in the background when connectivity returns, and a new Review Queue drawer lets you inspect, retry, or delete queued drafts.
+
 ## [3.37.0] - 2026-10-16
 
 ### Added

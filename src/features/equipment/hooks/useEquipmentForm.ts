@@ -118,7 +118,11 @@ export const useEquipmentForm = (
       const createData = toEquipmentCreateData(data, {
         customerId: cloneSource?.customer_id ?? null,
       });
-      const result = await service.createEquipmentFull(createData);
+      const pendingMedia = mediaRef.current;
+      const result = await service.createEquipmentFull(createData, {
+        images: pendingMedia.files,
+        displayImageIndex: pendingMedia.displayIndex,
+      });
 
       if (result.queuedOffline) {
         return { id: 'offline', queuedOffline: true as const };

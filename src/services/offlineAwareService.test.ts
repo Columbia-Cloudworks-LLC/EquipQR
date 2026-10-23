@@ -1,7 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { OfflineAwareWorkOrderService } from './offlineAwareService';
-import { OfflineQueueService } from './offlineQueueService';
+import { OfflineQueueService, computeOfflineRetryDelayMs } from './offlineQueueService';
+import {
+  saveCachedReferenceData,
+  getCachedReferenceData,
+  clearCachedReferenceData,
+  withOfflineReferenceFallback,
+} from './offlineReferenceCache';
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -534,6 +540,132 @@ describe('OfflineAwareWorkOrderService', () => {
       const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
       await expect(svc.deletePM(pmId)).rejects.toThrow('Forbidden');
       expect(queueReader.getCount()).toBe(0);
+    });
+  });
+
+  // ── Offline Equipment Intake with Photos & Scan Logging (#1645) ──────────
+
+  describe('offline intake queue with media and scan timestamps (#1645)', () => {
+    it('stages camera photos when createEquipmentFull runs offline', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true, writable: true });
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      const result = await svc.createEquipmentFull(
+        {
+          name: 'Cat 320 Excavator',
+          manufacturer: 'Caterpillar',
+          model: '320',
+          serial_number: 'CAT-320-001',
+          status: 'active',
+          location: 'Yard Bay 4',
+          installation_date: '2026-10-23',
+          warranty_expiration: null,
+          last_maintenance: null,
+          notes: 'Data plate captured offline',
+          custom_attributes: null,
+          image_url: null,
+          last_known_location: null,
+          team_id: null,
+          default_pm_template_id: null,
+          customer_id: null,
+          working_hours: 120,
+          import_id: null,
+          assigned_location_street: null,
+          assigned_location_city: null,
+          assigned_location_state: null,
+          assigned_location_country: null,
+          assigned_location_lat: null,
+          assigned_location_lng: null,
+        },
+        {
+          images: [jpegFile('nameplate.jpg'), jpegFile('side-profile.jpg')],
+          displayImageIndex: 1,
+        },
+      );
+
+      expect(result.queuedOffline).toBe(true);
+      const items = queueReader.getAll();
+      expect(items).toHaveLength(1);
+      expect(items[0].type).toBe('equipment_create_full');
+      if (items[0].type === 'equipment_create_full') {
+        expect(items[0].payload.imageRefs).toHaveLength(2);
+        expect(items[0].payload.displayImageIndex).toBe(1);
+      }
+
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+    });
+
+    it('queues equipment_scan with original scan timestamp when offline', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true, writable: true });
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      const originalScannedAt = '2026-10-23T09:15:30.000Z';
+      const result = await svc.logEquipmentScan({
+        equipmentId: 'equip-99',
+        scannedAt: originalScannedAt,
+        location: '33.998,-81.045',
+        notes: 'Yard intake check',
+      });
+
+      expect(result.queuedOffline).toBe(true);
+      const items = queueReader.getAll();
+      expect(items).toHaveLength(1);
+      expect(items[0].type).toBe('equipment_scan');
+      if (items[0].type === 'equipment_scan') {
+        expect(items[0].payload.scannedAt).toBe(originalScannedAt);
+        expect(items[0].payload.location).toBe('33.998,-81.045');
+      }
+
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+    });
+
+    it('computes exponential backoff and supports sync_conflict flagging', () => {
+      expect(computeOfflineRetryDelayMs(1)).toBe(1000);
+      expect(computeOfflineRetryDelayMs(2)).toBe(2000);
+      expect(computeOfflineRetryDelayMs(3)).toBe(4000);
+      expect(computeOfflineRetryDelayMs(10)).toBe(30000);
+
+      const enqueued = queueReader.enqueue({
+        type: 'equipment_scan',
+        organizationId: ORG_ID,
+        userId: USER_ID,
+        payload: {
+          equipmentId: 'equip-1',
+          scannedAt: '2026-10-23T10:00:00.000Z',
+          location: null,
+          notes: null,
+        },
+      });
+
+      queueReader.updateRetry(enqueued.id, 2, 'Network flap');
+      const retried = queueReader.getById(enqueued.id);
+      expect(retried?.retryCount).toBe(2);
+      expect(typeof retried?.nextRetryAt).toBe('number');
+
+      queueReader.markConflict(enqueued.id, 'QR tag already claimed by another user');
+      const conflicted = queueReader.getById(enqueued.id);
+      expect(conflicted?.status).toBe('failed');
+      expect(conflicted?.conflictState).toBe('sync_conflict');
+    });
+
+    it('caches and falls back to reference data when offline', async () => {
+      await saveCachedReferenceData(ORG_ID, 'customers', [{ id: 'cust-1', name: 'Acme Construction' }]);
+      const cached = await getCachedReferenceData<Array<{ id: string; name: string }>>(ORG_ID, 'customers');
+      expect(cached?.data).toEqual([{ id: 'cust-1', name: 'Acme Construction' }]);
+
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true, writable: true });
+      const offlineResult = await withOfflineReferenceFallback({
+        organizationId: ORG_ID,
+        kind: 'customers',
+        fallbackValue: [],
+        fetcher: async () => {
+          throw new Error('Should not be called while offline');
+        },
+      });
+      expect(offlineResult).toEqual([{ id: 'cust-1', name: 'Acme Construction' }]);
+
+      await clearCachedReferenceData(ORG_ID, 'customers');
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
     });
   });
 });

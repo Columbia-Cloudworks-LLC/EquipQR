@@ -24,6 +24,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { OfflineQueueService, type OfflineQueueItem, type OfflineQueueEnqueueInput } from '@/services/offlineQueueService';
 import { OfflineQueueProcessor, type ProcessResult } from '@/services/offlineQueueProcessor';
+import { cleanupQueueItemBlobs } from '@/services/offlineQueueProcessorImages';
 import { logger } from '@/utils/logger';
 import { toast } from 'sonner';
 import { useBrowserOnline } from '@/hooks/useBrowserOnline';
@@ -145,11 +146,66 @@ export const OfflineQueueProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (isOnline && pendingCount > 0 && !isSyncing) {
       // Small delay to let the network stabilize
       const timer = setTimeout(() => {
-        syncNow();
+        void syncNow();
       }, 1500);
       return () => clearTimeout(timer);
     }
   }, [isOnline, pendingCount, isSyncing, syncNow]);
+
+  // Register Service Worker Background Sync when supported, and listen for
+  // foreground visibility changes as an iOS Safari fallback (#1645).
+  useEffect(() => {
+    if (pendingCount > 0 && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      void navigator.serviceWorker.ready
+        .then((registration) => {
+          const syncCapable = registration as ServiceWorkerRegistration & {
+            sync?: { register: (tag: string) => Promise<void> };
+          };
+          return syncCapable.sync?.register('equipqr-offline-queue-sync');
+        })
+        .catch(() => {
+          // Graceful fallback on iOS Safari and browsers without SyncManager
+        });
+    }
+
+    const handleVisibilityChange = () => {
+      if (
+        typeof document !== 'undefined' &&
+        document.visibilityState === 'visible' &&
+        isOnline &&
+        pendingCount > 0 &&
+        !isSyncing
+      ) {
+        void syncNow();
+      }
+    };
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }
+  }, [isOnline, pendingCount, isSyncing, syncNow]);
+
+  // Schedule exponential-backoff retry wakeups when pending items have nextRetryAt
+  useEffect(() => {
+    if (!isOnline || isSyncing || pendingCount === 0) return;
+
+    const now = Date.now();
+    const upcomingRetryTimes = queuedItems
+      .filter((item) => item.status === 'pending' && typeof item.nextRetryAt === 'number')
+      .map((item) => item.nextRetryAt as number);
+
+    if (upcomingRetryTimes.length === 0) return;
+
+    const earliestRetryAt = Math.min(...upcomingRetryTimes);
+    const delayMs = Math.max(250, earliestRetryAt - now);
+
+    const timer = setTimeout(() => {
+      void syncNow();
+    }, delayMs);
+
+    return () => clearTimeout(timer);
+  }, [isOnline, isSyncing, pendingCount, queuedItems, syncNow]);
 
   // Drain pending queue on app boot while online (tab reopen scenario)
   useEffect(() => {
@@ -193,7 +249,11 @@ export const OfflineQueueProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const removeItem = useCallback(
     (id: string) => {
+      const existing = queueService?.getById(id);
       queueService?.remove(id);
+      if (existing) {
+        void cleanupQueueItemBlobs(existing.userId, existing.organizationId, existing);
+      }
       refresh();
     },
     [queueService, refresh],

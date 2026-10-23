@@ -15,6 +15,7 @@ const EQUIPMENT_ITEM_TYPES = new Set([
   'equipment_update',
   'equipment_hours',
   'equipment_note',
+  'equipment_scan',
 ]);
 
 function hasPmItems(items: OfflineQueueItem[]): boolean {

@@ -4,6 +4,7 @@ import { PMChecklistItem } from './preventativeMaintenanceService';
 import { nanoid } from 'nanoid';
 import { safeJsonParse } from '@/lib/safeJsonParse';
 import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
+import { withOfflineReferenceFallback } from '@/services/offlineReferenceCache';
 
 type PMTemplateInsert = Database['public']['Tables']['pm_checklist_templates']['Insert'];
 type PMTemplateUpdate = Database['public']['Tables']['pm_checklist_templates']['Update'];
@@ -84,15 +85,22 @@ export const templateToSummary = (template: PMTemplate): PMTemplateSummary => {
 export const pmChecklistTemplatesService = {
   // List all templates accessible to an organization (global + org-specific)
   async listTemplates(orgId: string): Promise<PMTemplate[]> {
-    const { data, error } = await supabase
-      .from('pm_checklist_templates')
-      .select('*')
-      .or(`organization_id.is.null,organization_id.eq.${orgId}`)
-      .order('organization_id', { nullsFirst: true })
-      .order('name');
+    return withOfflineReferenceFallback({
+      organizationId: orgId,
+      kind: 'pm_templates',
+      fallbackValue: [],
+      fetcher: async () => {
+        const { data, error } = await supabase
+          .from('pm_checklist_templates')
+          .select('*')
+          .or(`organization_id.is.null,organization_id.eq.${orgId}`)
+          .order('organization_id', { nullsFirst: true })
+          .order('name');
 
-    if (error) throw error;
-    return (data || []) as unknown as PMTemplate[];
+        if (error) throw error;
+        return (data || []) as unknown as PMTemplate[];
+      },
+    });
   },
 
   // Get a specific template by ID
