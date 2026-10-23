@@ -6,8 +6,11 @@ import HeroAnimation, {
 import type { HeroSlideDefinition, HeroSlideProps } from './types';
 import { ScanMachineStatic } from './scan/ScanMachineStatic';
 import { ScanPoster } from './scan/ScanPoster';
+import { QuickBooksInvoiceStatic } from './billing/QuickBooksInvoiceStatic';
+import { QuickBooksInvoicePoster } from './billing/QuickBooksInvoicePoster';
 
 const ScanMachineSlide = lazy(() => import('./scan/ScanMachineSlide'));
+const QuickBooksInvoiceSlide = lazy(() => import('./billing/QuickBooksInvoiceSlide'));
 
 function FleetObservabilityStage({ onLoopComplete }: HeroSlideProps) {
   return createElement(HeroAnimation, { stageOnly: true, onLoopComplete });
@@ -15,8 +18,8 @@ function FleetObservabilityStage({ onLoopComplete }: HeroSlideProps) {
 
 /**
  * Production stories. Additional workflows register here without changing the
- * gallery shell. Customer request, preventive maintenance, and QuickBooks
- * stories stay separate issues until their animations exist.
+ * gallery shell. Customer request and preventive maintenance stories stay
+ * separate issues until their animations exist.
  */
 export const HERO_SLIDES: HeroSlideDefinition[] = [
   {
@@ -38,5 +41,15 @@ export const HERO_SLIDES: HeroSlideDefinition[] = [
     Stage: ScanMachineSlide,
     StaticFrame: ScanMachineStatic,
     Fallback: ScanPoster,
+  },
+  {
+    id: 'quickbooks-invoice',
+    label: 'QuickBooks draft invoice',
+    description:
+      'Completed field work resolves into labor and parts charges, the office approves the review, and EquipQR exports a traceable QuickBooks draft invoice.',
+    preload: () => import('./billing/QuickBooksInvoiceSlide'),
+    Stage: QuickBooksInvoiceSlide,
+    StaticFrame: QuickBooksInvoiceStatic,
+    Fallback: QuickBooksInvoicePoster,
   },
 ];
