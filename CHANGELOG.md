@@ -11,6 +11,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Added
+
+- **QuickBooks draft invoice hero workflow (#1564)** — The homepage workflow gallery now includes a "QuickBooks draft invoice" story showing how completed field work orders resolve into structured labor and parts charges for office review before exporting a traceable QuickBooks draft invoice.
+
 ## [3.37.0] - 2026-10-16
 
 ### Added
