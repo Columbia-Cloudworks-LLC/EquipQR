@@ -39,7 +39,7 @@ fi
 # shellcheck source=dev/linux/env.sh
 source dev/linux/env.sh
 bash dev/linux/install-deno.sh
-if [[ -f tmp/linux-stack/processes.json ]]; then
+if [[ -f tmp/linux-stack/processes.json ]] && ! node dev/linux/stack.mjs clear-stale; then
   echo 'Stop the stack before installing dependencies: bash dev/linux/dev.sh stop' >&2
   exit 1
 fi
