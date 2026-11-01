@@ -205,7 +205,7 @@
     "@axe-core/playwright": "4.13.0",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
-    "@size-limit/file": "13.0.3",
+    "@size-limit/file": "14.3.0",
     "@tailwindcss/postcss": "4.3.0",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
