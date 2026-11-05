@@ -92,9 +92,9 @@
       "problemMatcher": []
     },
     {
-      "label": "EquipQR: E2E Full (headless)",
+      "label": "EquipQR: E2E Full (headless, resets local DB)",
       "type": "shell",
-      "command": "bash dev/linux/user-regression.sh --suite full --headless",
+      "command": "bash dev/linux/user-regression.sh --suite full --headless --reset",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -137,9 +137,9 @@
       "problemMatcher": []
     },
     {
-      "label": "EquipQR: E2E Full Watch",
+      "label": "EquipQR: E2E Full Watch (resets local DB)",
       "type": "shell",
-      "command": "bash dev/linux/user-regression.sh --suite full --watch",
+      "command": "bash dev/linux/user-regression.sh --suite full --watch --reset",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -152,9 +152,9 @@
       "problemMatcher": []
     },
     {
-      "label": "EquipQR: E2E Full Watch + Record (demo)",
+      "label": "EquipQR: E2E Full Watch + Record (demo, resets local DB)",
       "type": "shell",
-      "command": "bash dev/linux/user-regression.sh --suite full --watch --record --profile demo",
+      "command": "bash dev/linux/user-regression.sh --suite full --watch --record --profile demo --reset",
       "options": {
         "cwd": "${workspaceFolder}"
       },
@@ -167,9 +167,9 @@
       "problemMatcher": []
     },
     {
-      "label": "EquipQR: E2E Mobile Watch + Record (demo)",
+      "label": "EquipQR: E2E Mobile Watch + Record (demo, resets local DB)",
       "type": "shell",
-      "command": "bash dev/linux/user-regression.sh --suite full --viewport mobile --watch --record --profile demo",
+      "command": "bash dev/linux/user-regression.sh --suite full --viewport mobile --watch --record --profile demo --reset",
       "options": {
         "cwd": "${workspaceFolder}"
       },
