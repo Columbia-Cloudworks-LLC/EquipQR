@@ -6,7 +6,8 @@
       "type": "msedge",
       "request": "launch",
       "url": "http://localhost:8080",
-      "webRoot": "${workspaceFolder}/src",
+      "webRoot": "${workspaceFolder}",
+      "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
       "preLaunchTask": "EquipQR: Start Full Dev Stack"
     },
     {
@@ -14,7 +15,8 @@
       "type": "chrome",
       "request": "launch",
       "url": "http://localhost:8080",
-      "webRoot": "${workspaceFolder}/src",
+      "webRoot": "${workspaceFolder}",
+      "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
       "preLaunchTask": "EquipQR: Start Full Dev Stack"
     }
   ]
