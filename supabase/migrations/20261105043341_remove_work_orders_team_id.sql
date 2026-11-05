@@ -1293,6 +1293,7 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $function$;
 
+-- rpc-authenticated-grant-allowed: create_historical_work_order_with_pm
 REVOKE ALL ON FUNCTION public.create_historical_work_order_with_pm(uuid, uuid, text, text, public.work_order_priority, public.work_order_status, timestamp with time zone, text, uuid, timestamp with time zone, timestamp with time zone, boolean, text, timestamp with time zone, text, jsonb) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.create_historical_work_order_with_pm(uuid, uuid, text, text, public.work_order_priority, public.work_order_status, timestamp with time zone, text, uuid, timestamp with time zone, timestamp with time zone, boolean, text, timestamp with time zone, text, jsonb) FROM anon;
 GRANT EXECUTE ON FUNCTION public.create_historical_work_order_with_pm(uuid, uuid, text, text, public.work_order_priority, public.work_order_status, timestamp with time zone, text, uuid, timestamp with time zone, timestamp with time zone, boolean, text, timestamp with time zone, text, jsonb) TO authenticated;
@@ -1643,6 +1644,8 @@ $function$;
 
 DROP INDEX IF EXISTS public.idx_work_orders_team_id;
 
+-- Work orders belong to equipment, not teams; team comes from equipment.team_id.
+-- intentional-drop: work_orders.team_id (no rename backup; value is derivable)
 ALTER TABLE public.work_orders DROP COLUMN team_id;
 
 COMMIT;
