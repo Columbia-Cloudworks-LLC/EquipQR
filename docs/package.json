@@ -15,5 +15,8 @@
     "postcss": "^8.5.14",
     "tailwindcss": "4.3.0",
     "vitepress": "1.6.4"
+  },
+  "overrides": {
+    "vite": "^6.4.4"
   }
 }
