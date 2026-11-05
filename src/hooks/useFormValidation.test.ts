@@ -464,3 +464,69 @@ describe('useFormValidation', () => {
     });
   });
 });
+
+describe('useFormValidation unusual schemas', () => {
+  type Pair = { a?: string; b?: string };
+
+  it('ignores root-level and numeric-path issues when mapping errors to fields', () => {
+    const schema = z
+      .object({ a: z.string().optional(), b: z.string().optional() })
+      .refine((v) => v.a === v.b, { message: 'Fields must match' })
+      .superRefine((_, ctx) => ctx.addIssue({ code: 'custom', message: 'indexed', path: [0] }));
+    const { result } = renderHook(() => useFormValidation<Pair>(schema, { a: 'x', b: 'y' }));
+
+    const validation = runValidation(result.current.validate);
+
+    expect(validation).toEqual({ isValid: false, errors: {} });
+  });
+
+  it('reports a general failure when validation throws something other than a ZodError', () => {
+    const schema = z.object({ a: z.string() }).refine(() => {
+      throw new TypeError('lookup table not loaded');
+    });
+    const { result } = renderHook(() => useFormValidation<Pair>(schema, { a: 'x' }));
+
+    const validation = runValidation(result.current.validate);
+
+    expect(validation).toEqual({ isValid: false, errors: { general: 'Validation failed' } });
+    expect(result.current.errors).toEqual({});
+  });
+
+  it('treats a field as valid when the only failures belong to other fields', () => {
+    const schema = z.object({ a: z.string().min(1, 'A required'), b: z.string().min(1, 'B required') });
+    const { result } = renderHook(() => useFormValidation<Pair>(schema, { a: 'filled' }));
+
+    expect(runFieldValidation(() => result.current.validateField('a'))).toBe(true);
+    expect(result.current.errors).toEqual({});
+  });
+
+  it('records the first issue when field validation throws a ZodError', () => {
+    const schema = z.object({ a: z.string() }).refine(() => {
+      throw new z.ZodError([{ code: 'custom', message: 'Server rule rejected A', path: ['a'], input: undefined }]);
+    });
+    const { result } = renderHook(() => useFormValidation<Pair>(schema, { a: 'x' }));
+
+    expect(runFieldValidation(() => result.current.validateField('a'))).toBe(false);
+    expect(result.current.errors).toEqual({ a: 'Server rule rejected A' });
+  });
+
+  it('uses "Invalid value" when a thrown ZodError has no issues', () => {
+    const schema = z.object({ a: z.string() }).refine(() => {
+      throw new z.ZodError([]);
+    });
+    const { result } = renderHook(() => useFormValidation<Pair>(schema, { a: 'x' }));
+
+    expect(runFieldValidation(() => result.current.validateField('a'))).toBe(false);
+    expect(result.current.errors).toEqual({ a: 'Invalid value' });
+  });
+
+  it('fails the field without an error message when validation throws a non-Zod error', () => {
+    const schema = z.object({ a: z.string() }).refine(() => {
+      throw new TypeError('boom');
+    });
+    const { result } = renderHook(() => useFormValidation<Pair>(schema, { a: 'x' }));
+
+    expect(runFieldValidation(() => result.current.validateField('a'))).toBe(false);
+    expect(result.current.errors).toEqual({});
+  });
+});

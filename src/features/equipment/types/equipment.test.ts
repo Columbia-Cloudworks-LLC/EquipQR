@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { createEquipmentValidationSchema, equipmentFormSchema } from './equipment';
+import {
+  createEquipmentValidationSchema,
+  equipmentFormSchema,
+  generateEquipmentName,
+  quickEquipmentSchema,
+} from './equipment';
 import type { EquipmentValidationContext } from './equipment';
 
 describe('equipment types', () => {
@@ -224,3 +229,94 @@ describe('equipment types', () => {
   });
 });
 
+
+describe('equipmentFormSchema field rules', () => {
+  const valid = {
+    name: 'Loader 7',
+    manufacturer: 'Cat',
+    model: '950M',
+    serial_number: 'SN-1',
+    status: 'active' as const,
+    location: 'Yard B',
+    installation_date: '2023-01-01',
+    notes: '',
+  };
+
+  function issues(input: Record<string, unknown>) {
+    const result = equipmentFormSchema.safeParse(input);
+    return result.success ? [] : result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
+  }
+
+  it.each([
+    ['name', 'Equipment name is required'],
+    ['manufacturer', 'Manufacturer is required'],
+    ['model', 'Model is required'],
+    ['serial_number', 'Serial number is required'],
+    ['location', 'Location is required'],
+  ])('rejects an empty %s with "%s"', (field, message) => {
+    expect(issues({ ...valid, [field]: '' })).toEqual([`${field}: ${message}`]);
+  });
+
+  it('rejects statuses outside active/maintenance/inactive', () => {
+    expect(issues({ ...valid, status: 'retired' })).toHaveLength(1);
+    expect(issues({ ...valid, status: 'retired' })[0]).toMatch(/^status: /);
+  });
+
+  it('rejects negative working hours but accepts zero and null', () => {
+    expect(issues({ ...valid, working_hours: -1 })).toEqual(['working_hours: Working hours cannot be negative']);
+    expect(issues({ ...valid, working_hours: 0 })).toEqual([]);
+    expect(issues({ ...valid, working_hours: null })).toEqual([]);
+  });
+
+  it('accepts custom attributes of string, number, boolean or null, and rejects nested objects', () => {
+    expect(issues({ ...valid, custom_attributes: { a: 'x', b: 1, c: true, d: null } })).toEqual([]);
+    expect(issues({ ...valid, custom_attributes: { a: { nested: true } } })).toHaveLength(1);
+  });
+
+  it('requires latitude and longitude on a last known location', () => {
+    expect(issues({ ...valid, last_known_location: { latitude: 41.9, longitude: -87.6 } })).toEqual([]);
+    expect(issues({ ...valid, last_known_location: { latitude: 41.9 } })).toHaveLength(1);
+  });
+
+  it('partial() still enforces the working hours floor for bulk edits', () => {
+    const result = equipmentFormSchema.partial().safeParse({ working_hours: -5 });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('quickEquipmentSchema', () => {
+  const valid = { manufacturer: 'Cat', model: '950M', serial_number: 'SN-1', team_id: 'team-1', name: 'Cat 950M' };
+
+  it('accepts the minimal inline-creation fields', () => {
+    expect(quickEquipmentSchema.parse(valid)).toEqual(valid);
+  });
+
+  it.each([
+    ['team_id', 'Team is required'],
+    ['name', 'Name is required'],
+    ['manufacturer', 'Manufacturer is required'],
+  ])('requires %s', (field, message) => {
+    const result = quickEquipmentSchema.safeParse({ ...valid, [field]: '' });
+    expect(result.success ? [] : result.error.issues.map((i) => i.message)).toEqual([message]);
+  });
+
+  it('limits the name to 100 characters', () => {
+    const result = quickEquipmentSchema.safeParse({ ...valid, name: 'x'.repeat(101) });
+    expect(result.success ? [] : result.error.issues.map((i) => i.message)).toEqual([
+      'Name must be less than 100 characters',
+    ]);
+    expect(quickEquipmentSchema.safeParse({ ...valid, name: 'x'.repeat(100) }).success).toBe(true);
+  });
+});
+
+describe('generateEquipmentName', () => {
+  it.each([
+    ['Cat', '950M', 'Cat 950M'],
+    ['  Cat ', ' 950M  ', 'Cat 950M'],
+    ['', '950M', '950M'],
+    ['Cat', '   ', 'Cat'],
+    [' ', '', ''],
+  ])('(%j, %j) -> %j', (manufacturer, model, expected) => {
+    expect(generateEquipmentName(manufacturer, model)).toBe(expected);
+  });
+});
