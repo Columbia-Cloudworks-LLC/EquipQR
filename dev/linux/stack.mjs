@@ -204,9 +204,9 @@ async function start(reset = false) {
 
 try {
   const action = process.argv[2] || 'start';
-  if (process.argv.length > 3) throw new Error('Expected one action: start | stop | status | reset');
+  if (process.argv.length > 3) throw new Error('Expected one action: start | stop | status | reset | restart');
   const foreignMessage = 'The stack was started in another environment (WSL or the dev container); run bash dev/linux/dev.sh stop there.';
-  if (['start', 'reset', 'stop'].includes(action) && Object.values(records).some(foreign)) throw new Error(foreignMessage);
+  if (['start', 'reset', 'restart', 'stop'].includes(action) && Object.values(records).some(foreign)) throw new Error(foreignMessage);
   switch (action) {
     case 'local-check':
       if (hosted) throw new Error('Fixture suites and database commands require the disposable local backend.');
@@ -226,13 +226,19 @@ try {
       break;
     case 'start': await start(); break;
     case 'reset': await start(true); break;
+    case 'restart':
+      // Relaunch edge/app/docs so supabase/functions/.env and Vite config are re-read;
+      // Supabase containers and database volumes stay up.
+      await stopProcesses();
+      await start();
+      break;
     case 'stop':
       await stopProcesses();
       if (!hosted && fs.existsSync(path.join(runtime, 'supabase/config.toml'))) supabase(['stop'], 'supabase.log');
       console.log(hosted ? 'Local frontend processes stopped; hosted backend unchanged.' : 'Stack stopped; database volumes retained.');
       break;
     case 'status': if (!await status()) process.exitCode = 1; break;
-    default: throw new Error('Usage: bash dev/linux/dev.sh start | stop | status | reset');
+    default: throw new Error('Usage: bash dev/linux/dev.sh start | stop | status | reset | restart');
   }
 } catch (error) {
   console.error(error.message);

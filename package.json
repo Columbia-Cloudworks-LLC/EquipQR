@@ -120,6 +120,7 @@
     "dev:stop": "bash dev/linux/dev.sh stop",
     "dev:status": "bash dev/linux/dev.sh status",
     "dev:reset": "bash dev/linux/dev.sh reset",
+    "dev:restart": "bash dev/linux/dev.sh restart",
     "dev:frontend": "vite",
     "setup": "bash dev/linux/setup.sh",
     "pr-evidence:review": "bash dev/linux/pr-evidence.sh review",

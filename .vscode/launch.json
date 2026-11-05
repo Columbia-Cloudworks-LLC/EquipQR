@@ -8,7 +8,8 @@
       "url": "http://localhost:8080",
       "webRoot": "${workspaceFolder}",
       "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
-      "preLaunchTask": "EquipQR: Start Full Dev Stack"
+      "preLaunchTask": "EquipQR: Start Full Dev Stack",
+      "preRestartTask": "EquipQR: Restart Dev Stack"
     },
     {
       "name": "EquipQR: Dev (Chrome)",
@@ -17,7 +18,8 @@
       "url": "http://localhost:8080",
       "webRoot": "${workspaceFolder}",
       "resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"],
-      "preLaunchTask": "EquipQR: Start Full Dev Stack"
+      "preLaunchTask": "EquipQR: Start Full Dev Stack",
+      "preRestartTask": "EquipQR: Restart Dev Stack"
     }
   ]
 }

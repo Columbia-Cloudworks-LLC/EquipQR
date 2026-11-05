@@ -32,6 +32,21 @@
       "problemMatcher": []
     },
     {
+      "label": "EquipQR: Restart Dev Stack",
+      "type": "shell",
+      "command": "bash dev/linux/dev.sh restart",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "showReuseMessage": false,
+        "group": "equipqr-dev"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "EquipQR: Dev Stack Status",
       "type": "shell",
       "command": "bash dev/linux/dev.sh status",
