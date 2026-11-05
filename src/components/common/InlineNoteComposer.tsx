@@ -12,9 +12,6 @@ import { cn } from '@/lib/utils';
 import { handleDragActiveState } from '@/components/common/drag-active-handlers';
 import { useFileObjectUrlPreview } from '@/components/common/useFileObjectUrlPreview';
 import { logger } from '@/utils/logger';
-import { useVoiceTextAppender } from '@/hooks/useVoiceTextAppender';
-import VoiceInputButton from '@/components/common/VoiceInputButton';
-import VoiceInterimTranscript from '@/components/common/VoiceInterimTranscript';
 
 // Image Thumbnail Component with proper cleanup
 const ImageThumbnail: React.FC<{
@@ -268,18 +265,6 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
     }
   }, [requestAttachTrigger, handleAttachClick]);
 
-  const {
-    isListening,
-    error: speechError,
-    interimTranscript,
-    toggleListening,
-    canUseVoice,
-  } = useVoiceTextAppender({
-    value,
-    onChange,
-    disabled: disabled || isSubmitting,
-  });
-
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       {/* Text Input Area */}
@@ -305,20 +290,6 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
           className="min-h-20 resize-none border-0 focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 pb-12"
           aria-label="Note content"
         />
-        <VoiceInterimTranscript
-          isListening={isListening}
-          interimTranscript={interimTranscript}
-          className="bottom-12 left-2 right-2"
-        />
-
-        {/* Voice button anchored bottom-left of the input it controls */}
-        <VoiceInputButton
-          isListening={isListening}
-          onToggle={toggleListening}
-          canUseVoice={canUseVoice}
-          className="absolute bottom-2 left-2"
-        />
-
         {/* Attach Images Button */}
         <Button
           type="button"
@@ -343,10 +314,6 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
           className="hidden"
         />
       </div>
-
-      {speechError && (
-        <p className="text-sm text-destructive">{speechError}</p>
-      )}
 
       {/* Image Thumbnails */}
       {attachedImages.length > 0 && (

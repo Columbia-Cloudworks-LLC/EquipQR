@@ -21,9 +21,6 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import type { WorkOrder, WorkOrderPriority } from '@/features/work-orders/types/workOrder';
-import { useVoiceTextAppender } from '@/hooks/useVoiceTextAppender';
-import VoiceInputButton from '@/components/common/VoiceInputButton';
-import VoiceInterimTranscript from '@/components/common/VoiceInterimTranscript';
 import {
   canRunQRAction,
   type QRActionEquipment,
@@ -112,18 +109,6 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
     },
     [],
   );
-
-  const {
-    isListening,
-    error: speechError,
-    interimTranscript,
-    toggleListening,
-    canUseVoice,
-  } = useVoiceTextAppender({
-    value: description,
-    onChange: setDescription,
-    disabled: isSubmitting,
-  });
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -224,31 +209,14 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
 
           <div className="space-y-2">
             <Label htmlFor="qr-work-order-description">Description</Label>
-            <div className="relative">
-              <Textarea
-                id="qr-work-order-description"
-                value={description}
-                onChange={event => setDescription(event.target.value)}
-                disabled={isSubmitting}
-                rows={4}
-                required
-                className="pb-12"
-              />
-              <VoiceInterimTranscript
-                isListening={isListening}
-                interimTranscript={interimTranscript}
-                className="bottom-12 left-2 right-2"
-              />
-              <VoiceInputButton
-                isListening={isListening}
-                onToggle={toggleListening}
-                canUseVoice={canUseVoice}
-                className="absolute bottom-2 left-2"
-              />
-            </div>
-            {speechError && (
-              <p className="text-sm text-destructive">{speechError}</p>
-            )}
+            <Textarea
+              id="qr-work-order-description"
+              value={description}
+              onChange={event => setDescription(event.target.value)}
+              disabled={isSubmitting}
+              rows={4}
+              required
+            />
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

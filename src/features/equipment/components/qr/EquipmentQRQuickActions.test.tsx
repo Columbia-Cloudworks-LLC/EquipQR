@@ -173,32 +173,6 @@ vi.mock('@/features/work-orders/components/WorkOrderCreationPhotoPicker', () => 
   ),
 }));
 
-const mockToggleListening = vi.fn();
-
-vi.mock('@/hooks/useVoiceTextAppender', () => ({
-  useVoiceTextAppender: ({
-    value,
-    onChange,
-    disabled,
-  }: {
-    value: string;
-    onChange: (value: string) => void;
-    disabled?: boolean;
-  }) => ({
-    isSupported: true,
-    isListening: false,
-    error: null,
-    interimTranscript: '',
-    toggleListening: () => {
-      mockToggleListening();
-      if (!disabled) {
-        onChange(`${value}${value.trim() ? ' ' : ''}voice reason`);
-      }
-    },
-    canUseVoice: !disabled,
-  }),
-}));
-
 const mockFetchMemberships = vi.mocked(fetchQRActionTeamMemberships);
 const mockCreateWorkOrder = vi.mocked(createQRWorkOrder);
 const mockUpdateHours = vi.mocked(updateQRWorkingHours);
@@ -421,32 +395,6 @@ describe('EquipmentQRQuickActions', () => {
       );
       expect(screen.getByText(/working hours updated to 125.5 hours/i)).toBeInTheDocument();
     });
-  });
-
-  it('appends voice dictation to the working-hours reason field', async () => {
-    mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'manager' }]);
-    mockUpdateHours.mockResolvedValue(undefined);
-
-    renderQuickActions();
-    fireEvent.click(screen.getByRole('button', { name: /update hours/i }));
-    const hoursInput = await screen.findByLabelText(/new total hours/i);
-    fireEvent.change(hoursInput, { target: { value: '130' } });
-    fireEvent.change(screen.getByLabelText(/reason or note/i), { target: { value: 'Meter' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Start voice input' }));
-    const form = hoursInput.closest('form');
-    if (!(form instanceof HTMLFormElement)) {
-      throw new Error('Expected working-hours dialog to wrap inputs in a form');
-    }
-    fireEvent.submit(form);
-
-    await waitFor(() => {
-      expect(mockUpdateHours).toHaveBeenCalledWith(
-        expect.objectContaining({
-          notes: 'Meter voice reason',
-        }),
-      );
-    });
-    expect(mockToggleListening).toHaveBeenCalled();
   });
 
   it('adds an equipment note for an allowed team member', async () => {

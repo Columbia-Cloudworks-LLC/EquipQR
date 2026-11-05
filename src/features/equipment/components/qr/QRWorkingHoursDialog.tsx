@@ -12,9 +12,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
 import { QRDialogFormError } from '@/features/equipment/components/qr/QRDialogFormError';
-import { useVoiceTextAppender } from '@/hooks/useVoiceTextAppender';
-import VoiceInputButton from '@/components/common/VoiceInputButton';
-import VoiceInterimTranscript from '@/components/common/VoiceInterimTranscript';
 import {
   canRunQRAction,
   type QRActionEquipment,
@@ -46,18 +43,6 @@ const QRWorkingHoursDialog: React.FC<QRWorkingHoursDialogProps> = ({
   const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const {
-    isListening,
-    error: speechError,
-    interimTranscript,
-    toggleListening,
-    canUseVoice,
-  } = useVoiceTextAppender({
-    value: reason,
-    onChange: setReason,
-    disabled: isSubmitting,
-  });
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -133,31 +118,14 @@ const QRWorkingHoursDialog: React.FC<QRWorkingHoursDialogProps> = ({
 
           <div className="space-y-2">
             <Label htmlFor="qr-hours-reason">Reason or note (optional)</Label>
-            <div className="relative">
-              <Textarea
-                id="qr-hours-reason"
-                value={reason}
-                onChange={event => setReason(event.target.value)}
-                placeholder="Meter reading, field service update, or correction reason"
-                rows={3}
-                disabled={isSubmitting}
-                className="pb-12"
-              />
-              <VoiceInterimTranscript
-                isListening={isListening}
-                interimTranscript={interimTranscript}
-                className="bottom-12 left-2 right-2"
-              />
-              <VoiceInputButton
-                isListening={isListening}
-                onToggle={toggleListening}
-                canUseVoice={canUseVoice}
-                className="absolute bottom-2 left-2"
-              />
-            </div>
-            {speechError && (
-              <p className="text-sm text-destructive">{speechError}</p>
-            )}
+            <Textarea
+              id="qr-hours-reason"
+              value={reason}
+              onChange={event => setReason(event.target.value)}
+              placeholder="Meter reading, field service update, or correction reason"
+              rows={3}
+              disabled={isSubmitting}
+            />
           </div>
 
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
