@@ -103,7 +103,7 @@ const baseWorkOrder: WorkOrder = {
   assignee_id: 'user-2',
   assignee_name: 'Alex Tech',
   assigneeName: 'Alex Tech',
-  team_id: 'team-1',
+  equipmentTeamId: 'team-1',
   teamName: 'Field Crew',
   equipmentTeamName: 'Field Crew',
   equipmentName: 'Excavator A',

@@ -194,7 +194,7 @@ describe('useWorkOrders', () => {
   describe('useTeamWorkOrders', () => {
     beforeEach(() => {
       const teamWorkOrdersList = Object.values(workOrders).filter(
-        wo => wo.team_id === teams.maintenance.id
+        wo => wo.equipmentTeamId === teams.maintenance.id
       );
       mockService.getTeamWorkOrders.mockResolvedValue({
         success: true,

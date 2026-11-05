@@ -98,7 +98,6 @@ export const useWorkOrderSubmission = ({
           historicalNotes: data.historicalNotes || '',
           // Simplified assignment: just pass the assigneeId (null = unassigned)
           assigneeId: data.assigneeId || undefined,
-          teamId: undefined, // Work orders are not assigned to teams
           dueDate: persistedDue.dueDate ?? undefined,
           dueDateHasTime: persistedDue.dueDateHasTime,
           completedDate: dateToISOString(data.completedDate) || undefined,

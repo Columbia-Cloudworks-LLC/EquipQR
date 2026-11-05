@@ -4821,7 +4821,6 @@ export type Database = {
           quickbooks_invoice_number: string | null
           quickbooks_realm_id: string | null
           status: Database["public"]["Enums"]["work_order_status"]
-          team_id: string | null
           title: string
           updated_at: string
         }
@@ -4861,7 +4860,6 @@ export type Database = {
           quickbooks_invoice_number?: string | null
           quickbooks_realm_id?: string | null
           status?: Database["public"]["Enums"]["work_order_status"]
-          team_id?: string | null
           title: string
           updated_at?: string
         }
@@ -4901,7 +4899,6 @@ export type Database = {
           quickbooks_invoice_number?: string | null
           quickbooks_realm_id?: string | null
           status?: Database["public"]["Enums"]["work_order_status"]
-          team_id?: string | null
           title?: string
           updated_at?: string
         }
@@ -5394,7 +5391,6 @@ export type Database = {
               p_pm_status?: string
               p_priority: Database["public"]["Enums"]["work_order_priority"]
               p_status: Database["public"]["Enums"]["work_order_status"]
-              p_team_id?: string
               p_title: string
             }
             Returns: Json
@@ -5416,7 +5412,6 @@ export type Database = {
               p_pm_status?: string
               p_priority: Database["public"]["Enums"]["work_order_priority"]
               p_status: Database["public"]["Enums"]["work_order_status"]
-              p_team_id?: string
               p_timeline_events?: Json
               p_title: string
             }
@@ -6494,6 +6489,10 @@ export type Database = {
       reconcile_google_workspace_directory: {
         Args: { p_organization_id: string; p_sync_started_at: string }
         Returns: Json
+      }
+      reconcile_support_operators: {
+        Args: { p_operator_ids: string[] }
+        Returns: number
       }
       refresh_quickbooks_tokens_manual: {
         Args: never

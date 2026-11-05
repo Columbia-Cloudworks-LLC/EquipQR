@@ -197,17 +197,17 @@ describe('workOrderDetailsViewModel', () => {
   });
 
   describe('team and assignee summaries', () => {
-    it('builds team summary from work order or equipment team id', () => {
+    it('builds team summary from the equipment team id', () => {
       expect(
         buildWorkOrderTeamSummary(
-          { team_id: null, teamName: 'Field Team' },
+          { equipmentTeamId: null, teamName: 'Field Team' },
           { team_id: 'team-1' },
         ),
       ).toEqual({ id: 'team-1', name: 'Field Team' });
     });
 
     it('returns undefined when team name or id is missing', () => {
-      expect(buildWorkOrderTeamSummary({ team_id: 'team-1', teamName: null })).toBeUndefined();
+      expect(buildWorkOrderTeamSummary({ equipmentTeamId: 'team-1', teamName: null })).toBeUndefined();
     });
 
     it('builds compact and mobile assignee summaries', () => {

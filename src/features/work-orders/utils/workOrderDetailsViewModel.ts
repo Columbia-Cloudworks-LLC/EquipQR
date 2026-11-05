@@ -27,7 +27,8 @@ export interface MobileWorkOrderDetailsBottomPaddingContext {
 }
 
 export interface WorkOrderTeamSource {
-  team_id?: string | null;
+  /** The work order's team is its equipment's team. */
+  equipmentTeamId?: string | null;
   teamName?: string | null;
 }
 
@@ -198,7 +199,7 @@ export function buildWorkOrderTeamSummary(
   workOrder: WorkOrderTeamSource,
   equipment?: EquipmentTeamSource | null,
 ): TeamSummary | undefined {
-  const teamId = workOrder.team_id || equipment?.team_id;
+  const teamId = equipment?.team_id || workOrder.equipmentTeamId;
   if (!workOrder.teamName || !teamId) {
     return undefined;
   }

@@ -31,7 +31,6 @@ export function buildOfflineQueuedWorkOrder({
     status: 'submitted',
     assignee_id: payload.assigneeId ?? null,
     assignee_name: null,
-    team_id: equipmentTeamId,
     teamId: equipmentTeamId ?? undefined,
     created_by: item.userId,
     created_by_admin: null,

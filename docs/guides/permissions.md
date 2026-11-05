@@ -101,7 +101,7 @@ in the QuickBooks invoicing phase.
 | Cost subtotals on work order cards / dashboard cost widgets | ✅ | ✅ | ❌‡ | ❌‡ | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Labor hours on work order notes / estimated hours | ✅ | ✅ | ❌‡ | ❌‡ | ✅ | ✅ | ❌ | ❌ | ❌ |
 
-\* Team-level roles on the work order's team. `Manager`/`Technician` here refer to team roles, not inventory grants.
+\* Team-level roles on the work order's team. `Manager`/`Technician` here refer to team roles, not inventory grants. A work order's team is always its equipment's team (`equipment.team_id`); work orders have no team column of their own.
 
 † Parts Consumers can consume/restore inventory only through work orders they hold operational cost access to (team owner/manager/technician on the work order's team, or work order assignee). The `adjust_inventory_quantity` RPC enforces this server-side.
 

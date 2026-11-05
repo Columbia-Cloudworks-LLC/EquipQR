@@ -12,7 +12,6 @@ export interface WorkOrderData {
   assignee_id?: string | null;
   assigneeName?: string;
   teamName?: string;
-  team_id?: string | null;
   equipment_id: string;
   organization_id: string;
   has_pm?: boolean;

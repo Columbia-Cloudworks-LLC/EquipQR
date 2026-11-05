@@ -530,7 +530,7 @@ describe('WorkOrderDetails', () => {
         workOrder: {
           status: 'in_progress',
           has_pm: true,
-          team_id: 'team-1',
+          equipmentTeamId: 'team-1',
           organization_id: 'org-1',
         },
         permissionLevels: {
@@ -563,7 +563,7 @@ describe('WorkOrderDetails', () => {
         workOrder: {
           status: 'submitted',
           has_pm: false,
-          team_id: 'team-1',
+          equipmentTeamId: 'team-1',
           organization_id: 'org-1',
         },
         permissionLevels: {
@@ -587,7 +587,7 @@ describe('WorkOrderDetails', () => {
         workOrder: {
           status: 'in_progress',
           has_pm: false,
-          team_id: 'team-1',
+          equipmentTeamId: 'team-1',
           organization_id: 'org-1',
         },
         permissionLevels: {
@@ -613,7 +613,7 @@ describe('WorkOrderDetails', () => {
         workOrder: {
           status: 'in_progress',
           has_pm: true,
-          team_id: 'team-1',
+          equipmentTeamId: 'team-1',
           organization_id: 'org-1',
         },
         permissionLevels: {

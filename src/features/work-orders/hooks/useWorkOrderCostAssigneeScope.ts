@@ -34,15 +34,16 @@ export function useWorkOrderCostAssigneeScope(
         return EMPTY_ASSIGNEE_SCOPE;
       }
 
+      // A work order's team is its equipment's team.
       let query = supabase
         .from('work_orders')
-        .select('id')
+        .select('id, equipment:equipment!work_orders_equipment_id_fkey!inner(team_id)')
         .eq('organization_id', orgId)
         .eq('assignee_id', assigneeId)
         .limit(1);
 
       if (selectedTeamId) {
-        query = query.eq('team_id', selectedTeamId);
+        query = query.eq('equipment.team_id', selectedTeamId);
       }
 
       const { data, error } = await query;

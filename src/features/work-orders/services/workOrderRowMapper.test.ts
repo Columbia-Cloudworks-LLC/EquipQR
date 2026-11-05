@@ -17,7 +17,6 @@ describe('workOrderRowMapper', () => {
       status: 'submitted',
       assignee_id: null,
       assignee_name: null,
-      team_id: null,
       created_by: 'user-1',
       created_by_admin: null,
       created_by_name: null,

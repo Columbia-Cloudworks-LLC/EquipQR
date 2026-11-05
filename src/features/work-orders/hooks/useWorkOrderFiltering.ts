@@ -50,7 +50,7 @@ function toOfflineListRow(order: ReturnType<typeof buildOfflineQueuedWorkOrder>)
     equipmentId: order.equipment_id,
     organizationId: order.organization_id,
     assigneeId: order.assignee_id,
-    teamId: order.team_id ?? order.equipmentTeamId ?? null,
+    teamId: order.equipmentTeamId ?? null,
     createdDate: order.created_date,
     dueDate: order.due_date,
     estimatedHours: order.estimated_hours,
@@ -174,7 +174,7 @@ export function useWorkOrderFiltering() {
       const equipment = allEquipment.find((entry) => entry.id === queued.equipment_id)
       return toOfflineListRow({
         ...queued,
-        team_id: queued.team_id ?? equipment?.team_id ?? null,
+        equipmentTeamId: queued.equipmentTeamId ?? equipment?.team_id ?? undefined,
       })
     })
     return filterWorkOrders(

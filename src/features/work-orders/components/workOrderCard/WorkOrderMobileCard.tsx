@@ -229,7 +229,7 @@ export const WorkOrderMobileCard: React.FC<WorkOrderMobileCardProps> = memo(({
               <WorkOrderQuickActions
                 workOrderId={workOrder.id}
                 workOrderStatus={workOrder.status}
-                equipmentTeamId={workOrder.equipmentTeamId ?? workOrder.team_id}
+                equipmentTeamId={workOrder.equipmentTeamId}
                 canDelete={canDelete}
                 onDeleteClick={onDeleteClick ? () => onDeleteClick(workOrder) : undefined}
               />

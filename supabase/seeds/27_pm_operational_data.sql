@@ -96,7 +96,7 @@ INSERT INTO public.work_orders (
   title, description,
   status, priority,
   assignee_id, assignee_name,
-  team_id, created_by, created_by_name,
+  created_by, created_by_name,
   created_date, due_date, estimated_hours, completed_date, updated_at,
   has_pm, pm_required
 ) VALUES
@@ -114,7 +114,6 @@ INSERT INTO public.work_orders (
     'Scheduled 250-hour preventive maintenance. Engine oil, hydraulic check, undercarriage inspection.',
     'completed', 'medium',
     'bb0e8400-e29b-41d4-a716-446655440003'::uuid, 'Tom Technician',
-    '880e8400-e29b-41d4-a716-446655440000'::uuid,
     'bb0e8400-e29b-41d4-a716-446655440002'::uuid, 'Amanda Admin',
     '2025-09-08', '2025-09-15', 5, '2025-09-12',
     '2025-09-12 16:00:00+00', true, true
@@ -129,7 +128,6 @@ INSERT INTO public.work_orders (
     'Scheduled 250-hour preventive maintenance. Full Excavator PM checklist.',
     'completed', 'high',
     'bb0e8400-e29b-41d4-a716-446655440003'::uuid, 'Tom Technician',
-    '880e8400-e29b-41d4-a716-446655440000'::uuid,
     'bb0e8400-e29b-41d4-a716-446655440002'::uuid, 'Amanda Admin',
     '2026-01-05', '2026-01-12', 5, '2026-01-10',
     '2026-01-10 16:00:00+00', true, true
@@ -144,7 +142,6 @@ INSERT INTO public.work_orders (
     'Runtime-based PM. Inspect engine, hydraulics, undercarriage, and safety systems.',
     'completed', 'medium',
     'bb0e8400-e29b-41d4-a716-446655440003'::uuid, 'Tom Technician',
-    '880e8400-e29b-41d4-a716-446655440000'::uuid,
     'bb0e8400-e29b-41d4-a716-446655440001'::uuid, 'Alex Apex',
     '2026-02-10', '2026-02-17', 5, '2026-02-15',
     '2026-02-15 15:00:00+00', true, true
@@ -159,7 +156,6 @@ INSERT INTO public.work_orders (
     'Runtime-based PM. Complete Excavator PM checklist per maintenance schedule.',
     'completed', 'medium',
     'bb0e8400-e29b-41d4-a716-446655440003'::uuid, 'Tom Technician',
-    '880e8400-e29b-41d4-a716-446655440000'::uuid,
     'bb0e8400-e29b-41d4-a716-446655440002'::uuid, 'Amanda Admin',
     '2026-01-15', '2026-01-22', 5, '2026-01-20',
     '2026-01-20 14:00:00+00', true, true
@@ -178,7 +174,6 @@ INSERT INTO public.work_orders (
     'Scheduled 200-hour PM. Engine service, hydraulic filter, drive system check.',
     'completed', 'medium',
     'bb0e8400-e29b-41d4-a716-446655440005'::uuid, 'Mike Mechanic',
-    '880e8400-e29b-41d4-a716-446655440002'::uuid,
     'bb0e8400-e29b-41d4-a716-446655440004'::uuid, 'Marcus Metro',
     '2025-11-03', '2025-11-10', 3, '2025-11-08',
     '2025-11-08 15:00:00+00', true, true
@@ -193,7 +188,6 @@ INSERT INTO public.work_orders (
     'Runtime-based PM. Full Skid Steer PM checklist completed.',
     'completed', 'medium',
     'bb0e8400-e29b-41d4-a716-446655440005'::uuid, 'Mike Mechanic',
-    '880e8400-e29b-41d4-a716-446655440002'::uuid,
     'bb0e8400-e29b-41d4-a716-446655440004'::uuid, 'Marcus Metro',
     '2026-02-15', '2026-02-22', 3, '2026-02-20',
     '2026-02-20 16:00:00+00', true, true
@@ -208,7 +202,6 @@ INSERT INTO public.work_orders (
     'Semi-annual ANSI inspection. Platform, hydraulics, electrical, safety systems.',
     'completed', 'high',
     'bb0e8400-e29b-41d4-a716-446655440005'::uuid, 'Mike Mechanic',
-    '880e8400-e29b-41d4-a716-446655440002'::uuid,
     'bb0e8400-e29b-41d4-a716-446655440004'::uuid, 'Marcus Metro',
     '2025-08-20', '2025-08-28', 4, '2025-08-27',
     '2025-08-27 16:00:00+00', true, true
@@ -223,7 +216,6 @@ INSERT INTO public.work_orders (
     'Semi-annual PM per aerial equipment schedule. Hydraulic, electrical, safety.',
     'completed', 'medium',
     'bb0e8400-e29b-41d4-a716-446655440005'::uuid, 'Mike Mechanic',
-    '880e8400-e29b-41d4-a716-446655440002'::uuid,
     'bb0e8400-e29b-41d4-a716-446655440004'::uuid, 'Marcus Metro',
     '2025-10-10', '2025-10-18', 4, '2025-10-17',
     '2025-10-17 15:00:00+00', true, true
@@ -238,7 +230,6 @@ INSERT INTO public.work_orders (
     'First scheduled PM for this unit. Complete full Skid Steer PM checklist.',
     'in_progress', 'high',
     'bb0e8400-e29b-41d4-a716-446655440005'::uuid, 'Mike Mechanic',
-    '880e8400-e29b-41d4-a716-446655440002'::uuid,
     'bb0e8400-e29b-41d4-a716-446655440004'::uuid, 'Marcus Metro',
     '2026-03-10', '2026-03-17', 4, NULL,
     '2026-03-12 10:00:00+00', true, true
@@ -257,7 +248,6 @@ INSERT INTO public.work_orders (
     'Q3 2025 forklift PM. Oil change, brake check, mast inspection.',
     'completed', 'medium',
     'bb0e8400-e29b-41d4-a716-446655440008'::uuid, 'Multi Org User',
-    '880e8400-e29b-41d4-a716-446655440005'::uuid,
     'bb0e8400-e29b-41d4-a716-446655440007'::uuid, 'Irene Industrial',
     '2025-08-25', '2025-09-02', 3, '2025-09-01',
     '2025-09-01 15:00:00+00', true, true
@@ -272,7 +262,6 @@ INSERT INTO public.work_orders (
     'Q4 2025 forklift PM. Full Forklift PM checklist.',
     'completed', 'high',
     'bb0e8400-e29b-41d4-a716-446655440008'::uuid, 'Multi Org User',
-    '880e8400-e29b-41d4-a716-446655440005'::uuid,
     'bb0e8400-e29b-41d4-a716-446655440007'::uuid, 'Irene Industrial',
     '2025-11-28', '2025-12-06', 3, '2025-12-05',
     '2025-12-05 16:00:00+00', true, true
@@ -287,7 +276,6 @@ INSERT INTO public.work_orders (
     'Q1 2026 forklift PM. Brake inspection, mast chains, hydraulic system.',
     'completed', 'medium',
     'bb0e8400-e29b-41d4-a716-446655440008'::uuid, 'Multi Org User',
-    '880e8400-e29b-41d4-a716-446655440005'::uuid,
     'bb0e8400-e29b-41d4-a716-446655440007'::uuid, 'Irene Industrial',
     '2026-01-22', '2026-01-30', 3, '2026-01-29',
     '2026-01-29 15:00:00+00', true, true
@@ -302,7 +290,6 @@ INSERT INTO public.work_orders (
     'Q4 2025 PM for electric forklift. Battery, charger, mast, electrical.',
     'completed', 'medium',
     'bb0e8400-e29b-41d4-a716-446655440008'::uuid, 'Multi Org User',
-    '880e8400-e29b-41d4-a716-446655440005'::uuid,
     'bb0e8400-e29b-41d4-a716-446655440007'::uuid, 'Irene Industrial',
     '2025-12-23', '2025-12-31', 3, '2025-12-30',
     '2025-12-30 14:00:00+00', true, true
@@ -317,7 +304,6 @@ INSERT INTO public.work_orders (
     'Runtime PM at 1296 hours. Air filter, safety valve, oil change, belt inspection.',
     'completed', 'medium',
     'bb0e8400-e29b-41d4-a716-446655440004'::uuid, 'Marcus Metro',
-    '880e8400-e29b-41d4-a716-446655440005'::uuid,
     'bb0e8400-e29b-41d4-a716-446655440007'::uuid, 'Irene Industrial',
     '2025-06-08', '2025-06-16', 4, '2025-06-15',
     '2025-06-15 14:00:00+00', true, true
@@ -332,7 +318,6 @@ INSERT INTO public.work_orders (
     'Runtime PM at 1796 hours. Full Compressor PM checklist.',
     'completed', 'high',
     'bb0e8400-e29b-41d4-a716-446655440008'::uuid, 'Multi Org User',
-    '880e8400-e29b-41d4-a716-446655440005'::uuid,
     'bb0e8400-e29b-41d4-a716-446655440007'::uuid, 'Irene Industrial',
     '2025-08-08', '2025-08-16', 4, '2025-08-15',
     '2025-08-15 16:00:00+00', true, true
@@ -347,7 +332,6 @@ INSERT INTO public.work_orders (
     'Overdue quarterly PM. Unit in maintenance bay — complete before returning to service.',
     'assigned', 'high',
     'bb0e8400-e29b-41d4-a716-446655440008'::uuid, 'Multi Org User',
-    '880e8400-e29b-41d4-a716-446655440005'::uuid,
     'bb0e8400-e29b-41d4-a716-446655440007'::uuid, 'Irene Industrial',
     '2026-03-10', '2026-03-14', 3, NULL,
     '2026-03-10 09:00:00+00', true, true
@@ -366,7 +350,6 @@ INSERT INTO public.work_orders (
     'Runtime PM at 2856 hours. Oil change, air filter, safety valve, belt check.',
     'completed', 'medium',
     'bb0e8400-e29b-41d4-a716-446655440005'::uuid, 'Mike Mechanic',
-    NULL,
     'bb0e8400-e29b-41d4-a716-446655440005'::uuid, 'Mike Mechanic',
     '2025-07-14', '2025-07-21', 3, '2025-07-20',
     '2025-07-20 15:00:00+00', true, true
@@ -385,7 +368,6 @@ INSERT INTO public.work_orders (
     'Runtime PM at 2045 hours. Air system, engine, safety checks per Compressor PM.',
     'completed', 'medium',
     'bb0e8400-e29b-41d4-a716-446655440003'::uuid, 'Tom Technician',
-    NULL,
     'bb0e8400-e29b-41d4-a716-446655440003'::uuid, 'Tom Technician',
     '2025-12-03', '2025-12-11', 3, '2025-12-10',
     '2025-12-10 14:00:00+00', true, true
@@ -400,7 +382,6 @@ INSERT INTO public.work_orders (
     'Runtime PM at 408 hours. Engine, hydraulic, drive, safety per Skid Steer PM.',
     'completed', 'medium',
     'bb0e8400-e29b-41d4-a716-446655440003'::uuid, 'Tom Technician',
-    NULL,
     'bb0e8400-e29b-41d4-a716-446655440003'::uuid, 'Tom Technician',
     '2026-01-08', '2026-01-16', 3, '2026-01-15',
     '2026-01-15 14:00:00+00', true, true

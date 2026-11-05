@@ -55,7 +55,7 @@ export const WorkOrderDesktopIdentityStrip: React.FC<WorkOrderDesktopIdentityStr
         <WorkOrderQuickActions
           workOrderId={workOrder.id}
           workOrderStatus={workOrder.status}
-          equipmentTeamId={workOrder.equipmentTeamId ?? workOrder.team_id}
+          equipmentTeamId={workOrder.equipmentTeamId}
         />
         <Badge className={getStatusColor(workOrder.status)}>
           {formatStatus(workOrder.status)}

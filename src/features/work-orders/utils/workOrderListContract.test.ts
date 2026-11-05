@@ -151,17 +151,15 @@ describe('matchesWorkOrderListContract vs filterWorkOrders', () => {
     expect(idsMatchingContract(input)).toEqual(expected)
   })
 
-  it('matches TopBar team via effective team COALESCE', () => {
+  it('matches TopBar team via the equipment team', () => {
     const input = parseInput({
       selectedTeamId: 'team-topbar',
       filters: { teamFilter: 'team-topbar' },
     })
     const expected = idsMatchingFilters({ ...input.filters }, 'user-1')
 
-    expect(expected.sort()).toEqual(
-      ['wo-coalesce-eq-team', 'wo-coalesce-wo-team'].sort(),
-    )
-    expect(expected).not.toContain('wo-other-effective')
+    expect(expected).toEqual(['wo-equipment-topbar-team'])
+    expect(expected).not.toContain('wo-equipment-other-team')
     expect(idsMatchingContract(input).sort()).toEqual(expected.sort())
   })
 })

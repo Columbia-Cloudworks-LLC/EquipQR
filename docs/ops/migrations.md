@@ -28,7 +28,7 @@ YYYYMMDDHHMMSS_descriptive_name.sql
 
 **Examples:**
 
-- ✅ `20250822120000_add_team_id_to_work_orders.sql`
+- ✅ `20250822120000_add_due_date_has_time_to_work_orders.sql`
 - ✅ `20250822120100_create_equipment_notes_table.sql`
 - ❌ `20250822120000-.sql` (invalid: missing name)
 - ❌ `20250822-120000-add-feature.sql` (invalid: uses dashes)

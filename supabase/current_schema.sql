@@ -1261,7 +1261,6 @@ BEGIN
     );
     v_metadata := jsonb_build_object(
       'equipment_id', NEW.equipment_id,
-      'team_id', NEW.team_id,
       'created_by', NEW.created_by
     );
     
@@ -1288,9 +1287,6 @@ BEGIN
     END IF;
     IF OLD.description IS DISTINCT FROM NEW.description THEN
       v_changes := v_changes || jsonb_build_object('description', jsonb_build_object('old', OLD.description, 'new', NEW.description));
-    END IF;
-    IF OLD.team_id IS DISTINCT FROM NEW.team_id THEN
-      v_changes := v_changes || jsonb_build_object('team_id', jsonb_build_object('old', OLD.team_id, 'new', NEW.team_id));
     END IF;
     IF OLD.estimated_hours IS DISTINCT FROM NEW.estimated_hours THEN
       v_changes := v_changes || jsonb_build_object('estimated_hours', jsonb_build_object('old', OLD.estimated_hours, 'new', NEW.estimated_hours));
@@ -1971,6 +1967,7 @@ CREATE OR REPLACE FUNCTION "public"."can_access_work_order_costs"("p_work_order_
   SELECT EXISTS (
     SELECT 1
     FROM public.work_orders wo
+    LEFT JOIN public.equipment e ON e.id = wo.equipment_id
     WHERE wo.id = p_work_order_id
       AND (
         public.is_org_operational_admin(p_user_id, wo.organization_id)
@@ -1979,11 +1976,11 @@ CREATE OR REPLACE FUNCTION "public"."can_access_work_order_costs"("p_work_order_
           AND (
             wo.assignee_id = p_user_id
             OR (
-              wo.team_id IS NOT NULL
+              e.team_id IS NOT NULL
               AND EXISTS (
                 SELECT 1
                 FROM public.team_members tm
-                WHERE tm.team_id = wo.team_id
+                WHERE tm.team_id = e.team_id
                   AND tm.user_id = p_user_id
                   AND tm.role::text IN ('owner', 'manager', 'technician')
               )
@@ -3477,7 +3474,7 @@ COMMENT ON FUNCTION "public"."create_google_workspace_oauth_session"("p_organiza
 
 
 
-CREATE OR REPLACE FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text" DEFAULT NULL::"text", "p_assignee_id" "uuid" DEFAULT NULL::"uuid", "p_team_id" "uuid" DEFAULT NULL::"uuid", "p_due_date" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_completed_date" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_has_pm" boolean DEFAULT false, "p_pm_status" "text" DEFAULT 'pending'::"text", "p_pm_completion_date" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_pm_notes" "text" DEFAULT NULL::"text", "p_pm_checklist_data" "jsonb" DEFAULT '[]'::"jsonb") RETURNS "jsonb"
+CREATE OR REPLACE FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text" DEFAULT NULL::"text", "p_assignee_id" "uuid" DEFAULT NULL::"uuid", "p_due_date" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_completed_date" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_has_pm" boolean DEFAULT false, "p_pm_status" "text" DEFAULT 'pending'::"text", "p_pm_completion_date" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_pm_notes" "text" DEFAULT NULL::"text", "p_pm_checklist_data" "jsonb" DEFAULT '[]'::"jsonb") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
     AS $$
@@ -3501,7 +3498,6 @@ BEGIN
         priority,
         status,
         assignee_id,
-        team_id,
         due_date,
         completed_date,
         has_pm,  -- ADD THIS FIELD
@@ -3519,7 +3515,6 @@ BEGIN
         p_priority,
         p_status,
         p_assignee_id,
-        p_team_id,
         p_due_date,
         p_completed_date,
         p_has_pm,  -- SET THE VALUE
@@ -3632,10 +3627,10 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text", "p_assignee_id" "uuid", "p_team_id" "uuid", "p_due_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_has_pm" boolean, "p_pm_status" "text", "p_pm_completion_date" timestamp with time zone, "p_pm_notes" "text", "p_pm_checklist_data" "jsonb") OWNER TO "postgres";
+ALTER FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text", "p_assignee_id" "uuid", "p_due_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_has_pm" boolean, "p_pm_status" "text", "p_pm_completion_date" timestamp with time zone, "p_pm_notes" "text", "p_pm_checklist_data" "jsonb") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text" DEFAULT NULL::"text", "p_assignee_id" "uuid" DEFAULT NULL::"uuid", "p_team_id" "uuid" DEFAULT NULL::"uuid", "p_due_date" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_completed_date" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_has_pm" boolean DEFAULT false, "p_pm_status" "text" DEFAULT 'pending'::"text", "p_pm_completion_date" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_pm_notes" "text" DEFAULT NULL::"text", "p_pm_checklist_data" "jsonb" DEFAULT '[]'::"jsonb", "p_timeline_events" "jsonb" DEFAULT NULL::"jsonb") RETURNS "jsonb"
+CREATE OR REPLACE FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text" DEFAULT NULL::"text", "p_assignee_id" "uuid" DEFAULT NULL::"uuid", "p_due_date" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_completed_date" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_has_pm" boolean DEFAULT false, "p_pm_status" "text" DEFAULT 'pending'::"text", "p_pm_completion_date" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_pm_notes" "text" DEFAULT NULL::"text", "p_pm_checklist_data" "jsonb" DEFAULT '[]'::"jsonb", "p_timeline_events" "jsonb" DEFAULT NULL::"jsonb") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
@@ -3669,7 +3664,6 @@ BEGIN
     priority,
     status,
     assignee_id,
-    team_id,
     due_date,
     completed_date,
     has_pm,
@@ -3687,7 +3681,6 @@ BEGIN
     p_priority,
     p_status,
     p_assignee_id,
-    p_team_id,
     p_due_date,
     p_completed_date,
     p_has_pm,
@@ -3785,11 +3778,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text", "p_assignee_id" "uuid", "p_team_id" "uuid", "p_due_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_has_pm" boolean, "p_pm_status" "text", "p_pm_completion_date" timestamp with time zone, "p_pm_notes" "text", "p_pm_checklist_data" "jsonb", "p_timeline_events" "jsonb") OWNER TO "postgres";
-
-
-COMMENT ON FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text", "p_assignee_id" "uuid", "p_team_id" "uuid", "p_due_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_has_pm" boolean, "p_pm_status" "text", "p_pm_completion_date" timestamp with time zone, "p_pm_notes" "text", "p_pm_checklist_data" "jsonb", "p_timeline_events" "jsonb") IS 'Creates a historical work order and initializes its operational timeline from explicit events or a synthesized valid lifecycle chain. Issue #1080.';
-
+ALTER FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text", "p_assignee_id" "uuid", "p_due_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_has_pm" boolean, "p_pm_status" "text", "p_pm_completion_date" timestamp with time zone, "p_pm_notes" "text", "p_pm_checklist_data" "jsonb", "p_timeline_events" "jsonb") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."create_invitation_atomic"("p_organization_id" "uuid", "p_email" "text", "p_role" "text", "p_message" "text" DEFAULT NULL::"text", "p_invited_by" "uuid" DEFAULT "auth"."uid"()) RETURNS "uuid"
@@ -4366,11 +4355,12 @@ DECLARE
   notification_message text;
 BEGIN
   -- Get work order details
-  SELECT wo.*, t.name as team_name, e.name as equipment_name
+  -- A work order's team is its equipment's team.
+  SELECT wo.*, e.team_id AS team_id, t.name as team_name, e.name as equipment_name
   INTO wo_record
   FROM public.work_orders wo
-  LEFT JOIN public.teams t ON wo.team_id = t.id
   LEFT JOIN public.equipment e ON wo.equipment_id = e.id
+  LEFT JOIN public.teams t ON e.team_id = t.id
   WHERE wo.id = work_order_uuid;
   
   IF NOT FOUND THEN
@@ -5851,14 +5841,14 @@ BEGIN
       wo.estimated_hours,
       wo.has_pm
     FROM public.work_orders wo
-    LEFT JOIN public.teams t ON t.id = wo.team_id
     LEFT JOIN public.equipment eq ON eq.id = wo.equipment_id
+    LEFT JOIN public.teams t ON t.id = eq.team_id
     WHERE wo.organization_id = p_organization_id
       AND wo.equipment_id IS NOT NULL
-      AND (v_team_ids IS NULL OR wo.team_id = ANY (v_team_ids))
-      AND (p_status IS NULL OR wo.status = p_status)
-      AND (p_team_id IS NULL OR wo.team_id = p_team_id)
-      AND (p_priority IS NULL OR wo.priority = p_priority)
+      AND (v_team_ids IS NULL OR eq.team_id = ANY (v_team_ids))
+      AND (p_status IS NULL OR wo.status::text = p_status)
+      AND (p_team_id IS NULL OR eq.team_id = p_team_id)
+      AND (p_priority IS NULL OR wo.priority::text = p_priority)
       AND (p_date_from IS NULL OR wo.created_date >= p_date_from)
       AND (p_date_to IS NULL OR wo.created_date <= p_date_to)
     ORDER BY wo.created_date DESC
@@ -9359,13 +9349,10 @@ DECLARE
   service_role_key text;
   supabase_url text;
   request_id bigint;
-  cron_job_id text;
 BEGIN
-  cron_job_id := current_setting('cron.job_id', true);
-
-  -- SECURITY DEFINER resets current_user to the function owner; session_user
-  -- preserves the real session identity (caller), which pg_cron uses as postgres.
-  IF session_user::text <> 'postgres' OR cron_job_id IS NULL THEN
+  -- session_user keeps the caller identity under SECURITY DEFINER; pg_cron
+  -- runs these jobs as postgres. EXECUTE is revoked from all API roles.
+  IF session_user::text <> 'postgres' THEN
     RAISE EXCEPTION 'Access denied: invoke_queue_worker can only be called by the pg_cron scheduler as postgres';
   END IF;
 
@@ -9420,13 +9407,10 @@ DECLARE
   service_role_key text;
   supabase_url text;
   request_id bigint;
-  cron_job_id text;
 BEGIN
-  cron_job_id := current_setting('cron.job_id', true);
-
-  -- SECURITY DEFINER resets current_user to the function owner; session_user preserves
-  -- the real session identity (caller), which pg_cron uses as postgres.
-  IF session_user::text <> 'postgres' OR cron_job_id IS NULL THEN
+  -- session_user keeps the caller identity under SECURITY DEFINER; pg_cron
+  -- runs these jobs as postgres. EXECUTE is revoked from all API roles.
+  IF session_user::text <> 'postgres' THEN
     RAISE EXCEPTION 'Access denied: invoke_quickbooks_invoice_status_sync can only be called by the pg_cron scheduler as postgres';
   END IF;
 
@@ -9469,7 +9453,7 @@ $_$;
 ALTER FUNCTION "public"."invoke_quickbooks_invoice_status_sync"() OWNER TO "postgres";
 
 
-COMMENT ON FUNCTION "public"."invoke_quickbooks_invoice_status_sync"() IS 'SECURITY DEFINER with SET search_path to empty string. Invokes quickbooks-sync-invoice-status from pg_cron only (session_user=postgres and cron.job_id set). Uses vault.decrypted_secrets and net.http_post. Not executable by JWT roles or service_role API.';
+COMMENT ON FUNCTION "public"."invoke_quickbooks_invoice_status_sync"() IS 'SECURITY DEFINER with SET search_path to empty string. Invokes quickbooks-sync-invoice-status from pg_cron only (session_user=postgres). Uses vault.decrypted_secrets and net.http_post. Not executable by JWT roles or service_role API.';
 
 
 
@@ -9478,11 +9462,10 @@ CREATE OR REPLACE FUNCTION "public"."invoke_quickbooks_token_refresh"() RETURNS 
     SET "search_path" TO ''
     AS $$
 DECLARE
-  cron_job_id text;
 BEGIN
-  cron_job_id := current_setting('cron.job_id', true);
-
-  IF session_user::text <> 'postgres' OR cron_job_id IS NULL THEN
+  -- session_user keeps the caller identity under SECURITY DEFINER; pg_cron
+  -- runs these jobs as postgres. EXECUTE is revoked from all API roles.
+  IF session_user::text <> 'postgres' THEN
     RAISE EXCEPTION 'Access denied: This function can only be called by the pg_cron scheduler as postgres';
   END IF;
 
@@ -9791,7 +9774,8 @@ CREATE OR REPLACE FUNCTION "public"."is_work_order_team_manager"("p_user_id" "uu
   SELECT EXISTS (
     SELECT 1
     FROM public.work_orders wo
-    JOIN public.team_members tm ON tm.team_id = wo.team_id
+    LEFT JOIN public.equipment e ON e.id = wo.equipment_id
+    JOIN public.team_members tm ON tm.team_id = e.team_id
     WHERE wo.id = p_work_order_id
       AND tm.user_id = p_user_id
       AND tm.role IN ('owner'::public.team_member_role, 'manager'::public.team_member_role)
@@ -10867,11 +10851,6 @@ BEGIN
   -- ========================================================================
   UPDATE public.work_orders
   SET organization_id = p_workspace_org_id,
-      team_id = CASE 
-        WHEN team_id IS NOT NULL AND v_team_id_map ? team_id::text 
-        THEN team_id 
-        ELSE NULL 
-      END,
       updated_at = NOW()
   WHERE organization_id = v_personal_org_id;
 
@@ -11271,11 +11250,6 @@ BEGIN
     -- ========================================================================
     UPDATE public.work_orders
     SET organization_id = p_workspace_org_id,
-        team_id = CASE 
-          WHEN team_id IS NOT NULL AND v_team_id_map ? team_id::text 
-          THEN team_id 
-          ELSE NULL 
-        END,
         updated_at = NOW()
     WHERE organization_id = v_personal_org_record.personal_org_id;
 
@@ -13179,11 +13153,10 @@ CREATE OR REPLACE FUNCTION "public"."refresh_stripe_materialized_views"() RETURN
     SET "search_path" TO ''
     AS $$
 DECLARE
-  cron_job_id text;
 BEGIN
-  cron_job_id := current_setting('cron.job_id', true);
-
-  IF session_user::text <> 'postgres' OR cron_job_id IS NULL THEN
+  -- session_user keeps the caller identity under SECURITY DEFINER; pg_cron
+  -- runs these jobs as postgres. EXECUTE is revoked from all API roles.
+  IF session_user::text <> 'postgres' THEN
     RAISE EXCEPTION 'Access denied: refresh_stripe_materialized_views can only be called by the pg_cron scheduler as postgres';
   END IF;
 
@@ -16469,8 +16442,9 @@ BEGIN
   END IF;
 
   IF p_is_private IS NOT NULL AND p_is_private IS DISTINCT FROM v_note.is_private THEN
-    SELECT wo.team_id INTO v_team_id
+    SELECT e.team_id INTO v_team_id
     FROM public.work_orders wo
+    LEFT JOIN public.equipment e ON e.id = wo.equipment_id
     WHERE wo.id = p_work_order_id;
 
     IF NOT (
@@ -16830,13 +16804,6 @@ BEGIN
   THEN
     -- Skip validation if assignee is NULL (unassigned is always allowed)
     IF NEW.assignee_id IS NULL THEN
-      -- Also sync team_id from equipment (filter by organization_id for multi-tenancy)
-      SELECT team_id INTO v_equipment_team_id
-      FROM equipment
-      WHERE id = NEW.equipment_id
-        AND organization_id = NEW.organization_id;
-      
-      NEW.team_id := v_equipment_team_id;
       RETURN NEW;
     END IF;
 
@@ -16860,15 +16827,6 @@ BEGIN
           USING ERRCODE = 'check_violation';
       END IF;
     END IF;
-
-    -- Sync team_id from equipment (denormalized for filtering/display)
-    -- Filter by organization_id for multi-tenancy security
-    SELECT team_id INTO v_equipment_team_id
-    FROM equipment
-    WHERE id = NEW.equipment_id
-      AND organization_id = NEW.organization_id;
-    
-    NEW.team_id := v_equipment_team_id;
   END IF;
 
   RETURN NEW;
@@ -19194,7 +19152,6 @@ CREATE TABLE IF NOT EXISTS "public"."work_orders" (
     "historical_start_date" timestamp with time zone,
     "historical_notes" "text",
     "created_by_admin" "uuid",
-    "team_id" "uuid",
     "equipment_working_hours_at_creation" numeric,
     "primary_image_id" "uuid",
     "quickbooks_invoice_id" "text",
@@ -20724,10 +20681,6 @@ CREATE INDEX "idx_work_orders_qbo_invoice_lookup" ON "public"."work_orders" USIN
 
 
 CREATE INDEX "idx_work_orders_status" ON "public"."work_orders" USING "btree" ("status");
-
-
-
-CREATE INDEX "idx_work_orders_team_id" ON "public"."work_orders" USING "btree" ("team_id");
 
 
 
@@ -23704,18 +23657,16 @@ COMMENT ON POLICY "work_order_notes_delete_own" ON "public"."work_order_notes" I
 
 
 CREATE POLICY "work_order_notes_insert_organization_members" ON "public"."work_order_notes" FOR INSERT WITH CHECK ((("author_id" = ( SELECT "auth"."uid"() AS "uid")) AND (EXISTS ( SELECT 1
-   FROM "public"."work_orders" "wo"
-  WHERE (("wo"."id" = "work_order_notes"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") AND ("wo"."status" <> 'cancelled'::"public"."work_order_status") AND ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") OR ("wo"."created_by" = ( SELECT "auth"."uid"() AS "uid")) OR (("wo"."team_id" IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM ("public"."work_orders" "wo"
+     LEFT JOIN "public"."equipment" "e" ON (("e"."id" = "wo"."equipment_id")))
+  WHERE (("wo"."id" = "work_order_notes"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") AND ("wo"."status" <> 'cancelled'::"public"."work_order_status") AND ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") OR ("wo"."created_by" = ( SELECT "auth"."uid"() AS "uid")) OR (("e"."team_id" IS NOT NULL) AND (EXISTS ( SELECT 1
            FROM "public"."team_members" "tm"
-          WHERE (("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."team_id" = "wo"."team_id") AND ("tm"."role" = ANY (ARRAY['owner'::"public"."team_member_role", 'manager'::"public"."team_member_role", 'technician'::"public"."team_member_role", 'requestor'::"public"."team_member_role"])))))))))) AND ((NOT "is_private") OR (EXISTS ( SELECT 1
-   FROM "public"."work_orders" "wo"
-  WHERE (("wo"."id" = "work_order_notes"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") AND ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") OR (("wo"."team_id" IS NOT NULL) AND (EXISTS ( SELECT 1
+          WHERE (("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."team_id" = "e"."team_id") AND ("tm"."role" = ANY (ARRAY['owner'::"public"."team_member_role", 'manager'::"public"."team_member_role", 'technician'::"public"."team_member_role", 'requestor'::"public"."team_member_role"])))))))))) AND ((NOT "is_private") OR (EXISTS ( SELECT 1
+   FROM ("public"."work_orders" "wo"
+     LEFT JOIN "public"."equipment" "e" ON (("e"."id" = "wo"."equipment_id")))
+  WHERE (("wo"."id" = "work_order_notes"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") AND ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id") OR (("e"."team_id" IS NOT NULL) AND (EXISTS ( SELECT 1
            FROM "public"."team_members" "tm"
-          WHERE (("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."team_id" = "wo"."team_id") AND ("tm"."role" = ANY (ARRAY['owner'::"public"."team_member_role", 'manager'::"public"."team_member_role", 'technician'::"public"."team_member_role"])))))))))))));
-
-
-
-COMMENT ON POLICY "work_order_notes_insert_organization_members" ON "public"."work_order_notes" IS 'Org-scoped note inserts require note-author eligibility, exclude cancelled work orders, and restrict private notes to field roles.';
+          WHERE (("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."team_id" = "e"."team_id") AND ("tm"."role" = ANY (ARRAY['owner'::"public"."team_member_role", 'manager'::"public"."team_member_role", 'technician'::"public"."team_member_role"])))))))))))));
 
 
 
@@ -24572,15 +24523,15 @@ GRANT ALL ON FUNCTION "public"."create_google_workspace_oauth_session"("p_organi
 
 
 
-REVOKE ALL ON FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text", "p_assignee_id" "uuid", "p_team_id" "uuid", "p_due_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_has_pm" boolean, "p_pm_status" "text", "p_pm_completion_date" timestamp with time zone, "p_pm_notes" "text", "p_pm_checklist_data" "jsonb") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text", "p_assignee_id" "uuid", "p_team_id" "uuid", "p_due_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_has_pm" boolean, "p_pm_status" "text", "p_pm_completion_date" timestamp with time zone, "p_pm_notes" "text", "p_pm_checklist_data" "jsonb") TO "service_role";
-GRANT ALL ON FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text", "p_assignee_id" "uuid", "p_team_id" "uuid", "p_due_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_has_pm" boolean, "p_pm_status" "text", "p_pm_completion_date" timestamp with time zone, "p_pm_notes" "text", "p_pm_checklist_data" "jsonb") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text", "p_assignee_id" "uuid", "p_due_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_has_pm" boolean, "p_pm_status" "text", "p_pm_completion_date" timestamp with time zone, "p_pm_notes" "text", "p_pm_checklist_data" "jsonb") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text", "p_assignee_id" "uuid", "p_due_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_has_pm" boolean, "p_pm_status" "text", "p_pm_completion_date" timestamp with time zone, "p_pm_notes" "text", "p_pm_checklist_data" "jsonb") TO "service_role";
+GRANT ALL ON FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text", "p_assignee_id" "uuid", "p_due_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_has_pm" boolean, "p_pm_status" "text", "p_pm_completion_date" timestamp with time zone, "p_pm_notes" "text", "p_pm_checklist_data" "jsonb") TO "authenticated";
 
 
 
-REVOKE ALL ON FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text", "p_assignee_id" "uuid", "p_team_id" "uuid", "p_due_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_has_pm" boolean, "p_pm_status" "text", "p_pm_completion_date" timestamp with time zone, "p_pm_notes" "text", "p_pm_checklist_data" "jsonb", "p_timeline_events" "jsonb") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text", "p_assignee_id" "uuid", "p_team_id" "uuid", "p_due_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_has_pm" boolean, "p_pm_status" "text", "p_pm_completion_date" timestamp with time zone, "p_pm_notes" "text", "p_pm_checklist_data" "jsonb", "p_timeline_events" "jsonb") TO "service_role";
-GRANT ALL ON FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text", "p_assignee_id" "uuid", "p_team_id" "uuid", "p_due_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_has_pm" boolean, "p_pm_status" "text", "p_pm_completion_date" timestamp with time zone, "p_pm_notes" "text", "p_pm_checklist_data" "jsonb", "p_timeline_events" "jsonb") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text", "p_assignee_id" "uuid", "p_due_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_has_pm" boolean, "p_pm_status" "text", "p_pm_completion_date" timestamp with time zone, "p_pm_notes" "text", "p_pm_checklist_data" "jsonb", "p_timeline_events" "jsonb") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text", "p_assignee_id" "uuid", "p_due_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_has_pm" boolean, "p_pm_status" "text", "p_pm_completion_date" timestamp with time zone, "p_pm_notes" "text", "p_pm_checklist_data" "jsonb", "p_timeline_events" "jsonb") TO "service_role";
+GRANT ALL ON FUNCTION "public"."create_historical_work_order_with_pm"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_title" "text", "p_description" "text", "p_priority" "public"."work_order_priority", "p_status" "public"."work_order_status", "p_historical_start_date" timestamp with time zone, "p_historical_notes" "text", "p_assignee_id" "uuid", "p_due_date" timestamp with time zone, "p_completed_date" timestamp with time zone, "p_has_pm" boolean, "p_pm_status" "text", "p_pm_completion_date" timestamp with time zone, "p_pm_notes" "text", "p_pm_checklist_data" "jsonb", "p_timeline_events" "jsonb") TO "authenticated";
 
 
 

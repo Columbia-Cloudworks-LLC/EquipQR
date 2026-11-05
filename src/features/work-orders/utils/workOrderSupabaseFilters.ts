@@ -92,6 +92,12 @@ export function applyWorkOrderSupabaseFilters<T>(
   return next;
 }
 
+/**
+ * Filters by the work order's team, which is always its equipment's team.
+ * Requires the equipment `!inner` join so `equipment.team_id` filters the parent rows.
+ * Never put `equipment.*` columns inside a top-level `or()`: PostgREST rejects
+ * embedded columns there with PGRST100.
+ */
 export function applyEffectiveTeamFilter<T>(query: T, team: WorkOrderListTeam): T {
   const next = query as T & WorkOrderFilterQuery<T>;
 
@@ -99,11 +105,9 @@ export function applyEffectiveTeamFilter<T>(query: T, team: WorkOrderListTeam): 
     case 'all':
       return next;
     case 'unassigned':
-      return next.or('and(team_id.is.null,equipment.team_id.is.null)') as T;
+      return next.is('equipment.team_id', null) as T;
     case 'team':
-      return next.or(
-        `team_id.eq.${team.teamId},and(team_id.is.null,equipment.team_id.eq.${team.teamId})`,
-      ) as T;
+      return next.eq('equipment.team_id', team.teamId) as T;
     default: {
       const _exhaustive: never = team;
       return _exhaustive;

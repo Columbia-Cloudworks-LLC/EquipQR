@@ -73,7 +73,7 @@ const workOrder = {
   updated_at: '2026-01-02T00:00:00Z',
   equipment_id: 'eq-1',
   organization_id: 'org-1',
-  team_id: 'team-1',
+  equipmentTeamId: 'team-1',
   is_historical: false,
 } as WorkOrder;
 

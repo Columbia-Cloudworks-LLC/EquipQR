@@ -52,11 +52,13 @@ const WORK_ORDERS_TABLE_SELECT = `
   completed_date,
   estimated_hours,
   assignee_name,
-  team_id,
   equipment_id,
   has_pm,
-  teams:team_id (name),
-  equipment:equipment_id (name)
+  equipment:equipment!work_orders_equipment_id_fkey!inner (
+    name,
+    team_id,
+    teams:team_id (name)
+  )
 `;
 
 const INVENTORY_TABLE_SELECT = `
@@ -266,11 +268,12 @@ async function fetchWorkOrderRows(
 
   query = applyRowPagination(query, limit, offset);
 
+  // A work order's team is its equipment's team: filter through the equipment join.
   if (accessibleTeamIds !== undefined) {
-    query = query.in("team_id", accessibleTeamIds);
+    query = query.in("equipment.team_id", accessibleTeamIds);
   }
   if (filters.status) query = query.eq("status", filters.status);
-  if (filters.teamId) query = query.eq("team_id", filters.teamId);
+  if (filters.teamId) query = query.eq("equipment.team_id", filters.teamId);
   if (filters.priority) query = query.eq("priority", filters.priority);
   if (filters.dateRange?.from) query = query.gte("created_date", filters.dateRange.from);
   if (filters.dateRange?.to) query = query.lte("created_date", filters.dateRange.to);
@@ -280,11 +283,14 @@ async function fetchWorkOrderRows(
     throw new Error(`Failed to fetch work orders: ${error.message}`);
   }
 
-  return (data ?? []).map((item) => ({
-    ...item,
-    team_name: (item.teams as { name?: string } | null)?.name ?? "",
-    equipment_name: (item.equipment as { name?: string } | null)?.name ?? "",
-  })) as ExportRow[];
+  return (data ?? []).map((item) => {
+    const equipment = item.equipment as { name?: string; teams?: { name?: string } | null } | null;
+    return {
+      ...item,
+      team_name: equipment?.teams?.name ?? "",
+      equipment_name: equipment?.name ?? "",
+    };
+  }) as ExportRow[];
 }
 
 async function fetchInventoryRows(

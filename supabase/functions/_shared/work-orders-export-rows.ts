@@ -62,8 +62,8 @@ export function buildAllRows(data: WorkOrdersWithData): AllExportRows {
     // Get equipment from the map
     const equipment = wo.equipment_id ? data.equipmentMap.get(wo.equipment_id) : null;
 
-    // Get team name from the map
-    const teamName = wo.team_id ? data.teamMap.get(wo.team_id) : null;
+    // Get team name from the map (the work order's team is its equipment's team)
+    const teamName = wo.equipment_team_id ? data.teamMap.get(wo.equipment_team_id) : null;
 
     const totalLaborHours = woNotes.reduce((sum, n) => sum + (n.hours_worked || 0), 0);
     const totalMaterialCost = woCosts.reduce(

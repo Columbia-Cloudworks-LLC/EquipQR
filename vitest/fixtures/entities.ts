@@ -192,7 +192,6 @@ export interface TestWorkOrder extends Partial<WorkOrder> {
   priority: WorkOrderPriority;
   equipment_id: string;
   organization_id: string;
-  team_id?: string | null;
   assignee_id?: string | null;
   assignee_name?: string | null;
   created_by?: string;
@@ -211,7 +210,7 @@ export const workOrders = {
     priority: 'medium' as WorkOrderPriority,
     equipment_id: 'eq-forklift-1',
     organization_id: 'org-acme',
-    team_id: 'team-maintenance',
+    equipmentTeamId: 'team-maintenance',
     assignee_id: null,
     assignee_name: null,
     created_by: personas.teamManager.id,
@@ -230,7 +229,7 @@ export const workOrders = {
     priority: 'high' as WorkOrderPriority,
     equipment_id: 'eq-forklift-2',
     organization_id: 'org-acme',
-    team_id: 'team-maintenance',
+    equipmentTeamId: 'team-maintenance',
     assignee_id: personas.technician.id,
     assignee_name: personas.technician.name,
     created_by: personas.admin.id,
@@ -250,7 +249,7 @@ export const workOrders = {
     priority: 'high' as WorkOrderPriority,
     equipment_id: 'eq-crane-1',
     organization_id: 'org-acme',
-    team_id: 'team-field',
+    equipmentTeamId: 'team-field',
     assignee_id: personas.multiTeamTechnician.id,
     assignee_name: personas.multiTeamTechnician.name,
     created_by: personas.teamManager.id,
@@ -270,7 +269,7 @@ export const workOrders = {
     priority: 'medium' as WorkOrderPriority,
     equipment_id: 'eq-compressor-1',
     organization_id: 'org-acme',
-    team_id: 'team-warehouse',
+    equipmentTeamId: 'team-warehouse',
     assignee_id: personas.technician.id,
     assignee_name: personas.technician.name,
     created_by: personas.admin.id,
@@ -291,7 +290,7 @@ export const workOrders = {
     priority: 'low' as WorkOrderPriority,
     equipment_id: 'eq-compressor-1',
     organization_id: 'org-acme',
-    team_id: 'team-warehouse',
+    equipmentTeamId: 'team-warehouse',
     assignee_id: personas.technician.id,
     assignee_name: personas.technician.name,
     created_by: personas.teamManager.id,
@@ -311,7 +310,7 @@ export const workOrders = {
     priority: 'low' as WorkOrderPriority,
     equipment_id: 'eq-unassigned-1',
     organization_id: 'org-acme',
-    team_id: null,
+    equipmentTeamId: undefined,
     assignee_id: null,
     assignee_name: null,
     created_by: personas.admin.id,
@@ -768,10 +767,10 @@ export const partIdentifiers: Record<string, TestPartIdentifier> = {
 // ============================================
 
 /**
- * Get all work orders for a specific team
+ * Get all work orders for a specific team (a work order's team is its equipment's team)
  */
 export const getWorkOrdersForTeam = (teamId: string): TestWorkOrder[] => {
-  return Object.values(workOrders).filter(wo => wo.team_id === teamId);
+  return Object.values(workOrders).filter(wo => wo.equipmentTeamId === teamId);
 };
 
 /**

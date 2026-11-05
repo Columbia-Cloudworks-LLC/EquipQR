@@ -48,7 +48,6 @@ export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId
   const workOrderAccessible = areRecordsOnAccessibleTeam(
     isOrgAdmin,
     getUserTeamIds(),
-    fetchedWorkOrder?.team_id,
     fetchedWorkOrder?.equipmentTeamId,
   );
   const workOrder = workOrderAccessible ? fetchedWorkOrder : undefined;
@@ -84,7 +83,7 @@ export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId
 
   const notePermissionInput = {
     status: workOrder?.status ?? 'submitted',
-    teamId: workOrder?.team_id,
+    teamId: workOrder?.equipmentTeamId,
     createdBy: workOrder?.created_by,
     userId: user?.id,
     isOrgAdmin: permissionLevels.isManager,

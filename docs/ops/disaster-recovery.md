@@ -12,6 +12,7 @@ This document outlines the disaster recovery procedures for EquipQR™, includin
   - [Daily Backup Restoration](#daily-backup-restoration)
 - [Step-by-Step Recovery Guide](#step-by-step-recovery-guide)
 - [Post-Recovery Checklist](#post-recovery-checklist)
+- [Logical backup and restore (pg_dump)](#logical-backup-and-restore-pg_dump)
 - [Testing the Recovery Plan](#testing-the-recovery-plan)
 - [Contact and Escalation](#contact-and-escalation)
 
@@ -346,6 +347,72 @@ curl https://supabase.equipqr.app/functions/v1/healthcheck
 
 ---
 
+## Logical backup and restore (pg_dump)
+
+Use a logical backup when you need a copy you control: before a risky migration,
+to move data to a new instance, or to rehearse recovery locally. Supabase daily
+backups and PITR (above) remain the primary recovery path for hosted projects.
+
+A logical backup has three parts. Keep them together:
+
+| File | Command | Why |
+| --- | --- | --- |
+| `roles.sql` | `pg_dumpall --roles-only --no-role-passwords` | `pg_dump` does not include roles. |
+| `<name>.dump` | `pg_dump -Fc -d postgres` (as `supabase_admin`) | Schema, data, grants, default privileges. |
+| `manifest.txt` | Row count per table in `public`, `auth`, `storage` | Proves the restore is complete. |
+
+### Restore into a fresh Supabase Postgres instance
+
+1. Start the target from the same `supabase/postgres` image version as the source.
+2. Apply roles: `psql -f roles.sql`. "Role already exists" errors are expected.
+3. **Clear the image's default privileges on `public` before restoring.** The
+   Supabase image grants `anon`, `authenticated` and `service_role` default
+   privileges on every new function, table and sequence in `public`. `pg_dump`
+   records grants relative to Postgres built-in defaults, so it never emits the
+   `REVOKE ... FROM anon` that our migrations applied. Skip this step and every
+   restored function becomes executable by `anon`. In the 2026-11-05 drill, 288
+   functions became executable by `anon` against an expected 3.
+
+   ```sql
+   DO $$
+   DECLARE r text;
+   BEGIN
+     FOREACH r IN ARRAY ARRAY['postgres', 'supabase_admin'] LOOP
+       EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM anon, authenticated, service_role', r);
+       EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL ON TABLES FROM anon, authenticated, service_role', r);
+       EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon, authenticated, service_role', r);
+     END LOOP;
+   END $$;
+   ```
+
+   The dump's own `ALTER DEFAULT PRIVILEGES` entries restore the source's real
+   defaults at the end of `pg_restore`.
+
+4. Restore: `pg_restore -U supabase_admin -d postgres --clean --if-exists <name>.dump`.
+   Expect three harmless errors: `graphql_public` already exists (two), and
+   ownership of the `stripe_wrapper` foreign-data wrapper cannot change.
+5. Roll forward any migrations newer than the backup:
+   `npx supabase migration up --db-url "postgresql://postgres:<password>@<host>:<port>/postgres?sslmode=disable"`.
+   The CLI records each file's version, so later deploys skip them.
+
+`pg_cron` lives in one database per cluster. Restoring into a database other than
+`postgres` drops the `cron` schema and its jobs.
+
+### Verify the restore
+
+- Row counts match `manifest.txt` exactly.
+- `anon` can execute the same public functions as the source (3 today):
+
+  ```sql
+  SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public' AND has_function_privilege('anon', p.oid, 'EXECUTE');
+  ```
+
+- Every `supabase/tests/*.sql` pgTAP file passes (pgTAP must be installed in `extensions`).
+- `supabase_migrations.schema_migrations` lists the same latest version as the source.
+
+---
+
 ## Testing the Recovery Plan
 
 ### Quarterly DR Testing
@@ -375,6 +442,19 @@ After each test, update this section with:
 - Time to complete recovery
 - Issues encountered
 - Improvements identified
+
+#### 2026-11-05: local logical restore drill
+
+- **Scope:** `pg_dump` of the local stack, restored into a fresh
+  `supabase/postgres:17.6.1.165` container, then rolled forward with migration
+  `20261105043341_remove_work_orders_team_id.sql`.
+- **Time:** dump under 10 s; `pg_restore` 7 s (2.3 MB, 116 tables); roll-forward under 10 s.
+- **Result:** row counts identical on all 116 tables; 695/695 pgTAP assertions pass after roll-forward.
+- **Issue found:** restoring over the image-initialized `postgres` database made
+  288 public functions executable by `anon` (expected 3). Fixed by step 3 of the
+  restore procedure; ACLs then matched a clean restore exactly.
+- **Not covered:** hosted daily backup and PITR restores. The quarterly test
+  above still names the decommissioned staging project `olsdirkvvfegvclbpgrg`.
 
 ---
 

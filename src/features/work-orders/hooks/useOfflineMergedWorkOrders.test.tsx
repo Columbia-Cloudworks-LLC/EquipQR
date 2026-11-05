@@ -79,7 +79,6 @@ function makeServerWorkOrder(overrides?: Partial<WorkOrder>): WorkOrder {
     status: 'submitted',
     assignee_id: null,
     assignee_name: null,
-    team_id: null,
     created_by: 'user-1',
     created_by_admin: false,
     created_by_name: 'Jane Doe',
@@ -207,7 +206,6 @@ describe('useOfflineMergedWorkOrders', () => {
       wrapper: createWrapper(),
     });
 
-    expect(result.current[0].team_id).toBe('team-warehouse');
     expect(result.current[0].teamId).toBe('team-warehouse');
     expect(result.current[0].equipmentTeamId).toBe('team-warehouse');
     expect(result.current[0].equipmentTeamName).toBe('Warehouse Team');

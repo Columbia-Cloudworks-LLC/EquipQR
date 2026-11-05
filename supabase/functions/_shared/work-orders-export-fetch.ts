@@ -9,6 +9,15 @@
 import { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import type { WorkOrderExcelFilters } from "./work-orders-export-data.ts";
 
+/** A work order's team is its equipment's team; PostgREST may return the to-one embed as an object or a one-element array. */
+function embeddedEquipmentTeamId(
+  equipment: { team_id: string | null } | Array<{ team_id: string | null }> | null | undefined,
+): string | null {
+  const row = Array.isArray(equipment) ? equipment[0] : equipment;
+  return row?.team_id ?? null;
+}
+
+
 /**
  * Maximum rows per export to prevent abuse.
  *
@@ -31,7 +40,8 @@ export interface WorkOrdersWithData {
     completed_date: string | null;
     assignee_name: string | null;
     has_pm: boolean;
-    team_id: string | null;
+    /** The work order's team is its equipment's team. */
+    equipment_team_id: string | null;
     equipment_id: string | null;
   }>;
   notes: Array<{
@@ -107,8 +117,8 @@ export async function fetchWorkOrdersWithData(
       completed_date,
       assignee_name,
       has_pm,
-      team_id,
-      equipment_id
+      equipment_id,
+      equipment:equipment!work_orders_equipment_id_fkey${filters.teamId ? '!inner' : ''} (team_id)
     `)
     .eq('organization_id', organizationId)
     .limit(MAX_WORK_ORDERS);
@@ -121,7 +131,7 @@ export async function fetchWorkOrdersWithData(
     query = query.eq('id', filters.workOrderId);
   }
   if (filters.teamId) {
-    query = query.eq('team_id', filters.teamId);
+    query = query.eq('equipment.team_id', filters.teamId);
   }
   if (filters.priority) {
     query = query.eq('priority', filters.priority);
@@ -141,10 +151,14 @@ export async function fetchWorkOrdersWithData(
 
   query = query.order('created_date', { ascending: false });
 
-  const { data: workOrders, error } = await query;
+  const { data: workOrderRows, error } = await query;
+  const workOrders = (workOrderRows ?? []).map(({ equipment, ...wo }) => ({
+    ...wo,
+    equipment_team_id: embeddedEquipmentTeamId(equipment),
+  }));
 
   if (error) throw new Error(`Failed to fetch work orders: ${error.message}`);
-  if (!workOrders || workOrders.length === 0) {
+  if (workOrders.length === 0) {
     return {
       workOrders: [],
       notes: [],
@@ -190,7 +204,7 @@ export async function fetchWorkOrdersWithData(
 
   // Fetch teams data separately
   // Defense in depth: teams table has organization_id column, so we add explicit filter
-  const teamIds = [...new Set(workOrders.map(wo => wo.team_id).filter(Boolean))];
+  const teamIds = [...new Set(workOrders.map(wo => wo.equipment_team_id).filter(Boolean))];
   let teamMap = new Map<string, string>();
   if (teamIds.length > 0) {
     const { data: teamsData } = await supabase

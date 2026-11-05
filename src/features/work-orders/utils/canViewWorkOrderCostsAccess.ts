@@ -20,7 +20,8 @@ export interface WorkOrderCostAssigneeScope {
 }
 
 export interface WorkOrderCostAccessWorkOrder {
-  team_id?: string | null;
+  /** The work order's team is its equipment's team. */
+  equipmentTeamId?: string | null;
   assignee_id?: string | null;
 }
 
@@ -47,13 +48,13 @@ export function canViewWorkOrderCostsForWorkOrder(
     return true;
   }
 
-  if (!workOrder.team_id) {
+  if (!workOrder.equipmentTeamId) {
     return false;
   }
 
   return ctx.teamMemberships.some(
     (membership) =>
-      membership.team_id === workOrder.team_id &&
+      membership.team_id === workOrder.equipmentTeamId &&
       isOperationalTeamRole(membership.role),
   );
 }
