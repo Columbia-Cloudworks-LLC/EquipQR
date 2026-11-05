@@ -743,6 +743,8 @@ export class WorkOrderReportPDFGenerator {
    * 9. NEW PAGE: Public Work Order Notes
    * 10. Costs (only if includeCosts is true)
    */
+  // Called on the instance returned by create(); fallow cannot follow that type.
+  // fallow-ignore-next-line unused-class-member
   public async generatePDF(data: WorkOrderPDFData): Promise<jsPDF> {
     const {
       workOrder,

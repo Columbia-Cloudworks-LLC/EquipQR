@@ -682,6 +682,8 @@ export class WorkOrderFieldWorksheetPDFGenerator {
 
   // ===================== PUBLIC API =====================
 
+  // Called on the instance returned by create(); fallow cannot follow that type.
+  // fallow-ignore-next-line unused-class-member
   public async generateWorksheet(data: WorkOrderPDFData): Promise<jsPDF> {
     const { workOrder, equipment, organizationName, pmData, exportDateSettings } = data;
     this.exportDateSettings = exportDateSettings;
