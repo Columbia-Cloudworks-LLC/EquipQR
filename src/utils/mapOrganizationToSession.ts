@@ -43,11 +43,23 @@ function mapOrganizationRowToSessionOrganization(
   };
 }
 
+/**
+ * Stable display order: by name (case-insensitive), then id. The source queries
+ * (`.in('id', orgIds)`) have no ORDER BY, so without this the workspace switcher
+ * and the role-tie fallback in getPrioritizedOrganizationId vary between loads.
+ */
+function compareOrganizations(a: OrganizationRow, b: OrganizationRow): number {
+  return (
+    a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }) ||
+    (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+  );
+}
+
 export function mapOrganizationRowsToSessionOrganizations(
   orgRows: OrganizationRow[],
   memberships: OrganizationMembershipSlice[]
 ): SessionOrganization[] {
-  return orgRows.map(org => {
+  return [...orgRows].sort(compareOrganizations).map(org => {
     const membership = memberships.find(m => m.organization_id === org.id);
     return mapOrganizationRowToSessionOrganization(org, membership);
   });

@@ -29,6 +29,7 @@
     "playwright.pr-evidence.config.ts",
     "playwright.quickbooks-auth-setup.config.ts",
     "playwright.quickbooks-developer-auth-setup.config.ts",
+    "playwright.screen-catalog.config.ts",
     "playwright.user.config.ts",
     "postcss.config.js",
     "pr_compliance_checklist.yaml",
