@@ -11,6 +11,11 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Fixed
+
+- **Display image badge on equipment photos (#1696)** — The Images tab on an equipment page again marks which photo is the display image, and offers "Remove as display image" for it instead of "Set as display image".
+- **Stable workspace order (#1696)** — The workspace switcher now lists your organizations alphabetically, so the order no longer changes between page loads.
+
 ## [3.38.0] - 2026-11-05
 
 ### Security

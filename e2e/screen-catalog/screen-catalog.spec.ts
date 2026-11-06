@@ -1,7 +1,7 @@
 /**
  * Screen catalog capture. One test per (flow, persona, screen); each writes
  * PNG slices plus screen.json under SCREEN_CATALOG_OUT, which
- * dev/screen-catalog/build-gallery.mjs turns into the browsable gallery.
+ * dev/screen-catalog/build-gallery.ts turns into the browsable gallery.
  *
  * Run through `npm run screens:capture` (dev/linux/screen-catalog.sh), which
  * resets the local database first so every run starts from the same seed.
@@ -24,11 +24,11 @@ import {
 } from './capture';
 import { loadScreenCatalogSettings } from './config';
 import { buildRunTimePattern, markRunTimestamps, replaceRunTimestamps, RUN_TIME_PLACEHOLDER } from './run-time-mask';
+import { catalogFlows } from './flows';
+import type { CapturedScreen, CatalogFlow, CatalogPersona, CatalogScreen } from './types';
 
 /** Live third-party map tiles render differently on every load; painted over unless --live-maps. */
 const MAP_MASK = ['.gm-style'];
-import { catalogFlows } from './flows';
-import type { CapturedScreen, CatalogFlow, CatalogPersona, CatalogScreen } from './types';
 
 const settings = loadScreenCatalogSettings();
 const repoRoot = process.cwd();

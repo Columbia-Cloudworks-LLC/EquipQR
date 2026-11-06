@@ -32,6 +32,7 @@ done
 [[ "$workers" =~ ^[1-9][0-9]*$ ]] || { echo '--workers must be a positive integer.' >&2; exit 2; }
 
 slug="$(printf '%s' "$device" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g;s/^-|-$//g')"
+[[ -n "$slug" ]] || { echo "--device must contain letters or digits." >&2; exit 2; }
 out="tmp/screen-catalog/$slug"
 export SCREEN_CATALOG_DEVICE="$device" SCREEN_CATALOG_WORKERS="$workers" SCREEN_CATALOG_SCALE="$scale"
 export SCREEN_CATALOG_OUT="$out" SCREEN_CATALOG_FLOWS="$flows" SCREEN_CATALOG_PERSONAS="$personas"

@@ -6,7 +6,7 @@ import { Trash2, Eye, Star, StarOff } from 'lucide-react';
 import DynamicImageViewport from '@/components/common/DynamicImageViewport';
 import ImageLightboxDialog from '@/components/common/ImageLightboxDialog';
 import { toast } from 'sonner';
-import { equipmentMediaPathsMatch } from '@/features/equipment/utils/equipmentMediaFilters';
+import { isEquipmentDisplayImage } from '@/features/equipment/utils/equipmentMediaFilters';
 
 interface ImageData {
   id: string;
@@ -48,8 +48,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
 
   // Image URLs are signed per fetch, so the same stored object can arrive with a
   // different token than currentDisplayImage. Compare storage paths, not strings.
-  const isDisplayImage = (image: ImageData) =>
-    equipmentMediaPathsMatch(image.file_url, currentDisplayImage);
+  const isDisplayImage = (image: ImageData) => isEquipmentDisplayImage(image, currentDisplayImage);
 
   const handleDelete = async (image: ImageData) => {
     if (!onDelete) return;
