@@ -305,13 +305,19 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
                 )}
               </div>
 
-              <DialogFooter className="gap-2 sm:justify-between">
-                {showCreateOption ? (
-                  <Button type="button" variant="ghost" onClick={handleCreateNew}>
-                    <Plus className="mr-2 h-4 w-4" aria-hidden />
-                    New equipment
-                  </Button>
-                ) : null}
+              {showCreateOption ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="min-h-11 w-full justify-start"
+                  onClick={handleCreateNew}
+                >
+                  <Plus className="mr-2 h-4 w-4" aria-hidden />
+                  New equipment
+                </Button>
+              ) : null}
+
+              <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => handleSearchDialogOpenChange(false)}>
                   Cancel
                 </Button>
