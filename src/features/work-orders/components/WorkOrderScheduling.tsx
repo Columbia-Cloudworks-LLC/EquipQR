@@ -2,6 +2,8 @@ import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 import {
   applyDueWrite,
   dueDateTimeInputWrite,
@@ -16,6 +18,9 @@ import {
 } from '@/features/work-orders/calendar';
 import { WorkOrderDueTimePicker } from '@/features/work-orders/components/WorkOrderDueTimePicker';
 import { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
+
+/** Time applied when the user taps "Add time" on an all-day due date. */
+const DEFAULT_DUE_TIME = '09:00';
 
 interface WorkOrderSchedulingProps {
   values: Pick<WorkOrderFormData, 'dueDate' | 'dueDateHasTime' | 'estimatedHours'>;
@@ -45,6 +50,7 @@ export const WorkOrderScheduling: React.FC<WorkOrderSchedulingProps> = ({
   }, [propDue]);
 
   const due = draftDue;
+  const hasDueTime = dueTimeInputValue(due) !== '';
 
   const persistWrite = (write: Parameters<typeof applyDueWrite>[1]) => {
     const nextDue = applyDueWrite(draftDueRef.current, write);
@@ -89,7 +95,7 @@ export const WorkOrderScheduling: React.FC<WorkOrderSchedulingProps> = ({
         </h3>
         
         <div className="space-y-2">
-          <Label htmlFor="work-order-due-date">Work order due date</Label>
+          <Label htmlFor="work-order-due-date">Complete by</Label>
           <Input
             id="work-order-due-date"
             type="date"
@@ -99,39 +105,55 @@ export const WorkOrderScheduling: React.FC<WorkOrderSchedulingProps> = ({
           {errors.dueDate && (
             <p className="text-sm text-destructive">{errors.dueDate}</p>
           )}
-          <p className="text-xs text-muted-foreground">Scheduling deadline for the work. Invoice payment dates are entered separately when reviewing an invoice.</p>
+          {hasDueTime ? (
+            <WorkOrderDueTimePicker
+              idPrefix="work-order-due-time"
+              value={dueTimeInputValue(due)}
+              onChange={handleDueTimeChange}
+            />
+          ) : (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>All day</span>
+              <span aria-hidden>·</span>
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                className="h-auto p-0"
+                onClick={() => handleDueTimeChange(DEFAULT_DUE_TIME)}
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" aria-hidden />
+                Add time
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="work-order-due-time-hour">Due time</Label>
-          <WorkOrderDueTimePicker
-            idPrefix="work-order-due-time"
-            value={dueTimeInputValue(due)}
-            onChange={handleDueTimeChange}
-          />
-          <p className="text-xs text-muted-foreground">
-            Optional. Leave empty for an all-day due date.
-          </p>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="work-order-estimated-hours">Estimated Hours</Label>
-          <Input
-            id="work-order-estimated-hours"
-            type="number"
-            min="0"
-            max="10000"
-            step="0.5"
-            placeholder="e.g., 2.5"
-            value={values.estimatedHours != null ? values.estimatedHours.toString() : ''}
-            onChange={handleEstimatedHoursChange}
-          />
+          <Label htmlFor="work-order-estimated-hours">Estimated time</Label>
+          <div className="relative">
+            <Input
+              id="work-order-estimated-hours"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              max="10000"
+              step="0.5"
+              placeholder="2.5"
+              className="pr-12"
+              value={values.estimatedHours != null ? values.estimatedHours.toString() : ''}
+              onChange={handleEstimatedHoursChange}
+            />
+            <span
+              className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground"
+              aria-hidden
+            >
+              hrs
+            </span>
+          </div>
           {errors.estimatedHours && (
             <p className="text-sm text-destructive">{errors.estimatedHours}</p>
           )}
-          <p className="text-xs text-muted-foreground">
-            Optional: Estimated time to complete this work order
-          </p>
         </div>
       </CardContent>
     </Card>

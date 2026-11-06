@@ -177,7 +177,7 @@ describe('QRWorkOrderDialog', () => {
 
     await screen.findByRole('combobox', { name: /pm template/i });
     const file = new File(['fake-bytes'], 'site-photo.jpg', { type: 'image/jpeg' });
-    await user.upload(screen.getByLabelText(/attach photos from this request/i), file);
+    await user.upload(screen.getByLabelText(/^photos/i), file);
     await user.click(screen.getByRole('button', { name: /create work order/i }));
 
     await waitFor(() => {

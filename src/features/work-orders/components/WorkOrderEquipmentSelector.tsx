@@ -1,17 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { Forklift, Clock, Edit, Plus, List, Search } from 'lucide-react';
+import { Forklift, Clock, Edit, Plus, Search, ChevronDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -48,7 +40,7 @@ interface WorkOrderEquipmentSelectorProps {
   onEquipmentCreated?: (equipmentId: string) => void;
   /**
    * Whether user has any teams they can create equipment for.
-   * If false, the Create New tab won't be shown.
+   * If false, the "New equipment" action won't be shown.
    */
   canCreateEquipment?: boolean;
 }
@@ -238,77 +230,42 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
 
   const showCreateOption = canCreateEquipment && canCreateEquipmentForTeam && !isEditMode;
 
+  const handleCreateNew = () => {
+    handleSearchDialogOpenChange(false);
+    setMode('create');
+  };
+
   return (
     <div className="space-y-3">
       <Label htmlFor="work-order-equipment-select">Equipment *</Label>
 
-      {showCreateOption && (
-        <Tabs value={mode} onValueChange={(v) => setMode(v as EquipmentMode)} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="select" className="flex items-center gap-2">
-              <List className="h-4 w-4" />
-              <span>Select Existing</span>
-            </TabsTrigger>
-            <TabsTrigger value="create" className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              <span>Create New</span>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      )}
-
       {mode === 'select' && (
         <div className="space-y-2">
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Select
-              value={values.equipmentId || undefined}
-              onValueChange={(equipmentId) => setValue('equipmentId', equipmentId)}
-            >
-              <SelectTrigger
-                id="work-order-equipment-select"
-                aria-label="Select equipment"
-                className={cn('h-auto min-h-11 w-full sm:flex-1', !selectedEquipment && 'text-muted-foreground')}
-              >
-                <SelectValue placeholder="Select equipment">
-                  {selectedEquipment ? formatEquipmentTriggerLabel(selectedEquipment) : 'Select equipment'}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent position="popper" className="max-h-60">
-                {allEquipment.length === 0 ? (
-                  <div className="px-2 py-6 text-center text-sm text-muted-foreground">
-                    No equipment available
-                  </div>
-                ) : (
-                  allEquipment.map((equipment) => (
-                    <SelectItem
-                      key={equipment.id}
-                      value={equipment.id}
-                      className="items-start py-2"
-                    >
-                      <EquipmentOptionDetails equipment={equipment} />
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-11 shrink-0"
-              onClick={() => setEquipmentSearchOpen(true)}
-            >
-              <Search className="mr-2 h-4 w-4" aria-hidden />
-              Search equipment
-            </Button>
-          </div>
+          <Button
+            id="work-order-equipment-select"
+            type="button"
+            variant="outline"
+            aria-haspopup="dialog"
+            aria-label={selectedEquipment ? `Equipment: ${selectedEquipment.name}. Change` : 'Select equipment'}
+            onClick={() => setEquipmentSearchOpen(true)}
+            className={cn(
+              'h-auto min-h-11 w-full justify-start gap-2 px-3 text-left font-normal',
+              !selectedEquipment && 'text-muted-foreground',
+            )}
+          >
+            <Search className="h-4 w-4 shrink-0 opacity-60" aria-hidden />
+            <span className="min-w-0 flex-1 truncate">
+              {selectedEquipment ? formatEquipmentTriggerLabel(selectedEquipment) : 'Select equipment'}
+            </span>
+            <ChevronDown className="h-4 w-4 shrink-0 opacity-50" aria-hidden />
+          </Button>
 
           <Dialog open={equipmentSearchOpen} onOpenChange={handleSearchDialogOpenChange} modal>
             <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
               <DialogHeader>
-                <DialogTitle>Search equipment</DialogTitle>
-                <DialogDescription>
-                  Filter and select equipment for this work order.
+                <DialogTitle>Choose equipment</DialogTitle>
+                <DialogDescription className="sr-only">
+                  Search, then pick the equipment for this work order.
                 </DialogDescription>
               </DialogHeader>
 
@@ -348,7 +305,13 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
                 )}
               </div>
 
-              <DialogFooter>
+              <DialogFooter className="gap-2 sm:justify-between">
+                {showCreateOption ? (
+                  <Button type="button" variant="ghost" onClick={handleCreateNew}>
+                    <Plus className="mr-2 h-4 w-4" aria-hidden />
+                    New equipment
+                  </Button>
+                ) : null}
                 <Button type="button" variant="outline" onClick={() => handleSearchDialogOpenChange(false)}>
                   Cancel
                 </Button>

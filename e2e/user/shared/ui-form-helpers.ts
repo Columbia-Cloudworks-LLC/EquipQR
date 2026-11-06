@@ -31,7 +31,7 @@ async function pickWorkOrderEquipmentFromSearchDialog(
   optionName: string | RegExp,
   searchText: string,
 ): Promise<boolean> {
-  const searchEquipmentButton = page.getByRole('button', { name: /^search equipment$/i });
+  const searchEquipmentButton = page.getByRole('button', { name: /^(search|select) equipment$/i });
   if (!(await searchEquipmentButton.isVisible({ timeout: 2_000 }).catch(() => false))) {
     return false;
   }
