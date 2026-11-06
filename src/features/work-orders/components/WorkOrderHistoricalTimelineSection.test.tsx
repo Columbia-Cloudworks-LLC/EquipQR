@@ -42,7 +42,6 @@ const baseWorkOrder: WorkOrder = {
   acceptance_date: null,
   assignee_id: null,
   assignee_name: null,
-  team_id: null,
   created_by_admin: null,
   created_by_name: null,
   estimated_hours: null,

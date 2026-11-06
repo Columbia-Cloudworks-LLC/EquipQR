@@ -4,6 +4,15 @@
 
 import { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 
+/** A work order's team is its equipment's team; PostgREST may return the to-one embed as an object or a one-element array. */
+function embeddedEquipmentTeamId(
+  equipment: { team_id: string | null } | Array<{ team_id: string | null }> | null | undefined,
+): string | null {
+  const row = Array.isArray(equipment) ? equipment[0] : equipment;
+  return row?.team_id ?? null;
+}
+
+
 export interface SingleWorkOrderGoogleDocFetchResult {
   workOrder: {
     id: string;
@@ -16,7 +25,6 @@ export interface SingleWorkOrderGoogleDocFetchResult {
     completed_date: string | null;
     assignee_name: string | null;
     has_pm: boolean;
-    team_id: string | null;
     equipment_id: string | null;
   };
   organization: { name: string; logo: string | null } | null;
@@ -79,22 +87,27 @@ export async function fetchSingleWorkOrderGoogleDocData(
   workOrderId: string,
 ): Promise<SingleWorkOrderGoogleDocFetchResult> {
   // 1. Fetch the work order and verify it belongs to the org
-  const { data: workOrder, error: woError } = await supabase
+  const { data: workOrderRow, error: woError } = await supabase
     .from('work_orders')
     .select(`
       id, title, description, status, priority,
       created_date, due_date, completed_date,
-      assignee_name, has_pm, team_id, equipment_id
+      assignee_name, has_pm, equipment_id,
+      equipment:equipment!work_orders_equipment_id_fkey (team_id)
     `)
     .eq('id', workOrderId)
     .eq('organization_id', organizationId)
     .single();
 
-  if (woError || !workOrder) {
+  if (woError || !workOrderRow) {
     throw new Error(
       `Work order not found or does not belong to organization: ${woError?.message ?? 'not found'}`,
     );
   }
+
+  // A work order's team is its equipment's team.
+  const { equipment: woEquipment, ...workOrder } = workOrderRow;
+  const equipmentTeamId = embeddedEquipmentTeamId(woEquipment);
 
   // 2. Fetch org row for name and logo
   const { data: org } = await supabase
@@ -103,14 +116,14 @@ export async function fetchSingleWorkOrderGoogleDocData(
     .eq('id', organizationId)
     .single();
 
-  // 3. If work order has team_id, fetch team name and image_url
+  // 3. If the equipment has a team, fetch team name and image_url
   // Defense in depth: teams table has organization_id, so we add explicit filter
   let teamData: { name: string | null; imageUrl: string | null } = { name: null, imageUrl: null };
-  if (workOrder.team_id) {
+  if (equipmentTeamId) {
     const { data: team } = await supabase
       .from('teams')
       .select('name, image_url')
-      .eq('id', workOrder.team_id)
+      .eq('id', equipmentTeamId)
       .eq('organization_id', organizationId)
       .single();
     if (team) {

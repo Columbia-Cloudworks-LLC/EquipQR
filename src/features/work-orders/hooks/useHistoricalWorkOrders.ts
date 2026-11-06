@@ -25,7 +25,6 @@ export interface HistoricalWorkOrderData {
   historicalStartDate: string;
   historicalNotes?: string;
   assigneeId?: string;
-  teamId?: string;
   dueDate?: string;
   dueDateHasTime?: boolean;
   completedDate?: string;
@@ -165,7 +164,6 @@ export const useCreateHistoricalWorkOrder = (options?: {
           p_historical_start_date: data.historicalStartDate,
           p_historical_notes: data.historicalNotes,
           p_assignee_id: data.assigneeId,
-          p_team_id: data.teamId,
           p_due_date: data.dueDate,
           p_completed_date: data.completedDate,
           p_has_pm: data.hasPM || false,

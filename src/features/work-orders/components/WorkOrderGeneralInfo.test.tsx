@@ -3,36 +3,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@vitest-harness/utils/test-utils';
 import { WorkOrderGeneralInfo } from '@/features/work-orders/components/WorkOrderGeneralInfo';
 
-const mockToggleListening = vi.fn();
-
-vi.mock('@/hooks/useVoiceTextAppender', () => ({
-  useVoiceTextAppender: ({
-    value,
-    onChange,
-  }: {
-    value: string;
-    onChange: (value: string) => void;
-  }) => ({
-    isSupported: true,
-    isListening: false,
-    error: null,
-    interimTranscript: '',
-    toggleListening: () => {
-      mockToggleListening();
-      onChange(`${value}${value.trim() ? ' ' : ''}voice description`);
-    },
-    canUseVoice: true,
-  }),
-}));
-
-describe('WorkOrderGeneralInfo voice dictation', () => {
+describe('WorkOrderGeneralInfo', () => {
   const setValue = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('shows voice control on the description field', () => {
+  it('renders the description field', () => {
     render(
       <WorkOrderGeneralInfo
         values={{ title: '', priority: 'medium', description: '' }}
@@ -42,21 +20,19 @@ describe('WorkOrderGeneralInfo voice dictation', () => {
     );
 
     expect(screen.getByLabelText('Description')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Start voice input' })).toBeInTheDocument();
   });
 
-  it('appends dictated text to description via setValue', () => {
+  it('updates description via setValue when typing', () => {
     render(
       <WorkOrderGeneralInfo
-        values={{ title: '', priority: 'medium', description: 'Leak found' }}
+        values={{ title: '', priority: 'medium', description: '' }}
         errors={{}}
         setValue={setValue}
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Start voice input' }));
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'Leak found' } });
 
-    expect(mockToggleListening).toHaveBeenCalledTimes(1);
-    expect(setValue).toHaveBeenCalledWith('description', 'Leak found voice description');
+    expect(setValue).toHaveBeenCalledWith('description', 'Leak found');
   });
 });

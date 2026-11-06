@@ -1,7 +1,7 @@
 {
   "name": "equipqr",
   "private": true,
-  "version": "3.37.0",
+  "version": "3.38.0",
   "type": "module",
   "engines": {
     "node": "24.x"
@@ -10,7 +10,7 @@
     "workbox-build": {
       "glob": "13.0.6"
     },
-    "vite": "^8.0.13",
+    "vite": "^8.1.6",
     "esbuild": "^0.25.0",
     "node-domexception": "^1.0.0",
     "tar": "7.5.11",
@@ -26,7 +26,10 @@
     "@radix-ui/react-context": "1.2.2",
     "@radix-ui/primitive": "1.1.7",
     "@radix-ui/react-id": "1.1.4",
-    "@radix-ui/react-use-controllable-state": "1.2.6"
+    "@radix-ui/react-use-controllable-state": "1.2.6",
+    "micromark-extension-math": {
+      "katex": "^0.18.2"
+    }
   },
   "scripts": {
     "dev": "bash dev/linux/dev.sh start",
@@ -120,6 +123,7 @@
     "dev:stop": "bash dev/linux/dev.sh stop",
     "dev:status": "bash dev/linux/dev.sh status",
     "dev:reset": "bash dev/linux/dev.sh reset",
+    "dev:restart": "bash dev/linux/dev.sh restart",
     "dev:frontend": "vite",
     "setup": "bash dev/linux/setup.sh",
     "pr-evidence:review": "bash dev/linux/pr-evidence.sh review",
@@ -229,7 +233,7 @@
     "istanbul-lib-report": "^3.0.1",
     "istanbul-reports": "^3.2.0",
     "jsdom": "29.1.1",
-    "markdownlint-cli2": "0.23.3",
+    "markdownlint-cli2": "0.24.0",
     "postcss": "^8.5.14",
     "size-limit": "13.0.3",
     "supabase": "2.116.0",
@@ -239,7 +243,7 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.71.0",
     "us-atlas": "3.0.1",
-    "vite": "^8.0.13",
+    "vite": "^8.1.6",
     "vite-plugin-pwa": "1.3.0",
     "vitest": "5.0.3",
     "web-push": "3.6.7",

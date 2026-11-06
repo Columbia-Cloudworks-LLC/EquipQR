@@ -175,7 +175,6 @@ export class WorkOrderService extends BaseService {
           priority: data.priority || 'medium',
           status: data.status || 'submitted',
           assignee_id: data.assignee_id || null,
-          team_id: data.team_id || null,
           due_date: data.due_date || null,
           due_date_has_time: data.due_date_has_time ?? false,
           estimated_hours: data.estimated_hours || null,
@@ -214,7 +213,6 @@ export class WorkOrderService extends BaseService {
       if (data.priority !== undefined) updateData.priority = data.priority;
       if (data.status !== undefined) updateData.status = data.status;
       if (data.assignee_id !== undefined) updateData.assignee_id = data.assignee_id;
-      if (data.team_id !== undefined) updateData.team_id = data.team_id;
       if (data.due_date !== undefined) {
         updateData.due_date = data.due_date;
         updateData.due_date_has_time = data.due_date_has_time ?? false;

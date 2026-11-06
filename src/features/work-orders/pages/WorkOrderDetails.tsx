@@ -204,7 +204,7 @@ const WorkOrderDetails = () => {
     ? permissions.workOrders.getDetailedPermissions({
         ...workOrder,
         organizationId: currentOrganization?.id ?? '',
-        teamId: workOrder.team_id ?? equipment?.team_id ?? undefined,
+        teamId: equipment?.team_id ?? workOrder.equipmentTeamId ?? undefined,
       })
     : null;
   const canManagePM = Boolean(workOrderDetailedPermissions?.canEditPM && !isWorkOrderLocked);

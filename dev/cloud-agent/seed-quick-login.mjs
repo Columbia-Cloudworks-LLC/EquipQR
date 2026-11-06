@@ -760,7 +760,6 @@ async function ensureEquipmentFixture(admin, orgId, teamId, fixture) {
 async function ensureSeedWorkOrder(
   admin,
   orgId,
-  teamId,
   equipmentId,
   fixture,
   userIdsByEmail,
@@ -792,7 +791,6 @@ async function ensureSeedWorkOrder(
     priority: fixture.workOrder.priority,
     assignee_id: assigneeUserId,
     assignee_name: assigneePersona?.name ?? fixture.workOrder.assigneeEmail,
-    team_id: teamId,
     created_by: createdByUserId,
     created_by_name: createdByPersona?.name ?? fixture.workOrder.createdByEmail,
     created_date: fixture.workOrder.createdDate,
@@ -849,7 +847,7 @@ async function ensureSharedOrgFixture(admin, fixture, orgIdsByEmail, userIdsByEm
   }
 
   const equipmentId = await ensureEquipmentFixture(admin, orgId, teamId, fixture);
-  await ensureSeedWorkOrder(admin, orgId, teamId, equipmentId, fixture, userIdsByEmail);
+  await ensureSeedWorkOrder(admin, orgId, equipmentId, fixture, userIdsByEmail);
 
   return { orgId, teamId };
 }

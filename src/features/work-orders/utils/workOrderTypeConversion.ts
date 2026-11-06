@@ -16,7 +16,6 @@ export interface WorkOrderLike {
   createdDate?: string;
   assignee_id?: string | null;
   assigneeId?: string | null;
-  team_id?: string | null;
   teamId?: string | null;
   created_by?: string | null;
   createdByName?: string;

@@ -50,14 +50,18 @@ export function buildWorkOrderExportCountQuery(
   filters: WorkOrderCountFilterInput,
   accessibleTeamIds?: string[],
 ) {
+  // A work order's team is its equipment's team: filter through the equipment join.
   let query = supabase
     .from('work_orders')
-    .select('id', { count: 'exact', head: true })
+    .select('id, equipment:equipment!work_orders_equipment_id_fkey!inner(team_id)', {
+      count: 'exact',
+      head: true,
+    })
     .eq('organization_id', organizationId)
     .not('equipment_id', 'is', null);
 
   if (accessibleTeamIds !== undefined) {
-    query = query.in('team_id', accessibleTeamIds);
+    query = query.in('equipment.team_id', accessibleTeamIds);
   }
 
   const status = parseEnum<WorkOrderStatus>(filters.status, Constants.public.Enums.work_order_status);
@@ -68,7 +72,7 @@ export function buildWorkOrderExportCountQuery(
     query = query.eq('id', filters.workOrderId);
   }
   if (filters.teamId) {
-    query = query.eq('team_id', filters.teamId);
+    query = query.eq('equipment.team_id', filters.teamId);
   }
 
   const priority = parseEnum<WorkOrderPriority>(

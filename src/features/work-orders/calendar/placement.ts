@@ -19,7 +19,6 @@ export type CalendarWorkOrderSource = DueColumns & {
   status: WorkOrderStatus;
   priority: WorkOrderPriority;
   teamId?: string | null;
-  team_id?: string | null;
   createdDate?: string;
   created_date?: string;
   estimatedHours?: number | null;

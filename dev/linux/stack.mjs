@@ -48,13 +48,20 @@ function identity(pid) {
   } catch { return null; }
 }
 function alive(record) { return Boolean(record?.identity && identity(record.pid) === record.identity); }
+// WSL and the dev container share a kernel (boot ID) but not a PID namespace, so a
+// record from the other side can't be checked here and must be assumed running.
+const pidNamespace = fs.readlinkSync('/proc/self/ns/pid');
+function foreign(record) {
+  const bootId = fs.readFileSync('/proc/sys/kernel/random/boot_id', 'utf8').trim();
+  return Boolean(record?.namespace && record.namespace !== pidNamespace && record.identity?.startsWith(`${bootId}:`));
+}
 async function launch(name, command, args, extraEnv = {}) {
   if (alive(records[name])) return;
   const fd = fs.openSync(path.join(logs, `${name}.log`), 'a', 0o600);
   const child = spawn(command, args, { cwd: root, env: { ...env, ...extraEnv }, detached: true, stdio: ['ignore', fd, fd] });
   fs.closeSync(fd);
   await new Promise((resolve, reject) => { child.once('spawn', resolve); child.once('error', reject); });
-  records[name] = { pid: child.pid, identity: identity(child.pid) };
+  records[name] = { pid: child.pid, identity: identity(child.pid), namespace: pidNamespace };
   child.unref();
   save();
 }
@@ -197,7 +204,9 @@ async function start(reset = false) {
 
 try {
   const action = process.argv[2] || 'start';
-  if (process.argv.length > 3) throw new Error('Expected one action: start | stop | status | reset');
+  if (process.argv.length > 3) throw new Error('Expected one action: start | stop | status | reset | restart');
+  const foreignMessage = 'The stack was started in another environment (WSL or the dev container); run bash dev/linux/dev.sh stop there.';
+  if (['start', 'reset', 'restart', 'stop'].includes(action) && Object.values(records).some(foreign)) throw new Error(foreignMessage);
   switch (action) {
     case 'local-check':
       if (hosted) throw new Error('Fixture suites and database commands require the disposable local backend.');
@@ -207,15 +216,29 @@ try {
       prepare();
       supabase(['test', 'db']);
       break;
+    case 'clear-stale':
+      // Records outlive their processes when WSL shuts down without `stop`.
+      if (Object.values(records).some(foreign)) {
+        console.error(foreignMessage);
+        process.exitCode = 1;
+      } else if (Object.values(records).some(alive)) process.exitCode = 1;
+      else fs.rmSync(recordsPath, { force: true });
+      break;
     case 'start': await start(); break;
     case 'reset': await start(true); break;
+    case 'restart':
+      // Relaunch edge/app/docs so supabase/functions/.env and Vite config are re-read;
+      // Supabase containers and database volumes stay up.
+      await stopProcesses();
+      await start();
+      break;
     case 'stop':
       await stopProcesses();
       if (!hosted && fs.existsSync(path.join(runtime, 'supabase/config.toml'))) supabase(['stop'], 'supabase.log');
       console.log(hosted ? 'Local frontend processes stopped; hosted backend unchanged.' : 'Stack stopped; database volumes retained.');
       break;
     case 'status': if (!await status()) process.exitCode = 1; break;
-    default: throw new Error('Usage: bash dev/linux/dev.sh start | stop | status | reset');
+    default: throw new Error('Usage: bash dev/linux/dev.sh start | stop | status | reset | restart');
   }
 } catch (error) {
   console.error(error.message);

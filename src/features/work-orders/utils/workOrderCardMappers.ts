@@ -12,7 +12,7 @@ export const mapToWorkOrderData = (workOrder: WorkOrder): WorkOrderData => ({
   status: workOrder.status,
   assigneeId: resolveWorkOrderAssignment(workOrder).id ?? undefined,
   assigneeName: resolveWorkOrderAssignment(workOrder).name,
-  teamId: workOrder.teamId ?? workOrder.team_id,
+  teamId: workOrder.teamId ?? workOrder.equipmentTeamId,
   teamName: workOrder.teamName ?? workOrder.equipmentTeamName,
   createdDate: workOrder.createdDate ?? workOrder.created_date ?? '',
   created_date: workOrder.created_date ?? workOrder.createdDate ?? '',
@@ -33,7 +33,7 @@ export const getAssignmentContext = (workOrder: WorkOrder): AssignmentWorkOrderC
   ...workOrder,
   organization_id: workOrder.organization_id ?? workOrder.organizationId ?? '',
   equipment_id: workOrder.equipment_id ?? workOrder.equipmentId ?? '',
-  equipmentTeamId: workOrder.equipmentTeamId ?? workOrder.team_id,
+  equipmentTeamId: workOrder.equipmentTeamId,
 });
 
 export function getAssigneeInitials(assigneeName?: string | null): string {

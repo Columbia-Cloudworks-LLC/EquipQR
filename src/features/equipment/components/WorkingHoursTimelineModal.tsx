@@ -21,9 +21,6 @@ import type { Column } from '@/components/ui/data-table';
 import type { WorkingHoursHistoryEntry } from '@/features/equipment/services/equipmentWorkingHoursService';
 import { logger } from '@/utils/logger';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useVoiceTextAppender } from '@/hooks/useVoiceTextAppender';
-import VoiceInputButton from '@/components/common/VoiceInputButton';
-import VoiceInterimTranscript from '@/components/common/VoiceInterimTranscript';
 
 interface WorkingHoursTimelineModalProps {
   open: boolean;
@@ -52,18 +49,6 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
   );
   const { data: currentHours, isLoading: isLoadingCurrent } = useEquipmentCurrentWorkingHours(equipmentId);
   const updateHoursMutation = useUpdateEquipmentWorkingHours();
-
-  const {
-    isListening,
-    error: speechError,
-    interimTranscript,
-    toggleListening,
-    canUseVoice,
-  } = useVoiceTextAppender({
-    value: notes,
-    onChange: setNotes,
-    disabled: updateHoursMutation.isPending,
-  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -314,31 +299,14 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
                 </div>
                 <div>
                   <Label htmlFor="notes">Notes (Optional)</Label>
-                  <div className="relative">
-                    <Textarea
-                      id="notes"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Add any notes about this update"
-                      rows={isMobile ? 2 : 1}
-                      disabled={updateHoursMutation.isPending}
-                      className="pb-12"
-                    />
-                    <VoiceInterimTranscript
-                      isListening={isListening}
-                      interimTranscript={interimTranscript}
-                      className="bottom-12 left-2 right-2"
-                    />
-                    <VoiceInputButton
-                      isListening={isListening}
-                      onToggle={toggleListening}
-                      canUseVoice={canUseVoice}
-                      className="absolute bottom-2 left-2"
-                    />
-                  </div>
-                  {speechError && (
-                    <p className="text-sm text-destructive mt-1">{speechError}</p>
-                  )}
+                  <Textarea
+                    id="notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Add any notes about this update"
+                    rows={isMobile ? 2 : 1}
+                    disabled={updateHoursMutation.isPending}
+                  />
                 </div>
               </div>
               <div className={`flex gap-2 ${isMobile ? 'flex-col' : ''}`}>

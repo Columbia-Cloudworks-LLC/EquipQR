@@ -36,7 +36,6 @@ const buildWorkOrder = (overrides: Partial<WorkOrder> = {}): WorkOrder => ({
   acceptance_date: null,
   assignee_id: null,
   assignee_name: null,
-  team_id: null,
   created_by_admin: null,
   created_by_name: null,
   completed_date: null,

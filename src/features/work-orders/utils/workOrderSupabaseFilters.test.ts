@@ -101,7 +101,8 @@ describe('applyWorkOrderListContract', () => {
     );
 
     expect(query.is).toHaveBeenCalledWith('assignee_id', null);
-    expect(query.or).toHaveBeenCalledWith('and(team_id.is.null,equipment.team_id.is.null)');
+    expect(query.is).toHaveBeenCalledWith('equipment.team_id', null);
+    expect(query.or).not.toHaveBeenCalled();
   });
 
   it('applies Sunday this_week bounds at fetch time', () => {
@@ -137,7 +138,7 @@ describe('applyWorkOrderListContract', () => {
     expect(query.or).toHaveBeenCalledWith(expect.stringContaining('draft'));
   });
 
-  it('applies TopBar team as COALESCE on work_orders.team_id then equipment.team_id', () => {
+  it('applies TopBar team on equipment.team_id without a top-level or()', () => {
     const query = createMockQuery();
     applyWorkOrderListContract(
       query,
@@ -145,9 +146,8 @@ describe('applyWorkOrderListContract', () => {
       LIST_CONTRACT_NOW,
     );
 
-    expect(query.or).toHaveBeenCalledWith(
-      'team_id.eq.team-topbar,and(team_id.is.null,equipment.team_id.eq.team-topbar)',
-    );
+    expect(query.eq).toHaveBeenCalledWith('equipment.team_id', 'team-topbar');
+    expect(query.or).not.toHaveBeenCalled();
   });
 
   it('filters member access on equipment.team_id, not effective team', () => {

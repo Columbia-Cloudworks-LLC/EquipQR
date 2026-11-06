@@ -118,7 +118,6 @@ export function mapBaseWorkOrderFields(wo: Partial<WorkOrderRow>): Partial<WorkO
     status: wo.status,
     assignee_id: wo.assignee_id ?? null,
     assignee_name: wo.assignee_name ?? null,
-    team_id: wo.team_id ?? null,
     created_by: wo.created_by,
     created_by_admin: wo.created_by_admin ?? null,
     created_by_name: wo.created_by_name ?? null,

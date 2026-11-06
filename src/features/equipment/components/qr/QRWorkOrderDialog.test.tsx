@@ -45,17 +45,6 @@ vi.mock('@/hooks/useSimpleOrganization', () => ({
   useSimpleOrganizationSafe: () => null,
 }));
 
-vi.mock('@/hooks/useVoiceTextAppender', () => ({
-  useVoiceTextAppender: () => ({
-    isSupported: true,
-    isListening: false,
-    error: null,
-    interimTranscript: '',
-    toggleListening: vi.fn(),
-    canUseVoice: true,
-  }),
-}));
-
 const mockCreateWorkOrder = vi.mocked(createQRWorkOrder);
 
 const POINTER_CAPTURE_KEYS = ['hasPointerCapture', 'setPointerCapture', 'releasePointerCapture'] as const;

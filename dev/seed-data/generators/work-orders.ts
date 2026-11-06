@@ -151,7 +151,6 @@ export function generateWorkOrderDomain(
           `'${priority}'`,
           uuidLiteral(assignee?.id ?? null),
           escapeSql(assignee?.name ?? null),
-          uuidLiteral(eq.teamId),
           uuidLiteral(creator.id),
           escapeSql(creator.name),
           dateOnly(createdDaysAgo),
@@ -289,7 +288,7 @@ export function generateWorkOrderDomain(
           table: 'public.work_orders',
           columns: [
             'id', 'organization_id', 'equipment_id', 'title', 'description', 'status', 'priority',
-            'assignee_id', 'assignee_name', 'team_id', 'created_by', 'created_by_name',
+            'assignee_id', 'assignee_name', 'created_by', 'created_by_name',
             'created_date', 'due_date', 'estimated_hours', 'completed_date', 'updated_at',
           ],
           rows: woRows,

@@ -11,6 +11,16 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+## [3.38.0] - 2026-11-05
+
+### Security
+
+- **Dependency security updates** — Updated libraries used for PDF exports, form validation, builds, and the documentation site to versions that fix published vulnerabilities. No change to how EquipQR works.
+
+### Removed
+
+- **In-app voice input** — The microphone button on text fields is gone. It relied on browser speech services that sent audio to the browser vendor and failed in several browsers. Use your device's built-in voice typing (for example Gboard, the iOS keyboard, or Win+H) instead, which works in any EquipQR text field. EquipQR no longer requests microphone access.
+
 ## [3.37.0] - 2026-10-16
 
 ### Added

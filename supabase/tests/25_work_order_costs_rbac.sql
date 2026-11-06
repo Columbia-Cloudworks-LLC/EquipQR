@@ -69,14 +69,13 @@ INSERT INTO public.equipment (
 );
 
 INSERT INTO public.work_orders (
-  id, organization_id, equipment_id, title, description, created_by, status, priority, team_id
+  id, organization_id, equipment_id, title, description, created_by, status, priority
 ) VALUES (
   '25000000-dddd-0000-0000-000000000001'::uuid,
   '25000000-aaaa-0000-0000-000000000001'::uuid,
   '25000000-cccc-0000-0000-000000000001'::uuid,
   'Costs RBAC WO', 'Work order with cost rows', '25000000-0000-0000-0000-000000000003'::uuid,
-  'submitted', 'medium',
-  '25000000-bbbb-0000-0000-000000000001'::uuid
+  'submitted', 'medium'
 );
 
 -- Simulate a legacy/edge assignee who is not on the work order's team

@@ -61,7 +61,7 @@ export type WorkOrderRow = Tables<'work_orders'>;
  * 
  * Base fields (snake_case from database):
  * - id, title, description, equipment_id, organization_id
- * - priority, status, assignee_id, assignee_name, team_id
+ * - priority, status, assignee_id, assignee_name
  * - created_by, created_by_admin, created_by_name, created_date
  * - due_date, estimated_hours, completed_date, acceptance_date
  * - updated_at, is_historical, historical_start_date, historical_notes
@@ -230,7 +230,6 @@ export interface WorkOrderData {
   assigneeId?: string;
   assigneeName?: string;
   teamId?: string;
-  team_id?: string | null;
   teamName?: string;
   createdDate: string;
   /** @deprecated Use createdDate instead */
@@ -275,7 +274,6 @@ export interface WorkOrderCreateData {
   priority: WorkOrder['priority'];
   status?: WorkOrder['status'];
   assignee_id?: string;
-  team_id?: string;
   due_date?: string;
   due_date_has_time?: boolean;
   estimated_hours?: number;
@@ -293,7 +291,6 @@ export interface WorkOrderUpdateData {
   priority?: WorkOrder['priority'];
   status?: WorkOrder['status'];
   assignee_id?: string | null;
-  team_id?: string | null;
   due_date?: string | null;
   due_date_has_time?: boolean;
   estimated_hours?: number | null;

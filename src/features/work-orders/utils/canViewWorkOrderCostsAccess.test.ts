@@ -25,7 +25,7 @@ describe('canViewWorkOrderCostsForWorkOrder', () => {
   it('allows org admins regardless of team membership', () => {
     expect(
       canViewWorkOrderCostsForWorkOrder(
-        { team_id: teamId, assignee_id: 'someone-else' },
+        { equipmentTeamId: teamId, assignee_id: 'someone-else' },
         { userId, isOrgAdmin: true, teamMemberships: [] },
       ),
     ).toBe(true);
@@ -34,7 +34,7 @@ describe('canViewWorkOrderCostsForWorkOrder', () => {
   it('allows the work order assignee even without team membership', () => {
     expect(
       canViewWorkOrderCostsForWorkOrder(
-        { team_id: teamId, assignee_id: userId },
+        { equipmentTeamId: teamId, assignee_id: userId },
         { userId, isOrgAdmin: false, teamMemberships: [] },
       ),
     ).toBe(true);
@@ -43,7 +43,7 @@ describe('canViewWorkOrderCostsForWorkOrder', () => {
   it('allows team owners on the work order team', () => {
     expect(
       canViewWorkOrderCostsForWorkOrder(
-        { team_id: teamId, assignee_id: null },
+        { equipmentTeamId: teamId, assignee_id: null },
         { userId, isOrgAdmin: false, teamMemberships: [ownerMembership] },
       ),
     ).toBe(true);
@@ -52,7 +52,7 @@ describe('canViewWorkOrderCostsForWorkOrder', () => {
   it('denies requestors and viewers on the work order team', () => {
     expect(
       canViewWorkOrderCostsForWorkOrder(
-        { team_id: teamId, assignee_id: null },
+        { equipmentTeamId: teamId, assignee_id: null },
         { userId, isOrgAdmin: false, teamMemberships: [requestorMembership] },
       ),
     ).toBe(false);

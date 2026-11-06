@@ -96,7 +96,7 @@ export default defineConfig(({ mode, command }) => ({
     host: "::",
     port: 8080,
     headers: {
-      "Permissions-Policy": "camera=(self), microphone=(self), geolocation=(self)",
+      "Permissions-Policy": "camera=(self), microphone=(), geolocation=(self)",
       "Content-Security-Policy": buildCsp({ dev: true }),
     },
     // Playwright PR evidence and E2E write locked files under tmp/; watching them

@@ -55,32 +55,6 @@ vi.mock('sonner', () => ({
   }
 }));
 
-const mockToggleListening = vi.fn();
-
-vi.mock('@/hooks/useVoiceTextAppender', () => ({
-  useVoiceTextAppender: ({
-    value,
-    onChange,
-    disabled,
-  }: {
-    value: string;
-    onChange: (value: string) => void;
-    disabled?: boolean;
-  }) => ({
-    isSupported: true,
-    isListening: false,
-    error: null,
-    interimTranscript: '',
-    toggleListening: () => {
-      mockToggleListening();
-      if (!disabled) {
-        onChange(`${value}${value.trim() ? ' ' : ''}dictated pm note`);
-      }
-    },
-    canUseVoice: !disabled,
-  }),
-}));
-
 const createMockPM = (overrides: Partial<PreventativeMaintenance> = {}): PreventativeMaintenance => {
   const defaults: PreventativeMaintenance = {
     id: 'pm-1',
@@ -311,23 +285,20 @@ describe('PMChecklistComponent', () => {
     });
   });
 
-  describe('general notes voice dictation', () => {
-    it('shows voice control on general notes and appends dictated text', async () => {
+  describe('general notes', () => {
+    it('accepts typed general notes', async () => {
       const pm = createMockPM();
       renderPMChecklist(pm, { onUpdate: mockOnUpdate });
 
       expect(screen.getByText('General Notes')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Start voice input' })).toBeInTheDocument();
 
       const generalNotes = screen.getByPlaceholderText('Add general notes about this PM...');
       fireEvent.change(generalNotes, { target: { value: 'Initial' } });
-      fireEvent.click(screen.getByRole('button', { name: 'Start voice input' }));
 
-      expect(mockToggleListening).toHaveBeenCalledTimes(1);
-      expect(generalNotes).toHaveValue('Initial dictated pm note');
+      expect(generalNotes).toHaveValue('Initial');
     });
 
-    it('hides voice control when PM is completed', async () => {
+    it('shows read-only general notes when PM is completed', async () => {
       const pm = createMockPM({ status: 'completed' });
       renderPMChecklist(pm, { onUpdate: mockOnUpdate });
 
@@ -335,7 +306,6 @@ describe('PMChecklistComponent', () => {
         screen.getByText(/this pm checklist is completed\. general notes are read-only after completion\./i),
       ).toBeInTheDocument();
       expect(screen.queryByPlaceholderText('Add general notes about this PM...')).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: 'Start voice input' })).not.toBeInTheDocument();
     });
   });
 

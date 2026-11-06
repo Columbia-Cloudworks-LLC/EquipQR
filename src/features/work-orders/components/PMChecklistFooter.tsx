@@ -4,9 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { RotateCcw } from 'lucide-react';
 import type { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
-import { useVoiceTextAppender } from '@/hooks/useVoiceTextAppender';
-import VoiceInputButton from '@/components/common/VoiceInputButton';
-import VoiceInterimTranscript from '@/components/common/VoiceInterimTranscript';
 import { COMPLETED_PM_GENERAL_NOTES_LOCK_MESSAGE } from '@/features/work-orders/utils/workOrderLockCopy';
 
 type PMChecklistFooterProps = {
@@ -49,18 +46,6 @@ export function PMChecklistFooter({
   onShowRevertPMDialog,
 }: PMChecklistFooterProps) {
   const notesDisabled = readOnly || pmStatus === 'completed';
-
-  const {
-    isListening,
-    error: speechError,
-    interimTranscript,
-    toggleListening,
-    canUseVoice,
-  } = useVoiceTextAppender({
-    value: notes,
-    onChange: onNotesChange,
-    disabled: notesDisabled,
-  });
 
   return (
     <>
@@ -115,33 +100,15 @@ export function PMChecklistFooter({
             </div>
           </>
         ) : (
-          <>
-            <div className="relative">
-              <Textarea
-                id="pm-general-notes"
-                placeholder="Add general notes about this PM..."
-                value={notes}
-                onChange={(e) => onNotesChange(e.target.value)}
-                disabled={notesDisabled}
-                rows={3}
-                className="text-[15px] text-foreground placeholder:text-muted-foreground/70 pb-12"
-              />
-              <VoiceInterimTranscript
-                isListening={isListening}
-                interimTranscript={interimTranscript}
-                className="bottom-12 left-2 right-2"
-              />
-              <VoiceInputButton
-                isListening={isListening}
-                onToggle={toggleListening}
-                canUseVoice={canUseVoice}
-                className="absolute bottom-2 left-2"
-              />
-            </div>
-            {speechError && (
-              <p className="text-sm text-destructive">{speechError}</p>
-            )}
-          </>
+          <Textarea
+            id="pm-general-notes"
+            placeholder="Add general notes about this PM..."
+            value={notes}
+            onChange={(e) => onNotesChange(e.target.value)}
+            disabled={notesDisabled}
+            rows={3}
+            className="text-[15px] text-foreground placeholder:text-muted-foreground/70"
+          />
         )}
       </div>
 

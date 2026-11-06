@@ -3,32 +3,6 @@ import { render, screen, fireEvent } from '@vitest-harness/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { WorkingHoursTimelineModal } from './WorkingHoursTimelineModal';
 
-const mockToggleListening = vi.fn();
-
-vi.mock('@/hooks/useVoiceTextAppender', () => ({
-  useVoiceTextAppender: ({
-    value,
-    onChange,
-    disabled,
-  }: {
-    value: string;
-    onChange: (value: string) => void;
-    disabled?: boolean;
-  }) => ({
-    isSupported: true,
-    isListening: false,
-    error: null,
-    interimTranscript: '',
-    toggleListening: () => {
-      mockToggleListening();
-      if (!disabled) {
-        onChange(`${value}${value.trim() ? ' ' : ''}dictated hours note`);
-      }
-    },
-    canUseVoice: !disabled,
-  }),
-}));
-
 describe('WorkingHoursTimelineModal', () => {
   const mockOnClose = vi.fn();
 
@@ -80,8 +54,8 @@ describe('WorkingHoursTimelineModal', () => {
     });
   });
 
-  describe('voice dictation on notes field', () => {
-    it('shows voice control when adding hours and appends dictated text', () => {
+  describe('notes field', () => {
+    it('accepts typed notes when adding hours', () => {
       render(
         <WorkingHoursTimelineModal
           open={true}
@@ -94,11 +68,9 @@ describe('WorkingHoursTimelineModal', () => {
       fireEvent.click(screen.getByRole('button', { name: /update hours/i }));
 
       const notesField = screen.getByPlaceholderText('Add any notes about this update');
-      fireEvent.change(notesField, { target: { value: 'Meter' } });
-      fireEvent.click(screen.getByRole('button', { name: 'Start voice input' }));
+      fireEvent.change(notesField, { target: { value: 'Meter reading' } });
 
-      expect(mockToggleListening).toHaveBeenCalledTimes(1);
-      expect(notesField).toHaveValue('Meter dictated hours note');
+      expect(notesField).toHaveValue('Meter reading');
     });
   });
 });

@@ -5,9 +5,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
-import { useVoiceTextAppender } from '@/hooks/useVoiceTextAppender';
-import VoiceInputButton from '@/components/common/VoiceInputButton';
-import VoiceInterimTranscript from '@/components/common/VoiceInterimTranscript';
 
 interface WorkOrderGeneralInfoProps {
   values: Pick<WorkOrderFormData, 'title' | 'priority' | 'description'>;
@@ -30,17 +27,6 @@ export const WorkOrderGeneralInfo: React.FC<WorkOrderGeneralInfoProps> = ({
   const titleFieldId = "work-order-title";
   const priorityFieldId = "work-order-priority";
   const descriptionFieldId = "work-order-description";
-
-  const {
-    isListening,
-    error: speechError,
-    interimTranscript,
-    toggleListening,
-    canUseVoice,
-  } = useVoiceTextAppender({
-    value: values.description || '',
-    onChange: (value) => setValue('description', value),
-  });
 
   return (
     <Card>
@@ -104,32 +90,16 @@ export const WorkOrderGeneralInfo: React.FC<WorkOrderGeneralInfoProps> = ({
 
         <div className="space-y-2">
           <Label htmlFor={descriptionFieldId}>Description</Label>
-          <div className="relative">
-            <Textarea
-              id={descriptionFieldId}
-              placeholder={preSelectedEquipment ? 
-                `Describe the work needed for ${preSelectedEquipment.name}. Include any specific requirements, safety considerations, or special instructions...` :
-                "Provide detailed information about the work needed, including any specific requirements, safety considerations, or special instructions..."
-              }
-              className="min-h-30 pb-12"
-              value={values.description || ''}
-              onChange={(e) => setValue('description', e.target.value)}
-            />
-            <VoiceInterimTranscript
-              isListening={isListening}
-              interimTranscript={interimTranscript}
-              className="bottom-12 left-2 right-2"
-            />
-            <VoiceInputButton
-              isListening={isListening}
-              onToggle={toggleListening}
-              canUseVoice={canUseVoice}
-              className="absolute bottom-2 left-2"
-            />
-          </div>
-          {speechError && (
-            <p className="text-sm text-destructive">{speechError}</p>
-          )}
+          <Textarea
+            id={descriptionFieldId}
+            placeholder={preSelectedEquipment ? 
+              `Describe the work needed for ${preSelectedEquipment.name}. Include any specific requirements, safety considerations, or special instructions...` :
+              "Provide detailed information about the work needed, including any specific requirements, safety considerations, or special instructions..."
+            }
+            className="min-h-30"
+            value={values.description || ''}
+            onChange={(e) => setValue('description', e.target.value)}
+          />
           {errors.description && (
             <p className="text-sm text-destructive">{errors.description}</p>
           )}

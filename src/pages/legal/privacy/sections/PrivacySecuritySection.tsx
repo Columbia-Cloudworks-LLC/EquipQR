@@ -48,12 +48,10 @@ export function PrivacySecuritySection() {
                       <code>X-Frame-Options: DENY</code> (prevents clickjacking),{' '}
                       <code>X-Content-Type-Options: nosniff</code>,{' '}
                       <code>Referrer-Policy: strict-origin-when-cross-origin</code>, and a{' '}
-                      <code>Permissions-Policy</code> that allows camera and microphone access only
-                      within EquipQR&apos;s own application pages (same origin). The camera is used for
-                      features such as in-app QR scanning; the microphone is used only for optional
-                      voice dictation into text fields, is activated only when you tap the microphone
-                      button and grant browser consent, and audio is processed by your browser&apos;s
-                      speech service &mdash; EquipQR never records or stores audio.
+                      <code>Permissions-Policy</code> that allows camera access only within
+                      EquipQR&apos;s own application pages (same origin) and blocks microphone access
+                      entirely. The camera is used for features such as in-app QR scanning; EquipQR
+                      never records or stores audio.
                     </>
                   ),
                 },

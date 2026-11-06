@@ -25,7 +25,7 @@ export function toTeamBasedWorkOrder(
     equipmentId: mapped.equipment_id,
     organizationId: mapped.organization_id,
     assigneeId: mapped.assignee_id,
-    teamId: mapped.team_id ?? mapped.equipment?.team_id ?? null,
+    teamId: mapped.equipmentTeamId ?? null,
     createdDate: mapped.created_date,
     dueDate: mapped.due_date,
     estimatedHours: mapped.estimated_hours,

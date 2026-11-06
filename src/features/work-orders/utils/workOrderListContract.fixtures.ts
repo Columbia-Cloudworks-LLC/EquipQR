@@ -116,23 +116,18 @@ export const LIST_CONTRACT_FIXTURES = {
     teamName: 'North Yard Crew',
     equipmentName: 'Pump 12',
   }),
-  coalesceWorkOrderTeam: listContractWorkOrder({
-    id: 'wo-coalesce-wo-team',
-    title: 'WO team wins',
-    teamId: 'team-topbar',
-    equipmentTeamId: 'team-equipment',
-  }),
-  coalesceEquipmentTeam: listContractWorkOrder({
-    id: 'wo-coalesce-eq-team',
-    title: 'Equipment team fallback',
+  // A work order's team is its equipment's team (teamId mirrors equipmentTeamId).
+  equipmentOnTopbarTeam: listContractWorkOrder({
+    id: 'wo-equipment-topbar-team',
+    title: 'Equipment on TopBar team',
     teamId: 'team-topbar',
     equipmentTeamId: 'team-topbar',
   }),
-  otherEffectiveTeam: listContractWorkOrder({
-    id: 'wo-other-effective',
-    title: 'Other effective team',
+  equipmentOnOtherTeam: listContractWorkOrder({
+    id: 'wo-equipment-other-team',
+    title: 'Equipment on another team',
     teamId: 'team-other',
-    equipmentTeamId: 'team-topbar',
+    equipmentTeamId: 'team-other',
   }),
 } as const
 

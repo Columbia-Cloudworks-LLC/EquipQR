@@ -1,40 +1,10 @@
 import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@vitest-harness/utils/test-utils';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@vitest-harness/utils/test-utils';
 import InlineNoteComposer from '@/components/common/InlineNoteComposer';
 
-const mockToggleListening = vi.fn();
-
-vi.mock('@/hooks/useVoiceTextAppender', () => ({
-  useVoiceTextAppender: ({
-    value,
-    onChange,
-    disabled,
-  }: {
-    value: string;
-    onChange: (value: string) => void;
-    disabled?: boolean;
-  }) => ({
-    isSupported: true,
-    isListening: false,
-    error: null,
-    interimTranscript: '',
-    toggleListening: () => {
-      mockToggleListening();
-      if (!disabled) {
-        onChange(`${value}${value.trim() ? ' ' : ''}dictated note`);
-      }
-    },
-    canUseVoice: !disabled,
-  }),
-}));
-
-describe('InlineNoteComposer voice dictation', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('shows voice and attach controls on the note textarea', () => {
+describe('InlineNoteComposer', () => {
+  it('shows the attach control on the note textarea', () => {
     render(
       <InlineNoteComposer
         value=""
@@ -44,28 +14,10 @@ describe('InlineNoteComposer voice dictation', () => {
     );
 
     expect(screen.getByRole('textbox', { name: 'Note content' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Start voice input' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Attach images' })).toBeInTheDocument();
   });
 
-  it('appends dictated text when voice button is clicked', () => {
-    const onChange = vi.fn();
-
-    render(
-      <InlineNoteComposer
-        value="Existing"
-        onChange={onChange}
-        onSubmit={vi.fn()}
-      />
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Start voice input' }));
-
-    expect(mockToggleListening).toHaveBeenCalledTimes(1);
-    expect(onChange).toHaveBeenCalledWith('Existing dictated note');
-  });
-
-  it('hides voice control when disabled', () => {
+  it('disables the attach control when disabled', () => {
     render(
       <InlineNoteComposer
         value=""
@@ -75,7 +27,6 @@ describe('InlineNoteComposer voice dictation', () => {
       />
     );
 
-    expect(screen.queryByRole('button', { name: 'Start voice input' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Attach images' })).toBeDisabled();
   });
 });

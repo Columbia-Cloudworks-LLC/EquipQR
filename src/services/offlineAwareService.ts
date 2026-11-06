@@ -106,7 +106,6 @@ export class OfflineAwareWorkOrderService {
         due_date_has_time: data.dueDateHasTime ?? false,
         estimated_hours: data.estimatedHours,
         assignee_id: assigneeId,
-        team_id: undefined,
         status,
         created_by: this.userId,
         has_pm: data.hasPM || false,

@@ -147,7 +147,6 @@ export async function resetLegacyAcceptedTimelineEvidenceFixture(): Promise<void
     description: 'Anonymized legacy historical create: first history row accepted only.',
     status: 'accepted',
     priority: 'medium',
-    team_id: cursedTeamId,
     created_by: apexOwnerUserId,
     created_by_name: 'Alex Apex',
     created_date: historicalStartDate,

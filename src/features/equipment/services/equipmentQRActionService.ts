@@ -63,7 +63,6 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
     equipment_id: input.equipment.id,
     priority: input.priority,
     status: 'submitted',
-    team_id: input.equipment.teamId ?? undefined,
     due_date: input.dueDate || undefined,
     created_by: createdBy,
     has_pm: input.attachPM,
