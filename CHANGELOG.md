@@ -17,6 +17,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Changed
 
+- **Code cleanup from security scanning** — Removed unused code flagged by GitHub code scanning. No change to how EquipQR works.
 - **Simpler create work order form (#1697)** — The form explains itself with fewer words. Equipment is picked from one searchable field, with "New equipment" inside it. The due date reads "Complete by" and stays all day unless you tap "Add time". Estimated time shows its unit, the photo picker shows how many you've added out of 5, and the assignee list groups the equipment's team and admins and waits until equipment is chosen.
 
 ### Fixed

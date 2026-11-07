@@ -111,7 +111,7 @@ const TeamLocationCard: React.FC<TeamLocationCardProps> = ({ team, canEdit }) =>
           solutionChannel="GMP_visgl_rgmlibrary_v1_default"
         >
           <Map
-            mapId={mapId ?? undefined}
+            mapId={mapId}
             defaultCenter={center}
             defaultZoom={15}
             gestureHandling="cooperative"

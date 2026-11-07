@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { spawn, execSync } from 'child_process';
+import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
