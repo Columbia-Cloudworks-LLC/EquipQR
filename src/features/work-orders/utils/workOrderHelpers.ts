@@ -9,11 +9,7 @@
 
 import type { UserSettings } from '@/types/settings';
 import type { WorkOrderStatus, WorkOrderPriority } from '@/features/work-orders/types/workOrder';
-import {
-  formatDate as formatDateInTz,
-  formatDateTime as formatDateTimeInTz,
-  formatRelative as formatRelativeInTz,
-} from '@/utils/dateFormatter';
+import { formatDate as formatDateInTz } from '@/utils/dateFormatter';
 
 // ============================================
 // Color Utilities
@@ -169,30 +165,6 @@ export const formatDate = (
   }
 };
 
-const formatDateTime = (
-  dateString: string | null | undefined,
-  settings: WorkOrderDateSettings
-): string => {
-  if (!dateString) return '—';
-  try {
-    return formatDateTimeInTz(dateString, settings as UserSettings);
-  } catch {
-    return 'Invalid Date';
-  }
-};
-
-const formatRelativeDate = (
-  dateString: string | null | undefined,
-  settings: WorkOrderDateSettings
-): string => {
-  if (!dateString) return '—';
-  try {
-    return formatRelativeInTz(dateString, settings as UserSettings);
-  } catch {
-    return formatDate(dateString, settings);
-  }
-};
-
 // ============================================
 // Status Logic Utilities
 // ============================================
@@ -216,37 +188,6 @@ export const isTerminalStatus = (status: WorkOrderStatus): boolean => {
   return status === 'completed' || status === 'cancelled';
 };
 
-/**
- * Check if a work order can be edited
- */
-const isEditable = (status: WorkOrderStatus): boolean => {
-  return !isTerminalStatus(status);
-};
-
-/**
- * Get the next valid status transitions for a work order
- */
-const getValidStatusTransitions = (currentStatus: WorkOrderStatus): WorkOrderStatus[] => {
-  switch (currentStatus) {
-    case 'submitted':
-      return ['accepted', 'cancelled'];
-    case 'accepted':
-      return ['assigned', 'in_progress', 'cancelled'];
-    case 'assigned':
-      return ['in_progress', 'on_hold', 'cancelled'];
-    case 'in_progress':
-      return ['on_hold', 'completed', 'cancelled'];
-    case 'on_hold':
-      return ['in_progress', 'cancelled'];
-    case 'completed':
-      return ['in_progress']; // Reopen
-    case 'cancelled':
-      return ['submitted']; // Reopen
-    default:
-      return [];
-  }
-};
-
 // ============================================
 // Priority Logic Utilities
 // ============================================
@@ -265,13 +206,6 @@ export const getPriorityValue = (priority: WorkOrderPriority): number => {
     default:
       return 0;
   }
-};
-
-/**
- * Sort work orders by priority (high first)
- */
-const sortByPriority = <T extends { priority: WorkOrderPriority }>(items: T[]): T[] => {
-  return [...items].sort((a, b) => getPriorityValue(b.priority) - getPriorityValue(a.priority));
 };
 
 // ============================================
@@ -310,25 +244,3 @@ export const humanizeAttributeValue = (value: unknown): string => {
     })
     .join(' ');
 };
-
-// ============================================
-// Display Constants
-// ============================================
-
-const STATUS_OPTIONS: { value: WorkOrderStatus; label: string }[] = [
-  { value: 'submitted', label: 'Submitted' },
-  { value: 'accepted', label: 'Accepted' },
-  { value: 'assigned', label: 'Assigned' },
-  { value: 'in_progress', label: 'In Progress' },
-  { value: 'on_hold', label: 'On Hold' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'cancelled', label: 'Cancelled' }
-];
-
-const PRIORITY_OPTIONS: { value: WorkOrderPriority; label: string }[] = [
-  { value: 'high', label: 'High' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'low', label: 'Low' }
-];
-
-

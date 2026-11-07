@@ -398,9 +398,6 @@ export async function verifyOrgAdmin(
  *
  * To validate error messages during development, check the console for
  * "[createErrorResponse] Unsafe error message blocked:" warnings.
- *
- * Use the `isErrorAllowlisted()` helper function from error-message-allowlist.ts
- * in tests to validate that commonly returned errors are covered.
  */
 
 /** Default generic error message when the original is not allowlisted */
@@ -725,7 +722,7 @@ function normalizeAllowlistedErrorMessage(error: string): string {
  * **MAINTENANCE — adding new user-facing error messages**: update both
  * SAFE_ERROR_PATTERNS in `error-message-allowlist.ts` and
  * normalizeAllowlistedErrorMessage above, then verify with
- * `isErrorAllowlisted()` and `createErrorResponse()` tests. Otherwise the
+ * `createErrorResponse()` tests. Otherwise the
  * message may be replaced with the generic constant or a broader canonical
  * message.
  *

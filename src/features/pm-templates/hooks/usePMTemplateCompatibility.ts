@@ -13,7 +13,6 @@ import {
   countEquipmentMatchingRules,
   getMatchingTemplatesForEquipment,
 } from '@/features/pm-templates/services/pmTemplateCompatibilityRulesService';
-import { queryKeys } from '@/lib/queryKeys';
 
 // ============================================
 // Query Keys

@@ -704,21 +704,3 @@ export function setSupabasePersona(persona: UserPersona): void {
 export function setSupabaseError(table: TableName, error: SupabaseError | null): void {
   store.setError(table, error);
 }
-
-/**
- * Get direct access to the store for advanced scenarios.
- * Prefer using the public API functions instead.
- */
-function getSupabaseStore(): SupabaseScenarioStore {
-  return store;
-}
-
-// ============================================
-// Export the mock for global setup
-// ============================================
-
-/**
- * The scenario-driven Supabase mock client.
- * Import this in test setup to replace the real client.
- */
-const scenarioSupabaseMock = createScenarioSupabaseMock();
