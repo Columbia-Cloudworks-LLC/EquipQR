@@ -87,6 +87,7 @@ Browse them on GitHub or in your local checkout:
 - **[QuickBooks OAuth](./ops/quickbooks-oauth.md).** Intuit OAuth, vault secrets, and sandbox wiring. Unpublished on equipqr.info.
 - **[Done-For-You yard provisioning](./ops/dfy-provisioning.md)** — pre-provision a customer organization, import equipment, print QR labels, and stage staff emails that claim the yard on first sign-in.
 - **[GitHub shortcut](./ops/github-shortcut.md)** — `github.equipqr.app` redirect ownership and verification.
+- **[Mobile screen catalog](./ops/screen-catalog.md)** — `npm run screens:capture` captures every catalogued flow as mobile screenshot slices against the local stack and builds a browsable gallery, with copyable context for issues and Claude.
 - **[Stacked pull requests](./ops/stacked-pull-requests.md)** — dependency chain of branches and pull requests. Not one multi-commit PR, and not the `/release` promote.
 - **[Disaster Recovery](https://github.com/Columbia-Cloudworks-LLC/EquipQR/blob/main/docs/ops/disaster-recovery.md)** - Database backup and point-in-time recovery procedures
 

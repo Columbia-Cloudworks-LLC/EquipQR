@@ -52,38 +52,21 @@ describe('WorkOrderEquipmentSelector', () => {
     vi.clearAllMocks();
   });
 
-  it('renders select trigger without cmdk search input on open', async () => {
+  it('renders a single equipment trigger with no separate search button', () => {
     render(<WorkOrderEquipmentSelector {...defaultProps} />);
 
-    expect(screen.getByRole('combobox', { name: /select equipment/i })).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText(/search equipment/i)).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('combobox', { name: /select equipment/i }));
-
-    await waitFor(() => {
-      expect(screen.queryByPlaceholderText(/search equipment/i)).not.toBeInTheDocument();
-    });
+    expect(screen.getByRole('button', { name: /^select equipment$/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /search equipment/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
   });
 
-  it('calls setValue when a select option is chosen', async () => {
+  it('opens the picker dialog and selects equipment from the filtered list', async () => {
     const setValue = vi.fn();
     render(<WorkOrderEquipmentSelector {...defaultProps} setValue={setValue} />);
 
-    fireEvent.click(screen.getByRole('combobox', { name: /select equipment/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^select equipment$/i }));
 
-    const option = await screen.findByRole('option', { name: /CAT 320 Excavator/i });
-    fireEvent.click(option);
-
-    expect(setValue).toHaveBeenCalledWith('equipmentId', 'eq-1');
-  });
-
-  it('opens search dialog and selects equipment from filtered list', async () => {
-    const setValue = vi.fn();
-    render(<WorkOrderEquipmentSelector {...defaultProps} setValue={setValue} />);
-
-    fireEvent.click(screen.getByRole('button', { name: /search equipment/i }));
-
-    expect(await screen.findByRole('dialog', { name: /search equipment/i })).toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: /choose equipment/i })).toBeInTheDocument();
 
     const searchInput = screen.getByPlaceholderText(/search equipment\.\.\./i);
     fireEvent.change(searchInput, { target: { value: 'Toyota' } });
@@ -92,8 +75,32 @@ describe('WorkOrderEquipmentSelector', () => {
 
     expect(setValue).toHaveBeenCalledWith('equipmentId', 'eq-2');
     await waitFor(() => {
-      expect(screen.queryByRole('dialog', { name: /search equipment/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: /choose equipment/i })).not.toBeInTheDocument();
     });
+  });
+
+  it('offers "New equipment" inside the picker when creation is allowed', async () => {
+    render(
+      <WorkOrderEquipmentSelector
+        {...defaultProps}
+        canCreateEquipment
+        canCreateEquipmentForTeam={() => true}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /^select equipment$/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /new equipment/i }));
+
+    expect(await screen.findByTestId('quick-equipment-form')).toBeInTheDocument();
+  });
+
+  it('hides "New equipment" when creation is not allowed', async () => {
+    render(<WorkOrderEquipmentSelector {...defaultProps} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /^select equipment$/i }));
+    await screen.findByRole('dialog', { name: /choose equipment/i });
+
+    expect(screen.queryByRole('button', { name: /new equipment/i })).not.toBeInTheDocument();
   });
 
   it('shows read-only view when equipment is pre-selected', () => {

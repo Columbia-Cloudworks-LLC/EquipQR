@@ -55,4 +55,20 @@ describe('mapOrganizationRowsToSessionOrganizations', () => {
     ]);
     expect(org.userStatus).toBe('pending');
   });
+
+  it('returns organizations in a stable name order regardless of query row order', () => {
+    const rows = [
+      { ...orgRow('3'), name: "Tom's Field Services" },
+      { ...orgRow('2'), name: 'apex Construction' },
+      { ...orgRow('1'), name: 'Apex Construction' },
+    ];
+    const memberships = rows.map((row) => ({ organization_id: row.id, role: 'member', status: 'active' }));
+
+    const forward = mapOrganizationRowsToSessionOrganizations(rows, memberships).map((org) => org.id);
+    const reversed = mapOrganizationRowsToSessionOrganizations([...rows].reverse(), memberships).map((org) => org.id);
+
+    expect(forward).toEqual(['1', '2', '3']);
+    expect(reversed).toEqual(forward);
+    expect(rows.map((row) => row.id)).toEqual(['3', '2', '1']);
+  });
 });

@@ -24,7 +24,7 @@ describe('WorkOrderScheduling', () => {
       />,
     );
 
-    fireEvent.change(screen.getByLabelText('Work order due date'), { target: { value: '2026-03-20' } });
+    fireEvent.change(screen.getByLabelText('Complete by'), { target: { value: '2026-03-20' } });
 
     expect(setValue).toHaveBeenCalledWith('dueDateHasTime', true);
     const dueDateCall = setValue.mock.calls.find((call) => call[0] === 'dueDate');
@@ -76,6 +76,10 @@ describe('WorkOrderScheduling', () => {
         setValue={setValue}
       />,
     );
+
+    expect(screen.queryByRole('combobox', { name: 'Due hour' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Add time' }));
+    setValue.mockClear();
 
     fireEvent.click(screen.getByRole('combobox', { name: 'Due hour' }));
     const listbox = await screen.findByRole('listbox');

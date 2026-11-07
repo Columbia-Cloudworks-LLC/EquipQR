@@ -227,14 +227,3 @@ export const SAFE_ERROR_PATTERNS: RegExp[] = [
   /^Too many submissions\. Please try again later\.$/,
   /^Unable to save submission$/,
 ];
-
-/**
- * Validates that a commonly used error message is covered by the allowlist.
- * Use this in tests to ensure new error messages are properly allowlisted.
- *
- * @param errorMessage - The error message to validate
- * @returns true if the message matches an allowlisted pattern, false otherwise
- */
-function isErrorAllowlisted(errorMessage: string): boolean {
-  return SAFE_ERROR_PATTERNS.some((pattern) => pattern.test(errorMessage));
-}

@@ -6,6 +6,7 @@ import { Trash2, Eye, Star, StarOff } from 'lucide-react';
 import DynamicImageViewport from '@/components/common/DynamicImageViewport';
 import ImageLightboxDialog from '@/components/common/ImageLightboxDialog';
 import { toast } from 'sonner';
+import { isEquipmentDisplayImage } from '@/features/equipment/utils/equipmentMediaFilters';
 
 interface ImageData {
   id: string;
@@ -44,6 +45,10 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
   const [selectedImage, setSelectedImage] = useState<ImageData | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isSettingDisplay, setIsSettingDisplay] = useState<string | null>(null);
+
+  // Image URLs are signed per fetch, so the same stored object can arrive with a
+  // different token than currentDisplayImage. Compare storage paths, not strings.
+  const isDisplayImage = (image: ImageData) => isEquipmentDisplayImage(image, currentDisplayImage);
 
   const handleDelete = async (image: ImageData) => {
     if (!onDelete) return;
@@ -144,7 +149,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                 </button>
                   
                   {/* Display Image Indicator */}
-                  {currentDisplayImage === image.file_url && (
+                  {isDisplayImage(image) && (
                     <div className="absolute top-2 left-2">
                       <Badge className="bg-warning text-warning-foreground text-xs">
                         <Star className="h-3 w-3 mr-1" />
@@ -165,7 +170,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                       <Eye className="h-4 w-4" />
                     </Button>
                     
-                    {canSetDisplayImage && currentDisplayImage !== image.file_url && (
+                    {canSetDisplayImage && !isDisplayImage(image) && (
                       <Button
                         size="sm"
                         variant="secondary"
@@ -178,7 +183,7 @@ const ImageGallery: React.FC<ImageGalleryProps> = ({
                       </Button>
                     )}
                     
-                    {canSetDisplayImage && currentDisplayImage === image.file_url && (
+                    {canSetDisplayImage && isDisplayImage(image) && (
                       <Button
                         size="sm"
                         variant="secondary"

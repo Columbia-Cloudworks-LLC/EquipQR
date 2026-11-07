@@ -14,7 +14,7 @@ test.use({
 });
 
 test.describe('PR evidence: work order equipment picker @pr-evidence', () => {
-  test('mobile create work order equipment select and search', async ({
+  test('mobile create work order: equipment picker, due time, grouped assignees', async ({
     gotoDashboard,
     assertHealthyShell,
     page,
@@ -26,20 +26,10 @@ test.describe('PR evidence: work order equipment picker @pr-evidence', () => {
     await evidencePause(page, 600);
     await evidenceScreenshot(page, '01-create-work-order-modal');
 
-    const equipmentTrigger = dialog.getByRole('combobox', { name: /select equipment/i });
+    const equipmentTrigger = dialog.locator('#work-order-equipment-select');
     await expect(equipmentTrigger).toBeVisible({ timeout: 15_000 });
     await equipmentTrigger.click();
-
-    await expect(page.getByRole('option', { name: seedEquipment.cat320.name }).first()).toBeVisible({
-      timeout: 15_000,
-    });
-    await evidencePause(page, 600);
-    await evidenceScreenshot(page, '02-scrollable-equipment-select-open');
-
-    await page.keyboard.press('Escape');
-
-    await dialog.getByRole('button', { name: /^search equipment$/i }).click();
-    await expect(page.getByRole('dialog', { name: /search equipment/i })).toBeVisible({
+    await expect(page.getByRole('dialog', { name: /choose equipment/i })).toBeVisible({
       timeout: 15_000,
     });
     await page.getByPlaceholder(/search equipment\.\.\./i).fill(seedEquipment.cat320.name);
@@ -49,11 +39,24 @@ test.describe('PR evidence: work order equipment picker @pr-evidence', () => {
       .first();
     await expect(searchResultRow).toBeVisible({ timeout: 15_000 });
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '03-equipment-search-dialog-filtered');
+    await evidenceScreenshot(page, '02-equipment-search-dialog-filtered');
 
     await searchResultRow.click();
     await expect(equipmentTrigger).toContainText(seedEquipment.cat320.name, { timeout: 15_000 });
     await evidencePause(page, 600);
-    await evidenceScreenshot(page, '04-equipment-selected');
+    await evidenceScreenshot(page, '03-equipment-selected');
+
+    const addTime = dialog.getByRole('button', { name: /^add time$/i });
+    await addTime.scrollIntoViewIfNeeded();
+    await addTime.click();
+    await expect(dialog.getByRole('combobox', { name: /due hour/i })).toBeVisible({ timeout: 15_000 });
+    await evidencePause(page, 600);
+    await evidenceScreenshot(page, '04-due-time-added');
+
+    await dialog.getByLabel(/^assignee$/i).click();
+    await expect(page.getByRole('option', { name: /unassigned/i })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/^admins$/i)).toBeVisible();
+    await evidencePause(page, 600);
+    await evidenceScreenshot(page, '05-assignee-grouped');
   });
 });

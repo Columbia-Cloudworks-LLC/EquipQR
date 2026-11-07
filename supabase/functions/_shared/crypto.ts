@@ -316,32 +316,6 @@ function hasLowEntropy(key: string): boolean {
 }
 
 /**
- * Validates that the encryption key is properly configured.
- * Call this at module load time or during health checks to catch
- * configuration issues early rather than at first encryption attempt.
- * 
- * @returns true if the key is valid, throws otherwise
- */
-function validateEncryptionKeyConfiguration(): boolean {
-  // This will throw if key is missing or invalid
-  getTokenEncryptionKey();
-  return true;
-}
-
-/**
- * Validates that the KDF salt is properly configured.
- * Call this at module load time or during health checks to catch
- * configuration issues early rather than at first encryption attempt.
- * 
- * @returns true if the salt is valid, throws otherwise
- */
-function validateKdfSaltConfiguration(): boolean {
-  // This will throw if salt is missing in production or invalid
-  getKdfSalt();
-  return true;
-}
-
-/**
  * Gets and validates the encryption key from environment.
  * 
  * This function performs configuration validation and will throw an Error if:

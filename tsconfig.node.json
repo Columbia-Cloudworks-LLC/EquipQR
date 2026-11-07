@@ -30,8 +30,10 @@
     "vite.config.ts",
     "playwright.config.ts",
     "playwright.user.config.ts",
+    "playwright.screen-catalog.config.ts",
     "e2e/**/*.ts",
     "dev/csp.ts",
+    "dev/screen-catalog/**/*.ts",
     "dev/**/*.test.ts"
   ]
 }

@@ -9,10 +9,7 @@ const {
   redactPII,
   sanitizeMetadata,
   insertTicketWithRetry,
-  MIN_TITLE_LENGTH,
   MAX_TITLE_LENGTH,
-  MIN_DESCRIPTION_LENGTH,
-  MAX_DESCRIPTION_LENGTH,
 } = __testables;
 
 Deno.test("coerceMetadataObject accepts omitted/null and rejects non-objects", () => {

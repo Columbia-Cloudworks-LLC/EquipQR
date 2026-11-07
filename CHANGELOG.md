@@ -11,6 +11,22 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+## [3.39.0] - 2026-11-07
+
+### Security
+
+- **Build tool security updates** — Updated two libraries used only when building and checking EquipQR to versions that fix published vulnerabilities. No change to how EquipQR works.
+
+### Changed
+
+- **Code cleanup from security scanning (#1699)** — Removed unused code flagged by GitHub code scanning. No change to how EquipQR works.
+- **Simpler create work order form (#1697)** — The form explains itself with fewer words. Equipment is picked from one searchable field, with "New equipment" inside it. The due date reads "Complete by" and stays all day unless you tap "Add time". Estimated time shows its unit, the photo picker shows how many you've added out of 5, and the assignee list groups the equipment's team and admins and waits until equipment is chosen.
+
+### Fixed
+
+- **Display image badge on equipment photos (#1696)** — The Images tab on an equipment page again marks which photo is the display image, and offers "Remove as display image" for it instead of "Set as display image".
+- **Stable workspace order (#1696)** — The workspace switcher now lists your organizations alphabetically, so the order no longer changes between page loads.
+
 ## [3.38.0] - 2026-11-05
 
 ### Security
