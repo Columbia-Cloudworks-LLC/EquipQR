@@ -11,6 +11,8 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+## [3.39.0] - 2026-11-07
+
 ### Security
 
 - **Build tool security updates** — Updated two libraries used only when building and checking EquipQR to versions that fix published vulnerabilities. No change to how EquipQR works.
