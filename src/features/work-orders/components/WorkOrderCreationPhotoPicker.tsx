@@ -3,7 +3,10 @@ import { useFileObjectUrlPreview } from '@/components/common/useFileObjectUrlPre
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Image, X } from 'lucide-react';
-import { validateAndAppendWorkOrderCreationImages } from '@/features/work-orders/utils/workOrderCreationImages';
+import {
+  validateAndAppendWorkOrderCreationImages,
+  WORK_ORDER_CREATION_MAX_IMAGES,
+} from '@/features/work-orders/utils/workOrderCreationImages';
 
 const Thumbnail: React.FC<{
   file: File;
@@ -39,7 +42,7 @@ export interface WorkOrderCreationPhotoPickerProps {
   images: File[];
   onImagesChange: (files: File[]) => void;
   disabled?: boolean;
-  /** Brief helper shown under the label */
+  /** Optional helper shown under the label. Limits are enforced on pick, so none by default. */
   description?: string;
 }
 
@@ -50,12 +53,13 @@ const WorkOrderCreationPhotoPicker: React.FC<WorkOrderCreationPhotoPickerProps> 
   images,
   onImagesChange,
   disabled = false,
-  description = 'JPEG, PNG, GIF, or WebP — up to 5 images, 10 MB each.',
+  description,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const generatedId = useId();
   const inputId = `${generatedId}-work-order-creation-photos`;
   const hintId = `${inputId}-hint`;
+  const isFull = images.length >= WORK_ORDER_CREATION_MAX_IMAGES;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const picked = Array.from(e.target.files || []);
@@ -67,22 +71,29 @@ const WorkOrderCreationPhotoPicker: React.FC<WorkOrderCreationPhotoPickerProps> 
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Label htmlFor={inputId}>Attach photos from this request</Label>
+        <Label htmlFor={inputId} className="flex items-center gap-2">
+          Photos
+          <span className="text-xs font-normal tabular-nums text-muted-foreground">
+            {images.length}/{WORK_ORDER_CREATION_MAX_IMAGES}
+          </span>
+        </Label>
         <Button
           type="button"
           variant="outline"
           size="sm"
           className="gap-1"
-          disabled={disabled}
+          disabled={disabled || isFull}
           onClick={() => inputRef.current?.click()}
         >
           <Image className="h-4 w-4" aria-hidden />
           Add photos
         </Button>
       </div>
-      <p id={hintId} className="text-xs text-muted-foreground">
-        {description}
-      </p>
+      {description ? (
+        <p id={hintId} className="text-xs text-muted-foreground">
+          {description}
+        </p>
+      ) : null}
       <input
         ref={inputRef}
         id={inputId}
@@ -90,8 +101,8 @@ const WorkOrderCreationPhotoPicker: React.FC<WorkOrderCreationPhotoPickerProps> 
         accept="image/jpeg,image/png,image/gif,image/webp"
         multiple
         className="sr-only"
-        aria-describedby={hintId}
-        disabled={disabled}
+        aria-describedby={description ? hintId : undefined}
+        disabled={disabled || isFull}
         onChange={handleFileChange}
       />
       {images.length > 0 ? (

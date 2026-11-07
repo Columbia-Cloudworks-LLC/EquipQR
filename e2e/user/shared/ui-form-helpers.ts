@@ -26,30 +26,35 @@ export async function selectRadixOption(
   await clickWithDemoCue(option, `Select ${labelText(optionName)}`);
 }
 
+/**
+ * Opens the work order equipment picker (a button that opens the "Choose equipment"
+ * dialog), searches, and clicks the matching result row.
+ */
 async function pickWorkOrderEquipmentFromSearchDialog(
   page: Page,
+  trigger: Locator,
   optionName: string | RegExp,
-  searchText: string,
 ): Promise<boolean> {
-  const searchEquipmentButton = page.getByRole('button', { name: /^search equipment$/i });
-  if (!(await searchEquipmentButton.isVisible({ timeout: 2_000 }).catch(() => false))) {
-    return false;
-  }
+  const searchText = patternToSearchText(optionName);
+  await clickWithDemoCue(trigger, 'Open equipment picker');
+  const pickerDialog = page.getByRole('dialog', { name: /choose equipment/i });
+  await expect(pickerDialog).toBeVisible({ timeout: 15_000 });
 
-  await clickWithDemoCue(searchEquipmentButton, 'Open equipment search dialog');
-  const dialogSearch = page.getByPlaceholder(/search equipment\.\.\./i);
+  const dialogSearch = pickerDialog.getByPlaceholder(/search equipment\.\.\./i);
   await fillWithDemoCue(dialogSearch, `Search for ${searchText}`, searchText);
 
-  const row = page
-    .getByRole('button', { name: new RegExp(`select.*${escapeRegExp(searchText)}`, 'i') })
+  const row = pickerDialog
+    .getByRole('button', { name: /^select /i })
     .filter({ hasText: optionName })
     .first();
   if (await row.isVisible({ timeout: 10_000 }).catch(() => false)) {
     await clickWithDemoCue(row, `Select ${labelText(optionName)} from search`);
+    await expect(pickerDialog).toBeHidden({ timeout: 15_000 });
     return true;
   }
 
   await page.keyboard.press('Escape');
+  await expect(pickerDialog).toBeHidden({ timeout: 15_000 });
   return false;
 }
 
@@ -72,11 +77,6 @@ async function pickComboboxOption(
   }
 
   await page.keyboard.press('Escape');
-
-  if (await pickWorkOrderEquipmentFromSearchDialog(page, optionName, searchText)) {
-    return true;
-  }
-
   return false;
 }
 
@@ -330,7 +330,9 @@ export async function fillWorkOrderBasics(
 }
 
 function getWorkOrderEquipmentTrigger(dialog: Locator): Locator {
-  return dialog.locator('[role="combobox"]').filter({ hasText: /select equipment/i }).first();
+  // Button that opens the "Choose equipment" dialog; its accessible name changes once
+  // equipment is selected, so locate it by id.
+  return dialog.locator('#work-order-equipment-select');
 }
 
 export async function selectWorkOrderEquipment(
@@ -339,23 +341,14 @@ export async function selectWorkOrderEquipment(
   equipmentName: string | RegExp,
   fallbackName?: string | RegExp,
 ): Promise<void> {
-  const selectExistingTab = dialog.getByRole('tab', { name: /select existing/i });
-  if (await selectExistingTab.isVisible({ timeout: 2_000 }).catch(() => false)) {
-    await clickWithDemoCue(selectExistingTab, 'Select existing equipment');
-  }
-
   const trigger = getWorkOrderEquipmentTrigger(dialog);
   await expect(trigger).toBeVisible({ timeout: 15_000 });
 
-  const selected = await pickComboboxOption(page, trigger, equipmentName);
-  if (selected) {
+  if (await pickWorkOrderEquipmentFromSearchDialog(page, trigger, equipmentName)) {
     return;
   }
-  if (fallbackName) {
-    const fallbackSelected = await pickComboboxOption(page, trigger, fallbackName);
-    if (fallbackSelected) {
-      return;
-    }
+  if (fallbackName && (await pickWorkOrderEquipmentFromSearchDialog(page, trigger, fallbackName))) {
+    return;
   }
   throw new Error(`Could not select work order equipment: ${String(equipmentName)}`);
 }

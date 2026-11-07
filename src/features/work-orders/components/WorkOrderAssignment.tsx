@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -45,6 +45,11 @@ export const WorkOrderAssignment: React.FC<WorkOrderAssignmentProps> = ({
     setValue('assigneeId', userId === 'unassigned' ? null : userId);
   };
 
+  // Show eligibility as groups in the list instead of explaining it in a hint.
+  const adminOptions = assignmentOptions.filter((option) => option.role === 'owner' || option.role === 'admin');
+  const teamOptions = assignmentOptions.filter((option) => option.role !== 'owner' && option.role !== 'admin');
+  const needsEquipment = !equipmentId;
+
   // If equipment has no team, show a warning and disable assignment
   const isAssignmentBlocked = equipmentHasNoTeam && equipmentId;
 
@@ -82,20 +87,19 @@ export const WorkOrderAssignment: React.FC<WorkOrderAssignmentProps> = ({
           </Alert>
         ) : (
           <div className="space-y-2">
-            <Label>Assignee</Label>
-            <p className="text-xs text-muted-foreground">
-              Assignable: equipment team members + organization admins
-            </p>
+            <Label htmlFor="work-order-assignee">Assignee</Label>
             {assignmentError && (
               <p className="text-sm text-destructive">Error loading assignees: {assignmentError.message}</p>
             )}
             <Select
-              value={values.assigneeId || 'unassigned'}
+              value={needsEquipment ? '' : values.assigneeId || 'unassigned'}
               onValueChange={handleAssigneeChange}
-              disabled={isLoadingMembers}
+              disabled={needsEquipment || isLoadingMembers}
             >
-              <SelectTrigger>
-                <SelectValue placeholder={isLoadingMembers ? "Loading..." : "Select assignee..."} />
+              <SelectTrigger id="work-order-assignee">
+                <SelectValue
+                  placeholder={needsEquipment ? 'Choose equipment first' : isLoadingMembers ? 'Loading...' : 'Select assignee...'}
+                />
               </SelectTrigger>
               <SelectContent>
                 {/* Unassigned option */}
@@ -106,7 +110,18 @@ export const WorkOrderAssignment: React.FC<WorkOrderAssignmentProps> = ({
                   </div>
                 </SelectItem>
                 
-                <WorkOrderAssigneeSelectItems options={assignmentOptions} />
+                {teamOptions.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel>{teamName ?? 'Equipment team'}</SelectLabel>
+                    <WorkOrderAssigneeSelectItems options={teamOptions} />
+                  </SelectGroup>
+                )}
+                {adminOptions.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel>Admins</SelectLabel>
+                    <WorkOrderAssigneeSelectItems options={adminOptions} />
+                  </SelectGroup>
+                )}
               </SelectContent>
             </Select>
             {errors.assigneeId && (
