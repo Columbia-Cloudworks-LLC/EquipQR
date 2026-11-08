@@ -15,7 +15,8 @@
  *   4. On transient failure, leave the message for vt retry.
  *   5. Loop until empty or MAX_BATCHES_PER_INVOCATION.
  *
- * Authentication: Bearer = SUPABASE_SERVICE_ROLE_KEY.
+ * Authentication: service-role bearer via `authorizeServiceRoleRequest`
+ * (exact key match or gateway-verified service_role JWT; requires verify_jwt = true).
  */
 
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
@@ -26,6 +27,7 @@ import {
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
 import { requireSecret } from "../_shared/require-secret.ts";
+import { authorizeServiceRoleRequest } from "../_shared/service-role-auth.ts";
 import { EXPORTS_QUEUE_NAME } from "../_shared/export-job.ts";
 
 const FUNCTION_NAME = "queue-worker";
@@ -55,20 +57,6 @@ const logStep = (
     }),
   );
 };
-
-function validateServiceRoleAuth(req: Request): boolean {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return false;
-
-  const parts = authHeader.trim().split(/\s+/);
-  if (parts.length !== 2 || parts[0]?.toLowerCase() !== "bearer") {
-    return false;
-  }
-
-  const token = parts[1];
-  const expected = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  return expected !== undefined && token === expected;
-}
 
 export interface QueueMessage {
   msg_id: number;
@@ -342,8 +330,9 @@ if (import.meta.main) {
     const supabaseUrl = requireSecret("SUPABASE_URL", { functionName: FUNCTION_NAME });
     const serviceRoleKey = requireSecret("SUPABASE_SERVICE_ROLE_KEY", { functionName: FUNCTION_NAME });
 
-    if (!validateServiceRoleAuth(req)) {
-      logStep("auth-rejected", { correlation_id: ctx.correlationId });
+    const auth = authorizeServiceRoleRequest(req, serviceRoleKey);
+    if (!auth.ok) {
+      logStep("auth-rejected", { correlation_id: ctx.correlationId, reason: auth.reason });
       return createErrorResponse("Unauthorized", 401);
     }
 

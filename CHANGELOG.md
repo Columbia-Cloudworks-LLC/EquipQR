@@ -11,6 +11,12 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+## [3.39.1] - 2026-11-07
+
+### Fixed
+
+- **Background jobs run again (#1701)** — Push notifications, background exports, QuickBooks connection renewal and QuickBooks invoice status updates had stopped running on schedule. They now run normally.
+
 ## [3.39.0] - 2026-11-07
 
 ### Security
