@@ -2,6 +2,7 @@
 import { QBO_TOKEN_URL, getIntuitTid } from "../_shared/quickbooks-config.ts";
 import { MissingSecretError } from "../_shared/require-secret.ts";
 import { serveQuickBooksFunction } from "../_shared/quickbooks-serve.ts";
+import { authorizeServiceRoleRequest } from "../_shared/service-role-auth.ts";
 
 const FUNCTION_NAME = "quickbooks-refresh-tokens";
 
@@ -126,76 +127,15 @@ serveQuickBooksFunction(FUNCTION_NAME, logStep, async ({
   try {
     const { clientId, clientSecret, supabaseServiceKey } = secrets;
 
-    // Validate authorization
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      logStep("ERROR", { message: "No authorization header provided" });
-      return createUnauthorizedResponse("Unauthorized: No authorization header provided", corsHeaders);
-    }
-
-    // Validate Authorization header format
-    // Note: Bearer tokens are defined in RFC 6750. While the standard uses 'Bearer' with 
-    // capital B, we check case-insensitively for robustness.
-    if (!authHeader.toLowerCase().startsWith("bearer ")) {
-      logStep("ERROR", { message: "Invalid authorization header format" });
-      return createUnauthorizedResponse("Unauthorized: Invalid authorization header format", corsHeaders);
-    }
-
-    // Extract token after 'bearer ' prefix (7 characters)
-    const token = authHeader.substring(7).trim();
-    if (!token) {
-      logStep("ERROR", { message: "Empty token in authorization header" });
-      return createUnauthorizedResponse("Unauthorized: Empty token", corsHeaders);
-    }
-    
-    // Verify the token is a service role token
-    // This endpoint must only be accessible by service role (e.g., cron jobs)
-    // to prevent enumeration of all QuickBooks credentials across organizations
-    let isServiceRole = false;
-    
-    // Check 1: Direct service role key match (for direct key usage)
-    if (token === supabaseServiceKey) {
-      isServiceRole = true;
-      logStep("Service role key authenticated (direct match)");
-    } else {
-      // Check 2: JWT token with service_role claim
-      try {
-        // Decode JWT to check the role claim (without verification, just read payload)
-        const parts = token.split('.');
-        if (parts.length === 3) {
-          // Decode the payload (second part of JWT)
-          // Handle base64url encoding (JWT uses base64url, not standard base64)
-          const payload = JSON.parse(
-            atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))
-          );
-          
-          // Check if the token has service_role claim
-          if (payload.role === 'service_role') {
-            isServiceRole = true;
-            logStep("Service role JWT token authenticated");
-            
-            // Additionally verify the token is valid by attempting to get user
-            const { error: tokenError } = await supabaseClient.auth.getUser(token);
-            
-            if (tokenError) {
-              logStep("ERROR", { message: "Token validation failed", error: tokenError.message });
-              return createUnauthorizedResponse("Unauthorized: Invalid or expired token", corsHeaders);
-            }
-          }
-        }
-      } catch (error) {
-        // If JWT decoding fails, it's not a valid service role token
-        logStep("ERROR", { 
-          message: "Failed to decode token", 
-          error: error instanceof Error ? error.message : String(error) 
-        });
-      }
-    }
-    
-    if (!isServiceRole) {
-      logStep("ERROR", { message: "Token is not a service role token" });
+    // Service role only (pg_cron via invoke_quickbooks_token_refresh): this
+    // endpoint must not be callable by users, to prevent enumeration of all
+    // QuickBooks credentials across organizations. Relies on verify_jwt = true.
+    const auth = authorizeServiceRoleRequest(req, supabaseServiceKey);
+    if (!auth.ok) {
+      logStep("ERROR", { message: "Service role authorization failed", reason: auth.reason });
       return createUnauthorizedResponse("Unauthorized: Service role required", corsHeaders);
     }
+    logStep("Service role authenticated", { method: auth.method });
 
     // Calculate the threshold time for tokens that need refresh
     // Refresh tokens that will expire within the next REFRESH_WINDOW_MINUTES
