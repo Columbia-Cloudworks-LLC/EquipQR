@@ -8,6 +8,7 @@ import {
   withMinorVersion,
 } from "../_shared/quickbooks-config.ts";
 import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
+import { authorizeServiceRoleRequest } from "../_shared/service-role-auth.ts";
 import {
   createErrorResponse,
   createJsonResponse,
@@ -57,10 +58,9 @@ interface WorkOrderInvoiceRow {
 }
 
 function validateServiceRoleAuth(req: Request, expected: string): boolean {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return false;
-  const [scheme, token] = authHeader.trim().split(/\s+/);
-  return scheme?.toLowerCase() === "bearer" && token === expected;
+  const auth = authorizeServiceRoleRequest(req, expected);
+  if (!auth.ok) logStep("Auth rejected", { reason: auth.reason });
+  return auth.ok;
 }
 
 async function refreshTokenIfNeeded(
