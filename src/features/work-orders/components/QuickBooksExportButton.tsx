@@ -29,6 +29,7 @@ import { useQuickBooksExportLogs, useQuickBooksLastExport } from '@/hooks/useExp
 import { useAppToast } from '@/hooks/useAppToast';
 import { isQuickBooksEnabled } from '@/lib/flags';
 import { resolveQuickBooksCustomerId } from '@/features/teams/services/customerAccountService';
+import { useWorkOrderQuickBooksSyncExclusion } from '@/features/work-orders/hooks/useWorkOrderQuickBooksSyncExclusion';
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 import type { QuickBooksExportLog } from '@/services/quickbooks/quickbooksService';
 import {
@@ -109,6 +110,11 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
 
   const { data: exportLogs = [] } = useQuickBooksExportLogs(workOrderId, shouldLoadStatusDetails);
 
+  const { syncExcluded } = useWorkOrderQuickBooksSyncExclusion(
+    workOrderId,
+    canExport && featureEnabled,
+  );
+
   const exportMutation = useExportToQuickBooks();
   const [reviewOpen, setReviewOpen] = React.useState(false);
 
@@ -135,6 +141,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
     alreadyExported,
     hasInvoiceIdentifiers,
     invoiceDisplay,
+    syncExcluded,
   });
 
   const invoiceUrl =

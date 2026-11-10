@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { applyWorkOrderListContract, applyWorkOrderSupabaseFilters } from './workOrderSupabaseFilters';
 import { parseWorkOrderListContract } from '@/features/work-orders/utils/workOrderListContract';
 import { LIST_CONTRACT_NOW, parseInput } from '@/features/work-orders/utils/workOrderListContract.fixtures';
+import { DEFAULT_WORK_ORDER_FILTERS } from '@/features/work-orders/hooks/workOrderFilterUtils';
 
 function createMockQuery() {
   const calls: Array<{ method: string; args: unknown[] }> = [];
@@ -121,6 +122,20 @@ describe('applyWorkOrderListContract', () => {
     expect(new Date(endIso).getTime()).toBeLessThan(
       new Date('2026-09-07T00:00:00.000Z').getTime(),
     );
+  });
+
+  it('keeps Historical Only / Do Not Sync records out of the not-exported queue', () => {
+    const query = createMockQuery();
+    applyWorkOrderListContract(
+      query,
+      parseWorkOrderListContract(
+        parseInput({ filters: { ...DEFAULT_WORK_ORDER_FILTERS, invoiceFilter: 'not_exported' } }),
+      ),
+      LIST_CONTRACT_NOW,
+    );
+
+    expect(query.is).toHaveBeenCalledWith('quickbooks_invoice_id', null);
+    expect(query.is).toHaveBeenCalledWith('quickbooks_sync_excluded', false);
   });
 
   it('applies unpaid invoices as exported plus null or collectible status', () => {

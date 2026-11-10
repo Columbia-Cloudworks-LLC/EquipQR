@@ -127,8 +127,11 @@ describe('MobileWorkOrderCompactSummary', () => {
     );
 
     await user.click(screen.getByRole('button', { name: 'Edit due date' }));
-    fireEvent.change(screen.getByDisplayValue('2026-06-23'), { target: { value: '2026-06-25' } });
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    const dateInput = screen.getByDisplayValue('2026-06-23');
+    fireEvent.change(dateInput, { target: { value: '2026-06-25' } });
+    // Inline fields save on Enter (or blur); there is no separate Save button.
+    fireEvent.keyDown(dateInput, { key: 'Enter' });
+    await waitFor(() => expect(savePatch).toHaveBeenCalled());
 
     expect(savePatch).toHaveBeenCalledWith(expect.objectContaining({
       dueDateHasTime: true,

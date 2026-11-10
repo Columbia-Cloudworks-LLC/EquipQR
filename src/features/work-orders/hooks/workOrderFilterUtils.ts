@@ -93,7 +93,7 @@ function matchesInvoice(order: WorkOrderData, invoiceFilter: string): boolean {
     invoiceFilter === 'all' ||
     (invoiceFilter === 'paid' && invoiceStatus === 'paid') ||
     (invoiceFilter === 'overdue' && invoiceStatus === 'overdue') ||
-    (invoiceFilter === 'not_exported' && !hasExportedInvoice) ||
+    (invoiceFilter === 'not_exported' && !hasExportedInvoice && order.quickbooks_sync_excluded !== true) ||
     (invoiceFilter === 'unpaid' &&
       hasExportedInvoice &&
       (invoiceStatus === null || COLLECTIBLE_UNPAID_INVOICE_STATUSES.has(invoiceStatus)))

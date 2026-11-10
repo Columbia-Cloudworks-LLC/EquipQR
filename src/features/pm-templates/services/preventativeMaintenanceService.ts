@@ -1078,6 +1078,8 @@ export interface LatestCompletedPMDetails {
   completed_by_name: string | null;
   checklist_data: Json;
   work_order_title: string | null;
+  /** Meter reading at the time of the PM, when one was recorded. */
+  hours_at_completion?: number | null;
 }
 
 export const getLatestCompletedPMDetails = async (
@@ -1095,7 +1097,7 @@ export const getLatestCompletedPMDetails = async (
 
     const { data: pm, error: pmError } = await supabase
       .from('preventative_maintenance')
-      .select('id, work_order_id, completed_at, completed_by, completed_by_name, checklist_data')
+      .select('id, work_order_id, completed_at, completed_by, completed_by_name, checklist_data, equipment_working_hours_at_completion')
       .eq('organization_id', organizationId)
       .eq('equipment_id', equipmentId)
       .eq('status', 'completed')
@@ -1129,6 +1131,7 @@ export const getLatestCompletedPMDetails = async (
       completed_by_name: pm.completed_by_name,
       checklist_data: pm.checklist_data,
       work_order_title: wo?.title ?? null,
+      hours_at_completion: pm.equipment_working_hours_at_completion ?? null,
     };
   } catch (error) {
     logger.error('Error in getLatestCompletedPMDetails:', error);

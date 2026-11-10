@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertCircle, Camera, Clock, Loader2, Plus } from 'lucide-react';
+import { AlertCircle, Camera, ClipboardCheck, Clock, Loader2, Wrench } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import type {
@@ -16,6 +16,8 @@ import {
 import { getAuthClaims } from '@/lib/authClaims';
 import { logger } from '@/utils/logger';
 
+type QRWorkOrderIntent = 'issue' | 'pm';
+
 const QRWorkOrderDialog = lazy(() => import('@/features/equipment/components/qr/QRWorkOrderDialog'));
 const QRUpdateHoursDialog = lazy(() => import('@/features/equipment/components/qr/QRWorkingHoursDialog'));
 const QRNoteImageDialog = lazy(() => import('@/features/equipment/components/qr/QRNoteImageDialog'));
@@ -30,7 +32,7 @@ interface EquipmentQRQuickActionsProps {
 }
 
 type DialogState =
-  | { type: 'work-order' }
+  | { type: 'work-order'; intent: QRWorkOrderIntent }
   | { type: 'hours' }
   | { type: 'note' }
   | null;
@@ -104,14 +106,9 @@ export default function EquipmentQRQuickActions({
 
   return (
     <section className="space-y-3" aria-labelledby="qr-quick-actions-heading">
-      <div>
-        <h2 id="qr-quick-actions-heading" className="text-base font-semibold">
-          Quick Actions
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          These actions load only after selection and keep you on the scanned equipment record.
-        </p>
-      </div>
+      <h2 id="qr-quick-actions-heading" className="sr-only">
+        Quick Actions
+      </h2>
 
       {permissionMessage && (
         <Alert variant="destructive">
@@ -139,30 +136,44 @@ export default function EquipmentQRQuickActions({
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      {/* Primary, thumb-sized actions first; the secondary note action sits below. */}
+      <div className="grid grid-cols-2 gap-2">
         <Button
           type="button"
-          className="min-h-[44px] justify-start gap-2"
-          onClick={() => openAction('generic-work-order', { type: 'work-order' })}
+          size="lg"
+          className="col-span-2 min-h-14 gap-2 text-base touch-manipulation"
+          onClick={() => openAction('generic-work-order', { type: 'work-order', intent: 'issue' })}
           disabled={checkingAction !== null}
         >
-          {renderSpinner('generic-work-order') ?? <Plus className="h-4 w-4" />}
-          New Work Order
+          {renderSpinner('generic-work-order') ?? <Wrench className="h-5 w-5" />}
+          Report Issue / New WO
         </Button>
         <Button
           type="button"
-          variant="outline"
-          className="min-h-[44px] justify-start gap-2"
+          size="lg"
+          variant="secondary"
+          className="min-h-14 gap-2 px-3 touch-manipulation"
+          onClick={() => openAction('pm-work-order', { type: 'work-order', intent: 'pm' })}
+          disabled={checkingAction !== null}
+        >
+          {renderSpinner('pm-work-order') ?? <ClipboardCheck className="h-5 w-5" />}
+          Start PM
+        </Button>
+        <Button
+          type="button"
+          size="lg"
+          variant="secondary"
+          className="min-h-14 gap-2 px-3 touch-manipulation"
           onClick={() => openAction('update-hours', { type: 'hours' })}
           disabled={checkingAction !== null}
         >
-          {renderSpinner('update-hours') ?? <Clock className="h-4 w-4" />}
+          {renderSpinner('update-hours') ?? <Clock className="h-5 w-5" />}
           Update Hours
         </Button>
         <Button
           type="button"
           variant="outline"
-          className="min-h-[44px] justify-start gap-2"
+          className="col-span-2 min-h-[44px] gap-2 touch-manipulation"
           onClick={() => openAction('note-image', { type: 'note' })}
           disabled={checkingAction !== null}
         >
@@ -176,6 +187,7 @@ export default function EquipmentQRQuickActions({
           {dialog.type === 'work-order' && (
             <QRWorkOrderDialog
               open
+              intent={dialog.intent}
               equipment={equipment}
               permissionContext={activePermissionContext}
               scanId={scanId}

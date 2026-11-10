@@ -42,7 +42,11 @@ interface CreateWorkOrderResult {
   creationPhotoFailure?: boolean;
 }
 
-export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: WorkOrder) => void }) => {
+export const useCreateWorkOrder = (options?: {
+  onSuccess?: (workOrder: WorkOrder) => void;
+  /** Overrides the default success toast (e.g. the quieter rapid-entry copy). */
+  successMessage?: string;
+}) => {
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -169,7 +173,7 @@ export const useCreateWorkOrder = (options?: { onSuccess?: (workOrder: WorkOrder
       }
 
       // Normal success
-      toast.success('Work order created successfully');
+      toast.success(options?.successMessage ?? 'Work order created successfully');
       if (result.creationPhotoFailure) {
         toast.warning(
           'Work order created, but photos did not attach. Open the work order to retry.',

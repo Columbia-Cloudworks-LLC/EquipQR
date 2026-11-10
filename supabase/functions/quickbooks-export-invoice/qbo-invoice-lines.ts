@@ -34,6 +34,7 @@ export interface WorkOrderData {
   completed_date: string | null;
   equipment_working_hours_at_creation: number | null;
   has_pm: boolean;
+  quickbooks_sync_excluded?: boolean;
   equipment?: {
     name: string;
     manufacturer: string;

@@ -126,13 +126,17 @@ describe('PMChecklistComponent', () => {
 
       await openPmSectionAndWaitForItem('Engine', 'Check oil level');
 
-      const selectTrigger = screen.getByRole('combobox');
-      fireEvent.click(selectTrigger);
+      // Notes stay hidden until an item is flagged.
+      expect(screen.queryByPlaceholderText('Add notes for this item...')).not.toBeInTheDocument();
 
-      const adjusted = await screen.findByRole('option', { name: /adjusted/i });
-      fireEvent.click(adjusted);
+      fireEvent.click(screen.getByRole('radio', { name: 'Attention' }));
 
       expect(await screen.findByPlaceholderText('Add notes for this item...')).toBeInTheDocument();
+      // Flagging reveals the severity scale, defaulting to "Recommend Repairs".
+      expect(screen.getByRole('radio', { name: 'Recommend Repairs' })).toBeChecked();
+
+      fireEvent.click(screen.getByRole('radio', { name: 'Adjusted' }));
+      expect(screen.getByRole('radio', { name: 'Adjusted' })).toBeChecked();
     });
 
     it('shows notes when item has existing notes regardless of condition', async () => {
@@ -209,14 +213,12 @@ describe('PMChecklistComponent', () => {
       renderPMChecklist(pm, { onUpdate: mockOnUpdate });
       await openPmSectionAndWaitForItem('Engine', 'Check oil level');
 
-      const notesTextarea = screen.getByPlaceholderText('Add notes for this item...');
-      const notesContainer = notesTextarea.closest('.grid');
-      expect(notesContainer).toHaveClass('opacity-100');
+      expect(screen.getByPlaceholderText('Add notes for this item...')).toBeInTheDocument();
 
       fireEvent.click(screen.getByRole('button', { name: /hide notes/i }));
 
       await waitFor(() => {
-        expect(notesContainer).toHaveClass('opacity-0');
+        expect(screen.queryByPlaceholderText('Add notes for this item...')).not.toBeInTheDocument();
       });
     });
   });
@@ -239,19 +241,121 @@ describe('PMChecklistComponent', () => {
 
       await openPmSectionAndWaitForItem('Engine', 'Adjusted item');
 
-      const engineNotes = screen.getAllByPlaceholderText('Add notes for this item...');
-      const visibleEngineNotes = engineNotes.filter(textarea =>
-        textarea.closest('.grid')?.classList.contains('opacity-100')
-      );
-      expect(visibleEngineNotes.length).toBe(4);
+      // One note input per flagged item.
+      expect(screen.getAllByPlaceholderText('Add notes for this item...')).toHaveLength(4);
 
       await openPmSectionAndWaitForItem('Safety', 'OK item');
 
-      const allNotes = screen.getAllByPlaceholderText('Add notes for this item...');
-      const hiddenNotes = allNotes.filter(textarea =>
-        textarea.closest('.grid')?.classList.contains('opacity-0')
-      );
-      expect(hiddenNotes.length).toBeGreaterThanOrEqual(3);
+      // OK, N/A and unrated items do not add note inputs.
+      expect(screen.getAllByPlaceholderText('Add notes for this item...')).toHaveLength(4);
+    });
+  });
+
+  describe('one-tap assessment pills', () => {
+    it('rates an item with a single tap and dims it once it is OK', async () => {
+      const pm = createMockPM({
+        checklist_data: [
+          { id: 'item-1', title: 'Check oil level', section: 'Engine', required: true, condition: null, notes: undefined },
+        ] as unknown as PreventativeMaintenance['checklist_data'],
+      });
+
+      renderPMChecklist(pm, { onUpdate: mockOnUpdate });
+      await openPmSectionAndWaitForItem('Engine', 'Check oil level');
+
+      const title = screen.getByText('Check oil level');
+      expect(title).not.toHaveClass('text-muted-foreground');
+
+      fireEvent.click(screen.getByRole('radio', { name: 'OK' }));
+
+      expect(screen.getByRole('radio', { name: 'OK' })).toBeChecked();
+      expect(title).toHaveClass('text-muted-foreground');
+      expect(screen.getByText('1/1 items completed (100%)')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('radio', { name: 'Not Applicable' }));
+      expect(screen.getByRole('radio', { name: 'Not Applicable' })).toBeChecked();
+    });
+
+    it('marks only the unrated items in a section OK and keeps flagged findings', async () => {
+      const pm = createMockPM({
+        checklist_data: [
+          { id: 'item-1', title: 'Check oil level', section: 'Engine', required: true, condition: null, notes: undefined },
+          { id: 'item-2', title: 'Inspect belts', section: 'Engine', required: true, condition: 4, notes: undefined },
+          { id: 'item-3', title: 'Test horn', section: 'Safety', required: true, condition: null, notes: undefined },
+        ] as unknown as PreventativeMaintenance['checklist_data'],
+      });
+
+      renderPMChecklist(pm, { onUpdate: mockOnUpdate });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Mark Engine section OK' }));
+
+      expect(screen.getByText('2/2 items completed (100%)')).toBeInTheDocument();
+      expect(screen.getByText('1 flagged')).toBeInTheDocument();
+      // Nothing left to mark in Engine; Safety is untouched.
+      expect(screen.queryByRole('button', { name: 'Mark Engine section OK' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Mark Safety section OK' })).toBeInTheDocument();
+      expect(screen.getByText('0/1 items completed (0%)')).toBeInTheDocument();
+    });
+  });
+
+  describe('follow-up work order', () => {
+    it('offers a pre-filled follow-up work order on flagged items of an existing work order', async () => {
+      const requests: unknown[] = [];
+      const listener = (event: Event) => requests.push((event as CustomEvent).detail);
+      window.addEventListener('equipqr:new-work-order', listener);
+
+      const pm = createMockPM({
+        checklist_data: [
+          { id: 'item-1', title: 'Check oil level', section: 'Engine', required: true, condition: 1, notes: undefined },
+          { id: 'item-2', title: 'Inspect belts', section: 'Engine', required: true, condition: 4, notes: 'Frayed edge' },
+        ] as unknown as PreventativeMaintenance['checklist_data'],
+      });
+
+      try {
+        renderPMChecklist(pm, {
+          onUpdate: mockOnUpdate,
+          workOrder: {
+            id: 'wo-1',
+            title: 'Quarterly PM',
+            description: 'desc',
+            status: 'in_progress',
+            priority: 'medium',
+            created_date: '2024-01-01T00:00:00Z',
+            equipment_id: 'eq-1',
+            organization_id: 'org-1',
+          },
+        });
+        await openPmSectionAndWaitForItem('Engine', 'Inspect belts');
+
+        // Only the flagged item gets the action.
+        const followUps = screen.getAllByRole('button', { name: /create follow-up work order/i });
+        expect(followUps).toHaveLength(1);
+
+        fireEvent.click(followUps[0]);
+
+        expect(requests).toHaveLength(1);
+        expect(requests[0]).toMatchObject({
+          equipmentId: pm.equipment_id,
+          title: 'Repair: Inspect belts',
+          priority: 'high',
+        });
+        expect((requests[0] as { description: string }).description).toContain('Frayed edge');
+        expect((requests[0] as { description: string }).description).toContain('/dashboard/work-orders/');
+      } finally {
+        window.removeEventListener('equipqr:new-work-order', listener);
+      }
+    });
+
+    it('does not offer a follow-up when there is no work order to link back to', async () => {
+      const pm = createMockPM({
+        checklist_data: [
+          { id: 'item-2', title: 'Inspect belts', section: 'Engine', required: true, condition: 4, notes: undefined },
+        ] as unknown as PreventativeMaintenance['checklist_data'],
+      });
+
+      renderPMChecklist(pm, { onUpdate: mockOnUpdate });
+      await openPmSectionAndWaitForItem('Engine', 'Inspect belts');
+
+      expect(screen.queryByRole('button', { name: /create follow-up work order/i })).not.toBeInTheDocument();
     });
   });
 

@@ -5,6 +5,9 @@ export const quickBooks = {
   /** Resolved QuickBooks customer ID (customer account, then legacy mapping). */
   resolvedMapping: (orgId: string, teamId: string) =>
     ['quickbooks', 'resolved-mapping', orgId, teamId] as const,
+  /** "Historical Only / Do Not Sync" flag for one work order. */
+  syncExclusion: (orgId: string, workOrderId: string) =>
+    ['quickbooks', 'sync-exclusion', orgId, workOrderId] as const,
 };
 
 // Google Workspace keys

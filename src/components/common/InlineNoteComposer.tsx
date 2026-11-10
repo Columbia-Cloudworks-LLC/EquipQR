@@ -4,14 +4,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Image, X } from 'lucide-react';
+import { Image, Lock, LockOpen, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { DATE_TIME_DISPLAY_FORMAT } from '@/config/date-formats';
 import { cn } from '@/lib/utils';
 import { handleDragActiveState } from '@/components/common/drag-active-handlers';
 import { useFileObjectUrlPreview } from '@/components/common/useFileObjectUrlPreview';
 import { logger } from '@/utils/logger';
+
+/** Tallest the note box grows before it scrolls. */
+const MAX_TEXTAREA_HEIGHT_PX = 192;
 
 // Image Thumbnail Component with proper cleanup
 const ImageThumbnail: React.FC<{
@@ -25,11 +27,11 @@ const ImageThumbnail: React.FC<{
 
   return (
     <div className="relative shrink-0 group">
-      <div className="relative w-16 h-16 rounded-md overflow-hidden border border-input bg-muted">
+      <div className="relative w-14 h-14 rounded-md border border-input bg-muted">
         <img
           src={previewUrl}
           alt={file.name}
-          className="w-full h-full object-cover"
+          className="w-full h-full rounded-md object-cover"
         />
         <Button
           type="button"
@@ -37,7 +39,7 @@ const ImageThumbnail: React.FC<{
           size="sm"
           onClick={onRemove}
           disabled={disabled}
-          className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
           title="Remove image"
           aria-label="Remove image"
         >
@@ -265,12 +267,30 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
     }
   }, [requestAttachTrigger, handleAttachClick]);
 
+  // Grow with the text up to a cap, so an empty composer stays one line tall.
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.min(textarea.scrollHeight, MAX_TEXTAREA_HEIGHT_PX)}px`;
+  }, [value]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      e.currentTarget.form?.requestSubmit();
+    }
+  }, []);
+
+  const isBusy = disabled || isSubmitting;
+  const canSubmit = !isBusy && (value.trim().length > 0 || attachedImages.length > 0);
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      {/* Text Input Area */}
+    <form onSubmit={handleSubmit}>
+      {/* One box: text, staged thumbnails and the action toolbar. The whole box is the drop target. */}
       <div
         className={cn(
-          'relative rounded-lg border border-input bg-background transition-colors',
+          'rounded-lg border bg-card transition-colors focus-within:ring-1 focus-within:ring-ring',
           dragActive && 'border-primary bg-primary/5',
           disabled && 'opacity-50'
         )}
@@ -284,56 +304,78 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onPaste={handlePaste}
-          placeholder={placeholder}
-          disabled={disabled || isSubmitting}
-          rows={3}
-          className="min-h-20 resize-none border-0 focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0 pb-12"
+          onKeyDown={handleKeyDown}
+          placeholder={dragActive ? 'Drop images to attach' : placeholder}
+          disabled={isBusy}
+          rows={1}
+          className="max-h-48 min-h-10 resize-none border-0 bg-transparent px-3 py-2.5 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
           aria-label="Note content"
         />
-        {/* Attach Images Button */}
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={handleAttachClick}
-          disabled={disabled || isSubmitting || attachedImages.length >= maxImages}
-          className="absolute bottom-2 right-2 h-8 w-8 p-0"
-          title="Attach images"
-          aria-label="Attach images"
-        >
-          <Image className="h-4 w-4" />
-        </Button>
-        
+
         <input
           ref={fileInputRef}
           type="file"
           multiple
           accept={acceptedImageTypes.join(',')}
           onChange={handleFileSelect}
-          disabled={disabled || isSubmitting}
+          disabled={isBusy}
           className="hidden"
         />
-      </div>
 
-      {/* Image Thumbnails */}
-      {attachedImages.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {attachedImages.map((file, index) => (
-            <ImageThumbnail
-              key={`${file.name}-${file.size}-${file.lastModified}`}
-              file={file}
-              onRemove={() => handleRemoveImage(index)}
-              disabled={disabled || isSubmitting}
-            />
-          ))}
-        </div>
-      )}
+        {/* Thumbnail strip: only takes space once images are staged */}
+        {attachedImages.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto px-3 pb-2 pt-1">
+            {attachedImages.map((file, index) => (
+              <ImageThumbnail
+                key={`${file.name}-${file.size}-${file.lastModified}`}
+                file={file}
+                onRemove={() => handleRemoveImage(index)}
+                disabled={isBusy}
+              />
+            ))}
+          </div>
+        )}
 
-      {/* Optional Fields Row */}
-      {(showMachineHours || showPrivateToggle) && (
-        <div className="flex flex-wrap items-center gap-3 text-sm">
+        <div className="flex flex-wrap items-center gap-1 border-t border-border/50 px-1.5 py-1.5">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleAttachClick}
+            disabled={isBusy || attachedImages.length >= maxImages}
+            className="h-8 gap-1.5 px-2 text-muted-foreground"
+            title="Attach images (or drop / paste them)"
+            aria-label="Attach images"
+          >
+            <Image className="h-4 w-4" aria-hidden />
+            <span className="hidden text-xs sm:inline">Attach Photo</span>
+          </Button>
+
+          {showPrivateToggle && (
+            <button
+              type="button"
+              role="switch"
+              id="private-note"
+              aria-checked={isPrivate}
+              aria-label="Private"
+              title="Private notes are only visible to your team"
+              onClick={() => setIsPrivate((prev) => !prev)}
+              disabled={isBusy}
+              className={cn(
+                'inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
+                isPrivate
+                  ? 'bg-warning/15 text-warning'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              )}
+            >
+              {isPrivate ? <Lock className="h-3.5 w-3.5" aria-hidden /> : <LockOpen className="h-3.5 w-3.5" aria-hidden />}
+              Private
+            </button>
+          )}
+
           {showMachineHours && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 pl-1">
               <Label htmlFor="machine-hours" className="text-xs text-muted-foreground whitespace-nowrap">
                 Machine Hours:
               </Label>
@@ -346,40 +388,21 @@ const InlineNoteComposer: React.FC<InlineNoteComposerProps> = ({
                 placeholder="0.0"
                 value={machineHours || ''}
                 onChange={(e) => setMachineHours(parseFloat(e.target.value) || 0)}
-                disabled={disabled || isSubmitting}
+                disabled={isBusy}
                 className="h-8 w-20"
               />
             </div>
           )}
-          
-          {showPrivateToggle && (
-            <div className="flex items-center gap-2">
-              <Switch
-                id="private-note"
-                checked={isPrivate}
-                onCheckedChange={setIsPrivate}
-                disabled={disabled || isSubmitting}
-              />
-              <Label htmlFor="private-note" className="text-xs text-muted-foreground cursor-pointer" title="Private notes are only visible to your team">
-                Private
-              </Label>
-              <span className="text-[10px] text-muted-foreground/70 hidden sm:inline">
-                (team only)
-              </span>
-            </div>
-          )}
-        </div>
-      )}
 
-      {/* Submit Button */}
-      <div className="flex justify-end">
-        <Button
-          type="submit"
-          disabled={disabled || isSubmitting || (!value.trim() && attachedImages.length === 0)}
-          size="sm"
-        >
-          {isSubmitting ? 'Adding...' : 'Add Note'}
-        </Button>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="hidden text-[11px] text-muted-foreground/70 md:inline" aria-hidden>
+              Ctrl/⌘ + Enter
+            </span>
+            <Button type="submit" disabled={!canSubmit} size="sm" className="h-8">
+              {isSubmitting ? 'Adding...' : 'Add Note'}
+            </Button>
+          </div>
+        </div>
       </div>
     </form>
   );

@@ -60,14 +60,43 @@ describe('InlineEditField', () => {
       expect(input).toBeInTheDocument();
     });
 
-    it('shows save and cancel buttons in edit mode', () => {
+    it('enters edit mode on a single click anywhere on the value', () => {
       render(<InlineEditField value="Test Value" onSave={mockOnSave} canEdit={true} />);
-      
-      const editButton = screen.getByRole('button', { name: /edit/i });
-      fireEvent.click(editButton);
-      
-      expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByText('Test Value'));
+
+      expect(screen.getByDisplayValue('Test Value')).toHaveFocus();
+    });
+
+    it('highlights the editable row on hover', () => {
+      render(<InlineEditField value="Test Value" onSave={mockOnSave} canEdit={true} />);
+
+      const row = screen.getByText('Test Value').closest('[data-inline-edit-row]');
+      expect(row).toHaveClass('cursor-pointer', 'hover:bg-muted/60');
+    });
+
+    it('leaves links inside the value alone instead of entering edit mode', () => {
+      render(
+        <InlineEditField
+          value="Test Value"
+          onSave={mockOnSave}
+          canEdit={true}
+          displayNode={<a href="/somewhere">Open record</a>}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('link', { name: 'Open record' }));
+
+      expect(screen.queryByDisplayValue('Test Value')).not.toBeInTheDocument();
+    });
+
+    it('has no save or cancel buttons in edit mode', () => {
+      render(<InlineEditField value="Test Value" onSave={mockOnSave} canEdit={true} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /edit/i }));
+
+      expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /cancel/i })).not.toBeInTheDocument();
     });
 
     it('updates value when input changes', () => {
@@ -84,7 +113,7 @@ describe('InlineEditField', () => {
   });
 
   describe('Save Functionality', () => {
-    it('calls onSave when save button is clicked', async () => {
+    it('saves when the field loses focus', async () => {
       render(<InlineEditField value="Test Value" onSave={mockOnSave} canEdit={true} />);
       
       const editButton = screen.getByRole('button', { name: /edit/i });
@@ -92,13 +121,28 @@ describe('InlineEditField', () => {
       
       const input = screen.getByDisplayValue('Test Value');
       fireEvent.change(input, { target: { value: 'New Value' } });
-      
-      const saveButton = screen.getByRole('button', { name: /save/i });
-      fireEvent.click(saveButton);
+      fireEvent.blur(input);
       
       await waitFor(() => {
         expect(mockOnSave).toHaveBeenCalledWith('New Value');
       });
+      expect(mockOnSave).toHaveBeenCalledTimes(1);
+    });
+
+    it('saves once when Enter is followed by the blur it causes', async () => {
+      render(<InlineEditField value="Test Value" onSave={mockOnSave} canEdit={true} />);
+
+      fireEvent.click(screen.getByRole('button', { name: /edit/i }));
+
+      const input = screen.getByDisplayValue('Test Value');
+      fireEvent.change(input, { target: { value: 'New Value' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
+      fireEvent.blur(input);
+
+      await waitFor(() => {
+        expect(mockOnSave).toHaveBeenCalledWith('New Value');
+      });
+      expect(mockOnSave).toHaveBeenCalledTimes(1);
     });
 
     it('exits edit mode after successful save', async () => {
@@ -109,9 +153,7 @@ describe('InlineEditField', () => {
       
       const input = screen.getByDisplayValue('Test Value');
       fireEvent.change(input, { target: { value: 'New Value' } });
-      
-      const saveButton = screen.getByRole('button', { name: /save/i });
-      fireEvent.click(saveButton);
+      fireEvent.keyDown(input, { key: 'Enter' });
       
       await waitFor(() => {
         expect(screen.queryByDisplayValue('New Value')).not.toBeInTheDocument();
@@ -124,12 +166,12 @@ describe('InlineEditField', () => {
       const editButton = screen.getByRole('button', { name: /edit/i });
       fireEvent.click(editButton);
       
-      const saveButton = screen.getByRole('button', { name: /save/i });
-      fireEvent.click(saveButton);
+      fireEvent.blur(screen.getByDisplayValue('Test Value'));
       
       await waitFor(() => {
-        expect(mockOnSave).not.toHaveBeenCalled();
+        expect(screen.queryByDisplayValue('Test Value')).not.toBeInTheDocument();
       });
+      expect(mockOnSave).not.toHaveBeenCalled();
     });
 
     it('resets value on error', async () => {
@@ -142,13 +184,13 @@ describe('InlineEditField', () => {
       
       const input = screen.getByDisplayValue('Test Value') as HTMLInputElement;
       fireEvent.change(input, { target: { value: 'New Value' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
       
-      const saveButton = screen.getByRole('button', { name: /save/i });
-      fireEvent.click(saveButton);
-      
+      // The failed value is dropped and the original is shown again.
       await waitFor(() => {
-        expect(input.value).toBe('Test Value');
+        expect(screen.getByText('Test Value')).toBeInTheDocument();
       });
+      expect(screen.queryByText('New Value')).not.toBeInTheDocument();
     });
   });
 
@@ -161,12 +203,11 @@ describe('InlineEditField', () => {
       
       const input = screen.getByDisplayValue('Test Value');
       fireEvent.change(input, { target: { value: 'New Value' } });
-      
-      const cancelButton = screen.getByRole('button', { name: /cancel/i });
-      fireEvent.click(cancelButton);
+      fireEvent.keyDown(input, { key: 'Escape' });
       
       expect(screen.queryByDisplayValue('New Value')).not.toBeInTheDocument();
       expect(screen.getByText('Test Value')).toBeInTheDocument();
+      expect(mockOnSave).not.toHaveBeenCalled();
     });
   });
 
@@ -240,8 +281,39 @@ describe('InlineEditField', () => {
       const editButton = screen.getByRole('button', { name: /edit/i });
       fireEvent.click(editButton);
       
-      const select = screen.getByRole('combobox');
-      expect(select).toBeInTheDocument();
+      // Short option lists are edited as one-tap pills that save immediately.
+      expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+      expect(screen.getByRole('radio', { name: 'Option 1' })).toBeChecked();
+
+      fireEvent.click(screen.getByRole('radio', { name: 'Option 2' }));
+
+      await waitFor(() => {
+        expect(mockOnSave).toHaveBeenCalledWith('option2');
+      });
+      expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+    });
+
+    it('keeps a dropdown for long option lists, opened straight away', async () => {
+      const options = Array.from({ length: 6 }, (_, index) => ({
+        value: `option${index + 1}`,
+        label: `Option ${index + 1}`,
+      }));
+
+      render(
+        <InlineEditField
+          value="option1"
+          onSave={mockOnSave}
+          canEdit={true}
+          type="select"
+          selectOptions={options}
+        />
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: /edit/i }));
+
+      expect(await screen.findByRole('listbox')).toBeInTheDocument();
+      expect(screen.getAllByRole('option')).toHaveLength(6);
+      expect(screen.queryByRole('radio')).not.toBeInTheDocument();
     });
 
     it('displays select option label', () => {
@@ -272,8 +344,8 @@ describe('InlineEditField', () => {
     });
   });
 
-  describe('Loading State', () => {
-    it('shows loading state while saving', async () => {
+  describe('Optimistic Save', () => {
+    it('shows the new value immediately while the save is still in flight', async () => {
       mockOnSave.mockImplementation(() => new Promise(() => {})); // Never resolves
       
       render(<InlineEditField value="Test Value" onSave={mockOnSave} canEdit={true} />);
@@ -283,12 +355,12 @@ describe('InlineEditField', () => {
       
       const input = screen.getByDisplayValue('Test Value');
       fireEvent.change(input, { target: { value: 'New Value' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
       
-      const saveButton = screen.getByRole('button', { name: /save/i });
-      fireEvent.click(saveButton);
-      
-      // Save button should be disabled during save
-      expect(saveButton).toBeDisabled();
+      // Back in display mode with the unsaved value, marked busy until the save settles.
+      const optimistic = await screen.findByText('New Value');
+      expect(optimistic.closest('[data-inline-edit-row]')).toHaveAttribute('aria-busy', 'true');
+      expect(screen.queryByText('Test Value')).not.toBeInTheDocument();
     });
   });
 

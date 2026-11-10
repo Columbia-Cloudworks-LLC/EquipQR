@@ -1,5 +1,4 @@
 import React from 'react';
-import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -16,6 +15,12 @@ interface WorkOrderAssignmentProps {
   setValue: <K extends keyof WorkOrderFormData>(field: K, value: WorkOrderFormData[K]) => void;
   organizationId: string;
   equipmentId?: string;
+  /** Field label; Log Completed calls the assignee "Performed by". */
+  label?: string;
+  /** Rendered beside the label (rapid-entry pin toggle). */
+  labelAction?: React.ReactNode;
+  /** Shown under the select, e.g. who an unassigned logged record is filed under. */
+  hint?: string;
 }
 
 export const WorkOrderAssignment: React.FC<WorkOrderAssignmentProps> = ({
@@ -23,7 +28,10 @@ export const WorkOrderAssignment: React.FC<WorkOrderAssignmentProps> = ({
   errors,
   setValue,
   organizationId,
-  equipmentId
+  equipmentId,
+  label = 'Assignee',
+  labelAction,
+  hint,
 }) => {
   const { assignmentOptions, isLoading: isLoadingMembers, error: assignmentError, equipmentHasNoTeam, teamName } = useWorkOrderAssignmentOptions(organizationId, equipmentId);
   
@@ -40,6 +48,16 @@ export const WorkOrderAssignment: React.FC<WorkOrderAssignmentProps> = ({
     });
   }, [organizationId, equipmentId, assignmentOptions, isLoadingMembers, assignmentError, equipmentHasNoTeam]);
 
+  // A carried-over (pinned) assignee may not belong to the newly selected
+  // equipment's team. Clear it instead of letting the save fail validation.
+  const { assigneeId } = values;
+  React.useEffect(() => {
+    if (!equipmentId || isLoadingMembers || assignmentError || !assigneeId) return;
+    if (!assignmentOptions.some((option) => option.id === assigneeId)) {
+      setValue('assigneeId', null);
+    }
+  }, [equipmentId, isLoadingMembers, assignmentError, assigneeId, assignmentOptions, setValue]);
+
   const handleAssigneeChange = (userId: string) => {
     // "unassigned" is a special value meaning no assignee
     setValue('assigneeId', userId === 'unassigned' ? null : userId);
@@ -54,12 +72,7 @@ export const WorkOrderAssignment: React.FC<WorkOrderAssignmentProps> = ({
   const isAssignmentBlocked = equipmentHasNoTeam && equipmentId;
 
   return (
-    <Card>
-      <CardContent className="pt-4 space-y-4">
-        <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-          Assignment
-        </h3>
-        
+    <div className="space-y-3">
         {teamName && (
           <div className="space-y-1">
             <div className="flex items-center gap-1.5">
@@ -87,7 +100,10 @@ export const WorkOrderAssignment: React.FC<WorkOrderAssignmentProps> = ({
           </Alert>
         ) : (
           <div className="space-y-2">
-            <Label htmlFor="work-order-assignee">Assignee</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="work-order-assignee">{label}</Label>
+              {labelAction}
+            </div>
             {assignmentError && (
               <p className="text-sm text-destructive">Error loading assignees: {assignmentError.message}</p>
             )}
@@ -127,10 +143,10 @@ export const WorkOrderAssignment: React.FC<WorkOrderAssignmentProps> = ({
             {errors.assigneeId && (
               <p className="text-sm text-destructive">{errors.assigneeId}</p>
             )}
+            {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
           </div>
         )}
-      </CardContent>
-    </Card>
+    </div>
   );
 };
 

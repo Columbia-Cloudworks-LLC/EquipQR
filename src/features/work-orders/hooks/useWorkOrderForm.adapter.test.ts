@@ -131,10 +131,11 @@ describe('useWorkOrderForm', () => {
       expect(result.current.initialValues.estimatedHours).toBeUndefined();
     });
 
-    it('starts historical entries as accepted', () => {
+    it('starts historical (Log Completed) entries as completed today', () => {
       const { result } = render({ isOpen: true, initialIsHistorical: true, equipmentId: 'eq-1' });
 
-      expect(result.current.form.values).toMatchObject({ isHistorical: true, status: 'accepted', historicalNotes: '' });
+      expect(result.current.form.values).toMatchObject({ isHistorical: true, status: 'completed', historicalNotes: '' });
+      expect(result.current.form.values.completedDate).toBeInstanceOf(Date);
     });
   });
 
@@ -290,7 +291,7 @@ describe('useWorkOrderForm', () => {
     it('resets historical fields when a historical dialog opens', () => {
       const { result } = render({ isOpen: true, initialIsHistorical: true });
 
-      expect(result.current.form.values).toMatchObject({ isHistorical: true, status: 'accepted', historicalNotes: '' });
+      expect(result.current.form.values).toMatchObject({ isHistorical: true, status: 'completed', historicalNotes: '' });
     });
 
     it('does not reset while closed', () => {

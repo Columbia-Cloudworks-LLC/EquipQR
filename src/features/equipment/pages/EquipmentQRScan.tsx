@@ -28,6 +28,8 @@ import { recordScanFollowUpEvent } from '@/features/equipment/services/scanFollo
 import { logger } from '@/utils/logger';
 import { useLatestCompletedPMDetails } from '@/features/pm-templates/hooks/usePMData';
 import EquipmentQRLastPMCard from '@/features/equipment/components/qr/EquipmentQRLastPMCard';
+import EquipmentQROpenWorkOrders from '@/features/equipment/components/qr/EquipmentQROpenWorkOrders';
+import { EquipmentServiceSummaryBadge } from '@/features/equipment/components/EquipmentServiceSummaryBadge';
 import { useBrowserOnline } from '@/hooks/useBrowserOnline';
 import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
@@ -301,6 +303,31 @@ const EquipmentQRScan = (): React.JSX.Element => {
   const currentYear = new Date().getFullYear();
   const heroImageSrc = heroImageUrl && !heroImageFailed ? heroImageUrl : null;
 
+  const quickActions = showQuickActions && (
+    <Suspense fallback={<div className="h-44 rounded-lg border bg-muted/30" aria-hidden="true" />}>
+      <EquipmentQRQuickActions
+        equipment={{
+          id: equipment.id,
+          name: equipment.name,
+          organizationId: payload.organization.id,
+          teamId: equipment.team?.id ?? null,
+          workingHours: equipment.workingHours,
+          defaultPmTemplateId: equipment.defaultPmTemplateId,
+        }}
+        scanId={scanId}
+        userRole={payload.userRole as Role}
+        userDisplayName={
+          (user?.user_metadata?.name as string | undefined) || user?.email?.split('@')[0] || 'User'
+        }
+        onWorkingHoursUpdated={(newHours) =>
+          setPayload((prev) =>
+            prev ? { ...prev, equipment: { ...prev.equipment, workingHours: newHours } } : prev
+          )
+        }
+      />
+    </Suspense>
+  );
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col px-4 py-5 sm:py-8">
@@ -322,7 +349,8 @@ const EquipmentQRScan = (): React.JSX.Element => {
         </div>
 
         <Card className="overflow-hidden">
-          <div className="aspect-[16/10] bg-muted">
+          {/* Short hero on phones so the primary actions stay above the fold. */}
+          <div className="aspect-[16/6] bg-muted sm:aspect-[16/8]">
             {heroImageSrc ? (
               <img
                 src={heroImageSrc}
@@ -333,7 +361,7 @@ const EquipmentQRScan = (): React.JSX.Element => {
               />
             ) : (
               <div className="flex h-full items-center justify-center">
-                <Forklift className="h-16 w-16 text-muted-foreground/60" />
+                <Forklift className="h-12 w-12 text-muted-foreground/60" />
               </div>
             )}
           </div>
@@ -346,9 +374,26 @@ const EquipmentQRScan = (): React.JSX.Element => {
               <p className="mt-1 text-sm text-muted-foreground">
                 {equipment.manufacturer} {equipment.model} • {equipment.serialNumber}
               </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <EquipmentServiceSummaryBadge
+                  equipmentId={equipment.id}
+                  organizationId={payload.organization.id}
+                />
+                <span className="inline-flex items-center gap-1.5 rounded-full border bg-muted/50 px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" aria-hidden />
+                  {equipment.workingHours == null ? 'Hours not recorded' : `${equipment.workingHours.toLocaleString()} hrs`}
+                </span>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-5">
+            {quickActions}
+
+            <EquipmentQROpenWorkOrders
+              organizationId={payload.organization.id}
+              equipmentId={equipment.id}
+            />
+
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="rounded-lg border bg-card p-3">
                 <div className="flex items-center gap-2 text-sm font-medium">
@@ -386,7 +431,7 @@ const EquipmentQRScan = (): React.JSX.Element => {
                     : 'Recording scan...'}
               </p>
               <p className="mt-1 text-muted-foreground">
-                Use quick actions below for field updates, or continue to the full dashboard record for parts, scans, and history.
+                Use the actions above for field updates, or continue to the full dashboard record for parts, scans, and history.
               </p>
             </div>
 
@@ -397,32 +442,7 @@ const EquipmentQRScan = (): React.JSX.Element => {
               isError={latestPmQuery.isError}
             />
 
-            {showQuickActions && (
-              <Suspense fallback={<div className="h-32 rounded-lg border bg-muted/30" aria-hidden="true" />}>
-                <EquipmentQRQuickActions
-                  equipment={{
-                    id: equipment.id,
-                    name: equipment.name,
-                    organizationId: payload.organization.id,
-                    teamId: equipment.team?.id ?? null,
-                    workingHours: equipment.workingHours,
-                    defaultPmTemplateId: equipment.defaultPmTemplateId,
-                  }}
-                  scanId={scanId}
-                  userRole={payload.userRole as Role}
-                  userDisplayName={
-                    (user?.user_metadata?.name as string | undefined) || user?.email?.split('@')[0] || 'User'
-                  }
-                  onWorkingHoursUpdated={(newHours) =>
-                    setPayload((prev) =>
-                      prev ? { ...prev, equipment: { ...prev.equipment, workingHours: newHours } } : prev
-                    )
-                  }
-                />
-              </Suspense>
-            )}
-
-            <Button className="w-full" size="lg" onClick={openDashboardRecord}>
+            <Button className="w-full" size="lg" variant="outline" onClick={openDashboardRecord}>
               Open Full Dashboard Record
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>

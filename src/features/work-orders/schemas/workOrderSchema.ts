@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { todayServiceDate } from '@/features/work-orders/utils/serviceDate';
 
 // ============================================
 // Base Schemas
@@ -62,7 +63,7 @@ export const workOrderFormSchema = z.object({
     .max(10000, "Estimated hours seems too high")
     .optional()
     .nullable(),
-  equipmentWorkingHours: z.number().optional().nullable(),
+  equipmentWorkingHours: z.number().min(0, "Hours cannot be negative").optional().nullable(),
   hasPM: z.boolean().default(false),
   pmTemplateId: z.string().optional().nullable(),
   // Simplified assignment: just an assignee ID (null = unassigned)
@@ -74,7 +75,35 @@ export const workOrderFormSchema = z.object({
   historicalNotes: z.string().optional(),
   completedDate: z.date().optional().nullable(),
   historicalTimelineEvents: z.array(historicalTimelineEventSchema).optional(),
+  /**
+   * Log Completed only. False (default) keeps the record "Historical Only / Do Not
+   * Sync" so already-billed paper work is never invoiced again in QuickBooks.
+   */
+  quickBooksSyncReady: z.boolean().default(false),
 }).refine(
+  (data) => {
+    // A work order logged as completed must carry the date the service happened.
+    if (data.isHistorical && data.status === 'completed') {
+      return data.completedDate instanceof Date && !Number.isNaN(data.completedDate.getTime());
+    }
+    return true;
+  },
+  {
+    message: "Completed / service date is required",
+    path: ["completedDate"]
+  }
+).refine(
+  (data) => {
+    if (data.isHistorical && data.status === 'completed' && data.completedDate instanceof Date) {
+      return data.completedDate.getTime() <= Date.now() + 24 * 60 * 60 * 1000;
+    }
+    return true;
+  },
+  {
+    message: "Completed / service date cannot be in the future",
+    path: ["completedDate"]
+  }
+).refine(
   (data) => {
     // If it's historical, require status field
     if (data.isHistorical) {
@@ -115,10 +144,12 @@ export const getDefaultWorkOrderFormValues = (
   // Simplified assignment: null = unassigned
   assigneeId: null,
   isHistorical: options.isHistorical || false,
-  status: options.isHistorical ? 'accepted' : undefined,
-  historicalStartDate: undefined,
+  // Historical entry is "Log Completed": finished work, dated today by default.
+  status: options.isHistorical ? 'completed' : undefined,
+  historicalStartDate: options.isHistorical ? todayServiceDate() : undefined,
   historicalNotes: '',
-  completedDate: undefined,
+  completedDate: options.isHistorical ? todayServiceDate() : undefined,
   historicalTimelineEvents: undefined,
+  quickBooksSyncReady: false,
 });
 

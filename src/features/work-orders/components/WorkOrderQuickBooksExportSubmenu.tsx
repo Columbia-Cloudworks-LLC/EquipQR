@@ -11,7 +11,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { ExternalLink, FileSpreadsheet, Loader2, RefreshCw } from 'lucide-react';
+import { Ban, CircleDollarSign, ExternalLink, FileSpreadsheet, Loader2, RefreshCw } from 'lucide-react';
 import { getQuickBooksInvoiceUrl } from '@/services/quickbooks/types';
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 import { useWorkOrderQuickBooksExportState } from '@/features/work-orders/hooks/useWorkOrderQuickBooksExportState';
@@ -43,6 +43,9 @@ export const WorkOrderQuickBooksExportSubmenu: React.FC<WorkOrderQuickBooksExpor
     showSetupState,
     setupDisabled,
     updateLabel,
+    syncExcluded,
+    setSyncExcluded,
+    isUpdatingSyncExclusion,
   } = useWorkOrderQuickBooksExportState({ workOrderId, teamId, workOrderStatus });
 
   if (!featureEnabled) {
@@ -157,6 +160,19 @@ export const WorkOrderQuickBooksExportSubmenu: React.FC<WorkOrderQuickBooksExpor
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
+        {!hasLinkedInvoice && (
+          <DropdownMenuItem
+            onSelect={() => setSyncExcluded(!syncExcluded)}
+            disabled={isUpdatingSyncExclusion}
+          >
+            {syncExcluded ? (
+              <CircleDollarSign className="h-4 w-4 mr-2" />
+            ) : (
+              <Ban className="h-4 w-4 mr-2" />
+            )}
+            {syncExcluded ? 'Ready to sync / bill in QuickBooks' : 'Mark Historical Only / Do Not Sync'}
+          </DropdownMenuItem>
+        )}
       </DropdownMenuSubContent>
     </DropdownMenuSub>
   );

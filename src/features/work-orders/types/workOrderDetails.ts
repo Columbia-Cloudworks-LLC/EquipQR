@@ -18,6 +18,7 @@ export interface WorkOrderData {
   equipment_working_hours_at_creation?: number | null;
   machine_hours?: number | null;
   quickbooks_invoice_id?: string | null;
+  quickbooks_sync_excluded?: boolean;
   quickbooks_invoice_number?: string | null;
   quickbooks_invoice_environment?: 'sandbox' | 'production' | null;
   invoice_status?: 'draft' | 'sent' | 'viewed' | 'paid' | 'partially_paid' | 'overdue' | 'voided' | null;

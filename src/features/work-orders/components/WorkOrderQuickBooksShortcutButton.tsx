@@ -32,9 +32,10 @@ export const WorkOrderQuickBooksShortcutButton: React.FC<WorkOrderQuickBooksShor
     showSetupState,
     setupDisabled,
     updateLabel,
+    syncExcluded,
   } = useWorkOrderQuickBooksExportState({ workOrderId, teamId, workOrderStatus });
 
-  if (!featureEnabled || accessLoading || !canExport || showSetupState || workOrderStatus !== 'completed') {
+  if (!featureEnabled || accessLoading || !canExport || showSetupState || syncExcluded || workOrderStatus !== 'completed') {
     return null;
   }
 
