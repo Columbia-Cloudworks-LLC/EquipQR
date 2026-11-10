@@ -216,22 +216,23 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
     return (
       <div className="space-y-2">
         <Label>Equipment</Label>
-        <div className="flex items-center gap-2 rounded-md border bg-muted/50 p-3">
-          <Forklift className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <div className="min-w-0 flex-1">
-            <div className="font-medium">{equipment.name}</div>
-            <div className="text-sm text-muted-foreground">
-              {[equipment.manufacturer, equipment.model].filter(Boolean).join(' ')}
-              {equipment.serial_number ? ` • S/N: ${equipment.serial_number}` : ''}
-              {equipment.working_hours != null ? ` • ${equipment.working_hours.toLocaleString()} hrs` : ''}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {equipment.team?.name || 'No team'} • {locationDisplay}
-            </div>
+        {/* Name and badge share one line; details wrap below so the narrow column stays readable. */}
+        <div className="rounded-md border bg-muted/50 p-3">
+          <div className="flex items-center gap-2">
+            <Forklift className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <div className="min-w-0 flex-1 font-medium">{equipment.name}</div>
+            <Badge variant="secondary" className="shrink-0 text-xs">
+              {isEditMode ? 'Current' : 'Selected'}
+            </Badge>
           </div>
-          <Badge variant="secondary" className="shrink-0 text-xs">
-            {isEditMode ? 'Current' : 'Selected'}
-          </Badge>
+          <div className="mt-1 break-words text-sm text-muted-foreground">
+            {[equipment.manufacturer, equipment.model].filter(Boolean).join(' ')}
+            {equipment.serial_number ? ` • S/N: ${equipment.serial_number}` : ''}
+            {equipment.working_hours != null ? ` • ${equipment.working_hours.toLocaleString()} hrs` : ''}
+          </div>
+          <div className="break-words text-sm text-muted-foreground">
+            {equipment.team?.name || 'No team'} • {locationDisplay}
+          </div>
         </div>
         {!hideWorkingHours && <WorkingHoursSection equipmentId={equipment.id} setValue={setValue} />}
       </div>
