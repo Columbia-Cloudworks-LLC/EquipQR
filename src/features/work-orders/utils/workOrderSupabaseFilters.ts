@@ -13,7 +13,7 @@ import {
  */
 type WorkOrderFilterQuery<T> = {
   eq: (column: string, value: string) => WorkOrderFilterQuery<T> & T;
-  is: (column: string, value: null) => WorkOrderFilterQuery<T> & T;
+  is: (column: string, value: null | boolean) => WorkOrderFilterQuery<T> & T;
   lt: (column: string, value: string) => WorkOrderFilterQuery<T> & T;
   lte: (column: string, value: string) => WorkOrderFilterQuery<T> & T;
   gte: (column: string, value: string) => WorkOrderFilterQuery<T> & T;
@@ -191,7 +191,9 @@ export function applyWorkOrderListContract<T>(
       next = next.eq('invoice_status', 'overdue');
       break;
     case 'not_exported':
-      next = next.is('quickbooks_invoice_id', null);
+      // Historical / already-billed records are flagged "do not sync" and must
+      // never show up in the unbilled queue.
+      next = next.is('quickbooks_invoice_id', null).is('quickbooks_sync_excluded', false);
       break;
     case 'unpaid':
       next = next

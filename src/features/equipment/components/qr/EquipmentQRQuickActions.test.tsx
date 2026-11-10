@@ -222,7 +222,7 @@ function renderQuickActions(overrides?: Partial<React.ComponentProps<typeof Equi
 }
 
 async function openWorkOrderDialog() {
-  fireEvent.click(screen.getByRole('button', { name: /^new work order$/i }));
+  fireEvent.click(screen.getByRole('button', { name: /report issue/i }));
   expect(await screen.findByRole('dialog')).toBeInTheDocument();
 }
 
@@ -287,7 +287,7 @@ describe('EquipmentQRQuickActions', () => {
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'viewer' }]);
     renderQuickActions();
 
-    fireEvent.click(screen.getByRole('button', { name: /^new work order$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /report issue/i }));
     await waitFor(() => {
       expect(screen.getByText(/need work order access/i)).toBeInTheDocument();
     });
@@ -305,7 +305,7 @@ describe('EquipmentQRQuickActions', () => {
     mockFetchMemberships.mockResolvedValue([]);
     renderQuickActions();
 
-    fireEvent.click(screen.getByRole('button', { name: /^new work order$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /report issue/i }));
     await waitFor(() => {
       expect(screen.getByText(/need work order access/i)).toBeInTheDocument();
     });
@@ -343,6 +343,67 @@ describe('EquipmentQRQuickActions', () => {
       'href',
       '/dashboard/work-orders/wo-1',
     );
+  });
+
+  it('starts a PM work order with one tap, pre-titled and with the default template attached', async () => {
+    mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
+    mockCreatedWorkOrder('wo-pm');
+
+    renderQuickActions();
+    fireEvent.click(screen.getByRole('button', { name: /start pm/i }));
+    expect(await screen.findByRole('dialog', { name: /start pm/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /create work order/i }));
+
+    await waitFor(() => {
+      expect(mockCreateWorkOrder).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attachPM: true,
+          title: 'Preventative Maintenance - Forklift 17',
+          equipment: baseEquipment,
+        }),
+      );
+    });
+  });
+
+  it('sets priority on the scan dialog with one-tap pills', async () => {
+    mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
+    mockCreatedWorkOrder('wo-high');
+
+    renderQuickActions();
+    await openWorkOrderDialog();
+    fireEvent.click(screen.getByRole('radio', { name: 'High' }));
+    fireEvent.click(screen.getByRole('button', { name: /create work order/i }));
+
+    await waitFor(() => {
+      expect(mockCreateWorkOrder).toHaveBeenCalledWith(expect.objectContaining({ priority: 'high' }));
+    });
+  });
+
+  it('adds hours with a quick increment pill from the current reading', async () => {
+    mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'manager' }]);
+    mockUpdateHours.mockResolvedValue(undefined);
+
+    renderQuickActions();
+    fireEvent.click(screen.getByRole('button', { name: /update hours/i }));
+    const hoursInput = (await screen.findByLabelText(/new total hours/i)) as HTMLInputElement;
+
+    // Current reading is shown inline and pre-filled; +8h adds to it.
+    expect(screen.getByText('120 hours')).toBeInTheDocument();
+    expect(hoursInput).toHaveAttribute('inputmode', 'decimal');
+    fireEvent.click(screen.getByRole('button', { name: 'Add 8 hours' }));
+    expect(hoursInput.value).toBe('128');
+    fireEvent.click(screen.getByRole('button', { name: 'Add 4 hours' }));
+    expect(hoursInput.value).toBe('132');
+
+    const form = hoursInput.closest('form');
+    if (!(form instanceof HTMLFormElement)) {
+      throw new Error('Expected working-hours dialog to wrap inputs in a form');
+    }
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(mockUpdateHours).toHaveBeenCalledWith(expect.objectContaining({ newHours: 132 }));
+    });
   });
 
   it('opens and creates a work order without PM when None is selected', async () => {

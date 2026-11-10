@@ -139,6 +139,23 @@ export async function handleQuickBooksExportInvoice(
 
     const organizationId = workOrder.organization_id as string;
 
+    // Historical / already-billed records are flagged "do not sync" so paper
+    // backlog entries can never be invoiced a second time.
+    if (workOrder.quickbooks_sync_excluded === true) {
+      logStep("Work order is excluded from QuickBooks sync");
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error:
+            "This work order is marked Historical Only / Do Not Sync. Turn on \"Ready to sync / bill in QuickBooks\" on the work order before exporting.",
+        }),
+        {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
     const { allowed, error: qbPermError } =
       await verifyQuickBooksManagePermission(
         supabaseClient,

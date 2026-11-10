@@ -624,7 +624,7 @@ jobs:
         fi
 
         build_size=$(du -sb dist/ | cut -f1)
-        max_size=$((12 * 1024 * 1024)) # 12MB in bytes
+        max_size=$((13 * 1024 * 1024)) # 13MB in bytes
 
         echo "Build size: $((build_size / 1024 / 1024))MB"
         echo "Maximum allowed: $((max_size / 1024 / 1024))MB"

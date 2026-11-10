@@ -20,6 +20,7 @@ import { PageSkeleton } from '@/components/ui/PageSkeleton';
 import { AppSidebar, TopBar, BottomNav } from '@/routes/lazyDashboardPages';
 import { OptionalOfflineQueueProvider } from '@/routes/OptionalOfflineQueueProvider';
 import { dashboardRouteElements } from '@/routes/DashboardRoutes';
+import GlobalWorkOrderLauncher from '@/features/work-orders/launcher/GlobalWorkOrderLauncher';
 
 const BrandedTopBar = () => <TopBar />;
 
@@ -102,6 +103,7 @@ export const DashboardRouteLayout = () => (
                       <Suspense fallback={null}>
                         <BottomNav />
                       </Suspense>
+                      <GlobalWorkOrderLauncher />
                     </div>
                   </BugReportProvider>
                 </SidebarProvider>

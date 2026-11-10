@@ -92,6 +92,7 @@
     "log_audit_export_notification",
     "log_equipment_location_change",
     "log_invitation_performance",
+    "log_work_order_service_hours",
     "refresh_quickbooks_tokens_manual",
     "replace_historical_work_order_timeline",
     "request_workspace_personal_org_merge",

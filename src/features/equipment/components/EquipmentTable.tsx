@@ -5,7 +5,8 @@ import {
   useReactTable,
   type ColumnDef,
 } from '@tanstack/react-table';
-import { QrCode } from 'lucide-react';
+import { Plus, QrCode } from 'lucide-react';
+import { openNewWorkOrder } from '@/features/work-orders/launcher/newWorkOrderLauncher';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -212,13 +213,27 @@ const EquipmentTable: React.FC<EquipmentTableProps> = ({
 
     const actionsColumn: ColumnDef<EquipmentTableRow> = {
       id: EQUIPMENT_TABLE_ACTIONS_COLUMN_KEY,
-      size: columnSizing[EQUIPMENT_TABLE_ACTIONS_COLUMN_KEY] ?? 56,
-      minSize: 56,
-      maxSize: 56,
+      size: columnSizing[EQUIPMENT_TABLE_ACTIONS_COLUMN_KEY] ?? 88,
+      minSize: 88,
+      maxSize: 88,
       enableResizing: false,
       header: () => null,
       cell: ({ row }) => (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-0.5">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={(event) => {
+              event.stopPropagation();
+              openNewWorkOrder({ equipmentId: row.original.id });
+            }}
+            aria-label={`New work order for ${row.original.name}`}
+            title="New work order"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+          </Button>
           <Button
             type="button"
             variant="ghost"

@@ -153,6 +153,7 @@ export function mapQuickBooksInvoiceFields(wo: Record<string, unknown>): Partial
     invoice_due_date: (wo.invoice_due_date as string | null | undefined) ?? null,
     invoice_last_synced_at: (wo.invoice_last_synced_at as string | null | undefined) ?? null,
     invoice_sync_error: (wo.invoice_sync_error as string | null | undefined) ?? null,
+    quickbooks_sync_excluded: wo.quickbooks_sync_excluded === true,
     quickbooksInvoiceId: (wo.quickbooks_invoice_id as string | null | undefined) ?? null,
     quickbooksInvoiceNumber: (wo.quickbooks_invoice_number as string | null | undefined) ?? null,
     quickbooksInvoiceEnvironment: invoiceEnvironment ?? null,

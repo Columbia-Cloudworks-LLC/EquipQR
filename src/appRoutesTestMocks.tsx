@@ -174,6 +174,12 @@ vi.mock('@/components/layout/TopBar', () => ({
   default: () => <div data-testid="top-bar">TopBar</div>,
 }));
 
+// The shell-level work order launcher reads session permissions; route tests stub it
+// like the other shell chrome and it is covered by its own test.
+vi.mock('@/features/work-orders/launcher/GlobalWorkOrderLauncher', () => ({
+  default: () => null,
+}));
+
 /** Sync stubs so App.routes avoids React.lazy / Suspense ticks per route. */
 vi.mock('@/routes/lazyPublicPages', () => ({
   AnimationTest: null,

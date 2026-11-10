@@ -29,6 +29,7 @@ describe('workOrderFormSchema', () => {
       dueDateHasTime: false,
       hasPM: false,
       isHistorical: false,
+      quickBooksSyncReady: false,
     });
   });
 
@@ -65,8 +66,28 @@ describe('workOrderFormSchema', () => {
     expect(messages({ ...minimal, isHistorical: true })).toEqual([
       'status: Status is required for historical work orders',
     ]);
-    expect(messages({ ...minimal, isHistorical: true, status: 'completed' })).toEqual([]);
+    expect(messages({ ...minimal, isHistorical: true, status: 'accepted' })).toEqual([]);
     expect(messages({ ...minimal, isHistorical: false })).toEqual([]);
+  });
+
+  it('requires a past or present service date when logging completed work', () => {
+    const logged = { ...minimal, isHistorical: true, status: 'completed' };
+    const tomorrow = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
+
+    expect(messages(logged)).toEqual(['completedDate: Completed / service date is required']);
+    expect(messages({ ...logged, completedDate: new Date('2024-03-05T12:00:00') })).toEqual([]);
+    expect(messages({ ...logged, completedDate: new Date() })).toEqual([]);
+    expect(messages({ ...logged, completedDate: tomorrow })).toEqual([
+      'completedDate: Completed / service date cannot be in the future',
+    ]);
+  });
+
+  it('keeps logged work out of QuickBooks unless opted in, and rejects negative hours', () => {
+    expect(workOrderFormSchema.parse(minimal).quickBooksSyncReady).toBe(false);
+    expect(workOrderFormSchema.parse({ ...minimal, quickBooksSyncReady: true }).quickBooksSyncReady).toBe(true);
+    expect(messages({ ...minimal, equipmentWorkingHours: -5 })).toEqual([
+      'equipmentWorkingHours: Hours cannot be negative',
+    ]);
   });
 
   it('validates historical timeline events', () => {
@@ -103,11 +124,17 @@ describe('getDefaultWorkOrderFormValues', () => {
     });
   });
 
-  it('pre-selects equipment and an accepted status for historical entries', () => {
-    expect(getDefaultWorkOrderFormValues({ equipmentId: 'eq-9', isHistorical: true })).toMatchObject({
+  it('pre-selects equipment and a completed status dated today for historical entries', () => {
+    const defaults = getDefaultWorkOrderFormValues({ equipmentId: 'eq-9', isHistorical: true });
+
+    expect(defaults).toMatchObject({
       equipmentId: 'eq-9',
       isHistorical: true,
-      status: 'accepted',
+      status: 'completed',
+      quickBooksSyncReady: false,
     });
+    expect(defaults.completedDate).toBeInstanceOf(Date);
+    expect(defaults.completedDate?.toDateString()).toBe(new Date().toDateString());
+    expect(defaults.historicalStartDate?.getTime()).toBe(defaults.completedDate?.getTime());
   });
 });

@@ -39,6 +39,10 @@ interface UseWorkOrderFormProps {
   pmData?: { template_id?: string | null } | null;
   prefillDueDate?: string | null;
   prefillHasTime?: boolean;
+  /** Create mode only: starting title / description / priority (e.g. PM follow-up). */
+  prefillTitle?: string;
+  prefillDescription?: string;
+  prefillPriority?: WorkOrderFormData['priority'];
 }
 
 export const useWorkOrderForm = ({
@@ -49,6 +53,9 @@ export const useWorkOrderForm = ({
   pmData,
   prefillDueDate,
   prefillHasTime = false,
+  prefillTitle,
+  prefillDescription,
+  prefillPriority,
 }: UseWorkOrderFormProps) => {
   const isEditMode = !!workOrder;
   const initializationRef = useRef<{
@@ -67,10 +74,10 @@ export const useWorkOrderForm = ({
     // Override with work order values if editing
     return {
       ...defaults,
-      title: workOrder?.title || defaults.title,
-      description: workOrder?.description || defaults.description,
+      title: workOrder?.title || prefillTitle || defaults.title,
+      description: workOrder?.description || prefillDescription || defaults.description,
       equipmentId: workOrder?.equipment_id || equipmentId || defaults.equipmentId,
-      priority: workOrder?.priority || defaults.priority,
+      priority: workOrder?.priority || prefillPriority || defaults.priority,
       ...hydrateDueFormFields(
         workOrder
           ? {
@@ -89,7 +96,7 @@ export const useWorkOrderForm = ({
       // Preserve assignee when editing (snake_case from DB -> camelCase for form)
       assigneeId: workOrder?.assignee_id ?? defaults.assigneeId,
     };
-  }, [workOrder, equipmentId, initialIsHistorical, pmData, prefillDueDate, prefillHasTime]);
+  }, [workOrder, equipmentId, initialIsHistorical, pmData, prefillDueDate, prefillHasTime, prefillTitle, prefillDescription, prefillPriority]);
 
   // Zod .default() / .transform() make input and output types differ.
   // Pin both so zodResolver matches useForm (see @hookform/resolvers docs).
@@ -153,7 +160,8 @@ export const useWorkOrderForm = ({
     const fieldNames: (keyof WorkOrderFormData)[] = [
       'title', 'description', 'equipmentId', 'priority', 'dueDate', 'dueDateHasTime',
       'estimatedHours', 'hasPM', 'pmTemplateId', 'assigneeId', 
-      'isHistorical', 'status', 'historicalStartDate', 'historicalNotes', 'completedDate'
+      'isHistorical', 'status', 'historicalStartDate', 'historicalNotes', 'completedDate',
+      'equipmentWorkingHours', 'quickBooksSyncReady'
     ];
     for (const fieldName of fieldNames) {
       const fieldState = rhf.getFieldState(fieldName);
@@ -174,6 +182,17 @@ export const useWorkOrderForm = ({
   const resetAdapter = useCallback(() => {
     rhfReset(initialValues as WorkOrderFormInput);
   }, [rhfReset, initialValues]);
+
+  /**
+   * Rapid entry: clear the per-record fields for the next work order while
+   * keeping whatever the caller wants carried over (mode, pinned fields).
+   */
+  const resetForNext = useCallback((carryOver: Partial<WorkOrderFormData>) => {
+    rhfReset({
+      ...(getDefaultWorkOrderFormValues() as WorkOrderFormInput),
+      ...(carryOver as Partial<WorkOrderFormInput>),
+    });
+  }, [rhfReset]);
 
   // Create handleSubmit adapter matching the old signature.
   // Delegates to rhf.handleSubmit so that formState.isSubmitting is toggled
@@ -236,6 +255,8 @@ export const useWorkOrderForm = ({
           dueDate: initialValues.dueDate || undefined,
           dueDateHasTime: initialValues.dueDateHasTime ?? false,
           estimatedHours: initialValues.estimatedHours || undefined,
+          equipmentWorkingHours: undefined,
+          quickBooksSyncReady: false,
           hasPM: initialValues.hasPM || false,
           pmTemplateId: initialValues.pmTemplateId || null,
           // Simplified assignment: null = unassigned
@@ -243,7 +264,7 @@ export const useWorkOrderForm = ({
           isHistorical: initialValues.isHistorical || false,
           // Historical fields - only set if isHistorical is true
           ...(initialValues.isHistorical ? {
-            status: initialValues.status || 'accepted',
+            status: initialValues.status || 'completed',
             historicalStartDate: initialValues.historicalStartDate,
             historicalNotes: initialValues.historicalNotes || '',
             completedDate: initialValues.completedDate,
@@ -287,6 +308,10 @@ export const useWorkOrderForm = ({
       if (isEmpty(current) && isEmpty(initial)) return false;
       // If only one is empty, there's a change
       if (isEmpty(current) !== isEmpty(initial)) return true;
+      // Dates are cloned by the form library, so compare the instant, not identity
+      if (current instanceof Date && initial instanceof Date) {
+        return current.getTime() !== initial.getTime();
+      }
       // Otherwise compare directly
       return current !== initial;
     };
@@ -304,6 +329,7 @@ export const useWorkOrderForm = ({
     isEditMode,
     initialValues,
     checkForUnsavedChanges,
+    resetForNext,
   };
 };
 

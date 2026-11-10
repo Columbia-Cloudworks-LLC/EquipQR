@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TabsContent } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle, ArrowLeft, CopyPlus, Forklift, QrCode, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CopyPlus, Forklift, Plus, QrCode, Trash2 } from 'lucide-react';
+import { EquipmentServiceSummaryBadge } from '@/features/equipment/components/EquipmentServiceSummaryBadge';
 import type { EquipmentQRVariant } from '@/features/equipment/components/QRCodeDisplay';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import { useOrganization } from '@/contexts/OrganizationContext';
@@ -269,6 +270,10 @@ const EquipmentDetails = () => {
               onShowWorkingHours={() => setIsWorkingHoursModalOpen(true)}
               onAddAnotherLikeThis={handleOpenCloneForm}
             />
+            <EquipmentServiceSummaryBadge
+              equipmentId={equipment.id}
+              organizationId={currentOrganization.id}
+            />
             <Card className="shadow-elevation-2">
               <EquipmentLocationMapPanel
                 layout="card"
@@ -309,6 +314,14 @@ const EquipmentDetails = () => {
               ]}
               actions={
                 <div className="flex items-center gap-2">
+                  <EquipmentServiceSummaryBadge
+                    equipmentId={equipment.id}
+                    organizationId={currentOrganization.id}
+                  />
+                  <Button size="sm" variant="secondary" onClick={() => setIsWorkOrderFormOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Work Order
+                  </Button>
                   {handleOpenCloneForm && (
                     <Button size="sm" variant="outline" onClick={handleOpenCloneForm}>
                       <CopyPlus className="h-4 w-4 mr-2" />
