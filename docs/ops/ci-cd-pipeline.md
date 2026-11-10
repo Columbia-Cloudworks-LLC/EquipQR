@@ -72,7 +72,7 @@ This document provides a comprehensive overview of EquipQR's entire CI/CD pipeli
 | `release-metadata` | CI | PRs into **`main`**: empty Unreleased + semver bump when release-relevant |
 
 **Quality Gates:**
-- Build size must be < 12MB total
+- Build size must be < 13MB total
 - Individual JS bundles must be < 500KB gzipped
 - Test coverage must meet baseline (70%)
 
