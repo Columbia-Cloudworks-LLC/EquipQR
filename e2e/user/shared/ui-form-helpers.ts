@@ -157,7 +157,7 @@ export async function openAddEquipmentDialog(page: Page): Promise<Locator> {
 export async function fillEquipmentDialog(
   dialog: Locator,
   page: Page,
-  data: EquipmentCreationData,
+  data: Omit<EquipmentCreationData, 'status'>,
 ): Promise<void> {
   // Autocomplete fields and name need explicit focus/blur so react-hook-form state updates.
   await fillTextControlByLabel(dialog, /^Manufacturer/i, data.manufacturer);
