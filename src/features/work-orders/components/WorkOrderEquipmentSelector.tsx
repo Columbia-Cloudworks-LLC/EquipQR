@@ -18,6 +18,7 @@ import { QuickEquipmentForm } from '@/features/equipment/components/QuickEquipme
 import type { EquipmentSelectorItem } from '@/features/work-orders/types/workOrderEquipment';
 import { filterEquipmentSelectorItems } from '@/features/work-orders/utils/filterEquipmentSelectorItems';
 import { cn } from '@/lib/utils';
+import { HoursQuickDeltas } from '@/features/equipment/components/HoursQuickDeltas';
 
 type EquipmentMode = 'select' | 'create';
 
@@ -43,6 +44,10 @@ interface WorkOrderEquipmentSelectorProps {
    * If false, the "New equipment" action won't be shown.
    */
   canCreateEquipment?: boolean;
+  /** Hide the "update equipment hours" block (Log Completed has its own reading field). */
+  hideWorkingHours?: boolean;
+  /** Rendered beside the label (rapid-entry pin toggle). */
+  labelAction?: React.ReactNode;
 }
 
 /**
@@ -132,13 +137,16 @@ const WorkingHoursSection: React.FC<{
         <div className="mt-2 space-y-2">
           <Input
             type="number"
+            inputMode="decimal"
             min="0"
             step="0.1"
             value={newHours}
             onChange={(e) => setNewHours(e.target.value)}
             placeholder="Enter equipment hours"
+            aria-label="Equipment hours"
             className="h-8"
           />
+          <HoursQuickDeltas value={newHours} currentHours={currentHours} onChange={setNewHours} />
           <div className="flex gap-2">
             <Button size="sm" onClick={handleSave} disabled={updateWorkingHours.isPending}>
               Save
@@ -168,6 +176,8 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
   canCreateEquipmentForTeam,
   onEquipmentCreated,
   canCreateEquipment = false,
+  hideWorkingHours = false,
+  labelAction,
 }) => {
   const [mode, setMode] = useState<EquipmentMode>('select');
   const [equipmentSearchOpen, setEquipmentSearchOpen] = useState(false);
@@ -206,24 +216,25 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
     return (
       <div className="space-y-2">
         <Label>Equipment</Label>
-        <div className="flex items-center gap-2 rounded-md border bg-muted/50 p-3">
-          <Forklift className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <div className="min-w-0 flex-1">
-            <div className="font-medium">{equipment.name}</div>
-            <div className="text-sm text-muted-foreground">
-              {[equipment.manufacturer, equipment.model].filter(Boolean).join(' ')}
-              {equipment.serial_number ? ` • S/N: ${equipment.serial_number}` : ''}
-              {equipment.working_hours != null ? ` • ${equipment.working_hours.toLocaleString()} hrs` : ''}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {equipment.team?.name || 'No team'} • {locationDisplay}
-            </div>
+        {/* Name and badge share one line; details wrap below so the narrow column stays readable. */}
+        <div className="rounded-md border bg-muted/50 p-3">
+          <div className="flex items-center gap-2">
+            <Forklift className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <div className="min-w-0 flex-1 font-medium">{equipment.name}</div>
+            <Badge variant="secondary" className="shrink-0 text-xs">
+              {isEditMode ? 'Current' : 'Selected'}
+            </Badge>
           </div>
-          <Badge variant="secondary" className="shrink-0 text-xs">
-            {isEditMode ? 'Current' : 'Selected'}
-          </Badge>
+          <div className="mt-1 break-words text-sm text-muted-foreground">
+            {[equipment.manufacturer, equipment.model].filter(Boolean).join(' ')}
+            {equipment.serial_number ? ` • S/N: ${equipment.serial_number}` : ''}
+            {equipment.working_hours != null ? ` • ${equipment.working_hours.toLocaleString()} hrs` : ''}
+          </div>
+          <div className="break-words text-sm text-muted-foreground">
+            {equipment.team?.name || 'No team'} • {locationDisplay}
+          </div>
         </div>
-        <WorkingHoursSection equipmentId={equipment.id} setValue={setValue} />
+        {!hideWorkingHours && <WorkingHoursSection equipmentId={equipment.id} setValue={setValue} />}
       </div>
     );
   }
@@ -237,7 +248,10 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
 
   return (
     <div className="space-y-3">
-      <Label htmlFor="work-order-equipment-select">Equipment *</Label>
+      <div className="flex items-center justify-between gap-2">
+        <Label htmlFor="work-order-equipment-select">Equipment *</Label>
+        {labelAction}
+      </div>
 
       {mode === 'select' && (
         <div className="space-y-2">
@@ -328,7 +342,7 @@ export const WorkOrderEquipmentSelector: React.FC<WorkOrderEquipmentSelectorProp
           {errors.equipmentId && (
             <p className="text-sm text-destructive">{errors.equipmentId}</p>
           )}
-          {values.equipmentId && (
+          {values.equipmentId && !hideWorkingHours && (
             <WorkingHoursSection equipmentId={values.equipmentId} setValue={setValue} />
           )}
         </div>

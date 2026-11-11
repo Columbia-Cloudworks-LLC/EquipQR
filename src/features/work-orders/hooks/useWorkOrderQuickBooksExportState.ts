@@ -6,6 +6,7 @@ import { resolveQuickBooksCustomerId } from '@/features/teams/services/customerA
 import { QUICKBOOKS_EXPORT_MUTATION_KEY, useQuickBooksLastExport } from '@/hooks/useExportToQuickBooks';
 import { useQuickBooksAccess } from '@/hooks/useQuickBooksAccess';
 import { isQuickBooksEnabled } from '@/lib/flags';
+import { useWorkOrderQuickBooksSyncExclusion } from '@/features/work-orders/hooks/useWorkOrderQuickBooksSyncExclusion';
 import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 import {
   getQuickBooksExportAvailability,
@@ -80,6 +81,9 @@ export function useWorkOrderQuickBooksExportState({
       },
     }) > 0;
 
+  const { syncExcluded, setSyncExcluded, isUpdating: isUpdatingSyncExclusion } =
+    useWorkOrderQuickBooksSyncExclusion(workOrderId, canExport && featureEnabled);
+
   const { alreadyExported, hasInvoiceIdentifiers, invoiceDisplay } =
     getQuickBooksInvoiceDisplay(existingExport);
 
@@ -92,6 +96,7 @@ export function useWorkOrderQuickBooksExportState({
     alreadyExported,
     hasInvoiceIdentifiers,
     invoiceDisplay,
+    syncExcluded,
   });
 
   const hasLinkedInvoice = alreadyExported && hasInvoiceIdentifiers;
@@ -109,6 +114,9 @@ export function useWorkOrderQuickBooksExportState({
     tooltipMessage,
     showSetupState,
     setupDisabled: isDisabled,
+    syncExcluded,
+    setSyncExcluded,
+    isUpdatingSyncExclusion,
     updateLabel: invoiceDisplay ? `Update Invoice #${invoiceDisplay}` : 'Update Invoice',
   };
 }

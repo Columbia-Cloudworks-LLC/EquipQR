@@ -100,6 +100,7 @@ export function WorkOrderPMManagementDialog({
       dueDate: workOrder.due_date ?? null,
       estimatedHours: workOrder.estimated_hours ?? null,
       equipmentWorkingHours: null,
+      quickBooksSyncReady: false,
       hasPM,
       pmTemplateId: hasPM ? pmTemplateId : null,
       assigneeId: workOrder.assignee_id ?? null,

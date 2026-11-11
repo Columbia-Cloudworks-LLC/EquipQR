@@ -11,6 +11,28 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+## [3.40.0] - 2026-11-10
+
+### Added
+
+- **Log completed work from paper (#1705)** — Admins can switch the work order form to "Log Completed" to record a finished job on the date it happened, with the machine's hours at service, a PM checklist that starts all OK, and a photo of the paper sheet. Old readings never lower a machine's current hours.
+- **Rapid entry (#1705)** — Turn on "Create another" to save and keep going, pin fields you want carried over, and save with Ctrl/Cmd + Enter. Press C on desktop to start a work order from anywhere.
+- **QuickBooks double-billing guard (#1705)** — Logged work is marked "Historical Only / Do Not Sync" unless you switch on "Ready to sync / bill in QuickBooks", so already-billed jobs stay out of the unbilled list and cannot be exported.
+- **Last PM at a glance (#1705)** — Equipment pages and the QR scan page show when the last PM was done and at how many hours. The scan page also lists open work orders on the machine.
+
+### Changed
+
+- **Faster work order form (#1705)** — Wider two-column layout with one-tap title chips, priority buttons and due date shortcuts. Only a title and equipment are required.
+- **Quicker PM checklists (#1705)** — Each item is one compact row with OK, Attention and N/A buttons. Notes appear only when needed, a section can be marked OK in one tap, and a flagged item can start a follow-up work order.
+- **Simpler notes and field editing (#1705)** — The note box is a single compact box that accepts dropped or pasted photos. Click a field to edit it; it saves on Enter or when you click away. Hours updates have +4h, +8h and +10h shortcuts.
+- **Action-first QR scan page (#1705)** — Report Issue, Start PM and Update Hours are at the top of the page.
+
+### Fixed
+
+- **Logged work order safeguards (#1707)** — Machine hours with decimals, such as 123.5, are kept as typed when logging completed work. A logged PM can only be saved once its checklist has loaded, so it is never stored with the wrong inspection items.
+- **Start PM always creates a PM (#1708)** — Start PM on the QR scan page asks for a PM template when the machine has no default, instead of creating an ordinary work order.
+- **Service date in far-east timezones (#1709)** — A completed date logged from New Zealand, Samoa, Kiribati or other UTC+13/+14 timezones is kept on the day picked, instead of the day before.
+
 ## [3.39.1] - 2026-11-07
 
 ### Fixed

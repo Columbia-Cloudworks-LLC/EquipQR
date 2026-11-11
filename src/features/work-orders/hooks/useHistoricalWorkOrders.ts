@@ -15,6 +15,10 @@ import {
   type HistoricalTimelineEvent,
 } from '@/features/work-orders/utils/historicalTimeline';
 import { parseDue, persistDue, type DuePersist } from '@/features/work-orders/calendar';
+import { attachWorkOrderCreationImages } from '@/features/work-orders/services/workOrderNotesService';
+import { setWorkOrderQuickBooksSyncExcluded } from '@/features/work-orders/hooks/useWorkOrderQuickBooksSyncExclusion';
+import { equipment as equipmentKeys, pmStatus as pmStatusKeys } from '@/lib/queryKeys';
+import { logger } from '@/utils/logger';
 
 export interface HistoricalWorkOrderData {
   equipmentId: string;
@@ -34,6 +38,96 @@ export interface HistoricalWorkOrderData {
   pmNotes?: string;
   pmChecklistData?: PMChecklistItem[];
   timelineEvents?: HistoricalTimelineEvent[];
+  /** Template the PM checklist was built from, stored on the PM record. */
+  pmTemplateId?: string;
+  /**
+   * Meter reading taken at the service. Logged on the work order, its PM and the
+   * hour history; the equipment's current hours only move if this is higher.
+   */
+  serviceHours?: number;
+  /**
+   * Historical records default to "Do Not Sync" in the database. True opts this
+   * one back in so it can be billed in QuickBooks.
+   */
+  quickBooksSyncReady?: boolean;
+  /** Paper sheet scans / photos attached at creation. */
+  images?: File[];
+  creationPhotoNote?: string;
+}
+
+interface HistoricalFollowUpWarnings {
+  hoursFailed: boolean;
+  quickBooksOptInFailed: boolean;
+  photosFailed: boolean;
+}
+
+/**
+ * Follow-up writes after the historical work order exists. Each one is
+ * best-effort: the record is already saved, so a failure is reported as a
+ * warning instead of failing the whole entry. A failed QuickBooks opt-in leaves
+ * the record excluded, which is the safe direction for billing.
+ */
+async function runHistoricalFollowUps(
+  organizationId: string,
+  workOrderId: string,
+  pmId: string | null | undefined,
+  data: HistoricalWorkOrderData,
+): Promise<HistoricalFollowUpWarnings> {
+  const warnings: HistoricalFollowUpWarnings = {
+    hoursFailed: false,
+    quickBooksOptInFailed: false,
+    photosFailed: false,
+  };
+
+  if (pmId && data.pmTemplateId) {
+    const { error } = await supabase
+      .from('preventative_maintenance')
+      .update({ template_id: data.pmTemplateId })
+      .eq('id', pmId)
+      .eq('organization_id', organizationId);
+    if (error) {
+      logger.error('Failed to link PM template to historical PM', error);
+    }
+  }
+
+  if (data.serviceHours != null && data.serviceHours >= 0) {
+    const { data: hoursResult, error } = await supabase.rpc('log_work_order_service_hours', {
+      p_work_order_id: workOrderId,
+      p_hours: data.serviceHours,
+      p_notes: `Service reading from logged work order: ${data.title}`,
+    });
+    const hoursOutcome = hoursResult as { success?: boolean } | null;
+    if (error || hoursOutcome?.success !== true) {
+      logger.error('Failed to log service hours for historical work order', error ?? hoursResult);
+      warnings.hoursFailed = true;
+    }
+  }
+
+  if (data.quickBooksSyncReady) {
+    try {
+      await setWorkOrderQuickBooksSyncExcluded(organizationId, workOrderId, false);
+    } catch (error) {
+      logger.error('Failed to opt historical work order into QuickBooks sync', error);
+      warnings.quickBooksOptInFailed = true;
+    }
+  }
+
+  if (data.images?.length) {
+    try {
+      const { primaryImageId } = await attachWorkOrderCreationImages({
+        workOrderId,
+        organizationId,
+        images: data.images,
+        noteContent: data.creationPhotoNote,
+      });
+      warnings.photosFailed = !primaryImageId;
+    } catch (error) {
+      logger.error('Failed to attach paper sheet to historical work order', error);
+      warnings.photosFailed = true;
+    }
+  }
+
+  return warnings;
 }
 
 interface HistoricalWorkOrderMutationResult {
@@ -42,6 +136,7 @@ interface HistoricalWorkOrderMutationResult {
   has_pm?: boolean;
   pm_id?: string | null;
   work_order_id?: string;
+  followUpWarnings?: HistoricalFollowUpWarnings;
   [key: string]: unknown;
 }
 
@@ -142,6 +237,8 @@ export const useWorkOrderTimeline = (workOrderId: string | undefined) => {
 
 export const useCreateHistoricalWorkOrder = (options?: {
   onSuccess?: (workOrder: HistoricalWorkOrderMutationResult & { id: string }) => void;
+  /** Overrides the default success toast (e.g. the quieter rapid-entry copy). */
+  successMessage?: string;
 }) => {
   const { currentOrganization } = useOrganization();
   const queryClient = useQueryClient();
@@ -206,6 +303,15 @@ export const useCreateHistoricalWorkOrder = (options?: {
         }
       }
 
+      if (resultData.work_order_id) {
+        resultData.followUpWarnings = await runHistoricalFollowUps(
+          currentOrganization.id,
+          resultData.work_order_id,
+          resultData.pm_id,
+          data,
+        );
+      }
+
       return resultData;
     },
     onSuccess: (result: HistoricalWorkOrderMutationResult) => {
@@ -217,7 +323,25 @@ export const useCreateHistoricalWorkOrder = (options?: {
         queryClient.invalidateQueries({ queryKey: ['preventativeMaintenance'] });
       }
 
-      toast.success('Historical work order created successfully');
+      // Logged service can move the machine's hours and last-PM date.
+      queryClient.invalidateQueries({ queryKey: equipmentKeys.root });
+      queryClient.invalidateQueries({ queryKey: pmStatusKeys.root });
+      if (result.work_order_id) {
+        queryClient.invalidateQueries({ queryKey: workOrders.images(result.work_order_id) });
+      }
+
+      toast.success(options?.successMessage ?? 'Historical work order created successfully');
+
+      const warnings = result.followUpWarnings;
+      if (warnings?.hoursFailed) {
+        toast.warning('Work order saved, but the machine hours reading was not logged.');
+      }
+      if (warnings?.quickBooksOptInFailed) {
+        toast.warning('Work order saved as Historical Only. Turn on QuickBooks sync from the work order to bill it.');
+      }
+      if (warnings?.photosFailed) {
+        toast.warning('Work order saved, but the attachment did not upload. Open the work order to retry.');
+      }
 
       if (options?.onSuccess && result.work_order_id) {
         options.onSuccess({ id: result.work_order_id, ...result });

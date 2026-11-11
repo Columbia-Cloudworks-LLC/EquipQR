@@ -123,6 +123,13 @@ describe('useWorkOrderFilters', () => {
         invoiceStatus: null,
       }),
       baseWorkOrder({
+        id: 'wo-historical-do-not-sync',
+        title: 'Logged paper WO, already billed',
+        quickbooksInvoiceId: null,
+        invoiceStatus: null,
+        quickbooks_sync_excluded: true,
+      }),
+      baseWorkOrder({
         id: 'wo-exported-null-status',
         title: 'Exported but not yet synced WO',
         quickbooksInvoiceId: 'inv-pending-sync',
@@ -146,6 +153,7 @@ describe('useWorkOrderFilters', () => {
         'wo-overdue',
       ]);
 
+      // Historical Only / Do Not Sync records never appear in the unbilled queue.
       act(() => result.current.updateFilter('invoiceFilter', 'not_exported'));
       expect(result.current.filteredWorkOrders.map((o) => o.id)).toEqual(['wo-unexported']);
     });

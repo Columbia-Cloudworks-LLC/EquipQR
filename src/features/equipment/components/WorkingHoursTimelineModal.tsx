@@ -21,6 +21,7 @@ import type { Column } from '@/components/ui/data-table';
 import type { WorkingHoursHistoryEntry } from '@/features/equipment/services/equipmentWorkingHoursService';
 import { logger } from '@/utils/logger';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { HoursQuickDeltas } from '@/features/equipment/components/HoursQuickDeltas';
 
 interface WorkingHoursTimelineModalProps {
   open: boolean;
@@ -289,12 +290,19 @@ export const WorkingHoursTimelineModal: React.FC<WorkingHoursTimelineModalProps>
                   <Input
                     id="new-hours"
                     type="number"
+                    inputMode="decimal"
                     step="0.1"
                     min="0"
                     value={newHours}
                     onChange={(e) => setNewHours(e.target.value)}
-                    placeholder="Enter total hours"
+                    placeholder={currentHours != null ? `Current: ${currentHours}` : 'Enter total hours'}
                     required
+                  />
+                  <HoursQuickDeltas
+                    className="mt-2"
+                    value={newHours}
+                    currentHours={currentHours}
+                    onChange={setNewHours}
                   />
                 </div>
                 <div>

@@ -114,7 +114,12 @@ export interface WorkOrderEmbeddedEquipment {
   } | null;
 }
 
-export interface WorkOrder extends WorkOrderRow {
+/**
+ * `quickbooks_sync_excluded` is optional here: rows built client-side (offline
+ * queue, optimistic updates) predate the flag and are treated as not excluded.
+ */
+export interface WorkOrder extends Omit<WorkOrderRow, 'quickbooks_sync_excluded'> {
+  quickbooks_sync_excluded?: boolean;
   quickbooksInvoiceId?: string | null;
   quickbooksInvoiceNumber?: string | null;
   quickbooksInvoiceEnvironment?: 'sandbox' | 'production' | null;
@@ -261,6 +266,8 @@ export interface WorkOrderData {
   invoiceLastSyncedAt?: string | null;
   quickbooks_invoice_id?: string | null;
   invoice_status?: QuickBooksInvoiceStatus | null;
+  /** Historical / already-billed record: hidden from the unbilled queue. */
+  quickbooks_sync_excluded?: boolean;
 }
 
 // ============================================

@@ -1,5 +1,4 @@
 import React from 'react';
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -18,20 +17,40 @@ import {
 } from '@/features/work-orders/calendar';
 import { WorkOrderDueTimePicker } from '@/features/work-orders/components/WorkOrderDueTimePicker';
 import { WorkOrderFormData } from '@/features/work-orders/hooks/useWorkOrderForm';
+import { cn } from '@/lib/utils';
 
 /** Time applied when the user taps "Add time" on an all-day due date. */
 const DEFAULT_DUE_TIME = '09:00';
+
+/** One-tap due dates, as days from today. */
+const DUE_DATE_PRESETS: ReadonlyArray<{ label: string; ariaLabel: string; days: number }> = [
+  { label: 'Today', ariaLabel: 'Due today', days: 0 },
+  { label: 'Tomorrow', ariaLabel: 'Due tomorrow', days: 1 },
+  { label: '+3d', ariaLabel: 'Due in 3 days', days: 3 },
+  { label: 'Next Week', ariaLabel: 'Due in one week', days: 7 },
+];
+
+/** `yyyy-mm-dd` for the local calendar day `days` after today. */
+function dueDatePresetValue(days: number, now: Date = new Date()): string {
+  const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() + days);
+  const month = String(day.getMonth() + 1).padStart(2, '0');
+  const date = String(day.getDate()).padStart(2, '0');
+  return `${day.getFullYear()}-${month}-${date}`;
+}
 
 interface WorkOrderSchedulingProps {
   values: Pick<WorkOrderFormData, 'dueDate' | 'dueDateHasTime' | 'estimatedHours'>;
   errors: Partial<Record<'dueDate' | 'estimatedHours', string>>;
   setValue: <K extends keyof WorkOrderFormData>(field: K, value: WorkOrderFormData[K]) => void;
+  /** Log Completed replaces the due date with the service date. */
+  hideDueDate?: boolean;
 }
 
 export const WorkOrderScheduling: React.FC<WorkOrderSchedulingProps> = ({
   values,
   errors,
-  setValue
+  setValue,
+  hideDueDate = false,
 }) => {
   const propDue = React.useMemo(
     () =>
@@ -88,14 +107,34 @@ export const WorkOrderScheduling: React.FC<WorkOrderSchedulingProps> = ({
   };
 
   return (
-    <Card>
-      <CardContent className="pt-4 space-y-4">
-        <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-          Scheduling
-        </h3>
-        
+    <div className="space-y-4">
+        {!hideDueDate && (
         <div className="space-y-2">
           <Label htmlFor="work-order-due-date">Complete by</Label>
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label="Due date presets">
+            {DUE_DATE_PRESETS.map((preset) => {
+              const presetValue = dueDatePresetValue(preset.days);
+              const isActive = dueDayInputValue(due) === presetValue;
+              return (
+                <button
+                  key={preset.label}
+                  type="button"
+                  aria-label={preset.ariaLabel}
+                  aria-pressed={isActive}
+                  onClick={() => persistWrite(dueDayInputWrite(draftDueRef.current, presetValue))}
+                  className={cn(
+                    'touch-manipulation rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
+                    isActive
+                      ? 'border-primary/40 bg-primary/10 text-primary'
+                      : 'border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground',
+                  )}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
+          </div>
           <Input
             id="work-order-due-date"
             type="date"
@@ -128,6 +167,7 @@ export const WorkOrderScheduling: React.FC<WorkOrderSchedulingProps> = ({
             </div>
           )}
         </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="work-order-estimated-hours">Estimated time</Label>
@@ -155,7 +195,6 @@ export const WorkOrderScheduling: React.FC<WorkOrderSchedulingProps> = ({
             <p className="text-sm text-destructive">{errors.estimatedHours}</p>
           )}
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 };

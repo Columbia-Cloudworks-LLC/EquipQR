@@ -45,3 +45,22 @@ export function validateAndAppendWorkOrderCreationImages(
 
   return next;
 }
+
+/** Image files carried by a paste event, with clipboard screenshots given a usable name. */
+export function extractPastedImages(clipboardData: DataTransfer | null): File[] {
+  if (!clipboardData) return [];
+  const files: File[] = [];
+  for (const item of Array.from(clipboardData.items)) {
+    if (!item.type.startsWith('image/')) continue;
+    const file = item.getAsFile();
+    if (!file) continue;
+    files.push(
+      file.name && file.name !== 'image.png'
+        ? file
+        : new File([file], `pasted-image-${Date.now()}.${file.type.split('/')[1] || 'png'}`, {
+            type: file.type,
+          }),
+    );
+  }
+  return files;
+}

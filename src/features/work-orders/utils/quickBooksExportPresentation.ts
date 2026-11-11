@@ -18,6 +18,9 @@ export function getQuickBooksInvoiceDisplay(existingExport: ExistingExportLike) 
   return { alreadyExported, hasInvoiceIdentifiers, invoiceDisplay };
 }
 
+export const QUICKBOOKS_SYNC_EXCLUDED_MESSAGE =
+  'Marked Historical Only / Do Not Sync (already billed). Turn on "Ready to sync / bill in QuickBooks" to export.';
+
 export interface QuickBooksExportAvailabilityInput {
   isCompleted: boolean;
   isConnected: boolean | undefined;
@@ -27,6 +30,8 @@ export interface QuickBooksExportAvailabilityInput {
   alreadyExported: boolean;
   hasInvoiceIdentifiers: boolean;
   invoiceDisplay: string | null | undefined;
+  /** Work order is flagged "Historical Only / Do Not Sync". */
+  syncExcluded?: boolean;
 }
 
 export function getQuickBooksExportAvailability(input: QuickBooksExportAvailabilityInput) {
@@ -39,12 +44,16 @@ export function getQuickBooksExportAvailability(input: QuickBooksExportAvailabil
     alreadyExported,
     hasInvoiceIdentifiers,
     invoiceDisplay,
+    syncExcluded = false,
   } = input;
 
   let tooltipMessage: string;
   let isDisabled = false;
 
-  if (!isCompleted) {
+  if (syncExcluded) {
+    tooltipMessage = QUICKBOOKS_SYNC_EXCLUDED_MESSAGE;
+    isDisabled = true;
+  } else if (!isCompleted) {
     tooltipMessage = 'Complete this work order first, then export to QuickBooks.';
     isDisabled = true;
   } else if (!isConnected) {
@@ -68,7 +77,8 @@ export function getQuickBooksExportAvailability(input: QuickBooksExportAvailabil
   }
 
   const showAsUpdate = alreadyExported && hasInvoiceIdentifiers;
-  const showSetupState = isDisabled && isCompleted && (!isConnected || !hasTeam || !hasMapping);
+  const showSetupState =
+    isDisabled && !syncExcluded && isCompleted && (!isConnected || !hasTeam || !hasMapping);
 
   return { tooltipMessage, isDisabled, showAsUpdate, showSetupState };
 }

@@ -12,13 +12,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import type { WorkOrder, WorkOrderPriority } from '@/features/work-orders/types/workOrder';
 import {
@@ -35,6 +28,8 @@ import { toast } from 'sonner';
 import { WorkOrderPMChecklist } from '@/features/work-orders/components/WorkOrderPMChecklist';
 import type { WorkOrderPMChecklistSetValue } from '@/features/work-orders/hooks/useWorkOrderPMChecklist';
 import { QRDialogFormError } from '@/features/equipment/components/qr/QRDialogFormError';
+import { WorkOrderPriorityPills } from '@/features/work-orders/components/WorkOrderPriorityPills';
+import { equipmentOpenWorkOrdersKey } from '@/features/equipment/hooks/useEquipmentOpenWorkOrders';
 
 interface QRWorkOrderDialogProps {
   open: boolean;
@@ -42,10 +37,22 @@ interface QRWorkOrderDialogProps {
   equipment: QRActionEquipment;
   permissionContext: QRActionPermissionContext | null;
   scanId?: string | null;
+  /** 'pm' pre-fills a preventative maintenance work order ("Start PM"). */
+  intent?: 'issue' | 'pm';
   onCreated: (workOrder: WorkOrder) => void;
 }
 
-const priorityOptions: WorkOrderPriority[] = ['low', 'medium', 'high'];
+function getDefaultTitle(equipmentName: string, intent: 'issue' | 'pm'): string {
+  return intent === 'pm'
+    ? `Preventative Maintenance - ${equipmentName}`
+    : `Work order - ${equipmentName}`;
+}
+
+function getDefaultDescription(equipmentName: string, intent: 'issue' | 'pm'): string {
+  return intent === 'pm'
+    ? `Preventative maintenance started from QR scan for ${equipmentName}.`
+    : `Work order created from QR scan for ${equipmentName}.`;
+}
 
 function getDefaultPmTemplateId(equipment: QRActionEquipment): string | null {
   return equipment.defaultPmTemplateId ?? null;
@@ -57,12 +64,11 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
   equipment,
   permissionContext,
   scanId,
+  intent = 'issue',
   onCreated,
 }) => {
-  const [title, setTitle] = useState(`Work order - ${equipment.name}`);
-  const [description, setDescription] = useState(
-    `Work order created from QR scan for ${equipment.name}.`,
-  );
+  const [title, setTitle] = useState(getDefaultTitle(equipment.name, intent));
+  const [description, setDescription] = useState(getDefaultDescription(equipment.name, intent));
   const [priority, setPriority] = useState<WorkOrderPriority>('medium');
   const [dueDate, setDueDate] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -79,11 +85,11 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
     }
 
     const defaultTemplateId = getDefaultPmTemplateId(equipment);
-    setTitle(`Work order - ${equipment.name}`);
-    setDescription(`Work order created from QR scan for ${equipment.name}.`);
+    setTitle(getDefaultTitle(equipment.name, intent));
+    setDescription(getDefaultDescription(equipment.name, intent));
     setPmTemplateId(defaultTemplateId);
     setHasPM(Boolean(defaultTemplateId));
-  }, [open, equipment.id, equipment.name, equipment.defaultPmTemplateId]);
+  }, [open, equipment.id, equipment.name, equipment.defaultPmTemplateId, intent]);
 
   const selectedEquipment = useMemo(
     () => ({
@@ -127,6 +133,13 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
       return;
     }
 
+    const selectedTemplateId = pmTemplateId ?? undefined;
+    // "Start PM" must create a PM record; without a checklist it would be a plain work order.
+    if (intent === 'pm' && !selectedTemplateId) {
+      setError('Choose a PM template to start PM.');
+      return;
+    }
+
     if (images.length > 0 && typeof navigator !== 'undefined' && !navigator.onLine) {
       setError(OFFLINE_CREATION_PHOTOS_MESSAGE);
       return;
@@ -134,14 +147,13 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
 
     setIsSubmitting(true);
     try {
-      const selectedTemplateId = pmTemplateId ?? undefined;
       const { workOrder, creationPhotosAttached } = await createQRWorkOrder({
         equipment,
         title: title.trim(),
         description: description.trim(),
         priority,
         dueDate: dueDate || undefined,
-        attachPM: hasPM && Boolean(selectedTemplateId),
+        attachPM: (intent === 'pm' || hasPM) && Boolean(selectedTemplateId),
         pmTemplateId: selectedTemplateId,
         images: images.length ? images : undefined,
         creationPhotoNote: images.length
@@ -164,6 +176,10 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
         }
       }
       setImages([]);
+      // The scan page lists open work orders on this machine; include the new one.
+      queryClient.invalidateQueries({
+        queryKey: equipmentOpenWorkOrdersKey(equipment.organizationId, equipment.id),
+      });
       onCreated(workOrder);
       onOpenChange(false);
     } catch (submitError) {
@@ -178,9 +194,11 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
     <Dialog open={open} onOpenChange={isSubmitting ? undefined : onOpenChange}>
       <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>New Work Order</DialogTitle>
+          <DialogTitle>{intent === 'pm' ? 'Start PM' : 'New Work Order'}</DialogTitle>
           <DialogDescription>
-            Create a work order pre-populated with {equipment.name} without opening the full dashboard.
+            {intent === 'pm'
+              ? `Start a preventative maintenance work order for ${equipment.name}.`
+              : `Create a work order pre-populated with ${equipment.name} without opening the full dashboard.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -221,23 +239,14 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="qr-work-order-priority">Priority</Label>
-              <Select
+              <Label>Priority</Label>
+              <WorkOrderPriorityPills
+                id="qr-work-order-priority"
                 value={priority}
-                onValueChange={value => setPriority(value as WorkOrderPriority)}
+                onChange={setPriority}
                 disabled={isSubmitting}
-              >
-                <SelectTrigger id="qr-work-order-priority">
-                  <SelectValue placeholder="Select priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  {priorityOptions.map(option => (
-                    <SelectItem key={option} value={option}>
-                      {option.charAt(0).toUpperCase() + option.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                size="lg"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="qr-work-order-due-date">Due Date (Optional)</Label>

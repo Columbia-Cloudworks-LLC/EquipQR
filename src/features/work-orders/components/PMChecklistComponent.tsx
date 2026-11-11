@@ -28,9 +28,10 @@ import {
   isPMChecklistItemComplete,
   parsePMChecklistData,
 } from '@/features/work-orders/utils/pmChecklistInit';
-import { isNegativePMCondition, PM_CONDITION_NOT_APPLICABLE } from '@/utils/pmChecklistHelpers';
+import { isNegativePMCondition } from '@/utils/pmChecklistHelpers';
 import { preventiveMaintenance } from '@/lib/queryKeys';
 import { useAuth } from '@/hooks/useAuth';
+import { openNewWorkOrder } from '@/features/work-orders/launcher/newWorkOrderLauncher';
 
 const TERMINAL_WORK_ORDER_STATUSES = new Set(['completed', 'cancelled']);
 
@@ -49,6 +50,29 @@ function getChecklistTitle(
     return 'Preventative Maintenance Checklist';
   }
   return 'Forklift Preventative Maintenance Checklist';
+}
+
+const FOLLOW_UP_SEVERITY_TEXT: Record<number, string> = {
+  2: 'Adjusted',
+  3: 'Recommend repairs',
+  4: 'Requires immediate repairs',
+  5: 'Unsafe condition present',
+};
+
+function buildFollowUpDescription(
+  item: PMChecklistItem,
+  sourceWorkOrderId: string,
+  sourceWorkOrderTitle: string | undefined,
+): string {
+  const lines = [
+    `Follow-up from PM checklist item "${item.title}" (${item.section}).`,
+    item.condition != null && FOLLOW_UP_SEVERITY_TEXT[item.condition]
+      ? `Finding: ${FOLLOW_UP_SEVERITY_TEXT[item.condition]}.`
+      : null,
+    item.notes?.trim() ? `Technician note: ${item.notes.trim()}` : null,
+    `Source work order: ${sourceWorkOrderTitle ? `${sourceWorkOrderTitle} ` : ''}(/dashboard/work-orders/${sourceWorkOrderId})`,
+  ];
+  return lines.filter((line): line is string => Boolean(line)).join('\n').slice(0, 1000);
 }
 
 type PMChecklistStatusHeaderProps = {
@@ -91,11 +115,13 @@ interface PMChecklistComponentProps {
   onUpdate: () => void;
   readOnly?: boolean;
   isAdmin?: boolean;
-  workOrder?: Pick<WorkOrderData, 'id' | 'organization_id' | 'status'>;
+  workOrder?: Pick<WorkOrderData, 'id' | 'organization_id' | 'status'> & { title?: string };
   equipment?: Pick<EquipmentData, 'id'>;
   team?: TeamMemberData;
   organization?: { id: string };
   assignee?: TeamMemberData;
+  /** When set, flagged items offer a one-tap follow-up repair work order. */
+  onCreateFollowUp?: (item: PMChecklistItem) => void;
 }
 
 const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
@@ -106,6 +132,7 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
   workOrder,
   equipment,
   organization,
+  onCreateFollowUp,
 }) => {
   const { formatDateTime } = useFormatTimestamp();
 
@@ -598,6 +625,22 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     }
   };
 
+  // Flagged item -> pre-filled repair work order on the same machine. The source
+  // work order is referenced in the description so the two stay traceable.
+  const followUpEquipmentId = equipment?.id || pm.equipment_id;
+  const followUpSourceId = workOrder?.id;
+  const followUpSourceTitle = workOrder?.title;
+  const defaultCreateFollowUp = useCallback((item: PMChecklistItem) => {
+    if (!followUpSourceId) return;
+    openNewWorkOrder({
+      equipmentId: followUpEquipmentId,
+      title: `Repair: ${item.title}`.slice(0, 100),
+      description: buildFollowUpDescription(item, followUpSourceId, followUpSourceTitle),
+      priority: item.condition === 4 || item.condition === 5 ? 'high' : 'medium',
+    });
+  }, [followUpEquipmentId, followUpSourceId, followUpSourceTitle]);
+  const createFollowUp = onCreateFollowUp ?? (followUpSourceId ? defaultCreateFollowUp : undefined);
+
   const checklistTitle = getChecklistTitle(templateName, pm.template_id);
   const statusLabel = pm.status.replace('_', ' ').toUpperCase();
 
@@ -688,19 +731,16 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     }
   }, [shouldShowNotes]);
 
-  // Helper function to get border styling based on item state
-  const getItemBorderClass = useCallback((item: PMChecklistItem) => {
-    const isComplete = isPMChecklistItemComplete(item);
-    if (isComplete) {
-      if (item.condition === PM_CONDITION_NOT_APPLICABLE) {
-        return 'border-l-4 border-l-muted-foreground';
-      }
-      return 'border-l-4 border-l-success'; // Green border for completed items
-    } else if (item.required) {
-      return 'border-l-4 border-l-destructive'; // Red border for required unrated items
-    }
-    return ''; // No colored border for optional unrated items
-  }, []);
+  // Rate every not-yet-rated item in a section OK; flagged items keep their finding.
+  const handleMarkSectionOK = useCallback((section: string) => {
+    setChecklist(prev => prev.map(item =>
+      item.section === section && !isPMChecklistItemComplete(item)
+        ? { ...item, condition: 1 as const }
+        : item
+    ));
+    setHasUnsavedChanges(true);
+    triggerAutoSave('selection');
+  }, [triggerAutoSave]);
 
   // Handle notes changes with auto-save for text input
   const handleNotesChange = useCallback((value: string) => {
@@ -842,8 +882,9 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
           handleChecklistItemChange={handleChecklistItemChange}
           toggleNotesVisibility={toggleNotesVisibility}
           shouldShowNotes={shouldShowNotes}
-          getItemBorderClass={getItemBorderClass}
           handleNotesItemChange={handleNotesItemChange}
+          onMarkSectionOK={handleMarkSectionOK}
+          onCreateFollowUp={createFollowUp}
         />
 
         <PMChecklistFooter

@@ -4820,6 +4820,7 @@ export type Database = {
           quickbooks_invoice_id: string | null
           quickbooks_invoice_number: string | null
           quickbooks_realm_id: string | null
+          quickbooks_sync_excluded: boolean
           status: Database["public"]["Enums"]["work_order_status"]
           title: string
           updated_at: string
@@ -4859,6 +4860,7 @@ export type Database = {
           quickbooks_invoice_id?: string | null
           quickbooks_invoice_number?: string | null
           quickbooks_realm_id?: string | null
+          quickbooks_sync_excluded?: boolean
           status?: Database["public"]["Enums"]["work_order_status"]
           title: string
           updated_at?: string
@@ -4898,6 +4900,7 @@ export type Database = {
           quickbooks_invoice_id?: string | null
           quickbooks_invoice_number?: string | null
           quickbooks_realm_id?: string | null
+          quickbooks_sync_excluded?: boolean
           status?: Database["public"]["Enums"]["work_order_status"]
           title?: string
           updated_at?: string
@@ -6358,6 +6361,10 @@ export type Database = {
           p_work_order_id: string
         }
         Returns: string
+      }
+      log_work_order_service_hours: {
+        Args: { p_hours: number; p_notes?: string; p_work_order_id: string }
+        Returns: Json
       }
       migrate_personal_org_to_workspace_for_user: {
         Args: { p_user_id: string; p_workspace_org_id: string }

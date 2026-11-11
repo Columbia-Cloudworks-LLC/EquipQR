@@ -19,6 +19,7 @@ import {
 } from '@/features/equipment/services/equipmentQRPermissions';
 import { updateQRWorkingHours } from '@/features/equipment/services/equipmentQRActionService';
 import { logger } from '@/utils/logger';
+import { HoursQuickDeltas } from '@/features/equipment/components/HoursQuickDeltas';
 
 interface QRWorkingHoursDialogProps {
   open: boolean;
@@ -96,23 +97,33 @@ const QRWorkingHoursDialog: React.FC<QRWorkingHoursDialogProps> = ({
         <form className="space-y-4" onSubmit={handleSubmit}>
           <QRDialogFormError error={error} />
 
-          <div className="rounded-md border bg-muted/40 p-3 text-sm">
-            Current hours:{' '}
-            <span className="font-semibold">
-              {equipment.workingHours == null ? 'Not recorded' : `${equipment.workingHours} hours`}
-            </span>
-          </div>
-
           <div className="space-y-2">
-            <Label htmlFor="qr-new-hours">New total hours</Label>
+            <div className="flex items-baseline justify-between gap-2">
+              <Label htmlFor="qr-new-hours">New total hours</Label>
+              <span className="text-sm text-muted-foreground">
+                Current hours:{' '}
+                <span className="font-semibold text-foreground">
+                  {equipment.workingHours == null ? 'Not recorded' : `${equipment.workingHours} hours`}
+                </span>
+              </span>
+            </div>
             <Input
               id="qr-new-hours"
               type="number"
+              inputMode="decimal"
               min="0"
               step="0.1"
               value={newHours}
               onChange={event => setNewHours(event.target.value)}
+              disabled={isSubmitting}
+              className="h-12 text-lg"
               required
+            />
+            <HoursQuickDeltas
+              value={newHours}
+              currentHours={equipment.workingHours}
+              onChange={setNewHours}
+              disabled={isSubmitting}
             />
           </div>
 

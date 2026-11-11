@@ -4,6 +4,7 @@ import {
   getQuickBooksExportStatusBadgeClass,
   getQuickBooksExportStatusLabel,
   getQuickBooksInvoiceDisplay,
+  QUICKBOOKS_SYNC_EXCLUDED_MESSAGE,
 } from '@/features/work-orders/utils/quickBooksExportPresentation';
 
 describe('getQuickBooksInvoiceDisplay', () => {
@@ -41,6 +42,29 @@ describe('getQuickBooksExportAvailability', () => {
     hasInvoiceIdentifiers: false,
     invoiceDisplay: null,
   };
+
+  it('blocks export for Historical Only / Do Not Sync work orders, even when fully set up', () => {
+    const result = getQuickBooksExportAvailability({
+      ...baseInput,
+      syncExcluded: true,
+    });
+
+    expect(result.isDisabled).toBe(true);
+    expect(result.tooltipMessage).toBe(QUICKBOOKS_SYNC_EXCLUDED_MESSAGE);
+    // Not a setup problem: the controls stay visible so the flag can be turned off.
+    expect(result.showSetupState).toBe(false);
+  });
+
+  it('does not report excluded work orders as a QuickBooks setup problem', () => {
+    const result = getQuickBooksExportAvailability({
+      ...baseInput,
+      isConnected: false,
+      syncExcluded: true,
+    });
+
+    expect(result.isDisabled).toBe(true);
+    expect(result.showSetupState).toBe(false);
+  });
 
   it('blocks export when the work order is not completed', () => {
     const result = getQuickBooksExportAvailability({

@@ -4486,6 +4486,22 @@ COMMENT ON FUNCTION "public"."create_workspace_organization_for_domain"("p_domai
 
 
 
+CREATE OR REPLACE FUNCTION "public"."default_historical_quickbooks_exclusion"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO ''
+    AS $$
+BEGIN
+  IF NEW.is_historical IS TRUE THEN
+    NEW.quickbooks_sync_excluded := true;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."default_historical_quickbooks_exclusion"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."delete_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
@@ -10660,6 +10676,134 @@ $$;
 ALTER FUNCTION "public"."log_scan_location_history"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."log_work_order_service_hours"("p_work_order_id" "uuid", "p_hours" numeric, "p_notes" "text" DEFAULT NULL::"text") RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+DECLARE
+  v_org_id uuid;
+  v_equipment_id uuid;
+  v_current_hours numeric;
+  v_user_name text;
+  v_advanced boolean;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Authentication required');
+  END IF;
+
+  IF p_hours IS NULL OR p_hours < 0 THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Hours must be a non-negative number');
+  END IF;
+
+  SELECT wo.organization_id, wo.equipment_id
+  INTO v_org_id, v_equipment_id
+  FROM public.work_orders wo
+  WHERE wo.id = p_work_order_id;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Work order not found');
+  END IF;
+
+  -- Same access rule as update_equipment_working_hours.
+  IF NOT (
+    public.is_org_operational_admin(auth.uid(), v_org_id)
+    OR (
+      public.is_org_member(auth.uid(), v_org_id)
+      AND EXISTS (
+        SELECT 1
+        FROM public.equipment e
+        WHERE e.id = v_equipment_id
+          AND e.team_id IS NOT NULL
+          AND e.team_id IN (
+            SELECT tm.team_id
+            FROM public.team_members tm
+            WHERE tm.user_id = auth.uid()
+          )
+      )
+    )
+  ) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Permission denied');
+  END IF;
+
+  -- Lock the equipment row so concurrent entries cannot roll the meter back.
+  SELECT e.working_hours
+  INTO v_current_hours
+  FROM public.equipment e
+  WHERE e.id = v_equipment_id
+    AND e.organization_id = v_org_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Equipment not found');
+  END IF;
+
+  v_advanced := v_current_hours IS NULL OR p_hours > v_current_hours;
+
+  UPDATE public.work_orders
+  SET equipment_working_hours_at_creation = p_hours
+  WHERE id = p_work_order_id;
+
+  -- Hour-based PM intervals are measured from the reading at the service itself.
+  UPDATE public.preventative_maintenance
+  SET equipment_working_hours_at_completion = p_hours
+  WHERE work_order_id = p_work_order_id
+    AND organization_id = v_org_id
+    AND status = 'completed';
+
+  IF v_advanced THEN
+    UPDATE public.equipment
+    SET working_hours = p_hours,
+        updated_at = now()
+    WHERE id = v_equipment_id
+      AND organization_id = v_org_id;
+  END IF;
+
+  SELECT p.name INTO v_user_name FROM public.profiles p WHERE p.id = auth.uid();
+
+  -- A reading at or below the current meter is logged without changing it:
+  -- old_hours = new_hours and the reading itself is kept in the note.
+  INSERT INTO public.equipment_working_hours_history (
+    equipment_id,
+    old_hours,
+    new_hours,
+    hours_added,
+    updated_by,
+    updated_by_name,
+    update_source,
+    work_order_id,
+    notes
+  ) VALUES (
+    v_equipment_id,
+    v_current_hours,
+    CASE WHEN v_advanced THEN p_hours ELSE v_current_hours END,
+    CASE WHEN v_advanced THEN p_hours - COALESCE(v_current_hours, 0) ELSE 0 END,
+    auth.uid(),
+    v_user_name,
+    'work_order',
+    p_work_order_id,
+    CASE
+      WHEN v_advanced THEN COALESCE(p_notes, 'Service reading logged from work order')
+      ELSE concat(
+        'Historical service reading of ', p_hours::text,
+        ' hrs logged; current hours unchanged.',
+        CASE WHEN p_notes IS NOT NULL THEN ' ' || p_notes ELSE '' END
+      )
+    END
+  );
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'logged_hours', p_hours,
+    'previous_hours', v_current_hours,
+    'equipment_hours_updated', v_advanced
+  );
+END;
+$$;
+
+
+ALTER FUNCTION "public"."log_work_order_service_hours"("p_work_order_id" "uuid", "p_hours" numeric, "p_notes" "text") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."log_work_order_status_change"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
@@ -15509,12 +15653,17 @@ CREATE OR REPLACE FUNCTION "public"."sync_equipment_last_maintenance_from_work_o
 DECLARE
   v_completed_date date;
   v_existing date;
+  v_became_completed boolean;
 BEGIN
-  IF TG_OP <> 'UPDATE' THEN
+  IF TG_OP = 'INSERT' THEN
+    v_became_completed := NEW.status = 'completed';
+  ELSIF TG_OP = 'UPDATE' THEN
+    v_became_completed := NEW.status = 'completed' AND (OLD.status IS DISTINCT FROM NEW.status);
+  ELSE
     RETURN NEW;
   END IF;
 
-  IF NEW.status = 'completed' AND (OLD.status IS DISTINCT FROM NEW.status) THEN
+  IF v_became_completed THEN
     IF NEW.equipment_id IS NULL THEN
       RETURN NEW;
     END IF;
@@ -19166,6 +19315,7 @@ CREATE TABLE IF NOT EXISTS "public"."work_orders" (
     "invoice_last_synced_at" timestamp with time zone,
     "invoice_sync_error" "text",
     "due_date_has_time" boolean DEFAULT false NOT NULL,
+    "quickbooks_sync_excluded" boolean DEFAULT false NOT NULL,
     CONSTRAINT "work_orders_invoice_status_check" CHECK ((("invoice_status" IS NULL) OR ("invoice_status" = ANY (ARRAY['draft'::"text", 'sent'::"text", 'viewed'::"text", 'paid'::"text", 'partially_paid'::"text", 'overdue'::"text", 'voided'::"text"])))),
     CONSTRAINT "work_orders_quickbooks_invoice_environment_check" CHECK ((("quickbooks_invoice_environment" IS NULL) OR ("quickbooks_invoice_environment" = ANY (ARRAY['sandbox'::"text", 'production'::"text"]))))
 );
@@ -19219,6 +19369,10 @@ COMMENT ON COLUMN "public"."work_orders"."invoice_sync_error" IS 'Last non-secre
 
 
 COMMENT ON COLUMN "public"."work_orders"."due_date_has_time" IS 'When false, due_date is a calendar day (all-day). When true, due_date includes a local clock time.';
+
+
+
+COMMENT ON COLUMN "public"."work_orders"."quickbooks_sync_excluded" IS 'When true the work order is a historical/already-billed record: it is hidden from the "not exported" invoice queue and the QuickBooks export function refuses it.';
 
 
 
@@ -20892,11 +21046,15 @@ CREATE OR REPLACE TRIGGER "team_member_security_notifications_trigger" AFTER INS
 
 
 
+CREATE OR REPLACE TRIGGER "tr_default_historical_quickbooks_exclusion" BEFORE INSERT ON "public"."work_orders" FOR EACH ROW EXECUTE FUNCTION "public"."default_historical_quickbooks_exclusion"();
+
+
+
 CREATE OR REPLACE TRIGGER "tr_snapshot_pm_working_hours" BEFORE UPDATE OF "status" ON "public"."preventative_maintenance" FOR EACH ROW EXECUTE FUNCTION "public"."snapshot_pm_working_hours"();
 
 
 
-CREATE OR REPLACE TRIGGER "tr_sync_equipment_last_maintenance" AFTER UPDATE OF "status", "completed_date" ON "public"."work_orders" FOR EACH ROW EXECUTE FUNCTION "public"."sync_equipment_last_maintenance_from_work_order"();
+CREATE OR REPLACE TRIGGER "tr_sync_equipment_last_maintenance" AFTER INSERT OR UPDATE OF "status", "completed_date" ON "public"."work_orders" FOR EACH ROW EXECUTE FUNCTION "public"."sync_equipment_last_maintenance_from_work_order"();
 
 
 
@@ -23739,6 +23897,10 @@ ALTER TABLE "public"."workspace_personal_org_merge_requests" ENABLE ROW LEVEL SE
 ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
 
 
+
+
+
+
 ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."organization_members";
 
 
@@ -24597,6 +24759,11 @@ GRANT ALL ON FUNCTION "public"."create_workspace_organization_for_domain"("p_dom
 
 
 
+REVOKE ALL ON FUNCTION "public"."default_historical_quickbooks_exclusion"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."default_historical_quickbooks_exclusion"() TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."delete_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."delete_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") TO "service_role";
 GRANT ALL ON FUNCTION "public"."delete_equipment_note"("p_organization_id" "uuid", "p_equipment_id" "uuid", "p_note_id" "uuid") TO "authenticated";
@@ -25214,6 +25381,12 @@ GRANT ALL ON FUNCTION "public"."log_pm_status_change"() TO "service_role";
 
 REVOKE ALL ON FUNCTION "public"."log_scan_location_history"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."log_scan_location_history"() TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."log_work_order_service_hours"("p_work_order_id" "uuid", "p_hours" numeric, "p_notes" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."log_work_order_service_hours"("p_work_order_id" "uuid", "p_hours" numeric, "p_notes" "text") TO "service_role";
+GRANT ALL ON FUNCTION "public"."log_work_order_service_hours"("p_work_order_id" "uuid", "p_hours" numeric, "p_notes" "text") TO "authenticated";
 
 
 

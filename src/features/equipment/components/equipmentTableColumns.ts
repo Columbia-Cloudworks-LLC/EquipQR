@@ -174,7 +174,7 @@ export function getDefaultEquipmentColumnSizing(): Record<string, number> {
     ...Object.fromEntries(
       EQUIPMENT_TABLE_COLUMN_META.map((column) => [column.key, column.defaultWidth]),
     ),
-    [EQUIPMENT_TABLE_ACTIONS_COLUMN_KEY]: 56,
+    [EQUIPMENT_TABLE_ACTIONS_COLUMN_KEY]: 88,
   };
 }
 
