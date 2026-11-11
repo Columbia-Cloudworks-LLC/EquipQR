@@ -187,4 +187,35 @@ describe('QRWorkOrderDialog', () => {
     const call = mockCreateWorkOrder.mock.calls.at(-1)?.[0] as { images?: File[] };
     expect(call?.images?.some((entry) => entry.name === 'site-photo.jpg')).toBe(true);
   });
+
+  it('Start PM refuses to create a work order until a PM template is chosen', async () => {
+    const user = userEvent.setup({ delay: null });
+
+    render(
+      <QRWorkOrderDialog
+        open
+        onOpenChange={vi.fn()}
+        equipment={equipment}
+        permissionContext={permissionContext}
+        intent="pm"
+        onCreated={vi.fn()}
+      />,
+    );
+
+    await screen.findByRole('combobox', { name: /pm template/i });
+    await user.click(screen.getByRole('button', { name: /create work order/i }));
+
+    expect(await screen.findByText(/choose a pm template to start pm/i)).toBeInTheDocument();
+    expect(mockCreateWorkOrder).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('combobox', { name: /pm template/i }));
+    await user.click(await screen.findByRole('option', { name: /forklift pm/i }));
+    await user.click(screen.getByRole('button', { name: /create work order/i }));
+
+    await waitFor(() => {
+      expect(mockCreateWorkOrder).toHaveBeenCalledWith(
+        expect.objectContaining({ attachPM: true, pmTemplateId: 'pm-option-1' }),
+      );
+    });
+  });
 });
