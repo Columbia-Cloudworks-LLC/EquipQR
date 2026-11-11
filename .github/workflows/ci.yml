@@ -165,7 +165,9 @@ jobs:
         report-json: "eslint-report.json"
 
     - name: Run type check
-      run: npx tsc --noEmit
+      # The root tsconfig.json only holds project references ("files": []),
+      # so a bare `tsc --noEmit` checks nothing. Check each project.
+      run: npm run type-check
 
   test:
     # Sharded test execution. Each shard runs roughly 1/N of the suite in
