@@ -14,6 +14,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 ### Fixed
 
 - **Logged work order safeguards** — Machine hours with decimals, such as 123.5, are kept as typed when logging completed work. A logged PM can only be saved once its checklist has loaded, so it is never stored with the wrong inspection items.
+- **Start PM always creates a PM (#1708)** — Start PM on the QR scan page asks for a PM template when the machine has no default, instead of creating an ordinary work order.
 
 ## [3.40.0] - 2026-11-10
 

@@ -133,6 +133,13 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
       return;
     }
 
+    const selectedTemplateId = pmTemplateId ?? undefined;
+    // "Start PM" must create a PM record; without a checklist it would be a plain work order.
+    if (intent === 'pm' && !selectedTemplateId) {
+      setError('Choose a PM template to start PM.');
+      return;
+    }
+
     if (images.length > 0 && typeof navigator !== 'undefined' && !navigator.onLine) {
       setError(OFFLINE_CREATION_PHOTOS_MESSAGE);
       return;
@@ -140,14 +147,13 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
 
     setIsSubmitting(true);
     try {
-      const selectedTemplateId = pmTemplateId ?? undefined;
       const { workOrder, creationPhotosAttached } = await createQRWorkOrder({
         equipment,
         title: title.trim(),
         description: description.trim(),
         priority,
         dueDate: dueDate || undefined,
-        attachPM: hasPM && Boolean(selectedTemplateId),
+        attachPM: (intent === 'pm' || hasPM) && Boolean(selectedTemplateId),
         pmTemplateId: selectedTemplateId,
         images: images.length ? images : undefined,
         creationPhotoNote: images.length
