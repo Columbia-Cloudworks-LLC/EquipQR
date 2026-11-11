@@ -89,20 +89,3 @@ export const formatIsoZulu = (date: Date | string): string =>
 
 export const formatForExport = (date: Date | string): string =>
   formatIsoZulu(date);
-
-export const formatDateInUserSettings = (
-  date: Date | string,
-  settings: UserSettings,
-  includeTime: boolean = false,
-): string =>
-  includeTime ? formatDateTime(date, settings) : formatDate(date, settings);
-
-export const formatTimeInUserSettings = (
-  date: Date | string,
-  settings: UserSettings,
-): string => formatTime(date, settings);
-
-export const formatRelativeDate = (
-  date: Date | string,
-  settings: UserSettings,
-): string => formatRelative(date, settings);

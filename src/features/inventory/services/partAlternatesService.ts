@@ -717,30 +717,3 @@ export const createPartIdentifier = async (
     throw error;
   }
 };
-
-/**
- * Search for part identifiers by value.
- */
-export const searchPartIdentifiers = async (
-  organizationId: string,
-  searchTerm: string
-): Promise<PartIdentifier[]> => {
-  try {
-    const normValue = searchTerm.trim().toLowerCase();
-    if (!normValue) return [];
-
-    const { data, error } = await supabase
-      .from('part_identifiers')
-      .select('*')
-      .eq('organization_id', organizationId)
-      .ilike('norm_value', `%${normValue}%`)
-      .order('raw_value')
-      .limit(50);
-
-    if (error) throw error;
-    return (data || []) as PartIdentifier[];
-  } catch (error) {
-    logger.error('Error searching part identifiers:', error);
-    throw error;
-  }
-};

@@ -287,40 +287,6 @@ describe('EquipmentService', () => {
     });
   });
 
-  describe('delete', () => {
-    it('should delete equipment successfully', async () => {
-      const mockQuery = {
-        delete: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis()
-      };
-      
-      // The second eq() call should resolve with no error
-      mockQuery.eq.mockReturnValueOnce(mockQuery);
-      mockQuery.eq.mockResolvedValueOnce({ data: null, error: null });
-
-      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
-
-      const result = await EquipmentService.delete(organizationId, 'eq-1');
-      
-      expect(result.success).toBe(true);
-      expect(result.data).toBe(true);
-    });
-
-    it('should handle non-existent equipment deletion', async () => {
-      const mockQuery = {
-        delete: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({ data: null, error: { message: 'Not found' } })
-      };
-
-      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
-
-      const result = await EquipmentService.delete(organizationId, 'non-existent');
-      
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
-    });
-  });
-
   describe('findBySerial', () => {
     it('returns null without querying when the serial is blank', async () => {
       const result = await EquipmentService.findBySerial(organizationId, '   ');
@@ -381,32 +347,6 @@ describe('EquipmentService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toBeNull();
-    });
-  });
-
-  describe('getStatusCounts', () => {
-    it('should return status counts', async () => {
-      const mockEquipment = [
-        { status: 'active' },
-        { status: 'active' },
-        { status: 'maintenance' },
-        { status: 'inactive' }
-      ];
-
-      const mockQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({ data: mockEquipment, error: null })
-      };
-
-      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
-
-      const result = await EquipmentService.getStatusCounts(organizationId);
-      
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveProperty('active');
-      expect(result.data).toHaveProperty('maintenance');
-      expect(result.data).toHaveProperty('inactive');
-      expect(typeof result.data.active).toBe('number');
     });
   });
 

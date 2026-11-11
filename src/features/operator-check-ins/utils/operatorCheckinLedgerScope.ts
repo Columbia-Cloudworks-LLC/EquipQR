@@ -43,16 +43,6 @@ export function createLedgerShortcutDate(daysAgo: number, referenceDate = new Da
   return subtractLocalCalendarDays(referenceDate, daysAgo);
 }
 
-/** Inclusive day count ending on the reference calendar day (e.g. 7 → today plus prior 6 days). */
-export function createRelativeLedgerDateRange(
-  inclusiveDayCount: number,
-  referenceDate = new Date(),
-): LedgerDateRange {
-  const endDate = getLocalDateInputValue(referenceDate);
-  const startDate = subtractLocalCalendarDays(referenceDate, inclusiveDayCount - 1);
-  return normalizeLedgerDateRange(startDate, endDate);
-}
-
 export interface LedgerSingleDateShortcut {
   id: string;
   label: string;

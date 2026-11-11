@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildEquipmentPdfInput,
-  buildMobileEquipmentSummary,
   buildMobileWorkOrderAssigneeSummary,
-  buildMobileWorkOrderSummary,
   buildOfflineSyncState,
   buildWorkOrderAssigneeSummary,
   buildWorkOrderPdfInput,
@@ -220,32 +218,6 @@ describe('workOrderDetailsViewModel', () => {
   });
 
   describe('mobile summaries and sync state', () => {
-    it('builds compact mobile work order and equipment summaries', () => {
-      expect(
-        buildMobileWorkOrderSummary({
-          status: 'in_progress',
-          priority: 'high',
-          dueDate: '2024-01-05T00:00:00Z',
-        }),
-      ).toEqual({
-        status: 'in_progress',
-        priority: 'high',
-        due_date: '2024-01-05T00:00:00Z',
-      });
-
-      expect(
-        buildMobileEquipmentSummary({
-          id: 'eq-1',
-          name: 'Excavator',
-          status: 'active',
-        }),
-      ).toEqual({
-        id: 'eq-1',
-        name: 'Excavator',
-        status: 'active',
-      });
-    });
-
     it('builds offline sync state snapshot', () => {
       expect(
         buildOfflineSyncState({

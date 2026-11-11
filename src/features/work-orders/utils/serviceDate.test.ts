@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  isSameServiceDay,
   parseServiceDateInput,
   serviceDateDaysAgo,
   serviceDateInputValue,
@@ -51,11 +50,5 @@ describe('serviceDate', () => {
     expect(parseServiceDateInput('2024-02-31')).toBeNull();
     expect(serviceDateInputValue(null)).toBe('');
     expect(serviceDateInputValue(new Date('nope'))).toBe('');
-  });
-
-  it('compares by calendar day, ignoring the time', () => {
-    expect(isSameServiceDay(new Date(2024, 2, 5, 1), new Date(2024, 2, 5, 23))).toBe(true);
-    expect(isSameServiceDay(new Date(2024, 2, 5), new Date(2024, 2, 6))).toBe(false);
-    expect(isSameServiceDay(null, null)).toBe(false);
   });
 });

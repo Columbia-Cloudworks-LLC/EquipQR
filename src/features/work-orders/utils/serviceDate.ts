@@ -57,8 +57,3 @@ export function parseServiceDateInput(value: string): Date | null {
   if (parsed.getMonth() !== Number(month) - 1 || parsed.getDate() !== Number(day)) return null;
   return parsed;
 }
-
-/** True when both dates fall on the same local calendar day. */
-export function isSameServiceDay(a: Date | null | undefined, b: Date | null | undefined): boolean {
-  return serviceDateInputValue(a) !== '' && serviceDateInputValue(a) === serviceDateInputValue(b);
-}

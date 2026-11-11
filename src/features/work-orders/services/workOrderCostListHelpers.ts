@@ -1,4 +1,3 @@
-import { fetchCreatorNameMap } from '@/features/work-orders/services/workOrderCostProfileHelpers';
 import type { WorkOrderCost } from '@/features/work-orders/types/workOrderCosts';
 
 type CostRowWithWorkOrderTitle = {
@@ -39,13 +38,4 @@ export function mapCostRowsToWorkOrderCosts(
     createdByName: profilesMap[cost.created_by],
     workOrderTitle: cost.work_orders?.title ?? undefined,
   }));
-}
-
-export async function mapCostsWithCreatorProfiles(
-  rows: CostRowWithWorkOrderTitle[] | null | undefined,
-): Promise<WorkOrderCost[]> {
-  const list = rows ?? [];
-  const creatorIds = [...new Set(list.map((cost) => cost.created_by))];
-  const profilesMap = await fetchCreatorNameMap(creatorIds);
-  return mapCostRowsToWorkOrderCosts(list, profilesMap);
 }

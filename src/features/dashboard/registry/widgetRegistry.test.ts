@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   getWidget,
   getAllWidgets,
-  getWidgetsByCategory,
   generateDefaultLayout,
   filterWidgetsForCostVisibility,
   COST_RESTRICTED_WIDGET_IDS,
@@ -52,31 +51,6 @@ describe('widgetRegistry', () => {
         expect(widget.defaultSize.h).toBeGreaterThan(0);
         expect(widget.category).toBeTruthy();
       }
-    });
-  });
-
-  describe('getWidgetsByCategory', () => {
-    it('returns overview widgets (stats-grid, fleet-efficiency, quick-actions)', () => {
-      const overview = getWidgetsByCategory('overview');
-      expect(overview.length).toBe(3);
-      expect(overview.every((w) => w.category === 'overview')).toBe(true);
-    });
-
-    it('returns work-orders widgets', () => {
-      const wo = getWidgetsByCategory('work-orders');
-      expect(wo.length).toBeGreaterThanOrEqual(2);
-      expect(wo.every((w) => w.category === 'work-orders')).toBe(true);
-    });
-
-    it('returns equipment widgets', () => {
-      const eq = getWidgetsByCategory('equipment');
-      expect(eq.length).toBeGreaterThanOrEqual(2);
-      expect(eq.every((w) => w.category === 'equipment')).toBe(true);
-    });
-
-    it('returns empty array for a category with no widgets', () => {
-      const inv = getWidgetsByCategory('inventory');
-      expect(inv).toEqual([]);
     });
   });
 

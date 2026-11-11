@@ -12,7 +12,7 @@ import {
   type PersistedViewMode,
   type UrlDate,
   type WorkOrdersChrome,
-} from '@/features/work-orders/calendar';
+} from '@/features/work-orders/calendar/url';
 
 describe('WORK_ORDERS_VIEW_MODE_KEY', () => {
   it('matches the cookie-consent allowlist key', () => {

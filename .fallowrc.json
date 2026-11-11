@@ -98,12 +98,6 @@
       ]
     },
     {
-      "file": "src/features/equipment/services/EquipmentService.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
       "file": "src/features/equipment/types/equipment.ts",
       "exports": [
         "*"
@@ -164,12 +158,6 @@
       ]
     },
     {
-      "file": "src/services/google-workspace/index.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
       "file": "src/utils/google-workspace.ts",
       "exports": [
         "*"
@@ -212,12 +200,6 @@
       ]
     },
     {
-      "file": "src/utils/dateFormatter.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
       "file": "src/features/equipment/utils/equipmentHelpers.ts",
       "exports": [
         "*"
@@ -225,12 +207,6 @@
     },
     {
       "file": "src/features/equipment/hooks/useEquipment.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/work-orders/hooks/useWorkOrders.ts",
       "exports": [
         "*"
       ]
@@ -261,9 +237,6 @@
     }
   ],
   "usedClassMembers": [
-    "getFailedCount",
-    "peek",
-    "getFailedItems",
     "clear",
     "updatePayload",
     "getById",

@@ -9,7 +9,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import {
-  decodeOAuthStatePayload,
   encodeOAuthState,
   type OAuthStatePayload,
 } from '@/services/oauthStateEncoding';
@@ -133,16 +132,6 @@ export async function generateQuickBooksAuthUrl(config: QuickBooksAuthConfig): P
 }
 
 /**
- * Validates and decodes the OAuth state parameter
- * 
- * @param stateParam - The base64-encoded state parameter from the OAuth callback
- * @returns The decoded state object, or null if invalid
- */
-export function decodeOAuthState(stateParam: string): OAuthState | null {
-  return decodeOAuthStatePayload(stateParam);
-}
-
-/**
  * Checks if QuickBooks integration is configured
  * 
  * @returns True if the necessary environment variables are set
@@ -151,14 +140,4 @@ export function isQuickBooksConfigured(): boolean {
   const clientId = import.meta.env.VITE_INTUIT_CLIENT_ID;
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   return Boolean(clientId && supabaseUrl);
-}
-
-/**
- * Gets the QuickBooks disconnect URL (for UI display)
- * 
- * Note: Actual disconnection should be done through the Supabase client
- * by deleting the credentials record. This is just for display purposes.
- */
-export function getQuickBooksAppCenterUrl(): string {
-  return "https://appcenter.intuit.com/app/connect";
 }

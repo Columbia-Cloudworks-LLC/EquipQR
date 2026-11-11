@@ -33,12 +33,6 @@ export function isQuickBooksInvoiceStatus(
   return typeof status === 'string' && QUICKBOOKS_INVOICE_STATUS_SET.has(status);
 }
 
-export function toQuickBooksInvoiceStatus(
-  status: string | null | undefined,
-): QuickBooksInvoiceStatus | null {
-  return isQuickBooksInvoiceStatus(status) ? status : null;
-}
-
 // ============================================
 // Base Database Type
 // ============================================
@@ -289,19 +283,6 @@ export interface WorkOrderCreateData {
   historical_start_date?: string;
   historical_notes?: string;
   has_pm?: boolean;
-}
-
-export interface WorkOrderUpdateData {
-  title?: string;
-  description?: string;
-  equipment_id?: string;
-  priority?: WorkOrder['priority'];
-  status?: WorkOrder['status'];
-  assignee_id?: string | null;
-  due_date?: string | null;
-  due_date_has_time?: boolean;
-  estimated_hours?: number | null;
-  completed_date?: string | null;
 }
 
 // ============================================

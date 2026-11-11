@@ -11,9 +11,7 @@ import { createQueryClientWrapper, waitForHookSuccess } from '@vitest-harness/ut
 import {
   useEquipment,
   useEquipmentById,
-  useEquipmentNotes,
   useEquipmentScans,
-  useEquipmentStatusCounts,
   useEquipmentManufacturersAndModels
 } from './useEquipment';
 import { equipment, organizations, teams } from '@vitest-harness/fixtures/entities';
@@ -24,13 +22,10 @@ vi.mock('@/features/equipment/services/EquipmentService', () => ({
     getAll: vi.fn(),
     getSummaries: vi.fn(),
     getById: vi.fn(),
-    getNotesByEquipmentId: vi.fn(),
     getScansByEquipmentId: vi.fn(),
     getWorkOrdersByEquipmentId: vi.fn(),
-    getStatusCounts: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
-    delete: vi.fn(),
     createScan: vi.fn()
   }
 }));
@@ -259,44 +254,6 @@ describe('useEquipment', () => {
     });
   });
 
-  describe('useEquipmentNotes', () => {
-    const mockNotes = [
-      { id: 'note-1', content: 'Test note 1', equipment_id: equipment.forklift1.id },
-      { id: 'note-2', content: 'Test note 2', equipment_id: equipment.forklift1.id }
-    ];
-
-    beforeEach(() => {
-      vi.mocked(EquipmentService.getNotesByEquipmentId).mockResolvedValue({
-        success: true,
-        data: mockNotes
-      });
-    });
-
-    it('fetches notes for equipment', async () => {
-      const { result } = renderHook(
-        () => useEquipmentNotes(organizations.acme.id, equipment.forklift1.id),
-        { wrapper: createWrapper() }
-      );
-
-      await waitForHookSuccess(result);
-
-      expect(EquipmentService.getNotesByEquipmentId).toHaveBeenCalledWith(
-        organizations.acme.id,
-        equipment.forklift1.id
-      );
-      expect(result.current.data).toHaveLength(2);
-    });
-
-    it('is disabled without equipmentId', () => {
-      const { result } = renderHook(
-        () => useEquipmentNotes(organizations.acme.id, undefined),
-        { wrapper: createWrapper() }
-      );
-
-      expect(result.current.fetchStatus).toBe('idle');
-    });
-  });
-
   describe('useEquipmentScans', () => {
     const mockScans = [
       { id: 'scan-1', equipment_id: equipment.forklift1.id, scanned_at: new Date().toISOString() }
@@ -331,54 +288,6 @@ describe('useEquipment', () => {
       );
 
       expect(result.current.fetchStatus).toBe('idle');
-    });
-  });
-
-  describe('useEquipmentStatusCounts', () => {
-    const mockCounts = { active: 5, maintenance: 2, inactive: 1 };
-
-    beforeEach(() => {
-      vi.mocked(EquipmentService.getStatusCounts).mockResolvedValue({
-        success: true,
-        data: mockCounts
-      });
-    });
-
-    it('fetches status counts', async () => {
-      const { result } = renderHook(
-        () => useEquipmentStatusCounts(organizations.acme.id),
-        { wrapper: createWrapper() }
-      );
-
-      await waitForHookSuccess(result);
-
-      expect(EquipmentService.getStatusCounts).toHaveBeenCalledWith(organizations.acme.id);
-      expect(result.current.data).toEqual(mockCounts);
-    });
-
-    it('returns zero counts when no organization', async () => {
-      const { result } = renderHook(
-        () => useEquipmentStatusCounts(undefined),
-        { wrapper: createWrapper() }
-      );
-
-      expect(result.current.fetchStatus).toBe('idle');
-    });
-
-    it('returns zero counts on error', async () => {
-      vi.mocked(EquipmentService.getStatusCounts).mockResolvedValueOnce({
-        success: false,
-        error: 'Failed to fetch counts'
-      });
-
-      const { result } = renderHook(
-        () => useEquipmentStatusCounts(organizations.acme.id),
-        { wrapper: createWrapper() }
-      );
-
-      await waitForHookSuccess(result);
-
-      expect(result.current.data).toEqual({ active: 0, maintenance: 0, inactive: 0 });
     });
   });
 

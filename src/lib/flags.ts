@@ -63,14 +63,6 @@ export function isQuickBooksEnabled(): boolean {
 }
 
 /**
- * Check if QuickBooks integration is disabled
- * @returns true if QuickBooks is disabled
- */
-export function isQuickBooksDisabled(): boolean {
-  return !QUICKBOOKS_ENABLED;
-}
-
-/**
  * Check if MFA is enabled
  * @returns true if MFA features should be active
  */

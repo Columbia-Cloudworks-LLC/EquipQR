@@ -476,24 +476,9 @@ export class OfflineQueueService {
     return this.getCounts().pending;
   }
 
-  /** Number of items with status === 'failed'. */
-  getFailedCount(): number {
-    return this.getCounts().failed;
-  }
-
   /** Total item count regardless of status. */
   getCount(): number {
     return this.getCounts().total;
-  }
-
-  /** First pending item (FIFO). */
-  peek(): OfflineQueueItem | undefined {
-    return this.getAll().find(i => i.status === 'pending');
-  }
-
-  /** Items that have exhausted their retries. */
-  getFailedItems(): OfflineQueueItem[] {
-    return this.getAll().filter(i => i.status === 'failed');
   }
 
   // ── Write operations ─────────────────────────────────────────────────────
