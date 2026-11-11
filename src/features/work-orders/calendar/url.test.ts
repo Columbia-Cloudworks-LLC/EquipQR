@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { setCookieConsentDecision, setPreferenceLocalStorage } from '@/lib/cookieConsent';
 import {
   parseCalendarDay,
   parseUrlDate,
@@ -15,8 +16,15 @@ import {
 } from '@/features/work-orders/calendar/url';
 
 describe('WORK_ORDERS_VIEW_MODE_KEY', () => {
-  it('matches the cookie-consent allowlist key', () => {
-    expect(WORK_ORDERS_VIEW_MODE_KEY).toBe('equipqr:work-orders-view-mode');
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it('is on the cookie-consent allowlist, so the view mode can be persisted after Accept', () => {
+    expect(setCookieConsentDecision('accepted')).toBe(true);
+
+    expect(setPreferenceLocalStorage(WORK_ORDERS_VIEW_MODE_KEY, 'calendar')).toBe(true);
+    expect(localStorage.getItem(WORK_ORDERS_VIEW_MODE_KEY)).toBe('calendar');
   });
 });
 
@@ -68,18 +76,25 @@ describe('resolveWorkOrdersChrome', () => {
   });
 
   it('initializes default calendar anchor using configured timeZone', () => {
-    const chrome = resolveWorkOrdersChrome({
-      urlDate: parseUrlDate(null),
-      viewParam: 'calendar',
-      rangeParam: 'week',
-      woParam: null,
-      persist: null,
-      isMobile: true,
-      timeZone: 'UTC',
-    });
+    vi.useFakeTimers();
+    // 02:00 UTC on Sep 5 is still Sep 4 in Chicago (UTC-5 in September).
+    vi.setSystemTime(new Date('2026-09-05T02:00:00Z'));
+    try {
+      const chrome = resolveWorkOrdersChrome({
+        urlDate: parseUrlDate(null),
+        viewParam: 'calendar',
+        rangeParam: 'week',
+        woParam: null,
+        persist: null,
+        isMobile: true,
+        timeZone: 'America/Chicago',
+      });
 
-    expect(chrome.surface).toBe('calendar');
-    expect(chrome.anchor).toBeDefined();
+      expect(chrome.surface).toBe('calendar');
+      expect(chrome.anchor).toEqual({ y: 2026, m: 9, d: 4 });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('keeps team and sort keys when writing calendar chrome', () => {

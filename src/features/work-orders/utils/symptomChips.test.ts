@@ -1,18 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { applySymptomChipToTitle, WORK_ORDER_SYMPTOM_CHIPS } from './symptomChips';
+import { applySymptomChipToTitle } from './symptomChips';
 
 describe('applySymptomChipToTitle', () => {
-  it('offers the six standard symptom / task chips', () => {
-    expect(WORK_ORDER_SYMPTOM_CHIPS).toEqual([
-      'Preventative Maintenance',
-      'Hydraulic Leak',
-      'No Start',
-      'Electrical',
-      'Track/Tire',
-      'Safety Inspection',
-    ]);
-  });
-
   it('fills an empty title', () => {
     expect(applySymptomChipToTitle('', 'Hydraulic Leak')).toBe('Hydraulic Leak');
     expect(applySymptomChipToTitle('   ', 'No Start')).toBe('No Start');

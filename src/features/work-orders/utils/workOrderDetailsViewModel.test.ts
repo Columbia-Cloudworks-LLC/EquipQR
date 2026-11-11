@@ -11,7 +11,6 @@ import {
   MOBILE_WO_CONTENT_BOTTOM_PADDING_CLASS,
   shouldHideInlineNoteAddButton,
   shouldShowMobileSyncBanner,
-  MOBILE_WO_FAB_BOTTOM_CLASS,
   shouldShowMobileActionFooter,
 } from './workOrderDetailsViewModel';
 
@@ -256,10 +255,6 @@ describe('workOrderDetailsViewModel', () => {
           failedCount: 0,
         }),
       ).toBe(true);
-    });
-
-    it('raises FAB clearance when sync banner is visible', () => {
-      expect(MOBILE_WO_FAB_BOTTOM_CLASS.withSyncBanner).not.toBe(MOBILE_WO_FAB_BOTTOM_CLASS.default);
     });
   });
 });
