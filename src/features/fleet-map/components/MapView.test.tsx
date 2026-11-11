@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@vitest-harness/utils/test-utils';
 import userEvent from '@testing-library/user-event';
-import { MapView } from './MapView';
+import { MapView, type EquipmentLocation } from './MapView';
 
 const mapMountSpy = vi.fn();
 const mapUnmountSpy = vi.fn();
@@ -16,7 +16,7 @@ vi.mock('@/services/imageUploadService', async () => {
 
   return {
     ...actual,
-    withResolvedEquipmentImages: (...args: unknown[]) => mockWithResolvedEquipmentImages(...args),
+    withResolvedEquipmentImages: (rows: unknown[]) => mockWithResolvedEquipmentImages(rows),
   };
 });
 
@@ -186,26 +186,17 @@ vi.mock('@/utils/logger', () => ({
 
 // Mock window.google.maps for any imperative calls that may occur during
 // the tests (e.g. fitAllMarkers if useMap returns a non-null map).
-interface GoogleMapsMock {
-  maps: {
-    Size: (width: number, height: number) => { width: number; height: number };
-    Point: (x: number, y: number) => { x: number; y: number };
-    LatLngBounds: () => { extend: () => void; toJSON: () => unknown };
-    event: { addListenerOnce: () => void };
-  };
-}
-
-global.window.google = {
+vi.stubGlobal('google', {
   maps: {
     Size: vi.fn((width: number, height: number) => ({ width, height })),
     Point: vi.fn((x: number, y: number) => ({ x, y })),
     LatLngBounds: vi.fn(() => ({ extend: vi.fn(), toJSON: vi.fn() })),
     event: { addListenerOnce: vi.fn() },
   },
-} as unknown as GoogleMapsMock;
+});
 
 describe('MapView', () => {
-  const mockEquipmentLocations = [
+  const mockEquipmentLocations: EquipmentLocation[] = [
     {
       id: 'eq-1',
       name: 'Equipment 1',
@@ -217,7 +208,6 @@ describe('MapView', () => {
       source: 'manual' as const,
       formatted_address: undefined,
       working_hours: 100,
-      last_maintenance: null,
       image_url: null,
       location_updated_at: '2024-01-01T00:00:00Z',
       team_id: 'team-1',
@@ -234,7 +224,6 @@ describe('MapView', () => {
       source: 'scan' as const,
       formatted_address: undefined,
       working_hours: 200,
-      last_maintenance: null,
       image_url: null,
       location_updated_at: '2024-01-02T00:00:00Z',
       team_id: 'team-1',
@@ -249,7 +238,6 @@ describe('MapView', () => {
       lat: 50,
       lng: 60,
       source: 'legacy' as const,
-      last_maintenance: null,
       image_url: null,
       location_updated_at: '2024-01-03T00:00:00Z',
       team_id: 'team-1',

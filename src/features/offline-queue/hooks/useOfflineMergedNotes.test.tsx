@@ -195,7 +195,7 @@ describe('useOfflineMergedNotes', () => {
     mockQueuedItems.mockReturnValue([queueItem]);
 
     const { result } = renderHook(
-      () => useOfflineMergedNotes([], 'work_order', 'wo-1'),
+      () => useOfflineMergedNotes<ServerNote>([], 'work_order', 'wo-1'),
       { wrapper: createWrapper() },
     );
 
@@ -208,7 +208,7 @@ describe('useOfflineMergedNotes', () => {
     mockQueuedItems.mockReturnValue([queueItem]);
 
     const { result } = renderHook(
-      () => useOfflineMergedNotes([], 'work_order', 'wo-1'),
+      () => useOfflineMergedNotes<ServerNote>([], 'work_order', 'wo-1'),
       { wrapper: createWrapper() },
     );
 

@@ -4,7 +4,11 @@ import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
 import { supabase } from '@/integrations/supabase/client';
 
 function createQueryChain(resolved: { data: unknown; error: null }) {
-  const chain: Record<string, ReturnType<typeof vi.fn>> & {
+  const chain: {
+    select: ReturnType<typeof vi.fn>;
+    eq: ReturnType<typeof vi.fn>;
+    is: ReturnType<typeof vi.fn>;
+    in: ReturnType<typeof vi.fn>;
     then: Promise<{ data: unknown; error: null }>['then'];
   } = {
     select: vi.fn(),

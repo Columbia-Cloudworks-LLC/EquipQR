@@ -74,12 +74,12 @@ const USER_GROUP_DEFINITIONS = [
   org: DevQuickLoginUser['org'];
 }>;
 
-const PREVIEW_QA_USER_EMAILS = new Set([
+const PREVIEW_QA_USER_EMAILS: ReadonlySet<string> = new Set([
   'owner@apex.test',
   'tech@apex.test',
   'viewer@apex.test',
   'owner@metro.test',
-] as const);
+]);
 
 const buildUserGroups = (users: readonly DevQuickLoginUser[]): DevQuickLoginGroup[] =>
   USER_GROUP_DEFINITIONS.map(({ label, org }) => ({

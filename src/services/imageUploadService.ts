@@ -158,7 +158,8 @@ export async function compressImageFile(
 
   try {
     const { default: imageCompression } = await import('browser-image-compression');
-    const compressed = await imageCompression(file, {
+    // Typed as Blob: older browsers may return a Blob where File is unavailable.
+    const compressed: Blob = await imageCompression(file, {
       maxSizeMB: settings.maxSizeMB,
       maxWidthOrHeight: settings.maxWidthOrHeight,
       useWebWorker: settings.useWebWorker,

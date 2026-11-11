@@ -108,7 +108,7 @@ export function HeroGallery({ slides = HERO_SLIDES }: HeroGalleryProps) {
       fadeRafRef.current.push(secondFrame);
     });
     fadeRafRef.current.push(firstFrame);
-    fadeTimerRef.current = setTimeout(() => {
+    fadeTimerRef.current = window.setTimeout(() => {
       fadeTimerRef.current = null;
       setLayers([{ index: normalized, opacity: 1 }]);
     }, HERO_GALLERY_FADE_MS);
@@ -119,7 +119,7 @@ export function HeroGallery({ slides = HERO_SLIDES }: HeroGalleryProps) {
     if (index !== activeIndexRef.current) return;
     if (Date.now() < pauseUntilRef.current) return;
     if (holdTimerRef.current !== null) return;
-    holdTimerRef.current = setTimeout(() => {
+    holdTimerRef.current = window.setTimeout(() => {
       holdTimerRef.current = null;
       goTo(activeIndexRef.current + 1, 'auto');
     }, HERO_GALLERY_HOLD_MS);
