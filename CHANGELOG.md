@@ -11,6 +11,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Fixed
+
+- **Service date in far-east timezones (#1709)** — A completed date logged from New Zealand, Samoa, Kiribati or other UTC+13/+14 timezones is kept on the day picked, instead of the day before.
+
 ## [3.40.0] - 2026-11-10
 
 ### Added
