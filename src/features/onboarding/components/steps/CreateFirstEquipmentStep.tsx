@@ -13,6 +13,10 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
 import { useToast } from '@/hooks/use-toast';
+import {
+  buildEquipmentFormDefaultValues,
+  toEquipmentCreateData,
+} from '@/features/equipment/utils/equipmentFormMappers';
 import { useQueryClient } from '@tanstack/react-query';
 import TeamPickerWithCreate from '@/features/teams/components/TeamPickerWithCreate';
 
@@ -64,17 +68,20 @@ export const CreateFirstEquipmentStep: React.FC<CreateFirstEquipmentStepProps> =
       const service = new OfflineAwareWorkOrderService(currentOrganization.id, user.id);
       const today = new Date().toISOString().slice(0, 10);
 
-      const result = await service.createEquipmentFull({
-        name,
-        manufacturer: manufacturer.trim(),
-        model: model.trim(),
-        serial_number: serialNumber.trim(),
-        status,
-        location: location.trim(),
-        installation_date: today,
-        notes: '',
-        team_id: teamId,
-      });
+      const result = await service.createEquipmentFull(
+        toEquipmentCreateData({
+          ...buildEquipmentFormDefaultValues(),
+          name,
+          manufacturer: manufacturer.trim(),
+          model: model.trim(),
+          serial_number: serialNumber.trim(),
+          status,
+          location: location.trim(),
+          installation_date: today,
+          notes: '',
+          team_id: teamId,
+        }),
+      );
 
       if (result.queuedOffline) {
         toast({

@@ -1,4 +1,5 @@
-import { render, screen, createSettingsTestWrapper, SYDNEY_USER_SETTINGS } from '@vitest-harness/utils/test-utils';
+import { render } from '@testing-library/react';
+import { screen, createSettingsTestWrapper, SYDNEY_USER_SETTINGS } from '@vitest-harness/utils/test-utils';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { formatDate } from '@/utils/dateFormatter';

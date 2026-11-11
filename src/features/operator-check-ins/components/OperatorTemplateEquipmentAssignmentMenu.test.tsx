@@ -19,6 +19,7 @@ function makeEquipment(overrides: Partial<EquipmentSummary>): EquipmentSummary {
     working_hours: null,
     last_maintenance: null,
     last_known_location: null,
+    default_pm_template_id: null,
     team: null,
     team_name: overrides.team_name,
   };

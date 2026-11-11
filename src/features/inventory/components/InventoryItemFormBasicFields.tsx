@@ -1,4 +1,3 @@
-import type { UseFormReturn } from 'react-hook-form';
 import {
   FormControl,
   FormDescription,
@@ -10,12 +9,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { InventoryStorageLocationFields } from '@/features/inventory/components/InventoryStorageLocationFields';
-import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
+import type { InventoryItemFormApi } from '@/features/inventory/schemas/inventorySchema';
 import type { InventoryItem } from '@/features/inventory/types/inventory';
 import type { InventoryStructuredLocationFields } from '@/features/inventory/utils/inventoryLocationUtils';
 
 type InventoryItemFormBasicFieldsProps = {
-  form: UseFormReturn<InventoryItemFormData>;
+  form: InventoryItemFormApi;
   editingItem?: InventoryItem | null;
 };
 

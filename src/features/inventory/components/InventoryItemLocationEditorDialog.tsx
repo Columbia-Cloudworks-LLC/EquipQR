@@ -17,7 +17,7 @@ import {
 import type { InventoryStructuredLocationFields } from '@/features/inventory/utils/inventoryLocationUtils';
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import { useGoogleMapsKey } from '@/hooks/useGoogleMapsKey';
-import { useIsDarkTheme } from '@/hooks/useThemeVersion';
+import { useIsDarkTheme, useThemeVersion } from '@/hooks/useThemeVersion';
 
 type InventoryItemLocationEditorDialogProps = {
   open: boolean;
@@ -33,7 +33,8 @@ export function InventoryItemLocationEditorDialog({
   onSave,
 }: InventoryItemLocationEditorDialogProps) {
   const { isLoaded: isPlacesLoaded } = useGoogleMapsLoader();
-  const isDark = useIsDarkTheme();
+  const themeVersion = useThemeVersion();
+  const isDark = useIsDarkTheme(themeVersion);
   const { googleMapsKey, mapId } = useGoogleMapsKey();
   const [isSaving, setIsSaving] = useState(false);
 
@@ -83,7 +84,7 @@ export function InventoryItemLocationEditorDialog({
           recenterKey={editor.recenterKey}
           onCenterChange={editor.handleMapCenterChange}
           googleMapsKey={googleMapsKey}
-          mapId={mapId}
+          mapId={mapId ?? undefined}
           isDark={isDark}
           isLiveCaptureOpen={editor.isLiveCaptureOpen}
           onLiveCaptureOpenChange={editor.setIsLiveCaptureOpen}

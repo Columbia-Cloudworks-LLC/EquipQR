@@ -3,9 +3,10 @@ import type {
   QuickFormClientContext,
   QuickFormData,
   QuickFormFieldValue,
+  QuickFormInputType,
 } from '@/features/quick-forms/types/quickForm';
 
-import type { Tables } from '@/integrations/supabase/types';
+import type { Json, Tables } from '@/integrations/supabase/types';
 
 export type QuickFormSubmission = Omit<
   Tables<'quick_form_submissions'>,
@@ -16,6 +17,38 @@ export type QuickFormSubmission = Omit<
   client_context: QuickFormClientContext | null;
 };
 
+const QUICK_FORM_INPUT_TYPES: readonly QuickFormInputType[] = [
+  'text',
+  'textarea',
+  'number',
+  'date',
+  'checkbox',
+];
+
+function isQuickFormFieldValue(value: unknown): value is QuickFormFieldValue {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+  const candidate: Record<string, unknown> = { ...value };
+  return (
+    typeof candidate.field_id === 'string' &&
+    typeof candidate.label === 'string' &&
+    QUICK_FORM_INPUT_TYPES.some((inputType) => inputType === candidate.input_type) &&
+    (candidate.value === null ||
+      typeof candidate.value === 'string' ||
+      typeof candidate.value === 'number' ||
+      typeof candidate.value === 'boolean')
+  );
+}
+
+function filterJsonArray<T>(value: Json, guard: (item: unknown) => item is T): T[] {
+  const result: T[] = [];
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      if (guard(item)) result.push(item);
+    }
+  }
+  return result;
+}
+
 function mapQuickFormSubmissionRow(
   row: Tables<'quick_form_submissions'>,
 ): QuickFormSubmission {
@@ -25,7 +58,7 @@ function mapQuickFormSubmissionRow(
     quick_form_id: row.quick_form_id,
     submitted_at: row.submitted_at,
     form_snapshot: (row.form_snapshot as QuickFormSubmission['form_snapshot']) ?? null,
-    field_values: (Array.isArray(row.field_values) ? row.field_values : []) as QuickFormFieldValue[],
+    field_values: filterJsonArray(row.field_values, isQuickFormFieldValue),
     client_context: (row.client_context as QuickFormClientContext | null) ?? null,
     request_fingerprint: row.request_fingerprint,
     created_at: row.created_at,

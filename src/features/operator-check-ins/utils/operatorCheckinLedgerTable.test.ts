@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { OperatorChecklistTemplateData } from '@/features/operator-check-ins/types/operatorChecklist';
 import type { OperatorCheckinSubmission } from '@/features/operator-check-ins/services/operatorCheckinSubmissionsService';
 import {
   buildLedgerTableRows,
@@ -94,7 +95,7 @@ describe('operatorCheckinLedgerTable', () => {
   });
 
   it('omits submitted_timestamp client context from display columns', () => {
-    const templateData = {
+    const templateData: OperatorChecklistTemplateData = {
       checklistItems: [],
       dataFields: [
         { id: 'field-name', label: 'Your name', source: 'operator_input', inputType: 'text' },
@@ -136,7 +137,7 @@ describe('operatorCheckinLedgerTable', () => {
   });
 
   it('sorts by submitted timestamp descending by default', () => {
-    const templateData = {
+    const templateData: OperatorChecklistTemplateData = {
       checklistItems: [],
       dataFields: [],
     };
@@ -166,7 +167,7 @@ describe('operatorCheckinLedgerTable', () => {
   });
 
   it('sorts numeric data fields numerically', () => {
-    const templateData = {
+    const templateData: OperatorChecklistTemplateData = {
       checklistItems: [],
       dataFields: [
         { id: 'field-odo', label: 'Odometer reading', source: 'operator_input', inputType: 'number' },

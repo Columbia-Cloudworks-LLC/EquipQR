@@ -21,15 +21,15 @@ export type EquipmentSnapshotKey =
   | 'working_hours'
   | 'custom_attributes';
 
-export interface OperatorChecklistTemplateItem {
+export type OperatorChecklistTemplateItem = {
   id: string;
   title: string;
   description?: string;
   required: boolean;
   section: string;
-}
+};
 
-export interface OperatorChecklistDataField {
+export type OperatorChecklistDataField = {
   id: string;
   label: string;
   source: OperatorFieldSource;
@@ -38,12 +38,12 @@ export interface OperatorChecklistDataField {
   inputType?: OperatorInputFieldType;
   clientKey?: ClientContextKey;
   equipmentKey?: EquipmentSnapshotKey;
-}
+};
 
-export interface OperatorChecklistTemplateData {
+export type OperatorChecklistTemplateData = {
   checklistItems: OperatorChecklistTemplateItem[];
   dataFields: OperatorChecklistDataField[];
-}
+};
 
 export interface OperatorChecklistAnswer {
   item_id: string;

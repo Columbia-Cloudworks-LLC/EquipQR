@@ -1,6 +1,7 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
+import type { TablesUpdate } from '@/integrations/supabase/types';
 import type { 
   AlternateGroupMemberDetail,
   AlternatePartResult, 
@@ -88,7 +89,7 @@ export const getAlternatesForPartNumber = async (
     const { data, error } = await supabase.rpc('get_alternates_for_part_number', {
       p_organization_id: organizationId,
       p_part_number: partNumber.trim()
-    }, { signal });
+    });
 
     // If request was aborted, return empty result silently
     if (signal?.aborted) {
@@ -149,7 +150,10 @@ export const getAlternatesForInventoryItem = async (
       throw error;
     }
 
-    return (data || []) as AlternatePartResult[];
+    return (data || []).map((row): AlternatePartResult => ({
+      ...row,
+      is_matching_input: row.is_source_item,
+    }));
   } catch (error) {
     logger.error('Error looking up alternates for inventory item:', error);
     throw error;
@@ -182,7 +186,7 @@ export const getCompatiblePartsForMakeModel = async (
     const { data, error } = await supabase.rpc('get_compatible_parts_for_make_model', {
       p_organization_id: organizationId,
       p_manufacturer: manufacturer.trim(),
-      p_model: model?.trim() || null
+      p_model: model?.trim() || undefined
     });
 
     if (error) {
@@ -447,7 +451,7 @@ export const updateAlternateGroup = async (
 ): Promise<PartAlternateGroup> => {
   try {
     const userId = data.status === 'verified' ? await requireAuthUserIdFromClaims() : null;
-    const updateData: Record<string, unknown> = {};
+    const updateData: TablesUpdate<'part_alternate_groups'> = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.description !== undefined) updateData.description = data.description || null;
     if (data.status !== undefined) {

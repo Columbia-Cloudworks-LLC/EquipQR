@@ -93,7 +93,7 @@ describe('getInventoryItems list pagination', () => {
     ]);
     expect(items).toHaveLength(totalRows);
     expect(items[0]?.name).toBe('Part 000');
-    expect(items.at(-1)?.id).toBe(`item-${totalRows - 1}`);
+    expect(items[items.length - 1]?.id).toBe(`item-${totalRows - 1}`);
   });
 
   it('preserves sort order across batched pages', async () => {
