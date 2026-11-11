@@ -47,7 +47,7 @@ export const FeaturePageLayout = ({ children, howToSteps }: FeaturePageLayoutPro
     <div className="min-h-screen bg-background">
       <LandingHeader />
       <main id="main-content" tabIndex={-1} className={MAIN_FOCUS_RING}>
-        {breadcrumbItems ? (
+        {seo && breadcrumbItems ? (
           <>
             <nav
               aria-label="Breadcrumb"

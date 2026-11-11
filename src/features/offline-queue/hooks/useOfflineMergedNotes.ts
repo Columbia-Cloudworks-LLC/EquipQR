@@ -54,7 +54,7 @@ export function useOfflineMergedNotes<T extends { id: string }>(
       const payload = item.payload as Record<string, unknown>;
       const now = new Date(item.timestamp).toISOString();
 
-      return {
+      const offlineNote: { id: string; _isPendingSync: true } & Record<string, unknown> = {
         id: `${OFFLINE_NOTE_ID_PREFIX}${item.id}`,
         content: (payload.content as string) ?? '',
         hours_worked: (payload.hoursWorked as number) ?? 0,
@@ -74,7 +74,10 @@ export function useOfflineMergedNotes<T extends { id: string }>(
             ? (payload as { imageRefs: unknown[] }).imageRefs.length
             : undefined,
         _isPendingSync: true,
-      } as T & { _isPendingSync?: boolean };
+      };
+      // Offline notes mirror the server note row shape so list UIs can render
+      // them alongside T; only `id` is guaranteed by the T constraint.
+      return offlineNote as T & { _isPendingSync?: boolean };
     });
 
     // Offline notes first (newest at top)

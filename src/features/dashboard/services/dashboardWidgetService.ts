@@ -243,7 +243,8 @@ export async function fetchDashboardTrends(
     const { data, error } = await supabase.rpc('get_dashboard_trends', {
       p_org_id: organizationId,
       p_days: days,
-      p_team_id,
+      // The RPC defaults p_team_id to NULL, so omitting it equals passing null.
+      p_team_id: p_team_id ?? undefined,
       p_unassigned,
     });
 
