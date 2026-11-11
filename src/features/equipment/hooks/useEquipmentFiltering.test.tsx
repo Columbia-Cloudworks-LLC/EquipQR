@@ -8,10 +8,6 @@ vi.mock('@/features/equipment/hooks/useEquipment', () => ({
   useEquipmentSummaries: vi.fn(),
 }));
 
-vi.mock('@/services/syncDataService', () => ({
-  useSyncTeamsByOrganization: vi.fn(),
-}));
-
 vi.mock('@/features/teams/hooks/useTeamManagement', () => ({
   useTeams: vi.fn(() => ({ teams: [], managedTeams: [], isLoading: false, error: null })),
 }));
@@ -26,7 +22,6 @@ vi.mock('@/features/teams/hooks/useTeamMembership', () => ({
 
 import { useEquipmentFiltering } from './useEquipmentFiltering';
 import { useEquipmentList, useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
-import { useSyncTeamsByOrganization } from '@/services/syncDataService';
 
 const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const client = new QueryClient({
@@ -41,11 +36,6 @@ const summariesFixture = [
   { id: 'eq3', name: 'Forklift', manufacturer: 'Acme', location: 'LA', team_id: 'team-2' },
 ];
 
-const teamFixtures = [
-  { id: 'team-1', name: 'Team One' },
-  { id: 'team-2', name: 'Team Two' },
-];
-
 beforeEach(() => {
   (useEquipmentList as Mock).mockReturnValue({
     data: { data: [], count: 0 },
@@ -53,10 +43,6 @@ beforeEach(() => {
   });
   (useEquipmentSummaries as Mock).mockReturnValue({
     data: summariesFixture,
-    isLoading: false,
-  });
-  (useSyncTeamsByOrganization as Mock).mockReturnValue({
-    data: teamFixtures,
     isLoading: false,
   });
 });

@@ -86,18 +86,6 @@
       ]
     },
     {
-      "file": "src/services/supabaseDataService.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/services/syncDataService.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
       "file": "src/features/equipment/components/EquipmentFilters.tsx",
       "exports": [
         "*"
