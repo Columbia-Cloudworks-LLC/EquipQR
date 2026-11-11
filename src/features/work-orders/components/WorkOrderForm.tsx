@@ -81,6 +81,15 @@ interface PinnedFields {
 
 const NO_PINS: PinnedFields = { equipment: false, assignee: false, completedDate: false };
 
+/** Digits with at most one decimal point; partial entries such as "123." are allowed. */
+const SERVICE_HOURS_INPUT_PATTERN = /^\d*\.?\d*$/;
+
+function parseServiceHoursDraft(raw: string): number | null {
+  if (raw === '' || raw === '.') return null;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 interface WorkOrderFormProps {
   open: boolean;
   onClose: () => void;
@@ -132,6 +141,9 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
   const [pinned, setPinned] = useState<PinnedFields>(NO_PINS);
   const [selectedPmTemplate, setSelectedPmTemplate] = useState<PMTemplateSummary | null>(null);
   const [pmTurnOnSignal, setPmTurnOnSignal] = useState(0);
+  // Text being typed into Machine Hours at Service. Kept as typed so "123." is
+  // not re-rendered as "123" (which turned 123.5 into 1235); null when not editing.
+  const [serviceHoursDraft, setServiceHoursDraft] = useState<string | null>(null);
   const dialogContentRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const lastSubmittedRef = useRef<WorkOrderFormData | null>(null);
@@ -251,9 +263,12 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
   });
 
   const isSubmitting = isLoading || isUpdating;
+  // A logged PM is saved as completed with this checklist, so hold the save
+  // (button and Ctrl/Cmd+Enter) until the selected template's items are in hand.
+  const isChecklistPending = isLogMode && Boolean(form.values.hasPM) && !logChecklist.isReady;
 
   const handleSubmit = async () => {
-    if (isSubmitting) return;
+    if (isSubmitting || isChecklistPending) return;
     await form.handleSubmit(async (values) => {
       lastSubmittedRef.current = values;
       await submitForm(values);
@@ -360,6 +375,13 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
 
   const serviceDateValue = serviceDateInputValue(form.values.completedDate);
   const enteredServiceHours = form.values.equipmentWorkingHours;
+  // Drop the draft when the value changes from outside the input (mode switch,
+  // rapid-entry reset), so the field shows the new value.
+  useEffect(() => {
+    setServiceHoursDraft((draft) =>
+      draft !== null && parseServiceHoursDraft(draft) !== (enteredServiceHours ?? null) ? null : draft,
+    );
+  }, [enteredServiceHours]);
   const currentEquipmentHours = selectedEquipment?.working_hours ?? null;
   const serviceHoursBelowCurrent =
     enteredServiceHours != null &&
@@ -471,6 +493,7 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
                   <LogCompletedPMChecklist
                     items={logChecklist.items}
                     isLoading={logChecklist.isLoading}
+                    isError={logChecklist.isError}
                     exceptionCount={logChecklist.exceptionCount}
                     onConditionChange={logChecklist.setCondition}
                     onNotesChange={logChecklist.setNotes}
@@ -634,18 +657,17 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
                         autoComplete="off"
                         placeholder="Optional"
                         className="pr-12"
-                        value={enteredServiceHours != null ? String(enteredServiceHours) : ''}
+                        value={
+                          serviceHoursDraft ?? (enteredServiceHours != null ? String(enteredServiceHours) : '')
+                        }
                         onChange={(e) => {
                           const raw = e.target.value.trim();
-                          if (raw === '') {
-                            form.setValue('equipmentWorkingHours', null);
-                            return;
-                          }
-                          const parsed = Number(raw);
-                          if (Number.isFinite(parsed) && parsed >= 0) {
-                            form.setValue('equipmentWorkingHours', parsed);
-                          }
+                          // Ignore keystrokes that cannot become a reading (letters, a second ".", "-").
+                          if (!SERVICE_HOURS_INPUT_PATTERN.test(raw)) return;
+                          setServiceHoursDraft(raw);
+                          form.setValue('equipmentWorkingHours', parseServiceHoursDraft(raw));
                         }}
+                        onBlur={() => setServiceHoursDraft(null)}
                       />
                       <span
                         className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground"
@@ -745,7 +767,7 @@ const WorkOrderForm: React.FC<WorkOrderFormProps> = ({
               type="button"
               onClick={() => void handleSubmit()}
               data-testid="submit-button"
-              disabled={isSubmitting || !form.isValid}
+              disabled={isSubmitting || isChecklistPending || !form.isValid}
             >
               {submitLabel}
             </Button>

@@ -12,6 +12,8 @@ import { cn } from '@/lib/utils';
 interface LogCompletedPMChecklistProps {
   items: PMChecklistItem[];
   isLoading: boolean;
+  /** The selected template's checklist could not be fetched; saving is held. */
+  isError?: boolean;
   exceptionCount: number;
   onConditionChange: (itemId: string, condition: PMChecklistCondition) => void;
   onNotesChange: (itemId: string, notes: string) => void;
@@ -25,6 +27,7 @@ interface LogCompletedPMChecklistProps {
 export const LogCompletedPMChecklist: React.FC<LogCompletedPMChecklistProps> = ({
   items,
   isLoading,
+  isError = false,
   exceptionCount,
   onConditionChange,
   onNotesChange,
@@ -51,6 +54,14 @@ export const LogCompletedPMChecklist: React.FC<LogCompletedPMChecklistProps> = (
     return (
       <div role="status" className="rounded-lg border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
         Loading PM checklist...
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+        Could not load this PM checklist. Choose the template again or turn off Include PM to save.
       </div>
     );
   }
