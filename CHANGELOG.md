@@ -11,6 +11,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Changed
+
+- **Quieter release checks (#1710)** — The production release check no longer reports a failure when a release was already promoted by hand. No change to how EquipQR works.
+
 ## [3.40.0] - 2026-11-10
 
 ### Added
