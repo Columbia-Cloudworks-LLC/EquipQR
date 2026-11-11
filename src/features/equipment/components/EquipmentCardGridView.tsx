@@ -22,7 +22,7 @@ interface EquipmentCardGridViewProps {
   equipment: {
     id: string;
     name: string;
-    image_url?: string;
+    image_url?: string | null;
     team_name?: string;
   };
   display: EquipmentCardDisplayModel;

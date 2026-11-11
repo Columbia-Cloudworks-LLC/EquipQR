@@ -24,7 +24,9 @@ describe('CustomAttributesSection', () => {
       addAttribute: mockAddAttribute,
       removeAttribute: mockRemoveAttribute,
       updateAttribute: mockUpdateAttribute,
-      getCleanAttributes: mockGetCleanAttributes
+      getCleanAttributes: mockGetCleanAttributes,
+      validateAttributes: vi.fn(() => true),
+      setAttributes: vi.fn()
     });
   });
 
@@ -68,7 +70,9 @@ describe('CustomAttributesSection', () => {
         addAttribute: mockAddAttribute,
         removeAttribute: mockRemoveAttribute,
         updateAttribute: mockUpdateAttribute,
-        getCleanAttributes: mockGetCleanAttributes
+        getCleanAttributes: mockGetCleanAttributes,
+        validateAttributes: vi.fn(() => true),
+        setAttributes: vi.fn()
       });
 
       render(<CustomAttributesSection onChange={mockOnChange} />);
@@ -87,7 +91,9 @@ describe('CustomAttributesSection', () => {
         addAttribute: mockAddAttribute,
         removeAttribute: mockRemoveAttribute,
         updateAttribute: mockUpdateAttribute,
-        getCleanAttributes: mockGetCleanAttributes
+        getCleanAttributes: mockGetCleanAttributes,
+        validateAttributes: vi.fn(() => true),
+        setAttributes: vi.fn()
       });
 
       render(<CustomAttributesSection onChange={mockOnChange} />);
@@ -106,7 +112,9 @@ describe('CustomAttributesSection', () => {
         addAttribute: mockAddAttribute,
         removeAttribute: mockRemoveAttribute,
         updateAttribute: mockUpdateAttribute,
-        getCleanAttributes: mockGetCleanAttributes
+        getCleanAttributes: mockGetCleanAttributes,
+        validateAttributes: vi.fn(() => true),
+        setAttributes: vi.fn()
       });
 
       render(<CustomAttributesSection onChange={mockOnChange} />);
@@ -127,7 +135,9 @@ describe('CustomAttributesSection', () => {
         addAttribute: mockAddAttribute,
         removeAttribute: mockRemoveAttribute,
         updateAttribute: mockUpdateAttribute,
-        getCleanAttributes: mockGetCleanAttributes
+        getCleanAttributes: mockGetCleanAttributes,
+        validateAttributes: vi.fn(() => true),
+        setAttributes: vi.fn()
       });
 
       render(<CustomAttributesSection onChange={mockOnChange} />);
@@ -151,7 +161,9 @@ describe('CustomAttributesSection', () => {
         addAttribute: mockAddAttribute,
         removeAttribute: mockRemoveAttribute,
         updateAttribute: mockUpdateAttribute,
-        getCleanAttributes: () => [{ key: 'Key1', value: 'Value1' }]
+        getCleanAttributes: () => [{ id: 'attr-1', key: 'Key1', value: 'Value1' }],
+        validateAttributes: vi.fn(() => true),
+        setAttributes: vi.fn()
       });
 
       render(<CustomAttributesSection initialAttributes={initialAttributes} onChange={mockOnChange} />);
@@ -171,7 +183,9 @@ describe('CustomAttributesSection', () => {
         addAttribute: mockAddAttribute,
         removeAttribute: mockRemoveAttribute,
         updateAttribute: mockUpdateAttribute,
-        getCleanAttributes: () => [{ key: 'Key1', value: 'Value1' }, { key: 'Key2', value: 'Value2' }]
+        getCleanAttributes: () => [{ id: 'attr-1', key: 'Key1', value: 'Value1' }, { id: 'attr-2', key: 'Key2', value: 'Value2' }],
+        validateAttributes: vi.fn(() => true),
+        setAttributes: vi.fn()
       });
 
       const initialAttributes = {
@@ -210,7 +224,9 @@ describe('CustomAttributesSection', () => {
         addAttribute: mockAddAttribute,
         removeAttribute: mockRemoveAttribute,
         updateAttribute: mockUpdateAttribute,
-        getCleanAttributes: () => [{ key: 'Color', value: 'Red' }]
+        getCleanAttributes: () => [{ id: 'attr-1', key: 'Color', value: 'Red' }],
+        validateAttributes: vi.fn(() => true),
+        setAttributes: vi.fn()
       });
 
       render(<CustomAttributesSection onChange={mockOnChange} />);

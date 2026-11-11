@@ -1,7 +1,7 @@
 import type React from 'react';
 import type { EquipmentFilterState, SortConfig } from '@/features/equipment/hooks/useEquipmentFiltering';
 import type { EquipmentViewMode } from '@/features/equipment/components/EquipmentCard';
-import type { EquipmentRecord } from '@/features/equipment/types/equipment';
+import type { EquipmentExportRow } from '@/features/equipment/components/EquipmentDownloadMenu';
 
 /** Team scope is owned by TopBar `useSelectedTeam`, not page filters. */
 export type EquipmentFilterOptions = {
@@ -9,10 +9,16 @@ export type EquipmentFilterOptions = {
   locations: string[];
 };
 
+/** Typed per-key filter setter: the value type follows the key (e.g. `warrantyExpiring` is boolean). */
+export type EquipmentFilterChangeHandler = <K extends keyof EquipmentFilterState>(
+  key: K,
+  value: EquipmentFilterState[K],
+) => void;
+
 export type EquipmentListToolbarProps = {
   filters: EquipmentFilterState;
   sortConfig: SortConfig;
-  onFilterChange: (key: keyof EquipmentFilterState, value: string) => void;
+  onFilterChange: EquipmentFilterChangeHandler;
   onClearFilters: () => void;
   onQuickFilter: (preset: string) => void;
   onSortChange: (field: string, direction?: 'asc' | 'desc') => void;
@@ -24,6 +30,6 @@ export type EquipmentListToolbarProps = {
   canImport?: boolean;
   canExport?: boolean;
   onImportCsv?: () => void;
-  equipment?: EquipmentRecord[];
+  equipment?: EquipmentExportRow[];
   columnPicker?: React.ReactNode;
 };

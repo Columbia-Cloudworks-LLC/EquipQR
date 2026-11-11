@@ -4,18 +4,10 @@ import { act, render, screen, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { BulkEquipmentGrid } from './BulkEquipmentGrid';
-import type { EquipmentRecord } from '@/features/equipment/types/equipment';
+import type { EquipmentListRow } from '@/features/equipment/services/EquipmentService';
 
-/**
- * Build the minimal subset of `EquipmentRecord` the grid actually reads.
- * Fields the columns don't render are filled in as nulls/empty strings; the
- * test does not exercise those code paths.
- */
-function buildRow(id: string, overrides: Partial<EquipmentRecord> = {}): EquipmentRecord {
-  // Cast through `unknown` so the test fixture only specifies the fields the
-  // grid actually reads. The full Supabase row shape has many fields the bulk
-  // grid does not surface (location coords, customer_id, etc.) and stubbing
-  // each one adds noise without exercising any code path.
+/** Build a list row (the projection the bulk grid is fed by `getFilteredList`). */
+function buildRow(id: string, overrides: Partial<EquipmentListRow> = {}): EquipmentListRow {
   return {
     id,
     organization_id: 'org-1',
@@ -31,15 +23,12 @@ function buildRow(id: string, overrides: Partial<EquipmentRecord> = {}): Equipme
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
     installation_date: '2026-01-01',
-    use_team_location: false,
-    notes: null,
     image_url: null,
     warranty_expiration: null,
     last_maintenance: null,
     custom_attributes: null,
-    last_known_location: null,
     ...overrides,
-  } as unknown as EquipmentRecord;
+  };
 }
 
 function renderGrid(props: Partial<React.ComponentProps<typeof BulkEquipmentGrid>> = {}) {

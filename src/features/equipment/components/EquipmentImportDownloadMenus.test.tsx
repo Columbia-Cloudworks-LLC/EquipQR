@@ -2,8 +2,7 @@ import { render, screen } from '@vitest-harness/utils/test-utils';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as exportUtils from '@/utils/exportUtils';
-import type { EquipmentRecord } from '@/features/equipment/types/equipment';
-import EquipmentDownloadMenu from './EquipmentDownloadMenu';
+import EquipmentDownloadMenu, { type EquipmentExportRow } from './EquipmentDownloadMenu';
 import EquipmentImportMenu from './EquipmentImportMenu';
 
 vi.mock('@/utils/logger', () => ({
@@ -13,9 +12,8 @@ vi.mock('@/utils/logger', () => ({
   },
 }));
 
-const mockEquipment: EquipmentRecord = {
+const mockEquipment: EquipmentExportRow = {
   id: 'eq-1',
-  organization_id: 'org-1',
   name: 'Forklift A1',
   status: 'active',
   serial_number: 'SN12345',
@@ -26,7 +24,7 @@ const mockEquipment: EquipmentRecord = {
   last_maintenance: '2024-01-15',
   team_name: 'Fleet',
   warranty_expiration: null,
-  installation_date: null,
+  installation_date: '2023-12-01',
   created_at: '2024-01-01T00:00:00.000Z',
   updated_at: '2024-01-02T00:00:00.000Z',
 };

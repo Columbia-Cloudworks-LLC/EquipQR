@@ -99,9 +99,18 @@ const createMockEquipment = (overrides: Partial<EquipmentRecord> = {}): Equipmen
   created_at: '2025-01-01T00:00:00Z',
   updated_at: '2025-01-01T00:00:00Z',
   working_hours: 0,
-  
+  customer_id: null,
+  import_id: null,
+  last_maintenance_work_order_id: null,
   default_pm_template_id: null,
-  
+  assigned_location_street: null,
+  assigned_location_city: null,
+  assigned_location_state: null,
+  assigned_location_country: null,
+  assigned_location_lat: null,
+  assigned_location_lng: null,
+  use_team_location: false,
+
   ...overrides,
 });
 
@@ -118,7 +127,7 @@ const baseValues: EquipmentFormData = {
   notes: '',
   custom_attributes: {},
   image_url: '',
-  last_known_location: null,
+  last_known_location: undefined,
   team_id: 'team-1',
   default_pm_template_id: ''
 };
@@ -207,8 +216,16 @@ describe('useEquipmentForm', () => {
   it('warns when post-create media returns no images', async () => {
     vi.mocked(createEquipmentNoteWithImages).mockResolvedValueOnce({
       id: 'note-1',
+      equipment_id: 'eq-new',
+      content: 'Equipment created',
+      author_id: 'user-1',
+      author_name: 'Test User',
+      is_private: false,
+      hours_worked: 0,
+      created_at: '2025-01-01T00:00:00Z',
+      updated_at: '2025-01-01T00:00:00Z',
       images: [],
-    } as Awaited<ReturnType<typeof createEquipmentNoteWithImages>>);
+    });
 
     const client = new QueryClient();
     const onSuccess = vi.fn();

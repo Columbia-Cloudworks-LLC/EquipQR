@@ -5,6 +5,15 @@ import EquipmentDetailsTab from './EquipmentDetailsTab';
 import { Tables } from '@/integrations/supabase/types';
 import * as useEquipmentModule from '@/features/equipment/hooks/useEquipment';
 import * as useUnifiedPermissionsModule from '@/hooks/useUnifiedPermissions';
+import {
+  buildEquipmentNotesPermissions,
+  buildEquipmentPermissions,
+  buildInventoryPermissions,
+  buildOrganizationPermissions,
+  buildTeamPermissions,
+  buildWorkOrderPermissions,
+} from '@/hooks/unifiedPermissionBuilders';
+import type { EntityPermissions } from '@/types/permissions';
 import { personas } from '@vitest-harness/fixtures/personas';
 import { equipment as eqFixtures, organizations, teams as teamFixtures } from '@vitest-harness/fixtures/entities';
 
@@ -206,19 +215,68 @@ const forkliftEquipment: Tables<'equipment'> = {
   assigned_location_state: null,
   assigned_location_country: null,
   assigned_location_lat: 40.7128,
-  assigned_location_lng: -74.006
+  assigned_location_lng: -74.006,
+  use_team_location: false
 };
 
 // ============================================
 // Helpers
 // ============================================
 
-function setupPermissions(canEdit: boolean, canDelete: boolean) {
-  vi.mocked(useUnifiedPermissionsModule.useUnifiedPermissions).mockReturnValue({
+type UpdateEquipmentMutation = ReturnType<typeof useEquipmentModule.useUpdateEquipment>;
+
+/** Complete idle mutation result so the hook mock satisfies `UseMutationResult`. */
+const createUpdateMutationResult = (
+  mutateAsync: UpdateEquipmentMutation['mutateAsync'],
+): UpdateEquipmentMutation => ({
+  mutate: vi.fn(),
+  mutateAsync,
+  data: undefined,
+  error: null,
+  isError: false,
+  isSuccess: false,
+  isPending: false,
+  isIdle: true,
+  status: 'idle',
+  variables: undefined,
+  reset: vi.fn(),
+  context: undefined,
+  failureCount: 0,
+  failureReason: null,
+  submittedAt: 0,
+  isPaused: false,
+});
+
+type UnifiedPermissions = ReturnType<typeof useUnifiedPermissionsModule.useUnifiedPermissions>;
+
+/** Complete permissions object built from the real builders; only equipment permissions are overridden. */
+function createUnifiedPermissions(equipmentPermissions: EntityPermissions): UnifiedPermissions {
+  const hasPermission = () => false;
+  const hasRole = () => false;
+  const isMember = () => false;
+  return {
+    context: null,
+    organization: buildOrganizationPermissions(hasPermission, hasRole),
     equipment: {
-      getPermissions: vi.fn(() => ({ canEdit, canDelete }))
-    }
-  });
+      ...buildEquipmentPermissions(hasPermission, hasRole, null),
+      getPermissions: vi.fn(() => equipmentPermissions),
+    },
+    workOrders: buildWorkOrderPermissions(hasPermission, hasRole, isMember, isMember, null),
+    teams: buildTeamPermissions(hasPermission, hasRole),
+    inventory: buildInventoryPermissions(hasRole),
+    hasRole,
+    isTeamMember: isMember,
+    isTeamManager: isMember,
+    hasPermission,
+    getEquipmentNotesPermissions: buildEquipmentNotesPermissions(null, null, hasRole, isMember, isMember),
+    clearPermissionCache: vi.fn(),
+  };
+}
+
+function setupPermissions(canEdit: boolean, canDelete: boolean) {
+  vi.mocked(useUnifiedPermissionsModule.useUnifiedPermissions).mockReturnValue(
+    createUnifiedPermissions({ canView: true, canCreate: canEdit, canEdit, canDelete }),
+  );
 }
 
 // ============================================
@@ -228,10 +286,7 @@ function setupPermissions(canEdit: boolean, canDelete: boolean) {
 describe('EquipmentDetailsTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue({
-      mutateAsync: vi.fn().mockResolvedValue(forkliftEquipment),
-      isPending: false
-    });
+    vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue(createUpdateMutationResult(vi.fn().mockResolvedValue(forkliftEquipment)));
   });
 
   // --------------------------------------------------------
@@ -268,10 +323,7 @@ describe('EquipmentDetailsTab', () => {
 
     it('calls update mutation when a field is saved', async () => {
       const mockMutateAsync = vi.fn().mockResolvedValue(forkliftEquipment);
-      vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue({
-        mutateAsync: mockMutateAsync,
-        isPending: false
-      });
+      vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue(createUpdateMutationResult(mockMutateAsync));
 
       render(<EquipmentDetailsTab equipment={forkliftEquipment} />);
 
@@ -292,10 +344,7 @@ describe('EquipmentDetailsTab', () => {
 
     it('updates custom attributes when saved', async () => {
       const mockMutateAsync = vi.fn().mockResolvedValue(forkliftEquipment);
-      vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue({
-        mutateAsync: mockMutateAsync,
-        isPending: false
-      });
+      vi.mocked(useEquipmentModule.useUpdateEquipment).mockReturnValue(createUpdateMutationResult(mockMutateAsync));
 
       render(<EquipmentDetailsTab equipment={forkliftEquipment} />);
       fireEvent.click(screen.getByText('Save Attributes'));

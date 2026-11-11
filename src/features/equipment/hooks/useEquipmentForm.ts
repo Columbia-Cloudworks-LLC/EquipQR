@@ -91,9 +91,7 @@ export const useEquipmentForm = (
       sessionData?.teamMemberships.some(
         (membership) =>
           membership.teamId === cloneSource.team_id &&
-          (membership.role === 'manager' ||
-            membership.role === 'technician' ||
-            membership.role === 'admin'),
+          (membership.role === 'manager' || membership.role === 'technician'),
       ) ?? false
     );
   }, [cloneSource?.team_id, currentOrganization, sessionData?.teamMemberships]);

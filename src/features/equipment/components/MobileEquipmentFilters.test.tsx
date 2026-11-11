@@ -14,10 +14,10 @@ const defaultFilters: EquipmentFilterState = {
   manufacturer: 'all',
   location: 'all',
   team: 'all',
-  maintenanceDateFrom: null,
-  maintenanceDateTo: null,
-  installationDateFrom: null,
-  installationDateTo: null,
+  maintenanceDateFrom: '',
+  maintenanceDateTo: '',
+  installationDateFrom: '',
+  installationDateTo: '',
   warrantyExpiring: false,
 };
 

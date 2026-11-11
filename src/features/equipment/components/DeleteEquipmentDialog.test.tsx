@@ -14,6 +14,39 @@ vi.mock('@/features/equipment/hooks/useDeleteEquipment', () => ({
   useDeleteEquipment: vi.fn()
 }));
 
+type DeleteMutationResult = ReturnType<typeof useDeleteEquipmentModule.useDeleteEquipment>;
+
+/** Complete idle/pending mutation result so the hook mock satisfies `UseMutationResult`. */
+const createDeleteMutationResult = (
+  mutateAsync: DeleteMutationResult['mutateAsync'],
+  isPending: boolean,
+): DeleteMutationResult => {
+  const base = {
+    mutate: vi.fn(),
+    mutateAsync,
+    data: undefined,
+    error: null,
+    isError: false as const,
+    isSuccess: false as const,
+    reset: vi.fn(),
+    context: undefined,
+    failureCount: 0,
+    failureReason: null,
+    submittedAt: 0,
+    isPaused: false,
+  };
+  if (isPending) {
+    return {
+      ...base,
+      isPending: true,
+      isIdle: false,
+      status: 'pending',
+      variables: { equipmentId: 'eq-1', orgId: 'org-1' },
+    };
+  }
+  return { ...base, isPending: false, isIdle: true, status: 'idle', variables: undefined };
+};
+
 const mockImpact = {
   workOrders: 5,
   pmCount: 3,
@@ -39,10 +72,7 @@ describe('DeleteEquipmentDialog', () => {
     
     vi.mocked(deleteEquipmentServiceModule.getEquipmentDeletionImpact).mockResolvedValue(mockImpact);
     
-    vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue({
-      mutateAsync: vi.fn().mockResolvedValue(undefined),
-      isPending: false
-    });
+    vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue(createDeleteMutationResult(vi.fn().mockResolvedValue(undefined), false));
   });
 
   async function waitForEnabledContinueAndClick() {
@@ -189,10 +219,7 @@ describe('DeleteEquipmentDialog', () => {
   describe('Deletion Process', () => {
     it('calls delete mutation when delete button is clicked', async () => {
       const mockMutateAsync = vi.fn().mockResolvedValue(undefined);
-      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue({
-        mutateAsync: mockMutateAsync,
-        isPending: false
-      });
+      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue(createDeleteMutationResult(mockMutateAsync, false));
       
       render(<DeleteEquipmentDialog {...defaultProps} />);
       await advanceToDeleteConfirmation();
@@ -210,10 +237,7 @@ describe('DeleteEquipmentDialog', () => {
 
     it('calls onSuccess after successful deletion', async () => {
       const mockMutateAsync = vi.fn().mockResolvedValue(undefined);
-      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue({
-        mutateAsync: mockMutateAsync,
-        isPending: false
-      });
+      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue(createDeleteMutationResult(mockMutateAsync, false));
       
       render(<DeleteEquipmentDialog {...defaultProps} />);
       await advanceToDeleteConfirmation();
@@ -230,10 +254,7 @@ describe('DeleteEquipmentDialog', () => {
 
     it('closes dialog after successful deletion', async () => {
       const mockMutateAsync = vi.fn().mockResolvedValue(undefined);
-      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue({
-        mutateAsync: mockMutateAsync,
-        isPending: false
-      });
+      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue(createDeleteMutationResult(mockMutateAsync, false));
       
       render(<DeleteEquipmentDialog {...defaultProps} />);
       await advanceToDeleteConfirmation();
@@ -249,11 +270,8 @@ describe('DeleteEquipmentDialog', () => {
     });
 
     it('shows loading state during deletion', async () => {
-      const mockMutateAsync = vi.fn(() => new Promise(() => {}));
-      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue({
-        mutateAsync: mockMutateAsync,
-        isPending: true
-      });
+      const mockMutateAsync = vi.fn(() => new Promise<void>(() => {}));
+      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue(createDeleteMutationResult(mockMutateAsync, true));
       
       render(<DeleteEquipmentDialog {...defaultProps} />);
       await waitForEnabledContinueAndClick();

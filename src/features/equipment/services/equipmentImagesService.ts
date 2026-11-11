@@ -64,6 +64,8 @@ export const getAllEquipmentImages = async (
     // Combine and format all images
     const equipmentNotesImages: EquipmentImageData[] = equipmentImages.map(img => ({
       ...img,
+      file_size: img.file_size ?? undefined,
+      description: img.description ?? undefined,
       source_type: 'equipment_note' as const,
       source_id: ('equipment_note_id' in img ? (img as { equipment_note_id: string }).equipment_note_id : undefined)
     }));

@@ -1,6 +1,6 @@
 import { ApiResponse, PaginationParams, FilterParams } from '@/services/base/BaseService';
 import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/integrations/supabase/types';
+import type { Tables, TablesInsert } from '@/integrations/supabase/types';
 import { logger } from '@/utils/logger';
 import { getAuthClaims } from '@/lib/authClaims';
 import { withResolvedEquipmentImages } from '@/services/imageUploadService';
@@ -124,8 +124,37 @@ export interface EquipmentListFilters {
   isOrgAdmin?: boolean;
 }
 
+/**
+ * Columns projected by `EquipmentService.getFilteredList`. It deliberately skips
+ * wide/rarely-needed columns (e.g. `last_known_location`, assigned-location
+ * fields), so list rows are narrower than a full `EquipmentWithTeam`.
+ */
+export type EquipmentListRow = Pick<
+  Equipment,
+  | 'id'
+  | 'organization_id'
+  | 'name'
+  | 'manufacturer'
+  | 'model'
+  | 'serial_number'
+  | 'status'
+  | 'team_id'
+  | 'location'
+  | 'image_url'
+  | 'working_hours'
+  | 'last_maintenance'
+  | 'installation_date'
+  | 'warranty_expiration'
+  | 'custom_attributes'
+  | 'created_at'
+  | 'updated_at'
+> & {
+  team?: EquipmentTeamSummary | null;
+  team_name?: string;
+};
+
 export interface EquipmentListResult {
-  data: EquipmentWithTeam[];
+  data: EquipmentListRow[];
   /** Total rows matching `filters` (NOT the page slice). Drives pagination. */
   count: number;
 }
@@ -137,7 +166,12 @@ export interface EquipmentListResult {
  */
 const MAX_LIST_PAGE_SIZE = 200;
 
-type EquipmentListQuery = ReturnType<ReturnType<typeof supabase.from>['select']>;
+/** Structural slice of the Supabase filter builder used by the list-filter helpers. */
+type EquipmentListQuery<Q> = {
+  gte: (column: string, value: string) => Q;
+  lte: (column: string, value: string) => Q;
+  not: (column: string, operator: string, value: null) => Q;
+};
 type EquipmentListPagination = {
   page?: number;
   pageSize?: number;
@@ -181,10 +215,10 @@ function isSpecificEquipmentFilter(value: string | undefined): value is string {
   return Boolean(value && value !== 'all');
 }
 
-function applyEquipmentListDateFilters(
-  query: EquipmentListQuery,
+function applyEquipmentListDateFilters<Q extends EquipmentListQuery<Q>>(
+  query: Q,
   filters: EquipmentListFilters,
-): EquipmentListQuery {
+): Q {
   let nextQuery = query;
 
   if (filters.maintenanceDateFrom) {
@@ -212,10 +246,10 @@ function getWarrantyExpirationWindow(now = new Date()) {
   };
 }
 
-function applyWarrantyExpiringFilter(
-  query: EquipmentListQuery,
+function applyWarrantyExpiringFilter<Q extends EquipmentListQuery<Q>>(
+  query: Q,
   filters: EquipmentListFilters,
-): EquipmentListQuery {
+): Q {
   if (!filters.warrantyExpiring) {
     return query;
   }
@@ -240,7 +274,7 @@ function getEquipmentListRange(page: number, pageSize: number) {
   return { from, to: from + pageSize - 1 };
 }
 
-export type EquipmentCreateData = Omit<Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>;
+export type EquipmentCreateData = Omit<TablesInsert<'equipment'>, 'id' | 'created_at' | 'updated_at' | 'organization_id'>;
 
 export type EquipmentUpdateData = Partial<Omit<Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>>;
 

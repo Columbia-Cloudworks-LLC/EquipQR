@@ -1,6 +1,8 @@
 import {
   generateEquipmentName,
   type EquipmentFormData,
+  parseCustomAttributes,
+  parseEquipmentLocation,
   type EquipmentRecord,
 } from '@/features/equipment/types/equipment';
 import type { EquipmentCreateData, EquipmentUpdateData } from '@/features/equipment/services/EquipmentService';
@@ -22,9 +24,9 @@ export function buildEquipmentFormDefaultValues(
       warranty_expiration: initialData.warranty_expiration || '',
       last_maintenance: initialData.last_maintenance || '',
       notes: initialData.notes || '',
-      custom_attributes: initialData.custom_attributes || {},
+      custom_attributes: parseCustomAttributes(initialData.custom_attributes),
       image_url: initialData.image_url || '',
-      last_known_location: initialData.last_known_location || undefined,
+      last_known_location: parseEquipmentLocation(initialData.last_known_location),
       team_id: initialData.team_id || '',
       default_pm_template_id: initialData.default_pm_template_id || '',
       assigned_location_street: initialData.assigned_location_street || '',

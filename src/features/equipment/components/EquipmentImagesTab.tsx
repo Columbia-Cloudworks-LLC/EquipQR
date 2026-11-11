@@ -133,7 +133,7 @@ const EquipmentImagesTab: React.FC<EquipmentImagesTabProps> = ({
     },
   });
 
-  const canDeleteImage = (image: EquipmentImageData): boolean => {
+  const canDeleteImage = (image: Pick<EquipmentImageData, 'uploaded_by'>): boolean => {
     if (image.uploaded_by === user?.id) return true;
     return permissions.canDeleteImages;
   };

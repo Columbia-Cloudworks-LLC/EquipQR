@@ -56,7 +56,7 @@ describe('EquipmentService', () => {
       
       expect(result.success).toBe(true);
       expect(result.data).toBeInstanceOf(Array);
-      expect(result.data.length).toBeGreaterThan(0);
+      expect(result.data?.length).toBeGreaterThan(0);
     });
 
     it('should filter equipment by status', async () => {
@@ -75,7 +75,7 @@ describe('EquipmentService', () => {
       const result = await EquipmentService.getAll(organizationId, { status: 'active' });
       
       expect(result.success).toBe(true);
-      expect(result.data.every(eq => eq.status === 'active')).toBe(true);
+      expect(result.data?.every(eq => eq.status === 'active')).toBe(true);
     });
 
     it('should filter equipment by location', async () => {
@@ -96,7 +96,7 @@ describe('EquipmentService', () => {
       const result = await EquipmentService.getAll(organizationId, { location });
       
       expect(result.success).toBe(true);
-      expect(result.data.every(eq => eq.location === location)).toBe(true);
+      expect(result.data?.every(eq => eq.location === location)).toBe(true);
     });
 
     it('should apply pagination correctly', async () => {
@@ -116,7 +116,7 @@ describe('EquipmentService', () => {
       const result = await EquipmentService.getAll(organizationId, {}, { page: 1, limit: 2 });
       
       expect(result.success).toBe(true);
-      expect(result.data.length).toBeLessThanOrEqual(2);
+      expect(result.data?.length).toBeLessThanOrEqual(2);
     });
   });
 
@@ -136,7 +136,7 @@ describe('EquipmentService', () => {
       
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
-      expect(result.data.id).toBe('eq-1');
+      expect(result.data?.id).toBe('eq-1');
     });
 
     it('should handle non-existent equipment', async () => {
@@ -215,7 +215,7 @@ describe('EquipmentService', () => {
       
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
-      expect(result.data.name).toBe(equipmentData.name);
+      expect(result.data?.name).toBe(equipmentData.name);
     });
 
     it('should validate required fields', async () => {
@@ -266,8 +266,8 @@ describe('EquipmentService', () => {
       const result = await EquipmentService.update(organizationId, 'eq-1', updateData);
       
       expect(result.success).toBe(true);
-      expect(result.data.name).toBe(updateData.name);
-      expect(result.data.status).toBe(updateData.status);
+      expect(result.data?.name).toBe(updateData.name);
+      expect(result.data?.status).toBe(updateData.status);
     });
 
     it('should handle non-existent equipment update', async () => {

@@ -11,16 +11,8 @@ import PMProgressIndicator from '@/features/work-orders/components/PMProgressInd
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 
-interface ExtendedWorkOrder extends WorkOrder {
-  created_date: string;
-  due_date?: string;
-  estimated_hours?: number;
-  completed_date?: string;
-  has_pm?: boolean;
-}
-
 interface MobileWorkOrderCardProps {
-  workOrder: ExtendedWorkOrder;
+  workOrder: WorkOrder;
 }
 
 const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({ workOrder }) => {
@@ -166,7 +158,19 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({ workOrder }) 
 
           {/* Footer */}
           <div className="flex items-center justify-between pt-2 border-t">
-            {permissions.workOrders.getDetailedPermissions({ ...workOrder, organizationId: '' }).canEdit && (
+            {permissions.workOrders.getDetailedPermissions({
+              id: workOrder.id,
+              title: workOrder.title,
+              description: workOrder.description,
+              equipmentId: workOrder.equipment_id,
+              organizationId: '',
+              priority: workOrder.priority,
+              status: workOrder.status,
+              assigneeId: workOrder.assignee_id ?? undefined,
+              teamId: workOrder.teamId,
+              createdDate: workOrder.created_date,
+              created_date: workOrder.created_date,
+            }).canEdit && (
               <WorkOrderCostSubtotal 
                 workOrderId={workOrder.id}
                 className="text-sm"

@@ -129,15 +129,21 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
               completedDate: workOrder.completed_date,
               assigneeId: workOrder.assignee_id,
               teamId: undefined,
-              equipmentManufacturer: workOrder.equipmentManufacturer ?? equipmentManufacturer,
-              equipmentModel: workOrder.equipmentModel ?? equipmentModel,
-              equipmentSerialNumber: workOrder.equipmentSerialNumber ?? equipmentSerialNumber,
+              equipmentManufacturer,
+              equipmentModel,
+              equipmentSerialNumber,
             };
 
             return (
               <div key={workOrder.id} className="space-y-2">
                 {workOrder.is_historical && (
-                  <HistoricalWorkOrderBadge workOrder={workOrder} />
+                  <HistoricalWorkOrderBadge
+                    workOrder={{
+                      is_historical: workOrder.is_historical,
+                      historical_start_date: workOrder.historical_start_date ?? undefined,
+                      historical_notes: workOrder.historical_notes ?? undefined,
+                    }}
+                  />
                 )}
                 {isMobile ? (
                   <MobileWorkOrderCard 

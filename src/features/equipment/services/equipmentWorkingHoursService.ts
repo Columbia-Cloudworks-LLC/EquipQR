@@ -1,7 +1,8 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 
-export interface WorkingHoursHistoryEntry {
+// A type alias (not an interface) so rows satisfy `DataTable<T extends Record<string, unknown>>`.
+export type WorkingHoursHistoryEntry = {
   id: string;
   equipment_id: string;
   old_hours: number | null;
@@ -13,7 +14,7 @@ export interface WorkingHoursHistoryEntry {
   work_order_id: string | null;
   notes: string | null;
   created_at: string;
-}
+};
 
 export interface UpdateWorkingHoursData {
   equipmentId: string;
@@ -28,8 +29,8 @@ export const updateEquipmentWorkingHours = async (data: UpdateWorkingHoursData) 
     p_equipment_id: data.equipmentId,
     p_new_hours: data.newHours,
     p_update_source: data.updateSource || 'manual',
-    p_work_order_id: data.workOrderId || null,
-    p_notes: data.notes || null
+    p_work_order_id: data.workOrderId || undefined,
+    p_notes: data.notes || undefined
   });
 
   if (error) {

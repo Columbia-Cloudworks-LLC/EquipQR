@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@vitest-harness/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import MobileWorkOrderCard from './MobileWorkOrderCard';
+import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 
 // Mock navigate
 const mockNavigate = vi.fn();
@@ -13,17 +14,18 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-const mockWorkOrder = {
+const mockWorkOrder: WorkOrder = {
   id: 'wo-1',
   title: 'Test Work Order',
   description: 'Test description',
-  status: 'submitted' as const,
-  priority: 'medium' as const,
+  status: 'submitted',
+  priority: 'medium',
   equipment_id: 'eq-1',
   organization_id: 'org-1',
   created_by: 'user-1',
   created_date: '2024-01-15',
   due_date: '2024-01-20',
+  due_date_has_time: false,
   updated_at: '2024-01-15T00:00:00Z',
   has_pm: false,
   is_historical: false,
@@ -32,14 +34,26 @@ const mockWorkOrder = {
   assignee_id: null,
   assignee_name: null,
   assigneeName: undefined,
-  team_id: null,
   teamName: undefined,
   created_by_admin: null,
   created_by_name: null,
   completed_date: null,
+  equipment_working_hours_at_creation: null,
   estimated_hours: null,
   historical_notes: null,
-  historical_start_date: null
+  historical_start_date: null,
+  invoice_balance_cents: null,
+  invoice_due_date: null,
+  invoice_last_synced_at: null,
+  invoice_paid_at: null,
+  invoice_sent_at: null,
+  invoice_status: null,
+  invoice_sync_error: null,
+  primary_image_id: null,
+  quickbooks_invoice_environment: null,
+  quickbooks_invoice_id: null,
+  quickbooks_invoice_number: null,
+  quickbooks_realm_id: null
 };
 
 describe('MobileWorkOrderCard', () => {
