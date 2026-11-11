@@ -91,26 +91,6 @@ export async function getWorkspaceOnboardingState(userId: string): Promise<Works
   return data[0] as WorkspaceOnboardingState;
 }
 
-export async function createWorkspaceOrganizationForDomain(
-  domain: string,
-  organizationName: string
-): Promise<{ organization_id: string; domain: string }> {
-  const { data, error } = await supabase.rpc('create_workspace_organization_for_domain', {
-    p_domain: domain,
-    p_organization_name: organizationName,
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  if (!data || data.length === 0) {
-    throw new Error('Failed to create workspace organization');
-  }
-
-  return data[0];
-}
-
 export async function getGoogleWorkspaceConnectionStatus(
   organizationId: string
 ): Promise<WorkspaceConnectionStatus> {

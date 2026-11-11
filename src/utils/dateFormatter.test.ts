@@ -2,13 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   formatDate,
   formatDateTime,
-  formatDateInUserSettings,
   formatForExport,
   formatIsoZulu,
   formatRelative,
-  formatRelativeDate,
   formatTime,
-  formatTimeInUserSettings,
 } from "./dateFormatter";
 import { UserSettings } from "@/types/settings";
 
@@ -141,36 +138,6 @@ describe("dateFormatter", () => {
     it("matches ISO Zulu for any viewer timezone", () => {
       expect(formatForExport(UTC_CROSS_CALENDAR)).toBe(
         "2023-12-24T15:00:00.000Z",
-      );
-    });
-  });
-
-  describe("legacy wrappers", () => {
-    afterEach(() => {
-      vi.useRealTimers();
-    });
-
-    it("formatDateInUserSettings delegates to formatDate / formatDateTime", () => {
-      expect(formatDateInUserSettings(UTC_CROSS_CALENDAR, settingsNy)).toBe(
-        formatDate(UTC_CROSS_CALENDAR, settingsNy),
-      );
-      expect(
-        formatDateInUserSettings(UTC_CROSS_CALENDAR, settingsNy, true),
-      ).toBe(formatDateTime(UTC_CROSS_CALENDAR, settingsNy));
-    });
-
-    it("formatTimeInUserSettings matches formatTime", () => {
-      expect(formatTimeInUserSettings(UTC_CROSS_CALENDAR, settingsNy)).toBe(
-        formatTime(UTC_CROSS_CALENDAR, settingsNy),
-      );
-    });
-
-    it("formatRelativeDate matches formatRelative", () => {
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date("2023-12-25T18:00:00.000Z"));
-      const recent = "2023-12-25T10:00:00.000Z";
-      expect(formatRelativeDate(recent, settingsNy)).toBe(
-        formatRelative(recent, settingsNy),
       );
     });
   });

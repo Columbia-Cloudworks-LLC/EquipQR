@@ -208,33 +208,6 @@ export const useEquipmentById = (
 };
 
 /**
- * Get notes for equipment
- */
-export const useEquipmentNotes = (
-  organizationId: string | undefined,
-  equipmentId: string | undefined,
-  options?: {
-    staleTime?: number;
-  }
-) => {
-  const staleTime = options?.staleTime ?? 5 * 60 * 1000;
-
-  return useQuery({
-    queryKey: ['equipment-notes', organizationId, equipmentId],
-    queryFn: async () => {
-      if (!organizationId || !equipmentId) return [];
-      const result = await EquipmentService.getNotesByEquipmentId(organizationId, equipmentId);
-      if (result.success && result.data) {
-        return result.data;
-      }
-      throw new Error(result.error || 'Failed to fetch notes');
-    },
-    enabled: !!organizationId && !!equipmentId,
-    staleTime,
-  });
-};
-
-/**
  * Get scans for equipment
  */
 export const useEquipmentScans = (
@@ -407,32 +380,6 @@ export const useCreateScan = (organizationId: string | undefined) => {
         variant: 'error',
       });
     },
-  });
-};
-
-/**
- * Get equipment status counts
- */
-export const useEquipmentStatusCounts = (
-  organizationId: string | undefined,
-  options?: {
-    staleTime?: number;
-  }
-) => {
-  const staleTime = options?.staleTime ?? 2 * 60 * 1000; // 2 minutes for stats
-
-  return useQuery({
-    queryKey: ['equipment-status-counts', organizationId],
-    queryFn: async () => {
-      if (!organizationId) return { active: 0, maintenance: 0, inactive: 0 };
-      const result = await EquipmentService.getStatusCounts(organizationId);
-      if (result.success && result.data) {
-        return result.data;
-      }
-      return { active: 0, maintenance: 0, inactive: 0 };
-    },
-    enabled: !!organizationId,
-    staleTime,
   });
 };
 

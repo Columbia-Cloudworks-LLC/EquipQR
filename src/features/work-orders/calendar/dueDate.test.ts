@@ -18,8 +18,9 @@ import {
   type DueDate,
   type DuePersist,
   type DueWrite,
-} from '@/features/work-orders/calendar';
-import { calendarDayInTimeZone, type LocalInstant } from '@/features/work-orders/calendar/dueDate';
+  calendarDayInTimeZone,
+  type LocalInstant,
+} from '@/features/work-orders/calendar/dueDate';
 
 function localYmd(date: Date): { y: number; m: number; d: number } {
   return { y: date.getFullYear(), m: date.getMonth() + 1, d: date.getDate() };

@@ -137,14 +137,3 @@ export function jitterPoints(
 
   return result;
 }
-
-/**
- * Returns all original points that share the same cluster key.
- * Useful for displaying a popover with all teams at an overlapping coordinate.
- */
-export function getClusterMembers(
-  jitteredPoints: JitteredPoint[],
-  clusterKey: string
-): JitteredPoint[] {
-  return jitteredPoints.filter((p) => p.clusterKey === clusterKey);
-}

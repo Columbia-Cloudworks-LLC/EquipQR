@@ -11,7 +11,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import type { QuickBooksConnectionStatus, InvoiceExportResult, QuickBooksInvoiceStatus } from './types';
+import type { QuickBooksConnectionStatus, QuickBooksInvoiceStatus } from './types';
 
 /**
  * QuickBooks customer from the API
@@ -95,77 +95,6 @@ export interface CustomerSearchResult {
 
 
 /**
- * Creates a new OAuth session for QuickBooks authorization
- * 
- * @param organizationId - The organization ID to connect QuickBooks to
- * @param redirectUrl - Optional custom redirect URL after OAuth completion
- * @returns Session data including token and nonce
- */
-export async function createOAuthSession(
-  organizationId: string,
-  redirectUrl?: string | null
-): Promise<{ sessionToken: string; nonce: string; expiresAt: string }> {
-  const { data, error } = await supabase
-    .rpc('create_quickbooks_oauth_session', {
-      p_organization_id: organizationId,
-      p_redirect_url: redirectUrl || undefined,
-    });
-
-  if (error) {
-    throw new Error(`Failed to create OAuth session: ${error.message}`);
-  }
-
-  if (!data || data.length === 0) {
-    throw new Error('No session data returned');
-  }
-
-  const session = data[0];
-  return {
-    sessionToken: session.session_token,
-    nonce: session.nonce,
-    expiresAt: session.expires_at,
-  };
-}
-
-/**
- * Validates an OAuth session token
- * 
- * @param sessionToken - The session token to validate
- * @returns Session validation result
- */
-export async function validateOAuthSession(
-  sessionToken: string
-): Promise<{
-  isValid: boolean;
-  organizationId?: string;
-  userId?: string;
-  redirectUrl?: string | null;
-  nonce?: string;
-}> {
-  const { data, error } = await supabase
-    .rpc('validate_quickbooks_oauth_session', {
-      p_session_token: sessionToken,
-    });
-
-  if (error) {
-    throw new Error(`Failed to validate OAuth session: ${error.message}`);
-  }
-
-  if (!data || data.length === 0) {
-    return { isValid: false };
-  }
-
-  const result = data[0];
-  return {
-    isValid: result.is_valid,
-    organizationId: result.organization_id,
-    userId: result.user_id,
-    redirectUrl: result.redirect_url,
-    nonce: result.nonce,
-  };
-}
-
-/**
  * Gets the QuickBooks connection status for an organization
  * 
  * Note: This uses a secure RPC function that only returns non-sensitive metadata.
@@ -211,35 +140,6 @@ export async function getConnectionStatus(
     isAccessTokenValid: result.is_access_token_valid,
     isRefreshTokenValid: result.is_refresh_token_valid,
     scopes: result.scopes,
-  };
-}
-
-/**
- * Manually triggers token refresh for credentials that are about to expire
- * 
- * @returns Result of the refresh operation
- */
-export async function manualTokenRefresh(): Promise<{
-  credentialsCount: number;
-  message: string;
-}> {
-  const { data, error } = await supabase
-    .rpc('refresh_quickbooks_tokens_manual');
-
-  if (error) {
-    throw new Error(`Failed to trigger token refresh: ${error.message}`);
-  }
-
-  if (!data || data.length === 0) {
-    return {
-      credentialsCount: 0,
-      message: 'No credentials to refresh',
-    };
-  }
-
-  return {
-    credentialsCount: data[0].credentials_count,
-    message: data[0].message,
   };
 }
 
@@ -411,60 +311,6 @@ export async function searchCustomers(
   return {
     success: true,
     customers: result.customers || [],
-  };
-}
-
-/**
- * Exports a work order to QuickBooks as a draft invoice
- * 
- * @param workOrderId - The work order ID to export
- * @returns Export result with invoice details
- */
-export async function exportInvoice(
-  workOrderId: string,
-  confirmation?: import('./invoiceReview').InvoiceConfirmation,
-): Promise<InvoiceExportResult> {
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  if (!session) {
-    return { success: false, error: 'Not authenticated' };
-  }
-
-  if (!confirmation) return { success: false, error: 'Review invoice details before exporting.' };
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  
-  const response = await fetch(
-    `${supabaseUrl}/functions/v1/quickbooks-export-invoice`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({
-          work_order_id: workOrderId,
-          action: 'export',
-          confirmation,
-      }),
-    }
-  );
-
-  const result = await response.json();
-
-  if (!response.ok) {
-    return { 
-      success: false, 
-      error: result.error || 'Failed to export invoice' 
-    };
-  }
-
-  return {
-    success: true,
-    invoiceId: result.invoice_id,
-    invoiceNumber: result.invoice_number,
-    isUpdate: result.is_update,
-    environment: result.environment,
   };
 }
 

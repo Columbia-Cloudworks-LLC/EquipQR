@@ -790,18 +790,6 @@ export async function deleteImagesFromStorage(
   }
 }
 
-/**
- * Extract the storage object path from a Supabase **public** object URL.
- *
- * Returns the path portion (without query params), or null if extraction fails.
- */
-export function extractStoragePath(
-  publicUrl: string,
-  bucket: StorageBucket
-): string | null {
-  return extractPublicStoragePath(publicUrl, bucket);
-}
-
 function pathAfterStorageMarker(url: string, markers: readonly string[]): string | null {
   for (const marker of markers) {
     const idx = url.indexOf(marker);

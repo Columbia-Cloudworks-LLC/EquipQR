@@ -12,7 +12,6 @@ import {
   addIdentifierToGroup,
   addInventoryItemToGroup,
   createPartIdentifier,
-  searchPartIdentifiers,
 } from './partAlternatesService';
 import {
   mockSelect,
@@ -532,58 +531,6 @@ describe('Alternate Group Management', () => {
           raw_value: 'CAT-123',
         }),
       ).rejects.toEqual({ message: 'Server error' });
-    });
-  });
-
-  describe('searchPartIdentifiers', () => {
-    it('returns matching identifiers', async () => {
-      const mockIdentifiers = [
-        { id: 'ident-1', raw_value: 'CAT-123', identifier_type: 'oem' },
-        { id: 'ident-2', raw_value: 'CAT-456', identifier_type: 'oem' },
-      ];
-
-      vi.mocked(supabase.from).mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            ilike: vi.fn().mockReturnValue({
-              order: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue({ data: mockIdentifiers, error: null }),
-              }),
-            }),
-          }),
-        }),
-      } as never);
-
-      const result = await searchPartIdentifiers('org-1', 'CAT');
-
-      expect(result).toHaveLength(2);
-      expect(result[0].raw_value).toBe('CAT-123');
-    });
-
-    it('returns empty array for empty search term', async () => {
-      const result = await searchPartIdentifiers('org-1', '');
-      expect(result).toEqual([]);
-    });
-
-    it('returns empty array for whitespace-only search term', async () => {
-      const result = await searchPartIdentifiers('org-1', '   ');
-      expect(result).toEqual([]);
-    });
-
-    it('throws error on database failure', async () => {
-      vi.mocked(supabase.from).mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            ilike: vi.fn().mockReturnValue({
-              order: vi.fn().mockReturnValue({
-                limit: vi.fn().mockResolvedValue({ data: null, error: { message: 'Search failed' } }),
-              }),
-            }),
-          }),
-        }),
-      } as never);
-
-      await expect(searchPartIdentifiers('org-1', 'CAT')).rejects.toEqual({ message: 'Search failed' });
     });
   });
 });

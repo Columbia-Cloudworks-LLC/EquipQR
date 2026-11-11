@@ -1,18 +1,6 @@
 import { formatDate } from '@/utils/dateFormatter';
 import type { UserSettings } from '@/types/settings';
 
-interface Equipment {
-  id: string;
-  name: string;
-  manufacturer: string;
-  model: string;
-  serial_number: string;
-  status: string;
-  location: string;
-  last_maintenance?: string;
-  image_url?: string;
-}
-
 export type EquipmentStatus = 'active' | 'maintenance' | 'inactive' | 'out_of_service';
 
 export interface StatusDisplayInfo {
@@ -80,26 +68,6 @@ export const getStatusDisplayInfo = (status: string): StatusDisplayInfo => {
     badgeClassName: getStatusColor(status),
     textClassName: getStatusTextColor(status),
   };
-};
-
-export const filterEquipment = (
-  equipment: Equipment[],
-  searchQuery: string,
-  statusFilter: string
-): Equipment[] => {
-  return equipment.filter((item) => {
-    const matchesSearch =
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.manufacturer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.serial_number.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus =
-      statusFilter === 'all' ||
-      (statusFilter === 'out_of_service'
-        ? item.status === 'maintenance' || item.status === 'inactive'
-        : item.status === statusFilter);
-    return matchesSearch && matchesStatus;
-  });
 };
 
 /**

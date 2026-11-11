@@ -63,10 +63,6 @@ function readPendingRecord(now = Date.now()): PendingSignupOrganizationRecord | 
   }
 }
 
-export function getPendingSignupOrganizationName(): string | null {
-  return readPendingRecord()?.name ?? null;
-}
-
 export function setPendingSignupOrganizationName(organizationName: string): void {
   const trimmed = organizationName.trim();
   try {

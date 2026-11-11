@@ -13,7 +13,7 @@ import {
   batchUpdateRowResult,
   collectBatchMutationResults,
 } from '@/services/batchMutationResultHelpers';
-import { queryOrgScopedEquipmentNotes, queryOrgScopedEquipmentScans } from '@/services/equipmentOrgScopedQueries';
+import { queryOrgScopedEquipmentScans } from '@/services/equipmentOrgScopedQueries';
 import { flattenAndResolveEquipmentImages } from '@/features/equipment/utils/equipmentTeamFlatten';
 import { applySelectedTeamFilter } from '@/features/dashboard/utils/dashboardTeamScope';
 import type { SelectedTeamId } from '@/contexts/selected-team-context';
@@ -272,10 +272,6 @@ export interface DuplicateEquipmentMatch {
   status: Equipment['status'];
   team_id: string | null;
   team_name: string | null;
-}
-
-export interface EquipmentNote extends Tables<'notes'> {
-  authorName?: string;
 }
 
 export interface EquipmentScan extends Tables<'scans'> {
@@ -813,95 +809,6 @@ export class EquipmentService {
       // throwing synchronously, malformed inputs that escape Promise.allSettled)
       // so callers always receive a normalized `ApiResponse` matching the rest
       // of this service — no caller has to handle a different failure shape.
-      return createServiceErrorResponse(error, 'EquipmentService error');
-    }
-  }
-
-  /**
-   * Delete equipment
-   */
-  static async delete(
-    organizationId: string,
-    id: string
-  ): Promise<ApiResponse<boolean>> {
-    try {
-      const { error } = await supabase
-        .from('equipment')
-        .delete()
-        .eq('id', id)
-        .eq('organization_id', organizationId);
-
-      if (error) {
-        logger.error('Error deleting equipment:', error);
-        return createServiceErrorResponse(error, 'EquipmentService error');
-      }
-
-      return createServiceSuccessResponse(true);
-    } catch (error) {
-      return createServiceErrorResponse(error, 'EquipmentService error');
-    }
-  }
-
-  /**
-   * Get status counts for equipment
-   */
-  static async getStatusCounts(
-    organizationId: string
-  ): Promise<ApiResponse<Record<Equipment['status'], number>>> {
-    try {
-      const { data, error } = await supabase
-        .from('equipment')
-        .select('status')
-        .eq('organization_id', organizationId);
-
-      if (error) {
-        logger.error('Error fetching equipment status counts:', error);
-        return createServiceErrorResponse(error, 'EquipmentService error');
-      }
-
-      const counts = (data || []).reduce((acc, eq) => {
-        acc[eq.status] = (acc[eq.status] || 0) + 1;
-        return acc;
-      }, {} as Record<Equipment['status'], number>);
-
-      // Ensure all statuses are present
-      const allStatuses: Equipment['status'][] = ['active', 'maintenance', 'inactive'];
-      allStatuses.forEach(status => {
-        if (!(status in counts)) {
-          counts[status] = 0;
-        }
-      });
-
-      return createServiceSuccessResponse(counts);
-    } catch (error) {
-      return createServiceErrorResponse(error, 'EquipmentService error');
-    }
-  }
-
-  /**
-   * Get notes for equipment with author names (optimized JOIN)
-   */
-  static async getNotesByEquipmentId(
-    organizationId: string,
-    equipmentId: string
-  ): Promise<ApiResponse<EquipmentNote[]>> {
-    try {
-      const { data, error } = await queryOrgScopedEquipmentNotes(organizationId, equipmentId, {
-        includeAuthor: true,
-      });
-
-      if (error) {
-        logger.error('Error fetching equipment notes:', error);
-        return createServiceErrorResponse(error, 'EquipmentService error');
-      }
-
-      const notes: EquipmentNote[] = (data || []).map(note => ({
-        ...note,
-        authorName: (note.author as { name?: string } | null | undefined)?.name || 'Unknown'
-      }));
-
-      return createServiceSuccessResponse(notes);
-    } catch (error) {
       return createServiceErrorResponse(error, 'EquipmentService error');
     }
   }

@@ -5,20 +5,16 @@ import {
   fetchCreatorName,
   fetchCreatorNameMap,
 } from '@/features/work-orders/services/workOrderCostProfileHelpers';
-import {
-  mapCostsWithCreatorProfiles,
-  resolveWorkOrderCostTotalCents,
-} from '@/features/work-orders/services/workOrderCostListHelpers';
+import { resolveWorkOrderCostTotalCents } from '@/features/work-orders/services/workOrderCostListHelpers';
 import { verifyWorkOrderOrganizationScope } from '@/features/work-orders/services/workOrderOrganizationGate';
 import type { 
   WorkOrderCost, 
   CreateWorkOrderCostData, 
-  UpdateWorkOrderCostData,
-  CostSummaryByUser 
+  UpdateWorkOrderCostData
 } from '@/features/work-orders/types/workOrderCosts';
 
 // Re-export types for backward compatibility
-export type { WorkOrderCost, CreateWorkOrderCostData, UpdateWorkOrderCostData, CostSummaryByUser };
+export type { WorkOrderCost, CreateWorkOrderCostData, UpdateWorkOrderCostData };
 
 // Get all costs for a work order
 export const getWorkOrderCosts = async (
@@ -84,47 +80,6 @@ export const createWorkOrderCost = async (costData: CreateWorkOrderCostData): Pr
     };
   } catch (error) {
     logger.error('Error creating work order cost:', error);
-    throw error;
-  }
-};
-
-// Update a cost item
-export const updateWorkOrderCost = async (
-  costId: string, 
-  updateData: UpdateWorkOrderCostData
-): Promise<WorkOrderCost> => {
-  try {
-    const { data, error } = await supabase
-      .from('work_order_costs')
-      .update(updateData)
-      .eq('id', costId)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    return {
-      ...data,
-      total_price_cents: resolveWorkOrderCostTotalCents(data),
-      created_by_name: await fetchCreatorName(data.created_by),
-    };
-  } catch (error) {
-    logger.error('Error updating work order cost:', error);
-    throw error;
-  }
-};
-
-// Delete a cost item
-export const deleteWorkOrderCost = async (costId: string): Promise<void> => {
-  try {
-    const { error } = await supabase
-      .from('work_order_costs')
-      .delete()
-      .eq('id', costId);
-
-    if (error) throw error;
-  } catch (error) {
-    logger.error('Error deleting work order cost:', error);
     throw error;
   }
 };
@@ -263,117 +218,5 @@ export const updateWorkOrderCostWithQuantityTracking = async (
   } catch (error) {
     logger.error('Error updating work order cost with quantity tracking:', error);
     throw error;
-  }
-};
-
-// ============================================
-// Optimized Query Functions (merged from workOrderCostsOptimizedService)
-// ============================================
-
-/**
- * Get costs created by a specific user
- * Uses idx_work_order_costs_created_by index
- */
-export const getMyCosts = async (organizationId: string, userId: string): Promise<WorkOrderCost[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('work_order_costs')
-      .select(`
-        *,
-        work_orders!inner (
-          id,
-          title,
-          organization_id
-        )
-      `)
-      .eq('created_by', userId)
-      .eq('work_orders.organization_id', organizationId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-
-    return mapCostsWithCreatorProfiles(data);
-  } catch (error) {
-    logger.error('Error fetching user costs:', error);
-    return [];
-  }
-};
-
-/**
- * Get all costs for organization with creator info
- * Uses idx_work_order_costs_created_by index
- */
-export const getAllCostsWithCreators = async (organizationId: string): Promise<WorkOrderCost[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('work_order_costs')
-      .select(`
-        *,
-        work_orders!inner (
-          id,
-          title,
-          organization_id
-        )
-      `)
-      .eq('work_orders.organization_id', organizationId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-
-    return mapCostsWithCreatorProfiles(data);
-  } catch (error) {
-    logger.error('Error fetching all costs:', error);
-    return [];
-  }
-};
-
-/**
- * Get cost summary by user for organization reports
- */
-export const getCostSummaryByUser = async (organizationId: string): Promise<CostSummaryByUser[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('work_order_costs')
-      .select(`
-        created_by,
-        quantity,
-        unit_price_cents,
-        total_price_cents,
-        work_orders!inner (
-          organization_id
-        )
-      `)
-      .eq('work_orders.organization_id', organizationId);
-
-    if (error) throw error;
-
-    // Get creator names separately
-    const creatorIds = [...new Set(data?.map(cost => cost.created_by) || [])];
-    const profilesMap = await fetchCreatorNameMap(creatorIds);
-
-    const summary = (data || []).reduce((acc, cost) => {
-      const userId = cost.created_by;
-      const userName = profilesMap[userId] || 'Unknown';
-      const total = cost.total_price_cents || (cost.quantity * cost.unit_price_cents);
-      
-      if (!acc[userId]) {
-        acc[userId] = {
-          userId,
-          userName,
-          totalCosts: 0,
-          itemCount: 0
-        };
-      }
-      
-      acc[userId].totalCosts += total;
-      acc[userId].itemCount += 1;
-      
-      return acc;
-    }, {} as Record<string, CostSummaryByUser>);
-
-    return Object.values(summary);
-  } catch (error) {
-    logger.error('Error fetching cost summary:', error);
-    return [];
   }
 };

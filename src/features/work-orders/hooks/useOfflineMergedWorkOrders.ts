@@ -14,7 +14,6 @@ import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 import type { OfflineQueueCreateItem } from '@/services/offlineQueueService';
 
 export {
-  OFFLINE_ID_PREFIX,
   isOfflineId,
   type MergedWorkOrder,
 } from '@/features/work-orders/types/offlineMergedWorkOrder';

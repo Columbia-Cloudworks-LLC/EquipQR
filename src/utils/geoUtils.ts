@@ -21,16 +21,3 @@ export function parseLatLng(raw: string): { lat: number; lng: number } | null {
   
   return { lat, lng };
 }
-
-/**
- * Normalize address text for consistent caching
- * Must match server-side normalization logic
- */
-export function normalizeAddress(raw: string): string {
-  if (!raw || typeof raw !== 'string') return '';
-  
-  return raw
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, ' '); // collapse multiple spaces
-}

@@ -413,35 +413,6 @@ describe('PermissionEngine', () => {
     });
   });
 
-  describe('Batch Check', () => {
-    it('checks multiple permissions at once', () => {
-      const context = createUserContext('owner');
-
-      const results = engine.batchCheck(
-        ['organization.manage', 'organization.invite', 'equipment.edit'],
-        context,
-      );
-
-      expect(results['organization.manage']).toBe(true);
-      expect(results['organization.invite']).toBe(true);
-      expect(results['equipment.edit']).toBe(true);
-    });
-
-    it('returns correct mixed results for member', () => {
-      const context = createUserContext('technician');
-
-      const results = engine.batchCheck(
-        ['organization.manage', 'workorder.view', 'workorder.changestatus'],
-        context,
-        maintenanceTeamContext(),
-      );
-
-      expect(results['organization.manage']).toBe(false);
-      expect(results['workorder.view']).toBe(true);
-      expect(results['workorder.changestatus']).toBe(true);
-    });
-  });
-
   describe('Rule Priority', () => {
     it('admin rule takes priority over team rules', () => {
       const context = createUserContext('admin');

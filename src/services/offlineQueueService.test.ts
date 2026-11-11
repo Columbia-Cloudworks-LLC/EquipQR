@@ -191,14 +191,6 @@ describe('OfflineQueueService', () => {
     expect(svc.getCount()).toBe(2);
   });
 
-  it('peek returns the first pending item', () => {
-    const svc = createService();
-    const [first] = enqueueItems(svc, 2);
-
-    const peeked = svc.peek();
-    expect(peeked?.id).toBe(first.id);
-  });
-
   it('removes an item by id', () => {
     const svc = createService();
     const [item] = enqueueItems(svc, 2);
@@ -258,17 +250,6 @@ describe('OfflineQueueService', () => {
 
     expect(svc.getCounts()).toEqual({ pending: 2, failed: 0, total: 2 });
     expect(svc.getAll()[0].retryCount).toBe(0);
-  });
-
-  it('getFailedItems returns only failed items', () => {
-    const svc = createService();
-    const [item1] = enqueueItems(svc, 2);
-
-    svc.updateStatus(item1.id, 'failed', 'Error');
-
-    const failed = svc.getFailedItems();
-    expect(failed).toHaveLength(1);
-    expect(failed[0].id).toBe(item1.id);
   });
 
   // ── Size guards ─────────────────────────────────────────────────────────

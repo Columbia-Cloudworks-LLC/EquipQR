@@ -21,16 +21,12 @@ vi.mock('@/integrations/supabase/client', () => ({
 // Import after mock setup
 import { supabase } from '@/integrations/supabase/client';
 import {
-  createOAuthSession,
-  validateOAuthSession,
   getConnectionStatus,
   disconnectQuickBooks,
-  manualTokenRefresh,
   getTeamCustomerMapping,
   updateTeamCustomerMapping,
   clearTeamCustomerMapping,
   searchCustomers,
-  exportInvoice,
   getExportLogs,
   getLastSuccessfulExport,
 } from '@/services/quickbooks/quickbooksService';
@@ -101,80 +97,6 @@ describe('QuickBooks Service', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
-  });
-
-  describe('createOAuthSession', () => {
-    it('should create an OAuth session successfully', async () => {
-      const mockSessionData = {
-        session_token: 'test-session-token',
-        nonce: 'test-nonce',
-        expires_at: new Date().toISOString(),
-      };
-
-      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockRpcSuccess([mockSessionData]));
-
-      const result = await createOAuthSession(mockOrganizationId);
-
-      expect(result).toEqual({
-        sessionToken: mockSessionData.session_token,
-        nonce: mockSessionData.nonce,
-        expiresAt: mockSessionData.expires_at,
-      });
-      expect(supabase.rpc).toHaveBeenCalledWith('create_quickbooks_oauth_session', {
-        p_organization_id: mockOrganizationId,
-        p_redirect_url: undefined,
-      });
-    });
-
-    it('should throw error when RPC fails', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValueOnce(
-        mockRpcFailure('Database error', { code: 'DB001' }),
-      );
-
-      await expect(createOAuthSession(mockOrganizationId)).rejects.toThrow(
-        'Failed to create OAuth session: Database error'
-      );
-    });
-
-    it('should throw error when no data returned', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockRpcSuccess([]));
-
-      await expect(createOAuthSession(mockOrganizationId)).rejects.toThrow(
-        'No session data returned'
-      );
-    });
-  });
-
-  describe('validateOAuthSession', () => {
-    it('should validate a valid session', async () => {
-      const mockValidation = {
-        is_valid: true,
-        organization_id: mockOrganizationId,
-        user_id: 'user-123',
-        redirect_url: '/settings',
-        nonce: 'test-nonce',
-      };
-
-      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockRpcSuccess([mockValidation]));
-
-      const result = await validateOAuthSession('test-token');
-
-      expect(result).toEqual({
-        isValid: true,
-        organizationId: mockOrganizationId,
-        userId: 'user-123',
-        redirectUrl: '/settings',
-        nonce: 'test-nonce',
-      });
-    });
-
-    it('should return invalid for expired/missing session', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValueOnce(mockRpcSuccess([]));
-
-      const result = await validateOAuthSession('invalid-token');
-
-      expect(result).toEqual({ isValid: false });
-    });
   });
 
   describe('getConnectionStatus', () => {
@@ -484,133 +406,6 @@ describe('QuickBooks Service', () => {
 
       expect(result.success).toBe(true);
       expect(result.customers).toEqual(mockCustomers);
-    });
-  });
-
-  describe('exportInvoice', () => {
-    const confirmation = { invoice_date: '2020-09-21', due_date: '2020-10-21', payment_term_id: null, service_dates: { labor: '2020-08-05' }, existing_invoice_id: null, existing_sync_token: null, overwrite_existing_dates: false, source_fingerprint: 'source-v1' };
-    beforeEach(() => {
-      global.fetch = vi.fn();
-    });
-
-    it('should return error when not authenticated', async () => {
-      vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
-        data: { session: null },
-        error: null,
-      });
-
-      const result = await exportInvoice(mockWorkOrderId, confirmation);
-
-      expect(result).toEqual({ success: false, error: 'Not authenticated' });
-    });
-
-    it('should export invoice successfully', async () => {
-      mockAuthenticatedSession();
-
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: true,
-        json: vi.fn().mockResolvedValue({
-          success: true,
-          invoice_id: 'inv-123',
-          invoice_number: '1001',
-          is_update: false,
-        }),
-      } as unknown as Response);
-
-      const result = await exportInvoice(mockWorkOrderId, confirmation);
-
-      expect(result.success).toBe(true);
-      expect(result.invoiceId).toBe('inv-123');
-      expect(result.invoiceNumber).toBe('1001');
-      expect(result.isUpdate).toBe(false);
-    });
-
-    it('should return error when fetch returns non-200 response', async () => {
-      mockAuthenticatedSession(
-        createMockAuthSession({ access_token: 'mock-token', refresh_token: 'mock-refresh' }),
-      );
-
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        json: vi.fn().mockResolvedValue({
-          success: false,
-          error: 'Internal server error',
-        }),
-      } as unknown as Response);
-
-      const result = await exportInvoice(mockWorkOrderId, confirmation);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Internal server error');
-    });
-
-    it('should return generic error when fetch response has no error message', async () => {
-      mockAuthenticatedSession(
-        createMockAuthSession({ access_token: 'mock-token', refresh_token: 'mock-refresh' }),
-      );
-
-      vi.mocked(fetch).mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        json: vi.fn().mockResolvedValue({}),
-      } as unknown as Response);
-
-      const result = await exportInvoice(mockWorkOrderId, confirmation);
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Failed to export invoice');
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // manualTokenRefresh
-  // -----------------------------------------------------------------------
-  describe('manualTokenRefresh', () => {
-    it('should return refresh result on success', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: [{ credentials_count: 3, message: 'Token refresh triggered for 3 credentials.' }],
-        error: null,
-      } as never);
-
-      const result = await manualTokenRefresh();
-
-      expect(result.credentialsCount).toBe(3);
-      expect(result.message).toContain('3 credentials');
-      expect(supabase.rpc).toHaveBeenCalledWith('refresh_quickbooks_tokens_manual');
-    });
-
-    it('should throw on RPC error', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: null,
-        error: { message: 'Access denied: This function can only be called by service_role' },
-      } as never);
-
-      await expect(manualTokenRefresh()).rejects.toThrow('Failed to trigger token refresh');
-    });
-
-    it('should return default values when no data returned', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: [],
-        error: null,
-      } as never);
-
-      const result = await manualTokenRefresh();
-
-      expect(result.credentialsCount).toBe(0);
-      expect(result.message).toBe('No credentials to refresh');
-    });
-
-    it('should return default values when data is null', async () => {
-      vi.mocked(supabase.rpc).mockResolvedValueOnce({
-        data: null,
-        error: null,
-      } as never);
-
-      const result = await manualTokenRefresh();
-
-      expect(result.credentialsCount).toBe(0);
-      expect(result.message).toBe('No credentials to refresh');
     });
   });
 

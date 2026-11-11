@@ -293,20 +293,6 @@ export class PermissionEngine {
     this.setCache(cacheKey, false);
     return false;
   }
-
-  public batchCheck(
-    permissions: string[],
-    context: UserContext,
-    entityContext?: EntityContext
-  ): Record<string, boolean> {
-    const results: Record<string, boolean> = {};
-    
-    for (const permission of permissions) {
-      results[permission] = this.hasPermission(permission, context, entityContext);
-    }
-    
-    return results;
-  }
 }
 
 // Singleton instance

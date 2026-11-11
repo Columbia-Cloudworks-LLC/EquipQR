@@ -10,18 +10,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createQueryClientWrapper } from '@vitest-harness/utils/test-utils';
 import {
   useWorkOrders,
-  useMyWorkOrders,
-  useTeamWorkOrders,
-  useEquipmentWorkOrders,
-  useOverdueWorkOrders,
-  useWorkOrdersDueToday,
   useWorkOrderById,
-  useFilteredWorkOrders,
   workOrderKeys
 } from './useWorkOrders';
 import { workOrders as workOrderLibKeys } from '@/lib/queryKeys';
-import { workOrders, organizations, teams, equipment } from '@vitest-harness/fixtures/entities';
-import { personas } from '@vitest-harness/fixtures/personas';
+import { workOrders, organizations } from '@vitest-harness/fixtures/entities';
 
 // Mock the WorkOrderService (Vitest 4: constructor mocks must use function/class, not arrow factories)
 vi.mock('@/features/work-orders/services/workOrderService', () => ({
@@ -29,11 +22,6 @@ vi.mock('@/features/work-orders/services/workOrderService', () => ({
     return {
       getAll: vi.fn(),
       getById: vi.fn(),
-      getMyWorkOrders: vi.fn(),
-      getTeamWorkOrders: vi.fn(),
-      getEquipmentWorkOrders: vi.fn(),
-      getOverdueWorkOrders: vi.fn(),
-      getWorkOrdersDueToday: vi.fn(),
     };
   }),
 }));
@@ -46,11 +34,6 @@ describe('useWorkOrders', () => {
   let mockService: {
     getAll: ReturnType<typeof vi.fn>;
     getById: ReturnType<typeof vi.fn>;
-    getMyWorkOrders: ReturnType<typeof vi.fn>;
-    getTeamWorkOrders: ReturnType<typeof vi.fn>;
-    getEquipmentWorkOrders: ReturnType<typeof vi.fn>;
-    getOverdueWorkOrders: ReturnType<typeof vi.fn>;
-    getWorkOrdersDueToday: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -59,11 +42,6 @@ describe('useWorkOrders', () => {
     mockService = {
       getAll: vi.fn().mockResolvedValue({ success: true, data: Object.values(workOrders) }),
       getById: vi.fn(),
-      getMyWorkOrders: vi.fn(),
-      getTeamWorkOrders: vi.fn(),
-      getEquipmentWorkOrders: vi.fn(),
-      getOverdueWorkOrders: vi.fn(),
-      getWorkOrdersDueToday: vi.fn()
     };
     
     vi.mocked(WorkOrderService).mockImplementation(function () {
@@ -156,172 +134,6 @@ describe('useWorkOrders', () => {
     });
   });
 
-  describe('useMyWorkOrders', () => {
-    beforeEach(() => {
-      const techWorkOrders = Object.values(workOrders).filter(
-        wo => wo.assignee_id === personas.technician.id
-      );
-      mockService.getMyWorkOrders.mockResolvedValue({
-        success: true,
-        data: techWorkOrders
-      });
-    });
-
-    it('fetches work orders assigned to user', async () => {
-      const { result } = renderHook(
-        () => useMyWorkOrders(organizations.acme.id, personas.technician.id),
-        { wrapper: createWrapper() }
-      );
-
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      expect(mockService.getMyWorkOrders).toHaveBeenCalledWith(personas.technician.id);
-      expect(result.current.data?.every(wo => wo.assignee_id === personas.technician.id)).toBe(true);
-    });
-
-    it('is disabled without userId', () => {
-      const { result } = renderHook(
-        () => useMyWorkOrders(organizations.acme.id, ''),
-        { wrapper: createWrapper() }
-      );
-
-      expect(result.current.fetchStatus).toBe('idle');
-    });
-  });
-
-  describe('useTeamWorkOrders', () => {
-    beforeEach(() => {
-      const teamWorkOrdersList = Object.values(workOrders).filter(
-        wo => wo.equipmentTeamId === teams.maintenance.id
-      );
-      mockService.getTeamWorkOrders.mockResolvedValue({
-        success: true,
-        data: teamWorkOrdersList
-      });
-    });
-
-    it('fetches work orders for team', async () => {
-      const { result } = renderHook(
-        () => useTeamWorkOrders(organizations.acme.id, teams.maintenance.id),
-        { wrapper: createWrapper() }
-      );
-
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      expect(mockService.getTeamWorkOrders).toHaveBeenCalledWith(teams.maintenance.id, undefined);
-    });
-
-    it('filters by status when provided', async () => {
-      const { result } = renderHook(
-        () => useTeamWorkOrders(organizations.acme.id, teams.maintenance.id, 'in_progress'),
-        { wrapper: createWrapper() }
-      );
-
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      expect(mockService.getTeamWorkOrders).toHaveBeenCalledWith(teams.maintenance.id, 'in_progress');
-    });
-
-    it('is disabled without teamId', () => {
-      const { result } = renderHook(
-        () => useTeamWorkOrders(organizations.acme.id, ''),
-        { wrapper: createWrapper() }
-      );
-
-      expect(result.current.fetchStatus).toBe('idle');
-    });
-  });
-
-  describe('useEquipmentWorkOrders', () => {
-    beforeEach(() => {
-      const equipmentWorkOrdersList = Object.values(workOrders).filter(
-        wo => wo.equipment_id === equipment.forklift1.id
-      );
-      mockService.getEquipmentWorkOrders.mockResolvedValue({
-        success: true,
-        data: equipmentWorkOrdersList
-      });
-    });
-
-    it('fetches work orders for equipment', async () => {
-      const { result } = renderHook(
-        () => useEquipmentWorkOrders(organizations.acme.id, equipment.forklift1.id),
-        { wrapper: createWrapper() }
-      );
-
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      expect(mockService.getEquipmentWorkOrders).toHaveBeenCalledWith(equipment.forklift1.id, undefined);
-    });
-
-    it('filters by status when provided', async () => {
-      const { result } = renderHook(
-        () => useEquipmentWorkOrders(organizations.acme.id, equipment.forklift1.id, 'completed'),
-        { wrapper: createWrapper() }
-      );
-
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      expect(mockService.getEquipmentWorkOrders).toHaveBeenCalledWith(equipment.forklift1.id, 'completed');
-    });
-  });
-
-  describe('useOverdueWorkOrders', () => {
-    beforeEach(() => {
-      const overdueList = [workOrders.overdue];
-      mockService.getOverdueWorkOrders.mockResolvedValue({
-        success: true,
-        data: overdueList
-      });
-    });
-
-    it('fetches overdue work orders', async () => {
-      const { result } = renderHook(
-        () => useOverdueWorkOrders(organizations.acme.id),
-        { wrapper: createWrapper() }
-      );
-
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      expect(mockService.getOverdueWorkOrders).toHaveBeenCalled();
-      expect(result.current.data).toHaveLength(1);
-    });
-  });
-
-  describe('useWorkOrdersDueToday', () => {
-    beforeEach(() => {
-      mockService.getWorkOrdersDueToday.mockResolvedValue({
-        success: true,
-        data: []
-      });
-    });
-
-    it('fetches work orders due today', async () => {
-      const { result } = renderHook(
-        () => useWorkOrdersDueToday(organizations.acme.id),
-        { wrapper: createWrapper() }
-      );
-
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      expect(mockService.getWorkOrdersDueToday).toHaveBeenCalled();
-    });
-  });
-
   describe('useWorkOrderById', () => {
     beforeEach(() => {
       mockService.getById.mockResolvedValue({
@@ -387,23 +199,6 @@ describe('useWorkOrders', () => {
       );
 
       expect(result.current.fetchStatus).toBe('idle');
-    });
-  });
-
-  describe('useFilteredWorkOrders', () => {
-    it('wraps useWorkOrders with filters', async () => {
-      const filters = { status: 'submitted' as const };
-      
-      const { result } = renderHook(
-        () => useFilteredWorkOrders(organizations.acme.id, filters),
-        { wrapper: createWrapper() }
-      );
-
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      expect(mockService.getAll).toHaveBeenCalledWith(filters);
     });
   });
 

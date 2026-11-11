@@ -48,7 +48,6 @@ export const workOrderKeys = {
 // ============================================
 
 const DEFAULT_STALE_TIME = 2 * 60 * 1000; // 2 minutes — prevents refetch on every SPA navigation
-const EXTENDED_STALE_TIME = 5 * 60 * 1000; // 5 minutes for overdue/due-today lists
 
 function fieldReadPersister() {
   return createScopedQueryPersister().persisterFn;
@@ -123,116 +122,6 @@ export const useWorkOrders = (
 // ============================================
 
 /**
- * Fetch work orders assigned to a specific user
- */
-export const useMyWorkOrders = (
-  organizationId: string,
-  userId: string
-): UseQueryResult<WorkOrder[], Error> => {
-  return useQuery({
-    queryKey: workOrderKeys.myWorkOrders(organizationId, userId),
-    queryFn: async (): Promise<WorkOrder[]> => {
-      const service = new WorkOrderService(organizationId);
-      const result = await service.getMyWorkOrders(userId);
-      if (result.success && result.data) {
-        return result.data;
-      }
-      throw new Error(result.error || 'Failed to fetch my work orders');
-    },
-    enabled: !!organizationId && !!userId,
-    staleTime: DEFAULT_STALE_TIME,
-  });
-};
-
-/**
- * Fetch work orders for a specific team
- */
-export const useTeamWorkOrders = (
-  organizationId: string,
-  teamId: string,
-  status?: WorkOrder['status'] | 'all'
-): UseQueryResult<WorkOrder[], Error> => {
-  return useQuery({
-    queryKey: workOrderKeys.teamWorkOrders(organizationId, teamId, status),
-    queryFn: async (): Promise<WorkOrder[]> => {
-      const service = new WorkOrderService(organizationId);
-      const result = await service.getTeamWorkOrders(teamId, status);
-      if (result.success && result.data) {
-        return result.data;
-      }
-      throw new Error(result.error || 'Failed to fetch team work orders');
-    },
-    enabled: !!organizationId && !!teamId,
-    staleTime: DEFAULT_STALE_TIME,
-  });
-};
-
-/**
- * Fetch work orders for specific equipment
- */
-export const useEquipmentWorkOrders = (
-  organizationId: string,
-  equipmentId: string,
-  status?: WorkOrder['status'] | 'all'
-): UseQueryResult<WorkOrder[], Error> => {
-  return useQuery({
-    queryKey: workOrderKeys.equipmentWorkOrders(organizationId, equipmentId, status),
-    queryFn: async (): Promise<WorkOrder[]> => {
-      const service = new WorkOrderService(organizationId);
-      const result = await service.getEquipmentWorkOrders(equipmentId, status);
-      if (result.success && result.data) {
-        return result.data;
-      }
-      throw new Error(result.error || 'Failed to fetch equipment work orders');
-    },
-    enabled: !!organizationId && !!equipmentId,
-    staleTime: DEFAULT_STALE_TIME,
-  });
-};
-
-/**
- * Fetch overdue work orders
- */
-export const useOverdueWorkOrders = (
-  organizationId: string
-): UseQueryResult<WorkOrder[], Error> => {
-  return useQuery({
-    queryKey: workOrderKeys.overdue(organizationId),
-    queryFn: async (): Promise<WorkOrder[]> => {
-      const service = new WorkOrderService(organizationId);
-      const result = await service.getOverdueWorkOrders();
-      if (result.success && result.data) {
-        return result.data;
-      }
-      throw new Error(result.error || 'Failed to fetch overdue work orders');
-    },
-    enabled: !!organizationId,
-    staleTime: EXTENDED_STALE_TIME,
-  });
-};
-
-/**
- * Fetch work orders due today
- */
-export const useWorkOrdersDueToday = (
-  organizationId: string
-): UseQueryResult<WorkOrder[], Error> => {
-  return useQuery({
-    queryKey: workOrderKeys.dueToday(organizationId),
-    queryFn: async (): Promise<WorkOrder[]> => {
-      const service = new WorkOrderService(organizationId);
-      const result = await service.getWorkOrdersDueToday();
-      if (result.success && result.data) {
-        return result.data;
-      }
-      throw new Error(result.error || 'Failed to fetch work orders due today');
-    },
-    enabled: !!organizationId,
-    staleTime: EXTENDED_STALE_TIME,
-  });
-};
-
-/**
  * Fetch a single work order by ID
  */
 export const useWorkOrderById = (
@@ -276,19 +165,3 @@ export const useWorkOrderById = (
     persister: fieldReadPersister(),
   });
 };
-
-// ============================================
-// Filtered Hook (replaces useOptimizedFilteredWorkOrders)
-// ============================================
-
-/**
- * Fetch work orders with specific filters
- * This is a convenience wrapper around useWorkOrders for explicit filter usage
- */
-export const useFilteredWorkOrders = (
-  organizationId: string,
-  filters?: WorkOrderFilters
-): UseQueryResult<WorkOrder[], Error> => {
-  return useWorkOrders(organizationId, { filters });
-};
-

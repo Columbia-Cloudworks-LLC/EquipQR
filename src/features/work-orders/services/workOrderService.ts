@@ -10,7 +10,6 @@ import {
   WorkOrder,
   WorkOrderRow,
   WorkOrderCreateData,
-  WorkOrderUpdateData,
   WorkOrderServiceFilters,
 } from '@/features/work-orders/types/workOrder';
 import { applyWorkOrderSupabaseFilters } from '@/features/work-orders/utils/workOrderSupabaseFilters';
@@ -29,7 +28,6 @@ import {
 export type {
   WorkOrder,
   WorkOrderCreateData,
-  WorkOrderUpdateData,
 };
 
 /**
@@ -200,47 +198,6 @@ export class WorkOrderService extends BaseService {
   }
 
   /**
-   * Update work order
-   */
-  async update(id: string, data: WorkOrderUpdateData): Promise<ApiResponse<WorkOrder>> {
-    try {
-      // Build update object with only provided fields
-      const updateData: Partial<WorkOrderRow> = {};
-      
-      if (data.title !== undefined) updateData.title = data.title;
-      if (data.description !== undefined) updateData.description = data.description;
-      if (data.equipment_id !== undefined) updateData.equipment_id = data.equipment_id;
-      if (data.priority !== undefined) updateData.priority = data.priority;
-      if (data.status !== undefined) updateData.status = data.status;
-      if (data.assignee_id !== undefined) updateData.assignee_id = data.assignee_id;
-      if (data.due_date !== undefined) {
-        updateData.due_date = data.due_date;
-        updateData.due_date_has_time = data.due_date_has_time ?? false;
-      } else if (data.due_date_has_time !== undefined) {
-        updateData.due_date_has_time = data.due_date_has_time;
-      }
-      if (data.estimated_hours !== undefined) updateData.estimated_hours = data.estimated_hours;
-      if (data.completed_date !== undefined) updateData.completed_date = data.completed_date;
-
-      const { error } = await supabase
-        .from('work_orders')
-        .update(updateData)
-        .eq('id', id)
-        .eq('organization_id', this.organizationId);
-
-      if (error) {
-        logger.error('Error updating work order:', error);
-        return this.handleError(error);
-      }
-
-      // Fetch the updated work order with joins
-      return this.getById(id);
-    } catch (error) {
-      return this.handleError(error);
-    }
-  }
-
-  /**
    * Update work order status
    * @param id - Work order ID
    * @param status - New status
@@ -315,121 +272,5 @@ export class WorkOrderService extends BaseService {
     } catch (error) {
       return this.handleError(error);
     }
-  }
-
-  /**
-   * Get status counts for work orders
-   */
-  async getStatusCounts(): Promise<ApiResponse<Record<WorkOrder['status'], number>>> {
-    try {
-      const { data, error } = await supabase
-        .from('work_orders')
-        .select('status')
-        .eq('organization_id', this.organizationId);
-
-      if (error) {
-        logger.error('Error fetching work order status counts:', error);
-        return this.handleError(error);
-      }
-
-      const counts = (data || []).reduce((acc, wo) => {
-        acc[wo.status] = (acc[wo.status] || 0) + 1;
-        return acc;
-      }, {} as Record<WorkOrder['status'], number>);
-
-      // Ensure all statuses are present
-      const allStatuses: WorkOrder['status'][] = [
-        'submitted', 'accepted', 'assigned', 'in_progress', 
-        'on_hold', 'completed', 'cancelled'
-      ];
-      allStatuses.forEach(status => {
-        if (!(status in counts)) {
-          counts[status] = 0;
-        }
-      });
-
-      return this.handleSuccess(counts);
-    } catch (error) {
-      return this.handleError(error);
-    }
-  }
-
-  /**
-   * Get priority distribution for work orders
-   */
-  async getPriorityDistribution(): Promise<ApiResponse<Record<WorkOrder['priority'], number>>> {
-    try {
-      const { data, error } = await supabase
-        .from('work_orders')
-        .select('priority')
-        .eq('organization_id', this.organizationId);
-
-      if (error) {
-        logger.error('Error fetching work order priority distribution:', error);
-        return this.handleError(error);
-      }
-
-      const distribution = (data || []).reduce((acc, wo) => {
-        acc[wo.priority] = (acc[wo.priority] || 0) + 1;
-        return acc;
-      }, {} as Record<WorkOrder['priority'], number>);
-
-      // Ensure all priorities are present
-      const allPriorities: WorkOrder['priority'][] = ['low', 'medium', 'high'];
-      allPriorities.forEach(priority => {
-        if (!(priority in distribution)) {
-          distribution[priority] = 0;
-        }
-      });
-
-      return this.handleSuccess(distribution);
-    } catch (error) {
-      return this.handleError(error);
-    }
-  }
-
-  // ============================================
-  // Convenience methods
-  // ============================================
-
-  /**
-   * Get work orders assigned to a specific user
-   */
-  async getMyWorkOrders(userId: string): Promise<ApiResponse<WorkOrder[]>> {
-    return this.getAll({ assigneeId: userId });
-  }
-
-  /**
-   * Get work orders for a specific team
-   */
-  async getTeamWorkOrders(
-    teamId: string,
-    status?: WorkOrder['status'] | 'all'
-  ): Promise<ApiResponse<WorkOrder[]>> {
-    return this.getAll({ teamId, status });
-  }
-
-  /**
-   * Get work orders for specific equipment
-   */
-  async getEquipmentWorkOrders(
-    equipmentId: string,
-    status?: WorkOrder['status'] | 'all'
-  ): Promise<ApiResponse<WorkOrder[]>> {
-    return this.getAll({ equipmentId, status });
-  }
-
-  /**
-   * Get overdue work orders
-   */
-  async getOverdueWorkOrders(): Promise<ApiResponse<WorkOrder[]>> {
-    return this.getAll({ dueDateFilter: 'overdue' });
-  }
-
-  /**
-   * Get work orders due today
-   */
-  async getWorkOrdersDueToday(): Promise<ApiResponse<WorkOrder[]>> {
-    return this.getAll({ dueDateFilter: 'today' });
   }
 }

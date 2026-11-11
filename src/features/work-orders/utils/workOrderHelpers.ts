@@ -7,9 +7,7 @@
  * All components should import from here instead of defining locally.
  */
 
-import type { UserSettings } from '@/types/settings';
 import type { WorkOrderStatus, WorkOrderPriority } from '@/features/work-orders/types/workOrder';
-import { formatDate as formatDateInTz } from '@/utils/dateFormatter';
 
 // ============================================
 // Color Utilities
@@ -149,21 +147,6 @@ export const formatPriority = (priority: string): string => {
   return priority.charAt(0).toUpperCase() + priority.slice(1);
 };
 
-
-/** Used by CSV/PDF/Excel and helpers where explicit settings are required (#768). */
-export type WorkOrderDateSettings = Pick<UserSettings, 'timezone' | 'dateFormat'>;
-
-export const formatDate = (
-  dateString: string | null | undefined,
-  settings: WorkOrderDateSettings
-): string => {
-  if (!dateString) return '—';
-  try {
-    return formatDateInTz(dateString, settings as UserSettings);
-  } catch {
-    return 'Invalid Date';
-  }
-};
 
 // ============================================
 // Status Logic Utilities

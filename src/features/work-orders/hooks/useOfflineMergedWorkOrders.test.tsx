@@ -8,10 +8,8 @@
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createQueryClientWrapper } from '@vitest-harness/utils/query-client-wrapper';
-import {
-  useOfflineMergedWorkOrders,
-  OFFLINE_ID_PREFIX,
-} from './useOfflineMergedWorkOrders';
+import { useOfflineMergedWorkOrders } from './useOfflineMergedWorkOrders';
+import { OFFLINE_ID_PREFIX } from '@/features/work-orders/types/offlineMergedWorkOrder';
 import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 import type { OfflineQueueCreateItem } from '@/services/offlineQueueService';
 

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   getWorkspaceOnboardingState,
-  createWorkspaceOrganizationForDomain,
   getGoogleWorkspaceConnectionStatus,
   getGoogleExportDestination,
   setGoogleExportDestination,
@@ -65,29 +64,6 @@ describe('Google Workspace Service Functions', () => {
       rpcMock.mockResolvedValue({ data: null, error: { message: 'RPC failed' } });
 
       await expect(getWorkspaceOnboardingState('user-123')).rejects.toThrow('RPC failed');
-    });
-  });
-
-  describe('createWorkspaceOrganizationForDomain', () => {
-    it('returns organization data on success', async () => {
-      const mockOrg = { organization_id: 'org-123', domain: 'example.com' };
-      rpcMock.mockResolvedValue({ data: [mockOrg], error: null });
-
-      const result = await createWorkspaceOrganizationForDomain('example.com', 'Example Org');
-
-      expect(rpcMock).toHaveBeenCalledWith('create_workspace_organization_for_domain', {
-        p_domain: 'example.com',
-        p_organization_name: 'Example Org',
-      });
-      expect(result).toEqual(mockOrg);
-    });
-
-    it('throws an error when no data returned', async () => {
-      rpcMock.mockResolvedValue({ data: [], error: null });
-
-      await expect(
-        createWorkspaceOrganizationForDomain('example.com', 'Example Org')
-      ).rejects.toThrow('Failed to create workspace organization');
     });
   });
 

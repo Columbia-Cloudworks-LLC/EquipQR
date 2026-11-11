@@ -5,8 +5,7 @@ import {
   generateErrorId,
   getActionForError,
   isRetryable,
-  showErrorToast,
-  createRetryFunction
+  showErrorToast
 } from './errorHandling';
 
 // Mock toast and logger
@@ -179,62 +178,4 @@ describe('errorHandling', () => {
       expect(logger.error).toHaveBeenCalled();
     });
   });
-
-  describe('createRetryFunction', () => {
-    it('should retry on failure', async () => {
-      let attempts = 0;
-      const fn = createRetryFunction(
-        async () => {
-          attempts++;
-          if (attempts < 2) throw new Error('Fail');
-          return 'success';
-        },
-        3,
-        10 // Short delay for testing
-      );
-
-      const result = await fn();
-      expect(result).toBe('success');
-      expect(attempts).toBe(2);
-    });
-
-    it('should throw after max retries', async () => {
-      const fn = createRetryFunction(
-        async () => {
-          throw new Error('Always fail');
-        },
-        2,
-        10
-      );
-
-      await expect(fn()).rejects.toThrow('Always fail');
-    });
-
-    it('should not retry non-retryable errors', async () => {
-      let attempts = 0;
-      const fn = createRetryFunction(
-        async () => {
-          attempts++;
-          throw new Error('Permission denied'); // Non-retryable
-        },
-        3,
-        10
-      );
-
-      await expect(fn()).rejects.toThrow('Permission denied');
-      expect(attempts).toBe(1); // Should not retry
-    });
-
-    it('should succeed immediately if no error', async () => {
-      const fn = createRetryFunction(
-        async () => 'success',
-        3,
-        10
-      );
-
-      const result = await fn();
-      expect(result).toBe('success');
-    });
-  });
 });
-

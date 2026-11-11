@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { usePermissions, useWorkOrderPermissions } from './usePermissions';
+import { usePermissions } from './usePermissions';
 import { 
   createMockUserContext,
   createMockSimpleOrganizationContext,
@@ -181,14 +181,6 @@ const renderPermissionsForRole = (
 ) => {
   setupPermissionsMocks(sessionRole, orgRole);
   return renderHook(() => usePermissions());
-};
-
-const renderWorkOrderPermissionsForRole = (
-  role: 'owner' | 'admin' | 'member',
-  workOrder?: WorkOrderData,
-) => {
-  setupPermissionsMocks(role);
-  return renderHook(() => useWorkOrderPermissions(workOrder));
 };
 
 const adminSubmittedWorkOrder = {
@@ -552,35 +544,5 @@ describe('usePermissions', () => {
       
       expect(result.current.isTeamManager('team-2')).toBe(false);
     });
-  });
-});
-
-describe('useWorkOrderPermissions', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('should return permissions for work order', () => {
-    const mockWorkOrder: Partial<WorkOrderData> = {
-      teamId: 'team-1',
-      assigneeId: 'user-1',
-      status: 'submitted',
-      createdByName: 'Test User'
-    };
-
-    const { result } = renderWorkOrderPermissionsForRole(
-      'admin',
-      mockWorkOrder as WorkOrderData,
-    );
-    
-    expect(result.current).toBeDefined();
-    expect(result.current.canView).toBeDefined();
-    expect(result.current.canEdit).toBeDefined();
-  });
-
-  it('should work without work order parameter', () => {
-    const { result } = renderWorkOrderPermissionsForRole('admin');
-    
-    expect(result.current).toBeDefined();
   });
 });

@@ -12,7 +12,6 @@ import { clickButtonWhenReady } from '@vitest-harness/utils/rtl-helpers';
 // Mock the feature flags
 vi.mock('@/lib/flags', () => ({
   isQuickBooksEnabled: vi.fn(() => true),
-  isQuickBooksDisabled: vi.fn(() => false),
   QUICKBOOKS_ENABLED: true,
 }));
 
