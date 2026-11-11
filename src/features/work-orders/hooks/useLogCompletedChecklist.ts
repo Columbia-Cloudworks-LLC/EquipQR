@@ -33,6 +33,7 @@ interface UseLogCompletedChecklistArgs {
 export function useLogCompletedChecklist({ enabled, templateId }: UseLogCompletedChecklistArgs) {
   const templateQuery = usePMTemplate(enabled && templateId ? templateId : '');
   const isLoading = enabled && Boolean(templateId) && templateQuery.isLoading;
+  const isError = enabled && Boolean(templateId) && templateQuery.isError;
 
   const sourceItems = useMemo<ReadonlyArray<PMChecklistItem> | null>(() => {
     if (!enabled) return null;
@@ -42,12 +43,15 @@ export function useLogCompletedChecklist({ enabled, templateId }: UseLogComplete
   }, [enabled, templateId, templateQuery.data]);
 
   const [items, setItems] = useState<PMChecklistItem[]>([]);
+  // The source `items` were last built from; lags `sourceItems` by one render after a switch.
+  const [builtFrom, setBuiltFrom] = useState<ReadonlyArray<PMChecklistItem> | null>(null);
   const itemsRef = useRef(items);
   itemsRef.current = items;
 
   // Rebuild from the source whenever the template (or the toggle) changes.
   useEffect(() => {
     setItems(sourceItems ? buildAllOkChecklist(sourceItems) : []);
+    setBuiltFrom(sourceItems);
   }, [sourceItems]);
 
   const setCondition = useCallback((itemId: string, condition: PMChecklistCondition) => {
@@ -75,5 +79,12 @@ export function useLogCompletedChecklist({ enabled, templateId }: UseLogComplete
   /** Latest items for the submit handler, without re-creating it on every tap. */
   const getItems = useCallback(() => itemsRef.current, []);
 
-  return { items, isLoading, exceptionCount, setCondition, setNotes, reset, getItems };
+  /**
+   * True once the checklist the user picked is in hand. While the template is
+   * loading, or after its fetch failed, saving would store a completed PM with
+   * the wrong inspection data, so the form must hold the save.
+   */
+  const isReady = !enabled || (sourceItems !== null && builtFrom === sourceItems && items.length > 0);
+
+  return { items, isLoading, isError, isReady, exceptionCount, setCondition, setNotes, reset, getItems };
 }

@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   submissionProps: { current: null as null | Record<string, unknown> },
   canManageOrganization: vi.fn(() => true),
   quickBooksEnabled: vi.fn(() => true),
+  checklist: { isReady: true, isError: false },
 }));
 
 vi.mock('@/contexts/OrganizationContext', () => ({
@@ -54,6 +55,8 @@ vi.mock('@/features/work-orders/hooks/useLogCompletedChecklist', () => ({
   useLogCompletedChecklist: () => ({
     items: [],
     isLoading: false,
+    isError: mocks.checklist.isError,
+    isReady: mocks.checklist.isReady,
     exceptionCount: 0,
     setCondition: vi.fn(),
     setNotes: vi.fn(),
@@ -97,8 +100,24 @@ vi.mock('./WorkOrderAssignment', () => ({
 }));
 
 vi.mock('./WorkOrderPMToggle', () => ({
-  WorkOrderPMToggle: ({ turnOnSignal }: { turnOnSignal?: number }) => (
-    <div data-testid="pm-toggle" data-turn-on-signal={turnOnSignal ?? 0} />
+  WorkOrderPMToggle: ({
+    turnOnSignal,
+    setValue,
+  }: {
+    turnOnSignal?: number;
+    setValue: (field: 'hasPM' | 'pmTemplateId', value: boolean | string | null) => void;
+  }) => (
+    <div data-testid="pm-toggle" data-turn-on-signal={turnOnSignal ?? 0}>
+      <button
+        type="button"
+        onClick={() => {
+          setValue('hasPM', true);
+          setValue('pmTemplateId', 'tpl-1');
+        }}
+      >
+        Include PM with tpl-1
+      </button>
+    </div>
   ),
 }));
 
@@ -136,6 +155,8 @@ describe('WorkOrderForm', () => {
     mocks.canManageOrganization.mockReturnValue(true);
     mocks.quickBooksEnabled.mockReturnValue(true);
     mocks.submitForm.mockResolvedValue(undefined);
+    mocks.checklist.isReady = true;
+    mocks.checklist.isError = false;
   });
 
   describe('New Work Order mode', () => {
@@ -301,6 +322,40 @@ describe('WorkOrderForm', () => {
       const submitted = lastSubmitted();
       expect(serviceDateInputValue(submitted.completedDate)).toBe('2024-03-05');
       expect(submitted.equipmentWorkingHours).toBe(320.5);
+    });
+
+    it('keeps the decimal point while a fractional reading is typed', async () => {
+      renderForm();
+      fireEvent.click(screen.getByRole('radio', { name: 'Log Completed' }));
+      await fillRequiredFields('Paper PM');
+      const hours = screen.getByLabelText('Machine Hours at Service') as HTMLInputElement;
+
+      // Keystroke by keystroke, as a user types "123.5".
+      for (const value of ['1', '12', '123', '123.', '123.5']) {
+        fireEvent.change(hours, { target: { value } });
+        expect(hours.value).toBe(value);
+      }
+      // Letters and a second decimal point are ignored.
+      fireEvent.change(hours, { target: { value: '123.5.' } });
+      fireEvent.change(hours, { target: { value: '123.5a' } });
+      expect(hours.value).toBe('123.5');
+
+      fireEvent.click(screen.getByTestId('submit-button'));
+      await waitFor(() => expect(mocks.submitForm).toHaveBeenCalledTimes(1));
+      expect(lastSubmitted().equipmentWorkingHours).toBe(123.5);
+    });
+
+    it('holds the save, including Ctrl+Enter, until the selected PM checklist has loaded', async () => {
+      mocks.checklist.isReady = false;
+      renderForm();
+      fireEvent.click(screen.getByRole('radio', { name: 'Log Completed' }));
+      await fillRequiredFields('Paper PM');
+      fireEvent.click(screen.getByRole('button', { name: 'Include PM with tpl-1' }));
+
+      await waitFor(() => expect(screen.getByTestId('submit-button')).toBeDisabled());
+      fireEvent.keyDown(titleInput(), { key: 'Enter', ctrlKey: true });
+      await act(async () => {});
+      expect(mocks.submitForm).not.toHaveBeenCalled();
     });
 
     it('requires the service date', async () => {

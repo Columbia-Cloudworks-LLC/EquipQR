@@ -11,6 +11,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Fixed
+
+- **Logged work order safeguards** — Machine hours with decimals, such as 123.5, are kept as typed when logging completed work. A logged PM can only be saved once its checklist has loaded, so it is never stored with the wrong inspection items.
+
 ## [3.40.0] - 2026-11-10
 
 ### Added
