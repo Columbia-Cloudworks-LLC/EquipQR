@@ -11,10 +11,6 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
-### Fixed
-
-- **Service date in far-east timezones (#1709)** — A completed date logged from New Zealand, Samoa, Kiribati or other UTC+13/+14 timezones is kept on the day picked, instead of the day before.
-
 ## [3.40.0] - 2026-11-10
 
 ### Added
@@ -35,6 +31,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 - **Logged work order safeguards (#1707)** — Machine hours with decimals, such as 123.5, are kept as typed when logging completed work. A logged PM can only be saved once its checklist has loaded, so it is never stored with the wrong inspection items.
 - **Start PM always creates a PM (#1708)** — Start PM on the QR scan page asks for a PM template when the machine has no default, instead of creating an ordinary work order.
+- **Service date in far-east timezones (#1709)** — A completed date logged from New Zealand, Samoa, Kiribati or other UTC+13/+14 timezones is kept on the day picked, instead of the day before.
 
 ## [3.39.1] - 2026-11-07
 
