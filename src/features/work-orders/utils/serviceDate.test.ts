@@ -10,13 +10,24 @@ import {
 describe('serviceDate', () => {
   const now = new Date(2026, 10, 10, 23, 45); // late evening, local time
 
-  it('pins today to local noon so the calendar day survives a UTC conversion', () => {
-    const today = todayServiceDate(now);
+  it('stores the same calendar day locally and in UTC, so the database cast keeps it', () => {
+    // Run in any timezone; CI is UTC and the cases below were checked under
+    // Pacific/Kiritimati (+14), Pacific/Auckland (+13 DST), Asia/Kolkata (+5:30),
+    // America/Los_Angeles and Etc/GMT+12 (-12).
+    const dates = [
+      todayServiceDate(now),
+      serviceDateDaysAgo(1, now),
+      parseServiceDateInput('2024-03-05'),
+      parseServiceDateInput('2026-03-08'), // US DST change
+      parseServiceDateInput('2026-04-05'), // NZ DST change
+      parseServiceDateInput('2026-12-31'),
+    ];
 
-    expect(today.getHours()).toBe(12);
-    expect(serviceDateInputValue(today)).toBe('2026-11-10');
-    // Noon local is the same calendar day in every UTC offset from -11 to +11.
-    expect(today.toISOString().slice(0, 10)).toMatch(/^2026-11-1[01]$/);
+    expect(serviceDateInputValue(dates[0])).toBe('2026-11-10');
+    for (const date of dates) {
+      expect(date).not.toBeNull();
+      expect(date?.toISOString().slice(0, 10)).toBe(serviceDateInputValue(date));
+    }
   });
 
   it('counts back whole calendar days, across month boundaries', () => {
