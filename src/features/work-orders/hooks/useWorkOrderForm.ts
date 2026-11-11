@@ -17,7 +17,7 @@ export type { WorkOrderFormData };
 
 type WorkOrderFormInput = z.input<typeof workOrderFormSchema>;
 
-/** Adapter interface matching the old useFormValidation API for backward compatibility */
+/** Adapter interface exposing form state (values, errors, validity) to form components */
 interface FormAdapter<T> {
   values: Partial<T>;
   errors: Record<string, string>;

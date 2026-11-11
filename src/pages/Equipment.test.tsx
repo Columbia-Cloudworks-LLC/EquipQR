@@ -58,23 +58,8 @@ vi.mock('@/features/equipment/hooks/useEquipmentFiltering', () => ({
 }));
 
 // Stub child components to simplify rendering assertions
-vi.mock('@/features/equipment/components/EquipmentHeader', () => ({
-  default: ({ organizationName, onAddEquipment }: { organizationName?: string; onAddEquipment?: () => void }) => (
-    <div>
-      <div>Header - {organizationName}</div>
-      <button onClick={onAddEquipment}>Add Equipment</button>
-    </div>
-  ),
-}));
-
 vi.mock('@/features/equipment/components/EquipmentFilters', () => ({
   EquipmentFilters: () => <div>Filters</div>,
-}));
-
-vi.mock('@/features/equipment/components/EquipmentSortHeader', () => ({
-  default: ({ resultCount, totalCount }: { resultCount?: number; totalCount?: number }) => (
-    <div>SortHeader resultCount={resultCount} totalCount={totalCount}</div>
-  ),
 }));
 
 vi.mock('@/features/equipment/components/EquipmentGrid', () => ({

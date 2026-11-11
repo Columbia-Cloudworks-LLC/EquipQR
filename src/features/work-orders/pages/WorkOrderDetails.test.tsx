@@ -138,10 +138,6 @@ vi.mock('@/features/work-orders/hooks/useWorkTimer', () => ({
   })),
 }));
 
-vi.mock('@/hooks/useOnlineStatus', () => ({
-  useOnlineStatus: vi.fn(() => ({ isOnline: true, isSyncing: false })),
-}));
-
 vi.mock('@/hooks/useDocumentTitle', () => ({
   useDocumentTitle: vi.fn(),
 }));

@@ -13,6 +13,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ### Changed
 
+- **Removed unused code (#1718)** — Deleted about 20 old files that nothing in the app used any more (leftover billing code, old data services, unused equipment screens, utilities and hooks) along with their tests. No change to how EquipQR works.
 - **Quieter release checks (#1710)** — The production release check no longer reports a failure when a release was already promoted by hand. No change to how EquipQR works.
 
 ## [3.40.0] - 2026-11-10
