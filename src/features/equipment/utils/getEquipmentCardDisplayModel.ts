@@ -31,7 +31,7 @@ interface EquipmentCardDisplayInput {
   serial_number?: string | null;
   location?: string | null;
   status: string;
-  last_maintenance?: string;
+  last_maintenance?: string | null;
   working_hours?: number | null;
   custom_attributes?: unknown;
 }
@@ -77,7 +77,7 @@ function daysSinceDateOnly(value: string): number | null {
 }
 
 function buildLastMaintenanceMobileDisplay(
-  rawDate: string | undefined,
+  rawDate: string | null | undefined,
   formattedDate: string | null,
 ): string {
   if (!formattedDate || !rawDate?.trim()) return EMPTY_READOUT;

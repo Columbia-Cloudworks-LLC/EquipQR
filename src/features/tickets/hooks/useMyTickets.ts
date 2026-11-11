@@ -7,7 +7,7 @@ export interface TicketComment {
   id: string;
   author: string;
   body: string;
-  is_from_team: boolean;
+  is_from_team: boolean | null;
   created_at: string;
 }
 

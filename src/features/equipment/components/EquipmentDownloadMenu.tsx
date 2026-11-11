@@ -10,10 +10,32 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { arrayToCsv, downloadCsv, downloadJson, filenameWithDate } from '@/utils/exportUtils';
+import type { EquipmentSummary } from '@/features/equipment/services/EquipmentService';
 import type { EquipmentRecord } from '@/features/equipment/types/equipment';
 
+/**
+ * Fields the export reads. The list page supplies `EquipmentSummary` rows, which
+ * omit the warranty/installation/timestamp columns, so those are optional here.
+ */
+export type EquipmentExportRow = Pick<
+  EquipmentSummary,
+  | 'id'
+  | 'name'
+  | 'status'
+  | 'serial_number'
+  | 'manufacturer'
+  | 'model'
+  | 'location'
+  | 'working_hours'
+  | 'last_maintenance'
+  | 'team_name'
+> &
+  Partial<
+    Pick<EquipmentRecord, 'warranty_expiration' | 'installation_date' | 'created_at' | 'updated_at'>
+  >;
+
 interface EquipmentDownloadMenuProps {
-  equipment: EquipmentRecord[];
+  equipment: EquipmentExportRow[];
 }
 
 const CSV_HEADERS = [
@@ -30,7 +52,7 @@ const CSV_HEADERS = [
   'Installation Date',
 ];
 
-function equipmentToCsvRows(equipment: EquipmentRecord[]): string[][] {
+function equipmentToCsvRows(equipment: EquipmentExportRow[]): string[][] {
   return equipment.map((eq) => [
     eq.name ?? '',
     eq.status ?? '',

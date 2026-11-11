@@ -33,7 +33,7 @@ function EmptyFieldDisplay({ className }: { className?: string }) {
 
 interface InlineEditFieldProps {
   value: string;
-  onSave: (newValue: string) => Promise<void>;
+  onSave: (newValue: string) => void | Promise<void>;
   canEdit: boolean;
   fieldId?: string;
   type?: 'text' | 'textarea' | 'date' | 'select' | 'number';

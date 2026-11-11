@@ -3,7 +3,8 @@ import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-librar
 import { render } from '@vitest-harness/utils/test-utils';
 import { TestProviders } from '@vitest-harness/utils/TestProviders';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { WorkOrderData } from '@/features/work-orders/types/workOrder';
+import type { WorkOrder } from '@/features/work-orders/types/workOrder';
+import { createWorkOrderFixture } from '@/features/work-orders/utils/createWorkOrderFixture';
 import WorkOrders from '@/features/work-orders/pages/WorkOrders';
 import { personas } from '@vitest-harness/fixtures/personas';
 import { workOrders as woFixtures, organizations } from '@vitest-harness/fixtures/entities';
@@ -109,7 +110,7 @@ vi.mock('@/features/work-orders/hooks/useBatchAssignUnassignedWorkOrders', () =>
 
 const { createWorkOrderFilteringMock } = vi.hoisted(() => ({
   createWorkOrderFilteringMock: (
-    workOrders: WorkOrderData[] = [],
+    workOrders: WorkOrder[] = [],
     updateFilter = vi.fn(),
   ) => ({
     workOrders,
@@ -192,7 +193,7 @@ vi.mock('@/features/work-orders/calendar/WorkOrderCalendar', () => ({
 
 vi.mock('@/features/work-orders/components/WorkOrdersList', () => ({
   WorkOrdersList: ({ workOrders, onCreateClick }: {
-    workOrders: WorkOrderData[];
+    workOrders: WorkOrder[];
     hasActiveFilters: boolean;
     onCreateClick: () => void;
   }) => (
@@ -247,7 +248,7 @@ function renderAt(path: string) {
   });
 }
 
-function setWorkOrders(workOrders: WorkOrderData[], extra?: { totalFilteredCount?: number }) {
+function setWorkOrders(workOrders: WorkOrder[], extra?: { totalFilteredCount?: number }) {
   vi.mocked(useWorkOrderFilteringModule.useWorkOrderFiltering).mockReturnValue(
     createWorkOrderFilteringMock(workOrders),
   );
@@ -296,29 +297,27 @@ describe('WorkOrders Page', () => {
     });
 
     it('shows work orders when data is loaded', () => {
-      const mockWOs: WorkOrderData[] = [
-        {
+      const mockWOs: WorkOrder[] = [
+        createWorkOrderFixture({
           id: woFixtures.assigned.id,
           title: woFixtures.assigned.title,
           description: woFixtures.assigned.description,
-          equipmentId: woFixtures.assigned.equipment_id,
-          organizationId: woFixtures.assigned.organization_id,
+          equipment_id: woFixtures.assigned.equipment_id,
+          organization_id: woFixtures.assigned.organization_id,
           status: woFixtures.assigned.status,
           priority: woFixtures.assigned.priority,
-          createdDate: woFixtures.assigned.created_date,
-          created_date: woFixtures.assigned.created_date
-        },
-        {
+          created_date: woFixtures.assigned.created_date,
+        }),
+        createWorkOrderFixture({
           id: woFixtures.inProgress.id,
           title: woFixtures.inProgress.title,
           description: woFixtures.inProgress.description,
-          equipmentId: woFixtures.inProgress.equipment_id,
-          organizationId: woFixtures.inProgress.organization_id,
+          equipment_id: woFixtures.inProgress.equipment_id,
+          organization_id: woFixtures.inProgress.organization_id,
           status: woFixtures.inProgress.status,
           priority: woFixtures.inProgress.priority,
-          createdDate: woFixtures.inProgress.created_date,
-          created_date: woFixtures.inProgress.created_date
-        }
+          created_date: woFixtures.inProgress.created_date,
+        }),
       ];
 
       setWorkOrders(mockWOs);
@@ -464,15 +463,14 @@ describe('WorkOrders Page', () => {
 
   describe('server-paged list', () => {
     it('shows ListPaginationFooter when the filtered total is above a page', () => {
-      const many = Array.from({ length: 12 }, (_, index) => ({
+      const many = Array.from({ length: 12 }, (_, index) => createWorkOrderFixture({
         id: `wo-${index}`,
         title: `Work order ${index}`,
         description: '',
-        equipmentId: 'eq-1',
-        organizationId: organizations.acme.id,
-        status: 'submitted' as const,
-        priority: 'medium' as const,
-        createdDate: '2026-01-01T00:00:00Z',
+        equipment_id: 'eq-1',
+        organization_id: organizations.acme.id,
+        status: 'submitted',
+        priority: 'medium',
         created_date: '2026-01-01T00:00:00Z',
       }));
       setWorkOrders(many, { totalFilteredCount: 37 });

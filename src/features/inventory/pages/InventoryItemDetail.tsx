@@ -513,7 +513,10 @@ const InventoryItemDetail = () => {
             setEditingRules={setEditingRules}
             bulkSetRulesPending={bulkSetRulesMutation.isPending}
             onSaveCompatibilityRules={handleSaveCompatibilityRules}
-            alternateGroups={alternateGroups}
+            alternateGroups={{
+              ...alternateGroups,
+              availableGroupsCount: alternateGroups.availableGroups.length,
+            }}
             onDelete={handleDelete}
           />
         )}

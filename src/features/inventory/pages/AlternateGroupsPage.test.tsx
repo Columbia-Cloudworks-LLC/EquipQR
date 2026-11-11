@@ -62,6 +62,7 @@ vi.mock('@/features/inventory/components/AlternateGroupCreateWizard', () => ({
 }));
 
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { createMockSessionOrganization } from '@vitest-harness/mocks/testTypes';
 import { usePermissions } from '@/hooks/usePermissions';
 import {
   useAlternateGroups,
@@ -93,8 +94,8 @@ const setupMocks = (options: {
 
   vi.mocked(useInventoryPartsManagerAccess).mockReturnValue({
     currentOrganization: hasOrganization
-      ? { id: organizations.acme.id, name: organizations.acme.name }
-      : undefined,
+      ? createMockSessionOrganization({ id: organizations.acme.id, name: organizations.acme.name })
+      : null,
     canEdit,
   });
 

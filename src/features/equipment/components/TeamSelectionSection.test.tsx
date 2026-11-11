@@ -76,6 +76,122 @@ vi.mock('@/hooks/usePermissions', () => ({
   }))
 }));
 
+type TeamsQuery = ReturnType<typeof useTeamsModule.useTeams>;
+type TeamWithMembers = TeamsQuery['teams'][number];
+type PermissionsResult = ReturnType<typeof usePermissionsModule.usePermissions>;
+
+const createTeam = (id: string, name: string, description: string | null): TeamWithMembers => ({
+  id,
+  name,
+  description,
+  organization_id: 'org-1',
+  created_at: '2024-01-01T00:00:00Z',
+  updated_at: '2024-01-01T00:00:00Z',
+  customer_id: null,
+  image_url: null,
+  location_address: null,
+  location_city: null,
+  location_country: null,
+  location_lat: null,
+  location_lng: null,
+  location_state: null,
+  override_equipment_location: false,
+  preferred_view: 'list',
+  team_lead_id: null,
+  members: [],
+  member_count: 0,
+});
+
+const team1 = createTeam('team-1', 'Team 1', 'Description 1');
+const team2 = createTeam('team-2', 'Team 2', null);
+
+const createTeamsQuery = (
+  teams: TeamWithMembers[],
+  managedTeams: TeamWithMembers[],
+  isLoading: boolean,
+): TeamsQuery => {
+  const base = {
+    teams,
+    managedTeams,
+    error: null,
+    isError: false as const,
+    dataUpdatedAt: 0,
+    errorUpdatedAt: 0,
+    failureCount: 0,
+    failureReason: null,
+    errorUpdateCount: 0,
+    isFetchedAfterMount: !isLoading,
+    isInitialLoading: isLoading,
+    isLoadingError: false as const,
+    isPaused: false,
+    isPlaceholderData: false as const,
+    isRefetchError: false as const,
+    isRefetching: false,
+    isStale: false,
+    isEnabled: true,
+    refetch: vi.fn(),
+  };
+  if (isLoading) {
+    return {
+      ...base,
+      data: undefined,
+      isLoading: true,
+      isPending: true,
+      isSuccess: false,
+      status: 'pending',
+      fetchStatus: 'fetching',
+      isFetched: false,
+      isFetching: true,
+    };
+  }
+  return {
+    ...base,
+    data: teams,
+    isLoading: false,
+    isPending: false,
+    isSuccess: true,
+    status: 'success',
+    fetchStatus: 'idle',
+    isFetched: true,
+    isFetching: false,
+  };
+};
+
+const createPermissions = (
+  overrides: { isAdmin: boolean; canCreateForTeam: (teamId: string) => boolean; canCreateForAnyTeam: boolean },
+): PermissionsResult => {
+  const { isAdmin, canCreateForTeam, canCreateForAnyTeam } = overrides;
+  return {
+    canManageTeam: vi.fn(() => isAdmin),
+    canViewTeam: vi.fn(() => true),
+    canCreateTeam: vi.fn(() => isAdmin),
+    canManageEquipment: vi.fn(() => isAdmin),
+    canViewEquipment: vi.fn(() => true),
+    canCreateEquipment: vi.fn(() => isAdmin),
+    canCreateEquipmentForTeam: vi.fn(canCreateForTeam),
+    canCreateEquipmentForAnyTeam: vi.fn(() => canCreateForAnyTeam),
+    canUpdateEquipmentStatus: vi.fn(() => isAdmin),
+    canManageWorkOrder: vi.fn(() => isAdmin),
+    canViewWorkOrder: vi.fn(() => true),
+    canCreateWorkOrder: vi.fn(() => isAdmin),
+    canAssignWorkOrder: vi.fn(() => isAdmin),
+    canChangeWorkOrderStatus: vi.fn(() => isAdmin),
+    canManageOrganization: vi.fn(() => isAdmin),
+    canInviteMembers: vi.fn(() => isAdmin),
+    isOrganizationAdmin: vi.fn(() => isAdmin),
+    canManageInventory: vi.fn(() => isAdmin),
+    canViewInventory: vi.fn(() => true),
+    canManagePartsManagers: vi.fn(() => isAdmin),
+    canManagePartsConsumers: vi.fn(() => isAdmin),
+    hasRole: vi.fn((roles: string | string[]) => {
+      const roleList = Array.isArray(roles) ? roles : [roles];
+      return isAdmin && (roleList.includes('owner') || roleList.includes('admin'));
+    }),
+    isTeamMember: vi.fn(() => true),
+    isTeamManager: vi.fn(() => isAdmin),
+  };
+};
+
 interface TestWrapperProps {
   defaultValues?: Partial<EquipmentFormData>;
   isAdmin?: boolean;
@@ -103,30 +219,13 @@ const TestWrapper = ({ defaultValues, isAdmin = false, creatableTeamIds = ['team
   });
 
   // Mock permissions based on isAdmin prop
-  vi.mocked(usePermissionsModule.usePermissions).mockReturnValue({
-    canManageTeam: vi.fn(() => isAdmin),
-    canViewTeam: vi.fn(() => true),
-    canCreateTeam: vi.fn(() => isAdmin),
-    canManageEquipment: vi.fn(() => isAdmin),
-    canViewEquipment: vi.fn(() => true),
-    canCreateEquipment: vi.fn(() => isAdmin),
-    canCreateEquipmentForTeam: vi.fn((teamId: string) =>
-      isAdmin || creatableTeamIds.includes(teamId)
-    ),
-    canCreateEquipmentForAnyTeam: vi.fn(() => isAdmin || creatableTeamIds.length > 0),
-    canUpdateEquipmentStatus: vi.fn(() => isAdmin),
-    canManageWorkOrder: vi.fn(() => isAdmin),
-    canViewWorkOrder: vi.fn(() => true),
-    canCreateWorkOrder: vi.fn(() => isAdmin),
-    canAssignWorkOrder: vi.fn(() => isAdmin),
-    canChangeWorkOrderStatus: vi.fn(() => isAdmin),
-    canManageOrganization: vi.fn(() => isAdmin),
-    canInviteMembers: vi.fn(() => isAdmin),
-    isOrganizationAdmin: vi.fn(() => isAdmin),
-    hasRole: vi.fn((roles: string[]) => isAdmin && (roles.includes('owner') || roles.includes('admin'))),
-    isTeamMember: vi.fn(() => true),
-    isTeamManager: vi.fn(() => isAdmin)
-  });
+  vi.mocked(usePermissionsModule.usePermissions).mockReturnValue(
+    createPermissions({
+      isAdmin,
+      canCreateForTeam: (teamId: string) => isAdmin || creatableTeamIds.includes(teamId),
+      canCreateForAnyTeam: isAdmin || creatableTeamIds.length > 0,
+    }),
+  );
 
   return (
     <Form {...form}>
@@ -138,66 +237,14 @@ const TestWrapper = ({ defaultValues, isAdmin = false, creatableTeamIds = ['team
 describe('TeamSelectionSection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useTeamsModule.useTeams).mockReturnValue({
-      teams: [
-        { 
-          id: 'team-1', 
-          name: 'Team 1', 
-          description: 'Description 1',
-          organization_id: 'org-1',
-          created_at: '2024-01-01T00:00:00Z',
-          updated_at: '2024-01-01T00:00:00Z',
-          members: [],
-          member_count: 0
-        },
-        { 
-          id: 'team-2', 
-          name: 'Team 2', 
-          description: null,
-          organization_id: 'org-1',
-          created_at: '2024-01-01T00:00:00Z',
-          updated_at: '2024-01-01T00:00:00Z',
-          members: [],
-          member_count: 0
-        }
-      ],
-      managedTeams: [
-        { 
-          id: 'team-1', 
-          name: 'Team 1', 
-          description: 'Description 1',
-          organization_id: 'org-1',
-          created_at: '2024-01-01T00:00:00Z',
-          updated_at: '2024-01-01T00:00:00Z',
-          members: [],
-          member_count: 0
-        }
-      ],
-      isLoading: false,
-      error: null
-    });
-    vi.mocked(usePermissionsModule.usePermissions).mockReturnValue({
-      canManageTeam: vi.fn(() => false),
-      canViewTeam: vi.fn(() => true),
-      canCreateTeam: vi.fn(() => false),
-      canManageEquipment: vi.fn(() => false),
-      canViewEquipment: vi.fn(() => true),
-      canCreateEquipment: vi.fn(() => false),
-      canCreateEquipmentForTeam: vi.fn((teamId: string) => teamId === 'team-1'),
-      canCreateEquipmentForAnyTeam: vi.fn(() => true),
-      canUpdateEquipmentStatus: vi.fn(() => false),
-      canManageWorkOrder: vi.fn(() => false),
-      canViewWorkOrder: vi.fn(() => true),
-      canCreateWorkOrder: vi.fn(() => false),
-      canAssignWorkOrder: vi.fn(() => false),
-      canChangeWorkOrderStatus: vi.fn(() => false),
-      canManageOrganization: vi.fn(() => false),
-      canInviteMembers: vi.fn(() => false),
-      isOrganizationAdmin: vi.fn(() => false),
-      hasRole: vi.fn(() => false),
-      isTeamMember: vi.fn(() => true),
-      isTeamManager: vi.fn(() => false)
-    });
+    vi.mocked(useTeamsModule.useTeams).mockReturnValue(createTeamsQuery([team1, team2], [team1], false));
+    vi.mocked(usePermissionsModule.usePermissions).mockReturnValue(
+      createPermissions({
+        isAdmin: false,
+        canCreateForTeam: (teamId: string) => teamId === 'team-1',
+        canCreateForAnyTeam: true,
+      }),
+    );
   });
 
   describe('Core Rendering', () => {
@@ -216,12 +263,7 @@ describe('TeamSelectionSection', () => {
 
   describe('Loading State', () => {
     it('shows loading state when teams are loading', () => {
-      vi.mocked(useTeamsModule.useTeams).mockReturnValue({
-        teams: [],
-        managedTeams: [],
-        isLoading: true,
-        error: null
-      });
+      vi.mocked(useTeamsModule.useTeams).mockReturnValue(createTeamsQuery([], [], true));
 
       render(<TestWrapper />);
       

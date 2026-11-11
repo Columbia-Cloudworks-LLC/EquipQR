@@ -20,7 +20,7 @@ import {
 } from '@/features/inventory/hooks/useAlternateGroups';
 import { inventoryItemFormSchema } from '@/features/inventory/schemas/inventorySchema';
 import type { InventoryItem, PartCompatibilityRuleFormData } from '@/features/inventory/types/inventory';
-import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
+import type { InventoryItemFormData, InventoryItemFormInput } from '@/features/inventory/schemas/inventorySchema';
 import { CompatibilityRulesEditor } from '@/features/inventory/components/CompatibilityRulesEditor';
 import { InventoryItemFormBasicFields } from '@/features/inventory/components/InventoryItemFormBasicFields';
 import { InventoryItemFormDirectLinksSection } from '@/features/inventory/components/InventoryItemFormDirectLinksSection';
@@ -78,7 +78,7 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
     enabled: open,
   });
 
-  const form = useForm<InventoryItemFormData>({
+  const form = useForm<InventoryItemFormInput, unknown, InventoryItemFormData>({
     resolver: zodResolver(inventoryItemFormSchema),
     defaultValues: EMPTY_DEFAULTS,
   });

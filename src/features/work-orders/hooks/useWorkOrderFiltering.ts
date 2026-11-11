@@ -50,7 +50,7 @@ function toOfflineListRow(order: ReturnType<typeof buildOfflineQueuedWorkOrder>)
     equipmentId: order.equipment_id,
     organizationId: order.organization_id,
     assigneeId: order.assignee_id,
-    teamId: order.equipmentTeamId ?? null,
+    teamId: order.equipmentTeamId,
     createdDate: order.created_date,
     dueDate: order.due_date,
     estimatedHours: order.estimated_hours,
@@ -181,7 +181,7 @@ export function useWorkOrderFiltering() {
       rows,
       { ...filters, teamFilter: selectedTeamFilterValue(selectedTeamId) },
       currentUser?.id,
-    ) as TeamBasedWorkOrder[]
+    )
   }, [allEquipment, currentUser?.id, filters, offlineCtx, selectedTeamId, user?.user_metadata?.full_name])
 
   const workOrdersPage = useMemo(() => {

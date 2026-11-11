@@ -10,7 +10,6 @@ import EquipmentSortPopover from './EquipmentSortPopover';
 import EquipmentImportMenu from './EquipmentImportMenu';
 import EquipmentDownloadMenu from './EquipmentDownloadMenu';
 import type { EquipmentListToolbarProps } from '@/features/equipment/components/equipmentFilterTypes';
-import type { EquipmentFilterState } from '@/features/equipment/hooks/useEquipmentFiltering';
 import { EQUIPMENT_STATUS_FILTER_LABELS } from './equipmentFilterConstants';
 
 type EquipmentToolbarProps = EquipmentListToolbarProps;
@@ -156,7 +155,7 @@ const EquipmentToolbar: React.FC<EquipmentToolbarProps> = ({
             <Badge variant="secondary" className="flex items-center gap-1 text-xs h-5 px-2">
               Warranty Expiring
               <button
-                onClick={() => onFilterChange('warrantyExpiring' as keyof EquipmentFilterState, 'false')}
+                onClick={() => onFilterChange('warrantyExpiring', false)}
                 className="ml-0.5 hover:text-foreground"
                 aria-label="Clear warranty expiring filter"
               >

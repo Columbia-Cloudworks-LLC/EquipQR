@@ -58,14 +58,15 @@ describe('EquipmentCardGridView', () => {
   });
 
   it('scales large working-hour values to stay inside the telemetry cell', () => {
+    const largeHoursEquipment = { ...mockEquipment, working_hours: 99999.99 };
     const largeHoursDisplay = getEquipmentCardDisplayModel(
-      { ...mockEquipment, working_hours: 99999.99 },
+      largeHoursEquipment,
       testUserSettingsSydney,
     );
 
     render(
       <EquipmentCardGridView
-        equipment={{ ...mockEquipment, working_hours: 99999.99 }}
+        equipment={largeHoursEquipment}
         display={largeHoursDisplay}
         pmReadout={pmReadout}
         onQRClick={vi.fn()}

@@ -1,25 +1,25 @@
 import { useEffect, useRef, useState } from 'react';
-import type { UseFormReturn } from 'react-hook-form';
 import { supabase } from '@/integrations/supabase/client';
 import type { InventoryItem } from '@/features/inventory/types/inventory';
-import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
+import type { InventoryItemFormApi } from '@/features/inventory/schemas/inventorySchema';
 import {
   mapInventoryCompatibilityRules,
   shouldIgnoreStaleInventoryItemEditingLoad,
 } from '@/features/inventory/utils/inventoryItemEditingLoadHelpers';
+import type { ToastVariant } from '@/hooks/useAppToast';
 import { logger } from '@/utils/logger';
 
 type ToastFn = (args: {
   title: string;
   description?: string;
-  variant?: 'default' | 'error' | 'warning' | 'success';
+  variant?: ToastVariant;
 }) => void;
 
 type UseInventoryItemFormEditingLoadParams = {
   open: boolean;
   editingItem?: InventoryItem | null;
   currentOrganizationId?: string;
-  form: UseFormReturn<InventoryItemFormData>;
+  form: InventoryItemFormApi;
   toast: ToastFn;
 };
 

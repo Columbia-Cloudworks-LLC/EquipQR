@@ -50,6 +50,7 @@ import {
   createPartIdentifier,
   addIdentifierToGroup,
 } from '@/features/inventory/services/partAlternatesService';
+import type { AlternateGroupWithMembers } from '@/features/inventory/services/partAlternatesService';
 import {
   useAlternateGroups,
   useAlternateGroup,
@@ -129,12 +130,19 @@ describe('useAlternateGroups', () => {
 
   describe('useAlternateGroup hook', () => {
     it('fetches a single group with members', async () => {
-      const mockGroup = {
+      const mockGroup: AlternateGroupWithMembers = {
         ...partAlternateGroups.oilFilterGroup,
         members: [
-          { id: 'member-1', inventory_item_id: inventoryItems.oilFilter.id },
+          {
+            id: 'member-1',
+            group_id: partAlternateGroups.oilFilterGroup.id,
+            part_identifier_id: null,
+            inventory_item_id: inventoryItems.oilFilter.id,
+            is_primary: false,
+            notes: null,
+            created_at: '2024-01-01T00:00:00Z',
+          },
         ],
-        identifiers: [],
       };
       vi.mocked(getAlternateGroupById).mockResolvedValue(mockGroup);
 
@@ -313,12 +321,7 @@ describe('useAlternateGroups', () => {
 
   describe('useAddInventoryItemToGroup mutation', () => {
     it('adds an inventory item to a group', async () => {
-      vi.mocked(addInventoryItemToGroup).mockResolvedValue({
-        id: 'member-1',
-        group_id: partAlternateGroups.oilFilterGroup.id,
-        inventory_item_id: inventoryItems.oilFilter.id,
-        is_primary: false,
-      });
+      vi.mocked(addInventoryItemToGroup).mockResolvedValue(undefined);
 
       const { result } = renderHook(
         () => useAddInventoryItemToGroup(),
@@ -344,12 +347,7 @@ describe('useAlternateGroups', () => {
     });
 
     it('can mark item as primary', async () => {
-      vi.mocked(addInventoryItemToGroup).mockResolvedValue({
-        id: 'member-1',
-        group_id: partAlternateGroups.oilFilterGroup.id,
-        inventory_item_id: inventoryItems.oilFilter.id,
-        is_primary: true,
-      });
+      vi.mocked(addInventoryItemToGroup).mockResolvedValue(undefined);
 
       const { result } = renderHook(
         () => useAddInventoryItemToGroup(),
@@ -531,18 +529,8 @@ describe('Alternate Groups User Journeys', () => {
   describe('Parts Manager adds items to group', () => {
     it('adds multiple inventory items as alternates', async () => {
       vi.mocked(addInventoryItemToGroup)
-        .mockResolvedValueOnce({
-          id: 'member-1',
-          group_id: partAlternateGroups.oilFilterGroup.id,
-          inventory_item_id: inventoryItems.oilFilter.id,
-          is_primary: true,
-        })
-        .mockResolvedValueOnce({
-          id: 'member-2',
-          group_id: partAlternateGroups.oilFilterGroup.id,
-          inventory_item_id: inventoryItems.airFilter.id,
-          is_primary: false,
-        });
+        .mockResolvedValueOnce(undefined)
+        .mockResolvedValueOnce(undefined);
 
       const { result } = renderHook(
         () => useAddInventoryItemToGroup(),

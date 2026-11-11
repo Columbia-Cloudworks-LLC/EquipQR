@@ -36,23 +36,14 @@ vi.mock('@/utils/logger', () => ({
   },
 }));
 
-interface GoogleMapsMock {
-  maps: {
-    Size: (width: number, height: number) => { width: number; height: number };
-    Point: (x: number, y: number) => { x: number; y: number };
-    LatLngBounds: () => { extend: () => void; toJSON: () => unknown };
-    event: { addListenerOnce: () => void };
-  };
-}
-
-global.window.google = {
+vi.stubGlobal('google', {
   maps: {
     Size: vi.fn((width: number, height: number) => ({ width, height })),
     Point: vi.fn((x: number, y: number) => ({ x, y })),
     LatLngBounds: vi.fn(() => ({ extend: vi.fn(), toJSON: vi.fn() })),
     event: { addListenerOnce: vi.fn() },
   },
-} as unknown as GoogleMapsMock;
+});
 
 describe('MapView gm_authFailure handling', () => {
   let originalReload: typeof window.location.reload;

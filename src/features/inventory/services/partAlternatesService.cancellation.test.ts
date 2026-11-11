@@ -1,4 +1,4 @@
-import './partAlternatesServiceTestMocks';
+import { rpcResult } from './partAlternatesServiceTestMocks';
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,10 +23,9 @@ describe('getAlternatesForPartNumber cancellation behavior', () => {
     const abortController = new AbortController();
     const { signal } = abortController;
 
-    vi.mocked(supabase.rpc).mockImplementation(async () => {
-      queueMicrotask(() => abortController.abort());
-      return { data: [], error: null } as { data: unknown; error: null };
-    });
+    vi.mocked(supabase.rpc).mockResolvedValue(rpcResult([]));
+    // Runs after the service has issued the RPC but before its await resumes.
+    queueMicrotask(() => abortController.abort());
 
     const result = await getAlternatesForPartNumber('org-1', 'TEST', signal);
 
@@ -38,10 +37,7 @@ describe('getAlternatesForPartNumber cancellation behavior', () => {
     const abortController = new AbortController();
     const { signal } = abortController;
 
-    vi.mocked(supabase.rpc).mockResolvedValue({
-      data: null,
-      error: { message: 'request aborted' },
-    });
+    vi.mocked(supabase.rpc).mockResolvedValue(rpcResult(null, { message: 'request aborted' }));
 
     const result = await getAlternatesForPartNumber('org-1', 'TEST', signal);
 
@@ -53,10 +49,7 @@ describe('getAlternatesForPartNumber cancellation behavior', () => {
     const abortController = new AbortController();
     const { signal } = abortController;
 
-    vi.mocked(supabase.rpc).mockResolvedValue({
-      data: null,
-      error: { message: 'Request Aborted' },
-    });
+    vi.mocked(supabase.rpc).mockResolvedValue(rpcResult(null, { message: 'Request Aborted' }));
 
     const result = await getAlternatesForPartNumber('org-1', 'TEST', signal);
 
@@ -68,10 +61,7 @@ describe('getAlternatesForPartNumber cancellation behavior', () => {
     const abortController = new AbortController();
     const { signal } = abortController;
 
-    vi.mocked(supabase.rpc).mockResolvedValue({
-      data: null,
-      error: { message: 'request cancelled' },
-    });
+    vi.mocked(supabase.rpc).mockResolvedValue(rpcResult(null, { message: 'request cancelled' }));
 
     const result = await getAlternatesForPartNumber('org-1', 'TEST', signal);
 
@@ -170,10 +160,7 @@ describe('getAlternatesForPartNumber cancellation behavior', () => {
 
   it('does not silently handle RPC error object with abort message when no signal is provided', async () => {
     const error = { message: 'Transaction aborted due to constraint violation' };
-    vi.mocked(supabase.rpc).mockResolvedValue({
-      data: null,
-      error,
-    });
+    vi.mocked(supabase.rpc).mockResolvedValue(rpcResult(null, error));
 
     await expect(getAlternatesForPartNumber('org-1', 'TEST')).rejects.toEqual(error);
     expect(logger.error).toHaveBeenCalledWith('Error looking up alternates for part number:', error);
@@ -181,10 +168,7 @@ describe('getAlternatesForPartNumber cancellation behavior', () => {
 
   it('does not silently handle RPC error object with cancel message when no signal is provided', async () => {
     const error = { message: 'Operation cancelled due to invalid input' };
-    vi.mocked(supabase.rpc).mockResolvedValue({
-      data: null,
-      error,
-    });
+    vi.mocked(supabase.rpc).mockResolvedValue(rpcResult(null, error));
 
     await expect(getAlternatesForPartNumber('org-1', 'TEST')).rejects.toEqual(error);
     expect(logger.error).toHaveBeenCalledWith('Error looking up alternates for part number:', error);

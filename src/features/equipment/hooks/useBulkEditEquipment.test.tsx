@@ -24,7 +24,7 @@ vi.mock('@/features/equipment/services/EquipmentService', () => ({
 import { toast } from 'sonner';
 import { EquipmentService } from '@/features/equipment/services/EquipmentService';
 import { useBulkEditEquipment } from './useBulkEditEquipment';
-import type { EquipmentRecord } from '@/features/equipment/types/equipment';
+import type { EquipmentListRow } from '@/features/equipment/services/EquipmentService';
 
 const mockBatchUpdate = vi.mocked(EquipmentService.batchUpdate);
 
@@ -41,7 +41,7 @@ const createWrapper = () => {
   return Wrapper;
 };
 
-const renderBulkEditHook = (rows: EquipmentRecord[]) =>
+const renderBulkEditHook = (rows: EquipmentListRow[]) =>
   renderHook(() => useBulkEditEquipment(rows), { wrapper: createWrapper() });
 
 const defaultTwoEquipmentRows = () => [mockRow('eq-1'), mockRow('eq-2')];
@@ -73,33 +73,26 @@ const commitDirtyEdits = async (result: ReturnType<typeof renderTwoRowBulkEditHo
   });
 };
 
-const mockRow = (id: string, overrides: Partial<EquipmentRecord> = {}): EquipmentRecord =>
-  ({
-    id,
-    name: `Equipment ${id}`,
-    status: 'active',
-    manufacturer: 'Caterpillar',
-    model: '320',
-    serial_number: `SN-${id}`,
-    location: 'Yard A',
-    installation_date: '2024-01-01',
-    organization_id: 'test-org',
-    customer_id: null,
-    image_url: null,
-    last_maintenance: null,
-    last_maintenance_work_order_id: null,
-    notes: null,
-    custom_attributes: null,
-    last_known_location: null,
-    team_id: null,
-    default_pm_template_id: null,
-    warranty_expiration: null,
-    working_hours: 100,
-    import_id: null,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-    ...overrides,
-  }) as unknown as EquipmentRecord;
+const mockRow = (id: string, overrides: Partial<EquipmentListRow> = {}): EquipmentListRow => ({
+  id,
+  name: `Equipment ${id}`,
+  status: 'active',
+  manufacturer: 'Caterpillar',
+  model: '320',
+  serial_number: `SN-${id}`,
+  location: 'Yard A',
+  installation_date: '2024-01-01',
+  organization_id: 'test-org',
+  image_url: null,
+  last_maintenance: null,
+  custom_attributes: null,
+  team_id: null,
+  warranty_expiration: null,
+  working_hours: 100,
+  created_at: '2024-01-01T00:00:00Z',
+  updated_at: '2024-01-01T00:00:00Z',
+  ...overrides,
+});
 
 describe('useBulkEditEquipment', () => {
   beforeEach(() => {

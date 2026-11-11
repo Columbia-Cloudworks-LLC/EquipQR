@@ -35,10 +35,10 @@ const defaultFilters: EquipmentFilterState = {
   manufacturer: 'all',
   location: 'all',
   team: 'all',
-  maintenanceDateFrom: null,
-  maintenanceDateTo: null,
-  installationDateFrom: null,
-  installationDateTo: null,
+  maintenanceDateFrom: '',
+  maintenanceDateTo: '',
+  installationDateFrom: '',
+  installationDateTo: '',
   warrantyExpiring: false
 };
 
@@ -304,7 +304,7 @@ describe('EquipmentFilters', () => {
       expect(screen.getByText('Active Count: 5')).toBeInTheDocument();
     });
 
-    it('handles null and undefined filter values', async () => {
+    it('handles empty date filter values', async () => {
       const { useIsMobile } = await import('@/hooks/use-mobile');
       vi.mocked(useIsMobile).mockReturnValue(true);
 
@@ -313,8 +313,8 @@ describe('EquipmentFilters', () => {
           {...defaultProps} 
           filters={{ 
             ...defaultFilters,
-            maintenanceDateFrom: null,
-            maintenanceDateTo: undefined
+            maintenanceDateFrom: '',
+            maintenanceDateTo: ''
           }}
         />
       );

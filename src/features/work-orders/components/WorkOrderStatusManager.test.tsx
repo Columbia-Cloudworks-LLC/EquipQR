@@ -1,6 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@vitest-harness/utils/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { UseMutationResult } from '@tanstack/react-query';
 import WorkOrderStatusManager from './WorkOrderStatusManager';
 import { useWorkOrderContextualAssignment } from '@/features/work-orders/hooks/useWorkOrderContextualAssignment';
 import { useWorkOrderStatusChangeHandlers } from '@/features/work-orders/hooks/useWorkOrderStatusChangeHandlers';
@@ -48,6 +49,30 @@ vi.mock('./WorkOrderAssigneeDisplay', () => ({
   default: () => <div>Assignment card</div>,
 }));
 
+/** Complete idle `UseMutationResult`; `TData`/`TVariables` are inferred from the expected type. */
+function createIdleMutationResult<TData, TVariables>(
+  mutateAsync: UseMutationResult<TData, Error, TVariables, unknown>['mutateAsync'],
+): UseMutationResult<TData, Error, TVariables, unknown> {
+  return {
+    data: undefined,
+    error: null,
+    variables: undefined,
+    context: undefined,
+    status: 'idle',
+    isIdle: true,
+    isPending: false,
+    isSuccess: false,
+    isError: false,
+    isPaused: false,
+    failureCount: 0,
+    failureReason: null,
+    submittedAt: 0,
+    mutate: () => undefined,
+    mutateAsync,
+    reset: vi.fn(),
+  };
+}
+
 type TestWorkOrderOverrides = Partial<React.ComponentProps<typeof WorkOrderStatusManager>['workOrder']>;
 
 function renderStatusManager(workOrderOverrides: TestWorkOrderOverrides = {}) {
@@ -73,8 +98,8 @@ describe('WorkOrderStatusManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useWorkOrderStatusChangeHandlers).mockReturnValue({
-      updateStatusMutation: { isPending: false, mutateAsync: mockMutateAsync },
-      acceptanceMutation: { isPending: false, mutateAsync: vi.fn() },
+      updateStatusMutation: createIdleMutationResult(mockMutateAsync),
+      acceptanceMutation: createIdleMutationResult(vi.fn()),
       pmData: null,
       isManager: true,
       isTechnician: false,
@@ -85,10 +110,11 @@ describe('WorkOrderStatusManager', () => {
     });
     vi.mocked(useWorkOrderContextualAssignment).mockReturnValue({
       assignmentOptions: [
-        { id: 'user-1', name: 'Nicholas King', role: 'Owner' },
-        { id: 'user-2', name: 'Jane Smith', role: 'Technician' },
+        { id: 'user-1', name: 'Nicholas King', role: 'Owner', type: 'user' },
+        { id: 'user-2', name: 'Jane Smith', role: 'Technician', type: 'user' },
       ],
       isLoading: false,
+      error: null,
       equipmentHasNoTeam: false,
     });
   });

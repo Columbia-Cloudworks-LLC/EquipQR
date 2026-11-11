@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import type { UseFormReturn } from 'react-hook-form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -7,7 +6,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { ChevronDown, ChevronRight, Forklift, Search } from 'lucide-react';
 import { InventoryEquipmentPickerRow } from '@/features/inventory/components/InventoryEquipmentPickerRow';
 import { SelectedEquipmentBadgeList } from '@/components/common/SelectedEquipmentBadgeList';
-import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
 
 type EquipmentSummary = {
   id: string;
@@ -17,14 +15,12 @@ type EquipmentSummary = {
 };
 
 type InventoryItemFormDirectLinksSectionProps = {
-  form: UseFormReturn<InventoryItemFormData>;
   allEquipment: EquipmentSummary[];
   selectedEquipmentIds: string[];
   onEquipmentToggle: (equipmentId: string, checked: boolean) => void;
 };
 
 export function InventoryItemFormDirectLinksSection({
-  form,
   allEquipment,
   selectedEquipmentIds,
   onEquipmentToggle,

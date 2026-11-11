@@ -17,19 +17,19 @@ export const QUICK_FORM_INPUT_TYPES: { value: QuickFormInputType; label: string 
   { value: 'checkbox', label: 'Checkbox' },
 ];
 
-export interface QuickFormField {
+export type QuickFormField = {
   id: string;
   label: string;
   inputType: QuickFormInputType;
   required?: boolean;
   helpText?: string;
-}
+};
 
-export interface QuickFormData {
+export type QuickFormData = {
   fields: QuickFormField[];
   /** Ask the submitter's browser for GPS coordinates (optional consent). */
   collectLocation?: boolean;
-}
+};
 
 export interface QuickFormFieldValue {
   field_id: string;

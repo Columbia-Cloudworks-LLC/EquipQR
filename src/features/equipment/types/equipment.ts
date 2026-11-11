@@ -6,7 +6,7 @@
  */
 
 import { z } from 'zod';
-import { Tables } from '@/integrations/supabase/types';
+import type { Json, Tables } from '@/integrations/supabase/types';
 
 // ============================================
 // Core Status Type
@@ -30,6 +30,44 @@ export interface EquipmentLocation {
 // ============================================
 
 export type CustomAttributes = Record<string, string | number | boolean | null>;
+
+/**
+ * Narrow a raw `custom_attributes` Json column to `CustomAttributes`.
+ * Non-object values yield an empty record; nested (non-scalar) values are dropped.
+ */
+export const parseCustomAttributes = (value: Json | null | undefined): CustomAttributes => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const result: CustomAttributes = {};
+  for (const [key, entry] of Object.entries(value)) {
+    if (
+      typeof entry === 'string' ||
+      typeof entry === 'number' ||
+      typeof entry === 'boolean' ||
+      entry === null
+    ) {
+      result[key] = entry;
+    }
+  }
+  return result;
+};
+
+/**
+ * Narrow a raw `last_known_location` Json column to `EquipmentLocation`.
+ * Returns undefined unless numeric latitude/longitude are present.
+ */
+export const parseEquipmentLocation = (
+  value: Json | null | undefined
+): EquipmentLocation | undefined => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const { latitude, longitude, address, timestamp } = value;
+  if (typeof latitude !== 'number' || typeof longitude !== 'number') return undefined;
+  return {
+    latitude,
+    longitude,
+    ...(typeof address === 'string' ? { address } : {}),
+    ...(typeof timestamp === 'string' ? { timestamp } : {}),
+  };
+};
 
 // ============================================
 // Zod Schemas for Validation
@@ -172,10 +210,22 @@ type EquipmentRow = Tables<'equipment'>;
  * 
  * This is the primary type for equipment data throughout the application.
  */
-export interface EquipmentRecord extends Omit<EquipmentRow, 'custom_attributes' | 'last_known_location'> {
-  // Transform Json fields to type-safe interfaces
-  custom_attributes?: CustomAttributes | null;
-  last_known_location?: EquipmentLocation | null;
+export interface EquipmentRecord extends Omit<
+  EquipmentRow,
+  | 'custom_attributes'
+  | 'last_known_location'
+  | 'assigned_location_street'
+  | 'assigned_location_city'
+  | 'assigned_location_state'
+  | 'assigned_location_country'
+  | 'assigned_location_lat'
+  | 'assigned_location_lng'
+  | 'use_team_location'
+> {
+  // Json columns stay `Json` here because rows come straight from Supabase;
+  // use `parseCustomAttributes` / `parseEquipmentLocation` to narrow them.
+  custom_attributes?: Json | null;
+  last_known_location?: Json | null;
   
   // Frontend-specific computed fields from joins
   team_name?: string;

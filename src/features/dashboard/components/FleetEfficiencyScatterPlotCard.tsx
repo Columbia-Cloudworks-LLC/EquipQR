@@ -1,5 +1,6 @@
 import React from 'react';
 import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import type { ScatterPointItem } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -217,9 +218,11 @@ const FleetEfficiencyScatterPlotCard: React.FC = () => {
                   data={jitteredData}
                   fill="hsl(var(--primary))"
                   stroke="hsl(var(--primary))"
-                  shape={(props: Record<string, unknown>) => (
+                  shape={({ cx, cy, payload }: ScatterPointItem) => (
                     <ScatterPointShape
-                      {...props}
+                      cx={cx}
+                      cy={cy}
+                      payload={payload}
                       allPoints={jitteredData}
                       onTeamSelect={handleTeamSelectFromCluster}
                     />

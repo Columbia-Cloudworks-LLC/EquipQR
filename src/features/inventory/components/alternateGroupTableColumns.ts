@@ -19,7 +19,7 @@ export interface AlternateGroupTableColumnMeta {
   title: string;
   defaultWidth: number;
   minWidth: number;
-  maxWidth?: number;
+  maxWidth: number;
   align?: 'left' | 'right' | 'center';
   mono?: boolean;
   sortable: boolean;

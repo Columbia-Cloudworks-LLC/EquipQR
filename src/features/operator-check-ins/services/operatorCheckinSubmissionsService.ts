@@ -1,5 +1,9 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { CapturedFieldValue, OperatorChecklistAnswer } from '@/features/operator-check-ins/types/operatorChecklist';
+import type { Json, Tables } from '@/integrations/supabase/types';
+import type {
+  CapturedFieldValue,
+  OperatorChecklistAnswer,
+} from '@/features/operator-check-ins/types/operatorChecklist';
 
 export async function listOperatorCheckinTemplateIdsWithSubmissions(
   organizationId: string,
@@ -11,7 +15,7 @@ export async function listOperatorCheckinTemplateIdsWithSubmissions(
 
   const { data, error } = await supabase.rpc('list_operator_checkin_restorable_template_ids', {
     p_organization_id: organizationId,
-    p_template_ids: templateIds && templateIds.length > 0 ? templateIds : null,
+    p_template_ids: templateIds && templateIds.length > 0 ? templateIds : undefined,
   });
 
   if (error) throw error;
@@ -38,6 +42,35 @@ export interface OperatorCheckinSubmission {
   required_item_count: number;
   answered_required_count: number;
   equipment?: { id: string; name: string; serial_number: string | null } | null;
+}
+
+function isRecord(value: Json): value is Record<string, Json | undefined> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Submission JSON is stored as sent by the public submit RPC, which does not
+ * validate entry shapes. Keep every entry (do not hide submitted data); only
+ * a non-array column falls back to an empty list.
+ */
+function jsonArray<T>(value: Json): T[] {
+  const items: unknown[] = Array.isArray(value) ? value : [];
+  return items as T[];
+}
+
+type SubmissionRow = Tables<'operator_checkin_submissions'> & {
+  equipment?: OperatorCheckinSubmission['equipment'];
+};
+
+function mapSubmissionRow(row: SubmissionRow): OperatorCheckinSubmission {
+  return {
+    ...row,
+    template_snapshot: isRecord(row.template_snapshot) ? row.template_snapshot : {},
+    operator_field_values: jsonArray<CapturedFieldValue>(row.operator_field_values),
+    client_field_values: jsonArray<CapturedFieldValue>(row.client_field_values),
+    equipment_field_values: jsonArray<CapturedFieldValue>(row.equipment_field_values),
+    checklist_answers: jsonArray<OperatorChecklistAnswer>(row.checklist_answers),
+  };
 }
 
 export interface OperatorCheckinSubmissionFilters {
@@ -81,5 +114,5 @@ export async function listOperatorCheckinSubmissions(
 
   const { data, error } = await query;
   if (error) throw error;
-  return (data ?? []) as OperatorCheckinSubmission[];
+  return (data ?? []).map(mapSubmissionRow);
 }

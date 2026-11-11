@@ -1,22 +1,22 @@
 import { withResolvedEquipmentImages } from '@/services/imageUploadService';
-import type { EquipmentWithTeam } from '@/features/equipment/services/EquipmentService';
-
-type RowWithTeamJoin = Record<string, unknown> & {
+type RowWithTeamJoin = {
+  id?: string;
+  image_url?: string | null;
   team?: { name?: string } | null;
 };
 
 export function flattenEquipmentRowsWithTeamName<T extends RowWithTeamJoin>(
   rows: T[],
-): EquipmentWithTeam[] {
+): Array<T & { team_name: string | undefined }> {
   return (rows || []).map((row) => ({
     ...row,
-    team_name: (row.team as { name?: string } | null | undefined)?.name ?? undefined,
-  })) as EquipmentWithTeam[];
+    team_name: row.team?.name ?? undefined,
+  }));
 }
 
 export async function flattenAndResolveEquipmentImages<T extends RowWithTeamJoin>(
   rows: T[],
-): Promise<EquipmentWithTeam[]> {
+): Promise<Array<T & { team_name: string | undefined }>> {
   const flattened = flattenEquipmentRowsWithTeamName(rows);
   return withResolvedEquipmentImages(flattened);
 }

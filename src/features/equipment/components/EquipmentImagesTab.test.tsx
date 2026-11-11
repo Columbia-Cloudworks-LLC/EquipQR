@@ -136,7 +136,17 @@ describe('EquipmentImagesTab', () => {
     });
 
     it('handles image upload', async () => {
-      vi.mocked(equipmentNotesServiceModule.createEquipmentNoteWithImages).mockResolvedValue({ id: 'note-1' });
+      vi.mocked(equipmentNotesServiceModule.createEquipmentNoteWithImages).mockResolvedValue({
+        id: 'note-1',
+        equipment_id: 'eq-1',
+        content: 'Image upload note',
+        author_id: 'user-1',
+        author_name: 'Test User',
+        is_private: false,
+        hours_worked: 0,
+        created_at: '2024-01-01T00:00:00Z',
+        updated_at: '2024-01-01T00:00:00Z',
+      });
 
       render(
         <EquipmentImagesTab 

@@ -54,7 +54,7 @@ describe('expandScenarioSteps', () => {
     const parsed = parseScenarioRegistry(validRegistry);
     const expanded = expandScenarioSteps(parsed.scenarios[0]);
     expect(expanded.scenes[0].steps.length).toBeGreaterThan(0);
-    expect(expanded.scenes[0].steps.every((step) => step.type === 'action')).toBe(true);
+    expect(expanded.scenes[0].steps.every((step: { type: string }) => step.type === 'action')).toBe(true);
   });
 
   it('substitutes tokens in macro args before expansion', () => {
@@ -83,7 +83,7 @@ describe('expandScenarioSteps', () => {
     const parsed = parseScenarioRegistry(registry);
     const substitution = createSubstitutionContext({ randSuffix: 'abc123' });
     const expanded = expandScenarioSteps(parsed.scenarios[0], { substitution });
-    const click = expanded.scenes[0].steps.find((step) => step.action === 'clickByLabel');
+    const click = expanded.scenes[0].steps.find((step: { action?: string }) => step.action === 'clickByLabel');
     expect(click?.label).toBe('Open details for Asset abc123');
   });
 

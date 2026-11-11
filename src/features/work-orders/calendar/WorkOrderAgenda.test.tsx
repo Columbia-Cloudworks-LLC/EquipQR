@@ -6,7 +6,7 @@ import { todayLocal } from './dueDate';
 
 vi.mock('@/hooks/useFormatTimestamp', () => ({
   useFormatTimestamp: () => ({
-    formatTime: (ms: number) => `Formatted: ${ms}`,
+    formatTime: (value: Date | string) => `Formatted: ${new Date(value).getTime()}`,
     timeZone: 'UTC',
   })
 }));
@@ -33,14 +33,18 @@ describe('WorkOrderAgenda', () => {
       {
         workOrderId: 'wo-1',
         title: 'Fix AC',
-        status: 'open',
+        status: 'submitted',
+        priority: 'medium',
+        editability: { kind: 'editable' },
         overdue: false,
-        placement: { kind: 'timed', dueAt: { epochMs: dueAt } }
+        placement: { kind: 'timed', dueAt: { epochMs: dueAt }, displayStart: { epochMs: dueAt } }
       },
       {
         workOrderId: 'wo-2',
         title: 'Paint Wall',
-        status: 'open',
+        status: 'submitted',
+        priority: 'medium',
+        editability: { kind: 'editable' },
         overdue: false,
         placement: { kind: 'unscheduled', createdOn: agendaDay }
       }
@@ -83,7 +87,9 @@ describe('WorkOrderAgenda', () => {
       {
         workOrderId: 'wo-unscheduled-tz',
         title: 'Calibrate Sensor',
-        status: 'open',
+        status: 'submitted',
+        priority: 'medium',
+        editability: { kind: 'editable' },
         overdue: false,
         placement: {
           kind: 'unscheduled',
@@ -115,7 +121,9 @@ describe('WorkOrderAgenda', () => {
       {
         workOrderId: 'wo-today',
         title: 'Task Due Today',
-        status: 'open',
+        status: 'submitted',
+        priority: 'medium',
+        editability: { kind: 'editable' },
         overdue: true,
         placement: {
           kind: 'dueDay',
@@ -125,7 +133,9 @@ describe('WorkOrderAgenda', () => {
       {
         workOrderId: 'wo-yesterday',
         title: 'Task Due Yesterday',
-        status: 'open',
+        status: 'submitted',
+        priority: 'medium',
+        editability: { kind: 'editable' },
         overdue: false,
         placement: {
           kind: 'dueDay',

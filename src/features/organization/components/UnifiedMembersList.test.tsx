@@ -3,6 +3,7 @@ import { screen, fireEvent, within } from '@testing-library/react';
 import { vi } from 'vitest';
 import { customRender } from '@vitest-harness/utils/renderUtils';
 import type { OrganizationMember } from '@/features/organization/types/organization';
+import { createSuccessQueryResult } from '@/features/organization/testing/createSuccessQueryResult';
 
 // Re-export type for backward compatibility in tests
 type RealOrganizationMember = OrganizationMember;
@@ -187,6 +188,7 @@ describe('UnifiedMembersList', () => {
   const baseMembers: RealOrganizationMember[] = [
     {
       id: 'u-1',
+      userId: 'u-1',
       name: 'Alice Admin',
       email: 'alice@example.com',
       role: 'admin' as const,
@@ -196,6 +198,7 @@ describe('UnifiedMembersList', () => {
     },
     {
       id: 'u-2',
+      userId: 'u-2',
       name: 'Bob Member',
       email: 'bob@example.com',
       role: 'member' as const,
@@ -240,10 +243,7 @@ describe('UnifiedMembersList', () => {
 
   it('shows parts manager toggle on mobile for member-role users', () => {
     membersLayoutMode.current = 'mobile';
-    vi.mocked(usePartsManagers).mockReturnValue({
-      data: [],
-      isLoading: false,
-    } as ReturnType<typeof usePartsManagers>);
+    vi.mocked(usePartsManagers).mockReturnValue(createSuccessQueryResult([]));
 
     customRender(
       <UnifiedMembersList
@@ -349,63 +349,11 @@ describe('UnifiedMembersList', () => {
     ];
 
     beforeEach(() => {
-      vi.mocked(useGoogleWorkspaceMemberClaims).mockReturnValue({
-        data: gwsClaims,
-        isLoading: false,
-        error: null,
-        isError: false,
-        isPending: false,
-        isSuccess: true,
-        status: 'success',
-        dataUpdatedAt: Date.now(),
-        errorUpdatedAt: 0,
-        failureCount: 0,
-        failureReason: null,
-        errorUpdateCount: 0,
-        fetchStatus: 'idle',
-        isFetched: true,
-        isFetchedAfterMount: true,
-        isFetching: false,
-        isInitialLoading: false,
-        isLoadingError: false,
-        isPaused: false,
-        isPlaceholderData: false,
-        isRefetchError: false,
-        isRefetching: false,
-        isStale: false,
-        refetch: vi.fn(),
-        promise: Promise.resolve(gwsClaims),
-      });
+      vi.mocked(useGoogleWorkspaceMemberClaims).mockReturnValue(createSuccessQueryResult(gwsClaims));
     });
 
     afterEach(() => {
-      vi.mocked(useGoogleWorkspaceMemberClaims).mockReturnValue({
-        data: [],
-        isLoading: false,
-        error: null,
-        isError: false,
-        isPending: false,
-        isSuccess: true,
-        status: 'success',
-        dataUpdatedAt: Date.now(),
-        errorUpdatedAt: 0,
-        failureCount: 0,
-        failureReason: null,
-        errorUpdateCount: 0,
-        fetchStatus: 'idle',
-        isFetched: true,
-        isFetchedAfterMount: true,
-        isFetching: false,
-        isInitialLoading: false,
-        isLoadingError: false,
-        isPaused: false,
-        isPlaceholderData: false,
-        isRefetchError: false,
-        isRefetching: false,
-        isStale: false,
-        refetch: vi.fn(),
-        promise: Promise.resolve([]),
-      });
+      vi.mocked(useGoogleWorkspaceMemberClaims).mockReturnValue(createSuccessQueryResult([]));
     });
 
     it('renders pending Google Workspace claims with name and Awaiting Sign-up status', () => {
@@ -485,33 +433,7 @@ describe('UnifiedMembersList', () => {
         },
       ];
 
-      vi.mocked(useGoogleWorkspaceMemberClaims).mockReturnValue({
-        data: claimsWithDuplicate,
-        isLoading: false,
-        error: null,
-        isError: false,
-        isPending: false,
-        isSuccess: true,
-        status: 'success',
-        dataUpdatedAt: Date.now(),
-        errorUpdatedAt: 0,
-        failureCount: 0,
-        failureReason: null,
-        errorUpdateCount: 0,
-        fetchStatus: 'idle',
-        isFetched: true,
-        isFetchedAfterMount: true,
-        isFetching: false,
-        isInitialLoading: false,
-        isLoadingError: false,
-        isPaused: false,
-        isPlaceholderData: false,
-        isRefetchError: false,
-        isRefetching: false,
-        isStale: false,
-        refetch: vi.fn(),
-        promise: Promise.resolve(claimsWithDuplicate),
-      });
+      vi.mocked(useGoogleWorkspaceMemberClaims).mockReturnValue(createSuccessQueryResult(claimsWithDuplicate));
 
       customRender(
         <UnifiedMembersList
@@ -543,33 +465,7 @@ describe('UnifiedMembersList', () => {
         },
       ];
 
-      vi.mocked(useGoogleWorkspaceMemberClaims).mockReturnValue({
-        data: claimsWithInviteDuplicate,
-        isLoading: false,
-        error: null,
-        isError: false,
-        isPending: false,
-        isSuccess: true,
-        status: 'success',
-        dataUpdatedAt: Date.now(),
-        errorUpdatedAt: 0,
-        failureCount: 0,
-        failureReason: null,
-        errorUpdateCount: 0,
-        fetchStatus: 'idle',
-        isFetched: true,
-        isFetchedAfterMount: true,
-        isFetching: false,
-        isInitialLoading: false,
-        isLoadingError: false,
-        isPaused: false,
-        isPlaceholderData: false,
-        isRefetchError: false,
-        isRefetching: false,
-        isStale: false,
-        refetch: vi.fn(),
-        promise: Promise.resolve(claimsWithInviteDuplicate),
-      });
+      vi.mocked(useGoogleWorkspaceMemberClaims).mockReturnValue(createSuccessQueryResult(claimsWithInviteDuplicate));
 
       customRender(
         <UnifiedMembersList

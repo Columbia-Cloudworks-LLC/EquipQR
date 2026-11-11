@@ -19,7 +19,7 @@ EquipQR is a multi-tenant fleet maintenance application for equipment QR trackin
 
 2. **Deterministic Quality Gates:**
    - **Zero `as unknown as` or `as any`:** Never bypass TypeScript typing. Inherit generated schema types from `src/integrations/supabase/types.ts` (`Tables<'table_name'>`).
-   - **Strict TypeScript Compliance:** Code changes must be clean under `npx tsc --noEmit`.
+   - **Strict TypeScript Compliance:** Code changes must be clean under `npm run type-check` (checks `tsconfig.app.json` and `tsconfig.node.json`; a bare `npx tsc --noEmit` checks nothing because the root config only holds references).
    - **Strict Linter Compliance:** Must pass `npm run lint:all`.
    - **Test Integrity:** Relevant unit and component tests (`npm test`) must pass before concluding tasks.
 

@@ -93,7 +93,7 @@ export interface PartCompatibilityRule {
  */
 export interface PartCompatibilityRuleFormData {
   manufacturer: string;
-  model: string | null;  // null or empty string = "Any Model" for 'any' match_type
+  model?: string | null;  // null or empty string = "Any Model" for 'any' match_type
   match_type?: ModelMatchType;  // Defaults to 'exact' if not specified
   status?: VerificationStatus;  // Defaults to 'unverified'
   notes?: string | null;
@@ -366,14 +366,14 @@ export type InventorySortField =
 /**
  * InventoryFilters - Filter options for inventory list
  */
-export interface InventoryFilters {
+export type InventoryFilters = {
   search?: string;
   lowStockOnly?: boolean;
   location?: string;
   equipmentId?: string;
   sortBy?: InventorySortField;
   sortOrder?: 'asc' | 'desc';
-}
+};
 
 export interface InventoryListMetadata {
   uniqueLocations: string[];

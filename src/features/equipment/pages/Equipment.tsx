@@ -329,7 +329,7 @@ const Equipment = () => {
       <EquipmentForm 
         open={showForm} 
         onClose={handleCloseForm}
-        equipment={editingEquipment}
+        equipment={editingEquipment ?? undefined}
         onCreated={editingEquipment ? undefined : handleEquipmentCreated}
       />
 

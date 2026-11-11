@@ -14,7 +14,18 @@ import {
   useEquipmentScans,
   useEquipmentManufacturersAndModels
 } from './useEquipment';
-import { equipment, organizations, teams } from '@vitest-harness/fixtures/entities';
+import {
+  equipment,
+  organizations,
+  teams,
+  type TestEquipment,
+} from '@vitest-harness/fixtures/entities';
+import type { ApiResponse } from '@/services/base/BaseService';
+import type {
+  EquipmentScan,
+  EquipmentSummary,
+  EquipmentWithTeam,
+} from '@/features/equipment/services/EquipmentService';
 
 // Mock the EquipmentService
 vi.mock('@/features/equipment/services/EquipmentService', () => ({
@@ -55,6 +66,65 @@ import { EquipmentService } from '@/features/equipment/services/EquipmentService
 
 const createWrapper = createQueryClientWrapper;
 
+const apiSuccess = <T,>(data: T): ApiResponse<T> => ({ success: true, data, error: null });
+const apiFailure = <T,>(error: string | null): ApiResponse<T> => ({ success: false, data: null, error });
+
+/** Expand a catalog fixture into a complete `equipment` row. */
+const toEquipmentRow = (fixture: TestEquipment): EquipmentWithTeam => ({
+  id: fixture.id,
+  name: fixture.name,
+  manufacturer: fixture.manufacturer,
+  model: fixture.model,
+  serial_number: fixture.serial_number,
+  status: fixture.status,
+  location: fixture.location ?? '',
+  team_id: fixture.team_id,
+  organization_id: fixture.organization_id,
+  default_pm_template_id: fixture.default_pm_template_id ?? null,
+  notes: fixture.notes ?? null,
+  custom_attributes: fixture.custom_attributes ?? null,
+  assigned_location_city: null,
+  assigned_location_country: null,
+  assigned_location_lat: null,
+  assigned_location_lng: null,
+  assigned_location_state: null,
+  assigned_location_street: null,
+  created_at: '2024-01-01T00:00:00Z',
+  customer_id: null,
+  image_url: null,
+  import_id: null,
+  installation_date: '2024-01-01',
+  last_known_location: null,
+  last_maintenance: null,
+  last_maintenance_work_order_id: null,
+  updated_at: '2024-01-01T00:00:00Z',
+  use_team_location: false,
+  warranty_expiration: null,
+  working_hours: null,
+});
+
+/** Expand a catalog fixture into an `EquipmentSummary` projection. */
+const toEquipmentSummary = (
+  fixture: TestEquipment,
+  overrides: Partial<EquipmentSummary> = {},
+): EquipmentSummary => ({
+  id: fixture.id,
+  organization_id: fixture.organization_id,
+  name: fixture.name,
+  manufacturer: fixture.manufacturer,
+  model: fixture.model,
+  serial_number: fixture.serial_number,
+  status: fixture.status,
+  team_id: fixture.team_id,
+  location: fixture.location ?? null,
+  image_url: null,
+  working_hours: null,
+  last_maintenance: null,
+  last_known_location: null,
+  default_pm_template_id: fixture.default_pm_template_id ?? null,
+  ...overrides,
+});
+
 describe('useEquipment', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -62,10 +132,9 @@ describe('useEquipment', () => {
 
   describe('useEquipment (main hook)', () => {
     beforeEach(() => {
-      vi.mocked(EquipmentService.getAll).mockResolvedValue({
-        success: true,
-        data: Object.values(equipment)
-      });
+      vi.mocked(EquipmentService.getAll).mockResolvedValue(
+        apiSuccess(Object.values(equipment).map(toEquipmentRow))
+      );
     });
 
     it('fetches equipment for organization', async () => {
@@ -129,10 +198,9 @@ describe('useEquipment', () => {
     });
 
     it('handles API errors', async () => {
-      vi.mocked(EquipmentService.getAll).mockResolvedValueOnce({
-        success: false,
-        error: 'Failed to fetch equipment'
-      });
+      vi.mocked(EquipmentService.getAll).mockResolvedValueOnce(
+        apiFailure('Failed to fetch equipment')
+      );
 
       const { result } = renderHook(
         () => useEquipment(organizations.acme.id),
@@ -162,10 +230,9 @@ describe('useEquipment', () => {
 
   describe('useEquipmentById', () => {
     beforeEach(() => {
-      vi.mocked(EquipmentService.getById).mockResolvedValue({
-        success: true,
-        data: equipment.forklift1
-      });
+      vi.mocked(EquipmentService.getById).mockResolvedValue(
+        apiSuccess(toEquipmentRow(equipment.forklift1))
+      );
     });
 
     it('fetches single equipment by id for org admins without a team filter', async () => {
@@ -236,10 +303,9 @@ describe('useEquipment', () => {
     });
 
     it('handles not found error', async () => {
-      vi.mocked(EquipmentService.getById).mockResolvedValueOnce({
-        success: false,
-        error: 'Equipment not found'
-      });
+      vi.mocked(EquipmentService.getById).mockResolvedValueOnce(
+        apiFailure('Equipment not found')
+      );
 
       const { result } = renderHook(
         () => useEquipmentById(organizations.acme.id, 'non-existent-id'),
@@ -255,15 +321,22 @@ describe('useEquipment', () => {
   });
 
   describe('useEquipmentScans', () => {
-    const mockScans = [
-      { id: 'scan-1', equipment_id: equipment.forklift1.id, scanned_at: new Date().toISOString() }
+    const mockScans: EquipmentScan[] = [
+      {
+        id: 'scan-1',
+        equipment_id: equipment.forklift1.id,
+        scanned_at: new Date().toISOString(),
+        scanned_by: 'user-1',
+        scanned_by_name: null,
+        location: null,
+        notes: null,
+      }
     ];
 
     beforeEach(() => {
-      vi.mocked(EquipmentService.getScansByEquipmentId).mockResolvedValue({
-        success: true,
-        data: mockScans
-      });
+      vi.mocked(EquipmentService.getScansByEquipmentId).mockResolvedValue(
+        apiSuccess(mockScans)
+      );
     });
 
     it('fetches scans for equipment', async () => {
@@ -295,10 +368,9 @@ describe('useEquipment', () => {
     beforeEach(() => {
       // The hook now reads from the lightweight summaries endpoint instead of
       // `getAll`. The summary projection includes manufacturer/model directly.
-      vi.mocked(EquipmentService.getSummaries).mockResolvedValue({
-        success: true,
-        data: Object.values(equipment) as unknown as Awaited<ReturnType<typeof EquipmentService.getSummaries>>['data']
-      });
+      vi.mocked(EquipmentService.getSummaries).mockResolvedValue(
+        apiSuccess(Object.values(equipment).map((fixture) => toEquipmentSummary(fixture)))
+      );
     });
 
     it('groups equipment by manufacturer with their models', async () => {
@@ -329,10 +401,9 @@ describe('useEquipment', () => {
     });
 
     it('returns empty array on error', async () => {
-      vi.mocked(EquipmentService.getSummaries).mockResolvedValueOnce({
-        success: false,
-        error: 'Failed to fetch'
-      });
+      vi.mocked(EquipmentService.getSummaries).mockResolvedValueOnce(
+        apiFailure('Failed to fetch')
+      );
 
       const { result } = renderHook(
         () => useEquipmentManufacturersAndModels(organizations.acme.id),
@@ -346,15 +417,12 @@ describe('useEquipment', () => {
 
     it('sorts manufacturers and models alphabetically', async () => {
       const mixedEquipment = [
-        { ...equipment.forklift1, manufacturer: 'Zebra', model: 'B-Model' },
-        { ...equipment.forklift2, manufacturer: 'Apple', model: 'Z-Model' },
-        { ...equipment.crane, manufacturer: 'Apple', model: 'A-Model' }
+        toEquipmentSummary(equipment.forklift1, { manufacturer: 'Zebra', model: 'B-Model' }),
+        toEquipmentSummary(equipment.forklift2, { manufacturer: 'Apple', model: 'Z-Model' }),
+        toEquipmentSummary(equipment.crane, { manufacturer: 'Apple', model: 'A-Model' })
       ];
 
-      vi.mocked(EquipmentService.getSummaries).mockResolvedValueOnce({
-        success: true,
-        data: mixedEquipment as unknown as Awaited<ReturnType<typeof EquipmentService.getSummaries>>['data']
-      });
+      vi.mocked(EquipmentService.getSummaries).mockResolvedValueOnce(apiSuccess(mixedEquipment));
 
       const { result } = renderHook(
         () => useEquipmentManufacturersAndModels(organizations.acme.id),
@@ -374,14 +442,13 @@ describe('useEquipment', () => {
 
     it('handles equipment without manufacturer', async () => {
       const equipmentWithoutManufacturer = [
-        { ...equipment.forklift1, manufacturer: null },
-        { ...equipment.forklift2, manufacturer: 'Toyota', model: 'Model1' }
+        toEquipmentSummary(equipment.forklift1, { manufacturer: null }),
+        toEquipmentSummary(equipment.forklift2, { manufacturer: 'Toyota', model: 'Model1' })
       ];
 
-      vi.mocked(EquipmentService.getSummaries).mockResolvedValueOnce({
-        success: true,
-        data: equipmentWithoutManufacturer as unknown as Awaited<ReturnType<typeof EquipmentService.getSummaries>>['data']
-      });
+      vi.mocked(EquipmentService.getSummaries).mockResolvedValueOnce(
+        apiSuccess(equipmentWithoutManufacturer)
+      );
 
       const { result } = renderHook(
         () => useEquipmentManufacturersAndModels(organizations.acme.id),
@@ -417,10 +484,9 @@ describe('useEquipment', () => {
     });
 
     it('uses correct query key for equipment by id', async () => {
-      vi.mocked(EquipmentService.getById).mockResolvedValue({
-        success: true,
-        data: equipment.forklift1
-      });
+      vi.mocked(EquipmentService.getById).mockResolvedValue(
+        apiSuccess(toEquipmentRow(equipment.forklift1))
+      );
 
       const { result } = renderHook(
         () => useEquipmentById(organizations.acme.id, equipment.forklift1.id),
@@ -452,9 +518,7 @@ describe('useEquipment', () => {
     });
 
     it('handles service returning success false without error message', async () => {
-      vi.mocked(EquipmentService.getAll).mockResolvedValueOnce({
-        success: false
-      });
+      vi.mocked(EquipmentService.getAll).mockResolvedValueOnce(apiFailure<EquipmentWithTeam[]>(null));
 
       const { result } = renderHook(
         () => useEquipment(organizations.acme.id),

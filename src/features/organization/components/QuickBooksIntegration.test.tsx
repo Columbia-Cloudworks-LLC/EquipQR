@@ -53,7 +53,9 @@ import { QuickBooksIntegration } from '@/features/organization/components/QuickB
 import { isQuickBooksEnabled } from '@/lib/flags';
 import { renderWithQuickBooksProviders } from '@/services/quickbooks/quickbooksTestUtils';
 
-const renderComponent = (props = { currentUserRole: 'admin' as const }) =>
+const renderComponent = (
+  props: { currentUserRole: 'owner' | 'admin' | 'member' } = { currentUserRole: 'admin' },
+) =>
   renderWithQuickBooksProviders(<QuickBooksIntegration {...props} />);
 
 describe('QuickBooksIntegration Component', () => {

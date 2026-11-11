@@ -27,7 +27,7 @@ export interface EquipmentNote {
   last_modified_by?: string;
   last_modified_at?: string;
   // Computed fields from joins
-  author_name?: string;
+  author_name: string;
   authorName?: string;
   lastModifiedByName?: string;
   images?: EquipmentNoteImage[];

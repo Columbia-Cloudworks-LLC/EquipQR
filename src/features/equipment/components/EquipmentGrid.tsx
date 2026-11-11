@@ -14,8 +14,8 @@ interface Equipment {
   serial_number: string;
   status: string;
   location: string;
-  last_maintenance?: string;
-  image_url?: string;
+  last_maintenance?: string | null;
+  image_url?: string | null;
   team_name?: string;
 }
 

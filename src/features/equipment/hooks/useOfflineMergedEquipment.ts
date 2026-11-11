@@ -7,7 +7,7 @@
 
 import { useMemo } from 'react';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
-import type { EquipmentWithTeam } from '@/features/equipment/services/EquipmentService';
+import type { EquipmentListRow } from '@/features/equipment/services/EquipmentService';
 import type {
   OfflineQueueEquipmentCreateItem,
   OfflineQueueEquipmentCreateFullItem,
@@ -22,7 +22,7 @@ export const isOfflineEquipmentId = (id: string): boolean =>
 
 // ─── Extended type ──────────────────────────────────────────────────────────
 
-export interface MergedEquipment extends EquipmentWithTeam {
+export interface MergedEquipment extends EquipmentListRow {
   /** True when the item exists only in the offline queue (not yet synced). */
   _isPendingSync?: boolean;
   /** The offline queue item ID — used for editing queued items. */
@@ -32,7 +32,7 @@ export interface MergedEquipment extends EquipmentWithTeam {
 // ─── Hook ───────────────────────────────────────────────────────────────────
 
 export function useOfflineMergedEquipment(
-  serverEquipment: EquipmentWithTeam[],
+  serverEquipment: EquipmentListRow[],
 ): MergedEquipment[] {
   const offlineCtx = useOfflineQueueOptional();
 
@@ -49,12 +49,12 @@ export function useOfflineMergedEquipment(
     if (pendingCreates.length === 0) return serverEquipment;
 
     const offlineEquipment: MergedEquipment[] = pendingCreates.map((item) => {
-      const { payload } = item;
       const now = new Date(item.timestamp).toISOString();
 
       if (item.type === 'equipment_create') {
+        const { payload } = item;
         // Quick create — minimal fields, provide defaults for missing ones
-        return {
+        const quickEquipment: MergedEquipment = {
           id: `${OFFLINE_EQUIP_ID_PREFIX}${item.id}`,
           organization_id: item.organizationId,
           name: payload.name,
@@ -67,40 +67,44 @@ export function useOfflineMergedEquipment(
           team_id: payload.team_id,
           image_url: null,
           last_maintenance: null,
-          notes: null,
           custom_attributes: null,
-          last_known_location: null,
-          installation_date: null,
+          // Mirrors EquipmentService.createQuick, which defaults to today.
+          installation_date: now.split('T')[0],
           warranty_expiration: null,
-          default_pm_template_id: null,
-          import_id: null,
-          customer_id: null,
-          assigned_location_address: null,
-          assigned_location_city: null,
-          assigned_location_state: null,
-          assigned_location_country: null,
-          assigned_location_lat: null,
-          assigned_location_lng: null,
-          use_team_location: true,
           created_at: now,
           updated_at: now,
           team: null, // team name resolved from cache would require extra lookup
           _isPendingSync: true,
           _queueItemId: item.id,
-        } as MergedEquipment;
+        };
+        return quickEquipment;
       }
 
       // Full create — all fields present in payload
-      return {
+      const { payload } = item;
+      const fullEquipment: MergedEquipment = {
         id: `${OFFLINE_EQUIP_ID_PREFIX}${item.id}`,
         organization_id: item.organizationId,
-        ...payload,
+        name: payload.name,
+        manufacturer: payload.manufacturer,
+        model: payload.model,
+        serial_number: payload.serial_number,
+        status: payload.status ?? 'active',
+        location: payload.location,
+        working_hours: payload.working_hours ?? null,
+        team_id: payload.team_id ?? null,
+        image_url: payload.image_url ?? null,
+        last_maintenance: payload.last_maintenance ?? null,
+        custom_attributes: payload.custom_attributes ?? null,
+        installation_date: payload.installation_date,
+        warranty_expiration: payload.warranty_expiration ?? null,
         created_at: now,
         updated_at: now,
         team: null,
         _isPendingSync: true,
         _queueItemId: item.id,
-      } as MergedEquipment;
+      };
+      return fullEquipment;
     });
 
     // Offline items first, then server data

@@ -1,5 +1,6 @@
 import React from 'react';
 import { PieChart, Pie, Cell, Tooltip } from 'recharts';
+import type { TooltipContentProps } from 'recharts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import {
@@ -32,15 +33,9 @@ export function createDonutTooltipContent(
   totalCount: number,
   formatCountLine: (count: number, percentage: number) => string
 ) {
-  return ({
-    active,
-    payload,
-  }: {
-    active?: boolean;
-    payload?: Array<{ payload: { label: string; count: number } }>;
-  }) => {
+  return ({ active, payload }: Pick<TooltipContentProps, 'active' | 'payload'>) => {
     if (!active || !payload || payload.length === 0) return null;
-    const datum = payload[0]?.payload;
+    const datum: { label: string; count: number } | undefined = payload[0]?.payload;
     if (!datum) return null;
     const percentage = donutEntryPercent(datum.count, totalCount);
     return (
@@ -173,7 +168,10 @@ export const DonutWidgetDesktopChart: React.FC<DonutWidgetDesktopChartProps> = (
             innerRadius={48}
             outerRadius={70}
             paddingAngle={2}
-            onClick={(entry) => onSliceClick(entry.status)}
+            onClick={(_entry, index) => {
+              const datum = data[index];
+              if (datum) onSliceClick(datum.status);
+            }}
           >
             {data.map((entry, index) => (
               <Cell

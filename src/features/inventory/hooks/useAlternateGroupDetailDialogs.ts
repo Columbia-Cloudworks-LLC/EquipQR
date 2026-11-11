@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { PartIdentifierType } from '@/features/inventory/types/inventory';
 import type { InventoryItem } from '@/features/inventory/types/inventory';
-import type { AlternateGroupMember } from '@/features/inventory/services/partAlternatesService';
-import type { PartAlternateGroup } from '@/features/inventory/types/inventory';
+import type { AlternateGroupMember, AlternateGroupWithMembers } from '@/features/inventory/services/partAlternatesService';
 import {
   useAddInventoryItemToGroup,
   useAddPartIdentifierToGroup,
@@ -12,7 +11,7 @@ import {
 type UseAlternateGroupDetailDialogsParams = {
   organizationId?: string;
   groupId?: string;
-  group?: PartAlternateGroup | null;
+  group?: AlternateGroupWithMembers | null;
   inventoryItems: InventoryItem[];
 };
 

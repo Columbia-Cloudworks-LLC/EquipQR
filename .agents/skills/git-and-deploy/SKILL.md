@@ -31,7 +31,7 @@ git switch -c feat/<short-name> origin/preview
 
 #### Step 2: Verify Locally
 ```bash
-npx tsc --noEmit
+npm run type-check
 npm run lint:all
 npm test
 ```

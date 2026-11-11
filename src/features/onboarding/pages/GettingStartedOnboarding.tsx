@@ -84,7 +84,7 @@ const GettingStartedOnboarding = () => {
   const shouldPreloadEquipment =
     step === 3 && !equipmentId && (status?.equipment_count ?? 0) > 0;
   const { data: equipmentListResult } = useEquipmentList(
-    organizationId,
+    organizationId ?? undefined,
     {},
     { pageSize: 1, sortField: 'created_at', sortDirection: 'desc' },
     { enabled: shouldPreloadEquipment },
@@ -112,7 +112,7 @@ const GettingStartedOnboarding = () => {
       toast({
         title: 'Could not finish setup',
         description: 'Please try again.',
-        variant: 'destructive',
+        variant: 'error',
       });
     }
   }, [completeOnboarding, navigate, toast]);
