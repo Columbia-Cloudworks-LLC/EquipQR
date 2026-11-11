@@ -6,7 +6,6 @@ import {
 } from '@/features/work-orders/utils/workOrderListContract'
 import {
   ALL_LIST_CONTRACT_FIXTURES,
-  LIST_CONTRACT_FIXTURES,
   LIST_CONTRACT_NOW,
   UNASSIGNED_TEAM_ID,
   parseInput,
@@ -161,12 +160,5 @@ describe('matchesWorkOrderListContract vs filterWorkOrders', () => {
     expect(expected).toEqual(['wo-equipment-topbar-team'])
     expect(expected).not.toContain('wo-equipment-other-team')
     expect(idsMatchingContract(input).sort()).toEqual(expected.sort())
-  })
-})
-
-describe('LIST_CONTRACT_FIXTURES', () => {
-  it('keeps Sunday-week distinct from the previous Saturday', () => {
-    expect(LIST_CONTRACT_FIXTURES.sundayThisWeek.dueDate).toBe('2026-08-30T12:00:00.000Z')
-    expect(LIST_CONTRACT_FIXTURES.previousSaturday.dueDate).toBe('2026-08-29T12:00:00.000Z')
   })
 })

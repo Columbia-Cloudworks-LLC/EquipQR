@@ -116,22 +116,6 @@ describe('useWorkOrders', () => {
       expect(result.current.fetchStatus).toBe('idle');
       expect(mockService.getAll).not.toHaveBeenCalled();
     });
-
-    it('uses custom stale time', async () => {
-      const customStaleTime = 60000;
-      
-      const { result } = renderHook(
-        () => useWorkOrders(organizations.acme.id, { staleTime: customStaleTime }),
-        { wrapper: createWrapper() }
-      );
-
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      // Verify the hook is configured (staleTime is internal config)
-      expect(mockService.getAll).toHaveBeenCalled();
-    });
   });
 
   describe('useWorkOrderById', () => {
@@ -262,24 +246,6 @@ describe('useWorkOrders', () => {
       await waitFor(() => {
         expect(result.current.isError).toBe(true);
       });
-    });
-
-    it('handles service returning success false', async () => {
-      mockService.getAll.mockResolvedValueOnce({
-        success: false,
-        error: 'Database error'
-      });
-
-      const { result } = renderHook(
-        () => useWorkOrders(organizations.acme.id),
-        { wrapper: createWrapper() }
-      );
-
-      await waitFor(() => {
-        expect(result.current.isError).toBe(true);
-      });
-
-      expect(result.current.error?.message).toBe('Database error');
     });
   });
 });

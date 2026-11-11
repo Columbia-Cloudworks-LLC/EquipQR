@@ -94,7 +94,7 @@ describe('WorkOrderService', () => {
       const result = await service.getAll({ status: 'submitted' }, {});
       
       expect(result.success).toBe(true);
-      expect(result.data?.every(wo => wo.status === 'submitted')).toBe(true);
+      expect(mockQuery.eq).toHaveBeenCalledWith('status', 'submitted');
     });
 
     it('should filter work orders by priority', async () => {
@@ -122,7 +122,7 @@ describe('WorkOrderService', () => {
       const result = await service.getAll({ priority: 'high' }, {});
       
       expect(result.success).toBe(true);
-      expect(result.data?.every(wo => wo.priority === 'high')).toBe(true);
+      expect(mockQuery.eq).toHaveBeenCalledWith('priority', 'high');
     });
 
     it('should filter work orders by assignee', async () => {
@@ -152,7 +152,7 @@ describe('WorkOrderService', () => {
       const result = await service.getAll({ assigneeId }, {});
       
       expect(result.success).toBe(true);
-      expect(result.data?.every(wo => wo.assignee_id === assigneeId)).toBe(true);
+      expect(mockQuery.eq).toHaveBeenCalledWith('assignee_id', assigneeId);
     });
 
     it('should apply pagination correctly', async () => {
@@ -181,7 +181,7 @@ describe('WorkOrderService', () => {
       const result = await service.getAll({}, { page: 1, limit: 3 });
       
       expect(result.success).toBe(true);
-      expect(result.data?.length).toBeLessThanOrEqual(3);
+      expect(mockQuery.range).toHaveBeenCalledWith(0, 2);
     });
   });
 

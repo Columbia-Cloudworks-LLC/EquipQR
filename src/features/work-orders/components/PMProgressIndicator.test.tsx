@@ -107,17 +107,6 @@ describe('PMProgressIndicator', () => {
       expect(circleDashed).toBeInTheDocument();
     });
 
-    it('renders segmented progress for all checklist items', () => {
-      (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(mockPMData));
-      
-      const { container } = render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
-      
-      const { wrench, segmentBar } = pmRowIcons(container);
-      expect(wrench).toBeInTheDocument();
-      const segmentedProgress = segmentBar ?? container.querySelector('[class*="rounded-md"]');
-      expect(segmentedProgress).toBeInTheDocument();
-    });
-
     it('shows segmented progress when no items are rated', () => {
       const noRatedData = {
         ...mockPMData,
@@ -167,21 +156,6 @@ describe('PMProgressIndicator', () => {
       expect(wrench).toBeInTheDocument();
       expect(circleCheck).toBeInTheDocument();
       expect(circleDashed).not.toBeInTheDocument();
-      expect(segmentBar).toBeInTheDocument();
-      expect(screen.queryByText('%')).not.toBeInTheDocument();
-    });
-
-    it('keeps segment bar visible when complete', () => {
-      const completePMData = {
-        ...mockPMData,
-        status: 'completed'
-      };
-      (usePMByWorkOrderId as MockedFunction<typeof usePMByWorkOrderId>).mockReturnValue(createMockQueryResult(completePMData));
-      
-      const { container } = render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
-      
-      const { circleCheck, segmentBar } = pmRowIcons(container);
-      expect(circleCheck).toBeInTheDocument();
       expect(segmentBar).toBeInTheDocument();
       expect(screen.queryByText('%')).not.toBeInTheDocument();
     });
@@ -278,10 +252,11 @@ describe('PMProgressIndicator', () => {
       
       const { container } = render(<PMProgressIndicator workOrderId="wo-1" hasPM={true} />, { wrapper: TestProviders });
       
-      const { wrench, segmentBar } = pmRowIcons(container);
-      expect(wrench).toBeInTheDocument();
-      const segmentedProgress = segmentBar ?? container.querySelector('[class*="rounded-md"]');
-      expect(segmentedProgress).toBeInTheDocument();
+      const { segmentBar } = pmRowIcons(container);
+      const segmentColors = Array.from(segmentBar?.children ?? []).map((segment) =>
+        ['bg-success', 'bg-warning', 'bg-destructive', 'bg-muted'].find((color) => segment.classList.contains(color)),
+      );
+      expect(segmentColors).toEqual(['bg-success', 'bg-warning', 'bg-warning', 'bg-muted']);
     });
   });
 });

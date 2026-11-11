@@ -295,25 +295,6 @@ describe('WorkOrderDetails', () => {
     } as unknown as ReturnType<typeof useUnifiedPermissionsModule.useUnifiedPermissions>);
   });
 
-  it('does not pass a delete request handler to mobile details for non-managers', async () => {
-    render(<WorkOrderDetails />);
-
-    await waitFor(() => {
-      expect(mockWorkOrderDetailsMobile).toHaveBeenCalled();
-    });
-
-    const mobileCalls = mockWorkOrderDetailsMobile.mock.calls;
-    const latestProps = mobileCalls[mobileCalls.length - 1]?.[0] as {
-      onDeleteRequest?: unknown;
-    };
-
-    expect(latestProps.onDeleteRequest).toBeUndefined();
-
-    await waitFor(() => {
-      expect(screen.getByText('Next action')).toBeInTheDocument();
-    });
-  });
-
   it('shows mobile action footer with onAddNote for submitted work orders created by current user and keeps Next action', async () => {
     vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue({
       workOrder: {

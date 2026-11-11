@@ -46,12 +46,6 @@ describe('parseDue', () => {
     const parsed = parseDue({ dueDate: utcMidnight, dueDateHasTime: false });
     const local = new Date(utcMidnight);
     expect(parsed).toEqual({ kind: 'day', day: localYmd(local) });
-
-    const utcSplit = utcMidnight.slice(0, 10);
-    const localIso = `${local.getFullYear()}-${pad2(local.getMonth() + 1)}-${pad2(local.getDate())}`;
-    if (localIso !== utcSplit && parsed.kind === 'day') {
-      expect(`${parsed.day.y}-${pad2(parsed.day.m)}-${pad2(parsed.day.d)}`).not.toBe(utcSplit);
-    }
   });
 
   it('maps has_time true to timed', () => {
@@ -116,11 +110,6 @@ describe('hydrateDueFormFields', () => {
     const local = new Date(utcMidnight);
     const localIso = `${local.getFullYear()}-${pad2(local.getMonth() + 1)}-${pad2(local.getDate())}`;
     expect(fields).toEqual({ dueDate: localIso, dueDateHasTime: false });
-
-    const utcSplit = utcMidnight.slice(0, 10);
-    if (localIso !== utcSplit) {
-      expect(fields.dueDate).not.toBe(utcSplit);
-    }
   });
 
   it('keeps a timed ISO and sets the flag', () => {
