@@ -29,8 +29,7 @@ export function InventoryStorageLocationFields({
   description = 'Search for the physical address where this part is stored.',
 }: InventoryStorageLocationFieldsProps) {
   const { isLoaded: isPlacesLoaded } = useGoogleMapsLoader();
-  const themeVersion = useThemeVersion();
-  const isDark = useIsDarkTheme(themeVersion);
+  const isDark = useIsDarkTheme(useThemeVersion());
   const { googleMapsKey, mapId } = useGoogleMapsKey();
 
   const initialPlace = useMemo(

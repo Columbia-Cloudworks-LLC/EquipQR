@@ -28,8 +28,7 @@ export function OrganizationInventoryDefaultLocationSection({
   onSaved,
 }: OrganizationInventoryDefaultLocationSectionProps) {
   const { isLoaded: isPlacesLoaded } = useGoogleMapsLoader();
-  const themeVersion = useThemeVersion();
-  const isDark = useIsDarkTheme(themeVersion);
+  const isDark = useIsDarkTheme(useThemeVersion());
   const { googleMapsKey, mapId } = useGoogleMapsKey();
 
   const [locationName, setLocationName] = useState(

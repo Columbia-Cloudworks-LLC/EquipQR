@@ -87,7 +87,7 @@ vi.mock('@/hooks/useSelectedTeam', () => ({
   }),
 }));
 
-vi.mock('@/features/work-orders/hooks/useWorkOrder', () => ({
+vi.mock('@/features/work-orders/hooks/useWorkOrderData', () => ({
   useUpdateWorkOrderStatus: vi.fn(() => ({
     mutateAsync: vi.fn(),
     isPending: false

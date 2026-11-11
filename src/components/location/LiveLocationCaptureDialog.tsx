@@ -39,8 +39,7 @@ export function LiveLocationCaptureDialog({
   confirmLabel = 'Set equipment location',
   initialPosition = null,
 }: LiveLocationCaptureDialogProps) {
-  const themeVersion = useThemeVersion();
-  const isDark = useIsDarkTheme(themeVersion);
+  const isDark = useIsDarkTheme(useThemeVersion());
   const {
     googleMapsKey,
     mapId,

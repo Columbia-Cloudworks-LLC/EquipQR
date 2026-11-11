@@ -33,8 +33,7 @@ export function InventoryItemLocationEditorDialog({
   onSave,
 }: InventoryItemLocationEditorDialogProps) {
   const { isLoaded: isPlacesLoaded } = useGoogleMapsLoader();
-  const themeVersion = useThemeVersion();
-  const isDark = useIsDarkTheme(themeVersion);
+  const isDark = useIsDarkTheme(useThemeVersion());
   const { googleMapsKey, mapId } = useGoogleMapsKey();
   const [isSaving, setIsSaving] = useState(false);
 
