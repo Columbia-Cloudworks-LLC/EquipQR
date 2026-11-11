@@ -279,5 +279,5 @@ export interface WorkOrderCreateData {
 
 export interface WorkOrderAcceptanceModalState {
   open: boolean;
-  workOrder: WorkOrderData | null;
+  workOrder: WorkOrder | null;
 }

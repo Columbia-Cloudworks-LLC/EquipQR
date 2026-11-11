@@ -20,8 +20,8 @@ export interface WorkOrderDetailsData {
   quickbooks_invoice_id?: string | null;
   quickbooks_sync_excluded?: boolean;
   quickbooks_invoice_number?: string | null;
-  quickbooks_invoice_environment?: 'sandbox' | 'production' | null;
-  invoice_status?: 'draft' | 'sent' | 'viewed' | 'paid' | 'partially_paid' | 'overdue' | 'voided' | null;
+  quickbooks_invoice_environment?: string | null;
+  invoice_status?: string | null;
   invoice_sent_at?: string | null;
   invoice_paid_at?: string | null;
   invoice_balance_cents?: number | null;
@@ -49,9 +49,9 @@ export interface EquipmentData {
 export interface PMData {
   id: string;
   status: string;
-  completed_at?: string;
+  completed_at?: string | null;
   checklist_data?: unknown;
-  notes?: string;
+  notes?: string | null;
   created_at: string;
   template_id?: string | null;
 }

@@ -13,7 +13,7 @@ import ListPaginationFooter from '@/components/common/ListPaginationFooter';
 import { useUser } from '@/contexts/useUser';
 import { UNASSIGNED_TEAM_ID } from '@/contexts/selected-team-context';
 import { useSelectedTeam } from '@/hooks/useSelectedTeam';
-import type { WorkOrder, WorkOrderAcceptanceModalState, WorkOrderData } from '@/features/work-orders/types/workOrder';
+import type { WorkOrder, WorkOrderAcceptanceModalState } from '@/features/work-orders/types/workOrder';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { SortDirection, SortField } from '@/features/work-orders/hooks/useWorkOrderFilters';
@@ -63,6 +63,7 @@ const WorkOrderCalendar = lazy(async () => {
 });
 import { useUpdateWorkOrder } from '@/features/work-orders/hooks/useWorkOrderUpdate';
 import { filterWorkOrders } from '@/features/work-orders/hooks/workOrderFilterUtils';
+import { mapToWorkOrderData } from '@/features/work-orders/utils/workOrderCardMappers';
 import { getPreferenceLocalStorage, setPreferenceLocalStorage } from '@/lib/cookieConsent';
 
 const VALID_SORT_FIELDS: readonly SortField[] = ['created', 'due_date', 'priority', 'status'];
@@ -85,7 +86,7 @@ const WorkOrders = () => {
   const permissions = useUnifiedPermissions();
   const canDeleteWorkOrders = permissions.hasRole(['owner', 'admin']);
   const deleteWorkOrderMutation = useDeleteWorkOrder();
-  const { data: deleteTargetImageData } = useWorkOrderImageCount(deleteTarget?.id);
+  const { data: deleteTargetImageData } = useWorkOrderImageCount(deleteTarget?.id ?? '');
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -164,7 +165,7 @@ const WorkOrders = () => {
           : selectedTeamId;
 
     return filterWorkOrders(
-      calendarMerged as WorkOrderData[],
+      calendarMerged,
       {
         ...filters,
         dueDateFilter: 'all',
@@ -176,13 +177,12 @@ const WorkOrders = () => {
 
   const calendarItems = useMemo(() => {
     return calendarRows.map((wo) => {
-      const row = wo as MergedWorkOrder & WorkOrderData;
       return toCalendarItem(
-        row,
+        wo,
         calendarEditability({
-          engineCanEdit: permissions.workOrders.getPermissions(row).canEdit,
-          status: row.status,
-          isOfflinePending: Boolean(row._isPendingSync) || row.id.startsWith('offline-'),
+          engineCanEdit: permissions.workOrders.getPermissions(mapToWorkOrderData(wo)).canEdit,
+          status: wo.status,
+          isOfflinePending: Boolean(wo._isPendingSync) || wo.id.startsWith('offline-'),
         }),
         timeZone,
       );
@@ -203,7 +203,7 @@ const WorkOrders = () => {
 
   const persistCalendarDue = useCallback((workOrder: MergedWorkOrder, write: Parameters<typeof applyCalendarDrag>[2]) => {
     const editability = calendarEditability({
-      engineCanEdit: permissions.workOrders.getPermissions(workOrder as WorkOrderData).canEdit,
+      engineCanEdit: permissions.workOrders.getPermissions(mapToWorkOrderData(workOrder)).canEdit,
       status: workOrder.status,
       isOfflinePending: Boolean(workOrder._isPendingSync) || workOrder.id.startsWith('offline-'),
     });
@@ -305,7 +305,7 @@ const WorkOrders = () => {
     }
   };
 
-  const handleAcceptClick = (workOrder: WorkOrderData) => {
+  const handleAcceptClick = (workOrder: WorkOrder) => {
     setAcceptanceModal({ open: true, workOrder });
   };
 
@@ -411,7 +411,7 @@ const WorkOrders = () => {
   };
 
   const selectedCalendarWorkOrder = selectedWorkOrderId
-    ? calendarRows.find((row) => row.id === selectedWorkOrderId) as MergedWorkOrder | undefined
+    ? calendarRows.find((row) => row.id === selectedWorkOrderId)
     : undefined;
   const createDuePersist = createPrefill
     ? persistDue(applyDueWrite({ kind: 'none' }, createPrefill))
@@ -582,7 +582,7 @@ const WorkOrders = () => {
                   }
                   const wo = calendarRows.find((row) => row.id === intent.workOrderId);
                   if (!wo) return;
-                  persistCalendarDue(wo as MergedWorkOrder, intent.write);
+                  persistCalendarDue(wo, intent.write);
                 }}
                 onChromeChange={(next) => writeChrome(next)}
               />
@@ -620,7 +620,7 @@ const WorkOrders = () => {
         <WorkOrderCalendarPanel
           workOrder={selectedCalendarWorkOrder}
           editability={calendarEditability({
-            engineCanEdit: permissions.workOrders.getPermissions(selectedCalendarWorkOrder as WorkOrderData).canEdit,
+            engineCanEdit: permissions.workOrders.getPermissions(mapToWorkOrderData(selectedCalendarWorkOrder)).canEdit,
             status: selectedCalendarWorkOrder.status,
             isOfflinePending:
               Boolean(selectedCalendarWorkOrder._isPendingSync)

@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@vitest-harness/utils/test-utils';
 import WorkOrderDetailsInfo from '@/features/work-orders/components/WorkOrderDetailsInfo';
+import { createWorkOrderFixture } from '@/features/work-orders/utils/createWorkOrderFixture';
 
 vi.mock('@/hooks/use-mobile', () => ({
   useIsMobile: () => false,
@@ -11,16 +12,13 @@ vi.mock('@/features/equipment/hooks/useEquipmentWorkingHours', () => ({
   useEquipmentCurrentWorkingHours: () => ({ data: 42, isLoading: false }),
 }));
 
-const workOrder = {
-  id: 'wo-1',
+const workOrder = createWorkOrderFixture({
   title: 'Hydraulic repair',
   description: 'Existing description',
-  status: 'completed' as const,
-  priority: 'high' as const,
+  status: 'completed',
+  priority: 'high',
   created_date: '2026-01-01T00:00:00Z',
-  equipment_id: 'eq-1',
-  organization_id: 'org-1',
-};
+});
 
 describe('WorkOrderDetailsInfo', () => {
   it('shows a description lock reason on completed work orders', () => {

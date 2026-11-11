@@ -17,7 +17,7 @@ export interface AssignmentOption {
   id: string;
   name: string;
   type: 'user';
-  email?: string;
+  email?: string | null;
   role?: string;
 }
 

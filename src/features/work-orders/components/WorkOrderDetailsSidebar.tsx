@@ -11,8 +11,8 @@ import type { WorkOrderLike } from '@/features/work-orders/utils/workOrderTypeCo
 
 interface WorkOrderDetailsSidebarProps {
   workOrder: WorkOrderDetailsData;
-  equipment: EquipmentData;
-  pmData: PMData | null;
+  equipment?: EquipmentData | null;
+  pmData?: PMData | null;
   formMode: string;
   permissionLevels: PermissionLevels;
   currentOrganization: OrganizationData;

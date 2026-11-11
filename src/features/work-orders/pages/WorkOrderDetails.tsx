@@ -5,9 +5,7 @@ import { useParams, useSearchParams, Navigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useWorkOrderDetailsData } from '@/features/work-orders/components/hooks/useWorkOrderDetailsData';
 import { useWorkOrderDetailsActions } from '@/features/work-orders/hooks/useWorkOrderDetailsActions';
-import { useWorkOrderEquipment } from '@/features/work-orders/hooks/useWorkOrderEquipment';
 import { logNavigationEvent } from '@/utils/navigationDebug';
-import { WorkOrderEquipmentSelector } from '@/features/work-orders/components/WorkOrderEquipmentSelector';
 import { WorkOrderDetailsMobileHeader } from '@/features/work-orders/components/WorkOrderDetailsMobileHeader';
 import { WorkOrderDetailsDesktopHeader } from '@/features/work-orders/components/WorkOrderDetailsDesktopHeader';
 import { WorkOrderDetailsSidebar } from '@/features/work-orders/components/WorkOrderDetailsSidebar';
@@ -26,6 +24,7 @@ import { useSaveEquipmentAssignedLocation } from '@/features/equipment/hooks/use
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import type { EquipmentLocationEditProps } from '@/components/location/equipmentLocationEditProps';
+import { mapToWorkOrderData } from '@/features/work-orders/utils/workOrderCardMappers';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { cn } from '@/lib/utils';
@@ -138,8 +137,6 @@ const WorkOrderDetails = () => {
     initializePMChecklist,
   });
 
-  const { data: linkedEquipment = [] } = useWorkOrderEquipment(workOrderId || '');
-
   const canEditInlineFields = canEdit && !isWorkOrderLocked;
   const canEditAssignment = permissionLevels.canAssign && !isWorkOrderLocked;
   const canEditEquipmentLocation =
@@ -202,7 +199,7 @@ const WorkOrderDetails = () => {
 
   const workOrderDetailedPermissions = workOrder
     ? permissions.workOrders.getDetailedPermissions({
-        ...workOrder,
+        ...mapToWorkOrderData(workOrder),
         organizationId: currentOrganization?.id ?? '',
         teamId: equipment?.team_id ?? workOrder.equipmentTeamId ?? undefined,
       })
@@ -416,14 +413,6 @@ const WorkOrderDetails = () => {
             }),
           )}
         >
-          {linkedEquipment.length > 1 && (
-            <WorkOrderEquipmentSelector
-              workOrderId={workOrder.id}
-              selectedEquipmentId={selectedEquipmentId}
-              onEquipmentChange={setSelectedEquipmentId}
-            />
-          )}
-
           {isMobile ? (
             <WorkOrderDetailsMobileContent
               workOrder={workOrder}

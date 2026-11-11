@@ -5,7 +5,10 @@ import {
   WorkOrderDetailsMobileContent,
   type WorkOrderDetailsMobileContentProps,
 } from '@/features/work-orders/components/WorkOrderDetailsMobileContent';
-import type { WorkOrder } from '@/features/work-orders/types/workOrder';
+import {
+  createPreventativeMaintenanceFixture,
+  createWorkOrderFixture,
+} from '@/features/work-orders/utils/createWorkOrderFixture';
 
 vi.mock('@/features/work-orders/hooks/useWorkOrderStatusChangeHandlers', () => ({
   useWorkOrderStatusChangeHandlers: () => ({
@@ -60,8 +63,7 @@ vi.mock('@/features/teams/components/CustomerContactActions', () => ({
   ),
 }));
 
-const workOrder = {
-  id: 'wo-1',
+const workOrder = createWorkOrderFixture({
   title: 'Hydraulic repair',
   status: 'in_progress',
   priority: 'high',
@@ -71,11 +73,8 @@ const workOrder = {
   created_date: '2026-01-01T00:00:00Z',
   due_date: '2026-06-01T12:00:00Z',
   updated_at: '2026-01-02T00:00:00Z',
-  equipment_id: 'eq-1',
-  organization_id: 'org-1',
   equipmentTeamId: 'team-1',
-  is_historical: false,
-} as WorkOrder;
+});
 
 const equipment = {
   id: 'eq-1',
@@ -95,11 +94,7 @@ function renderMobileContent(
     <WorkOrderDetailsMobileContent
       workOrder={workOrder}
       equipment={equipment as WorkOrderDetailsMobileContentProps['equipment']}
-      pmData={{
-        id: 'pm-1',
-        status: 'in_progress',
-        checklist_data: [],
-      } as WorkOrderDetailsMobileContentProps['pmData']}
+      pmData={createPreventativeMaintenanceFixture({ status: 'in_progress' })}
       currentOrganization={{ id: 'org-1', name: 'Test Org' }}
       permissionLevels={{ isManager: true, isTechnician: true }}
       pmChecklist={{ progress: 1, total: 3 }}
@@ -137,6 +132,7 @@ function renderMobileContent(
       onAddNote={noop}
       onAddPhoto={noop}
       onComplete={noop}
+      onRetrySync={noop}
       baseCanAddNotes={false}
       {...overrides}
     />,

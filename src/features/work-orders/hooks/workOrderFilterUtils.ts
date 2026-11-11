@@ -1,5 +1,5 @@
 import { isToday, isThisWeek } from 'date-fns';
-import type { WorkOrderFilters, WorkOrderData, QuickBooksInvoiceStatus } from '@/features/work-orders/types/workOrder';
+import type { WorkOrderFilters, WorkOrderData, WorkOrderPriority, WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 import { getPriorityValue, isOverdue } from '@/features/work-orders/utils/workOrderHelpers';
 import type { QuickFilterPreset, SortDirection, SortField } from './useWorkOrderFilters';
 
@@ -37,7 +37,7 @@ export const PRESET_FILTER_MAP: Record<QuickFilterPreset, { key: keyof WorkOrder
  * unpaid/collectible: it represents the transitional state where a QBO invoice
  * has been exported but the hourly reconciler has not yet mirrored the status.
  */
-const COLLECTIBLE_UNPAID_INVOICE_STATUSES: ReadonlySet<QuickBooksInvoiceStatus> = new Set([
+const COLLECTIBLE_UNPAID_INVOICE_STATUSES: ReadonlySet<string> = new Set([
   'draft',
   'sent',
   'viewed',
@@ -45,7 +45,30 @@ const COLLECTIBLE_UNPAID_INVOICE_STATUSES: ReadonlySet<QuickBooksInvoiceStatus> 
   'overdue',
 ]);
 
-function matchesSearch(order: WorkOrderData, searchQuery: string): boolean {
+/**
+ * The fields the list filters actually read. Both the camelCase `WorkOrderData`
+ * shape and the snake_case `WorkOrder` / `TeamBasedWorkOrder` rows satisfy it,
+ * so callers can filter their own row type without casting.
+ */
+export interface FilterableWorkOrder {
+  title: string;
+  status: WorkOrderStatus;
+  priority: WorkOrderPriority;
+  assigneeId?: string | null;
+  assigneeName?: string | null;
+  teamId?: string | null;
+  teamName?: string | null;
+  equipmentTeamId?: string | null;
+  equipmentName?: string | null;
+  dueDate?: string | null;
+  invoiceStatus?: string | null;
+  invoice_status?: string | null;
+  quickbooksInvoiceId?: string | null;
+  quickbooks_invoice_id?: string | null;
+  quickbooks_sync_excluded?: boolean;
+}
+
+function matchesSearch(order: FilterableWorkOrder, searchQuery: string): boolean {
   const query = searchQuery.toLowerCase();
 
   return (
@@ -56,7 +79,7 @@ function matchesSearch(order: WorkOrderData, searchQuery: string): boolean {
   );
 }
 
-function matchesAssignee(order: WorkOrderData, assigneeFilter: string, currentUserId?: string): boolean {
+function matchesAssignee(order: FilterableWorkOrder, assigneeFilter: string, currentUserId?: string): boolean {
   const teamId = order.teamId ?? order.equipmentTeamId ?? null;
   return (
     assigneeFilter === 'all' ||
@@ -66,7 +89,7 @@ function matchesAssignee(order: WorkOrderData, assigneeFilter: string, currentUs
   );
 }
 
-function matchesTeam(order: WorkOrderData, teamFilter: string): boolean {
+function matchesTeam(order: FilterableWorkOrder, teamFilter: string): boolean {
   if (teamFilter === 'all') {
     return true;
   }
@@ -75,7 +98,7 @@ function matchesTeam(order: WorkOrderData, teamFilter: string): boolean {
   return teamFilter === 'unassigned' ? !teamId : teamId === teamFilter;
 }
 
-function matchesDueDate(order: WorkOrderData, dueDateFilter: string): boolean {
+function matchesDueDate(order: FilterableWorkOrder, dueDateFilter: string): boolean {
   return (
     dueDateFilter === 'all' ||
     (dueDateFilter === 'overdue' && isOverdue(order.dueDate, order.status)) ||
@@ -85,7 +108,7 @@ function matchesDueDate(order: WorkOrderData, dueDateFilter: string): boolean {
   );
 }
 
-function matchesInvoice(order: WorkOrderData, invoiceFilter: string): boolean {
+function matchesInvoice(order: FilterableWorkOrder, invoiceFilter: string): boolean {
   const invoiceStatus = order.invoiceStatus ?? order.invoice_status ?? null;
   const hasExportedInvoice = Boolean(order.quickbooksInvoiceId ?? order.quickbooks_invoice_id);
 
@@ -101,7 +124,7 @@ function matchesInvoice(order: WorkOrderData, invoiceFilter: string): boolean {
 }
 
 function matchesWorkOrderFilters(
-  order: WorkOrderData,
+  order: FilterableWorkOrder,
   filters: WorkOrderFilters,
   currentUserId?: string,
 ): boolean {
@@ -116,11 +139,11 @@ function matchesWorkOrderFilters(
   );
 }
 
-export function filterWorkOrders(
-  workOrders: WorkOrderData[],
+export function filterWorkOrders<T extends FilterableWorkOrder>(
+  workOrders: T[],
   filters: WorkOrderFilters,
   currentUserId?: string,
-): WorkOrderData[] {
+): T[] {
   return workOrders.filter(order => matchesWorkOrderFilters(order, filters, currentUserId));
 }
 

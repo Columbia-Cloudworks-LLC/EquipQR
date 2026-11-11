@@ -21,7 +21,7 @@ import { resolveWorkOrderAcceptanceAssigneeGate } from '@/features/work-orders/u
 interface WorkOrderAcceptanceModalProps {
   open: boolean;
   onClose: () => void;
-  workOrder: WorkOrderLike;
+  workOrder: WorkOrderLike | null;
   organizationId: string;
   onAccept: (assigneeId?: string) => Promise<void>;
 }
