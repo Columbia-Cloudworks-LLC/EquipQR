@@ -253,6 +253,15 @@ export async function verifyProductionDeployment({
   return false;
 }
 
+/**
+ * True when `vercel promote` refused because the deployment is already serving
+ * production (HTTP 409), e.g. after someone promoted it by hand. Not a failure:
+ * post-promote verification still checks the production deployment and commit.
+ */
+export function isAlreadyProductionPromoteOutput(output) {
+  return /is already the current production deployment/i.test(output || '');
+}
+
 function runVercelPromote({ deploymentRef, token, teamId, timeout }) {
   const args = [
     '--yes',
@@ -273,10 +282,15 @@ function runVercelPromote({ deploymentRef, token, teamId, timeout }) {
     `Running vercel promote for ${deploymentRef} (timeout ${timeout}, team ${teamId}).\n`,
   );
 
+  // Capture output (and echo it) so an "already production" refusal can be recognised.
   const result = spawnSync('npx', args, {
-    stdio: 'inherit',
+    stdio: ['inherit', 'pipe', 'pipe'],
     env: process.env,
+    encoding: 'utf8',
+    maxBuffer: 16 * 1024 * 1024,
   });
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
 
   if (result.error) {
     process.stderr.write(
@@ -285,6 +299,12 @@ function runVercelPromote({ deploymentRef, token, teamId, timeout }) {
     return false;
   }
   if (result.status !== 0) {
+    if (isAlreadyProductionPromoteOutput(`${result.stdout || ''}\n${result.stderr || ''}`)) {
+      process.stdout.write(
+        '::notice::Deployment is already the current production deployment; skipping promote and verifying.\n',
+      );
+      return true;
+    }
     process.stderr.write(
       `::error title=promote-vercel-production::vercel promote exited with code ${result.status ?? 'unknown'}.\n`,
     );
