@@ -128,7 +128,9 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
               estimatedHours: workOrder.estimated_hours,
               completedDate: workOrder.completed_date,
               assigneeId: workOrder.assignee_id,
-              teamId: undefined,
+              // A work order's team is its equipment's team (#1729). Without it,
+              // team managers fail the workorder.edit/assign checks on the cards.
+              equipmentTeamId: equipment?.team_id ?? undefined,
               equipmentManufacturer,
               equipmentModel,
               equipmentSerialNumber,

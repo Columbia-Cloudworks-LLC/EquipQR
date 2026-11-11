@@ -167,7 +167,7 @@ const MobileWorkOrderCard: React.FC<MobileWorkOrderCardProps> = ({ workOrder }) 
               priority: workOrder.priority,
               status: workOrder.status,
               assigneeId: workOrder.assignee_id ?? undefined,
-              teamId: workOrder.teamId,
+              teamId: workOrder.teamId ?? workOrder.equipmentTeamId,
               createdDate: workOrder.created_date,
               created_date: workOrder.created_date,
             }).canEdit && (
