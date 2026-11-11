@@ -25,18 +25,6 @@ export interface EquipmentLocation {
   timestamp?: string;
 }
 
-export interface AssignedLocation {
-  street?: string;
-  city?: string;
-  state?: string;
-  country?: string;
-  lat?: number;
-  lng?: number;
-}
-
-// Re-export EffectiveLocation from the shared utility (single source of truth)
-export type { EffectiveLocation } from '@/utils/effectiveLocation';
-
 // ============================================
 // Custom Attributes Type
 // ============================================
@@ -200,42 +188,4 @@ export interface EquipmentRecord extends Omit<EquipmentRow, 'custom_attributes' 
   assigned_location_lat?: number | null;
   assigned_location_lng?: number | null;
   use_team_location?: boolean;
-}
-
-/**
- * Equipment with team information (from joins)
- * @deprecated Use EquipmentRecord directly - it now includes team_name
- */
-export interface EquipmentWithTeam extends EquipmentRecord {
-  team_name?: string;
-}
-
-// ============================================
-// Equipment Filter Types
-// ============================================
-
-export interface EquipmentFilters {
-  status?: EquipmentStatus;
-  location?: string;
-  manufacturer?: string;
-  model?: string;
-  team_id?: string | null;
-  search?: string;
-  // Team-based access control
-  userTeamIds?: string[];
-  isOrgAdmin?: boolean;
-}
-
-// ============================================
-// Equipment Scan Types
-// ============================================
-
-export interface EquipmentScan {
-  id: string;
-  equipment_id: string;
-  scanned_by: string;
-  scanned_at: string;
-  location?: string | null;
-  notes?: string | null;
-  scannedByName?: string;
 }

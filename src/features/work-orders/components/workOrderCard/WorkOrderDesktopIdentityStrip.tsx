@@ -3,7 +3,7 @@ import { CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatWorkOrderMachineHours, formatWorkOrderPriorityLabel } from '@/features/work-orders/utils/workOrderEquipmentVisuals';
 import { cn } from '@/lib/utils';
-import { getStatusColor, formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
+import { getWorkOrderStatusColor, formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
 import { getPriorityBadgeClass } from '@/lib/status-colors';
 import { WorkOrderQuickActions } from '../WorkOrderQuickActions';
 import QuickBooksInvoiceStatusBadge from '../QuickBooksInvoiceStatusBadge';
@@ -57,7 +57,7 @@ export const WorkOrderDesktopIdentityStrip: React.FC<WorkOrderDesktopIdentityStr
           workOrderStatus={workOrder.status}
           equipmentTeamId={workOrder.equipmentTeamId}
         />
-        <Badge className={getStatusColor(workOrder.status)}>
+        <Badge className={getWorkOrderStatusColor(workOrder.status)}>
           {formatStatus(workOrder.status)}
         </Badge>
         <Badge

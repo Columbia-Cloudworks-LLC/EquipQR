@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@vitest-harness/utils/test-utils';
 import PMChecklistComponent from './PMChecklistComponent';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
-import type { OrganizationData, WorkOrderData } from '@/features/work-orders/types/workOrderDetails';
+import type { OrganizationData, WorkOrderDetailsData } from '@/features/work-orders/types/workOrderDetails';
 
 export const defaultPmChecklistOrg: OrganizationData = {
   id: 'org-1',
@@ -20,7 +20,7 @@ export function renderPMChecklist(
     isAdmin?: boolean;
     onUpdate?: () => void;
     organization?: OrganizationData;
-    workOrder?: WorkOrderData;
+    workOrder?: WorkOrderDetailsData;
   },
 ) {
   const onUpdate = options?.onUpdate ?? (() => undefined);

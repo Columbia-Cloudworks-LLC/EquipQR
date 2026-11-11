@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import ClickableAddress from '@/components/ui/ClickableAddress';
 import { cn } from '@/lib/utils';
 import {
-  getStatusColor,
+  getWorkOrderStatusColor,
   formatStatus,
   isOverdue,
   isTerminalStatus,
@@ -65,7 +65,7 @@ export const WorkOrderCompactCard: React.FC<WorkOrderCardProps> = memo(({
               {workOrder.priority} priority
             </span>
           </div>
-          <Badge className={getStatusColor(workOrder.status)}>
+          <Badge className={getWorkOrderStatusColor(workOrder.status)}>
             {formatStatus(workOrder.status)}
           </Badge>
         </div>

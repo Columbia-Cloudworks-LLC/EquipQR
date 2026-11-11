@@ -1,7 +1,7 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { __testables, resolveExportFolderPath } from "./google-drive-folder-routing.ts";
+import { __driveFolderRoutingTestables, resolveExportFolderPath } from "./google-drive-folder-routing.ts";
 
-const { sanitizeFolderName } = __testables;
+const { sanitizeFolderName } = __driveFolderRoutingTestables;
 
 Deno.test("sanitizeFolderName strips control characters", () => {
   assertEquals(sanitizeFolderName("Hello\x00World"), "HelloWorld");

@@ -1,8 +1,6 @@
 import { formatDate } from '@/utils/dateFormatter';
 import type { UserSettings } from '@/types/settings';
 
-export type EquipmentStatus = 'active' | 'maintenance' | 'inactive' | 'out_of_service';
-
 export interface StatusDisplayInfo {
   label: string;
   badgeClassName: string;
@@ -23,7 +21,7 @@ export const EQUIPMENT_STATUS_OPTIONS = [
  * Returns Tailwind classes for equipment status badges using CSS variables
  * from the design system for dark mode and org branding support.
  */
-export const getStatusColor = (status: string): string => {
+export const getEquipmentStatusColor = (status: string): string => {
   switch (status) {
     case 'active':
       return 'bg-success/20 text-success border-success/30';
@@ -65,7 +63,7 @@ export const getStatusDisplayInfo = (status: string): StatusDisplayInfo => {
   const option = EQUIPMENT_STATUS_OPTIONS.find((opt) => opt.value === status);
   return {
     label: option?.label || 'Active',
-    badgeClassName: getStatusColor(status),
+    badgeClassName: getEquipmentStatusColor(status),
     textClassName: getStatusTextColor(status),
   };
 };

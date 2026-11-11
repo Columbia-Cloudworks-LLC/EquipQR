@@ -12,7 +12,6 @@ import {
   getTimelineRowSeedDate,
   hasIncompleteTimelineRows,
   historyRowsToEditorEvents,
-  isTerminalStatus,
   normalizeLoadedTimelineEvents,
   rowsToTimelineEvents,
   synthesizeDefaultTimeline,
@@ -21,6 +20,7 @@ import {
   validateTimelineEvents,
   type HistoricalTimelineEditorRow,
 } from '@/features/work-orders/utils/historicalTimeline';
+import { isTerminalStatus } from '@/features/work-orders/utils/workOrderHelpers';
 import {
   cursedAcceptedFirstStubHistoryRows,
   cursedHappyPathSubmittedFirstHistoryRows,

@@ -33,8 +33,6 @@ export const compatibilityRuleSchema = z.object({
     .transform(val => (typeof val === 'string' && val.trim() === '' ? null : val))
 });
 
-export type CompatibilityRuleFormData = z.infer<typeof compatibilityRuleSchema>;
-
 export const inventoryItemFormSchema = z.object({
   name: z.string()
     .min(1, 'Name is required')

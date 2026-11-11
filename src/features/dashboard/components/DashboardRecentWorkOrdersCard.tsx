@@ -2,7 +2,7 @@ import React from "react";
 import { ClipboardList } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { getStatusColor, formatStatus } from "@/features/work-orders/utils/workOrderHelpers";
+import { getWorkOrderStatusColor, formatStatus } from "@/features/work-orders/utils/workOrderHelpers";
 import { cn } from "@/lib/utils";
 
 import { DashboardRecentListCard } from "./DashboardRecentListCard";
@@ -62,7 +62,7 @@ export const DashboardRecentWorkOrdersCard: React.FC<DashboardRecentWorkOrdersCa
     renderBadge={(order) => (
       <Badge
         variant="outline"
-        className={cn('ml-1 flex-shrink-0 text-xs', getStatusColor(order.status))}
+        className={cn('ml-1 flex-shrink-0 text-xs', getWorkOrderStatusColor(order.status))}
       >
         {formatStatus(order.status)}
       </Badge>

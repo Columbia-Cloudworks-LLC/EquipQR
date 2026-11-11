@@ -6,7 +6,7 @@ import { calendarDayInTimeZone, calendarDayToIso, compareDay, parseCalendarDay, 
 import type { CalendarItem } from './placement';
 import type { CalendarRange } from './url';
 import { localeFirstDay } from './adapter/toFullCalendar';
-import { formatStatus, getStatusColor } from '@/features/work-orders/utils/workOrderHelpers';
+import { formatStatus, getWorkOrderStatusColor } from '@/features/work-orders/utils/workOrderHelpers';
 import { cn } from '@/lib/utils';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 
@@ -101,7 +101,7 @@ export function WorkOrderAgenda({ items, range, anchor, onDateChange, onRangeCha
                         {item.placement.kind === 'timed' ? `Due ${formatTime(item.placement.dueAt.epochMs)}` : item.placement.kind === 'unscheduled' ? 'Unscheduled' : 'All-day due date'}
                         {isItemOverdue(item) && <span className="ml-2 font-medium text-destructive">Overdue</span>}
                       </span>
-                      <Badge className={getStatusColor(item.status)}>{formatStatus(item.status)}</Badge>
+                      <Badge className={getWorkOrderStatusColor(item.status)}>{formatStatus(item.status)}</Badge>
                     </button>
                   </li>
                 ))}

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, CopyPlus, QrCode, MapPin, Calendar, Trash2, Clock, ChevronRight } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
-import { getStatusColor, EQUIPMENT_STATUS_OPTIONS } from '@/features/equipment/utils/equipmentHelpers';
+import { getEquipmentStatusColor, EQUIPMENT_STATUS_OPTIONS } from '@/features/equipment/utils/equipmentHelpers';
 import { getCustomAttributeString } from '@/features/equipment/utils/getEquipmentCardDisplayModel';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { getEquipmentViewTransitionStyle } from '@/features/equipment/transitions/equipmentViewTransitionNames';
@@ -77,7 +77,7 @@ const MobileEquipmentHeader: React.FC<MobileEquipmentHeaderProps> = ({
           >
             {equipment.name}
           </h1>
-          <Badge className={`${getStatusColor(equipment.status || 'active')} rounded-full px-2 py-0.5 text-xs`} variant="outline">
+          <Badge className={`${getEquipmentStatusColor(equipment.status || 'active')} rounded-full px-2 py-0.5 text-xs`} variant="outline">
             {EQUIPMENT_STATUS_OPTIONS.find(opt => opt.value === equipment.status)?.label || 'Active'}
           </Badge>
           {unitNumber && (

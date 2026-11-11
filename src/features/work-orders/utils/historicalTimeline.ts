@@ -1,7 +1,5 @@
-import type { z } from 'zod';
-import { workOrderStatusSchema } from '@/features/work-orders/schemas/workOrderSchema';
-
-export type WorkOrderStatus = z.infer<typeof workOrderStatusSchema>;
+import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
+import { isTerminalStatus } from '@/features/work-orders/utils/workOrderHelpers';
 
 export type HistoricalTimelineEvent = {
   newStatus: WorkOrderStatus;
@@ -20,12 +18,6 @@ export type HistoricalTimelineValidationError = {
   field: 'chain' | 'dates' | 'assignee';
   message: string;
 };
-
-const TERMINAL_STATUSES: WorkOrderStatus[] = ['completed', 'cancelled'];
-
-export function isTerminalStatus(status: WorkOrderStatus): boolean {
-  return TERMINAL_STATUSES.includes(status);
-}
 
 export function getAllowedNextStatuses(currentStatus: WorkOrderStatus): WorkOrderStatus[] {
   switch (currentStatus) {

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ArrowLeft, ChevronRight, Handshake, Settings, Users, Trash2, Plus, Edit, Forklift, ClipboardList, MoreVertical } from 'lucide-react';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useTeam, useTeamMutations } from '@/features/teams/hooks/useTeamManagement';
+import { useTeamById, useTeamMutations } from '@/features/teams/hooks/useTeamManagement';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useTeamStats } from '@/features/teams/hooks/useTeamStats';
 import { useToast } from '@/hooks/use-toast';
@@ -84,7 +84,7 @@ const TeamDetails = () => {
   const [viewOverride, setViewOverride] = useState<TeamView | null>(null);
 
   // Use team hook for data
-  const { data: team, isLoading: teamLoading } = useTeam(teamId);
+  const { data: team, isLoading: teamLoading } = useTeamById(teamId);
   const { deleteTeam } = useTeamMutations();
   const permissions = usePermissions();
 

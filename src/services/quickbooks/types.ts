@@ -7,31 +7,6 @@
  */
 
 /**
- * QuickBooks credentials stored in the database.
- *
- * **Server-side only** — this interface models access/refresh tokens that must
- * never be returned to the browser.  It is defined here for backward-compat
- * with existing barrel exports; the generated Supabase types in
- * `src/integrations/supabase/types.ts` are the canonical source of truth for
- * database row shapes.
- *
- * @deprecated Prefer the generated type from `src/integrations/supabase/types.ts`.
- */
-export interface QuickBooksCredentials {
-  id: string;
-  organization_id: string;
-  realm_id: string;
-  access_token: string;
-  refresh_token: string;
-  access_token_expires_at: string;
-  refresh_token_expires_at: string;
-  scopes: string;
-  token_type: string;
-  created_at: string;
-  updated_at: string;
-}
-
-/**
  * QuickBooks connection status for display in UI
  */
 export interface QuickBooksConnectionStatus {
@@ -51,54 +26,6 @@ export interface QuickBooksConnectionStatus {
   isRefreshTokenValid?: boolean;
   /** Scopes granted by the user */
   scopes?: string;
-}
-
-/**
- * Response from the QuickBooks OAuth token endpoint.
- *
- * **Server-side only** — used by Edge Functions during token exchange / refresh.
- * Included here for backward-compat with existing barrel exports.
- *
- * @deprecated This type is defined in each Edge Function that needs it.
- */
-export interface QuickBooksTokenResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
-  expires_in: number;
-  x_refresh_token_expires_in: number;
-  scope?: string;
-}
-
-/**
- * Error response from QuickBooks API
- */
-export interface QuickBooksApiError {
-  error: string;
-  error_description?: string;
-  intuit_tid?: string;
-}
-
-/**
- * Result of a token refresh operation
- */
-export interface TokenRefreshResult {
-  success: boolean;
-  organizationId: string;
-  realmId: string;
-  error?: string;
-  newExpiresAt?: string;
-}
-
-/**
- * Summary of token refresh batch operation
- */
-export interface TokenRefreshSummary {
-  success: boolean;
-  message: string;
-  refreshed: number;
-  failed: number;
-  results?: TokenRefreshResult[];
 }
 
 /**
@@ -158,7 +85,6 @@ export type QuickBooksExportInvoiceRequest = {
  * QuickBooks environment type
  */
 export type QuickBooksEnvironment = 'sandbox' | 'production';
-export type QuickBooksInvoiceStatus = 'draft' | 'sent' | 'viewed' | 'paid' | 'partially_paid' | 'overdue' | 'voided';
 
 /**
  * Response from quickbooks-export-invoice Edge Function

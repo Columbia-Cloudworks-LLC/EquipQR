@@ -81,7 +81,7 @@ export interface EquipmentSummary {
   default_pm_template_id: string | null;
 }
 
-export interface EquipmentFilters extends FilterParams {
+export interface EquipmentServiceFilters extends FilterParams {
   status?: Equipment['status'];
   location?: string;
   manufacturer?: string;
@@ -94,7 +94,7 @@ export interface EquipmentFilters extends FilterParams {
 
 /**
  * Extended filter shape used by the dense equipment list page. Mirrors the
- * UI's `EquipmentFilters` shape one-for-one so the server query can do the
+ * UI's `EquipmentFilterState` shape one-for-one so the server query can do the
  * filtering work that used to happen in the browser.
  */
 export interface EquipmentListFilters {
@@ -309,7 +309,7 @@ export class EquipmentService {
    */
   static async getAll(
     organizationId: string,
-    filters: EquipmentFilters = {},
+    filters: EquipmentServiceFilters = {},
     pagination: PaginationParams = {}
   ): Promise<ApiResponse<EquipmentWithTeam[]>> {
     try {

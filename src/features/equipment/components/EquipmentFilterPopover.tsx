@@ -3,7 +3,7 @@ import { FilterPopoverClearAllFooter } from '@/components/filters/FilterPopoverC
 import { FilterPopoverShell } from '@/components/filters/FilterPopoverShell';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import type { EquipmentFilters } from '@/features/equipment/hooks/useEquipmentFiltering';
+import type { EquipmentFilterState } from '@/features/equipment/hooks/useEquipmentFiltering';
 import {
   EquipmentLocationSelect,
   EquipmentManufacturerSelect,
@@ -21,8 +21,8 @@ interface FilterOptions {
 }
 
 interface EquipmentFilterPopoverProps {
-  filters: EquipmentFilters;
-  onFilterChange: (key: keyof EquipmentFilters, value: string) => void;
+  filters: EquipmentFilterState;
+  onFilterChange: (key: keyof EquipmentFilterState, value: string) => void;
   onClearFilters: () => void;
   onQuickFilter: (preset: string) => void;
   filterOptions: FilterOptions;

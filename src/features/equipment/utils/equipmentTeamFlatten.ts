@@ -1,5 +1,5 @@
 import { withResolvedEquipmentImages } from '@/services/imageUploadService';
-import type { EquipmentWithTeam } from '@/features/equipment/types/equipment';
+import type { EquipmentWithTeam } from '@/features/equipment/services/EquipmentService';
 
 type RowWithTeamJoin = Record<string, unknown> & {
   team?: { name?: string } | null;

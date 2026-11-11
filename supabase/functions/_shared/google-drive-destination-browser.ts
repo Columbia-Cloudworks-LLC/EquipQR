@@ -177,7 +177,7 @@ export async function browseGoogleDriveDestinations(
   };
 }
 
-export const __testables = {
+export const __driveDestinationBrowserTestables = {
   mapSharedDriveToBrowseItem,
   mapFolderToBrowseItem,
 };
