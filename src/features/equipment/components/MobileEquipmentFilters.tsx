@@ -14,7 +14,7 @@ import { MobileToolbarSheetContent } from '@/components/common/MobileToolbarShee
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, Filter, X, Check } from 'lucide-react';
 import { ListSortFieldControls } from '@/components/common/ListSortFieldControls';
-import type { EquipmentFilters, SortConfig } from '@/features/equipment/hooks/useEquipmentFiltering';
+import type { EquipmentFilterState, SortConfig } from '@/features/equipment/hooks/useEquipmentFiltering';
 import {
   EquipmentLocationSelect,
   EquipmentManufacturerSelect,
@@ -33,14 +33,14 @@ interface FilterOptions {
   locations: string[];
 }
 
-type EquipmentFilterKey = keyof EquipmentFilters;
+type EquipmentFilterKey = keyof EquipmentFilterState;
 
 interface MobileEquipmentFiltersProps {
-  filters: EquipmentFilters;
+  filters: EquipmentFilterState;
   activeFilterCount: number;
   showMobileFilters: boolean;
   onShowMobileFiltersChange: (show: boolean) => void;
-  onFilterChange: <K extends EquipmentFilterKey>(key: K, value: EquipmentFilters[K]) => void;
+  onFilterChange: <K extends EquipmentFilterKey>(key: K, value: EquipmentFilterState[K]) => void;
   onClearFilters: () => void;
   onQuickFilter: (preset: string) => void;
   filterOptions: FilterOptions;

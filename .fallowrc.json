@@ -74,79 +74,13 @@
       ]
     },
     {
-      "file": "src/components/landing/features/CapabilitiesGrid.tsx",
-      "exports": [
-        "*"
-      ]
-    },
-    {
       "file": "src/pages/features/data/*Data.ts",
       "exports": [
         "*"
       ]
     },
     {
-      "file": "src/features/equipment/components/EquipmentFilters.tsx",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/equipment/hooks/useEquipmentFiltering.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
       "file": "src/features/equipment/types/equipment.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/equipment/types/equipmentNotes.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/inventory/schemas/inventorySchema.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/inventory/types/inventory.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/work-orders/types/workOrder.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/services/quickbooks/types.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/organization/components/UnifiedMembersList.tsx",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/organization/hooks/useOrganizationMembers.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/organization/types/organization.ts",
       "exports": [
         "*"
       ]
@@ -164,24 +98,6 @@
       ]
     },
     {
-      "file": "supabase/functions/_shared/google-drive-destination-browser.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "supabase/functions/_shared/google-drive-folder-routing.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "supabase/functions/_shared/google-workspace-token.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
       "file": "supabase/functions/_shared/work-order-google-docs-single-data.ts",
       "exports": [
         "*"
@@ -189,36 +105,6 @@
     },
     {
       "file": "src/pages/features/data/qrCodeIntegrationData.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/work-orders/utils/workOrderHelpers.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/equipment/utils/equipmentHelpers.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/equipment/hooks/useEquipment.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/teams/hooks/useTeam.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/teams/hooks/useTeamManagement.ts",
       "exports": [
         "*"
       ]

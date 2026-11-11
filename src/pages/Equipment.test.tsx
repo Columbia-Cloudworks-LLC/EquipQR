@@ -25,7 +25,7 @@ vi.mock('@/hooks/useSelectedTeam', () => ({
 
 vi.mock('@/features/teams/hooks/useTeamManagement', () => ({
   useTeams: vi.fn(() => ({ teams: [], managedTeams: [], isLoading: false, error: null, data: [] })),
-  useTeam: vi.fn(() => ({ data: null, isLoading: false })),
+  useTeamById: vi.fn(() => ({ data: null, isLoading: false })),
   useTeamMutations: vi.fn(() => ({ createTeamWithCreator: { mutateAsync: vi.fn() }, deleteTeam: { mutateAsync: vi.fn() } })),
   useTeamMembers: vi.fn(() => ({ availableUsers: { data: [] }, addMember: { mutateAsync: vi.fn() }, removeMember: { mutateAsync: vi.fn() }, updateRole: { mutateAsync: vi.fn() } })),
 }));

@@ -27,7 +27,7 @@ import { useWorkOrderStatusChangeHandlers } from '@/features/work-orders/hooks/u
 import { useWorkOrderContextualAssignment, type AssignmentWorkOrderContext } from '@/features/work-orders/hooks/useWorkOrderContextualAssignment';
 import {
   formatStatus,
-  getStatusColor,
+  getWorkOrderStatusColor,
 } from '@/features/work-orders/utils/workOrderHelpers';
 import { formatDueDisplay, isDueOverdue, parseDue } from '@/features/work-orders/calendar';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
@@ -193,7 +193,7 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Current Status:</span>
-            <Badge className={getStatusColor(workOrder.status)}>
+            <Badge className={getWorkOrderStatusColor(workOrder.status)}>
               {formatStatus(workOrder.status)}
             </Badge>
           </div>

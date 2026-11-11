@@ -12,7 +12,7 @@ import {
   EQUIPMENT_TABLE_PAGE_SIZE_OPTIONS,
 } from '@/features/equipment/utils/equipmentListPagination';
 
-export interface EquipmentFilters {
+export interface EquipmentFilterState {
   search: string;
   status: string;
   manufacturer: string;
@@ -30,7 +30,7 @@ export interface SortConfig {
   direction: 'asc' | 'desc';
 }
 
-const initialFilters: EquipmentFilters = {
+const initialFilters: EquipmentFilterState = {
   search: '',
   status: 'all',
   manufacturer: 'all',
@@ -67,7 +67,7 @@ export const useEquipmentFiltering = (
   organizationId?: string,
   viewMode: EquipmentViewMode = 'grid',
 ) => {
-  const [filters, setFilters] = useState<EquipmentFilters>(initialFilters);
+  const [filters, setFilters] = useState<EquipmentFilterState>(initialFilters);
   const [sortConfig, setSortConfig] = useState<SortConfig>(initialSort);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [cardPage, setCardPage] = useState(1);
@@ -207,7 +207,7 @@ export const useEquipmentFiltering = (
   }, [activeQuickFilter, resetPagination]);
 
   const updateFilter = useCallback(
-    (key: keyof EquipmentFilters, value: EquipmentFilters[keyof EquipmentFilters]) => {
+    (key: keyof EquipmentFilterState, value: EquipmentFilterState[keyof EquipmentFilterState]) => {
       if (filtersRef.current[key] === value) return;
       setFilters(prev => ({ ...prev, [key]: value }));
       setActiveQuickFilter(null);

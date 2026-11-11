@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient, UseQueryResult } from '@tanstack/react-query';
 import {
   EquipmentService,
-  EquipmentFilters,
+  EquipmentServiceFilters,
   EquipmentUpdateData,
   EquipmentSummary,
   EquipmentListFilters,
@@ -25,7 +25,7 @@ import { teamAccessQueryScope, resolveTeamReadScope } from '@/features/teams/uti
  * components key off the equipment query stable, even though TanStack Query
  * already structurally hashes the query key.
  */
-const EMPTY_EQUIPMENT_FILTERS: EquipmentFilters = Object.freeze({}) as EquipmentFilters;
+const EMPTY_EQUIPMENT_FILTERS: EquipmentServiceFilters = Object.freeze({}) as EquipmentServiceFilters;
 const EMPTY_EQUIPMENT_PAGINATION: PaginationParams = Object.freeze({}) as PaginationParams;
 
 function fieldReadPersister() {
@@ -38,7 +38,7 @@ function fieldReadPersister() {
  */
 export const useEquipment = (
   organizationId?: string,
-  filters: EquipmentFilters = EMPTY_EQUIPMENT_FILTERS,
+  filters: EquipmentServiceFilters = EMPTY_EQUIPMENT_FILTERS,
   pagination: PaginationParams = EMPTY_EQUIPMENT_PAGINATION,
   options?: {
     enableBackgroundSync?: boolean;
@@ -382,14 +382,6 @@ export const useCreateScan = (organizationId: string | undefined) => {
     },
   });
 };
-
-/**
- * ManufacturerModel - Represents a unique manufacturer/model combination
- */
-export interface ManufacturerModel {
-  manufacturer: string;
-  model: string;
-}
 
 /**
  * ManufacturerWithModels - Grouped by manufacturer with their models

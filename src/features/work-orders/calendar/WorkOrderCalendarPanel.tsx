@@ -28,7 +28,7 @@ import {
   formatPriority,
   formatStatus,
   getPriorityColor,
-  getStatusColor,
+  getWorkOrderStatusColor,
 } from '@/features/work-orders/utils/workOrderHelpers';
 
 export type WorkOrderCalendarPanelProps = {
@@ -65,7 +65,7 @@ export function WorkOrderCalendarPanel({
         </SheetHeader>
 
         <div className="flex flex-wrap gap-2">
-          <Badge className={getStatusColor(workOrder.status)}>{formatStatus(workOrder.status)}</Badge>
+          <Badge className={getWorkOrderStatusColor(workOrder.status)}>{formatStatus(workOrder.status)}</Badge>
           <Badge className={getPriorityColor(workOrder.priority)}>{formatPriority(workOrder.priority)}</Badge>
         </div>
 

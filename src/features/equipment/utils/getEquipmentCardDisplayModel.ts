@@ -1,4 +1,4 @@
-import { getStatusColor, getStatusDisplayInfo, safeFormatDate } from "@/features/equipment/utils/equipmentHelpers";
+import { getEquipmentStatusColor, getStatusDisplayInfo, safeFormatDate } from "@/features/equipment/utils/equipmentHelpers";
 import type { UserSettings } from "@/types/settings";
 
 const EMPTY_READOUT = '—';
@@ -104,7 +104,7 @@ export function getEquipmentCardDisplayModel(
     imageAlt: `${equipment.name} equipment`,
     imageFallbackSrc: "/images/ui/placeholder.svg",
     statusLabel: statusInfo.label,
-    statusClassName: getStatusColor(equipment.status),
+    statusClassName: getEquipmentStatusColor(equipment.status),
     lastMaintenanceText: lastMaintenanceDate ? `Last maintenance: ${lastMaintenanceDate}` : undefined,
     lastMaintenanceDisplay: lastMaintenanceDate ?? EMPTY_READOUT,
     lastMaintenanceMobileDisplay: buildLastMaintenanceMobileDisplay(

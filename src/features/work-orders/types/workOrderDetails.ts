@@ -1,4 +1,4 @@
-export interface WorkOrderData {
+export interface WorkOrderDetailsData {
   id: string;
   title: string;
   description: string;

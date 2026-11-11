@@ -135,4 +135,4 @@ export async function resolveExportFolderPath(
   return currentParentId;
 }
 
-export const __testables = { sanitizeFolderName, findFolderByName, createFolder };
+export const __driveFolderRoutingTestables = { sanitizeFolderName, findFolderByName, createFolder };

@@ -323,7 +323,7 @@ export const GOOGLE_SCOPES = {
   DOCUMENTS: "https://www.googleapis.com/auth/documents",
 } as const;
 
-export const __testables = {
+export const __gwTokenTestables = {
   mergeGoogleWorkspaceScopeStrings,
   resolveGoogleWorkspaceScopes,
   buildCredentialsRefreshUpdate,

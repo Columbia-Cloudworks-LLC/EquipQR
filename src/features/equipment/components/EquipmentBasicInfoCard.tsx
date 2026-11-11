@@ -8,7 +8,7 @@ import { Calendar, Clock, ChevronDown, FileText, Users } from 'lucide-react';
 import { Tables } from '@/integrations/supabase/types';
 import InlineEditField from './InlineEditField';
 import { EquipmentIdentityFields } from './EquipmentIdentityFields';
-import { EQUIPMENT_STATUS_OPTIONS, getStatusColor } from '@/features/equipment/utils/equipmentHelpers';
+import { EQUIPMENT_STATUS_OPTIONS, getEquipmentStatusColor } from '@/features/equipment/utils/equipmentHelpers';
 import { mobileInlineEditIconRowClassName } from './inlineEditStyles';
 
 type Equipment = Tables<'equipment'>;
@@ -130,7 +130,7 @@ export function EquipmentBasicInfoCard({
                   editAriaLabel="Edit status"
                 />
               ) : (
-                <Badge className={`${getStatusColor(equipment.status || 'active')} rounded-full px-2 py-0.5 text-xs`} variant="outline">
+                <Badge className={`${getEquipmentStatusColor(equipment.status || 'active')} rounded-full px-2 py-0.5 text-xs`} variant="outline">
                   {EQUIPMENT_STATUS_OPTIONS.find(opt => opt.value === equipment.status)?.label || 'Active'}
                 </Badge>
               )}

@@ -17,9 +17,6 @@ import {
   displayUrlForStoredPrivateImage,
 } from '@/services/imageUploadService';
 
-// Re-export the canonical type for backward compatibility
-export type RealOrganizationMember = OrganizationMember;
-
 type OrganizationMemberRow = Database['public']['Tables']['organization_members']['Row'];
 type ProfileRow = Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'name' | 'email'> & { avatar_url?: string | null };
 

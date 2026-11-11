@@ -13,7 +13,6 @@ import { Tables } from '@/integrations/supabase/types';
 
 export type InventoryItemRow = Tables<'inventory_items'>;
 export type InventoryTransactionRow = Tables<'inventory_transactions'>;
-export type EquipmentPartCompatibilityRow = Tables<'equipment_part_compatibility'>;
 
 // Note: InventoryItemManagerRow has been deprecated.
 // Parts managers are now managed at the organization level.
@@ -56,17 +55,6 @@ export interface InventoryTransaction extends InventoryTransactionRow {
   userName?: string;
   inventoryItemName?: string;
   workOrderTitle?: string;
-}
-
-/**
- * EquipmentPartCompatibility - Links inventory items to equipment.
- * 
- * Junction table relationship between equipment and inventory items.
- */
-export interface EquipmentPartCompatibility extends EquipmentPartCompatibilityRow {
-  // Computed fields from joins
-  inventoryItemName?: string;
-  equipmentName?: string;
 }
 
 // Note: InventoryItemManager interface has been deprecated.
@@ -260,24 +248,6 @@ export interface MakeModelCompatiblePart {
 }
 
 /**
- * CompatibleInventoryItemResult - Result from get_compatible_parts_for_equipment RPC.
- * 
- * Includes match_type to indicate how the part was matched (direct link vs rule).
- */
-export interface CompatibleInventoryItemResult {
-  inventory_item_id: string;
-  name: string;
-  sku: string | null;
-  external_id: string | null;
-  quantity_on_hand: number;
-  low_stock_threshold: number;
-  default_unit_cost: number | null;
-  location: string | null;
-  image_url: string | null;
-  match_type: 'direct' | 'rule';
-}
-
-/**
  * EquipmentMatchedByRules - Equipment that matches an inventory item's compatibility rules.
  * 
  * Result from get_equipment_for_inventory_item_rules RPC.
@@ -351,10 +321,6 @@ export interface InventoryItemImage {
 // ============================================
 // Form & Input Types
 // ============================================
-
-// NOTE: InventoryItemFormData is defined by Zod schema (source of truth).
-// Re-export the inferred type to avoid drift between manual interfaces and validation.
-export type InventoryItemFormData = import('@/features/inventory/schemas/inventorySchema').InventoryItemFormData;
 
 /**
  * InventoryQuantityAdjustment - Data for adjusting inventory quantity
@@ -442,15 +408,3 @@ export interface InventoryTablePreferences {
   savedViews: InventorySavedView[];
   activeViewId?: string;
 }
-
-// ============================================
-// Transaction Type Enum
-// ============================================
-
-export type InventoryTransactionType = 
-  | 'usage'
-  | 'restock'
-  | 'adjustment'
-  | 'initial'
-  | 'work_order';
-

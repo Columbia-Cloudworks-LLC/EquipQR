@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { 
-  getStatusColor, 
+  getEquipmentStatusColor, 
   getStatusTextColor,
   getStatusDisplayInfo,
   formatDateForInput,
@@ -17,15 +17,15 @@ const settingsSydney: UserSettings = {
 
 
 describe('equipmentHelpers', () => {
-  describe('getStatusColor', () => {
+  describe('getEquipmentStatusColor', () => {
     it('should return CSS variable-based colors for each status', () => {
-      expect(getStatusColor('active')).toBe('bg-success/20 text-success border-success/30');
-      expect(getStatusColor('maintenance')).toBe('bg-warning/20 text-warning border-warning/30');
-      expect(getStatusColor('inactive')).toBe('bg-muted text-muted-foreground border-border');
+      expect(getEquipmentStatusColor('active')).toBe('bg-success/20 text-success border-success/30');
+      expect(getEquipmentStatusColor('maintenance')).toBe('bg-warning/20 text-warning border-warning/30');
+      expect(getEquipmentStatusColor('inactive')).toBe('bg-muted text-muted-foreground border-border');
     });
 
     it('should handle unknown status with muted colors', () => {
-      expect(getStatusColor('unknown')).toBe('bg-muted text-muted-foreground border-border');
+      expect(getEquipmentStatusColor('unknown')).toBe('bg-muted text-muted-foreground border-border');
     });
   });
 

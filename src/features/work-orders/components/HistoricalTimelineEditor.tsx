@@ -13,16 +13,15 @@ import {
   getSelectableStatusesForRow,
   getTimelineRowSeedDate,
   hasIncompleteTimelineRows,
-  isTerminalStatus,
   rowsToTimelineEvents,
   timelineEventsToRows,
   updateTimelineRowStatus,
   validateTimelineEvents,
   type HistoricalTimelineEditorRow,
   type HistoricalTimelineEvent,
-  type WorkOrderStatus,
 } from '@/features/work-orders/utils/historicalTimeline';
-import { formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
+import { formatStatus, isTerminalStatus } from '@/features/work-orders/utils/workOrderHelpers';
+import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 
 type HistoricalTimelineEditorProps = {
   initialEvents?: HistoricalTimelineEvent[];

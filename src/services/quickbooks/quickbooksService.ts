@@ -11,7 +11,8 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
-import type { QuickBooksConnectionStatus, QuickBooksInvoiceStatus } from './types';
+import type { QuickBooksConnectionStatus } from './types';
+import type { QuickBooksInvoiceStatus } from '@/features/work-orders/types/workOrder';
 
 /**
  * QuickBooks customer from the API

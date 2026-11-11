@@ -32,7 +32,7 @@ export const getPriorityColor = (priority: string): string => {
 /**
  * Get Tailwind CSS classes for status badge styling
  */
-export const getStatusColor = (status: string): string => {
+export const getWorkOrderStatusColor = (status: string): string => {
   switch (status) {
     case 'submitted':
       return 'bg-info/20 text-info border-info/30';

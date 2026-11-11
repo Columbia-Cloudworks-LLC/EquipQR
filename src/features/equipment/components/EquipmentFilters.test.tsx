@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen } from '@vitest-harness/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EquipmentFilters as EquipmentFiltersComponent } from './EquipmentFilters';
-import { EquipmentFilters } from '@/features/equipment/hooks/useEquipmentFiltering';
+import type { EquipmentFilterState } from '@/features/equipment/hooks/useEquipmentFiltering';
 
 // Mock mobile hook
 vi.mock('@/hooks/use-mobile', () => ({
@@ -29,7 +29,7 @@ vi.mock('./EquipmentToolbar', () => ({
   )
 }));
 
-const defaultFilters: EquipmentFilters = {
+const defaultFilters: EquipmentFilterState = {
   search: '',
   status: 'all',
   manufacturer: 'all',

@@ -1,5 +1,5 @@
 import type React from 'react';
-import type { EquipmentFilters, SortConfig } from '@/features/equipment/hooks/useEquipmentFiltering';
+import type { EquipmentFilterState, SortConfig } from '@/features/equipment/hooks/useEquipmentFiltering';
 import type { EquipmentViewMode } from '@/features/equipment/components/EquipmentCard';
 import type { EquipmentRecord } from '@/features/equipment/types/equipment';
 
@@ -10,9 +10,9 @@ export type EquipmentFilterOptions = {
 };
 
 export type EquipmentListToolbarProps = {
-  filters: EquipmentFilters;
+  filters: EquipmentFilterState;
   sortConfig: SortConfig;
-  onFilterChange: (key: keyof EquipmentFilters, value: string) => void;
+  onFilterChange: (key: keyof EquipmentFilterState, value: string) => void;
   onClearFilters: () => void;
   onQuickFilter: (preset: string) => void;
   onSortChange: (field: string, direction?: 'asc' | 'desc') => void;

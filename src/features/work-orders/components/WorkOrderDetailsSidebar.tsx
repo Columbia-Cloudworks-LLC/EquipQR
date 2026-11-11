@@ -6,11 +6,11 @@ import WorkOrderStatusManager from '@/features/work-orders/components/WorkOrderS
 import { WorkOrderDetailsRequestorStatus } from './WorkOrderDetailsRequestorStatus';
 import { WorkOrderDetailsStatusLockWarning } from './WorkOrderDetailsStatusLockWarning';
 import { WorkOrderCustomerContactsCard } from '@/features/work-orders/components/WorkOrderDetailsSharedCards';
-import { WorkOrderData, EquipmentData, PMData, PermissionLevels, OrganizationData } from '@/features/work-orders/types/workOrderDetails';
+import { WorkOrderDetailsData, EquipmentData, PMData, PermissionLevels, OrganizationData } from '@/features/work-orders/types/workOrderDetails';
 import type { WorkOrderLike } from '@/features/work-orders/utils/workOrderTypeConversion';
 
 interface WorkOrderDetailsSidebarProps {
-  workOrder: WorkOrderData;
+  workOrder: WorkOrderDetailsData;
   equipment: EquipmentData;
   pmData: PMData | null;
   formMode: string;

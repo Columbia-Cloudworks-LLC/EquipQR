@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { render, screen } from '@vitest-harness/utils/test-utils';
-import { SessionContext, type SessionData } from '@/contexts/SessionContext';
+import { SessionContext } from '@/contexts/SessionContext';
+import type { SessionData } from '@/types/session';
 import { createMockSessionOrganization } from '@vitest-harness/mocks/testTypes';
 import { useSession } from './useSession';
 

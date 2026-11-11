@@ -36,7 +36,7 @@ const mockUseTeam = vi.fn<(...args: unknown[]) => { data: typeof mockTeam | null
 );
 
 vi.mock('@/features/teams/hooks/useTeamManagement', () => ({
-  useTeam: (...args: unknown[]) => mockUseTeam(...args),
+  useTeamById: (...args: unknown[]) => mockUseTeam(...args),
   useTeamMutations: vi.fn(() => ({ deleteTeam: { mutateAsync: vi.fn() } })),
 }));
 
