@@ -79,11 +79,9 @@ describe('MobileWorkOrderCard', () => {
     it('navigates to work order details when clicked', () => {
       render(<MobileWorkOrderCard workOrder={mockWorkOrder} />);
       
-      const card = screen.getByText('Test Work Order').closest('div');
-      if (card) {
-        fireEvent.click(card);
-        expect(mockNavigate).toHaveBeenCalled();
-      }
+      fireEvent.click(screen.getByText('Test Work Order'));
+
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard/work-orders/wo-1');
     });
   });
 });

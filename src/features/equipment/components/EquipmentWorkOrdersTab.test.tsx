@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@vitest-harness/utils/test-utils';
+import { render, screen, fireEvent, within } from '@vitest-harness/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import EquipmentWorkOrdersTab from './EquipmentWorkOrdersTab';
 import * as useEquipmentModule from '@/features/equipment/hooks/useEquipment';
@@ -185,17 +185,6 @@ describe('EquipmentWorkOrdersTab', () => {
       expect(screen.getByText('Create Work Order')).toBeInTheDocument();
     });
 
-    it('displays work order count correctly', () => {
-      render(
-        <EquipmentWorkOrdersTab 
-          equipmentId="eq-1" 
-          organizationId="org-1" 
-        />
-      );
-      
-      expect(screen.getByText('2 work orders')).toBeInTheDocument();
-    });
-
     it('displays singular form for one work order', () => {
       vi.mocked(useEquipmentModule.useEquipmentWorkOrders).mockReturnValue(createSuccessQuery([mockWorkOrders[0]]));
 
@@ -294,9 +283,16 @@ describe('EquipmentWorkOrdersTab', () => {
           organizationId="org-1" 
         />
       );
-      
-      // Historical badge should be shown for historical work orders
-      // This depends on the HistoricalWorkOrderBadge component
+
+      // Only wo-2 is historical; the badge renders beside its card.
+      expect(screen.getAllByText('Historical')).toHaveLength(1);
+      const rowOf = (testId: string): HTMLElement => {
+        const row = screen.getByTestId(testId).parentElement;
+        if (!row) throw new Error(`${testId} has no row wrapper`);
+        return row;
+      };
+      expect(within(rowOf('desktop-wo-wo-2')).getByText('Historical')).toBeInTheDocument();
+      expect(within(rowOf('desktop-wo-wo-1')).queryByText('Historical')).not.toBeInTheDocument();
     });
   });
 

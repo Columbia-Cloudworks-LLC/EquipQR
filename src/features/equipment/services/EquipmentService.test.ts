@@ -73,9 +73,10 @@ describe('EquipmentService', () => {
       (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
       const result = await EquipmentService.getAll(organizationId, { status: 'active' });
-      
+
       expect(result.success).toBe(true);
-      expect(result.data?.every(eq => eq.status === 'active')).toBe(true);
+      expect(mockQuery.eq).toHaveBeenCalledWith('organization_id', organizationId);
+      expect(mockQuery.eq).toHaveBeenCalledWith('status', 'active');
     });
 
     it('should filter equipment by location', async () => {
@@ -94,9 +95,9 @@ describe('EquipmentService', () => {
       (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
       const result = await EquipmentService.getAll(organizationId, { location });
-      
+
       expect(result.success).toBe(true);
-      expect(result.data?.every(eq => eq.location === location)).toBe(true);
+      expect(mockQuery.ilike).toHaveBeenCalledWith('location', '%Warehouse A%');
     });
 
     it('should apply pagination correctly', async () => {
@@ -113,10 +114,11 @@ describe('EquipmentService', () => {
 
       (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
 
-      const result = await EquipmentService.getAll(organizationId, {}, { page: 1, limit: 2 });
-      
+      const result = await EquipmentService.getAll(organizationId, {}, { page: 2, limit: 2 });
+
       expect(result.success).toBe(true);
-      expect(result.data?.length).toBeLessThanOrEqual(2);
+      // Page 2 of 2-per-page is rows 2..3 (inclusive, zero-based).
+      expect(mockQuery.range).toHaveBeenCalledWith(2, 3);
     });
   });
 

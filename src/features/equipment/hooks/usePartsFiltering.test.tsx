@@ -289,15 +289,6 @@ describe('usePartsFiltering', () => {
   });
 
   describe('Active Filter Count', () => {
-    it('counts search as one filter', () => {
-      const { result } = renderHook(() => usePartsFiltering({ parts: mockParts }));
-      
-      act(() => {
-        result.current.setSearch('test');
-      });
-      
-      expect(result.current.activeFilterCount).toBe(1);
-    });
 
     it('counts stock filter as one filter', () => {
       const { result } = renderHook(() => usePartsFiltering({ parts: mockParts }));

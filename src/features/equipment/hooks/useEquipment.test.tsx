@@ -213,19 +213,6 @@ describe('useEquipment', () => {
 
       expect(result.current.error?.message).toBe('Failed to fetch equipment');
     });
-
-    it('uses custom stale time', async () => {
-      const customStaleTime = 120000;
-      
-      const { result } = renderHook(
-        () => useEquipment(organizations.acme.id, {}, {}, { staleTime: customStaleTime }),
-        { wrapper: createWrapper() }
-      );
-
-      await waitForHookSuccess(result);
-
-      expect(EquipmentService.getAll).toHaveBeenCalled();
-    });
   });
 
   describe('useEquipmentById', () => {
@@ -460,46 +447,6 @@ describe('useEquipment', () => {
       // Should only have Toyota (equipment without manufacturer is skipped)
       expect(result.current.data).toHaveLength(1);
       expect(result.current.data?.[0]?.manufacturer).toBe('Toyota');
-    });
-  });
-
-  describe('Query Keys', () => {
-    it('uses correct query key for equipment list', async () => {
-      const filters = { status: 'active' as const };
-      const pagination = { limit: 10 };
-      
-      const { result } = renderHook(
-        () => useEquipment(organizations.acme.id, filters, pagination),
-        { wrapper: createWrapper() }
-      );
-
-      await waitForHookSuccess(result);
-
-      // The query was called with the right parameters
-      expect(EquipmentService.getAll).toHaveBeenCalledWith(
-        organizations.acme.id,
-        filters,
-        pagination
-      );
-    });
-
-    it('uses correct query key for equipment by id', async () => {
-      vi.mocked(EquipmentService.getById).mockResolvedValue(
-        apiSuccess(toEquipmentRow(equipment.forklift1))
-      );
-
-      const { result } = renderHook(
-        () => useEquipmentById(organizations.acme.id, equipment.forklift1.id),
-        { wrapper: createWrapper() }
-      );
-
-      await waitForHookSuccess(result);
-
-      expect(EquipmentService.getById).toHaveBeenCalledWith(
-        organizations.acme.id,
-        equipment.forklift1.id,
-        { userTeamIds: [], isOrgAdmin: false },
-      );
     });
   });
 

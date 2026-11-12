@@ -257,28 +257,6 @@ describe('EquipmentFilters', () => {
     });
   });
 
-  describe('Props Passing', () => {
-    it('passes all props to desktop filters', async () => {
-      const { useIsMobile } = await import('@/hooks/use-mobile');
-      vi.mocked(useIsMobile).mockReturnValue(false);
-
-      render(<EquipmentFiltersComponent {...defaultProps} />);
-      
-      // Desktop filters should receive the props
-      expect(screen.getByTestId('desktop-filters')).toBeInTheDocument();
-    });
-
-    it('passes all props to mobile filters', async () => {
-      const { useIsMobile } = await import('@/hooks/use-mobile');
-      vi.mocked(useIsMobile).mockReturnValue(true);
-
-      render(<EquipmentFiltersComponent {...defaultProps} />);
-      
-      // Mobile filters should receive the props
-      expect(screen.getByTestId('mobile-filters')).toBeInTheDocument();
-    });
-  });
-
   describe('Edge Cases', () => {
     it('handles all filters active (team excluded — owned by global TopBar)', async () => {
       // `filters.team` is excluded from the page-local count by design (see the
