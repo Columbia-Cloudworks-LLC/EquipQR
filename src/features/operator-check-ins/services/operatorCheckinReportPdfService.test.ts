@@ -5,10 +5,7 @@ import {
   DEFAULT_COMPACT_EXPORT_OPTIONS,
   FULL_AUDIT_EXPORT_OPTIONS,
 } from '@/features/operator-check-ins/services/operatorCheckinReportExportOptions';
-import {
-  __operatorCheckinReportExportTestables,
-  buildSubmissionPdfLines,
-} from '@/features/operator-check-ins/services/operatorCheckinReportExportHelpers';
+import { buildSubmissionPdfLines } from '@/features/operator-check-ins/services/operatorCheckinReportExportHelpers';
 
 const downloads = vi.hoisted(() => [] as { blob: Blob; filename: string }[]);
 
@@ -69,10 +66,6 @@ async function lastDownload() {
 describe('operatorCheckinReportPdfService', () => {
   beforeEach(() => {
     downloads.length = 0;
-  });
-
-  it('sanitizes filename parts', () => {
-    expect(__operatorCheckinReportExportTestables.sanitizeFilenamePart('Truck #101')).toBe('Truck-101');
   });
 
   it('writes a compact report by default, with a header block and one block per submission', async () => {

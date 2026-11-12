@@ -640,5 +640,9 @@ describe('InventoryItemDetail - No Item Found', () => {
 
     renderDetail();
     expect(screen.queryByRole('heading', { name: 'Test Part' })).not.toBeInTheDocument();
+    expect(screen.getByText("Inventory item not found or you don't have access.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /back to inventory/i }));
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/inventory');
   });
 });

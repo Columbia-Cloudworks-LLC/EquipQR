@@ -260,6 +260,7 @@ describe('partsManagersService', () => {
       ).resolves.not.toThrow();
 
       expect(supabase.from).toHaveBeenCalledWith('parts_managers');
+      expect(mockChain.delete).toHaveBeenCalled();
     });
 
     it('throws error on database failure', async () => {
@@ -275,107 +276,6 @@ describe('partsManagersService', () => {
       await expect(
         removePartsManager(organizations.acme.id, personas.technician.id)
       ).rejects.toThrow('Delete failed');
-    });
-  });
-});
-
-describe('Parts Manager Permission Logic', () => {
-  /**
-   * User Story: As an Admin, I want to assign parts managers so that
-   * specific team members can manage inventory without full admin access.
-   */
-  describe('User Story: Admin assigns parts managers', () => {
-    it('admin can assign any organization member as a parts manager', async () => {
-      const mockChain = {
-        insert: vi.fn().mockReturnThis(),
-        select: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: {
-            organization_id: organizations.acme.id,
-            user_id: personas.technician.id,
-            assigned_by: personas.admin.id,
-            assigned_at: new Date().toISOString(),
-          },
-          error: null,
-        }),
-      };
-
-      vi.mocked(supabase.from).mockReturnValue(mockChain as never);
-
-      const result = await addPartsManager(
-        organizations.acme.id,
-        personas.technician.id,
-        personas.admin.id
-      );
-
-      expect(result.user_id).toBe(personas.technician.id);
-      expect(result.assigned_by).toBe(personas.admin.id);
-    });
-  });
-
-  /**
-   * User Story: As a Parts Manager, I want to see that I have been granted
-   * inventory management permissions.
-   */
-  describe('User Story: Parts manager verifies their status', () => {
-    it('parts manager can confirm their elevated permissions', async () => {
-      const mockChain = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({
-          data: { user_id: personas.teamManager.id },
-          error: null,
-        }),
-      };
-
-      vi.mocked(supabase.from).mockReturnValue(mockChain as never);
-
-      const isManager = await isUserPartsManager(
-        organizations.acme.id,
-        personas.teamManager.id
-      );
-
-      expect(isManager).toBe(true);
-    });
-
-    it('regular member is not a parts manager', async () => {
-      const mockChain = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        maybeSingle: vi.fn().mockResolvedValue({
-          data: null,
-          error: null,
-        }),
-      };
-
-      vi.mocked(supabase.from).mockReturnValue(mockChain as never);
-
-      const isManager = await isUserPartsManager(
-        organizations.acme.id,
-        personas.viewer.id
-      );
-
-      expect(isManager).toBe(false);
-    });
-  });
-
-  /**
-   * User Story: As an Admin, I want to remove a parts manager when they
-   * no longer need inventory management access.
-   */
-  describe('User Story: Admin removes parts manager', () => {
-    it('admin can revoke parts manager status', async () => {
-      const mockChain = {
-        delete: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        then: (cb: (val: { error: null }) => void) => Promise.resolve({ error: null }).then(cb),
-      };
-
-      vi.mocked(supabase.from).mockReturnValue(mockChain as never);
-
-      await removePartsManager(organizations.acme.id, personas.technician.id);
-
-      expect(mockChain.delete).toHaveBeenCalled();
     });
   });
 });
