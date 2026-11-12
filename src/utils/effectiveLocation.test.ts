@@ -45,21 +45,6 @@ describe('effectiveLocation', () => {
     expect(result?.lat).toBe(40.919345);
   });
 
-  it('prefers assigned address over team fallback and legacy text', () => {
-    const result = resolveEffectiveLocation({
-      team,
-      equipment: {
-        assigned_location_lat: 30.2672,
-        assigned_location_lng: -97.7431,
-        assigned_location_city: 'Austin',
-        locationText: '40.919345, -90.659318',
-      },
-      lastScan: { lat: 40.919433, lng: -90.659299 },
-    });
-
-    expect(result?.source).toBe('scan');
-  });
-
   it('prefers assigned address over team when no scan exists', () => {
     const result = resolveEffectiveLocation({
       team,

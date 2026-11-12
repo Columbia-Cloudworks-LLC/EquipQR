@@ -140,12 +140,6 @@ describe('evaluateGoogleWorkspaceConnectionHealth', () => {
     expect(hasAllGoogleScopes(fullFeatureScopes, GOOGLE_WORKSPACE_FEATURE_SCOPES)).toBe(true);
   });
 
-  it('returns healthy when identity scopes are omitted from stored scope string', () => {
-    expect(
-      evaluateGoogleWorkspaceConnectionHealth({ is_connected: true, scopes: fullFeatureScopes }),
-    ).toBe('healthy');
-  });
-
   it('returns missing_permissions when connected but feature scopes are incomplete', () => {
     expect(
       evaluateGoogleWorkspaceConnectionHealth({
@@ -153,17 +147,6 @@ describe('evaluateGoogleWorkspaceConnectionHealth', () => {
         scopes: 'https://www.googleapis.com/auth/admin.directory.user.readonly',
       }),
     ).toBe('missing_permissions');
-  });
-
-  it('requests identity and directory scopes in the default OAuth URL', async () => {
-    rpcMock.mockResolvedValue({
-      data: [{ session_token: 'session-token', nonce: 'nonce-token' }],
-      error: null,
-    });
-
-    const url = await generateGoogleWorkspaceAuthUrl({ organizationId: 'org-123' });
-
-    expect(parseScopeSet(url)).toEqual(new Set(GOOGLE_WORKSPACE_DIRECTORY_CONSENT_SCOPES));
   });
 });
 

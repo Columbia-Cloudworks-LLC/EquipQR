@@ -103,6 +103,12 @@ describe('pendingSignupOrganization', () => {
 
   it('renames a brand-new default personal organization', async () => {
     setPendingSignupOrganizationName('Fleet Co');
+    const updateEq = vi.fn(() => ({
+      select: () => ({
+        maybeSingle: () => Promise.resolve({ data: { id: 'org-1' }, error: null }),
+      }),
+    }));
+    const updateFn = vi.fn((_payload: { name: string; updated_at: string }) => ({ eq: updateEq }));
     from.mockImplementation((table: string) => {
       if (table === 'personal_organizations') {
         return {
@@ -127,21 +133,15 @@ describe('pendingSignupOrganization', () => {
               }),
           }),
         }),
-        update: (payload: { name: string }) => {
-          expect(payload.name).toBe('Fleet Co');
-          return {
-            eq: () => ({
-              select: () => ({
-                maybeSingle: () => Promise.resolve({ data: { id: 'org-1' }, error: null }),
-              }),
-            }),
-          };
-        },
+        update: updateFn,
       };
     });
 
     await applyPendingSignupOrganizationName(googleNewUser());
 
+    expect(updateFn).toHaveBeenCalledTimes(1);
+    expect(updateFn).toHaveBeenCalledWith({ name: 'Fleet Co', updated_at: expect.any(String) });
+    expect(updateEq).toHaveBeenCalledWith('id', 'org-1');
     expect(storedPendingName()).toBeNull();
   });
 

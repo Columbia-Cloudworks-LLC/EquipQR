@@ -164,13 +164,6 @@ describe('errorHandling', () => {
       expect(toast.warning).toHaveBeenCalled();
     });
 
-    it('should show info toast for info severity', async () => {
-      // Create a custom error that would be classified as info (not in patterns, but testing structure)
-      const error = showErrorToast(new Error('Info message'), 'Operation');
-      // Since it doesn't match patterns, it will be 'unknown' which defaults to error severity
-      expect(error.category).toBe('unknown');
-    });
-
     it('should log error with logger', async () => {
       const { logger } = await import('@/utils/logger');
       showErrorToast(new Error('Test error'));

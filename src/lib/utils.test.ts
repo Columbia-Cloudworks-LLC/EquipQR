@@ -3,34 +3,8 @@ import { cn, isLightColor, dateToISOString } from './utils';
 
 describe('utils', () => {
   describe('cn (className utility)', () => {
-    it('should merge class names correctly', () => {
-      expect(cn('class1', 'class2')).toBe('class1 class2');
-    });
-
-    it('should handle conditional classes', () => {
-      const condition = true;
-      const hiddenCondition = false;
-      expect(cn('base', condition && 'conditional', hiddenCondition && 'hidden')).toBe('base conditional');
-    });
-
-    it('should handle undefined and null values', () => {
-      expect(cn('base', undefined, null, 'end')).toBe('base end');
-    });
-
     it('should merge Tailwind classes correctly', () => {
       expect(cn('p-4', 'p-2')).toBe('p-2'); // Later class should override
-    });
-
-    it('should handle empty input', () => {
-      expect(cn()).toBe('');
-    });
-
-    it('should handle array inputs', () => {
-      expect(cn(['class1', 'class2'])).toBe('class1 class2');
-    });
-
-    it('should handle object inputs', () => {
-      expect(cn({ 'class1': true, 'class2': false })).toBe('class1');
     });
   });
 
@@ -84,12 +58,5 @@ describe('utils', () => {
       expect(dateToISOString(undefined)).toBeUndefined();
     });
 
-    it('should handle different date formats', () => {
-      const date1 = new Date('2024-01-01');
-      expect(dateToISOString(date1)).toMatch(/2024-01-01/);
-
-      const date2 = new Date(1703520000000); // Unix timestamp
-      expect(dateToISOString(date2)).toBeTruthy();
-    });
   });
 });

@@ -33,12 +33,26 @@ describe('QuickBooks Auth Utilities', () => {
   // isQuickBooksConfigured
   // -----------------------------------------------------------------------
   describe('isQuickBooksConfigured', () => {
-    it('should return true when both env vars are set', () => {
-      // Note: import.meta.env is set via vitest/vite env. If VITE_INTUIT_CLIENT_ID and
-      // VITE_SUPABASE_URL are not defined, this will return false.
-      // The actual result depends on the test environment setup.
-      const result = isQuickBooksConfigured();
-      expect(typeof result).toBe('boolean');
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('returns true when both env vars are set', () => {
+      vi.stubEnv('VITE_INTUIT_CLIENT_ID', 'client-id');
+      vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
+      expect(isQuickBooksConfigured()).toBe(true);
+    });
+
+    it('returns false when the Intuit client id is missing', () => {
+      vi.stubEnv('VITE_INTUIT_CLIENT_ID', '');
+      vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
+      expect(isQuickBooksConfigured()).toBe(false);
+    });
+
+    it('returns false when the Supabase URL is missing', () => {
+      vi.stubEnv('VITE_INTUIT_CLIENT_ID', 'client-id');
+      vi.stubEnv('VITE_SUPABASE_URL', '');
+      expect(isQuickBooksConfigured()).toBe(false);
     });
   });
 

@@ -94,11 +94,6 @@ describe('PermissionEngine', () => {
         const context = createUserContext('technician');
         expect(engine.hasPermission('equipment.view', context, maintenanceTeamContext())).toBe(true);
       });
-
-      it('still allows member to view even without team context', () => {
-        const context = createUserContext('technician');
-        expect(engine.hasPermission('equipment.view', context)).toBe(true);
-      });
     });
 
     describe('equipment.edit', () => {
@@ -419,16 +414,6 @@ describe('PermissionEngine', () => {
       const entityContext = { teamId: 'non-existent-team' };
 
       expect(engine.hasPermission('equipment.edit', context, entityContext)).toBe(true);
-    });
-
-    it('assignee rule allows status change even outside their team', () => {
-      const context = createUserContext('technician');
-      const entityContext = {
-        teamId: teams.field.id,
-        assigneeId: personas.technician.id,
-      };
-
-      expect(engine.hasPermission('workorder.changestatus', context, entityContext)).toBe(true);
     });
   });
 

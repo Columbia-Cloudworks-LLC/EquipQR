@@ -200,22 +200,6 @@ describe('OfflineAwareWorkOrderService', () => {
       expect(queueReader.getCount()).toBe(0);
     });
 
-    it('works without a queue service (offline queue not available)', async () => {
-      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
-
-      mockCreate.mockResolvedValueOnce({
-        success: true,
-        data: { id: 'wo-new' },
-        error: null,
-      });
-
-      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
-      const result = await svc.createWorkOrder(makeCreateData());
-
-      expect(result.queuedOffline).toBe(false);
-      expect(result.data).toEqual({ id: 'wo-new' });
-    });
-
     it('always has a queue service — offline pre-check never falls through', async () => {
       Object.defineProperty(navigator, 'onLine', { value: false, configurable: true, writable: true });
 

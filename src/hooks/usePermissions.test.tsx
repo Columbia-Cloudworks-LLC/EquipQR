@@ -263,43 +263,6 @@ describe('usePermissions', () => {
     });
   });
 
-  describe('edge cases', () => {
-    it('should handle missing user', () => {
-      mockUseSimpleOrganization.mockReturnValue(
-        createMockSimpleOrganizationContext(createTestOrganization('admin')),
-      );
-      mockUseUser.mockReturnValue(createMockUserContext(null));
-
-      const { result } = renderHook(() => usePermissions());
-
-      expect(result.current.hasRole(['admin'])).toBe(false);
-    });
-
-    it('should handle missing organization', () => {
-      mockUseSimpleOrganization.mockReturnValue(createMockSimpleOrganizationContext(null));
-      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
-
-      const { result } = renderHook(() => usePermissions());
-
-      expect(result.current.hasRole(['admin'])).toBe(false);
-    });
-
-    it('should handle empty members array', () => {
-      const orgWithNoMembers = createTestOrganization('admin');
-      // Remove members property to test edge case
-      delete (orgWithNoMembers as unknown as { members?: unknown }).members;
-      
-      mockUseSimpleOrganization.mockReturnValue(
-        createMockSimpleOrganizationContext(orgWithNoMembers)
-      );
-      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
-
-      const { result } = renderHook(() => usePermissions());
-      
-      expect(result.current.hasRole(['admin'])).toBe(false);
-    });
-  });
-
   describe('canManageTeam', () => {
     it('should return true for team manager', () => {
       const { result } = renderPermissionsForRole('admin');

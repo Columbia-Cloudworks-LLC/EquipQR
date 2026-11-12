@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { BaseService, type ApiResponse, type PaginationParams, type FilterParams } from './BaseService';
+import { BaseService, type ApiResponse } from './BaseService';
 
 // Test implementation of BaseService
 class TestService extends BaseService {
@@ -172,44 +172,6 @@ describe('BaseService', () => {
         error: null,
         success: true,
       });
-    });
-  });
-
-  describe('type definitions', () => {
-    it('should have correct ApiResponse type', () => {
-      const successResponse: ApiResponse<string> = {
-        data: 'test',
-        error: null,
-        success: true,
-      };
-
-      const errorResponse: ApiResponse<null> = {
-        data: null,
-        error: 'error message',
-        success: false,
-      };
-
-      expect(successResponse.success).toBe(true);
-      expect(errorResponse.success).toBe(false);
-    });
-
-    it('should have correct PaginationParams type', () => {
-      const paginationParams: PaginationParams = {
-        page: 1,
-        limit: 25,
-        sortBy: 'created_at',
-        sortOrder: 'desc',
-      };
-
-      expect(paginationParams.page).toBe(1);
-      expect(paginationParams.sortOrder).toBe('desc');
-    });
-
-    it('should allow optional pagination params', () => {
-      const minimalParams: PaginationParams = {};
-      
-      expect(minimalParams.page).toBeUndefined();
-      expect(minimalParams.limit).toBeUndefined();
     });
   });
 });

@@ -19,6 +19,7 @@ import {
   createMockOrganization,
   createMockSimpleOrganizationContext,
 } from '@vitest-harness/mocks/testTypes';
+import { toast } from 'sonner';
 
 // Mock services and dependencies
 vi.mock('@/contexts/OrganizationContext');
@@ -104,7 +105,6 @@ describe('usePMTemplates', () => {
     const { useOrganization } = await import('@/contexts/OrganizationContext');
     const { useAuth } = await import('@/hooks/useAuth');
     const { pmChecklistTemplatesService, templateToSummary } = await import('@/features/pm-templates/services/pmChecklistTemplatesService');
-    const { toast } = await import('sonner');
     
     vi.mocked(useOrganization).mockReturnValue(
       createMockSimpleOrganizationContext(
@@ -249,19 +249,15 @@ describe('usePMTemplates', () => {
 
       const { result } = renderHook(() => useCreatePMTemplate(), { wrapper });
 
-      try {
-        await result.current.mutateAsync({
-          name: 'Test',
-          template_data: []
-        });
-        expect.fail('Should have thrown an error');
-      } catch (error) {
-        // Mutation should reject and set error state
-        expect(error).toBeDefined();
-        await waitFor(() => {
-          expect(result.current.isError).toBe(true);
-        });
-      }
+      await act(async () => {
+        await expect(result.current.mutateAsync({ name: 'Test', template_data: [] })).rejects.toThrow('insufficient privileges');
+      });
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Custom PM templates require user licenses. Please upgrade your plan.');
+      });
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(toast.success).not.toHaveBeenCalled();
     });
 
     it('handles general creation error', async () => {
@@ -272,19 +268,15 @@ describe('usePMTemplates', () => {
 
       const { result } = renderHook(() => useCreatePMTemplate(), { wrapper });
 
-      try {
-        await result.current.mutateAsync({
-          name: 'Test',
-          template_data: []
-        });
-        expect.fail('Should have thrown an error');
-      } catch (error) {
-        // Mutation should reject and set error state
-        expect(error).toBeDefined();
-        await waitFor(() => {
-          expect(result.current.isError).toBe(true);
-        });
-      }
+      await act(async () => {
+        await expect(result.current.mutateAsync({ name: 'Test', template_data: [] })).rejects.toThrow('Network error');
+      });
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Failed to create template');
+      });
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(toast.success).not.toHaveBeenCalled();
     });
 
     it('throws error when organization or user not found', async () => {
@@ -329,33 +321,33 @@ describe('usePMTemplates', () => {
 
       const { result } = renderHook(() => useUpdatePMTemplate(), { wrapper });
 
-      try {
-        await result.current.mutateAsync({
-          templateId: 'template-1',
-          updates: { name: 'Test' }
-        });
-        expect.fail('Should have thrown an error');
-      } catch (error) {
-        // Mutation should reject and set error state
-        expect(error).toBeDefined();
-        await waitFor(() => {
-          expect(result.current.isError).toBe(true);
-        });
-      }
+      await act(async () => {
+        await expect(result.current.mutateAsync({ templateId: 'template-1', updates: { name: 'Test' } })).rejects.toThrow('insufficient privileges');
+      });
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Custom PM templates require user licenses. Please upgrade your plan.');
+      });
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(toast.success).not.toHaveBeenCalled();
     });
   });
 
   describe('useDeletePMTemplate', () => {
     it('deletes template successfully', async () => {
+      const { pmChecklistTemplatesService } = await import('@/features/pm-templates/services/pmChecklistTemplatesService');
       const { result } = renderHook(() => useDeletePMTemplate(), { wrapper });
 
       await act(async () => {
         await result.current.mutateAsync('template-1');
       });
 
+      expect(pmChecklistTemplatesService.deleteTemplate).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(pmChecklistTemplatesService.deleteTemplate).mock.calls[0][0]).toBe('template-1');
       await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
+        expect(toast.success).toHaveBeenCalledWith('Template deleted successfully');
       });
+      expect(toast.error).not.toHaveBeenCalled();
     });
 
     it('handles protected template deletion error', async () => {
@@ -366,16 +358,15 @@ describe('usePMTemplates', () => {
 
       const { result } = renderHook(() => useDeletePMTemplate(), { wrapper });
 
-      try {
-        await result.current.mutateAsync('template-1');
-        expect.fail('Should have thrown an error');
-      } catch (error) {
-        // Mutation should reject and set error state
-        expect(error).toBeDefined();
-        await waitFor(() => {
-          expect(result.current.isError).toBe(true);
-        });
-      }
+      await act(async () => {
+        await expect(result.current.mutateAsync('template-1')).rejects.toThrow('Cannot delete protected template');
+      });
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Cannot delete protected template');
+      });
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(toast.success).not.toHaveBeenCalled();
     });
   });
 
@@ -403,18 +394,15 @@ describe('usePMTemplates', () => {
 
       const { result } = renderHook(() => useClonePMTemplate(), { wrapper });
 
-      try {
-        await result.current.mutateAsync({
-          sourceId: 'template-1'
-        });
-        expect.fail('Should have thrown an error');
-      } catch (error) {
-        // Mutation should reject and set error state
-        expect(error).toBeDefined();
-        await waitFor(() => {
-          expect(result.current.isError).toBe(true);
-        });
-      }
+      await act(async () => {
+        await expect(result.current.mutateAsync({ sourceId: 'template-1' })).rejects.toThrow('insufficient privileges');
+      });
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith('Custom PM templates require user licenses. Please upgrade your plan.');
+      });
+      expect(toast.error).toHaveBeenCalledTimes(1);
+      expect(toast.success).not.toHaveBeenCalled();
     });
 
     it('throws error when organization not found', async () => {

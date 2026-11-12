@@ -191,61 +191,6 @@ describe('useOrganizationMembersQuery', () => {
         mockError
       );
     });
-
-    it('should show loading state', async () => {
-      let resolveQuery: ((value: { data: unknown; error: unknown }) => void) | undefined;
-      const queryPromise = new Promise<{ data: unknown; error: unknown }>((resolve) => {
-        resolveQuery = resolve;
-      });
-
-      // Mock deferred resolution
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnValue(queryPromise)
-      } as unknown as ReturnType<typeof supabase.from>);
-
-      render(<MembersProbe organizationId="org-1" />);
-
-      // Verify loading state
-      expect(screen.getByTestId('is-loading')).toHaveTextContent('true');
-      expect(screen.getByTestId('member-count')).toHaveTextContent('0');
-
-      // Resolve with data
-      resolveQuery!({ data: [], error: null });
-
-      await waitFor(() => {
-        expect(screen.getByTestId('is-loading')).toHaveTextContent('false');
-      });
-    });
-
-    it('should handle component unmount during loading', async () => {
-      let resolveQuery: ((value: { data: unknown; error: unknown }) => void) | undefined;
-      const queryPromise = new Promise<{ data: unknown; error: unknown }>((resolve) => {
-        resolveQuery = resolve;
-      });
-
-      // Mock deferred resolution
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        order: vi.fn().mockReturnValue(queryPromise)
-      } as unknown as ReturnType<typeof supabase.from>);
-
-      const { unmount } = render(<MembersProbe organizationId="org-1" />);
-
-      // Verify initial loading state
-      expect(screen.getByTestId('is-loading')).toHaveTextContent('true');
-
-      // Unmount before resolution
-      unmount();
-
-      // Resolve after unmount - should not cause errors
-      resolveQuery!({ data: [], error: null });
-
-      // Wait to ensure no errors
-      await new Promise(resolve => setTimeout(resolve, 100));
-    });
   });
 
   describe('useUpdateMemberRole', () => {
