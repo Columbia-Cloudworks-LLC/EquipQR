@@ -42,6 +42,18 @@ export const WorkOrderDesktopMetadataStrip: React.FC<WorkOrderDesktopMetadataStr
   const estimatedHoursValue = workOrder.estimated_hours;
   const completedDateValue = workOrder.completed_date;
 
+  const assigneeLabel = assignment.id ? (
+    <>
+      <User className="h-3.5 w-3.5 shrink-0" />
+      <span className="truncate max-w-40">{assignment.name}</span>
+    </>
+  ) : (
+    <>
+      <UserX className="h-3.5 w-3.5 shrink-0" />
+      Unassigned
+    </>
+  );
+
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground mt-3 pt-3 border-t">
       <span className="inline-flex items-center gap-1">
@@ -72,19 +84,16 @@ export const WorkOrderDesktopMetadataStrip: React.FC<WorkOrderDesktopMetadataStr
       )}
 
       <WorkOrderAssignmentHover workOrder={assignmentContext} disabled={!canEditAssignment}>
-        <span className="inline-flex items-center gap-1 cursor-pointer hover:text-foreground rounded px-1 -mx-1 transition-colors">
-          {assignment.id ? (
-            <>
-              <User className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate max-w-40">{assignment.name}</span>
-            </>
-          ) : (
-            <>
-              <UserX className="h-3.5 w-3.5 shrink-0" />
-              Unassigned
-            </>
-          )}
-        </span>
+        {canEditAssignment ? (
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 cursor-pointer hover:text-foreground rounded px-1 -mx-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {assigneeLabel}
+          </button>
+        ) : (
+          <span className="inline-flex items-center gap-1">{assigneeLabel}</span>
+        )}
       </WorkOrderAssignmentHover>
 
       {workOrder.effectiveLocation && (
