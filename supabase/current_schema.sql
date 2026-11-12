@@ -19582,11 +19582,6 @@ ALTER TABLE ONLY "public"."operator_checkin_token_secrets"
 
 
 ALTER TABLE ONLY "public"."operator_checklist_templates"
-    ADD CONSTRAINT "operator_checklist_templates_id_organization_id_key" UNIQUE ("id", "organization_id");
-
-
-
-ALTER TABLE ONLY "public"."operator_checklist_templates"
     ADD CONSTRAINT "operator_checklist_templates_pkey" PRIMARY KEY ("id");
 
 
@@ -22447,15 +22442,13 @@ CREATE POLICY "dsr_requests_select" ON "public"."dsr_requests" FOR SELECT TO "au
 ALTER TABLE "public"."equipment" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "equipment_access_consolidated" ON "public"."equipment" USING (("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
+CREATE POLICY "equipment_delete" ON "public"."equipment" FOR DELETE USING (("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR (EXISTS ( SELECT 1
+   FROM "public"."team_members" "tm"
+  WHERE (("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."team_id" = "equipment"."team_id") AND ("tm"."role" = 'manager'::"public"."team_member_role"))))));
 
 
 
-CREATE POLICY "equipment_admin_access" ON "public"."equipment" USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
-
-
-
-COMMENT ON POLICY "equipment_admin_access" ON "public"."equipment" IS 'Consolidated admin policy for all equipment operations. Uses cached auth.uid() for performance.';
+CREATE POLICY "equipment_insert" ON "public"."equipment" FOR INSERT WITH CHECK (("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
@@ -22470,14 +22463,6 @@ CREATE POLICY "equipment_location_history_select" ON "public"."equipment_locatio
 
 
 CREATE POLICY "equipment_location_history_service_insert" ON "public"."equipment_location_history" FOR INSERT WITH CHECK (false);
-
-
-
-CREATE POLICY "equipment_member_select" ON "public"."equipment" FOR SELECT USING ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
-
-
-
-CREATE POLICY "equipment_member_update" ON "public"."equipment" FOR UPDATE USING ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
@@ -22586,12 +22571,14 @@ CREATE POLICY "equipment_part_compatibility_update" ON "public"."equipment_part_
 
 
 
+CREATE POLICY "equipment_select" ON "public"."equipment" FOR SELECT USING (("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
+
+
+
 ALTER TABLE "public"."equipment_status_history" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "equipment_team_manager_delete" ON "public"."equipment" FOR DELETE USING ((EXISTS ( SELECT 1
-   FROM "public"."team_members" "tm"
-  WHERE (("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."team_id" = "equipment"."team_id") AND ("tm"."role" = 'manager'::"public"."team_member_role")))));
+CREATE POLICY "equipment_update" ON "public"."equipment" FOR UPDATE USING (("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id"))) WITH CHECK (("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
@@ -23226,11 +23213,11 @@ CREATE POLICY "pm_checklist_templates_select_consolidated" ON "public"."pm_check
 ALTER TABLE "public"."pm_interval_policies" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "pm_interval_policies_delete" ON "public"."pm_interval_policies" FOR DELETE USING ("public"."is_org_operational_admin"("auth"."uid"(), "organization_id"));
+CREATE POLICY "pm_interval_policies_delete" ON "public"."pm_interval_policies" FOR DELETE USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
-CREATE POLICY "pm_interval_policies_insert" ON "public"."pm_interval_policies" FOR INSERT WITH CHECK (("public"."is_org_operational_admin"("auth"."uid"(), "organization_id") AND (("equipment_id" IS NULL) OR ("equipment_id" IN ( SELECT "e"."id"
+CREATE POLICY "pm_interval_policies_insert" ON "public"."pm_interval_policies" FOR INSERT WITH CHECK (("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND (("equipment_id" IS NULL) OR ("equipment_id" IN ( SELECT "e"."id"
    FROM "public"."equipment" "e"
   WHERE ("e"."organization_id" = "pm_interval_policies"."organization_id")))) AND (("team_id" IS NULL) OR ("team_id" IN ( SELECT "t"."id"
    FROM "public"."teams" "t"
@@ -23242,11 +23229,11 @@ CREATE POLICY "pm_interval_policies_insert" ON "public"."pm_interval_policies" F
 
 CREATE POLICY "pm_interval_policies_select" ON "public"."pm_interval_policies" FOR SELECT USING (("organization_id" IN ( SELECT "om"."organization_id"
    FROM "public"."organization_members" "om"
-  WHERE (("om"."user_id" = "auth"."uid"()) AND ("om"."status" = 'active'::"text")))));
+  WHERE (("om"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("om"."status" = 'active'::"text")))));
 
 
 
-CREATE POLICY "pm_interval_policies_update" ON "public"."pm_interval_policies" FOR UPDATE USING ("public"."is_org_operational_admin"("auth"."uid"(), "organization_id")) WITH CHECK (("public"."is_org_operational_admin"("auth"."uid"(), "organization_id") AND (("equipment_id" IS NULL) OR ("equipment_id" IN ( SELECT "e"."id"
+CREATE POLICY "pm_interval_policies_update" ON "public"."pm_interval_policies" FOR UPDATE USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")) WITH CHECK (("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND (("equipment_id" IS NULL) OR ("equipment_id" IN ( SELECT "e"."id"
    FROM "public"."equipment" "e"
   WHERE ("e"."organization_id" = "pm_interval_policies"."organization_id")))) AND (("team_id" IS NULL) OR ("team_id" IN ( SELECT "t"."id"
    FROM "public"."teams" "t"
@@ -23635,12 +23622,6 @@ CREATE POLICY "team_members_admin_insert" ON "public"."team_members" FOR INSERT 
 CREATE POLICY "team_members_admin_update" ON "public"."team_members" FOR UPDATE USING ((EXISTS ( SELECT 1
    FROM "public"."teams" "t"
   WHERE (("t"."id" = "team_members"."team_id") AND "public"."is_org_admin"(( SELECT "auth"."uid"() AS "uid"), "t"."organization_id")))));
-
-
-
-CREATE POLICY "team_members_create_equipment" ON "public"."equipment" FOR INSERT WITH CHECK (("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND ("team_id" IS NOT NULL) AND (EXISTS ( SELECT 1
-   FROM "public"."team_members" "tm"
-  WHERE (("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."team_id" = "equipment"."team_id") AND ("tm"."role" = ANY (ARRAY['manager'::"public"."team_member_role", 'technician'::"public"."team_member_role"]))))))));
 
 
 
