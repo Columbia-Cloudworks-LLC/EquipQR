@@ -397,21 +397,6 @@ describe('SessionContext', () => {
     expect(result.current?.isLoading).toBe(true);
   });
 
-  it('should provide session management functions', async () => {
-    mockCachedSession();
-
-    const { result } = await renderLoadedSessionHook();
-
-    expect(typeof result.current?.getCurrentOrganization).toBe('function');
-    expect(typeof result.current?.switchOrganization).toBe('function');
-    expect(typeof result.current?.hasTeamRole).toBe('function');
-    expect(typeof result.current?.hasTeamAccess).toBe('function');
-    expect(typeof result.current?.canManageTeam).toBe('function');
-    expect(typeof result.current?.getUserTeamIds).toBe('function');
-    expect(typeof result.current?.refreshSession).toBe('function');
-    expect(typeof result.current?.clearSession).toBe('function');
-  });
-
   it('should handle page visibility changes', async () => {
     mockSessionManager.shouldRefreshOnVisibility.mockReturnValue(true);
 

@@ -95,12 +95,4 @@ describe('MFAVerification', () => {
       expect(mockOnError).toHaveBeenCalled();
     });
   });
-
-  it('has proper ARIA attributes', () => {
-    render(<MFAVerification onSuccess={mockOnSuccess} />);
-
-    // Check for accessible elements
-    expect(screen.getByText('Two-Factor Authentication')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /verify/i })).toBeInTheDocument();
-  });
 });

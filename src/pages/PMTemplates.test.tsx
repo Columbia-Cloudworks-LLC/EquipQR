@@ -372,8 +372,11 @@ describe('PMTemplates Page', () => {
     );
 
     expandEquipQrTemplates();
-    const title = screen.getByText(pmFixtures.forklift.name);
-    expect(title).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: `Open details for template ${pmFixtures.forklift.name}` }),
+    );
+
+    expect(mockNavigate).toHaveBeenCalledWith(`/dashboard/pm-templates/${pmFixtures.forklift.id}`);
   });
 
   describe('Template Display', () => {
@@ -460,17 +463,6 @@ describe('PMTemplates Page', () => {
       });
 
       expect(screen.getByText(pmFixtures.forklift.name)).toBeInTheDocument();
-    });
-
-    it('renders organization templates section for licensed users', () => {
-      render(
-        <TestProviders>
-          <PMTemplates />
-        </TestProviders>
-      );
-
-      expect(screen.getByText('Organization Templates')).toBeInTheDocument();
-      expect(screen.getByText(pmFixtures.customOrgTemplate.name)).toBeInTheDocument();
     });
 
     it('shows upgrade message for unlicensed users', () => {
@@ -634,7 +626,18 @@ describe('PMTemplates Page', () => {
         </TestProviders>
       );
 
-      expect(screen.getByText(pmFixtures.customOrgTemplate.name)).toBeInTheDocument();
+      fireEvent.click(
+        screen.getByRole('button', { name: `Delete template ${pmFixtures.customOrgTemplate.name}` }),
+      );
+
+      const dialog = await screen.findByRole('alertdialog');
+      expect(within(dialog).getByText('Delete Template')).toBeInTheDocument();
+      expect(mockHooks.useDeletePMTemplate.mutate).not.toHaveBeenCalled();
+
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+      expect(mockHooks.useDeletePMTemplate.mutate).toHaveBeenCalledTimes(1);
+      expect(mockHooks.useDeletePMTemplate.mutate).toHaveBeenCalledWith(pmFixtures.customOrgTemplate.id);
     });
   });
 

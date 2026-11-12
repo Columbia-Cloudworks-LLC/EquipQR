@@ -68,6 +68,7 @@ describe('SmartLanding', () => {
     // The Suspense boundary renders the fallback spinner or the stub — either proves
     // the component returned non-null content. Root must never be empty.
     expect(container.firstChild).not.toBeNull();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it('renders the public landing page when isLoading is false and user is null', async () => {
@@ -81,6 +82,7 @@ describe('SmartLanding', () => {
 
     // Landing stub renders once the Suspense resolves
     expect(await screen.findByTestId('landing-stub')).toBeTruthy();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it('returns null when isLoading is false and user is authenticated', () => {

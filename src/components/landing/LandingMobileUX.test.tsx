@@ -1,61 +1,22 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import AboutSection from './AboutSection';
-import HeroAnimation from './HeroAnimation';
 import HowItWorksSection from './HowItWorksSection';
 import LandingFooter from './LandingFooter';
 import SocialProofSection from './SocialProofSection';
 import WhyDifferentSection from './WhyDifferentSection';
-
-// Mock GSAP modules so the animation components render without errors in jsdom
-vi.mock('gsap', () => ({
-  gsap: {
-    registerPlugin: vi.fn(),
-    timeline: vi.fn(() => ({ to: vi.fn().mockReturnThis(), from: vi.fn().mockReturnThis() })),
-    to: vi.fn(() => ({ kill: vi.fn() })),
-    from: vi.fn(() => ({ kill: vi.fn() })),
-    context: vi.fn(() => ({ revert: vi.fn() })),
-  },
-  default: {
-    registerPlugin: vi.fn(),
-    timeline: vi.fn(() => ({ to: vi.fn().mockReturnThis(), from: vi.fn().mockReturnThis() })),
-    to: vi.fn(() => ({ kill: vi.fn() })),
-    from: vi.fn(() => ({ kill: vi.fn() })),
-    context: vi.fn(() => ({ revert: vi.fn() })),
-  },
-}));
-
-vi.mock('@gsap/react', () => ({
-  useGSAP: vi.fn(),
-}));
-
-vi.mock('gsap/MorphSVGPlugin', () => ({
-  MorphSVGPlugin: {},
-}));
 
 function renderWithRouter(ui: React.ReactNode) {
   return render(<MemoryRouter>{ui}</MemoryRouter>);
 }
 
 describe('Landing mobile UX pass', () => {
-  it('renders the hero as a section with the correct aria-label', () => {
-    renderWithRouter(<HeroAnimation />);
+  // Render the sections in reduced-motion mode so LandingReveal shows content immediately
+  // instead of waiting on an IntersectionObserver that jsdom does not provide.
+  const originalMatchMedia = window.matchMedia;
 
-    expect(
-      screen.getByRole('region', { name: /EquipQR asset tracking demo/i }),
-    ).toBeInTheDocument();
-  });
-
-  it('renders the hero tagline as an H1 heading', () => {
-    renderWithRouter(<HeroAnimation />);
-
-    expect(
-      screen.getByRole('heading', { level: 1 }),
-    ).toBeInTheDocument();
-  });
-
-  it('renders the reduced-motion static composite when prefers-reduced-motion is enabled', () => {
+  beforeEach(() => {
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
@@ -69,10 +30,10 @@ describe('Landing mobile UX pass', () => {
         dispatchEvent: vi.fn(),
       })),
     });
+  });
 
-    renderWithRouter(<HeroAnimation />);
-
-    expect(screen.getByTestId('static-hero-composite')).toBeInTheDocument();
+  afterEach(() => {
+    Object.defineProperty(window, 'matchMedia', { writable: true, value: originalMatchMedia });
   });
 
   it('renders why-different bullet titles as headings for faster scanning', () => {

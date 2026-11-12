@@ -1,8 +1,21 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   buildLiveLocationPlaceData,
   DeviceGeolocationError,
+  requestCurrentDevicePosition,
 } from '@/components/location/liveLocationCapture';
+
+function stubGeolocation(geolocation: Pick<Geolocation, 'getCurrentPosition'> | undefined) {
+  Object.defineProperty(navigator, 'geolocation', { configurable: true, value: geolocation });
+}
+
+function failWith(code: number): Pick<Geolocation, 'getCurrentPosition'> {
+  return {
+    getCurrentPosition: vi.fn((_success: PositionCallback, error?: PositionErrorCallback | null) => {
+      error?.({ code, message: 'browser error', PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 });
+    }),
+  };
+}
 
 describe('liveLocationCapture', () => {
   it('builds PlaceLocationData for device and pinned locations', () => {
@@ -25,9 +38,38 @@ describe('liveLocationCapture', () => {
     );
   });
 
-  it('maps geolocation permission errors to readable messages', () => {
-    const error = new DeviceGeolocationError('permission_denied', 'denied');
-    expect(error.code).toBe('permission_denied');
-    expect(error.message).toBe('denied');
+  describe('requestCurrentDevicePosition error mapping', () => {
+    const originalGeolocation = Object.getOwnPropertyDescriptor(navigator, 'geolocation');
+
+    afterEach(() => {
+      if (originalGeolocation) {
+        Object.defineProperty(navigator, 'geolocation', originalGeolocation);
+      } else {
+        Reflect.deleteProperty(navigator, 'geolocation');
+      }
+    });
+
+    it.each([
+      [1, 'permission_denied', 'Location permission was denied. Allow location access to use this feature.'],
+      [2, 'position_unavailable', 'Your device location is unavailable right now.'],
+      [3, 'timeout', 'Timed out while waiting for your device location.'],
+      [99, 'unknown', 'Unable to read your device location.'],
+    ])('maps browser error code %i to %s with a readable message', async (code, expectedCode, expectedMessage) => {
+      stubGeolocation(failWith(code));
+
+      const error = await requestCurrentDevicePosition().catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(DeviceGeolocationError);
+      expect(error).toMatchObject({ code: expectedCode, message: expectedMessage });
+    });
+
+    it('rejects as unsupported when the browser has no geolocation', async () => {
+      stubGeolocation(undefined);
+
+      await expect(requestCurrentDevicePosition()).rejects.toMatchObject({
+        code: 'unsupported',
+        message: 'Location services are not available in this browser.',
+      });
+    });
   });
 });

@@ -1,6 +1,6 @@
 import '@vitest-harness/utils/mock-use-app-toast';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ensureElementFromPointMock } from '@vitest-harness/utils/test-utils';
 import MFASettings from './MFASettings';
@@ -172,12 +172,15 @@ describe('MFASettings', () => {
 
     await user.click(screen.getByRole('button', { name: /set up two-factor authentication/i }));
 
-    // Should show enrollment component — either loading or the scan step with QR code
-    await waitFor(() => {
-      const hasLoading = screen.queryByText(/setting up authenticator/i);
-      const hasQR = screen.queryByText(/set up two-factor authentication/i);
-      expect(hasLoading || hasQR).toBeTruthy();
-    });
+    // The settings card is replaced by the enrollment flow, which starts TOTP enrollment.
+    expect(await screen.findByText('TESTSECRET')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 2, name: /set up two-factor authentication/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /set up two-factor authentication/i }),
+    ).not.toBeInTheDocument();
+    expect(mockMFAState.enrollTOTP).toHaveBeenCalledTimes(1);
   });
 
   it('shows loading spinner while MFA status is loading', () => {

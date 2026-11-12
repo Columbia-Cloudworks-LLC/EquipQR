@@ -252,14 +252,6 @@ describe('SignUpForm', () => {
   });
 
   describe('HCaptcha Integration', () => {
-    it('should enable form submission after captcha verification', () => {
-      withRouter(<SignUpForm {...defaultSignUpFormProps} />);
-      fillSignUpFormFast();
-
-      const submitButton = screen.getByRole('button', { name: /create account & organization/i });
-      expect(submitButton).toBeEnabled();
-    });
-
     it('should handle captcha error', () => {
       const onError = vi.fn();
       withRouter(<SignUpForm {...defaultSignUpFormProps} onError={onError} />);

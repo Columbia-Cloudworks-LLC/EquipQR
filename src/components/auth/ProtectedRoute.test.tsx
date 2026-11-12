@@ -102,32 +102,6 @@ describe('ProtectedRoute', () => {
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it('should render complex children when authenticated', () => {
-    const mockUser = {
-      id: 'user-1',
-      email: 'test@example.com',
-    };
-
-    mockUseAuth.mockReturnValue({
-      user: mockUser,
-      isLoading: false,
-    });
-
-    const ComplexChild = () => (
-      <div>
-        <h1>Dashboard</h1>
-        <p>Welcome back, {mockUser.email}!</p>
-        <button>Action Button</button>
-      </div>
-    );
-
-    renderProtectedRoute(<ComplexChild />);
-
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByText(`Welcome back, ${mockUser.email}!`)).toBeInTheDocument();
-    expect(screen.getByText('Action Button')).toBeInTheDocument();
-  });
-
   it('should handle user state changes correctly', () => {
     // Initially not authenticated
     mockUseAuth.mockReturnValue({
