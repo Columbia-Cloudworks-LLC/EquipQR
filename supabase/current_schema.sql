@@ -22176,10 +22176,6 @@ ALTER TABLE ONLY "public"."workspace_personal_org_merge_requests"
 
 
 
-CREATE POLICY "Admins can create historical work orders" ON "public"."work_orders" FOR INSERT WITH CHECK ((("is_historical" = true) AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND ("created_by_admin" = ( SELECT "auth"."uid"() AS "uid"))));
-
-
-
 CREATE POLICY "Admins can delete work orders" ON "public"."work_orders" FOR DELETE USING (("organization_id" IN ( SELECT "organization_members"."organization_id"
    FROM "public"."organization_members"
   WHERE (("organization_members"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("organization_members"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"])) AND ("organization_members"."status" = 'active'::"text")))));
@@ -22195,10 +22191,6 @@ CREATE POLICY "Admins can delete working hours history" ON "public"."equipment_w
 CREATE POLICY "Admins can insert work order history" ON "public"."work_order_status_history" FOR INSERT WITH CHECK (((EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
   WHERE (("wo"."id" = "work_order_status_history"."work_order_id") AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))) AND ("changed_by" = ( SELECT "auth"."uid"() AS "uid"))));
-
-
-
-CREATE POLICY "Admins can update historical work orders" ON "public"."work_orders" FOR UPDATE USING ((("is_historical" = true) AND "public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
 
 
 
@@ -22240,10 +22232,6 @@ CREATE POLICY "System can insert audit logs" ON "public"."audit_log" FOR INSERT 
 
 
 
-CREATE POLICY "Users can create work orders in their organization" ON "public"."work_orders" FOR INSERT WITH CHECK ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
-
-
-
 CREATE POLICY "Users can create working hours history for accessible equipment" ON "public"."equipment_working_hours_history" FOR INSERT WITH CHECK ((("updated_by" = ( SELECT "auth"."uid"() AS "uid")) AND (EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
   WHERE (("e"."id" = "equipment_working_hours_history"."equipment_id") AND ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") OR ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") AND ("e"."team_id" IS NOT NULL) AND ("e"."team_id" IN ( SELECT "tm"."team_id"
@@ -22264,17 +22252,6 @@ CREATE POLICY "Users can update their own notifications" ON "public"."notificati
 
 
 
-CREATE POLICY "Users can update work orders in their organization" ON "public"."work_orders" FOR UPDATE USING ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
-
-
-
-CREATE POLICY "Users can upload images to their notes" ON "public"."equipment_note_images" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
-   FROM ("public"."equipment_notes" "en"
-     JOIN "public"."equipment" "e" ON (("e"."id" = "en"."equipment_id")))
-  WHERE (("en"."id" = "equipment_note_images"."equipment_note_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))));
-
-
-
 CREATE POLICY "Users can upload work order images" ON "public"."work_order_images" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
    FROM "public"."work_orders" "wo"
   WHERE (("wo"."id" = "work_order_images"."work_order_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "wo"."organization_id")))));
@@ -22284,13 +22261,6 @@ CREATE POLICY "Users can upload work order images" ON "public"."work_order_image
 CREATE POLICY "Users can view comments on their own tickets" ON "public"."ticket_comments" FOR SELECT TO "authenticated" USING (("ticket_id" IN ( SELECT "tickets"."id"
    FROM "public"."tickets"
   WHERE ("tickets"."user_id" = ( SELECT "auth"."uid"() AS "uid")))));
-
-
-
-CREATE POLICY "Users can view images for accessible notes" ON "public"."equipment_note_images" FOR SELECT USING ((EXISTS ( SELECT 1
-   FROM ("public"."equipment_notes" "en"
-     JOIN "public"."equipment" "e" ON (("e"."id" = "en"."equipment_id")))
-  WHERE (("en"."id" = "equipment_note_images"."equipment_note_id") AND "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id")))));
 
 
 
@@ -22314,31 +22284,11 @@ CREATE POLICY "Users can view work order images" ON "public"."work_order_images"
 
 
 
-CREATE POLICY "Users can view work orders in their organization" ON "public"."work_orders" FOR SELECT USING ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
-
-
-
 CREATE POLICY "Users can view working hours history for accessible equipment" ON "public"."equipment_working_hours_history" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."equipment" "e"
   WHERE (("e"."id" = "equipment_working_hours_history"."equipment_id") AND ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") OR ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "e"."organization_id") AND ("e"."team_id" IS NOT NULL) AND ("e"."team_id" IN ( SELECT "tm"."team_id"
            FROM "public"."team_members" "tm"
           WHERE ("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid"))))))))));
-
-
-
-CREATE POLICY "admins_delete_teams" ON "public"."teams" FOR DELETE USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
-
-
-
-CREATE POLICY "admins_delete_work_orders" ON "public"."work_orders" FOR DELETE USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
-
-
-
-CREATE POLICY "admins_manage_teams" ON "public"."teams" USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
-
-
-
-CREATE POLICY "admins_update_teams" ON "public"."teams" FOR UPDATE USING ("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
 
 
 
@@ -22442,13 +22392,15 @@ CREATE POLICY "dsr_requests_select" ON "public"."dsr_requests" FOR SELECT TO "au
 ALTER TABLE "public"."equipment" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "equipment_delete" ON "public"."equipment" FOR DELETE USING (("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR (EXISTS ( SELECT 1
+CREATE POLICY "equipment_delete" ON "public"."equipment" FOR DELETE USING (("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR (EXISTS ( SELECT 1
    FROM "public"."team_members" "tm"
   WHERE (("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."team_id" = "equipment"."team_id") AND ("tm"."role" = 'manager'::"public"."team_member_role"))))));
 
 
 
-CREATE POLICY "equipment_insert" ON "public"."equipment" FOR INSERT WITH CHECK (("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR "public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id")));
+CREATE POLICY "equipment_insert" ON "public"."equipment" FOR INSERT WITH CHECK (("public"."is_org_operational_admin"(( SELECT "auth"."uid"() AS "uid"), "organization_id") OR ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id") AND ("team_id" IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM "public"."team_members" "tm"
+  WHERE (("tm"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("tm"."team_id" = "equipment"."team_id") AND ("tm"."role" = ANY (ARRAY['manager'::"public"."team_member_role", 'technician'::"public"."team_member_role"]))))))));
 
 
 
@@ -22804,14 +22756,6 @@ CREATE POLICY "invoice_details_update" ON "public"."work_order_invoice_details" 
 ALTER TABLE "public"."member_removal_audit" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "members_access_work_orders" ON "public"."work_orders" USING ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
-
-
-
-CREATE POLICY "members_view_teams" ON "public"."teams" FOR SELECT USING ("public"."is_org_member"(( SELECT "auth"."uid"() AS "uid"), "organization_id"));
-
-
-
 ALTER TABLE "public"."notes" ENABLE ROW LEVEL SECURITY;
 
 
@@ -22931,12 +22875,6 @@ CREATE POLICY "organization_member_claims_update_admin" ON "public"."organizatio
 ALTER TABLE "public"."organization_members" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "organization_members_delete" ON "public"."organization_members" FOR DELETE USING ((EXISTS ( SELECT 1
-   FROM "public"."organization_members" "om"
-  WHERE (("om"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("om"."organization_id" = "organization_members"."organization_id") AND ("om"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"])) AND ("om"."status" = 'active'::"text")))));
-
-
-
 CREATE POLICY "organization_members_delete_safe" ON "public"."organization_members" FOR DELETE TO "authenticated" USING ("public"."user_is_org_admin"("organization_id"));
 
 
@@ -22945,23 +22883,11 @@ CREATE POLICY "organization_members_hide_dead_support" ON "public"."organization
 
 
 
-CREATE POLICY "organization_members_insert" ON "public"."organization_members" FOR INSERT WITH CHECK ((EXISTS ( SELECT 1
-   FROM "public"."organization_members" "om"
-  WHERE (("om"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("om"."organization_id" = "organization_members"."organization_id") AND ("om"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"])) AND ("om"."status" = 'active'::"text")))));
-
-
-
 CREATE POLICY "organization_members_insert_safe" ON "public"."organization_members" FOR INSERT TO "authenticated" WITH CHECK ("public"."user_is_org_admin"("organization_id"));
 
 
 
 CREATE POLICY "organization_members_select_safe" ON "public"."organization_members" FOR SELECT TO "authenticated" USING ((("user_id" = ( SELECT "auth"."uid"() AS "uid")) OR "public"."user_is_org_member"("organization_id")));
-
-
-
-CREATE POLICY "organization_members_update" ON "public"."organization_members" FOR UPDATE USING ((EXISTS ( SELECT 1
-   FROM "public"."organization_members" "om"
-  WHERE (("om"."user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("om"."organization_id" = "organization_members"."organization_id") AND ("om"."role" = ANY (ARRAY['owner'::"text", 'admin'::"text"])) AND ("om"."status" = 'active'::"text")))));
 
 
 

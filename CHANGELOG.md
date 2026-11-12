@@ -11,8 +11,13 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Security
+
+- **Equipment create and delete rules enforced by the database (#1738)** — Only org owners and admins, or managers and technicians on the equipment's team, can add equipment, and only owners, admins and that team's managers can delete it. The app already worked this way; the database now enforces it too.
+
 ### Changed
 
+- **Database performance cleanup (#1737, #1738)** — Cleared the Supabase performance advisor warnings on access policies and a duplicate index. No change to how EquipQR works.
 - **Removed more unused code (#1719)** — Deleted about 80 functions, hooks and service methods that only tests used, along with those tests. No change to how EquipQR works.
 - **Removed unused code (#1718)** — Deleted about 20 old files that nothing in the app used any more (leftover billing code, old data services, unused equipment screens, utilities and hooks) along with their tests. No change to how EquipQR works.
 - **Quieter release checks (#1710)** — The production release check no longer reports a failure when a release was already promoted by hand. No change to how EquipQR works.

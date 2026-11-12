@@ -6,7 +6,7 @@ type TeamMembership = UserContext['teamMemberships'][number];
 
 const TEAM_VIEW_ROLES: ReadonlySet<TeamRole> = new Set(['manager', 'technician', 'requestor', 'viewer', 'owner']);
 const TEAM_OPERATION_ROLES: ReadonlySet<TeamRole> = new Set(['manager', 'technician', 'owner']);
-// Mirrors the `team_members_create_equipment` RLS policy which only permits
+// Mirrors the `equipment_insert` RLS policy which only permits
 // 'manager' and 'technician'.  The legacy 'owner' team role is intentionally
 // excluded here to match the database policy; org owners/admins have their own
 // higher-priority rule ('equipment-create-admin') that grants org-wide create.
@@ -88,7 +88,7 @@ export class PermissionEngine {
     // context required). Team managers and technicians can create only for
     // teams where they hold that role; other team roles (requestor, viewer)
     // and members without team roles are denied. Mirrors the docs matrix and
-    // the corresponding `team_members_create_equipment` RLS policy.
+    // the corresponding `equipment_insert` RLS policy.
     this.addRule('equipment.create', {
       name: 'equipment-create-admin',
       check: (context) => ['owner', 'admin'].includes(context.userRole),
@@ -107,7 +107,7 @@ export class PermissionEngine {
       priority: 80
     });
 
-    // Equipment delete rules. Mirrors the `equipment_team_manager_delete` RLS
+    // Equipment delete rules. Mirrors the `equipment_delete` RLS
     // policy: org owners/admins can delete any equipment; team managers can
     // delete equipment assigned to their team.
     this.addRule('equipment.delete', {
