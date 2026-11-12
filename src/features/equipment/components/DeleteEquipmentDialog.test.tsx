@@ -176,22 +176,6 @@ describe('DeleteEquipmentDialog', () => {
       });
     });
 
-    it('shows acknowledgment checkbox', async () => {
-      render(<DeleteEquipmentDialog {...defaultProps} />);
-      
-      await waitFor(() => {
-        const continueButton = screen.getByText('Continue');
-        expect(continueButton).not.toBeDisabled();
-      });
-      
-      fireEvent.click(screen.getByText('Continue'));
-      
-      await waitFor(() => {
-        const checkbox = screen.getByLabelText(/I understand this will permanently delete/i);
-        expect(checkbox).toBeInTheDocument();
-      });
-    });
-
     it('enables delete button only when acknowledged', async () => {
       render(<DeleteEquipmentDialog {...defaultProps} />);
       
@@ -336,13 +320,17 @@ describe('DeleteEquipmentDialog', () => {
   });
 
   describe('Error Handling', () => {
-    it('handles error when fetching impact fails', async () => {
+    it('lets the user continue without an impact summary when fetching impact fails', async () => {
       vi.mocked(deleteEquipmentServiceModule.getEquipmentDeletionImpact).mockRejectedValue(new Error('Failed to fetch'));
-      
+
       render(<DeleteEquipmentDialog {...defaultProps} />);
-      
-      // Should still render the dialog
-      expect(screen.getByText('Delete this equipment?')).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Continue' })).not.toBeDisabled();
+      });
+      expect(deleteEquipmentServiceModule.getEquipmentDeletionImpact).toHaveBeenCalledWith('eq-1');
+      expect(screen.queryByText('Calculating impact...')).not.toBeInTheDocument();
+      expect(screen.queryByText('This will delete:')).not.toBeInTheDocument();
     });
   });
 });

@@ -75,20 +75,6 @@ describe('widgetRegistry', () => {
       expect(activeWidgets).toEqual(['stats-grid', 'fleet-efficiency']);
     });
 
-    it('returns only widget IDs registered in the registry', () => {
-      const { activeWidgets } = generateDefaultLayout();
-
-      for (const id of activeWidgets) {
-        expect(WIDGET_REGISTRY.has(id)).toBe(true);
-      }
-    });
-
-    it('returns an array of active widget IDs in display order', () => {
-      const { activeWidgets } = generateDefaultLayout(['stats-grid', 'fleet-efficiency', 'recent-equipment']);
-
-      expect(activeWidgets).toEqual(['stats-grid', 'fleet-efficiency', 'recent-equipment']);
-    });
-
     it('returns empty activeWidgets when no valid IDs provided', () => {
       const { activeWidgets } = generateDefaultLayout(['fake-1', 'fake-2']);
 

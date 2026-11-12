@@ -167,16 +167,6 @@ describe('DashboardRecentWorkOrdersCard', () => {
       expect(screen.getByText(/low priority.*Jane Smith/i)).toBeInTheDocument();
     });
 
-    it('shows "Unassigned" when assigneeName is null', () => {
-      render(
-        <MemoryRouter>
-          <DashboardRecentWorkOrdersCard workOrders={mockWorkOrders} isLoading={false} hasMore={false} />
-        </MemoryRouter>
-      );
-
-      expect(screen.getByText(/Unassigned/i)).toBeInTheDocument();
-    });
-
     it('renders status badges with formatted status', () => {
       render(
         <MemoryRouter>

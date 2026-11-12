@@ -309,17 +309,21 @@ describe('PMTemplateCompatibilityRulesEditor', () => {
 
   describe('Model Reset on Manufacturer Change', () => {
     it('resets model to null when manufacturer changes', async () => {
-      // This is tested implicitly through the component logic
-      // When handleManufacturerChange is called, it sets model to null
+      // Earlier tests override the manufacturers mock; restore the shared fixtures.
+      const useEquipmentModule = await import('@/features/equipment/hooks/useEquipment');
+      vi.mocked(useEquipmentModule.useEquipmentManufacturersAndModels).mockReset();
       const rules: PMTemplateCompatibilityRuleFormData[] = [
         { manufacturer: 'Toyota', model: '8FGU25' }
       ];
 
       renderPmTemplateCompatibilityRulesEditor(rules, mockOnChange);
 
-      // The component structure ensures model is reset when manufacturer changes
-      // This is validated by checking the handler logic in the component
-      expect(screen.getAllByRole('combobox').length).toBeGreaterThanOrEqual(2);
+      const [manufacturerTrigger] = screen.getAllByRole('combobox');
+      expect(manufacturerTrigger).toHaveTextContent('Toyota');
+      fireEvent.click(manufacturerTrigger);
+      fireEvent.click(await screen.findByText('Konecranes'));
+
+      expect(mockOnChange).toHaveBeenCalledWith([{ manufacturer: 'Konecranes', model: null }]);
     });
   });
 });

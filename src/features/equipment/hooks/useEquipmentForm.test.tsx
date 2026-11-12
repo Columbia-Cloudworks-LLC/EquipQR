@@ -1,8 +1,10 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const { mockUpdateEquipment } = vi.hoisted(() => ({ mockUpdateEquipment: vi.fn() }));
 
 // Vitest 3 requires a real `function` (constructable) mock implementation for
 // classes instantiated with `new` (#1148).
@@ -10,7 +12,7 @@ vi.mock('@/services/offlineAwareService', () => ({
   OfflineAwareWorkOrderService: vi.fn(function OfflineAwareWorkOrderServiceMock() {
     return {
       createEquipmentFull: vi.fn().mockResolvedValue({ data: { id: 'eq-new' }, queuedOffline: false }),
-      updateEquipment: vi.fn().mockResolvedValue({ data: { id: 'eq-1' }, queuedOffline: false }),
+      updateEquipment: mockUpdateEquipment,
     };
   }),
 }));
@@ -136,6 +138,7 @@ describe('useEquipmentForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockWarningToast.mockClear();
+    mockUpdateEquipment.mockResolvedValue({ data: { id: 'eq-1' }, queuedOffline: false });
   });
 
   it('creates equipment successfully', async () => {
@@ -189,6 +192,18 @@ describe('useEquipmentForm', () => {
     , { wrapper: createWrapper(client) });
 
     expect(result.current.isEdit).toBe(true);
+
+    act(() => {
+      result.current.onSubmit(baseValues);
+    });
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
+    expect(mockUpdateEquipment).toHaveBeenCalledWith(
+      'eq-1',
+      expect.objectContaining({ name: 'Eq Name', manufacturer: 'Acme', team_id: 'team-1' }),
+      mockEquipment.updated_at,
+    );
+    expect(toast.success).toHaveBeenCalledWith('Equipment updated successfully');
   });
 
   it('succeeds when post-create media upload fails', async () => {

@@ -3,7 +3,6 @@ import { render, screen, waitFor } from '@vitest-harness/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import EquipmentImagesTab from './EquipmentImagesTab';
 import * as equipmentImagesServiceModule from '@/features/equipment/services/equipmentImagesService';
-import * as equipmentNotesServiceModule from '@/features/equipment/services/equipmentNotesService';
 
 // Mock dependencies
 vi.mock('@/hooks/useAuth', () => ({
@@ -117,100 +116,6 @@ describe('EquipmentImagesTab', () => {
         expect(screen.getByTestId('image-0')).toBeInTheDocument();
         expect(screen.getByTestId('image-1')).toBeInTheDocument();
       });
-    });
-  });
-
-  describe('Image Upload', () => {
-    it('shows upload form when upload button is clicked', async () => {
-      render(
-        <EquipmentImagesTab 
-          equipmentId="eq-1" 
-          organizationId="org-1" 
-        />
-      );
-      
-      // Upload functionality would be tested based on component implementation
-      await waitFor(() => {
-        // Component should render upload UI when triggered
-      });
-    });
-
-    it('handles image upload', async () => {
-      vi.mocked(equipmentNotesServiceModule.createEquipmentNoteWithImages).mockResolvedValue({
-        id: 'note-1',
-        equipment_id: 'eq-1',
-        content: 'Image upload note',
-        author_id: 'user-1',
-        author_name: 'Test User',
-        is_private: false,
-        hours_worked: 0,
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z',
-      });
-
-      render(
-        <EquipmentImagesTab 
-          equipmentId="eq-1" 
-          organizationId="org-1" 
-        />
-      );
-      
-      // Upload would be triggered by user interaction
-      await waitFor(() => {
-        // Component should handle upload
-      });
-    });
-  });
-
-  describe('Image Deletion', () => {
-    it('handles image deletion', async () => {
-      vi.mocked(equipmentImagesServiceModule.deleteEquipmentImage).mockResolvedValue(undefined);
-
-      render(
-        <EquipmentImagesTab 
-          equipmentId="eq-1" 
-          organizationId="org-1" 
-        />
-      );
-      
-      // Image deletion would be triggered by user interaction
-      await waitFor(() => {
-        // Component should handle deletion
-      });
-    });
-  });
-
-  describe('Display Image', () => {
-    it('handles setting display image', async () => {
-      vi.mocked(equipmentImagesServiceModule.updateEquipmentDisplayImage).mockResolvedValue(undefined);
-
-      render(
-        <EquipmentImagesTab 
-          equipmentId="eq-1" 
-          organizationId="org-1" 
-          currentDisplayImage="https://example.com/image1.jpg"
-        />
-      );
-      
-      // Setting display image would be tested based on component implementation
-      await waitFor(() => {
-        // Component should handle display image update
-      });
-    });
-  });
-
-  describe('Loading State', () => {
-    it('shows loading state while fetching images', () => {
-      vi.mocked(equipmentImagesServiceModule.getAllEquipmentImages).mockImplementation(() => new Promise(() => {}));
-
-      render(
-        <EquipmentImagesTab 
-          equipmentId="eq-1" 
-          organizationId="org-1" 
-        />
-      );
-      
-      // Should show loading state
     });
   });
 

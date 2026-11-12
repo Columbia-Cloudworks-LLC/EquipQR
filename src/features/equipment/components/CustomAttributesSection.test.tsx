@@ -150,54 +150,18 @@ describe('CustomAttributesSection', () => {
   });
 
   describe('Initial Attributes', () => {
-    it('handles array format initial attributes', () => {
-      const initialAttributes = [
-        { id: 'attr-1', key: 'Key1', value: 'Value1' }
-      ];
-
-      // Mock the hook to return the array attributes (simulating what the real hook does)
-      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue({
-        attributes: initialAttributes,
-        addAttribute: mockAddAttribute,
-        removeAttribute: mockRemoveAttribute,
-        updateAttribute: mockUpdateAttribute,
-        getCleanAttributes: () => [{ id: 'attr-1', key: 'Key1', value: 'Value1' }],
-        validateAttributes: vi.fn(() => true),
-        setAttributes: vi.fn()
-      });
-
-      render(<CustomAttributesSection initialAttributes={initialAttributes} onChange={mockOnChange} />);
-      
-      expect(screen.getByDisplayValue('Key1')).toBeInTheDocument();
-      expect(screen.getByDisplayValue('Value1')).toBeInTheDocument();
-    });
-
-    it('handles object format initial attributes', () => {
-      // Mock the hook to return the converted attributes (simulating what the real hook does)
-      // The component converts object format to array format before passing to the hook
-      vi.mocked(useCustomAttributesModule.useCustomAttributes).mockReturnValue({
-        attributes: [
-          { id: 'attr-1', key: 'Key1', value: 'Value1' },
-          { id: 'attr-2', key: 'Key2', value: 'Value2' }
-        ],
-        addAttribute: mockAddAttribute,
-        removeAttribute: mockRemoveAttribute,
-        updateAttribute: mockUpdateAttribute,
-        getCleanAttributes: () => [{ id: 'attr-1', key: 'Key1', value: 'Value1' }, { id: 'attr-2', key: 'Key2', value: 'Value2' }],
-        validateAttributes: vi.fn(() => true),
-        setAttributes: vi.fn()
-      });
-
+    it('converts object format initial attributes to an array before passing them to the hook', () => {
       const initialAttributes = {
         Key1: 'Value1',
         Key2: 'Value2'
       };
 
       render(<CustomAttributesSection initialAttributes={initialAttributes} onChange={mockOnChange} />);
-      
-      // Object should be converted to array format
-      expect(screen.getByDisplayValue('Key1')).toBeInTheDocument();
-      expect(screen.getByDisplayValue('Value1')).toBeInTheDocument();
+
+      expect(useCustomAttributesModule.useCustomAttributes).toHaveBeenCalledWith([
+        expect.objectContaining({ id: expect.any(String), key: 'Key1', value: 'Value1' }),
+        expect.objectContaining({ id: expect.any(String), key: 'Key2', value: 'Value2' }),
+      ]);
     });
   });
 

@@ -128,9 +128,8 @@ describe('ResponsiveEquipmentTabs', () => {
         </ResponsiveEquipmentTabs>
       );
       
-      const notesTab = screen.getByText('Notes');
-      // Active tab should have active styling
-      expect(notesTab).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /Notes/ })).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getByRole('tab', { name: /Details/ })).toHaveAttribute('aria-selected', 'false');
     });
   });
 

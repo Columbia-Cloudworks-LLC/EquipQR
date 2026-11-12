@@ -70,9 +70,6 @@ describe('equipmentHelpers', () => {
   });
 
   describe('EQUIPMENT_STATUS_OPTIONS', () => {
-    it('should contain DB-persisted status options only', () => {
-      expect(EQUIPMENT_STATUS_OPTIONS).toHaveLength(3);
-    });
 
     it('should have correct values and labels', () => {
       expect(EQUIPMENT_STATUS_OPTIONS).toEqual([

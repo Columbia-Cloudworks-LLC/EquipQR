@@ -327,11 +327,14 @@ describe('TeamSelectionSection', () => {
       expect(within(listbox).getByRole('option', { name: /Team 2/ })).toBeInTheDocument();
     });
 
-    it('displays team descriptions when available', () => {
+    it('displays team descriptions when available', async () => {
       render(<TestWrapper isAdmin={true} />);
-      
-      // Team descriptions should be shown in the dropdown options
-      // This would be visible when the dropdown is opened
+
+      fireEvent.click(screen.getByRole('combobox'));
+      const listbox = await screen.findByRole('listbox');
+      // Team 1 has a description; Team 2's is null.
+      expect(within(listbox).getByRole('option', { name: /Team 1/ })).toHaveTextContent('- Description 1');
+      expect(within(listbox).getByRole('option', { name: /Team 2/ })).not.toHaveTextContent('-');
     });
   });
 

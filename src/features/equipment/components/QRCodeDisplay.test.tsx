@@ -177,17 +177,6 @@ describe('QRCodeDisplay', () => {
       });
     });
 
-    it('shows check icon after successful copy', async () => {
-      render(<QRCodeDisplay {...defaultProps} />);
-      
-      const copyButton = screen.getByRole('button', { name: 'Copy URL to clipboard' });
-      fireEvent.click(copyButton);
-      
-      await waitFor(() => {
-        expect(screen.getByText('Copied')).toBeInTheDocument();
-      });
-    });
-
     it('shows Test link after successful copy that opens the URL', async () => {
       render(<QRCodeDisplay {...defaultProps} />);
 

@@ -32,18 +32,18 @@ describe('EquipmentLoadingState', () => {
   });
 
   describe('Layout Structure', () => {
-    it('renders multiple skeleton rows for mobile', () => {
+    it('renders five skeleton rows in the mobile list', () => {
       render(<EquipmentLoadingState />);
 
-      const skeletons = document.querySelectorAll('[class*="animate-shimmer"], [class*="bg-muted"]');
-      expect(skeletons.length).toBeGreaterThanOrEqual(3);
+      const mobileList = document.querySelector('.md\\:hidden.flex.flex-col');
+      expect(mobileList?.children).toHaveLength(5);
     });
 
-    it('renders skeleton elements inside the desktop grid', () => {
+    it('renders six skeleton cards in the desktop grid', () => {
       render(<EquipmentLoadingState />);
 
-      const skeletons = document.querySelectorAll('[class*="animate-shimmer"], .bg-muted.rounded-md');
-      expect(skeletons.length).toBeGreaterThanOrEqual(3);
+      const desktopGrid = document.querySelector('.md\\:grid');
+      expect(desktopGrid?.children).toHaveLength(6);
     });
   });
 });

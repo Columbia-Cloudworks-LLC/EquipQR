@@ -278,7 +278,7 @@ describe('DashboardStatsGrid', () => {
       expect(screen.getByText('20% this week')).toBeInTheDocument();
     });
 
-    it('shows explicit insufficient-history copy when delta is null', () => {
+    it('renders no trend chip for a card whose delta is null', () => {
       render(
         <MemoryRouter>
           <DashboardStatsGrid
@@ -290,9 +290,9 @@ describe('DashboardStatsGrid', () => {
         </MemoryRouter>
       );
 
-      // needsAttention has delta=null — should render no percentage copy for 0%.
+      // needsAttention has delta=null, so only the other three cards get a chip.
+      expect(screen.getAllByText(/% this week$/)).toHaveLength(3);
       expect(screen.queryByText('0% this week')).not.toBeInTheDocument();
-      expect(screen.queryByText('Insufficient history')).not.toBeInTheDocument();
     });
 
     it('renders without trends prop (backward compatibility)', () => {
@@ -312,7 +312,7 @@ describe('DashboardStatsGrid', () => {
     });
 
     it('suppresses sparkline when series has fewer than 2 points', () => {
-      const { container } = render(
+      render(
         <MemoryRouter>
           <DashboardStatsGrid
             stats={mockStats}
@@ -320,16 +320,15 @@ describe('DashboardStatsGrid', () => {
             needsAttentionCount={7}
             trends={{
               ...trendsFixture,
-              totalEquipment: { sparkline: [], delta: null, direction: 'flat' },
+              totalEquipment: { sparkline: [13], delta: null, direction: 'flat' },
             }}
           />
         </MemoryRouter>
       );
 
-      // Sparklines render as SVG inside a fixed-height wrapper; a cheap check is
-      // that at least the non-empty cards still produce SVG content.
-      const svgs = container.querySelectorAll('svg');
-      expect(svgs.length).toBeGreaterThan(0);
+      // Each rendered sparkline carries a screen-reader description of its series.
+      expect(screen.queryByText(/trend for Total Equipment:/)).not.toBeInTheDocument();
+      expect(screen.getByText(/trend for Total Work Orders:/)).toBeInTheDocument();
     });
   });
 });

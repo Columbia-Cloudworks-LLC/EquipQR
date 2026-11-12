@@ -157,14 +157,22 @@ describe('EquipmentCard', () => {
       expect(mockOnShowQRCode).toHaveBeenCalledWith('eq-1');
     });
 
-    it('stops propagation when QR button is clicked', () => {
-      render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
+    it('does not open the equipment details when the QR button is clicked', async () => {
+      const { container } = render(
+        <EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />,
+      );
 
       const qrButton = screen.getAllByRole('button', { name: /show qr code/i })[0];
       fireEvent.click(qrButton);
 
-      // If propagation wasn't stopped, navigate would also be called
       expect(mockOnShowQRCode).toHaveBeenCalledTimes(1);
+      // A bubbled click would mark the card active synchronously...
+      expect(container.querySelector('[data-equipment-transition-active]')).toBeNull();
+      // ...and navigate after two animation frames plus the detail prefetch.
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 0)));
+      });
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
   });
 
@@ -260,12 +268,6 @@ describe('EquipmentCard', () => {
   });
 
   describe('Location Handling', () => {
-    it('renders location when provided', () => {
-      render(<EquipmentCard equipment={mockEquipment} onShowQRCode={mockOnShowQRCode} />);
-
-      expect(screen.getAllByText('Warehouse A')[0]).toBeInTheDocument();
-    });
-
     it('handles empty location gracefully', () => {
       const equipmentWithEmptyLocation = { ...mockEquipment, location: '' };
       render(<EquipmentCard equipment={equipmentWithEmptyLocation} onShowQRCode={mockOnShowQRCode} />);

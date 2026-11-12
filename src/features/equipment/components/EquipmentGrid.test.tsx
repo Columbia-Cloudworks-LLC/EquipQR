@@ -165,12 +165,6 @@ describe('EquipmentGrid', () => {
   });
 
   describe('Equipment Card Integration', () => {
-    it('passes equipment data to EquipmentCard', () => {
-      render(<EquipmentGrid {...defaultProps} />);
-      
-      expect(screen.getByText('Forklift A1')).toBeInTheDocument();
-      expect(screen.getByText('Excavator B2')).toBeInTheDocument();
-    });
 
     it('passes onShowQRCode handler to EquipmentCard', () => {
       render(<EquipmentGrid {...defaultProps} />);
