@@ -72,7 +72,6 @@ Human logins and personal tokens are not automation configuration. They are not 
 | `bash dev/e2e/env.sh quickbooks-developer` / `qbo-browser` | `QUICKBOOKS_DEVELOPER_EMAIL`, `QUICKBOOKS_DEVELOPER_PASSWORD`, `QUICKBOOKS_DEVELOPER_TOTP_SECRET` (base32) |
 | `bash dev/ops/render-mcp.sh` | `TODIAGRAM_API_KEY`, `GITHUB_MCP_READ_TOKEN`, `GITHUB_MCP_WRITE_TOKEN`, `EQUIPQR_GCP_VIEWER_SA_JSON` (key file path) |
 | Cloud-agent Supabase branch helpers | `SUPABASE_ACCESS_TOKEN` |
-| PR evidence uploads | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` |
 
 Verify MCP wiring: `bash dev/ops/doctor.sh`.
 
