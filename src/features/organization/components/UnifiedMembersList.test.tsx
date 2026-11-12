@@ -304,22 +304,14 @@ describe('UnifiedMembersList', () => {
     expect(screen.getByText('Bob Member')).toBeInTheDocument();
 
     const table = screen.getByRole('table');
-    const bobRow = within(table).getByText('Bob Member').closest('tr');
-    expect(bobRow).toBeInTheDocument();
-    
-    if (bobRow) {
-      const selectTrigger = bobRow.querySelector('[role="combobox"]');
-      if (selectTrigger) {
-        fireEvent.click(selectTrigger);
-        
-        const adminOption = await screen.findByRole('option', { name: /admin/i });
-        fireEvent.click(adminOption);
+    const bobRow = within(table).getByRole('row', { name: /bob member/i });
 
-        expect(mockUpdateRole).toHaveBeenCalled();
-      } else {
-        expect(bobRow).toHaveTextContent('member');
-      }
-    }
+    fireEvent.click(within(bobRow).getByRole('combobox'));
+
+    const adminOption = await screen.findByRole('option', { name: /admin/i });
+    fireEvent.click(adminOption);
+
+    expect(mockUpdateRole).toHaveBeenCalled();
   });
 
   describe('Google Workspace Claims', () => {

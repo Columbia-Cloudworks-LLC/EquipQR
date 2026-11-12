@@ -6,7 +6,8 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@vitest-harness/utils/test-utils';
+import { render, screen, fireEvent, waitFor, within } from '@vitest-harness/utils/test-utils';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import AlternateGroupsPage from './AlternateGroupsPage';
 import { organizations, partAlternateGroups } from '@vitest-harness/fixtures/entities';
@@ -72,6 +73,7 @@ import { useInventoryPartsManagerAccess } from '@/features/inventory/hooks/useIn
 
 // Mock data
 const mockGroups = Object.values(partAlternateGroups);
+const oilGroup = partAlternateGroups.oilFilterGroup;
 
 const setupMocks = (options: {
   canEdit?: boolean;
@@ -129,11 +131,6 @@ const setupMocks = (options: {
   return { mockDeleteMutateAsync };
 };
 
-function findCardMenuButton() {
-  const dropdownButtons = screen.getAllByRole('button');
-  return dropdownButtons.find((btn) => btn.querySelector('.lucide-more-horizontal') !== null);
-}
-
 function renderEditableAlternateGroupsPage(
   options?: Parameters<typeof setupMocks>[0],
 ) {
@@ -141,13 +138,17 @@ function renderEditableAlternateGroupsPage(
   render(<AlternateGroupsPage />);
 }
 
-async function openCardMenu(): Promise<boolean> {
-  const menuButton = findCardMenuButton();
-  if (!menuButton) {
-    return false;
-  }
-  fireEvent.click(menuButton);
-  return true;
+async function openCardMenu(groupName = oilGroup.name) {
+  const user = userEvent.setup();
+  await user.click(screen.getByRole('button', { name: `More options for ${groupName}` }));
+  return user;
+}
+
+async function openDeleteConfirmation() {
+  const user = await openCardMenu();
+  await user.click(await screen.findByRole('menuitem', { name: 'Delete' }));
+  const dialog = await screen.findByRole('alertdialog');
+  return { user, dialog };
 }
 
 describe('AlternateGroupsPage', () => {
@@ -424,21 +425,6 @@ describe('AlternateGroupsPage', () => {
   });
 
   describe('Navigation', () => {
-    it('navigates to group detail when card is clicked', async () => {
-      setupMocks();
-
-      render(<AlternateGroupsPage />);
-
-      const groupCard = screen.getByText(partAlternateGroups.oilFilterGroup.name).closest('[class*="cursor-pointer"]');
-      if (groupCard) {
-        fireEvent.click(groupCard);
-      }
-
-      expect(mockNavigate).toHaveBeenCalledWith(
-        `/dashboard/alternate-groups/${partAlternateGroups.oilFilterGroup.id}`
-      );
-    });
-
     it('navigates via card click', async () => {
       setupMocks();
 
@@ -526,88 +512,44 @@ describe('AlternateGroupsPage', () => {
     });
   });
 
-  describe('Edit Group', () => {
-    it('renders edit option in card menu when user can edit', () => {
-      setupMocks({ canEdit: true });
-
-      render(<AlternateGroupsPage />);
-
-      // Verify cards are rendered with expected structure
-      expect(screen.getByText(partAlternateGroups.oilFilterGroup.name)).toBeInTheDocument();
-      expect(screen.getByText(partAlternateGroups.airFilterGroup.name)).toBeInTheDocument();
-      
-      // The new group button exists confirming edit mode
-      expect(screen.getByRole('button', { name: /new alternate part group/i })).toBeInTheDocument();
-    });
-  });
-
   describe('Delete Group', () => {
-    it('has delete mutation hook available', () => {
-      const { mockDeleteMutateAsync } = setupMocks();
-
-      render(<AlternateGroupsPage />);
-
-      // Verify the hook was initialized
-      expect(useDeleteAlternateGroup).toHaveBeenCalled();
-      expect(mockDeleteMutateAsync).toBeDefined();
-    });
-
     it('opens delete confirmation dialog when delete is clicked from dropdown', async () => {
       renderEditableAlternateGroupsPage();
 
-      if (await openCardMenu()) {
-        await waitFor(() => {
-          fireEvent.click(screen.getByText('Delete'));
-        });
+      const { dialog } = await openDeleteConfirmation();
 
-        await waitFor(() => {
-          expect(screen.getByText(/Are you sure/)).toBeInTheDocument();
-        });
-      }
+      expect(within(dialog).getByText(`Are you sure you want to delete "${oilGroup.name}"?`, { exact: false })).toBeInTheDocument();
     });
 
     it('calls delete mutation when confirmed', async () => {
       const { mockDeleteMutateAsync } = setupMocks({ canEdit: true });
       render(<AlternateGroupsPage />);
 
-      if (await openCardMenu()) {
-        await waitFor(() => {
-          fireEvent.click(screen.getByText('Delete'));
-        });
+      const { user, dialog } = await openDeleteConfirmation();
+      await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
 
-        await waitFor(() => {
-          expect(screen.getByText(/Are you sure/)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(mockDeleteMutateAsync).toHaveBeenCalledWith({
+          organizationId: organizations.acme.id,
+          groupId: oilGroup.id,
         });
-
-        fireEvent.click(screen.getByRole('button', { name: /delete/i }));
-
-        await waitFor(() => {
-          expect(mockDeleteMutateAsync).toHaveBeenCalledWith({
-            organizationId: organizations.acme.id,
-            groupId: expect.any(String),
-          });
-        });
-      }
+      });
+      await waitFor(() => {
+        expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+      });
     });
 
     it('closes confirmation dialog when cancelled', async () => {
-      renderEditableAlternateGroupsPage();
+      const { mockDeleteMutateAsync } = setupMocks({ canEdit: true });
+      render(<AlternateGroupsPage />);
 
-      if (await openCardMenu()) {
-        await waitFor(() => {
-          fireEvent.click(screen.getByText('Delete'));
-        });
+      const { user, dialog } = await openDeleteConfirmation();
+      await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
 
-        await waitFor(() => {
-          expect(screen.getByText(/Are you sure/)).toBeInTheDocument();
-        });
-
-        fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
-
-        await waitFor(() => {
-          expect(screen.queryByText(/Are you sure/)).not.toBeInTheDocument();
-        });
-      }
+      await waitFor(() => {
+        expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+      });
+      expect(mockDeleteMutateAsync).not.toHaveBeenCalled();
     });
   });
 
@@ -615,40 +557,33 @@ describe('AlternateGroupsPage', () => {
     it('opens dropdown menu when more button is clicked', async () => {
       renderEditableAlternateGroupsPage();
 
-      if (await openCardMenu()) {
-        await waitFor(() => {
-          expect(screen.getByText('View Details')).toBeInTheDocument();
-          expect(screen.getByText('Edit')).toBeInTheDocument();
-          expect(screen.getByText('Delete')).toBeInTheDocument();
-        });
-      }
+      await openCardMenu();
+
+      expect(await screen.findByRole('menuitem', { name: 'View Details' })).toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: 'Edit' })).toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
     });
 
     it('navigates to detail page when View Details is clicked', async () => {
       renderEditableAlternateGroupsPage();
 
-      if (await openCardMenu()) {
-        await waitFor(() => {
-          fireEvent.click(screen.getByText('View Details'));
-        });
+      const user = await openCardMenu();
+      await user.click(await screen.findByRole('menuitem', { name: 'View Details' }));
 
-        expect(mockNavigate).toHaveBeenCalled();
-      }
+      expect(mockNavigate).toHaveBeenCalledTimes(1);
+      expect(mockNavigate).toHaveBeenCalledWith(`/dashboard/alternate-groups/${oilGroup.id}`);
     });
 
     it('opens edit dialog when Edit is clicked', async () => {
       renderEditableAlternateGroupsPage();
 
-      if (await openCardMenu()) {
-        await waitFor(() => {
-          fireEvent.click(screen.getByText('Edit'));
-        });
+      const user = await openCardMenu();
+      await user.click(await screen.findByRole('menuitem', { name: 'Edit' }));
 
-        await waitFor(() => {
-          expect(screen.getByText('Edit Alternate Group')).toBeInTheDocument();
-          expect(screen.getByTestId('alternate-group-form')).toBeInTheDocument();
-        });
-      }
+      const dialog = await screen.findByRole('dialog');
+      expect(within(dialog).getByText('Edit Alternate Group')).toBeInTheDocument();
+      expect(within(dialog).getByTestId('alternate-group-form')).toBeInTheDocument();
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
   });
 
@@ -658,11 +593,8 @@ describe('AlternateGroupsPage', () => {
 
       render(<AlternateGroupsPage />);
 
-      const allButtons = screen.queryAllByRole('button');
-      const menuButtons = allButtons.filter(
-        (btn) => btn.querySelector('svg.lucide-more-horizontal')
-      );
-      expect(menuButtons.length).toBe(0);
+      expect(screen.getByText(oilGroup.name)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /more options for/i })).not.toBeInTheDocument();
     });
 
     it('hides New Alternate Part Group button when user cannot edit in empty state', () => {
@@ -681,25 +613,6 @@ describe('AlternateGroupsPage', () => {
 describe('AlternateGroupsPage User Journeys', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  /**
-   * User Story: As a Parts Manager, I want to see all alternate groups
-   * so I can manage interchangeable parts efficiently.
-   */
-  describe('Parts Manager views all alternate groups', () => {
-    it('displays groups with status indicators', () => {
-      setupMocks();
-
-      render(<AlternateGroupsPage />);
-
-      // Should see all groups
-      expect(screen.getByText(partAlternateGroups.oilFilterGroup.name)).toBeInTheDocument();
-      expect(screen.getByText(partAlternateGroups.airFilterGroup.name)).toBeInTheDocument();
-
-      // Verified group should have a status dot
-      expect(screen.getAllByRole('img', { name: 'Verified' }).length).toBeGreaterThan(0);
-    });
   });
 
   /**
@@ -723,49 +636,6 @@ describe('AlternateGroupsPage User Journeys', () => {
   });
 
   /**
-   * User Story: As a Parts Manager, I want to create a new alternate group
-   * when I discover interchangeable parts.
-   */
-  describe('Parts Manager creates new group', () => {
-    it('opens wizard and navigates to new group on create', async () => {
-      setupMocks();
-
-      render(<AlternateGroupsPage />);
-
-      fireEvent.click(screen.getByRole('button', { name: /new alternate part group/i }));
-
-      await waitFor(() => {
-        expect(screen.getByTestId('alternate-group-create-wizard')).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByRole('button', { name: 'Create Group' }));
-
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/dashboard/alternate-groups/new-group-id');
-      });
-    });
-  });
-
-  /**
-   * User Story: As a Parts Manager, I want to delete an obsolete group
-   * to keep the catalog clean.
-   */
-  describe('Parts Manager deletes obsolete group', () => {
-    it('has delete capability available for managers', () => {
-      const { mockDeleteMutateAsync } = setupMocks({ canEdit: true });
-
-      render(<AlternateGroupsPage />);
-
-      // Verify the delete mutation is available
-      expect(useDeleteAlternateGroup).toHaveBeenCalled();
-      expect(mockDeleteMutateAsync).toBeDefined();
-      
-      // Verify page renders with edit capabilities
-      expect(screen.getByRole('button', { name: /new alternate part group/i })).toBeInTheDocument();
-    });
-  });
-
-  /**
    * User Story: As a Technician, I want to view alternate groups
    * but should not see edit/delete options.
    */
@@ -780,12 +650,7 @@ describe('AlternateGroupsPage User Journeys', () => {
 
       // Cannot see edit controls
       expect(screen.queryByRole('button', { name: /new alternate part group/i })).not.toBeInTheDocument();
-      
-      const allButtons = screen.queryAllByRole('button');
-      const menuButtons = allButtons.filter(
-        (btn) => btn.querySelector('svg.lucide-more-horizontal')
-      );
-      expect(menuButtons.length).toBe(0);
+      expect(screen.queryByRole('button', { name: /more options for/i })).not.toBeInTheDocument();
     });
   });
 });

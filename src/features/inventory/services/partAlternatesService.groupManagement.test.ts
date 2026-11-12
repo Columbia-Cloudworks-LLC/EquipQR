@@ -190,25 +190,27 @@ describe('Alternate Group Management', () => {
         id: 'group-1',
         name: 'Test Group',
         status: 'verified',
-        verified_by: 'user-1',
-        verified_at: expect.any(String),
       };
-
-      vi.mocked(supabase.from).mockReturnValueOnce({
-        update: vi.fn().mockReturnValue({
+      const update = vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              select: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({ data: mockUpdatedGroup, error: null }),
-              }),
+            select: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({ data: mockUpdatedGroup, error: null }),
             }),
           }),
         }),
-      } as never);
+      });
 
-      const result = await updateAlternateGroup('org-1', 'group-1', { status: 'verified' });
+      vi.mocked(supabase.from).mockReturnValueOnce({ update } as never);
 
-      expect(result.status).toBe('verified');
+      await updateAlternateGroup('org-1', 'group-1', { status: 'verified' });
+
+      // 'user-1' is the auth claims subject from partAlternatesServiceTestMocks
+      expect(update).toHaveBeenCalledWith({
+        status: 'verified',
+        verified_by: 'user-1',
+        verified_at: expect.any(String),
+      });
     });
 
     it('throws error on database failure', async () => {
@@ -420,11 +422,15 @@ describe('Alternate Group Management', () => {
     });
 
     it('adds inventory item as primary', async () => {
-      vi.mocked(supabase.from).mockReturnValueOnce({
-        insert: vi.fn().mockResolvedValue({ error: null }),
-      } as never);
+      const insert = vi.fn().mockResolvedValue({ error: null });
+      vi.mocked(supabase.from).mockReturnValueOnce({ insert } as never);
 
       await expect(addInventoryItemToGroup('group-1', 'item-1', true)).resolves.toBeUndefined();
+      expect(insert).toHaveBeenCalledWith({
+        group_id: 'group-1',
+        inventory_item_id: 'item-1',
+        is_primary: true,
+      });
     });
 
     it('ignores duplicate insert error', async () => {

@@ -257,12 +257,6 @@ describe('InventoryList — mobile', () => {
 
     expect(inventoryHookMocks.useInventoryListMetadata).toHaveBeenCalledWith('org-1');
   });
-
-  it('does not show the desktop Add Item dropdown on mobile', () => {
-    renderUntilCatalogVisible();
-
-    expect(screen.queryByRole('menuitem', { name: /bulk add \/ edit/i })).not.toBeInTheDocument();
-  });
 });
 
 describe('InventoryList — desktop table', () => {

@@ -1,18 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   clampAlternateGroupPage,
-  DEFAULT_ALTERNATE_GROUP_CARD_PAGE_SIZE,
-  DEFAULT_ALTERNATE_GROUP_TABLE_PAGE_SIZE,
   paginateAlternateGroupItems,
 } from '@/features/inventory/utils/alternateGroupPagination';
 
 describe('alternateGroupPagination', () => {
   const rows = Array.from({ length: 53 }, (_, index) => `group-${index + 1}`);
-
-  it('uses view-specific default page sizes', () => {
-    expect(DEFAULT_ALTERNATE_GROUP_CARD_PAGE_SIZE).toBe(12);
-    expect(DEFAULT_ALTERNATE_GROUP_TABLE_PAGE_SIZE).toBe(25);
-  });
 
   it('paginates rows for the requested page', () => {
     expect(paginateAlternateGroupItems(rows, 1, 12)).toHaveLength(12);

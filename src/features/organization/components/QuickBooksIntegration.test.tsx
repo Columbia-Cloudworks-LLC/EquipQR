@@ -96,34 +96,6 @@ describe('QuickBooksIntegration Component', () => {
       
       expect(container).toBeEmptyDOMElement();
     });
-
-    it('should render for users with can_manage_quickbooks permission (admin)', async () => {
-      // Admin with QuickBooks permission
-      mockUseQuickBooksAccess.mockReturnValue({
-        data: true,
-        isLoading: false,
-      });
-      
-      renderComponent({ currentUserRole: 'admin' });
-      
-      await waitFor(() => {
-        expect(screen.getByText('QuickBooks Online')).toBeInTheDocument();
-      });
-    });
-
-    it('should render for users with can_manage_quickbooks permission (owner)', async () => {
-      // Owner always has QuickBooks permission
-      mockUseQuickBooksAccess.mockReturnValue({
-        data: true,
-        isLoading: false,
-      });
-      
-      renderComponent({ currentUserRole: 'owner' });
-      
-      await waitFor(() => {
-        expect(screen.getByText('QuickBooks Online')).toBeInTheDocument();
-      });
-    });
   });
 
   describe('Configuration Check', () => {

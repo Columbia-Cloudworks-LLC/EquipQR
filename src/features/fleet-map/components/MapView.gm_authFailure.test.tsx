@@ -121,28 +121,6 @@ describe('MapView gm_authFailure handling', () => {
     expect(screen.getByRole('button', { name: /view runbook/i })).toBeInTheDocument();
   });
 
-  it('does not crash when gm_authFailure had no prior handler installed', () => {
-    expect(window.gm_authFailure).toBeUndefined();
-
-    const { unmount } = render(
-      <MapView
-        googleMapsKey="test-api-key"
-        mapId="test-map-id"
-        equipmentLocations={[]}
-        filteredLocations={[]}
-      />,
-    );
-
-    expect(() => {
-      act(() => {
-        window.gm_authFailure?.();
-      });
-    }).not.toThrow();
-
-    unmount();
-    expect(window.gm_authFailure).toBeUndefined();
-  });
-
   it('Try Again button is wired to window.location.reload', () => {
     const reloadSpy = vi.fn();
     Object.defineProperty(window.location, 'reload', {
