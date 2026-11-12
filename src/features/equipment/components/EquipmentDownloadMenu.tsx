@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Download } from 'lucide-react';
+import { toast } from 'sonner';
 import { ExportFormatMenuItems } from '@/components/common/ExportFormatMenuItems';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,12 +11,19 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { arrayToCsv, downloadCsv, downloadJson, filenameWithDate } from '@/utils/exportUtils';
-import type { EquipmentSummary } from '@/features/equipment/services/EquipmentService';
+import {
+  EquipmentService,
+  type EquipmentSummary,
+} from '@/features/equipment/services/EquipmentService';
 import type { EquipmentRecord } from '@/features/equipment/types/equipment';
+import { useOrganization } from '@/contexts/OrganizationContext';
+import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
+import { isOrgAdminRole } from '@/features/teams/utils/teamAccessScope';
 
 /**
  * Fields the export reads. The list page supplies `EquipmentSummary` rows, which
- * omit the warranty/installation/timestamp columns, so those are optional here.
+ * omit the warranty/installation/timestamp columns, so those are optional here;
+ * the menu fetches them when the user exports (see `withExportDetails`).
  */
 export type EquipmentExportRow = Pick<
   EquipmentSummary,
@@ -69,14 +77,66 @@ function equipmentToCsvRows(equipment: EquipmentExportRow[]): string[][] {
 }
 
 const EquipmentDownloadMenu: React.FC<EquipmentDownloadMenuProps> = ({ equipment }) => {
-  const handleExportCsv = () => {
-    const rows = equipmentToCsvRows(equipment);
+  const { currentOrganization } = useOrganization();
+  const { getUserTeamIds } = useTeamMembership();
+  const [isExporting, setIsExporting] = useState(false);
+
+  /**
+   * Adds the record-level columns that summary rows omit (#1728), using the same
+   * organization and team-scoped RBAC filters as the list's summary query.
+   * Returns null (after telling the user) when they can't be loaded.
+   */
+  const withExportDetails = async (): Promise<EquipmentExportRow[] | null> => {
+    const organizationId = currentOrganization?.id;
+    if (!organizationId) {
+      toast.error('Export failed', { description: 'No organization is selected.' });
+      return null;
+    }
+    const isOrgAdmin = isOrgAdminRole(currentOrganization.userRole);
+    const result = await EquipmentService.getExportDetails(organizationId, {
+      isOrgAdmin,
+      userTeamIds: isOrgAdmin ? undefined : getUserTeamIds(),
+    });
+    if (!result.success || !result.data) {
+      toast.error('Export failed', {
+        description: 'Could not load equipment details. Please try again.',
+      });
+      return null;
+    }
+    const detailsById = new Map(result.data.map((row) => [row.id, row]));
+    return equipment.map((eq) => {
+      const details = detailsById.get(eq.id);
+      return details
+        ? {
+            ...eq,
+            warranty_expiration: details.warranty_expiration,
+            installation_date: details.installation_date,
+            created_at: details.created_at,
+            updated_at: details.updated_at,
+          }
+        : eq;
+    });
+  };
+
+  const runExport = async (write: (rows: EquipmentExportRow[]) => void) => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const rows = await withExportDetails();
+      if (rows) write(rows);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const writeCsv = (exportRows: EquipmentExportRow[]) => {
+    const rows = equipmentToCsvRows(exportRows);
     const csv = arrayToCsv(CSV_HEADERS, rows);
     downloadCsv(csv, filenameWithDate('equipment', 'csv'));
   };
 
-  const handleExportJson = () => {
-    const data = equipment.map((eq) => ({
+  const writeJson = (exportRows: EquipmentExportRow[]) => {
+    const data = exportRows.map((eq) => ({
       id: eq.id,
       name: eq.name,
       status: eq.status,
@@ -95,6 +155,9 @@ const EquipmentDownloadMenu: React.FC<EquipmentDownloadMenuProps> = ({ equipment
     downloadJson(data, filenameWithDate('equipment', 'json'));
   };
 
+  const handleExportCsv = () => void runExport(writeCsv);
+  const handleExportJson = () => void runExport(writeJson);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -103,6 +166,7 @@ const EquipmentDownloadMenu: React.FC<EquipmentDownloadMenuProps> = ({ equipment
           size="icon"
           className="h-8 w-8"
           aria-label="Download equipment"
+          disabled={isExporting}
         >
           <Download className="h-3.5 w-3.5" />
         </Button>

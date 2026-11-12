@@ -81,6 +81,21 @@ export interface EquipmentSummary {
   default_pm_template_id: string | null;
 }
 
+/**
+ * Team filter for team-scoped equipment reads. `undefined` means no team filter
+ * (org admins, or callers that don't pass memberships); an empty array means the
+ * user belongs to no teams and must see no equipment.
+ */
+function teamScopedIds(options: { userTeamIds?: string[]; isOrgAdmin?: boolean }): string[] | undefined {
+  return options.userTeamIds !== undefined && !options.isOrgAdmin ? options.userTeamIds : undefined;
+}
+
+/** Columns `EquipmentService.getExportDetails` adds to summary rows for export. */
+export type EquipmentExportDetails = Pick<
+  Tables<'equipment'>,
+  'id' | 'warranty_expiration' | 'installation_date' | 'created_at' | 'updated_at'
+>;
+
 export interface EquipmentServiceFilters extends FilterParams {
   status?: Equipment['status'];
   location?: string;
@@ -423,6 +438,11 @@ export class EquipmentService {
     options: { userTeamIds?: string[]; isOrgAdmin?: boolean } = {}
   ): Promise<ApiResponse<EquipmentSummary[]>> {
     try {
+      const teamIds = teamScopedIds(options);
+      if (teamIds?.length === 0) {
+        return createServiceSuccessResponse([]);
+      }
+
       let query = supabase
         .from('equipment')
         .select(
@@ -431,11 +451,8 @@ export class EquipmentService {
         .eq('organization_id', organizationId)
         .order('name', { ascending: true });
 
-      if (options.userTeamIds !== undefined && !options.isOrgAdmin) {
-        if (options.userTeamIds.length === 0) {
-          return createServiceSuccessResponse([]);
-        }
-        query = query.in('team_id', options.userTeamIds);
+      if (teamIds) {
+        query = query.in('team_id', teamIds);
       }
 
       const { data, error } = await query;
@@ -468,6 +485,43 @@ export class EquipmentService {
       }));
 
       return createServiceSuccessResponse(flattened);
+    } catch (error) {
+      return createServiceErrorResponse(error, 'EquipmentService error');
+    }
+  }
+
+  /**
+   * Record-level columns the equipment export needs but `getSummaries` omits
+   * (it stays narrow for Slow 4G). Fetched only when the user exports, with the
+   * same organization and team-scoped RBAC filters as `getSummaries`.
+   */
+  static async getExportDetails(
+    organizationId: string,
+    options: { userTeamIds?: string[]; isOrgAdmin?: boolean } = {}
+  ): Promise<ApiResponse<EquipmentExportDetails[]>> {
+    try {
+      const teamIds = teamScopedIds(options);
+      if (teamIds?.length === 0) {
+        return createServiceSuccessResponse([]);
+      }
+
+      let query = supabase
+        .from('equipment')
+        .select('id, warranty_expiration, installation_date, created_at, updated_at')
+        .eq('organization_id', organizationId);
+
+      if (teamIds) {
+        query = query.in('team_id', teamIds);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        logger.error('Error fetching equipment export details:', error);
+        return createServiceErrorResponse(error, 'EquipmentService error');
+      }
+
+      return createServiceSuccessResponse(data ?? []);
     } catch (error) {
       return createServiceErrorResponse(error, 'EquipmentService error');
     }
