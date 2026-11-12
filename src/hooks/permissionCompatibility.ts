@@ -23,7 +23,7 @@ export function createLegacyPermissions(permissions: UnifiedPermissions) {
     /**
      * Team-aware equipment-create gate. True for org owners/admins on every
      * team and for team managers/technicians on teams where they hold that
-     * role. Mirrors the `team_members_create_equipment` RLS policy.
+     * role. Mirrors the `equipment_insert` RLS policy.
      */
     canCreateEquipmentForTeam: (teamId: string) => permissions.equipment.canCreateForTeam(teamId),
     /**
