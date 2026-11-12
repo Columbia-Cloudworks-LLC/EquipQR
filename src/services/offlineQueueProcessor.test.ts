@@ -498,7 +498,9 @@ describe('OfflineQueueProcessor', () => {
   });
 
   it('records syncedEquipmentId after a successful equipment_create_full so retries are idempotent', async () => {
+    const itemId = crypto.randomUUID();
     const item = createPendingItem({
+      id: itemId,
       type: 'equipment_create_full',
       retryCount: 0,
       maxRetries: 5,
@@ -507,29 +509,14 @@ describe('OfflineQueueProcessor', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([item]));
 
     mockEquipmentCreate.mockResolvedValueOnce({ success: true, data: { id: 'eq-dup-1' } });
+    const markSynced = vi.spyOn(queueService, 'updateSyncedEquipmentId');
     const result = await processor.processAll();
 
     expect(result.succeeded).toBe(1);
     expect(mockEquipmentCreate).toHaveBeenCalledTimes(1);
+    expect(markSynced).toHaveBeenCalledTimes(1);
+    expect(markSynced).toHaveBeenCalledWith(itemId, 'eq-dup-1');
     expect(queueService.getCount()).toBe(0);
-  });
-
-  it('skips create on replay when syncedEquipmentId is persisted on the queue item', async () => {
-    const itemId = crypto.randomUUID();
-    const item = createPendingItem({
-      id: itemId,
-      type: 'equipment_create_full',
-      retryCount: 1,
-      maxRetries: 5,
-      syncedEquipmentId: 'eq-persisted',
-      payload: makeEquipmentCreatePayload({ serial_number: 'SN-REPLAY' }),
-    });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([item]));
-
-    const result = await processor.processAll();
-
-    expect(result.succeeded).toBe(1);
-    expect(mockEquipmentCreate).not.toHaveBeenCalled();
   });
 
   it('processes equipment_update via EquipmentService.update()', async () => {

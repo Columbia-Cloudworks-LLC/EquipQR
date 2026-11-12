@@ -63,15 +63,6 @@ describe('useAsyncOperation', () => {
       expect(result.current.error).toBeNull();
       expect(result.current.isSuccess).toBe(false);
     });
-
-    it('exposes execute, reset, and setData functions', () => {
-      const operation = vi.fn<() => Promise<null>>().mockResolvedValue(null);
-      const { result } = renderAsyncOp(operation);
-
-      expect(typeof result.current.execute).toBe('function');
-      expect(typeof result.current.reset).toBe('function');
-      expect(typeof result.current.setData).toBe('function');
-    });
   });
 
   describe('execute — happy path', () => {

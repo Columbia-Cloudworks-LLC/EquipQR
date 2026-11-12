@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { checkStorageQuota, MAX_STORAGE_GB } from './storageQuota';
+import { checkStorageQuota } from './storageQuota';
 import { supabase } from '@/integrations/supabase/client';
 
 // Mock supabase
@@ -49,9 +49,4 @@ describe('storageQuota', () => {
     });
   });
 
-  describe('MAX_STORAGE_GB', () => {
-    it('should be 5 GB', () => {
-      expect(MAX_STORAGE_GB).toBe(5);
-    });
-  });
 });

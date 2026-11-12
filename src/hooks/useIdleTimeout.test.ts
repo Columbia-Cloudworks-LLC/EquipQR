@@ -46,16 +46,6 @@ describe('useIdleTimeout', () => {
 
       expect(result.current.secondsRemaining).toBe(Math.floor(DEFAULT_WARNING_MS / 1000));
     });
-
-    it('exposes staySignedIn and signOutNow as functions', () => {
-      const onTimeout = vi.fn();
-      const { result } = renderHook(() =>
-        useIdleTimeout({ enabled: true, onTimeout })
-      );
-
-      expect(typeof result.current.staySignedIn).toBe('function');
-      expect(typeof result.current.signOutNow).toBe('function');
-    });
   });
 
   describe('when disabled', () => {
@@ -95,8 +85,12 @@ describe('useIdleTimeout', () => {
         result.current.staySignedIn();
       });
 
-      // No warning should open
+      act(() => {
+        vi.advanceTimersByTime(15_000);
+      });
+
       expect(result.current.isWarningOpen).toBe(false);
+      expect(onTimeout).not.toHaveBeenCalled();
     });
   });
 

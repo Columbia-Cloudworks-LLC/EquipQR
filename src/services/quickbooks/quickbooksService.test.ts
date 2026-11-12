@@ -221,6 +221,10 @@ describe('QuickBooks Service', () => {
       const result = await getTeamCustomerMapping(mockOrganizationId, mockTeamId);
 
       expect(result).toEqual(mockMapping);
+      expect(supabase.from).toHaveBeenCalledWith('quickbooks_team_customers');
+      expect(mockChain.eq).toHaveBeenCalledWith('organization_id', mockOrganizationId);
+      expect(mockChain.eq).toHaveBeenCalledWith('team_id', mockTeamId);
+      expect(mockChain.eq).toHaveBeenCalledTimes(2);
     });
 
     it('should return null when no mapping exists', async () => {
@@ -235,6 +239,8 @@ describe('QuickBooks Service', () => {
       const result = await getTeamCustomerMapping(mockOrganizationId, mockTeamId);
 
       expect(result).toBeNull();
+      expect(supabase.from).toHaveBeenCalledWith('quickbooks_team_customers');
+      expect(mockChain.maybeSingle).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -282,7 +288,12 @@ describe('QuickBooks Service', () => {
 
       vi.mocked(supabase.from).mockReturnValue(mockChain as unknown as ReturnType<typeof supabase.from>);
 
-      await expect(clearTeamCustomerMapping(mockOrganizationId, mockTeamId)).resolves.not.toThrow();
+      await expect(clearTeamCustomerMapping(mockOrganizationId, mockTeamId)).resolves.toBeUndefined();
+
+      expect(supabase.from).toHaveBeenCalledWith('quickbooks_team_customers');
+      expect(mockChain.delete).toHaveBeenCalledTimes(1);
+      expect(mockChain.eq).toHaveBeenNthCalledWith(1, 'organization_id', mockOrganizationId);
+      expect(mockChain.eq).toHaveBeenNthCalledWith(2, 'team_id', mockTeamId);
     });
   });
 
@@ -352,6 +363,11 @@ describe('QuickBooks Service', () => {
       const result = await getLastSuccessfulExport(mockWorkOrderId);
 
       expect(result).toEqual(mockExport);
+      expect(supabase.from).toHaveBeenCalledWith('quickbooks_export_logs');
+      expect(mockChain.eq).toHaveBeenCalledWith('work_order_id', mockWorkOrderId);
+      expect(mockChain.eq).toHaveBeenCalledWith('status', 'success');
+      expect(mockChain.order).toHaveBeenCalledWith('created_at', { ascending: false });
+      expect(mockChain.limit).toHaveBeenCalledWith(1);
     });
 
     it('should return null when no successful export exists', async () => {
@@ -368,6 +384,8 @@ describe('QuickBooks Service', () => {
       const result = await getLastSuccessfulExport(mockWorkOrderId);
 
       expect(result).toBeNull();
+      expect(supabase.from).toHaveBeenCalledWith('quickbooks_export_logs');
+      expect(mockChain.maybeSingle).toHaveBeenCalledTimes(1);
     });
   });
 
