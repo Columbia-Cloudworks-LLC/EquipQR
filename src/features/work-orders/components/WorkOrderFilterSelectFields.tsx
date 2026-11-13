@@ -1,4 +1,3 @@
-// fallow-ignore-file code-duplication
 // Duplication rationale: Filter selects share historical field wiring
 import React from 'react';
 import {

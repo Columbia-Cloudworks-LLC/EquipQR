@@ -1,4 +1,3 @@
-// fallow-ignore-file code-duplication
 // Duplication rationale: Metadata editor mirrors create dialog field styling
 
 import React, { useState, useCallback } from 'react';

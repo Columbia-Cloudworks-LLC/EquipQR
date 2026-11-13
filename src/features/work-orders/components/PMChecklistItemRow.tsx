@@ -1,4 +1,3 @@
-// fallow-ignore-file code-duplication
 // Duplication rationale: Row renderer shares PDF metadata with report export service
 import React from 'react';
 import { Button } from '@/components/ui/button';
