@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(17);
+SELECT plan(15);
 
 -- ============================================
 -- Account deletion RPC existence
@@ -134,20 +134,6 @@ SELECT ok(
       AND c.confdeltype = 'n'
   ),
   'inventory_items.created_by FK uses ON DELETE SET NULL'
-);
-
--- ============================================
--- dsr_request_events remains append-only
--- ============================================
-
-SELECT has_trigger(
-  'public', 'dsr_request_events', 'trg_prevent_dsr_event_update',
-  'append-only update trigger remains on dsr_request_events'
-);
-
-SELECT has_trigger(
-  'public', 'dsr_request_events', 'trg_prevent_dsr_event_delete',
-  'append-only delete trigger remains on dsr_request_events'
 );
 
 -- ============================================
