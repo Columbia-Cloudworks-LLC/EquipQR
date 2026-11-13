@@ -40,8 +40,11 @@ npm test -- src/path/to/file.test.ts
 # Type-check edge function entrypoints
 deno check --config supabase/functions/deno.json supabase/functions/*/index.ts
 
-# Run Edge Function tests
-deno test --config supabase/functions/deno.json --allow-env --allow-net --allow-read supabase/functions/
+# Run Edge Function tests (every *.deno.test.ts; CI runs the same script)
+npm run test:edge
+
+# Run .github/scripts node:test suites (issue automation, schema drift)
+npm run test:gh-scripts
 ```
 
 ### 4. Schema & Migrations Reference

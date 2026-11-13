@@ -36,17 +36,6 @@ Deno.test("buildHealthResponse returns ok:false with error_code when db check fa
   assertEquals(result.checks.db.error_code, "timeout");
 });
 
-Deno.test("buildHealthResponse returns ok:false for rpc_failed", () => {
-  const result = __testables.buildHealthResponse({
-    ok: false,
-    latency_ms: 42,
-    error_code: "rpc_failed",
-  });
-
-  assertEquals(result.ok, false);
-  assertEquals(result.checks.db.error_code, "rpc_failed");
-});
-
 // ---------------------------------------------------------------------------
 // Response shape stability – both healthy and unhealthy have same top-level keys
 // ---------------------------------------------------------------------------

@@ -56,7 +56,3 @@ export function sanitizeFilename(filename: string): string {
 
   return sanitized;
 }
-
-export function estimateDecodedSize(contentBase64: string): number {
-  return Math.ceil(contentBase64.length * 3 / 4);
-}

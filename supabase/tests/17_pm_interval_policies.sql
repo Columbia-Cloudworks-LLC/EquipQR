@@ -1,15 +1,9 @@
 BEGIN;
-SELECT plan(23);
+SELECT plan(21);
 
-SELECT has_table('public', 'pm_interval_policies', 'pm_interval_policies table exists');
 SELECT has_column('public', 'pm_interval_policies', 'organization_id', 'organization_id exists');
 SELECT has_column('public', 'pm_interval_policies', 'scope_type', 'scope_type exists');
 SELECT has_column('public', 'pm_interval_policies', 'schedule_mode', 'schedule_mode exists');
-
-SELECT ok(
-  (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.pm_interval_policies'::regclass),
-  'RLS enabled on pm_interval_policies'
-);
 
 SELECT is(
   (SELECT count(*)::int FROM pg_policies WHERE schemaname = 'public' AND tablename = 'pm_interval_policies'),

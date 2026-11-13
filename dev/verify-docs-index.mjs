@@ -93,7 +93,7 @@ export function findGithubShortcutRedirect(vercel) {
  * @param {string} location
  * @param {string} expected
  */
-export function locationMatchesRepo(location, expected) {
+function locationMatchesRepo(location, expected) {
   const normalized = String(location ?? '').trim().replace(/\/+$/, '');
   const wanted = expected.replace(/\/+$/, '');
   return normalized === wanted;

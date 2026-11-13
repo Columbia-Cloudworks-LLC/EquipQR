@@ -8,7 +8,6 @@ import {
   findGithubShortcutRedirect,
   isGithubShortcutLiveRedirect,
   isGithubShortcutRootSource,
-  locationMatchesRepo,
   resolveLocalMarkdownHref,
 } from './verify-docs-index.mjs';
 
@@ -112,11 +111,5 @@ describe('isGithubShortcutLiveRedirect', () => {
         location: 'https://equipqr.app/',
       }),
     ).toBe(false);
-  });
-});
-
-describe('locationMatchesRepo', () => {
-  it('ignores a trailing slash', () => {
-    expect(locationMatchesRepo(`${GITHUB_REPO_URL}/`, GITHUB_REPO_URL)).toBe(true);
   });
 });

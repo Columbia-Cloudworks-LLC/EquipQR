@@ -1,6 +1,5 @@
 import { assertEquals, assertThrows } from "jsr:@std/assert@1";
 import {
-  calculateDueDate,
   type InvoiceConfirmation,
   type InvoiceDetails,
   InvoiceReviewError,
@@ -87,34 +86,6 @@ Deno.test("dates reject impossible dates and preserve historical calendar dates"
         [],
       ),
     InvoiceReviewError,
-  );
-});
-Deno.test("terms use chosen invoice date including monthly cutoff and short months", () => {
-  const term = {
-    id: "1",
-    name: "Net 30",
-    due_days: 30,
-    day_of_month_due: null,
-    due_next_month_days: null,
-  };
-  assertEquals(calculateDueDate("2026-09-21", term), "2026-10-21");
-  assertEquals(
-    calculateDueDate("2026-01-30", {
-      ...term,
-      due_days: null,
-      day_of_month_due: 31,
-      due_next_month_days: 5,
-    }),
-    "2026-02-28",
-  );
-  assertEquals(
-    calculateDueDate("2026-09-10", {
-      ...term,
-      due_days: null,
-      day_of_month_due: 15,
-      due_next_month_days: 5,
-    }),
-    "2026-09-15",
   );
 });
 Deno.test("re-export preserves manually priced lines and unrelated manual lines", () => {

@@ -37,7 +37,7 @@ As the product and test suite scale:
 
 Shared Vitest harness (setup, fixtures, mocks, journey renderers) lives at repo-root **`vitest/`** and is imported as `@vitest-harness/...`. It is not a place for product suites.
 
-Playwright end-to-end specs stay under `e2e/` (separate from Vitest). Deno edge tests use `*.deno.test.ts` next to edge modules.
+Playwright end-to-end specs stay under `e2e/` (separate from Vitest). Deno edge tests use `*.deno.test.ts` next to edge modules; `npm run test:edge` runs all of them and CI runs it in the `Edge Function & Script Tests` job of `ci.yml`.
 
 ## Test Infrastructure
 

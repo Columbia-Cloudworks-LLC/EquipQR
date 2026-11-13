@@ -259,3 +259,87 @@ Deno.test("resolveLimit defaults to 50000", () => {
   assertEquals(__fetchRowsTestables.resolveLimit(), 50_000);
   assertEquals(__fetchRowsTestables.resolveLimit(100), 100);
 });
+
+// ---------------------------------------------------------------------------
+// Work-order team scope (requestor/viewer exports; see work-order-export-auth.ts)
+// ---------------------------------------------------------------------------
+
+type RecordedCall = { method: string; args: unknown[] };
+
+/** Chainable query stub: records every builder call and resolves to no rows. */
+function createRecordingClient(options: { rpc?: boolean; rpcError?: boolean } = {}) {
+  const calls: RecordedCall[] = [];
+  const rpcCalls: Array<{ fn: string; args: Record<string, unknown> }> = [];
+  const chain: Record<string, unknown> = new Proxy({}, {
+    get(_target, prop: string) {
+      if (prop === "then") {
+        return (resolve: (value: unknown) => unknown) => resolve({ data: [], error: null });
+      }
+      return (...args: unknown[]) => {
+        calls.push({ method: prop, args });
+        return chain;
+      };
+    },
+  });
+  const client = {
+    from(table: string) {
+      calls.push({ method: "from", args: [table] });
+      return chain;
+    },
+    ...(options.rpc
+      ? {
+        rpc(fn: string, args: Record<string, unknown>) {
+          rpcCalls.push({ fn, args });
+          return Promise.resolve(
+            options.rpcError ? { data: null, error: { message: "missing" } } : { data: [], error: null },
+          );
+        },
+      }
+      : {}),
+  };
+  return { client, calls, rpcCalls };
+}
+
+async function fetchWorkOrders(client: unknown, accessibleTeamIds: string[] | undefined) {
+  const { fetchReportRows } = await import("./fetch-rows.ts");
+  return fetchReportRows(client as never, {
+    reportType: "work-orders",
+    organizationId: "org-1",
+    filters: {},
+    columns: ["title"],
+    accessibleTeamIds,
+    limit: 10,
+  });
+}
+
+Deno.test("work-order export with an empty team scope returns no rows without querying", async () => {
+  const { client, calls, rpcCalls } = createRecordingClient({ rpc: true });
+  assertEquals(await fetchWorkOrders(client, []), []);
+  assertEquals(calls, []);
+  assertEquals(rpcCalls, []);
+});
+
+Deno.test("work-order export RPC receives the caller's accessible team ids", async () => {
+  const { client, rpcCalls } = createRecordingClient({ rpc: true });
+  await fetchWorkOrders(client, ["team-1", "team-2"]);
+  assertEquals(rpcCalls.length, 1);
+  assertEquals(rpcCalls[0]!.args.p_accessible_team_ids, ["team-1", "team-2"]);
+  assertEquals(rpcCalls[0]!.args.p_organization_id, "org-1");
+});
+
+Deno.test("work-order export table fallback filters by the equipment team for scoped callers", async () => {
+  const { client, calls } = createRecordingClient({ rpc: true, rpcError: true });
+  await fetchWorkOrders(client, ["team-1"]);
+  const teamFilters = calls.filter((call) => call.method === "in");
+  assertEquals(teamFilters, [{ method: "in", args: ["equipment.team_id", ["team-1"]] }]);
+  assertEquals(
+    calls.some((call) => call.method === "eq" && call.args[0] === "organization_id" && call.args[1] === "org-1"),
+    true,
+  );
+});
+
+Deno.test("work-order export table fallback applies no team filter for org admins", async () => {
+  const { client, calls } = createRecordingClient();
+  await fetchWorkOrders(client, undefined);
+  assertEquals(calls.filter((call) => call.method === "in"), []);
+});

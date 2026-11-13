@@ -34,24 +34,3 @@ export async function resolveWorkOrderExportAccess(
   const teamIds = [...new Set(memberships.map((row) => row.team_id as string))];
   return { mode: "scoped", teamIds };
 }
-
-export function isWorkOrderExportAccessible(
-  access: WorkOrderExportAccess,
-  teamId: string | null | undefined,
-  equipmentId: string | null | undefined,
-): boolean {
-  if (!equipmentId) {
-    return false;
-  }
-  if (access.mode === "admin") {
-    return true;
-  }
-  if (!teamId) {
-    return false;
-  }
-  return access.teamIds.includes(teamId);
-}
-
-export const __workOrderExportAuthTestables = {
-  SCOPED_TEAM_ROLES,
-};

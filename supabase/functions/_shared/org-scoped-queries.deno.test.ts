@@ -1,5 +1,4 @@
 import { assert, assertEquals } from "jsr:@std/assert@1";
-import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import {
   applyOrganizationScope,
   exportReportRequestSchema,
@@ -13,35 +12,23 @@ import {
   withOrgAdminScope,
   withOrgScope,
 } from "./org-scoped-queries.ts";
+import { createPostgrestStub } from "./postgrest-test-stub.ts";
 
 const ORG_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "22222222-2222-4222-8222-222222222222";
 
-type MembershipRow = { role: string } | null;
+type MembershipRow = { role: string; status?: string } | null;
 
-function createMembershipMock(
-  row: MembershipRow,
-  options?: { adminOnly?: boolean; queryError?: boolean },
-): SupabaseClient {
-  return {
-    from: (table: string) => {
-      assertEquals(table, "organization_members");
-      const chain: Record<string, unknown> = {};
-      chain.select = () => chain;
-      chain.eq = () => chain;
-      chain.in = () => chain;
-      chain.maybeSingle = () => {
-        if (options?.queryError) {
-          return Promise.resolve({ data: null, error: { code: "XX000", message: "db error" } });
-        }
-        if (options?.adminOnly && row && !["owner", "admin"].includes(row.role)) {
-          return Promise.resolve({ data: null, error: null });
-        }
-        return Promise.resolve({ data: row, error: null });
-      };
-      return chain;
-    },
-  } as unknown as SupabaseClient;
+/**
+ * Real Supabase client over a PostgREST stub (see postgrest-test-stub.ts):
+ * the query's own filters are applied to the row (status defaults to
+ * "active"), so a production query that drops a filter gets the row back.
+ */
+function createMembershipMock(row: MembershipRow, options?: { queryError?: boolean }) {
+  return createPostgrestStub(
+    { organization_members: row ? [{ status: "active", ...row }] : [] },
+    { failTables: options?.queryError ? ["organization_members"] : [] },
+  );
 }
 
 // =============================================================================
@@ -135,7 +122,7 @@ Deno.test("resolveInventoryScanRequestSchema accepts optional org", () => {
 // =============================================================================
 
 Deno.test("requireOrgMembership returns role for active member", async () => {
-  const supabase = createMembershipMock({ role: "member" });
+  const { client: supabase } = createMembershipMock({ role: "member" });
   const result = await requireOrgMembership(supabase, USER_ID, ORG_ID);
   assert(!("error" in result));
   if (!("error" in result)) {
@@ -145,7 +132,7 @@ Deno.test("requireOrgMembership returns role for active member", async () => {
 });
 
 Deno.test("requireOrgMembership rejects non-member", async () => {
-  const supabase = createMembershipMock(null);
+  const { client: supabase } = createMembershipMock(null);
   const result = await requireOrgMembership(supabase, USER_ID, ORG_ID);
   assert("error" in result);
   if ("error" in result) {
@@ -154,13 +141,13 @@ Deno.test("requireOrgMembership rejects non-member", async () => {
 });
 
 Deno.test("requireOrgAdminAccess allows owner", async () => {
-  const supabase = createMembershipMock({ role: "owner" });
+  const { client: supabase } = createMembershipMock({ role: "owner" });
   const result = await requireOrgAdminAccess(supabase, USER_ID, ORG_ID);
   assert("ok" in result);
   assertEquals(result.ok, true);
 });
 Deno.test("requireOrgMembership returns 500 on query failure", async () => {
-  const supabase = createMembershipMock(null, { queryError: true });
+  const { client: supabase } = createMembershipMock(null, { queryError: true });
   const result = await requireOrgMembership(supabase, USER_ID, ORG_ID);
   assert("error" in result);
   if ("error" in result) {
@@ -169,7 +156,7 @@ Deno.test("requireOrgMembership returns 500 on query failure", async () => {
 });
 
 Deno.test("requireOrgAdminAccess returns 500 on query failure", async () => {
-  const supabase = createMembershipMock({ role: "admin" }, { queryError: true });
+  const { client: supabase } = createMembershipMock({ role: "admin" }, { queryError: true });
   const result = await requireOrgAdminAccess(supabase, USER_ID, ORG_ID);
   assert("error" in result);
   if ("error" in result) {
@@ -177,10 +164,34 @@ Deno.test("requireOrgAdminAccess returns 500 on query failure", async () => {
   }
 });
 
+Deno.test("requireOrgAdminAccess filters to active owner/admin rows", async () => {
+  const { client: supabase, queries } = createMembershipMock({ role: "admin" });
+  await requireOrgAdminAccess(supabase, USER_ID, ORG_ID);
+  assertEquals(queries.length, 1);
+  assertEquals(queries[0]!.filters, {
+    user_id: `eq.${USER_ID}`,
+    organization_id: `eq.${ORG_ID}`,
+    status: "eq.active",
+    role: "in.(owner,admin)",
+  });
+});
+
 Deno.test("requireOrgAdminAccess rejects member", async () => {
-  const supabase = createMembershipMock({ role: "member" }, { adminOnly: true });
+  const { client: supabase } = createMembershipMock({ role: "member" });
   const result = await requireOrgAdminAccess(supabase, USER_ID, ORG_ID);
   assert("error" in result);
+  if ("error" in result) {
+    assertEquals(result.status, 403);
+  }
+});
+
+Deno.test("requireOrgAdminAccess rejects an admin whose membership is not active", async () => {
+  const { client: supabase } = createMembershipMock({ role: "admin", status: "pending" });
+  const result = await requireOrgAdminAccess(supabase, USER_ID, ORG_ID);
+  assert("error" in result);
+  if ("error" in result) {
+    assertEquals(result.status, 403);
+  }
 });
 
 // =============================================================================
@@ -188,7 +199,7 @@ Deno.test("requireOrgAdminAccess rejects member", async () => {
 // =============================================================================
 
 Deno.test("withOrgScope runs callback when member", async () => {
-  const supabase = createMembershipMock({ role: "admin" });
+  const { client: supabase } = createMembershipMock({ role: "admin" });
   const result = await withOrgScope(
     supabase,
     USER_ID,
@@ -203,7 +214,7 @@ Deno.test("withOrgScope runs callback when member", async () => {
 });
 
 Deno.test("withOrgScope blocks non-member before callback", async () => {
-  const supabase = createMembershipMock(null);
+  const { client: supabase } = createMembershipMock(null);
   let callbackRan = false;
   const result = await withOrgScope(
     supabase,
@@ -219,7 +230,7 @@ Deno.test("withOrgScope blocks non-member before callback", async () => {
 });
 
 Deno.test("withOrgAdminScope runs callback for admin", async () => {
-  const supabase = createMembershipMock({ role: "admin" });
+  const { client: supabase } = createMembershipMock({ role: "admin" });
   const result = await withOrgAdminScope(
     supabase,
     USER_ID,

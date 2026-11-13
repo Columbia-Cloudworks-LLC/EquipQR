@@ -169,6 +169,34 @@ jobs:
       # so a bare `tsc --noEmit` checks nothing. Check each project.
       run: npm run type-check
 
+  edge-and-script-tests:
+    # Vitest excludes supabase/functions/**/*.deno.test.ts and .github/scripts
+    # *.test.js (node:test); this job is the only automated runner for both.
+    name: Edge Function & Script Tests
+    runs-on: ${{ vars.USE_SELF_HOSTED == 'true' && fromJSON('["self-hosted","Linux"]') || fromJSON('["ubuntu-24.04"]') }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+    - name: Setup Node.js
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Install Deno (pinned, checksum-verified)
+      run: |
+        bash dev/linux/install-deno.sh
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+    - name: Run Edge Function Deno tests
+      run: npm run test:edge
+
+    - name: Run .github/scripts node:test suites
+      run: npm run test:gh-scripts
+
   test:
     # Sharded test execution. Each shard runs roughly 1/N of the suite in
     # parallel. Per-shard Vitest also uses up to 2 file workers on Linux CI

@@ -3,7 +3,7 @@
 -- sync must revoke only Workspace-derived access.
 
 BEGIN;
-SELECT plan(16);
+SELECT plan(18);
 
 CREATE TEMP TABLE gws_contract_ids (
   label text PRIMARY KEY,
@@ -355,6 +355,16 @@ SELECT has_function(
   'directory reconciliation RPC exists'
 );
 
+SELECT is(
+  has_function_privilege(
+    'authenticated',
+    'public.reconcile_google_workspace_directory(uuid, timestamptz)',
+    'EXECUTE'
+  ),
+  false,
+  'reconcile_google_workspace_directory is not executable by authenticated'
+);
+
 SELECT lives_ok(
   $$
     SELECT public.reconcile_google_workspace_directory(
@@ -391,6 +401,12 @@ SELECT is(
   'active',
   'sync preserves separately manual memberships even when a Workspace claim is revoked'
 );
+
+-- A second claimed domain: disconnect must release every claim the org holds,
+-- not only the one stored on the credential row.
+INSERT INTO public.workspace_domains (domain, organization_id)
+VALUES ('extra-contract.test', (SELECT id FROM gws_contract_ids WHERE label = 'org'))
+ON CONFLICT (domain) DO NOTHING;
 
 INSERT INTO public.google_workspace_credentials (
   organization_id,
@@ -431,6 +447,14 @@ SELECT is(
       AND organization_id = (SELECT id FROM gws_contract_ids WHERE label = 'org')),
   0,
   'disconnect releases workspace domain claim'
+);
+
+SELECT is(
+  (SELECT count(*)::integer
+     FROM public.workspace_domains
+    WHERE organization_id = (SELECT id FROM gws_contract_ids WHERE label = 'org')),
+  0,
+  'disconnect releases all workspace domain claims for the organization'
 );
 
 SELECT * FROM finish();

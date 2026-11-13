@@ -58,7 +58,6 @@ export async function parseSheetsExportRequest(
 }
 
 export const __gwSheetsRequestTestables = {
-  VALID_SHEETS_EXPORT_DATE_FIELDS,
   isValidSheetsExportDateField,
   validateSheetsExportRequest,
 };
