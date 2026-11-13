@@ -9,12 +9,6 @@ import { z } from 'zod';
 import type { Json, Tables } from '@/integrations/supabase/types';
 
 // ============================================
-// Core Status Type
-// ============================================
-
-export type EquipmentStatus = 'active' | 'maintenance' | 'inactive';
-
-// ============================================
 // Location Types
 // ============================================
 

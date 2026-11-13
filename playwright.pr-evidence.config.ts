@@ -1,4 +1,3 @@
-// fallow-ignore-file unused-file
 import path from 'path';
 import { defineConfig, devices } from '@playwright/test';
 import {
