@@ -1,7 +1,30 @@
 import type { UpdateWorkOrderData } from '@/features/work-orders/hooks/useWorkOrderUpdate';
+import type { WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 import type { Database } from '@/integrations/supabase/types';
 
 export type WorkOrderTableUpdate = Database['public']['Tables']['work_orders']['Update'];
+
+/** Statuses that reopen a work order, so any earlier completion date is cleared. */
+const REOPENED_STATUSES: readonly WorkOrderStatus[] = ['submitted', 'accepted', 'assigned', 'in_progress'];
+
+/**
+ * Builds the `work_orders` payload for a status change: stamps `completed_date`
+ * when completing, clears it when reopening, and leaves it as-is otherwise.
+ */
+export function buildWorkOrderStatusUpdatePayload(newStatus: WorkOrderStatus): WorkOrderTableUpdate {
+  const updateData: WorkOrderTableUpdate = {
+    status: newStatus,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (newStatus === 'completed') {
+    updateData.completed_date = new Date().toISOString();
+  }
+  if (REOPENED_STATUSES.includes(newStatus)) {
+    updateData.completed_date = null;
+  }
+  return updateData;
+}
 
 /** Maps camelCase work-order update fields to Supabase `work_orders` column payload. */
 export function buildWorkOrderUpdatePayload(data: UpdateWorkOrderData): WorkOrderTableUpdate {
