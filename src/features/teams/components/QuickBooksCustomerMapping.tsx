@@ -1,4 +1,3 @@
-// fallow-ignore-file code-duplication
 // Duplication rationale: Repeated mapping row blocks per customer are intentional
 /**
  * QuickBooks Customer Mapping Component

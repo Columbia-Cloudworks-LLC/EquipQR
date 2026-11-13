@@ -1,4 +1,3 @@
-// fallow-ignore-file code-duplication
 // Duplication rationale: Service repeats org-scoped equipment resolution for filters
 import { BaseService, ApiResponse, PaginationParams, FilterParams } from '@/services/base/BaseService';
 import { applySupabasePaginationRange } from '@/services/supabaseQueryPagination';

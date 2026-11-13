@@ -1,4 +1,3 @@
-// fallow-ignore-file code-duplication
 // Duplication rationale: Large PM template editor mirrors read-only PMTemplateView layout by design
 import React, { forwardRef, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/button';

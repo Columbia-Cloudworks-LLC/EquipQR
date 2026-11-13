@@ -1,4 +1,3 @@
-// fallow-ignore-file code-duplication
 // Duplication rationale: Desktop filters mirror mobile toolbar semantics
 import React from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';

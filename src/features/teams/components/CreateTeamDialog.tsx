@@ -1,4 +1,3 @@
-// fallow-ignore-file code-duplication
 // Duplication rationale: Create dialog shares native select styling with metadata editor
 
 import React, { useState, useCallback } from 'react';

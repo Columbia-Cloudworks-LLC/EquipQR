@@ -1,4 +1,3 @@
-// fallow-ignore-file code-duplication
 // Duplication rationale: Ledger equipment filter mirrors template assignment popover UX.
 import { useMemo, useState } from 'react';
 import { ChevronDown, Truck } from 'lucide-react';

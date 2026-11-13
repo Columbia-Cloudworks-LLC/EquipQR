@@ -56,6 +56,11 @@ const LandingHeader = () => {
 
   const activeSection = useActiveSection(isOnMarketingHome ? SECTION_IDS : []);
   const activeSectionToUse = isOnMarketingHome ? activeSection : null;
+  // Section links are only highlighted on the landing page itself.
+  const isNavItemActive = (href: string) =>
+    isOnMarketingHome && href.startsWith('#') && activeSectionToUse
+      ? `#${activeSectionToUse}` === href
+      : false;
   return (
     <header className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -71,13 +76,7 @@ const LandingHeader = () => {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-4 lg:gap-6">
             {navigation.map((item) => {
-              const isHash = item.href.startsWith('#');
-              // Active logic only on landing page
-              let isActive = false;
-              if (isOnMarketingHome && isHash) {
-                isActive = activeSectionToUse ? `#${activeSectionToUse}` === item.href : false;
-              }
-              
+              const isActive = isNavItemActive(item.href);
               return (
                 <a
                   key={item.name}
@@ -142,10 +141,7 @@ const LandingHeader = () => {
                     <nav className="flex flex-col gap-1" aria-label="Marketing page sections">
                       {navigation.map((item) => {
                         const isHash = item.href.startsWith('#');
-                        let isActive = false;
-                        if (isOnMarketingHome && isHash) {
-                          isActive = activeSectionToUse ? `#${activeSectionToUse}` === item.href : false;
-                        }
+                        const isActive = isNavItemActive(item.href);
 
                         const href =
                           isHash && !isOnMarketingHome ? `/${item.href}` : item.href;

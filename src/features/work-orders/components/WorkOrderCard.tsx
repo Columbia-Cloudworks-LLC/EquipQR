@@ -1,4 +1,3 @@
-// fallow-ignore-file code-duplication
 // Duplication rationale: Card layout repeats status and assignee chips across variants
 /**
  * Unified Work Order Card Component
