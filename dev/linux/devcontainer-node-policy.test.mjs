@@ -2,9 +2,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { requiredNodeMajor } from './prereq.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+
+/** Major version from an engines.node range such as "24.x". */
+function requiredNodeMajor(enginesNode) {
+  const match = /^(\d+)/.exec(String(enginesNode ?? '').trim());
+  return match ? Number.parseInt(match[1], 10) : null;
+}
 
 describe('dev container Node policy', () => {
   it('installs the same Node major that package.json engines.node declares', () => {
