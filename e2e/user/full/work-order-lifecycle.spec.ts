@@ -21,6 +21,8 @@ test.describe('work order lifecycle @full', () => {
       page.getByRole('heading', { name: new RegExp(seedWorkOrders.oilChange.title, 'i') }).first(),
     ).toBeVisible({ timeout: 60_000 });
     await expect(page.getByText(/in progress/i).first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole('button', { name: /^complete$/i }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /^put on hold$/i }).first()).toBeVisible();
   });
 
   test('completed work order shows completed status', async ({ page, assertHealthyShell }) => {

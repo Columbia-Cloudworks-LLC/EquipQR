@@ -5,7 +5,7 @@ import {
   quickLogin,
   signInWithEmailPassword,
 } from '../shared/auth-helpers';
-import { personas } from '../shared/seed-data';
+import { personas, seedEquipment } from '../shared/seed-data';
 
 test.describe('auth lifecycle @critical', () => {
   test.use({ storageState: { cookies: [], origins: [] } });
@@ -13,6 +13,11 @@ test.describe('auth lifecycle @critical', () => {
   test('protected route redirects unauthenticated users to auth', async ({ page }) => {
     await page.goto('/dashboard/equipment');
     await expect(page).toHaveURL(/\/auth/i, { timeout: 60_000 });
+  });
+
+  test('equipment QR scan redirects unauthenticated users to sign-in', async ({ page }) => {
+    await page.goto(`/qr/equipment/${seedEquipment.cat320.id}`);
+    await expect(page).toHaveURL(/\/auth\?tab=signin/i, { timeout: 60_000 });
   });
 
   test('pending redirect is restored after email sign-in', async ({ page }) => {
