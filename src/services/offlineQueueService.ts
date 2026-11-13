@@ -136,6 +136,11 @@ export interface OfflineQueueStatusItem extends OfflineQueueItemBase {
   payload: {
     workOrderId: string;
     newStatus: WorkOrderStatus;
+    /**
+     * Assignee to set with the status ("Assign & Start"). `undefined` leaves
+     * the assignee unchanged; `null` unassigns.
+     */
+    assigneeId?: string | null;
     /** Snapshot of the work order's updated_at when the status change was made. */
     serverUpdatedAt?: string;
   };
@@ -396,6 +401,22 @@ function compactPmUpdate(
   existing.timestamp = pmUpdateItem.timestamp;
 }
 
+/**
+ * The latest status change for a work order wins, except that a superseded
+ * change which set an assignee ("Assign & Start") is kept so its assignee and
+ * acceptance date still reach the server.
+ */
+function compactWorkOrderStatus(
+  state: OfflineQueueCompactionState,
+  statusItem: OfflineQueueStatusItem,
+): void {
+  const existing = state.statusMap.get(statusItem.payload.workOrderId);
+  if (existing && existing.payload.assigneeId !== undefined && statusItem.payload.assigneeId === undefined) {
+    state.compacted.push(existing);
+  }
+  state.statusMap.set(statusItem.payload.workOrderId, statusItem);
+}
+
 function compactQueueItem(item: OfflineQueueItem, state: OfflineQueueCompactionState): void {
   switch (item.type) {
     case 'work_order_create':
@@ -405,7 +426,7 @@ function compactQueueItem(item: OfflineQueueItem, state: OfflineQueueCompactionS
       compactWorkOrderUpdate(state.updateMap, item);
       break;
     case 'work_order_status':
-      state.statusMap.set(item.payload.workOrderId, item);
+      compactWorkOrderStatus(state, item);
       break;
     case 'equipment_update':
       compactEquipmentUpdate(state.equipmentUpdateMap, item);

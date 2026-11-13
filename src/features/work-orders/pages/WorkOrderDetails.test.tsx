@@ -73,10 +73,6 @@ vi.mock('@/features/work-orders/hooks/useWorkOrderEquipment', () => ({
   useWorkOrderEquipment: vi.fn(() => ({ data: [] })),
 }));
 
-vi.mock('@/features/work-orders/hooks/useWorkOrderData', () => ({
-  useUpdateWorkOrderStatus: vi.fn(() => ({ isPending: false, mutate: vi.fn() })),
-}));
-
 vi.mock('@/features/work-orders/hooks/useWorkOrderStatusUpdate', () => ({
   useWorkOrderStatusUpdate: vi.fn(() => ({ isPending: false, mutate: vi.fn() })),
 }));

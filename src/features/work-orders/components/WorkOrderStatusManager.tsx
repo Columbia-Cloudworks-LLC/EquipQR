@@ -43,6 +43,7 @@ type StatusWorkOrder = {
   has_pm?: boolean;
   assignee_id?: string | null;
   created_by?: string | null;
+  updated_at?: string | null;
   assigneeName?: string | null;
   teamName?: string | null;
   acceptance_date?: string | null;
@@ -124,8 +125,8 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     try {
       await updateStatusMutation.mutateAsync({
         workOrderId: workOrder.id,
-        status: 'cancelled',
-        organizationId
+        newStatus: 'cancelled',
+        serverUpdatedAt: workOrder.updated_at ?? undefined,
       });
       setShowCancelDialog(false);
     } catch (error) {
@@ -137,8 +138,8 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     try {
       await updateStatusMutation.mutateAsync({
         workOrderId: workOrder.id,
-        status: 'completed',
-        organizationId
+        newStatus: 'completed',
+        serverUpdatedAt: workOrder.updated_at ?? undefined,
       });
       setShowCompleteDialog(false);
     } catch (error) {
@@ -153,8 +154,8 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     try {
       await updateStatusMutation.mutateAsync({
         workOrderId: workOrder.id,
-        status: 'in_progress',
-        organizationId,
+        newStatus: 'in_progress',
+        serverUpdatedAt: workOrder.updated_at ?? undefined,
         assigneeId: effectiveStartAssigneeId
       });
       setSelectedAssigneeForStart(''); // Reset after successful update

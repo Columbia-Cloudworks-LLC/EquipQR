@@ -141,8 +141,8 @@ describe('WorkOrderStatusManager', () => {
     await waitFor(() => {
       expect(mockMutateAsync).toHaveBeenCalledWith({
         workOrderId: 'wo-1',
-        status: 'in_progress',
-        organizationId: 'org-1',
+        newStatus: 'in_progress',
+        serverUpdatedAt: undefined,
         assigneeId: 'user-1',
       });
     });

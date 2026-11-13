@@ -7,11 +7,11 @@ import { logger } from '@/utils/logger';
 // Import and re-export unified types from the single source of truth
 import {
   WorkOrder,
-  WorkOrderRow,
   WorkOrderCreateData,
   WorkOrderServiceFilters,
 } from '@/features/work-orders/types/workOrder';
 import { applyWorkOrderSupabaseFilters } from '@/features/work-orders/utils/workOrderSupabaseFilters';
+import { buildWorkOrderStatusUpdatePayload } from '@/features/work-orders/utils/workOrderUpdatePayload';
 import {
   WORK_ORDER_SELECT,
   mapWorkOrderRow,
@@ -204,34 +204,7 @@ export class WorkOrderService extends BaseService {
    */
   async updateStatus(id: string, status: WorkOrder['status'], assigneeId?: string | null): Promise<ApiResponse<WorkOrder>> {
     try {
-      const updateData: Partial<WorkOrderRow> = { 
-        status,
-        updated_at: new Date().toISOString()
-      };
-
-      // Set assignee_id if provided (undefined = don't change; null = unassign; string = assign)
-      if (assigneeId !== undefined) {
-        updateData.assignee_id = assigneeId;
-      }
-
-      // Set completed_date if transitioning to completed
-      if (status === 'completed') {
-        updateData.completed_date = new Date().toISOString();
-      }
-
-      // Set acceptance_date when transitioning to accepted, assigned, or in_progress with a
-      // valid assignee. The in_progress case covers the "Assign & Start" flow where a work order
-      // skips the 'assigned' state and goes directly from 'accepted' to 'in_progress' with an
-      // assigneeId — without this, acceptance_date would remain null.
-      const hasValidAssignee = assigneeId != null && assigneeId !== '';
-      if (status === 'accepted' || ((status === 'assigned' || status === 'in_progress') && hasValidAssignee)) {
-        updateData.acceptance_date = new Date().toISOString();
-      }
-
-      // Clear completed_date when reopening
-      if (status === 'submitted' || status === 'accepted' || status === 'assigned' || status === 'in_progress') {
-        updateData.completed_date = null;
-      }
+      const updateData = buildWorkOrderStatusUpdatePayload(status, assigneeId);
 
       const { error } = await supabase
         .from('work_orders')

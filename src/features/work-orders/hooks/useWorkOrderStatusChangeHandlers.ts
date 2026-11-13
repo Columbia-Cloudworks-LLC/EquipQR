@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useUpdateWorkOrderStatus } from '@/features/work-orders/hooks/useWorkOrderData';
+import { useWorkOrderStatusUpdate } from '@/features/work-orders/hooks/useWorkOrderStatusUpdate';
 import { useWorkOrderAcceptance } from '@/features/work-orders/hooks/useWorkOrderAcceptance';
 import { usePMByWorkOrderId } from '@/features/pm-templates/hooks/usePMData';
 import { useWorkOrderPermissionLevels } from '@/features/work-orders/hooks/useWorkOrderPermissionLevels';
@@ -20,6 +20,8 @@ type StatusChangeWorkOrder = {
   has_pm?: boolean;
   assignee_id?: string | null;
   created_by?: string | null;
+  /** Server `updated_at` as last seen; lets offline replay detect conflicts. */
+  updated_at?: string | null;
 };
 
 export function useWorkOrderStatusChangeHandlers(
@@ -29,7 +31,7 @@ export function useWorkOrderStatusChangeHandlers(
   onCancelled?: () => void,
   onCompleted?: () => void,
 ) {
-  const updateStatusMutation = useUpdateWorkOrderStatus();
+  const updateStatusMutation = useWorkOrderStatusUpdate();
   const acceptanceMutation = useWorkOrderAcceptance();
   const { data: pmData } = usePMByWorkOrderId(workOrder.id);
   const { isManager, isTechnician } = useWorkOrderPermissionLevels();
@@ -88,8 +90,8 @@ export function useWorkOrderStatusChangeHandlers(
       try {
         await updateStatusMutation.mutateAsync({
           workOrderId: workOrder.id,
-          status: newStatus,
-          organizationId,
+          newStatus,
+          serverUpdatedAt: workOrder.updated_at ?? undefined,
         });
       } catch (error) {
         console.error('Error updating work order status:', error);
@@ -100,11 +102,11 @@ export function useWorkOrderStatusChangeHandlers(
       workOrder.has_pm,
       workOrder.id,
       workOrder.status,
+      workOrder.updated_at,
       pmData,
       onAccepted,
       onCancelled,
       onCompleted,
-      organizationId,
       updateStatusMutation,
     ],
   );

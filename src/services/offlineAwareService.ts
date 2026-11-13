@@ -195,22 +195,28 @@ export class OfflineAwareWorkOrderService {
 
   // ── Status Change ──────────────────────────────────────────────────────
 
+  /**
+   * @param assigneeId - `undefined` leaves the assignee unchanged, `null`
+   *   unassigns, a user id assigns ("Assign & Start").
+   */
   async updateStatus(
     workOrderId: string,
     newStatus: WorkOrderStatus,
     serverUpdatedAt?: string,
+    assigneeId?: string | null,
   ): Promise<OfflineAwareResult<Record<string, unknown>>> {
     // ── TIER 1: Fast pre-check ──
     if (!navigator.onLine) {
-      return this.queueStatus(workOrderId, newStatus, serverUpdatedAt);
+      return this.queueStatus(workOrderId, newStatus, serverUpdatedAt, assigneeId);
     }
 
     // ── TIER 2: Attempt real call ──
     try {
       const { data, error } = await supabase
         .from('work_orders')
-        .update(buildWorkOrderStatusUpdatePayload(newStatus))
+        .update(buildWorkOrderStatusUpdatePayload(newStatus, assigneeId))
         .eq('id', workOrderId)
+        .eq('organization_id', this.orgId)
         .select()
         .single();
 
@@ -218,7 +224,7 @@ export class OfflineAwareWorkOrderService {
       return { data, queuedOffline: false };
     } catch (error) {
       if (isNetworkError(error)) {
-        return this.queueStatus(workOrderId, newStatus, serverUpdatedAt);
+        return this.queueStatus(workOrderId, newStatus, serverUpdatedAt, assigneeId);
       }
       throw error;
     }
@@ -303,11 +309,17 @@ export class OfflineAwareWorkOrderService {
     workOrderId: string,
     newStatus: WorkOrderStatus,
     serverUpdatedAt?: string,
+    assigneeId?: string | null,
   ): OfflineAwareResult<Record<string, unknown>> {
     return this.enqueueOffline(
       {
         type: 'work_order_status',
-        payload: { workOrderId, newStatus, serverUpdatedAt },
+        payload: {
+          workOrderId,
+          newStatus,
+          serverUpdatedAt,
+          ...(assigneeId !== undefined ? { assigneeId } : {}),
+        },
       },
       {
         queued: 'Work order status queued offline',

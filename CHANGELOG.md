@@ -25,6 +25,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 - **Removed unused code (#1718)** — Deleted about 20 old files that nothing in the app used any more (leftover billing code, old data services, unused equipment screens, utilities and hooks) along with their tests. No change to how EquipQR works.
 - **Quieter release checks (#1710)** — The production release check no longer reports a failure when a release was already promoted by hand. No change to how EquipQR works.
 
+### Fixed
+
+- **Work order status changes save offline on desktop (#1751)** — Start Work, Put on Hold, Complete and Cancel on the desktop work order page and the work orders list now save offline and sync when the connection returns, as they already did on mobile. Offline "Assign & Start" also keeps the assignee and acceptance date.
+
 ## [3.40.0] - 2026-11-10
 
 ### Added

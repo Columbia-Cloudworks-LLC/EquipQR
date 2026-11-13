@@ -271,7 +271,7 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
   }) as QueueItemHandler<never>,
 
   work_order_status: (async (item: OfflineQueueStatusItem, replay) => {
-    const { workOrderId, newStatus, serverUpdatedAt } = item.payload;
+    const { workOrderId, newStatus, assigneeId, serverUpdatedAt } = item.payload;
     const resolvedWorkOrderId = replay.resolveWorkOrderId(workOrderId);
 
     // ── Server-wins conflict detection for status ──
@@ -313,7 +313,7 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
     // Apply status change
     const { error } = await supabase
       .from('work_orders')
-      .update(buildWorkOrderStatusUpdatePayload(newStatus))
+      .update(buildWorkOrderStatusUpdatePayload(newStatus, assigneeId))
       .eq('id', resolvedWorkOrderId)
       .eq('organization_id', item.organizationId)
       .select()

@@ -293,6 +293,33 @@ describe('OfflineQueueProcessor', () => {
     expect(eqCalls).toContainEqual(['organization_id', ORG_ID]);
   });
 
+  it('replays work_order_status with the same columns as an online status change', async () => {
+    const item = createPendingItem({
+      type: 'work_order_status',
+      payload: { workOrderId: 'wo-123', newStatus: 'in_progress', assigneeId: 'user-9' },
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([item]));
+
+    const eqMock = vi.fn(() => ({
+      eq: eqMock,
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({ data: {}, error: null }),
+      }),
+    }));
+    const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
+    mockSupabaseFrom.mockReturnValue({ update: updateMock });
+
+    const result = await processor.processAll();
+    expect(result.succeeded).toBe(1);
+    expect(updateMock).toHaveBeenCalledWith({
+      status: 'in_progress',
+      updated_at: expect.any(String),
+      assignee_id: 'user-9',
+      acceptance_date: expect.any(String),
+      completed_date: null,
+    });
+  });
+
   it('invalidates query caches after successful sync', async () => {
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
