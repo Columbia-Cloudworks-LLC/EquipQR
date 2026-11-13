@@ -48,6 +48,55 @@ suppressed rules: `MD013` / `MD024` / `MD025` / `MD033` / `MD036` /
 `npm run lint:md` scopes to `.agents/**` and `AGENTS.md`; legacy
 `docs/**` is out of enforced scope until migrated.
 
+**Fallow exceptions policy:** `npm run lint:all` requires the fallow
+dead-code scan to report 0 issues and the duplication scan 0 clone
+groups. Reach zero by fixing findings, not by adding exceptions:
+
+1. Fix the finding first; an exception is the last resort.
+2. Make an exception as narrow as fallow allows: one export name, not
+   `"*"`; one line (`fallow-ignore-next-line`), not the whole file.
+3. Directory-level ignores whose path explains them (generated code,
+   vendored UI kit, test harness) need no comment. Every other exception
+   needs a one-line reason, either next to it or in the list below,
+   because `.fallowrc.json` cannot hold comments.
+
+Reasons for the `.fallowrc.json` entries that are not self-explanatory:
+
+- `ignoreExports` `src/pages/features/data/*Data.ts`: the marketing
+  feature pages share one data shape, so each file exports the same six
+  names (`benefits`, `capabilities`, `content`, `heroIcon`, `showcases`,
+  `steps`). This would trigger `duplicate-exports`. fallow 2.88.0 does not
+  apply per-file `overrides` to that rule, so the six names are listed
+  instead of `"*"`.
+- `ignoreDependencies` `@size-limit/file`: a `size-limit` plugin that is
+  loaded by name from the `size-limit` key in `package.json`, never
+  imported.
+- `ignoreDependencies` `tailwindcss-animate`: loaded by
+  `tailwind.config.ts`. The scanner counts that file as test-only.
+- `ignoreDependencies` `us-atlas`: `npm run generate:state-vectors`
+  (`dev/generate-state-vectors.mjs`) reads its JSON from `node_modules`
+  by file path, which the scanner cannot see.
+- `usedClassMembers` `invalidateOrganizationMemberRelated`,
+  `invalidateOrganizationInvitationRelated`: called through the
+  `cacheManager` singleton in `src/services/backgroundSync.ts`, which the
+  scanner does not trace.
+- `entry`: scripts run from `package.json`, workflows, shell scripts or
+  docs rather than imported. `dev/**/*.test.mjs` is listed because the
+  scanner does not treat `*.test.mjs` as tests, while `vitest.config.ts`
+  runs them. `dev/invoice-export-smoke.deno.ts` is a manual smoke test
+  (run it with `deno run -A dev/invoice-export-smoke.deno.ts` against a
+  running local Supabase stack). It drives the real QuickBooks invoice
+  export handler with an in-memory Intuit fixture.
+- Inline `fallow-ignore-next-line unused-class-member` on
+  `generateWorksheet` / `generatePDF` in the work-order PDF services: both
+  are called on the instance returned by `create()`, whose type the
+  scanner cannot follow.
+
+`npm run fallow:scan:production` runs the dead-code scan without counting
+tests as usage. It is a report, not a gate: it still lists test-support
+files and some exports that only tests reach, and fallow has no
+production-only ignore patterns to scope those out.
+
 ### Naming Conventions
 
 - **Variables/Functions**: camelCase (e.g., `fetchEquipment`)

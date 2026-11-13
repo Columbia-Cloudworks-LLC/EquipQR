@@ -1,11 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
   "ignoreDependencies": [
-    "size-limit",
     "@size-limit/file",
     "tailwindcss-animate",
-    "us-atlas",
-    "xlsx"
+    "us-atlas"
   ],
   "ignorePatterns": [
     "vitest/**",
@@ -37,10 +35,7 @@
     "playwright.user.config.ts",
     "src/sw.ts",
     "dev/check-root-layout.mjs",
-    "dev/check-main-branch-migrations.mjs",
     "dev/check-missing-migrations.mjs",
-    "dev/create-missing-migrations.mjs",
-    "dev/fix-main-branch-migrations.mjs",
     "dev/reconcile-advisor-rpc-warnings.mjs",
     "dev/supabase-fix-migrations.mjs",
     "dev/test-ci.mjs",
@@ -49,19 +44,19 @@
     "dev/upload-screenshot.ts",
     "dev/dfy/provision-yard.mjs",
     "dev/docs-media/print-storage-path.ts",
-    "dev/run-vitest-local.test.mjs",
-    "dev/vitest-perf/report-vitest-durations.test.mjs",
     "dev/vitest-perf/publish-duration-pr-comment.mjs",
     "dev/cloud-agent/seed-quick-login.mjs",
     "dev/linux/prereq.mjs",
     "dev/linux/sync-local-supabase-env.mjs",
-    "dev/linux/devcontainer-node-policy.test.mjs",
-    "dev/linux/prereq.test.mjs",
-    "dev/linux/sync-local-supabase-env.test.mjs",
     "dev/ci/check-github-environment-names.mjs",
-    "dev/ci/check-github-environment-names.test.mjs",
     "dev/ci/assert-preview-env-present.sh",
-    "dev/linux/stack.mjs"
+    "dev/linux/stack.mjs",
+    "dev/**/*.test.mjs",
+    "dev/pr-evidence/reset-fresh-start-onboarding.ts",
+    "dev/qbo/qbo-browser-signin.mjs",
+    "docs/public/sw.js",
+    "playwright.pr-evidence.config.ts",
+    "playwright.screen-catalog.config.ts"
   ],
   "ignoreExports": [
     {
@@ -73,37 +68,12 @@
     {
       "file": "src/pages/features/data/*Data.ts",
       "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/equipment/types/equipment.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/work-orders/services/workOrderNotesService.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/utils/google-workspace.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "supabase/functions/_shared/work-order-google-docs-single-data.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/pages/features/data/qrCodeIntegrationData.ts",
-      "exports": [
-        "*"
+        "benefits",
+        "capabilities",
+        "content",
+        "heroIcon",
+        "showcases",
+        "steps"
       ]
     },
     {
@@ -111,19 +81,9 @@
       "exports": [
         "*"
       ]
-    },
-    {
-      "file": "vitest/**",
-      "exports": [
-        "*"
-      ]
     }
   ],
   "usedClassMembers": [
-    "clear",
-    "updatePayload",
-    "getById",
-    "retryFailedItems",
     "invalidateOrganizationMemberRelated",
     "invalidateOrganizationInvitationRelated"
   ]

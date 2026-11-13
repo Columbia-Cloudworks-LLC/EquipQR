@@ -1,4 +1,3 @@
-// fallow-ignore-file unused-file
 /**
  * Kill-switch service worker for equipqr.info
  *
