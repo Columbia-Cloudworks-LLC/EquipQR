@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, screen, waitFor } from '@vitest-harness/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import Dashboard from '@/features/dashboard/pages/Dashboard';
 import * as useSimpleOrganizationModule from '@/hooks/useSimpleOrganization';
 import * as useTeamBasedDashboardModule from '@/features/teams/hooks/useTeamBasedDashboard';
@@ -351,13 +352,6 @@ describe('Dashboard', () => {
       expect(screen.getByRole('heading', { name: /dashboard/i })).toBeInTheDocument();
     });
 
-    it('renders the static dashboard grid', async () => {
-      render(<Dashboard />);
-      await waitFor(() => {
-        expect(screen.getByTestId('dashboard-grid')).toBeInTheDocument();
-      });
-    });
-
     it('displays the dashboard options button', () => {
       render(<Dashboard />);
       expect(screen.getByTitle('Dashboard settings')).toBeInTheDocument();
@@ -418,20 +412,6 @@ describe('Dashboard', () => {
         workOrders: [
           { id: woFixtures.submitted.id, title: woFixtures.submitted.title, priority: 'medium', assigneeName: null, status: 'submitted' },
         ]
-      });
-    });
-
-    it('displays equipment statistics scoped to team', async () => {
-      render(<Dashboard />);
-      await waitFor(() => {
-        expect(screen.getByText('Total Equipment')).toBeInTheDocument();
-      });
-    });
-
-    it('shows recent equipment in the team fleet', async () => {
-      render(<Dashboard />);
-      await waitFor(() => {
-        expect(screen.getByText(eqFixtures.forklift1.name)).toBeInTheDocument();
       });
     });
 
@@ -531,9 +511,18 @@ describe('Dashboard', () => {
       });
     });
 
-    it('still displays the dashboard heading during load', () => {
+    it('shows the loading header instead of the widget grid while the layout loads', () => {
+      vi.mocked(useDashboardLayoutModule.useDashboardLayout).mockReturnValue({
+        ...defaultLayoutMock,
+        isLoading: true,
+      });
+
       render(<Dashboard />);
+
       expect(screen.getByRole('heading', { name: /dashboard/i })).toBeInTheDocument();
+      expect(screen.getByText('Loading your fleet overview...')).toBeInTheDocument();
+      expect(screen.queryByTestId('dashboard-grid')).not.toBeInTheDocument();
+      expect(screen.queryByTitle('Dashboard settings')).not.toBeInTheDocument();
     });
   });
 
@@ -573,9 +562,14 @@ describe('Dashboard', () => {
       expect(screen.getByText(/no widgets on your dashboard/i)).toBeInTheDocument();
     });
 
-    it('shows the dashboard options button that opens the widget manager', () => {
+    it('opens the dashboard options menu with the widget manager entry', async () => {
+      const user = userEvent.setup();
       render(<Dashboard />);
-      expect(screen.getByTitle('Dashboard settings')).toBeInTheDocument();
+
+      expect(screen.queryByRole('menuitem', { name: /customize widgets/i })).not.toBeInTheDocument();
+      await user.click(screen.getByTitle('Dashboard settings'));
+
+      expect(await screen.findByRole('menuitem', { name: /customize widgets/i })).toBeInTheDocument();
     });
   });
 

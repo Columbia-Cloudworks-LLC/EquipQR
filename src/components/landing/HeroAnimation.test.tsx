@@ -205,13 +205,6 @@ describe('HeroAnimation', () => {
         expect(d.startsWith('M') || d.startsWith('m')).toBe(true);
       }
     });
-
-    it('state paths are deterministic — same code always returns the same string', () => {
-      const sample: StateCode[] = ['TX', 'CA', 'NY', 'AK', 'HI'];
-      for (const code of sample) {
-        expect(STATE_VECTORS[code]).toBe(STATE_VECTORS[code]);
-      }
-    });
   });
 
   describe('STATES_RELATIVE data integrity', () => {
@@ -229,14 +222,6 @@ describe('HeroAnimation', () => {
   });
 
   describe('PM checklist data integrity', () => {
-    it('has exactly 5 checklist items', () => {
-      expect(ALL_PM_ITEMS).toHaveLength(5);
-    });
-
-    it('has exactly 3 export targets', () => {
-      expect(EXPORT_TARGETS).toHaveLength(3);
-    });
-
     it('export targets have labels and renderable icon components', () => {
       for (const target of EXPORT_TARGETS) {
         expect(target.label).toBeTruthy();

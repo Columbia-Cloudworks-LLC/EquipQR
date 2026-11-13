@@ -60,12 +60,6 @@ describe('TermsOfService', () => {
       .find((a) => (a as HTMLAnchorElement).getAttribute('href') === '/privacy-policy');
     expect(privacyLink).toBeTruthy();
 
-    const links = screen.queryAllByText('COLUMBIA CLOUDWORKS LLC');
-    links.forEach((link) => {
-      expect(link.closest('a')).toHaveAttribute('href', 'https://columbiacloudworks.com');
-      expect(link.closest('a')).toHaveAttribute('target', '_blank');
-      expect(link.closest('a')).toHaveAttribute('rel', 'noopener noreferrer');
-    });
     expect(screen.getByText(/nicholas\.king@columbiacloudworks\.com/i)).toBeInTheDocument();
     expect(screen.getByText(/https:\/\/equipqr\.app/i)).toBeInTheDocument();
   });

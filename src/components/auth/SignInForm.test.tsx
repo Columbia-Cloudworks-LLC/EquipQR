@@ -296,24 +296,4 @@ describe('SignInForm', () => {
     expect(mockSignIn).toHaveBeenCalledTimes(1);
     expect(mockSignIn).toHaveBeenCalledWith('test@example.com', 'password123');
   });
-
-  it('should handle form reset correctly', () => {
-    render(<SignInForm {...defaultProps} />);
-    revealEmailSignIn();
-
-    const emailInput = screen.getByLabelText('Email');
-    const passwordInput = screen.getByLabelText('Password');
-
-    fillFormFast();
-
-    expect(emailInput).toHaveValue('test@example.com');
-    expect(passwordInput).toHaveValue('password123');
-
-    // Clear inputs using fireEvent
-    fireEvent.change(emailInput, { target: { value: '' } });
-    fireEvent.change(passwordInput, { target: { value: '' } });
-
-    expect(emailInput).toHaveValue('');
-    expect(passwordInput).toHaveValue('');
-  });
 });

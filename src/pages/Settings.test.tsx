@@ -105,56 +105,22 @@ describe('Settings Page', () => {
       expect(screen.getByText('test@test.com')).toBeInTheDocument();
     });
 
-    it('renders settings navigation', () => {
+    it('composes the navigation and every settings section', () => {
       render(<Settings />);
 
-      expect(screen.getByTestId('settings-nav')).toBeInTheDocument();
-    });
-
-    it('renders profile settings section', () => {
-      render(<Settings />);
-
-      expect(screen.getByTestId('profile-settings')).toBeInTheDocument();
-    });
-
-    it('renders personalization settings section', () => {
-      render(<Settings />);
-
-      expect(screen.getByTestId('personalization-settings')).toBeInTheDocument();
-    });
-
-    it('renders notification settings section', () => {
-      render(<Settings />);
-
-      expect(screen.getByTestId('notification-settings')).toBeInTheDocument();
-    });
-
-    it('renders email privacy settings section', () => {
-      render(<Settings />);
-
-      expect(screen.getByTestId('email-privacy-settings')).toBeInTheDocument();
-    });
-
-    it('renders security status section', () => {
-      render(<Settings />);
-
-      expect(screen.getByTestId('security-status')).toBeInTheDocument();
-    });
-
-    it('renders session status section', () => {
-      render(<Settings />);
-
-      expect(screen.getByTestId('session-status')).toBeInTheDocument();
-    });
-
-    it('renders sensitive privacy settings section', () => {
-      render(<Settings />);
-      expect(screen.getByTestId('sensitive-privacy-settings')).toBeInTheDocument();
-    });
-
-    it('renders the diagnostic session data setting in Privacy', () => {
-      render(<Settings />);
-      expect(screen.getByTestId('telemetry-consent-settings')).toBeInTheDocument();
+      for (const testId of [
+        'settings-nav',
+        'profile-settings',
+        'personalization-settings',
+        'notification-settings',
+        'email-privacy-settings',
+        'security-status',
+        'session-status',
+        'sensitive-privacy-settings',
+        'telemetry-consent-settings',
+      ]) {
+        expect(screen.getByTestId(testId)).toBeInTheDocument();
+      }
     });
 
     it('renders privacy rights links', () => {

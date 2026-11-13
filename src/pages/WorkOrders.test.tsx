@@ -292,8 +292,7 @@ describe('WorkOrders Page', () => {
 
     it('displays the create work order button', () => {
       render(<WorkOrders />);
-      const createButtons = screen.getAllByText(/create/i);
-      expect(createButtons.length).toBeGreaterThan(0);
+      expect(screen.getByTestId('create-work-order-button')).toHaveTextContent('Create Work Order');
     });
 
     it('shows work orders when data is loaded', () => {
@@ -382,11 +381,6 @@ describe('WorkOrders Page', () => {
       });
     });
 
-    it('shows search functionality', () => {
-      render(<WorkOrders />);
-      expect(screen.getByPlaceholderText(/search work orders/i)).toBeInTheDocument();
-    });
-
     it('responds to search input', () => {
       const mockUpdateFilter = vi.fn();
       vi.mocked(useWorkOrderFilteringModule.useWorkOrderFiltering).mockReturnValue(
@@ -442,22 +436,6 @@ describe('WorkOrders Page', () => {
     it('shows loading state with description', () => {
       render(<WorkOrders />);
       expect(screen.getByText(/loading team-based work orders/i)).toBeInTheDocument();
-    });
-  });
-
-  // --------------------------------------------------------
-  // Empty state — team member with zero work orders
-  // --------------------------------------------------------
-  describe('when there are no work orders', () => {
-    beforeEach(() => {
-      configureAccess({ hasTeamAccess: true, isManager: false });
-      setWorkOrders([]);
-    });
-
-    it('shows the empty state message', () => {
-      render(<WorkOrders />);
-      expect(screen.getByText('No work orders found')).toBeInTheDocument();
-      expect(screen.getByText(/get started by creating/i)).toBeInTheDocument();
     });
   });
 

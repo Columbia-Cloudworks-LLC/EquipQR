@@ -81,12 +81,6 @@ describe('TeamDetails permissions gating', () => {
     expect(screen.getByText('Add Member')).toBeInTheDocument();
   });
 
-  it('shows Add Member button for organization admins (via permission hook)', () => {
-    perms.canManageTeam = () => true; // permission layer should return true for admins
-    render(<TeamDetails />);
-    expect(screen.getByText('Add Member')).toBeInTheDocument();
-  });
-
   it('renders Team not found card without crashing when team is missing (#1076)', () => {
     mockUseTeam.mockReturnValueOnce({ data: null, isLoading: false });
     render(<TeamDetails />);

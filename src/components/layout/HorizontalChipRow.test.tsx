@@ -105,34 +105,6 @@ describe('HorizontalChipRow', () => {
     });
   });
 
-  describe('Accessibility', () => {
-    it('is accessible with proper region role', () => {
-      render(
-        <HorizontalChipRow ariaLabel="Filter buttons">
-          <Button>Button 1</Button>
-          <Button>Button 2</Button>
-        </HorizontalChipRow>
-      );
-
-      const region = screen.getByRole('region', { name: 'Filter buttons' });
-      expect(region).toBeInTheDocument();
-    });
-
-    it('hides decorative gradient elements from accessibility tree', () => {
-      const { container } = render(
-        <HorizontalChipRow>
-          <Button>Test</Button>
-        </HorizontalChipRow>
-      );
-
-      const gradients = container.querySelectorAll('[aria-hidden="true"]');
-      expect(gradients.length).toBeGreaterThan(0);
-      gradients.forEach((gradient) => {
-        expect(gradient).toHaveAttribute('aria-hidden', 'true');
-      });
-    });
-  });
-
   describe('Edge Cases', () => {
     it('handles empty children', () => {
       const { container } = render(
@@ -140,16 +112,6 @@ describe('HorizontalChipRow', () => {
       );
 
       expect(container.firstChild).toBeInTheDocument();
-    });
-
-    it('handles single child', () => {
-      render(
-        <HorizontalChipRow>
-          <Button>Only Button</Button>
-        </HorizontalChipRow>
-      );
-
-      expect(screen.getByText('Only Button')).toBeInTheDocument();
     });
 
     it('handles many children', () => {

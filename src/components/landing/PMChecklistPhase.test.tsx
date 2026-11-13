@@ -59,17 +59,11 @@ describe('PMChecklistPhase', () => {
     vi.useRealTimers();
   });
 
-  it('renders the phase container', () => {
-    renderChecklist();
-    expect(screen.getByTestId('pm-checklist-phase')).toBeInTheDocument();
-  });
-
   it('renders all 5 checklist item elements after box expands', () => {
     renderChecklist();
     for (const item of ALL_PM_ITEMS) {
       expect(screen.getByTestId(`checklist-item-${item.id}`)).toBeInTheDocument();
     }
-    expect(ALL_PM_ITEMS).toHaveLength(5);
   });
 
   it('shows the correct checklist item titles', () => {
@@ -84,13 +78,6 @@ describe('PMChecklistPhase', () => {
     for (const title of expectedTitles) {
       expect(screen.getByText(title)).toBeInTheDocument();
     }
-  });
-
-  it('export button is visible immediately (before any checks)', () => {
-    renderChecklist({ exportSeed: 0 });
-    // Button is always rendered — no timer needed
-    const btn = screen.getByTestId('export-button');
-    expect(btn).toBeInTheDocument();
   });
 
   it('export button label matches one of the three EXPORT_TARGETS', () => {
@@ -118,13 +105,15 @@ describe('PMChecklistPhase', () => {
     expect(btn.className).not.toContain('opacity-60');
   });
 
-  it('each exportSeed value maps to a deterministic export target', () => {
-    const seenTargets = EXPORT_TARGETS.map((_, i) => {
-      const { unmount } = renderChecklist({ exportSeed: i });
-      unmount();
-      return EXPORT_TARGETS[Math.abs(i) % EXPORT_TARGETS.length].label;
-    });
-    expect(new Set(seenTargets).size).toBe(3);
+  it.each([
+    [0, 'Export to QuickBooks'],
+    [1, 'Export to Google Drive'],
+    [2, 'Export to Excel'],
+    [3, 'Export to QuickBooks'],
+    [-1, 'Export to Google Drive'],
+  ])('exportSeed %i labels the export button %s', (exportSeed, expectedLabel) => {
+    renderChecklist({ exportSeed });
+    expect(screen.getByTestId('export-button')).toHaveTextContent(expectedLabel);
   });
 
   it('renders with slideDirection right without crashing', () => {

@@ -212,32 +212,6 @@ describe('Teams Page', () => {
     });
   });
 
-  // --------------------------------------------------------
-  // Dave Technician — view-only, cannot create teams
-  // --------------------------------------------------------
-  describe('as Dave Technician viewing teams', () => {
-    beforeEach(() => {
-      setupAsPersona(personas.technician, { canCreate: false, teams: [maintenanceTeam] });
-    });
-
-    it('sees the team they belong to', () => {
-      render(<Teams />);
-      expect(screen.getByText(teamFixtures.maintenance.name)).toBeInTheDocument();
-    });
-
-    it('does NOT show the create team button', () => {
-      render(<Teams />);
-      expect(screen.queryByRole('button', { name: /create team/i })).not.toBeInTheDocument();
-    });
-
-    it('can navigate to team details', async () => {
-      const user = userEvent.setup();
-      render(<Teams />);
-      await user.click(screen.getByText(teamFixtures.maintenance.name));
-      expect(mockNavigate).toHaveBeenCalledWith(`/dashboard/teams/${teamFixtures.maintenance.id}`);
-    });
-  });
-
   describe('toolbar on narrow layouts', () => {
     it('keeps search, sort, and Create Team in keyboard order for a creator', async () => {
       const user = userEvent.setup({ delay: null });

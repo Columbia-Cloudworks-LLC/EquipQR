@@ -288,12 +288,21 @@ describe('InvitationAccept Page', () => {
       } as ReturnType<typeof useAuthModule.useAuth>);
 
       mockRpc.mockResolvedValue({ data: [mockInvitation], error: null });
+      // vitest/setup.ts replaces window.location with a plain object, so set its fields directly.
+      const { pathname, search } = window.location;
+      window.location.pathname = '/invitation/valid-token';
+      window.location.search = '?ref=email';
 
-      render(<InvitationAccept />);
+      try {
+        render(<InvitationAccept />);
 
-      await waitFor(() => {
-        expect(sessionStorage.getItem('pendingRedirect')).toBeDefined();
-      });
+        await waitFor(() => {
+          expect(sessionStorage.getItem('pendingRedirect')).toBe('/invitation/valid-token?ref=email');
+        });
+      } finally {
+        window.location.pathname = pathname;
+        window.location.search = search;
+      }
     });
   });
 });
