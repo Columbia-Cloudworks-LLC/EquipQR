@@ -46,8 +46,6 @@
     "dev/docs-media/print-storage-path.ts",
     "dev/vitest-perf/publish-duration-pr-comment.mjs",
     "dev/cloud-agent/seed-quick-login.mjs",
-    "dev/linux/prereq.mjs",
-    "dev/linux/sync-local-supabase-env.mjs",
     "dev/ci/check-github-environment-names.mjs",
     "dev/ci/assert-preview-env-present.sh",
     "dev/linux/stack.mjs",
