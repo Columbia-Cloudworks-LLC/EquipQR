@@ -108,6 +108,7 @@ export const WorkOrderDesktopCard: React.FC<WorkOrderCardProps> = memo(({
                   has_pm: workOrder.has_pm,
                   assignee_id: resolveWorkOrderAssignment(workOrder).id,
                   created_by: workOrder.created_by,
+                  updated_at: workOrder.updated_at,
                 }}
                 organizationId={workOrder.organization_id}
               />

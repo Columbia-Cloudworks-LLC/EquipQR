@@ -5,7 +5,8 @@ import { Plus, ShieldCheck, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useTeamBasedWorkOrders, useTeamBasedAccess } from '@/features/teams/hooks/useTeamBasedWorkOrders';
-import { useUpdateWorkOrderStatus } from '@/features/work-orders/hooks/useWorkOrderData';
+import { useWorkOrderStatusUpdate } from '@/features/work-orders/hooks/useWorkOrderStatusUpdate';
+import { Constants } from '@/integrations/supabase/types';
 import { useWorkOrderAcceptance } from '@/features/work-orders/hooks/useWorkOrderAcceptance';
 import { useBatchAssignUnassignedWorkOrders } from '@/features/work-orders/hooks/useBatchAssignUnassignedWorkOrders';
 import { useWorkOrderFiltering } from '@/features/work-orders/hooks/useWorkOrderFiltering';
@@ -117,7 +118,7 @@ const WorkOrders = () => {
     getActiveFilterCount,
   } = useWorkOrderFiltering();
 
-  const updateStatusMutation = useUpdateWorkOrderStatus();
+  const updateStatusMutation = useWorkOrderStatusUpdate();
   const acceptanceMutation = useWorkOrderAcceptance();
   const batchAssignMutation = useBatchAssignUnassignedWorkOrders();
 
@@ -293,12 +294,14 @@ const WorkOrders = () => {
 
   const handleStatusUpdate = async (workOrderId: string, newStatus: string) => {
     if (!currentOrganization) return;
-    
+    const status = Constants.public.Enums.work_order_status.find(value => value === newStatus);
+    if (!status) return;
+
     try {
       await updateStatusMutation.mutateAsync({
         workOrderId,
-        status: newStatus,
-        organizationId: currentOrganization.id
+        newStatus: status,
+        serverUpdatedAt: workOrders.find(wo => wo.id === workOrderId)?.updated_at ?? undefined,
       });
     } catch (error) {
       console.error('Error updating status:', error);

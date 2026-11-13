@@ -15,6 +15,7 @@ interface WorkOrderPrimaryActionButtonProps {
     has_pm?: boolean;
     assignee_id?: string | null;
     created_by?: string;
+    updated_at?: string | null;
   };
   organizationId?: string; // Optional for backward compatibility, but will use context if not provided
 }

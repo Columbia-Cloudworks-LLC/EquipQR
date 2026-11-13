@@ -383,6 +383,32 @@ describe('OfflineQueueService', () => {
       }
     });
 
+    it('keeps a superseded status change that set an assignee', () => {
+      const svc = createService();
+      svc.enqueue({
+        type: 'work_order_status',
+        payload: { workOrderId: 'wo-1', newStatus: 'in_progress' as const, assigneeId: 'user-1' },
+        organizationId: ORG_ID,
+        userId: USER_ID,
+      });
+      svc.enqueue({
+        type: 'work_order_status',
+        payload: { workOrderId: 'wo-1', newStatus: 'on_hold' as const },
+        organizationId: ORG_ID,
+        userId: USER_ID,
+      });
+
+      svc.compact();
+
+      const statuses = svc.getAll().map(item =>
+        item.type === 'work_order_status' ? [item.payload.newStatus, item.payload.assigneeId] : null,
+      );
+      expect(statuses).toEqual([
+        ['in_progress', 'user-1'],
+        ['on_hold', undefined],
+      ]);
+    });
+
     it('preserves creates and sorts by timestamp', () => {
       const svc = createService();
       svc.enqueue(makeCreateInput());

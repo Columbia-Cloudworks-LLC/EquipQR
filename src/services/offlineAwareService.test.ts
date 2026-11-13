@@ -298,13 +298,17 @@ describe('OfflineAwareWorkOrderService', () => {
     it('sends the status payload with completed_date when online', async () => {
       Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
 
-      const update = vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          select: vi.fn().mockReturnValue({
-            single: vi.fn().mockResolvedValue({ data: { id: 'wo-1' }, error: null }),
-          }),
+      const eqCalls: Array<[string, string]> = [];
+      const filter = {
+        eq: vi.fn((column: string, value: string) => {
+          eqCalls.push([column, value]);
+          return filter;
         }),
-      });
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: { id: 'wo-1' }, error: null }),
+        }),
+      };
+      const update = vi.fn().mockReturnValue(filter);
       mockSupabaseFrom.mockReturnValue({ update });
 
       const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
@@ -314,6 +318,52 @@ describe('OfflineAwareWorkOrderService', () => {
       expect(update).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'completed', completed_date: expect.any(String) }),
       );
+      expect(eqCalls).toEqual([
+        ['id', 'wo-1'],
+        ['organization_id', ORG_ID],
+      ]);
+    });
+
+    it('sends assignee_id and acceptance_date online for Assign & Start', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+
+      const filter = {
+        eq: vi.fn(() => filter),
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: { id: 'wo-1' }, error: null }),
+        }),
+      };
+      const update = vi.fn().mockReturnValue(filter);
+      mockSupabaseFrom.mockReturnValue({ update });
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      await svc.updateStatus('wo-1', 'in_progress', undefined, 'user-1');
+
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'in_progress',
+          assignee_id: 'user-1',
+          acceptance_date: expect.any(String),
+        }),
+      );
+    });
+
+    it('queues the assignee with the status when offline', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true, writable: true });
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      await svc.updateStatus('wo-1', 'in_progress', '2026-01-01T00:00:00.000Z', 'user-1');
+
+      const [item] = queueReader.getAll();
+      expect(item.type).toBe('work_order_status');
+      expect(item.payload).toEqual({
+        workOrderId: 'wo-1',
+        newStatus: 'in_progress',
+        serverUpdatedAt: '2026-01-01T00:00:00.000Z',
+        assigneeId: 'user-1',
+      });
+
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
     });
   });
 

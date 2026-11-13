@@ -8,17 +8,36 @@ export type WorkOrderTableUpdate = Database['public']['Tables']['work_orders']['
 const REOPENED_STATUSES: readonly WorkOrderStatus[] = ['submitted', 'accepted', 'assigned', 'in_progress'];
 
 /**
- * Builds the `work_orders` payload for a status change: stamps `completed_date`
- * when completing, clears it when reopening, and leaves it as-is otherwise.
+ * Builds the `work_orders` payload for a status change. Online updates, the
+ * offline-aware service and offline queue replay all use it, so every path
+ * writes the same columns:
+ * - `assignee_id`: set when `assigneeId` is given (`undefined` leaves it alone,
+ *   `null` unassigns)
+ * - `acceptance_date`: stamped on `accepted`, and on `assigned` / `in_progress`
+ *   when an assignee is given (the "Assign & Start" flow skips `assigned`)
+ * - `completed_date`: stamped when completing, cleared when reopening
  */
-export function buildWorkOrderStatusUpdatePayload(newStatus: WorkOrderStatus): WorkOrderTableUpdate {
+export function buildWorkOrderStatusUpdatePayload(
+  newStatus: WorkOrderStatus,
+  assigneeId?: string | null,
+): WorkOrderTableUpdate {
+  const now = new Date().toISOString();
   const updateData: WorkOrderTableUpdate = {
     status: newStatus,
-    updated_at: new Date().toISOString(),
+    updated_at: now,
   };
 
+  if (assigneeId !== undefined) {
+    updateData.assignee_id = assigneeId;
+  }
+
+  const hasAssignee = assigneeId != null && assigneeId !== '';
+  if (newStatus === 'accepted' || ((newStatus === 'assigned' || newStatus === 'in_progress') && hasAssignee)) {
+    updateData.acceptance_date = now;
+  }
+
   if (newStatus === 'completed') {
-    updateData.completed_date = new Date().toISOString();
+    updateData.completed_date = now;
   }
   if (REOPENED_STATUSES.includes(newStatus)) {
     updateData.completed_date = null;

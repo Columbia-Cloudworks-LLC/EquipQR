@@ -190,6 +190,7 @@ export function WorkOrderDetailsMobileContent({
       has_pm: workOrder.has_pm ?? false,
       assignee_id: workOrder.assignee_id,
       created_by: workOrder.created_by,
+      updated_at: workOrder.updated_at,
     },
     currentOrganization.id,
     () => {
@@ -281,14 +282,14 @@ export function WorkOrderDetailsMobileContent({
     try {
       await updateStatusMutation.mutateAsync({
         workOrderId: workOrder.id,
-        status: 'cancelled',
-        organizationId: currentOrganization.id,
+        newStatus: 'cancelled',
+        serverUpdatedAt: workOrder.updated_at ?? undefined,
       });
       setShowCancelDialog(false);
     } catch {
       // Mutation surfaces errors via toast/global handler
     }
-  }, [currentOrganization.id, updateStatusMutation, workOrder.id]);
+  }, [updateStatusMutation, workOrder.id, workOrder.updated_at]);
 
   return (
     <>
