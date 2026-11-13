@@ -12,4 +12,20 @@ test.describe('settings profile @full', () => {
       timeout: 60_000,
     });
   });
+
+  test('settings privacy section links to the DSR cockpit', async ({
+    gotoDashboard,
+    page,
+    assertHealthyShell,
+  }) => {
+    await gotoDashboard('/settings');
+    await assertHealthyShell();
+    await expect(page.getByRole('heading', { name: /^privacy$/i })).toBeVisible({ timeout: 60_000 });
+    await page.getByRole('link', { name: /dsr cockpit/i }).click();
+    await expect(page).toHaveURL(/\/dashboard\/dsr\/?$/);
+    await assertHealthyShell();
+    await expect(page.getByRole('heading', { name: /^dsr cockpit$/i })).toBeVisible({
+      timeout: 60_000,
+    });
+  });
 });

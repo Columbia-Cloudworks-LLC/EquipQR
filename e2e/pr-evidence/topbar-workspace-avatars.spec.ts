@@ -24,25 +24,16 @@ test.describe('PR evidence TopBar workspace avatars @pr-evidence', () => {
     });
     await expect(teamTrigger).toBeVisible();
 
-    // Prefer a named team that has a seeded image when available.
+    // Apex's logo and the Heavy Equipment team image are seeded (supabase/seed-images/README.md).
     await teamTrigger.click();
-    const heavyTeam = page.getByRole('menuitem', {
-      name: /heavy equipment team/i,
-    });
-    if (await heavyTeam.isVisible().catch(() => false)) {
-      await heavyTeam.click();
-    } else {
-      await page.keyboard.press('Escape');
-    }
+    await page.getByRole('menuitem', { name: /heavy equipment team/i }).click();
 
     await evidencePause(page, 800);
 
-    const orgLogo = orgTrigger.getByRole('img').first();
-    // Logo may be absent on orgs without seed images; assert chrome either way.
-    const hasOrgLogo = await orgLogo.isVisible().catch(() => false);
-    if (hasOrgLogo) {
-      await expect(orgLogo).toHaveAttribute('alt', /logo$/i);
-    }
+    await expect(orgTrigger.getByRole('img', { name: /apex construction company logo/i })).toBeVisible();
+    await expect(
+      page.getByRole('img', { name: /heavy equipment team team image/i }).first(),
+    ).toBeVisible({ timeout: 30_000 });
 
     const refreshedTeamTrigger = page.getByRole('button', {
       name: /switch team \(current:/i,
@@ -72,21 +63,18 @@ test.describe('PR evidence TopBar workspace avatars @pr-evidence', () => {
     const workspace = page.getByRole('button', { name: /workspace:/i });
     await expect(workspace).toBeVisible();
 
-    // Select Heavy Equipment when present so the team avatar can resolve.
+    // Select Heavy Equipment so the seeded team image shows beside the org logo.
     await workspace.click();
     const sheet = page.getByRole('dialog', { name: /workspace/i });
     await expect(sheet).toBeVisible();
-    const heavyOption = sheet.getByRole('button', {
-      name: /heavy equipment team/i,
-    });
-    if (await heavyOption.isVisible().catch(() => false)) {
-      await heavyOption.click();
-    } else {
-      await page.keyboard.press('Escape');
-    }
+    await sheet.getByRole('button', { name: /heavy equipment team/i }).click();
 
     await evidencePause(page, 800);
     await expect(workspace).toBeVisible();
+    await expect(workspace.getByRole('img', { name: /apex construction company logo/i })).toBeVisible();
+    await expect(
+      workspace.getByRole('img', { name: /heavy equipment team team image/i }),
+    ).toBeVisible({ timeout: 30_000 });
     await evidenceScreenshot(page, '03-mobile-workspace-avatars', {
       target: workspace,
     });

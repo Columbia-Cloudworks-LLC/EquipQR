@@ -149,4 +149,21 @@ test.describe.serial('creation flows: equipment and work orders @full', () => {
       ).toBeVisible({ timeout: 60_000 });
     });
   });
+
+  test('equipment create-work-order deep link opens the form with the equipment PM default', async ({
+    page,
+    gotoDashboard,
+    assertHealthyShell,
+  }) => {
+    await gotoDashboard(`/equipment/${seedEquipment.cat320.id}?createWorkOrder=1`);
+    await assertHealthyShell();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible({ timeout: 60_000 });
+    await expect(dialog.getByLabel(/^Title/i)).toBeVisible();
+    const pmTemplate = dialog.getByRole('combobox', { name: /pm template/i });
+    await expect(pmTemplate).toHaveText(/excavator pm/i, { timeout: 30_000 });
+
+    await setPmTemplate(page, dialog, 'none');
+    await expect(pmTemplate).toBeHidden();
+  });
 });
