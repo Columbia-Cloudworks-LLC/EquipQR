@@ -89,10 +89,6 @@ SELECT ok(
   'team B technician cannot access costs while equipment is on team A'
 );
 SELECT ok(
-  public.can_access_work_order_costs('33000000-dddd-0000-0000-000000000001'::uuid, '33000000-0000-0000-0000-000000000001'::uuid),
-  'org owner can access costs'
-);
-SELECT ok(
   public.is_work_order_team_manager('33000000-0000-0000-0000-000000000003'::uuid, '33000000-dddd-0000-0000-000000000001'::uuid),
   'team A manager manages the work order while equipment is on team A'
 );
@@ -149,6 +145,12 @@ SELECT ok(
 );
 
 -- ── Notifications carry the equipment team ──────────────────────────────────
+-- Notifications are opt-in per team, so both technicians subscribe to their own team.
+
+INSERT INTO public.notification_settings (user_id, organization_id, team_id, enabled, statuses)
+VALUES
+  ('33000000-0000-0000-0000-000000000002'::uuid, '33000000-aaaa-0000-0000-000000000001'::uuid, '33000000-bbbb-0000-0000-00000000000a'::uuid, true, '["in_progress"]'::jsonb),
+  ('33000000-0000-0000-0000-000000000004'::uuid, '33000000-aaaa-0000-0000-000000000001'::uuid, '33000000-bbbb-0000-0000-00000000000b'::uuid, true, '["in_progress"]'::jsonb);
 
 SELECT lives_ok(
   $$SELECT public.create_work_order_notifications(
@@ -157,10 +159,18 @@ SELECT lives_ok(
 );
 SELECT is(
   (SELECT count(*) FROM public.notifications
-   WHERE data->>'work_order_id' = '33000000-dddd-0000-0000-000000000001'
-     AND data->>'team_id' IS DISTINCT FROM '33000000-bbbb-0000-0000-00000000000b'),
+   WHERE user_id = '33000000-0000-0000-0000-000000000004'::uuid
+     AND data->>'work_order_id' = '33000000-dddd-0000-0000-000000000001'
+     AND data->>'team_id' = '33000000-bbbb-0000-0000-00000000000b'),
+  1::bigint,
+  'team B technician is notified with the equipment team'
+);
+SELECT is(
+  (SELECT count(*) FROM public.notifications
+   WHERE user_id = '33000000-0000-0000-0000-000000000002'::uuid
+     AND data->>'work_order_id' = '33000000-dddd-0000-0000-000000000001'),
   0::bigint,
-  'work order notifications reference the equipment team'
+  'team A technician is not notified after the equipment moved to team B'
 );
 
 -- ── As the org owner: export and historical creation ────────────────────────

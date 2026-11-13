@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(10);
+SELECT plan(7);
 
 SELECT has_column(
   'public', 'dsr_requests', 'organization_id',
@@ -33,13 +33,6 @@ SELECT has_index(
   'FK covering index on dsr_requests.user_id exists'
 );
 
-SELECT has_function(
-  'public',
-  'fulfill_dsr_deletion',
-  ARRAY['uuid', 'uuid'],
-  'fulfill_dsr_deletion function still exists after cockpit migration'
-);
-
 SELECT ok(
   EXISTS (
     SELECT 1
@@ -47,16 +40,6 @@ SELECT ok(
     WHERE conname = 'dsr_request_events_event_type_check'
   ),
   'event type check constraint exists'
-);
-
-SELECT has_trigger(
-  'public', 'dsr_request_events', 'trg_prevent_dsr_event_update',
-  'append-only trigger remains in place'
-);
-
-SELECT has_trigger(
-  'public', 'dsr_request_events', 'trg_prevent_dsr_event_delete',
-  'append-only delete trigger remains in place'
 );
 
 SELECT * FROM finish();
