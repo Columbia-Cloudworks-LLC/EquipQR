@@ -25,7 +25,8 @@ test.describe('work orders @critical', () => {
   test('navigate to work order from equipment context', async ({ page, assertHealthyShell }) => {
     await page.goto(`/dashboard/equipment/${seedEquipment.cat320.id}?tab=work-orders`);
     await assertHealthyShell();
-    await expect(page.getByRole('tab', { name: /work orders/i })).toHaveAttribute(
+    // The tab reads "Work Orders" on desktop and "Orders" on mobile.
+    await expect(page.getByRole('tab', { name: /^(work )?orders/i })).toHaveAttribute(
       'aria-selected',
       'true',
       { timeout: 60_000 },
