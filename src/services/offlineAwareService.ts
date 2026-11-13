@@ -1,5 +1,3 @@
-// fallow-ignore-file code-duplication
-// Duplication rationale: Offline wrappers repeat enqueue shape across entity types
 /**
  * Offline-Aware Service
  *
@@ -25,8 +23,8 @@ import { isNetworkError } from '@/utils/errorHandling';
 import type { CreateWorkOrderData } from '@/features/work-orders/hooks/useWorkOrderCreation';
 import type { UpdateWorkOrderData } from '@/features/work-orders/hooks/useWorkOrderUpdate';
 import {
+  buildWorkOrderStatusUpdatePayload,
   buildWorkOrderUpdatePayload,
-  type WorkOrderTableUpdate,
 } from '@/features/work-orders/utils/workOrderUpdatePayload';
 import type { WorkOrder, WorkOrderStatus } from '@/features/work-orders/types/workOrder';
 import type { EquipmentNote } from '@/features/equipment/types/equipmentNotes';
@@ -37,7 +35,11 @@ import type {
 } from '@/features/equipment/services/EquipmentService';
 import type { UpdateWorkingHoursData } from '@/features/equipment/services/equipmentWorkingHoursService';
 import { OfflineQueueService, OfflineQueuePayloadError } from './offlineQueueService';
-import type { WorkOrderServerSnapshot, OfflineQueueImageRef } from './offlineQueueService';
+import type {
+  OfflineQueueEnqueueInput,
+  WorkOrderServerSnapshot,
+  OfflineQueueImageRef,
+} from './offlineQueueService';
 import { stageQueueImageRefs } from './offlineQueueImageRefs';
 import type {
   PMChecklistItem,
@@ -56,6 +58,38 @@ export interface OfflineAwareResult<T> {
   data: T | null;
   queuedOffline: boolean;
   queueItemId?: string;
+}
+
+// ─── Queue helpers ───────────────────────────────────────────────────────────
+
+const OFFLINE_SAVE_FAILED_MESSAGE = 'Cannot save offline — please try again when connected.';
+
+/** Log lines for one queued mutation. */
+interface QueueLog {
+  /** `logger.info` message once the item is in the queue. */
+  queued: string;
+  /** `logger.error` message when queueing fails for any reason other than payload validation. */
+  failed: string;
+  /** Extra fields for the `queued` log line (the queue item id is always included). */
+  context?: Record<string, unknown>;
+}
+
+/**
+ * Payload validation errors pass through unchanged (the data cannot be saved
+ * offline either). Anything else is logged and replaced by a generic
+ * "cannot save offline" error that keeps the original as `cause`.
+ */
+function toEnqueueFailure(err: unknown, failedMessage: string): Error {
+  if (err instanceof OfflineQueuePayloadError) return err;
+  logger.error(failedMessage, err);
+  return Object.assign(new Error(OFFLINE_SAVE_FAILED_MESSAGE), { cause: err });
+}
+
+/** Names of the fields the caller actually set, for field-level conflict resolution on replay. */
+function definedFieldNames(data: object): string[] {
+  return Object.entries(data)
+    .filter(([, value]) => value !== undefined)
+    .map(([key]) => key);
 }
 
 // ─── Service ─────────────────────────────────────────────────────────────────
@@ -173,21 +207,9 @@ export class OfflineAwareWorkOrderService {
 
     // ── TIER 2: Attempt real call ──
     try {
-      const updateData: WorkOrderTableUpdate = {
-        status: newStatus,
-        updated_at: new Date().toISOString(),
-      };
-
-      if (newStatus === 'completed') {
-        updateData.completed_date = new Date().toISOString();
-      }
-      if (['submitted', 'accepted', 'assigned', 'in_progress'].includes(newStatus)) {
-        updateData.completed_date = null;
-      }
-
       const { data, error } = await supabase
         .from('work_orders')
-        .update(updateData)
+        .update(buildWorkOrderStatusUpdatePayload(newStatus))
         .eq('id', workOrderId)
         .select()
         .single();
@@ -204,37 +226,52 @@ export class OfflineAwareWorkOrderService {
 
   // ── Private queue helpers ──────────────────────────────────────────────
 
+  /** Adds one mutation to the offline queue for this user and organization. */
+  private enqueueOffline<T>(
+    entry: Pick<OfflineQueueEnqueueInput, 'type' | 'payload'>,
+    log: QueueLog,
+  ): OfflineAwareResult<T> {
+    try {
+      const item = this.queueService.enqueue({
+        ...entry,
+        organizationId: this.orgId,
+        userId: this.userId,
+      });
+      logger.info(log.queued, { queueItemId: item.id, ...log.context });
+      return { data: null, queuedOffline: true, queueItemId: item.id };
+    } catch (err) {
+      throw toEnqueueFailure(err, log.failed);
+    }
+  }
+
+  /** Stores photos in the offline blob store so a queued item can reference them. */
+  private async stageImages(images: File[], failedMessage: string): Promise<OfflineQueueImageRef[]> {
+    try {
+      return await stageQueueImageRefs(this.userId, this.orgId, images);
+    } catch (err) {
+      throw toEnqueueFailure(err, failedMessage);
+    }
+  }
+
   private async queueCreate(
     data: CreateWorkOrderData,
     resolvedAssigneeId?: string,
   ): Promise<OfflineAwareResult<WorkOrder>> {
-    try {
-      const { images, ...payloadWithoutImages } = data;
-      let imageRefs: OfflineQueueImageRef[] | undefined;
-      if (images?.length) {
-        imageRefs = await stageQueueImageRefs(this.userId, this.orgId, images);
-      }
+    const failed = 'Failed to enqueue offline create';
+    const { images, ...payloadWithoutImages } = data;
+    const imageRefs = images?.length ? await this.stageImages(images, failed) : undefined;
 
-      const item = this.queueService.enqueue({
+    return this.enqueueOffline(
+      {
         type: 'work_order_create',
         payload: {
           ...payloadWithoutImages,
           assigneeId: resolvedAssigneeId ?? data.assigneeId,
           imageRefs,
         },
-        organizationId: this.orgId,
-        userId: this.userId,
-      });
-      logger.info('Work order create queued offline', { queueItemId: item.id });
-      return { data: null, queuedOffline: true, queueItemId: item.id };
-    } catch (err) {
-      if (err instanceof OfflineQueuePayloadError) {
-        // Payload validation failed — can't save offline either
-        throw err;
-      }
-      logger.error('Failed to enqueue offline create', err);
-      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
-    }
+      },
+      { queued: 'Work order create queued offline', failed },
+    );
   }
 
   private queueUpdate(
@@ -243,31 +280,23 @@ export class OfflineAwareWorkOrderService {
     serverUpdatedAt?: string,
     serverSnapshot?: WorkOrderServerSnapshot,
   ): OfflineAwareResult<Record<string, unknown>> {
-    try {
-      // Determine which fields changed for conflict resolution
-      const changedFields = Object.keys(data).filter(
-        k => (data as Record<string, unknown>)[k] !== undefined,
-      );
-
-      const item = this.queueService.enqueue({
+    return this.enqueueOffline(
+      {
         type: 'work_order_update',
         payload: {
           workOrderId,
           data,
-          changedFields,
+          changedFields: definedFieldNames(data),
           serverUpdatedAt,
           serverSnapshot,
         },
-        organizationId: this.orgId,
-        userId: this.userId,
-      });
-      logger.info('Work order update queued offline', { queueItemId: item.id, workOrderId });
-      return { data: null, queuedOffline: true, queueItemId: item.id };
-    } catch (err) {
-      if (err instanceof OfflineQueuePayloadError) throw err;
-      logger.error('Failed to enqueue offline update', err);
-      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
-    }
+      },
+      {
+        queued: 'Work order update queued offline',
+        failed: 'Failed to enqueue offline update',
+        context: { workOrderId },
+      },
+    );
   }
 
   private queueStatus(
@@ -275,24 +304,17 @@ export class OfflineAwareWorkOrderService {
     newStatus: WorkOrderStatus,
     serverUpdatedAt?: string,
   ): OfflineAwareResult<Record<string, unknown>> {
-    try {
-      const item = this.queueService.enqueue({
+    return this.enqueueOffline(
+      {
         type: 'work_order_status',
-        payload: {
-          workOrderId,
-          newStatus,
-          serverUpdatedAt,
-        },
-        organizationId: this.orgId,
-        userId: this.userId,
-      });
-      logger.info('Work order status queued offline', { queueItemId: item.id, workOrderId, newStatus });
-      return { data: null, queuedOffline: true, queueItemId: item.id };
-    } catch (err) {
-      if (err instanceof OfflineQueuePayloadError) throw err;
-      logger.error('Failed to enqueue offline status update', err);
-      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
-    }
+        payload: { workOrderId, newStatus, serverUpdatedAt },
+      },
+      {
+        queued: 'Work order status queued offline',
+        failed: 'Failed to enqueue offline status update',
+        context: { workOrderId, newStatus },
+      },
+    );
   }
 
   // ── Equipment Create (Quick) ─────────────────────────────────────────────
@@ -300,15 +322,10 @@ export class OfflineAwareWorkOrderService {
   async createEquipmentQuick(
     data: QuickEquipmentCreateData,
   ): Promise<OfflineAwareResult<{ id: string; [key: string]: unknown }>> {
-    if (!navigator.onLine) return this.queueEquipmentCreateQuick(data);
-    try {
-      const result = await EquipmentService.createQuick(this.orgId, data);
-      if (!result.success || !result.data) throw new Error(result.error || 'Failed to create equipment');
-      return { data: result.data, queuedOffline: false };
-    } catch (error) {
-      if (isNetworkError(error)) return this.queueEquipmentCreateQuick(data);
-      throw error;
-    }
+    return this.createEquipment(
+      () => EquipmentService.createQuick(this.orgId, data),
+      () => this.queueEquipmentCreateQuick(data),
+    );
   }
 
   // ── Equipment Create (Full) ──────────────────────────────────────────────
@@ -316,13 +333,24 @@ export class OfflineAwareWorkOrderService {
   async createEquipmentFull(
     data: EquipmentCreateData,
   ): Promise<OfflineAwareResult<{ id: string; [key: string]: unknown }>> {
-    if (!navigator.onLine) return this.queueEquipmentCreateFull(data);
+    return this.createEquipment(
+      () => EquipmentService.create(this.orgId, data),
+      () => this.queueEquipmentCreateFull(data),
+    );
+  }
+
+  /** Shared online/offline flow for the quick and full equipment create forms. */
+  private async createEquipment(
+    create: () => ReturnType<typeof EquipmentService.create>,
+    queue: () => OfflineAwareResult<{ id: string; [key: string]: unknown }>,
+  ): Promise<OfflineAwareResult<{ id: string; [key: string]: unknown }>> {
+    if (!navigator.onLine) return queue();
     try {
-      const result = await EquipmentService.create(this.orgId, data);
+      const result = await create();
       if (!result.success || !result.data) throw new Error(result.error || 'Failed to create equipment');
       return { data: result.data, queuedOffline: false };
     } catch (error) {
-      if (isNetworkError(error)) return this.queueEquipmentCreateFull(data);
+      if (isNetworkError(error)) return queue();
       throw error;
     }
   }
@@ -450,39 +478,25 @@ export class OfflineAwareWorkOrderService {
   private queueEquipmentCreateQuick(
     data: QuickEquipmentCreateData,
   ): OfflineAwareResult<{ id: string; [key: string]: unknown }> {
-    try {
-      const item = this.queueService.enqueue({
-        type: 'equipment_create',
-        payload: data,
-        organizationId: this.orgId,
-        userId: this.userId,
-      });
-      logger.info('Equipment create (quick) queued offline', { queueItemId: item.id });
-      return { data: null, queuedOffline: true, queueItemId: item.id };
-    } catch (err) {
-      if (err instanceof OfflineQueuePayloadError) throw err;
-      logger.error('Failed to enqueue offline equipment create', err);
-      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
-    }
+    return this.enqueueOffline(
+      { type: 'equipment_create', payload: data },
+      {
+        queued: 'Equipment create (quick) queued offline',
+        failed: 'Failed to enqueue offline equipment create',
+      },
+    );
   }
 
   private queueEquipmentCreateFull(
     data: EquipmentCreateData,
   ): OfflineAwareResult<{ id: string; [key: string]: unknown }> {
-    try {
-      const item = this.queueService.enqueue({
-        type: 'equipment_create_full',
-        payload: data,
-        organizationId: this.orgId,
-        userId: this.userId,
-      });
-      logger.info('Equipment create (full) queued offline', { queueItemId: item.id });
-      return { data: null, queuedOffline: true, queueItemId: item.id };
-    } catch (err) {
-      if (err instanceof OfflineQueuePayloadError) throw err;
-      logger.error('Failed to enqueue offline equipment create', err);
-      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
-    }
+    return this.enqueueOffline(
+      { type: 'equipment_create_full', payload: data },
+      {
+        queued: 'Equipment create (full) queued offline',
+        failed: 'Failed to enqueue offline equipment create',
+      },
+    );
   }
 
   private queueEquipmentUpdate(
@@ -490,45 +504,33 @@ export class OfflineAwareWorkOrderService {
     data: EquipmentUpdateData,
     serverUpdatedAt?: string,
   ): OfflineAwareResult<Record<string, unknown>> {
-    try {
-      const changedFields = Object.keys(data).filter(
-        k => (data as Record<string, unknown>)[k] !== undefined,
-      );
-      const item = this.queueService.enqueue({
+    return this.enqueueOffline(
+      {
         type: 'equipment_update',
         payload: {
           equipmentId,
           data,
-          changedFields,
+          changedFields: definedFieldNames(data),
           serverUpdatedAt: serverUpdatedAt || new Date().toISOString(),
         },
-        organizationId: this.orgId,
-        userId: this.userId,
-      });
-      logger.info('Equipment update queued offline', { queueItemId: item.id, equipmentId });
-      return { data: null, queuedOffline: true, queueItemId: item.id };
-    } catch (err) {
-      if (err instanceof OfflineQueuePayloadError) throw err;
-      logger.error('Failed to enqueue offline equipment update', err);
-      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
-    }
+      },
+      {
+        queued: 'Equipment update queued offline',
+        failed: 'Failed to enqueue offline equipment update',
+        context: { equipmentId },
+      },
+    );
   }
 
   private queueEquipmentHours(data: UpdateWorkingHoursData): OfflineAwareResult<unknown> {
-    try {
-      const item = this.queueService.enqueue({
-        type: 'equipment_hours',
-        payload: data,
-        organizationId: this.orgId,
-        userId: this.userId,
-      });
-      logger.info('Equipment hours queued offline', { queueItemId: item.id, equipmentId: data.equipmentId });
-      return { data: null, queuedOffline: true, queueItemId: item.id };
-    } catch (err) {
-      if (err instanceof OfflineQueuePayloadError) throw err;
-      logger.error('Failed to enqueue offline equipment hours', err);
-      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
-    }
+    return this.enqueueOffline(
+      { type: 'equipment_hours', payload: data },
+      {
+        queued: 'Equipment hours queued offline',
+        failed: 'Failed to enqueue offline equipment hours',
+        context: { equipmentId: data.equipmentId },
+      },
+    );
   }
 
   private async queueEquipmentNote(
@@ -539,13 +541,11 @@ export class OfflineAwareWorkOrderService {
     machineHours?: number,
     images: File[] = [],
   ): Promise<OfflineAwareResult<EquipmentNote>> {
-    try {
-      let imageRefs: OfflineQueueImageRef[] | undefined;
-      if (images.length) {
-        imageRefs = await stageQueueImageRefs(this.userId, this.orgId, images);
-      }
+    const failed = 'Failed to enqueue offline equipment note';
+    const imageRefs = images.length ? await this.stageImages(images, failed) : undefined;
 
-      const item = this.queueService.enqueue({
+    return this.enqueueOffline(
+      {
         type: 'equipment_note',
         payload: {
           equipmentId,
@@ -555,16 +555,9 @@ export class OfflineAwareWorkOrderService {
           ...(machineHours !== undefined ? { machineHours } : {}),
           ...(imageRefs?.length ? { imageRefs } : {}),
         },
-        organizationId: this.orgId,
-        userId: this.userId,
-      });
-      logger.info('Equipment note queued offline', { queueItemId: item.id, equipmentId });
-      return { data: null, queuedOffline: true, queueItemId: item.id };
-    } catch (err) {
-      if (err instanceof OfflineQueuePayloadError) throw err;
-      logger.error('Failed to enqueue offline equipment note', err);
-      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
-    }
+      },
+      { queued: 'Equipment note queued offline', failed, context: { equipmentId } },
+    );
   }
 
   private async queueWorkOrderNote(
@@ -575,13 +568,11 @@ export class OfflineAwareWorkOrderService {
     machineHours?: number,
     images: File[] = [],
   ): Promise<OfflineAwareResult<WorkOrderNote>> {
-    try {
-      let imageRefs: OfflineQueueImageRef[] | undefined;
-      if (images.length) {
-        imageRefs = await stageQueueImageRefs(this.userId, this.orgId, images);
-      }
+    const failed = 'Failed to enqueue offline work order note';
+    const imageRefs = images.length ? await this.stageImages(images, failed) : undefined;
 
-      const item = this.queueService.enqueue({
+    return this.enqueueOffline(
+      {
         type: 'work_order_note',
         payload: {
           workOrderId,
@@ -591,16 +582,9 @@ export class OfflineAwareWorkOrderService {
           ...(machineHours !== undefined ? { machineHours } : {}),
           ...(imageRefs?.length ? { imageRefs } : {}),
         },
-        organizationId: this.orgId,
-        userId: this.userId,
-      });
-      logger.info('Work order note queued offline', { queueItemId: item.id, workOrderId });
-      return { data: null, queuedOffline: true, queueItemId: item.id };
-    } catch (err) {
-      if (err instanceof OfflineQueuePayloadError) throw err;
-      logger.error('Failed to enqueue offline work order note', err);
-      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
-    }
+      },
+      { queued: 'Work order note queued offline', failed, context: { workOrderId } },
+    );
   }
 
   // ── Preventative Maintenance — init ──────────────────────────────────────
@@ -692,8 +676,8 @@ export class OfflineAwareWorkOrderService {
     checklistData: PMChecklistItem[];
     notes?: string;
   }): OfflineAwareResult<PreventativeMaintenance> {
-    try {
-      const item = this.queueService.enqueue({
+    return this.enqueueOffline(
+      {
         type: 'pm_init',
         payload: {
           workOrderId: input.workOrderId,
@@ -702,16 +686,13 @@ export class OfflineAwareWorkOrderService {
           checklistData: input.checklistData,
           notes: input.notes,
         },
-        organizationId: this.orgId,
-        userId: this.userId,
-      });
-      logger.info('PM init queued offline', { queueItemId: item.id, workOrderId: input.workOrderId });
-      return { data: null, queuedOffline: true, queueItemId: item.id };
-    } catch (err) {
-      if (err instanceof OfflineQueuePayloadError) throw err;
-      logger.error('Failed to enqueue offline PM init', err);
-      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
-    }
+      },
+      {
+        queued: 'PM init queued offline',
+        failed: 'Failed to enqueue offline PM init',
+        context: { workOrderId: input.workOrderId },
+      },
+    );
   }
 
   private queuePMUpdate(
@@ -719,8 +700,8 @@ export class OfflineAwareWorkOrderService {
     data: UpdatePMData,
     serverUpdatedAt?: string,
   ): OfflineAwareResult<PreventativeMaintenance> {
-    try {
-      const item = this.queueService.enqueue({
+    return this.enqueueOffline(
+      {
         type: 'pm_update',
         payload: {
           pmId,
@@ -732,32 +713,23 @@ export class OfflineAwareWorkOrderService {
           completedAt: data.completedAt,
           completedBy: data.completedBy,
         },
-        organizationId: this.orgId,
-        userId: this.userId,
-      });
-      logger.info('PM update queued offline', { queueItemId: item.id, pmId });
-      return { data: null, queuedOffline: true, queueItemId: item.id };
-    } catch (err) {
-      if (err instanceof OfflineQueuePayloadError) throw err;
-      logger.error('Failed to enqueue offline PM update', err);
-      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
-    }
+      },
+      {
+        queued: 'PM update queued offline',
+        failed: 'Failed to enqueue offline PM update',
+        context: { pmId },
+      },
+    );
   }
 
   private queuePMDelete(pmId: string): OfflineAwareResult<null> {
-    try {
-      const item = this.queueService.enqueue({
-        type: 'pm_delete',
-        payload: { pmId },
-        organizationId: this.orgId,
-        userId: this.userId,
-      });
-      logger.info('PM delete queued offline', { queueItemId: item.id, pmId });
-      return { data: null, queuedOffline: true, queueItemId: item.id };
-    } catch (err) {
-      if (err instanceof OfflineQueuePayloadError) throw err;
-      logger.error('Failed to enqueue offline PM delete', err);
-      throw Object.assign(new Error('Cannot save offline — please try again when connected.'), { cause: err });
-    }
+    return this.enqueueOffline(
+      { type: 'pm_delete', payload: { pmId } },
+      {
+        queued: 'PM delete queued offline',
+        failed: 'Failed to enqueue offline PM delete',
+        context: { pmId },
+      },
+    );
   }
 }

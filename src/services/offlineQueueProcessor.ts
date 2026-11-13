@@ -1,5 +1,3 @@
-// fallow-ignore-file code-duplication
-// Duplication rationale: Processor mirrors offlineAware enqueue payloads for replay
 /**
  * Offline Queue Processor — V2
  *
@@ -59,7 +57,7 @@ import {
   loadQueueItemImageFiles,
 } from './offlineQueueProcessorImages';
 import { attachWorkOrderCreationImages } from '@/features/work-orders/services/workOrderNotesService';
-import type { WorkOrderTableUpdate } from '@/features/work-orders/utils/workOrderUpdatePayload';
+import { buildWorkOrderStatusUpdatePayload } from '@/features/work-orders/utils/workOrderUpdatePayload';
 import {
   parseOfflinePmPlaceholder,
   parseOfflineWorkOrderPlaceholder,
@@ -313,21 +311,9 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
     }
 
     // Apply status change
-    const updateData: WorkOrderTableUpdate = {
-      status: newStatus,
-      updated_at: new Date().toISOString(),
-    };
-
-    if (newStatus === 'completed') {
-      updateData.completed_date = new Date().toISOString();
-    }
-    if (['submitted', 'accepted', 'assigned', 'in_progress'].includes(newStatus)) {
-      updateData.completed_date = null;
-    }
-
     const { error } = await supabase
       .from('work_orders')
-      .update(updateData)
+      .update(buildWorkOrderStatusUpdatePayload(newStatus))
       .eq('id', resolvedWorkOrderId)
       .eq('organization_id', item.organizationId)
       .select()
