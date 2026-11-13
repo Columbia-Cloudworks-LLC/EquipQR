@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { __driveFolderRoutingTestables, resolveExportFolderPath } from "./google-drive-folder-routing.ts";
+import { __driveFolderRoutingTestables } from "./google-drive-folder-routing.ts";
 
 const { sanitizeFolderName } = __driveFolderRoutingTestables;
 
@@ -23,8 +23,4 @@ Deno.test("sanitizeFolderName returns Unnamed for empty input", () => {
 Deno.test("sanitizeFolderName preserves normal readable names", () => {
   assertEquals(sanitizeFolderName("Acme Corp"), "Acme Corp");
   assertEquals(sanitizeFolderName("Excavator CAT-320"), "Excavator CAT-320");
-});
-
-Deno.test("resolveExportFolderPath is a function", () => {
-  assertEquals(typeof resolveExportFolderPath, "function");
 });

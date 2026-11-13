@@ -4,7 +4,6 @@
 import { assertEquals } from "jsr:@std/assert@1";
 import { decodeBase64Content, isDecodedSizeAllowed } from "./gdrive-decode.ts";
 import {
-  estimateDecodedSize,
   MAX_FILE_SIZE_BYTES,
   sanitizeFilename,
 } from "./gdrive-validation.ts";
@@ -13,11 +12,6 @@ Deno.test("sanitizeFilename strips unsafe characters and preserves extension", (
   assertEquals(sanitizeFilename("  report..final  .pdf  "), "report_final_.pdf");
   assertEquals(sanitizeFilename("../../../etc/passwd"), "_etc_passwd");
   assertEquals(sanitizeFilename(""), "uploaded-file");
-});
-
-Deno.test("estimateDecodedSize approximates base64 payload size", () => {
-  const payload = btoa("hello");
-  assertEquals(estimateDecodedSize(payload), 6);
 });
 
 Deno.test("decodeBase64Content round-trips simple payloads", () => {

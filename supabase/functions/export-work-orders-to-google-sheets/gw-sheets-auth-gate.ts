@@ -131,5 +131,4 @@ export async function runSheetsAuthGate(
 
 export const __gwSheetsAuthGateTestables = {
   hasRequiredSheetsExportScopes,
-  DOCUMENT_TYPE,
 };

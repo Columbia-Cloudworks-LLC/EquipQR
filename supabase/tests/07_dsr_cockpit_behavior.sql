@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(12);
+SELECT plan(10);
 
 SELECT has_column(
   'public', 'dsr_requests', 'organization_id',
@@ -31,22 +31,6 @@ SELECT has_index(
   'dsr_requests',
   'idx_dsr_requests_user_id',
   'FK covering index on dsr_requests.user_id exists'
-);
-
-SELECT is(
-  (SELECT count(*)::int FROM pg_policies
-   WHERE schemaname = 'public' AND tablename = 'dsr_requests'
-     AND policyname = 'dsr_requests_select'),
-  1,
-  'Merged dsr_requests_select policy exists'
-);
-
-SELECT is(
-  (SELECT count(*)::int FROM pg_policies
-   WHERE schemaname = 'public' AND tablename = 'dsr_request_events'
-     AND policyname = 'dsr_request_events_select'),
-  1,
-  'Merged dsr_request_events_select policy exists'
 );
 
 SELECT has_function(

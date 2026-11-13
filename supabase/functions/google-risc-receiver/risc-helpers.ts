@@ -47,15 +47,6 @@ function decodeJwtPart<T>(part: string): T {
   return JSON.parse(decoded) as T;
 }
 
-export function parseSecurityEventToken(token: string): SecurityEventTokenPayload {
-  const parts = token.trim().split(".");
-  if (parts.length !== 3) {
-    throw new Error("Invalid security event token format");
-  }
-
-  return decodeJwtPart<SecurityEventTokenPayload>(parts[1]!);
-}
-
 async function fetchGoogleJwks(forceRefresh = false): Promise<GoogleJwksResponse> {
   const now = Date.now();
   if (!forceRefresh && cachedJwks && now - cachedJwksFetchedAt < JWKS_CACHE_MS) {

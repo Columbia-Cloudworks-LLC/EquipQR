@@ -52,6 +52,8 @@
     "verify:root-layout": "node dev/check-root-layout.mjs",
     "test": "node dev/run-vitest-local.mjs",
     "test:itil-scripts": "bash dev/tests/workflows.sh",
+    "test:edge": "deno test --config supabase/functions/deno.json --node-modules-dir=none --no-check --allow-all 'supabase/functions/**/*.deno.test.ts'",
+    "test:gh-scripts": "node --test .github/scripts/*.test.js",
     "test:unit": "node dev/run-vitest-local.mjs --project unit",
     "test:component": "node dev/run-vitest-local.mjs --project component",
     "test:coverage": "node dev/run-vitest-local.mjs --coverage",

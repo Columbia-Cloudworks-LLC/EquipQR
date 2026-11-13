@@ -1,8 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import {
-  computeIntuitSignature,
-  verifyIntuitSignature,
-} from "./webhook-helpers.ts";
+import { verifyIntuitSignature } from "./webhook-helpers.ts";
 import { buildInvoiceStatusEventRows } from "./index.ts";
 
 Deno.test("verifyIntuitSignature accepts a valid Intuit HMAC signature", async () => {
@@ -10,7 +7,8 @@ Deno.test("verifyIntuitSignature accepts a valid Intuit HMAC signature", async (
     eventNotifications: [{ realmId: "realm-1", dataChangeEvent: { entities: [] } }],
   });
   const verifier = "test-verifier-token";
-  const signature = await computeIntuitSignature(payload, verifier);
+  // Independent vector: printf '%s' "$payload" | openssl dgst -sha256 -hmac "$verifier" -binary | base64
+  const signature = "PCh/TSR4/kUwgRPa5o7ptlOxTLVxxDM7GtDGKFnKF6w=";
 
   assertEquals(await verifyIntuitSignature(payload, signature, verifier), true);
 });

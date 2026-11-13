@@ -73,7 +73,6 @@ export function validateOAuthRedirectUri(
 
 export const __gwOauthRedirectUriTestables = {
   buildOAuthRedirectUri,
-  resolveOAuthRedirectBaseUrl,
   validateOAuthRedirectUri,
   EXPECTED_CALLBACK_PATH,
 };

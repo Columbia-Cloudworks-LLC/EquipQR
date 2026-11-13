@@ -5,8 +5,6 @@
 import { fetchReportRows } from "../_shared/reports/fetch-rows.ts";
 import {
   buildReportCsv,
-  formatSubmittedAt,
-  __formatCsvTestables,
 } from "../_shared/reports/format-csv.ts";
 import { asReportDataClient } from "../_shared/reports/types.ts";
 import type { ExportFilters, ExportResult, UserSupabaseClient } from "./rate-limit.ts";
@@ -27,9 +25,3 @@ export async function exportOperatorCheckins(
   });
   return buildReportCsv("operator-check-ins", rows, columns);
 }
-
-export const __operatorCheckinsCsvTestables = {
-  formatSubmittedAt,
-  formatCapturedFieldsSummary: __formatCsvTestables.formatCapturedFieldsSummary,
-  formatTemplateName: __formatCsvTestables.formatTemplateName,
-};

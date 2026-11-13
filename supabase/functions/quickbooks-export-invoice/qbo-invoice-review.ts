@@ -44,41 +44,6 @@ export function isCalendarDate(value: unknown): value is string {
   return !Number.isNaN(parsed.getTime()) &&
     parsed.toISOString().slice(0, 10) === value;
 }
-export function calculateDueDate(
-  invoiceDate: string,
-  term: InvoiceTerm,
-): string | null {
-  if (!isCalendarDate(invoiceDate)) return null;
-  const date = new Date(`${invoiceDate}T00:00:00Z`);
-  if (
-    term.due_days !== null && Number.isInteger(term.due_days) &&
-    term.due_days >= 0
-  ) {
-    date.setUTCDate(date.getUTCDate() + term.due_days);
-    return date.toISOString().slice(0, 10);
-  }
-  if (
-    term.day_of_month_due === null || term.day_of_month_due < 1 ||
-    term.day_of_month_due > 31
-  ) return null;
-  const dueInMonth = (month: number) =>
-    new Date(
-      Date.UTC(
-        date.getUTCFullYear(),
-        month,
-        Math.min(
-          term.day_of_month_due!,
-          new Date(Date.UTC(date.getUTCFullYear(), month + 1, 0)).getUTCDate(),
-        ),
-      ),
-    );
-  let due = dueInMonth(date.getUTCMonth());
-  const daysUntilDue = (due.getTime() - date.getTime()) / 86400000;
-  if (daysUntilDue < 0 || daysUntilDue < (term.due_next_month_days ?? 0)) {
-    due = dueInMonth(date.getUTCMonth() + 1);
-  }
-  return due.toISOString().slice(0, 10);
-}
 export async function loadInvoiceReviewContext(
   client: SupabaseClient,
   accessToken: string,

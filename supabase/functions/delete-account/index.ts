@@ -375,7 +375,6 @@ export async function handleDeleteAccountRequest(req: Request): Promise<Response
 }
 
 export const __testables = {
-  CONFIRMATION_PHRASE,
   normalizeEmail,
   removeStoragePathsInChunks,
 };

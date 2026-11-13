@@ -17,27 +17,43 @@ import {
 const ORG_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "22222222-2222-4222-8222-222222222222";
 
-type MembershipRow = { role: string } | null;
+type MembershipRow = { role: string; status?: string } | null;
 
+type MembershipFilters = { eq: Array<[string, unknown]>; in: Array<[string, unknown[]]> };
+
+/**
+ * Mock of `organization_members` that applies the query's own `.eq` / `.in`
+ * filters to the row (status defaults to "active"), so a production query that
+ * drops a filter returns the row and the test fails. Filters on columns the row
+ * does not carry (user_id, organization_id) are recorded but not applied.
+ */
 function createMembershipMock(
   row: MembershipRow,
-  options?: { adminOnly?: boolean; queryError?: boolean },
+  options?: { queryError?: boolean; filters?: MembershipFilters },
 ): SupabaseClient {
+  const stored = row ? { status: "active", ...row } as Record<string, unknown> : null;
   return {
     from: (table: string) => {
       assertEquals(table, "organization_members");
+      const filters: MembershipFilters = options?.filters ?? { eq: [], in: [] };
       const chain: Record<string, unknown> = {};
       chain.select = () => chain;
-      chain.eq = () => chain;
-      chain.in = () => chain;
+      chain.eq = (column: string, value: unknown) => {
+        filters.eq.push([column, value]);
+        return chain;
+      };
+      chain.in = (column: string, values: unknown[]) => {
+        filters.in.push([column, values]);
+        return chain;
+      };
       chain.maybeSingle = () => {
         if (options?.queryError) {
           return Promise.resolve({ data: null, error: { code: "XX000", message: "db error" } });
         }
-        if (options?.adminOnly && row && !["owner", "admin"].includes(row.role)) {
-          return Promise.resolve({ data: null, error: null });
-        }
-        return Promise.resolve({ data: row, error: null });
+        const matches = stored !== null &&
+          filters.eq.every(([column, value]) => !(column in stored) || stored[column] === value) &&
+          filters.in.every(([column, values]) => !(column in stored) || values.includes(stored[column]));
+        return Promise.resolve({ data: matches ? stored : null, error: null });
       };
       return chain;
     },
@@ -177,10 +193,32 @@ Deno.test("requireOrgAdminAccess returns 500 on query failure", async () => {
   }
 });
 
+Deno.test("requireOrgAdminAccess filters to active owner/admin rows", async () => {
+  const filters: MembershipFilters = { eq: [], in: [] };
+  const supabase = createMembershipMock({ role: "admin" }, { filters });
+  await requireOrgAdminAccess(supabase, USER_ID, ORG_ID);
+  assertEquals(filters.in, [["role", ["owner", "admin"]]]);
+  assert(filters.eq.some(([column, value]) => column === "status" && value === "active"));
+  assert(filters.eq.some(([column, value]) => column === "user_id" && value === USER_ID));
+  assert(filters.eq.some(([column, value]) => column === "organization_id" && value === ORG_ID));
+});
+
 Deno.test("requireOrgAdminAccess rejects member", async () => {
-  const supabase = createMembershipMock({ role: "member" }, { adminOnly: true });
+  const supabase = createMembershipMock({ role: "member" });
   const result = await requireOrgAdminAccess(supabase, USER_ID, ORG_ID);
   assert("error" in result);
+  if ("error" in result) {
+    assertEquals(result.status, 403);
+  }
+});
+
+Deno.test("requireOrgAdminAccess rejects an admin whose membership is not active", async () => {
+  const supabase = createMembershipMock({ role: "admin", status: "pending" });
+  const result = await requireOrgAdminAccess(supabase, USER_ID, ORG_ID);
+  assert("error" in result);
+  if ("error" in result) {
+    assertEquals(result.status, 403);
+  }
 });
 
 // =============================================================================

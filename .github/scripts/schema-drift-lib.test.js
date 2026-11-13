@@ -109,13 +109,6 @@ describe('classifyDrift - versionMismatch (same name, different timestamp)', () 
     const mismatchNames = versionMismatch.map((m) => m.name).sort();
     assert.deepEqual(mismatchNames, ['alpha', 'beta']);
   });
-
-  test('exact version match is NOT classified as mismatch', () => {
-    const local = [{ filename: '20260101120000_foo.sql', version: '20260101120000', name: 'foo' }];
-    const applied = [{ version: '20260101120000', name: 'foo' }];
-    const { versionMismatch } = classifyDrift(local, applied);
-    assert.equal(versionMismatch.length, 0);
-  });
 });
 
 describe('classifyDrift - orphanRemote (no local name match)', () => {

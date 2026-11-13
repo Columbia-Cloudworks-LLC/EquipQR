@@ -16,14 +16,6 @@ export type DriveDeleteResult =
   | { outcome: "permission_denied"; status: number }
   | { outcome: "error"; status: number; body: string };
 
-export interface DriveFileMetadata {
-  id: string;
-  name?: string;
-  mimeType?: string;
-  trashed?: boolean;
-  webViewLink?: string;
-}
-
 /**
  * Creates an empty Google Doc in the specified Drive folder.
  * Uses Drive API (not Docs API) to support Shared Drives.
@@ -89,32 +81,6 @@ export async function deleteGoogleDriveFile(
 
   const body = await response.text().catch(() => "");
   return { outcome: "error", status: response.status, body };
-}
-
-/**
- * Fetches lightweight metadata for a Drive file.
- * Returns null if the file does not exist (404).
- */
-export async function getGoogleDriveFileMetadata(
-  accessToken: string,
-  fileId: string,
-): Promise<DriveFileMetadata | null> {
-  const response = await googleApiFetch(
-    `${DRIVE_FILES_URL}/${encodeURIComponent(fileId)}?supportsAllDrives=true&fields=id,name,mimeType,trashed,webViewLink`,
-    {
-      method: "GET",
-      headers: { Authorization: `Bearer ${accessToken}` },
-    },
-    { label: "drive-get-metadata" },
-  );
-
-  if (response.status === 404) return null;
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => "");
-    throw new Error(`Failed to fetch Drive file metadata: ${response.status} ${errorBody}`);
-  }
-
-  return await response.json() as DriveFileMetadata;
 }
 
 /**

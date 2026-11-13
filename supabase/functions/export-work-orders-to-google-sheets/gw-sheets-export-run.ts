@@ -218,5 +218,4 @@ export async function runSheetsExport(
 export const __gwSheetsExportRunTestables = {
   buildSpreadsheetTitle,
   resolveSheetNames,
-  REPORT_TYPE,
 };
