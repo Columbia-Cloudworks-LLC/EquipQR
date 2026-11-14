@@ -1,4 +1,3 @@
-// Duplication rationale: Read-only template view intentionally parallels editor compatibility UI
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { usePMTemplate, useClonePMTemplate } from '@/features/pm-templates/hooks/usePMTemplates';

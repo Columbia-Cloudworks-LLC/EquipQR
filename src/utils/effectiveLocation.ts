@@ -1,4 +1,3 @@
-// Duplication rationale: Location helper intentionally mirrors fleet-specific resolution variant
 /**
  * Effective Location Resolution
  *

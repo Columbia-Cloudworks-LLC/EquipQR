@@ -1,4 +1,3 @@
-// Duplication rationale: Display utils mirror page-level notification rendering
 
 /** Emoji icon for notification types (bell dropdown and notifications page). */
 export function getNotificationEmoji(type: string): string {

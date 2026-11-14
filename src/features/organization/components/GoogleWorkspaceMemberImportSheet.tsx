@@ -1,5 +1,3 @@
-// fallow-ignore-file code-duplication
-// Duplication rationale: Import table UX mirrors onboarding member picker patterns
 /**
  * Google Workspace Member Import Sheet
  * 
@@ -19,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { GoogleWorkspaceMemberPickRow } from '@/features/organization/components/GoogleWorkspaceMemberPickRow';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { RefreshCw, Search, Users, CheckCircle2, AlertCircle } from 'lucide-react';
@@ -28,6 +27,7 @@ import {
   selectGoogleWorkspaceMembers,
   syncGoogleWorkspaceUsers,
 } from '@/services/google-workspace';
+import { describeGoogleWorkspaceSyncRevocations } from '@/features/organization/utils/googleWorkspaceSyncSummary';
 import { googleWorkspace } from '@/lib/queryKeys';
 import { useGoogleWorkspaceMemberClaims } from '@/features/organization/hooks/useGoogleWorkspaceMemberClaims';
 import { useOrganizationMembersQuery } from '@/features/organization/hooks/useOrganizationMembers';
@@ -120,10 +120,7 @@ export const GoogleWorkspaceMemberImportSheet = ({
     setIsSyncing(true);
     try {
       const result = await syncGoogleWorkspaceUsers(organizationId);
-      const revocationSummary =
-        result.membersDeactivated > 0 || result.claimsRevoked > 0
-          ? ` Revoked access for ${result.membersDeactivated} member(s).`
-          : '';
+      const revocationSummary = describeGoogleWorkspaceSyncRevocations(result);
       toast({
         title: 'Directory synced',
         description: `${result.usersSynced} users loaded from Google Workspace.${revocationSummary}`,
@@ -327,14 +324,15 @@ export const GoogleWorkspaceMemberImportSheet = ({
                       const isSelected = selectedEmails.has(email);
                       const isAdmin = adminEmails.has(email);
                       return (
-                        <TableRow key={user.id}>
-                          <TableCell>
-                            <Checkbox
-                              checked={isSelected}
-                              onCheckedChange={(checked) => toggleEmail(email, Boolean(checked))}
-                              aria-label={`Select ${email}`}
-                            />
-                          </TableCell>
+                        <GoogleWorkspaceMemberPickRow
+                          key={user.id}
+                          email={email}
+                          isSelected={isSelected}
+                          isAdmin={isAdmin}
+                          onToggleSelected={toggleEmail}
+                          onToggleAdmin={toggleAdmin}
+                          adminAriaLabel={`Make ${email} admin`}
+                        >
                           <TableCell>
                             <div>
                               <div className="font-medium">{user.full_name || email}</div>
@@ -343,15 +341,7 @@ export const GoogleWorkspaceMemberImportSheet = ({
                               )}
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <Checkbox
-                              checked={isAdmin}
-                              disabled={!isSelected}
-                              onCheckedChange={(checked) => toggleAdmin(email, Boolean(checked))}
-                              aria-label={`Make ${email} admin`}
-                            />
-                          </TableCell>
-                        </TableRow>
+                        </GoogleWorkspaceMemberPickRow>
                       );
                     })}
                   </TableBody>

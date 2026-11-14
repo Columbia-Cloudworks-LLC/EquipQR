@@ -1,4 +1,3 @@
-// Duplication rationale: Customer hooks repeat mutation invalidation patterns
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import {

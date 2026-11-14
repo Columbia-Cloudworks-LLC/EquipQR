@@ -1,4 +1,3 @@
-// Duplication rationale: Fleet location resolution parallels generic effectiveLocation with team context
 import { supabase } from '@/integrations/supabase/client';
 import { parseLatLng } from '@/utils/geoUtils';
 import { parseLastKnownLocation, resolveEquipmentCoordinates, type FleetMapSource } from '@/utils/effectiveLocation';

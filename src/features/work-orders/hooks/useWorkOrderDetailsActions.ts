@@ -1,4 +1,3 @@
-// Duplication rationale: Action hooks repeat permission-gated mutation setup
 import { useState, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';

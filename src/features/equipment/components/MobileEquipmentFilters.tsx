@@ -6,14 +6,15 @@ import {
   Sheet,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
   SheetDescription,
 } from '@/components/ui/sheet';
 import { MobileListPersonalizationSheet } from '@/components/common/MobileListPersonalizationSheet';
 import { MobileToolbarSheetContent } from '@/components/common/MobileToolbarSheetContent';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, Filter, X, Check } from 'lucide-react';
-import { ListSortFieldControls } from '@/components/common/ListSortFieldControls';
+import { Search, X } from 'lucide-react';
+import { MobileListSortSection } from '@/components/common/MobileListSortSection';
+import { MobileFilterSheetTrigger } from '@/components/common/MobileFilterSheetTrigger';
+import { MobileQuickFilterChips } from '@/components/common/MobileQuickFilterChips';
 import type { EquipmentFilterState, SortConfig } from '@/features/equipment/hooks/useEquipmentFiltering';
 import {
   EquipmentLocationSelect,
@@ -118,43 +119,19 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
           hasNonDefaultSort={hasNonDefaultSort}
           description="Change how equipment is sorted on this device."
         >
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Sort by
-            </p>
-            <ListSortFieldControls
-              sortField={sortConfig.field}
-              sortOrder={sortConfig.direction}
-              options={EQUIPMENT_SORT_FIELD_OPTIONS}
-              onFieldChange={handleSortFieldChange}
-              onOrderToggle={toggleSortOrder}
-              fieldSelectAriaLabel="Sort equipment by field"
-              selectTriggerId={mobileSortSelectId}
-            />
-          </div>
+          <MobileListSortSection
+            sortField={sortConfig.field}
+            sortOrder={sortConfig.direction}
+            options={EQUIPMENT_SORT_FIELD_OPTIONS}
+            onFieldChange={handleSortFieldChange}
+            onOrderToggle={toggleSortOrder}
+            fieldSelectAriaLabel="Sort equipment by field"
+            selectTriggerId={mobileSortSelectId}
+          />
         </MobileListPersonalizationSheet>
 
         <Sheet open={isFilterSheetOpen} onOpenChange={handleFilterSheetOpenChange}>
-          <SheetTrigger asChild>
-            <Button
-              variant="outline"
-              size="icon"
-              className="relative h-11 w-11 shrink-0"
-              aria-label={
-                activeFilterCount > 0 ? `Open filters, ${activeFilterCount} active` : 'Open filters'
-              }
-            >
-              <Filter className="h-4 w-4" aria-hidden />
-              {activeFilterCount > 0 && (
-                <Badge
-                  variant="secondary"
-                  className="absolute -right-1 -top-1 h-5 min-w-5 px-1 text-[10px]"
-                >
-                  {activeFilterCount}
-                </Badge>
-              )}
-            </Button>
-          </SheetTrigger>
+          <MobileFilterSheetTrigger activeFilterCount={activeFilterCount} />
 
           <MobileToolbarSheetContent className="flex flex-col overflow-hidden p-0">
             <div className="shrink-0 p-6 pb-4">
@@ -169,26 +146,11 @@ export const MobileEquipmentFilters: React.FC<MobileEquipmentFiltersProps> = ({
 
             <ScrollArea className="min-h-0 flex-1 px-6">
               <div className="space-y-6 pb-6">
-                <div className="space-y-3">
-                  <h3 className="text-sm font-medium">Quick filters</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {EQUIPMENT_QUICK_FILTERS.map((preset) => {
-                      const isActive = activeQuickFilter === preset.value;
-                      return (
-                        <Button
-                          key={preset.value}
-                          size="sm"
-                          variant={isActive ? 'default' : 'outline'}
-                          className="min-h-11 whitespace-nowrap"
-                          onClick={() => onQuickFilter(preset.value)}
-                        >
-                          {isActive && <Check className="mr-1 h-3 w-3" aria-hidden />}
-                          {preset.label}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </div>
+                <MobileQuickFilterChips
+                  presets={EQUIPMENT_QUICK_FILTERS}
+                  isActive={(value) => activeQuickFilter === value}
+                  onSelect={onQuickFilter}
+                />
 
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium">Filters</h3>
