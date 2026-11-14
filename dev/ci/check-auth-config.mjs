@@ -16,7 +16,7 @@
  *   SUPABASE_PROJECT_REF   required
  */
 
-import { pathToFileURL } from 'node:url';
+import { runAsCliEntry } from '../lib/scriptRuntime.mjs';
 
 export const ALLOWED_PROVIDERS = new Set(['email', 'google']);
 
@@ -76,12 +76,4 @@ export async function run({ env = process.env, fetchImpl = fetch } = {}) {
   return errors.length > 0 ? 1 : 0;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  run().then(
-    (code) => process.exit(code),
-    (err) => {
-      process.stderr.write(`::error title=auth-config::${err instanceof Error ? err.message : String(err)}\n`);
-      process.exit(1);
-    },
-  );
-}
+runAsCliEntry(import.meta.url, run, 'auth-config');

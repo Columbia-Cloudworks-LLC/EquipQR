@@ -23,16 +23,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import {
+  resolveRepoRoot,
+  createFail,
+  listChangedFiles,
+} from './lib/scriptRuntime.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const repoRoot = resolveRepoRoot(import.meta.url);
 
 /** @typedef {'main' | 'preview'} ReleaseMetadataMode */
 
-/** @param {string} message */
-function fail(message) {
-  console.error(`verify-release-metadata: ${message}`);
-  process.exit(1);
-}
+const fail = createFail('verify-release-metadata');
 
 /**
  * @param {unknown} value
@@ -113,32 +114,64 @@ export function isReleaseRelevantPath(filePath) {
   return true;
 }
 
-/** @param {string} changelog */
-export function getUnreleasedSectionBody(changelog) {
+/**
+ * Lines after the first line starting with `headerPrefix`, up to the next
+ * `## [..]` heading (or a `---` rule when `stopAtRule` is set). Null when the
+ * header is absent.
+ * @param {string} changelog
+ * @param {string} headerPrefix
+ * @param {{ stopAtRule?: boolean }} [options]
+ */
+function getSectionBody(changelog, headerPrefix, options = {}) {
   const lines = changelog.split(/\r?\n/);
-  let startIndex = -1;
-
-  for (let index = 0; index < lines.length; index += 1) {
-    if (lines[index].startsWith('## [Unreleased]')) {
-      startIndex = index + 1;
-      break;
-    }
-  }
+  const startIndex = lines.findIndex((line) => line.startsWith(headerPrefix));
 
   if (startIndex === -1) {
     return null;
   }
 
   const bodyLines = [];
-  for (let index = startIndex; index < lines.length; index += 1) {
+  for (let index = startIndex + 1; index < lines.length; index += 1) {
     const line = lines[index];
     if (/^## \[[^\]]+\]/.test(line)) {
+      break;
+    }
+    if (options.stopAtRule && line.trim() === '---') {
       break;
     }
     bodyLines.push(line);
   }
 
   return bodyLines.join('\n');
+}
+
+/**
+ * True when the section body has at least one list bullet (ignores blanks,
+ * HTML comments, and ### category headings).
+ * @param {string | null} body
+ */
+function bodyHasListBullets(body) {
+  if (body == null) {
+    return false;
+  }
+
+  return body
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .some((line) => {
+      if (line.length === 0 || line.startsWith('<!--')) {
+        return false;
+      }
+      if (/^###\s/.test(line)) {
+        return false;
+      }
+      return /^[-*]\s/.test(line);
+    });
+}
+
+/** @param {string} changelog */
+export function getUnreleasedSectionBody(changelog) {
+  return getSectionBody(changelog, '## [Unreleased]');
 }
 
 /** @param {string} changelog */
@@ -156,25 +189,7 @@ export function isUnreleasedSectionEmpty(changelog) {
  * @param {string} changelog
  */
 export function hasNonEmptyUnreleasedBullets(changelog) {
-  const body = getUnreleasedSectionBody(changelog);
-  if (body == null) {
-    return false;
-  }
-
-  const meaningfulLines = body
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => {
-      if (line.length === 0 || line.startsWith('<!--')) {
-        return false;
-      }
-      if (/^###\s/.test(line)) {
-        return false;
-      }
-      return /^[-*]\s/.test(line);
-    });
-
-  return meaningfulLines.length > 0;
+  return bodyHasListBullets(getUnreleasedSectionBody(changelog));
 }
 
 /**
@@ -182,34 +197,7 @@ export function hasNonEmptyUnreleasedBullets(changelog) {
  * @param {string} version
  */
 export function getReleasedSectionBody(changelog, version) {
-  const lines = changelog.split(/\r?\n/);
-  const headerPrefix = `## [${version}]`;
-  let startIndex = -1;
-
-  for (let index = 0; index < lines.length; index += 1) {
-    if (lines[index].startsWith(headerPrefix)) {
-      startIndex = index + 1;
-      break;
-    }
-  }
-
-  if (startIndex === -1) {
-    return null;
-  }
-
-  const bodyLines = [];
-  for (let index = startIndex; index < lines.length; index += 1) {
-    const line = lines[index];
-    if (/^## \[[^\]]+\]/.test(line)) {
-      break;
-    }
-    if (line.trim() === '---') {
-      break;
-    }
-    bodyLines.push(line);
-  }
-
-  return bodyLines.join('\n');
+  return getSectionBody(changelog, `## [${version}]`, { stopAtRule: true });
 }
 
 /** @param {string} changelog */
@@ -238,44 +226,13 @@ export function getTopReleasedVersion(changelog) {
 
 /** @param {string} changelog @param {string} version */
 export function hasNonEmptyReleaseSection(changelog, version) {
-  const body = getReleasedSectionBody(changelog, version);
-  if (body == null) {
-    return false;
-  }
-
-  const meaningfulLines = body
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => {
-      if (line.length === 0 || line.startsWith('<!--')) {
-        return false;
-      }
-      if (/^###\s/.test(line)) {
-        return false;
-      }
-      return /^[-*]\s/.test(line);
-    });
-
-  return meaningfulLines.length > 0;
+  return bodyHasListBullets(getReleasedSectionBody(changelog, version));
 }
 
 /** @param {string} changelog @param {string} version */
 export function topReleasedSectionMatches(changelog, version) {
   return getTopReleasedVersion(changelog) === version
     && hasNonEmptyReleaseSection(changelog, version);
-}
-
-/** @param {string} baseSha */
-function listChangedFiles(baseSha) {
-  const output = execFileSync(
-    'git',
-    ['diff', '--name-only', `${baseSha}..HEAD`],
-    { cwd: repoRoot, encoding: 'utf8' },
-  );
-  return output
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
 }
 
 /** @param {string} ref */
@@ -290,6 +247,23 @@ function readPackageVersionAtRef(ref) {
     fail(`Missing version in package.json at ${ref}`);
   }
   return pkg.version;
+}
+
+/**
+ * Compares package.json version with the base version, recording an error when not comparable.
+ * @param {string} packageVersion
+ * @param {string} baseVersion
+ * @param {string[]} errors
+ */
+function compareWithBaseVersion(packageVersion, baseVersion, errors) {
+  const comparison = compareSemver(packageVersion, baseVersion);
+  if (comparison == null) {
+    errors.push(
+      `Could not compare package.json version "${packageVersion}" `
+        + `with base "${baseVersion}"`,
+    );
+  }
+  return comparison;
 }
 
 /**
@@ -337,13 +311,8 @@ export function collectReleaseMetadataErrors(input) {
 
   if (mode === 'preview') {
     if (input.baseVersion != null) {
-      const comparison = compareSemver(input.packageVersion, input.baseVersion);
-      if (comparison == null) {
-        errors.push(
-          `Could not compare package.json version "${input.packageVersion}" `
-            + `with base "${input.baseVersion}"`,
-        );
-      } else if (comparison !== 0) {
+      const comparison = compareWithBaseVersion(input.packageVersion, input.baseVersion, errors);
+      if (comparison != null && comparison !== 0) {
         errors.push(
           `PRs into preview must not bump package.json version `
             + `(found "${input.packageVersion}", base "${input.baseVersion}"). `
@@ -367,18 +336,13 @@ export function collectReleaseMetadataErrors(input) {
   }
 
   if (input.baseVersion != null) {
-    const comparison = compareSemver(input.packageVersion, input.baseVersion);
-    if (comparison == null) {
-      errors.push(
-        `Could not compare package.json version "${input.packageVersion}" `
-          + `with base "${input.baseVersion}"`,
-      );
-    } else if (requiresBump && comparison <= 0) {
+    const comparison = compareWithBaseVersion(input.packageVersion, input.baseVersion, errors);
+    if (comparison != null && requiresBump && comparison <= 0) {
       errors.push(
         `Release-relevant files changed but package.json version `
           + `"${input.packageVersion}" is not newer than base "${input.baseVersion}"`,
       );
-    } else if (!requiresBump && comparison < 0) {
+    } else if (comparison != null && !requiresBump && comparison < 0) {
       errors.push(
         `package.json version "${input.packageVersion}" must not be lower than base `
           + `"${input.baseVersion}"`,
@@ -428,7 +392,7 @@ export function verifyReleaseMetadata(options = {}) {
   let baseVersion;
 
   if (baseSha) {
-    changedFiles = listChangedFiles(baseSha);
+    changedFiles = listChangedFiles(repoRoot, baseSha);
     baseVersion = readPackageVersionAtRef(baseSha);
   }
 

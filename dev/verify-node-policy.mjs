@@ -7,15 +7,10 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { resolveRepoRoot, createFail } from './lib/scriptRuntime.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-
-/** @param {string} message */
-function fail(message) {
-  console.error(`verify-node-policy: ${message}`);
-  process.exit(1);
-}
+const repoRoot = resolveRepoRoot(import.meta.url);
+const fail = createFail('verify-node-policy');
 
 /** @param {string} version */
 function majorFromSemver(version) {

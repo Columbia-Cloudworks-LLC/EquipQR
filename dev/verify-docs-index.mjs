@@ -15,8 +15,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveRepoRoot, createFail, readVercelConfig } from './lib/scriptRuntime.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const repoRoot = resolveRepoRoot(import.meta.url);
 
 export const GITHUB_SHORTCUT_HOST = 'github.equipqr.app';
 export const GITHUB_REPO_URL = 'https://github.com/Columbia-Cloudworks-LLC/EquipQR';
@@ -24,11 +25,7 @@ const GITHUB_SHORTCUT_ROOT_SOURCES = Object.freeze(['/', '/(.*)', '/:path*']);
 
 const MARKDOWN_LINK_RE = /\[[^\]]*]\(([^)]+)\)/g;
 
-/** @param {string} message */
-function fail(message) {
-  console.error(`verify-docs-index: ${message}`);
-  process.exit(1);
-}
+const fail = createFail('verify-docs-index');
 
 /**
  * @param {string} markdown
@@ -138,18 +135,8 @@ function verifyDocsIndexConfig() {
     fail(`AGENTS.md links do not resolve: ${broken.join(', ')}`);
   }
 
-  const vercelPath = path.join(repoRoot, 'vercel.json');
-  if (!fs.existsSync(vercelPath)) {
-    fail('Missing vercel.json at repo root.');
-  }
-
   /** @type {{ redirects?: unknown }} */
-  let vercel;
-  try {
-    vercel = JSON.parse(fs.readFileSync(vercelPath, 'utf8'));
-  } catch {
-    fail('vercel.json is not valid JSON.');
-  }
+  const vercel = readVercelConfig(repoRoot, fail);
 
   const redirect = findGithubShortcutRedirect(vercel);
   if (!redirect) {
