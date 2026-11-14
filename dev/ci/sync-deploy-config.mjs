@@ -38,7 +38,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { pathToFileURL } from 'node:url';
+import { runAsCliEntry } from '../lib/scriptRuntime.mjs';
 
 const DEFAULT_TEAM = 'team_78VeGDURoofThjZNJOKEBpP5';
 const DEFAULT_PROJECT = 'prj_P9hRun4B2OdGy8ACCnb0f7jNG6UA';
@@ -584,14 +584,4 @@ export async function run({ env = process.env, fetchImpl = fetch } = {}) {
   return 0;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  run().then(
-    (code) => process.exit(code),
-    (err) => {
-      process.stderr.write(
-        `::error title=sync-deploy-config::${err instanceof Error ? err.message : String(err)}\n`,
-      );
-      process.exit(1);
-    },
-  );
-}
+runAsCliEntry(import.meta.url, run, 'sync-deploy-config');

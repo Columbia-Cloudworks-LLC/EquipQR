@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 
-import fs from 'fs/promises';
 import path from 'path';
-import { parseDemoGifArgs, isLocalhostBaseUrl } from './lib/demoGifArgs.mjs';
+import { parseDemoGifArgs } from './lib/demoGifArgs.mjs';
 import { allocateCanonicalArtifactRelativePath, ensureDemoDirectory } from './lib/demoArtifactPaths.mjs';
 import {
   demoGifRepoRoot,
@@ -11,7 +10,6 @@ import {
   sleep,
   ensureBinaryAvailable,
 } from './lib/demoGifPlaywright.mjs';
-import { loginAsAlexApex, loginWithPersona, waitForDashboardOrThrow } from './lib/demoGifAuth.mjs';
 import {
   loadManifest,
   printScenarioList,
@@ -19,7 +17,7 @@ import {
   resolveViewportConfig,
   runScenarioSteps,
 } from './lib/demoGifScenario.mjs';
-import { stopVideoAtPath, runSmokeVideoRecording } from './lib/demoGifRecording.mjs';
+import { runRecordedSession, assertVideoArtifact, runSmokeVideoRecording } from './lib/demoGifRecording.mjs';
 import {
   buildRecordingGifFfmpegFilter,
   probeVideoDimensions,
@@ -63,37 +61,24 @@ async function main() {
   const webmAbsolutePath = path.resolve(demoGifRepoRoot, webmRelativePath);
 
   const base = parsedArgs.baseUrl;
-  let videoStarted = false;
+  const viewport = resolveViewportConfig(scenario.viewport);
 
-  try {
-    await runPlaywrightCommand('playwright-cli open about:blank');
-    const viewport = resolveViewportConfig(scenario.viewport);
-    await runPlaywrightCommand(`playwright-cli resize ${viewport.width} ${viewport.height}`);
-    await runPlaywrightCommand('playwright-cli video-start');
-    videoStarted = true;
+  await runRecordedSession({
+    base,
+    viewport,
+    webmRelativePath,
+    personaName: parsedArgs.persona || scenario.auth?.persona || 'Alex Apex',
+    afterLogin: async () => {
+      await runPlaywrightCommand(`playwright-cli goto ${base}${scenario.route}`);
+      await sleep(1500);
 
-    await runPlaywrightCommand(`playwright-cli goto ${base}`);
-
-    const personaName = parsedArgs.persona || scenario.auth?.persona || 'Alex Apex';
-    if (isLocalhostBaseUrl(base)) {
-      if (personaName === 'Alex Apex') {
-        await loginAsAlexApex(base);
-      } else {
-        await loginWithPersona(base, { persona: personaName });
+      await runScenarioSteps(scenario);
+    },
+    afterStop: async () => {
+      if (parsedArgs.videoOnly) {
+        await assertVideoArtifact(webmRelativePath);
+        return;
       }
-    } else {
-      await waitForDashboardOrThrow(base);
-    }
-
-    await runPlaywrightCommand(`playwright-cli goto ${base}${scenario.route}`);
-    await sleep(1500);
-
-    await runScenarioSteps(scenario);
-
-    await stopVideoAtPath(webmRelativePath);
-    videoStarted = false;
-
-    if (!parsedArgs.videoOnly) {
       const dimensions = await probeVideoDimensions(webmAbsolutePath);
       const videoFilter = buildRecordingGifFfmpegFilter(
         dimensions.width,
@@ -105,22 +90,8 @@ async function main() {
         { cwd: demoGifRepoRoot },
       );
       console.log(`GIF generated: ${gifAbsolutePath}`);
-    } else {
-      const stat = await fs.stat(webmAbsolutePath).catch(() => null);
-      if (!stat || stat.size < 256) {
-        throw new Error(`Video artifact missing or too small: ${webmRelativePath}`);
-      }
-      console.log(`Video saved: ${webmAbsolutePath}`);
-    }
-  } catch (error) {
-    console.error(`Demo generation failed: ${error instanceof Error ? error.message : String(error)}`);
-    process.exitCode = 1;
-  } finally {
-    if (videoStarted) {
-      await stopVideoAtPath(webmRelativePath).catch(() => undefined);
-    }
-    await runCommand('playwright-cli close', { allowFailure: true });
-  }
+    },
+  });
 }
 
 main().catch((error) => {

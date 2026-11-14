@@ -33,6 +33,82 @@ export async function stopVideoAtPath(webmRelativePath) {
 }
 
 /**
+ * Shared record-login-act-stop session used by the smoke and scenario flows.
+ * @param {{
+ *   base: string,
+ *   viewport: { width: number, height: number },
+ *   webmRelativePath: string,
+ *   personaName: string,
+ *   initialPath?: string,
+ *   settleAfterInitialMs?: number,
+ *   afterLogin: () => Promise<void>,
+ *   afterStop: () => Promise<void>,
+ * }} options
+ */
+export async function runRecordedSession({
+  base,
+  viewport,
+  webmRelativePath,
+  personaName,
+  initialPath = '',
+  settleAfterInitialMs = 0,
+  afterLogin,
+  afterStop,
+}) {
+  let videoStarted = false;
+
+  try {
+    await runPlaywrightCommand('playwright-cli open about:blank');
+    await runPlaywrightCommand(`playwright-cli resize ${viewport.width} ${viewport.height}`);
+    await runPlaywrightCommand('playwright-cli video-start');
+    videoStarted = true;
+
+    await runPlaywrightCommand(`playwright-cli goto ${base}${initialPath}`);
+    if (settleAfterInitialMs > 0) {
+      await sleep(settleAfterInitialMs);
+    }
+
+    if (isLocalhostBaseUrl(base)) {
+      if (personaName === 'Alex Apex') {
+        await loginAsAlexApex(base);
+      } else {
+        await loginWithPersona(base, { persona: personaName });
+      }
+    } else {
+      await waitForDashboardOrThrow(base);
+    }
+
+    await afterLogin();
+
+    await stopVideoAtPath(webmRelativePath);
+    videoStarted = false;
+
+    await afterStop();
+  } catch (error) {
+    console.error(`Demo generation failed: ${error instanceof Error ? error.message : String(error)}`);
+    process.exitCode = 1;
+  } finally {
+    if (videoStarted) {
+      await stopVideoAtPath(webmRelativePath).catch(() => undefined);
+    }
+    await runCommand('playwright-cli close', { allowFailure: true });
+  }
+}
+
+/**
+ * Verifies the recorded webm exists and is non-trivial, then prints its location.
+ * @param {string} webmRelativePath
+ */
+export async function assertVideoArtifact(webmRelativePath) {
+  const webmAbsolutePath = path.resolve(demoGifRepoRoot, webmRelativePath);
+  const stat = await fs.stat(webmAbsolutePath).catch(() => null);
+  if (!stat || stat.size < 256) {
+    throw new Error(`Video artifact missing or too small: ${webmRelativePath}`);
+  }
+  console.log(`Video saved: ${webmAbsolutePath}`);
+}
+
+/**
  * @param {import('./demoGifArgs.mjs').DemoGifCliArgs} parsedArgs
  */
 export async function runSmokeVideoRecording(parsedArgs) {
@@ -49,49 +125,18 @@ export async function runSmokeVideoRecording(parsedArgs) {
 
   await ensureDemoDirectory();
 
-  const viewport = defaultViewportByProfile.desktop;
-  let videoStarted = false;
-
-  try {
-    await runPlaywrightCommand('playwright-cli open about:blank');
-    await runPlaywrightCommand(`playwright-cli resize ${viewport.width} ${viewport.height}`);
-    await runPlaywrightCommand('playwright-cli video-start');
-    videoStarted = true;
-
-    await runPlaywrightCommand(`playwright-cli goto ${base}/`);
-    await sleep(900);
-
-    if (isLocalhostBaseUrl(base)) {
-      const personaName = parsedArgs.persona || 'Alex Apex';
-      if (personaName === 'Alex Apex') {
-        await loginAsAlexApex(base);
-      } else {
-        await loginWithPersona(base, { persona: personaName });
-      }
-    } else {
-      await waitForDashboardOrThrow(base);
-    }
-
-    await runPlaywrightCommand(`playwright-cli goto ${base}/dashboard`);
-    await sleep(1800);
-    await runPlaywrightCommand('playwright-cli snapshot');
-
-    await stopVideoAtPath(webmRelativePath);
-    videoStarted = false;
-
-    const webmAbsolutePath = path.resolve(demoGifRepoRoot, webmRelativePath);
-    const stat = await fs.stat(webmAbsolutePath).catch(() => null);
-    if (!stat || stat.size < 256) {
-      throw new Error(`Video artifact missing or too small: ${webmRelativePath}`);
-    }
-    console.log(`Video saved: ${webmAbsolutePath}`);
-  } catch (error) {
-    console.error(`Demo generation failed: ${error instanceof Error ? error.message : String(error)}`);
-    process.exitCode = 1;
-  } finally {
-    if (videoStarted) {
-      await stopVideoAtPath(webmRelativePath).catch(() => undefined);
-    }
-    await runCommand('playwright-cli close', { allowFailure: true });
-  }
+  await runRecordedSession({
+    base,
+    viewport: defaultViewportByProfile.desktop,
+    webmRelativePath,
+    personaName: parsedArgs.persona || 'Alex Apex',
+    initialPath: '/',
+    settleAfterInitialMs: 900,
+    afterLogin: async () => {
+      await runPlaywrightCommand(`playwright-cli goto ${base}/dashboard`);
+      await sleep(1800);
+      await runPlaywrightCommand('playwright-cli snapshot');
+    },
+    afterStop: () => assertVideoArtifact(webmRelativePath),
+  });
 }

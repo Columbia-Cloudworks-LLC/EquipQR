@@ -1,6 +1,6 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { spawn } from 'child_process';
+import { spawnCapture } from './lib/spawnCapture.mjs';
 import {
   allocateCanonicalArtifactRelativePath,
   ensureDemoDirectory
@@ -32,22 +32,8 @@ const repoRoot = path.resolve(__dirname, '..');
  * @param {string} command
  * @param {string[]} args
  */
-async function runProcess(command, args) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { cwd: repoRoot, shell: false, stdio: ['ignore', 'pipe', 'pipe'] });
-    let stdout = '';
-    let stderr = '';
-    child.stdout.on('data', (data) => {
-      stdout += data.toString();
-    });
-    child.stderr.on('data', (data) => {
-      stderr += data.toString();
-    });
-    child.on('error', reject);
-    child.on('close', (code) =>
-      resolve({ code: typeof code === 'number' ? code : 1, stdout, stderr })
-    );
-  });
+function runProcess(command, args) {
+  return spawnCapture(command, args, { cwd: repoRoot });
 }
 
 async function ffmpegAvailable() {

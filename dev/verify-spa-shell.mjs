@@ -11,13 +11,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveRepoRoot, createFail, readVercelConfig } from './lib/scriptRuntime.mjs';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-
-function fail(message) {
-  console.error(message);
-  process.exit(1);
-}
+const repoRoot = resolveRepoRoot(import.meta.url);
+const fail = createFail();
 
 const CATCH_ALL_REDIRECT_RULE = '/* /app-shell.html 200';
 
@@ -76,18 +73,8 @@ export function verifySpaShellRouting() {
     fail('Missing dist/app-shell.html. Run npm run build first.');
   }
 
-  const vercelPath = path.join(repoRoot, 'vercel.json');
-  if (!fs.existsSync(vercelPath)) {
-    fail('Missing vercel.json at repo root.');
-  }
-
   /** @type {{ rewrites?: Array<{ source?: string; destination?: string }>; cleanUrls?: boolean }} */
-  let vercel;
-  try {
-    vercel = JSON.parse(fs.readFileSync(vercelPath, 'utf8'));
-  } catch {
-    fail('vercel.json is not valid JSON.');
-  }
+  const vercel = readVercelConfig(repoRoot, fail);
 
   const CANONICAL_REWRITE_SOURCE = '/((?!.*\\.).*)';
   const CANONICAL_REWRITE_DEST = '/app-shell';

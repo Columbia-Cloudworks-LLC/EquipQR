@@ -20,10 +20,16 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { pathToFileURL } from 'node:url';
-
-const DEFAULT_TEAM = 'team_78VeGDURoofThjZNJOKEBpP5';
-const DEFAULT_PROJECT = 'prj_P9hRun4B2OdGy8ACCnb0f7jNG6UA';
+import { runAsCliEntry } from '../lib/scriptRuntime.mjs';
+import {
+  DEFAULT_TEAM,
+  DEFAULT_PROJECT,
+  sleep,
+  envIntAtLeast,
+  exitIfHelpRequested,
+  readVercelEnv,
+  fetchVercelWithTimeout,
+} from '../lib/vercelDeployments.mjs';
 const VERCEL_CLI = 'vercel@51.6.1';
 
 function usage() {
@@ -91,10 +97,6 @@ function formatShortSha(sha) {
   return sha ? sha.slice(0, 7) : 'unknown';
 }
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export async function listDeployments({
   token,
   teamId,
@@ -108,34 +110,20 @@ export async function listDeployments({
   u.searchParams.set('target', target);
   u.searchParams.set('limit', '10');
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const res = await fetch(u, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: controller.signal,
-    });
-    const text = await res.text();
-    if (!res.ok) {
-      return {
-        ok: false,
-        transient: res.status === 429 || res.status >= 500,
-        detail: `Vercel API ${res.status}: ${text.slice(0, 400)}`,
-      };
-    }
-    return { ok: true, deployments: JSON.parse(text).deployments || [] };
-  } catch (err) {
-    const message =
-      err && typeof err === 'object' && 'name' in err && err.name === 'AbortError'
-        ? `request timeout after ${timeoutMs}ms`
-        : err instanceof Error
-          ? err.message
-          : String(err);
-    return { ok: false, transient: true, detail: message };
-  } finally {
-    clearTimeout(timeoutId);
-  }
+  return fetchVercelWithTimeout(u, {
+    token,
+    timeoutMs,
+    handleResponse: (res, text) => {
+      if (!res.ok) {
+        return {
+          ok: false,
+          transient: res.status === 429 || res.status >= 500,
+          detail: `Vercel API ${res.status}: ${text.slice(0, 400)}`,
+        };
+      }
+      return { ok: true, deployments: JSON.parse(text).deployments || [] };
+    },
+  });
 }
 
 export function pickProductionDeployment(deployments, branch) {
@@ -314,30 +302,14 @@ function runVercelPromote({ deploymentRef, token, teamId, timeout }) {
 }
 
 async function main() {
-  const argv = process.argv.slice(2);
-  if (argv.includes('--help') || argv.includes('-h')) {
-    usage();
-    process.exit(0);
-  }
+  exitIfHelpRequested(usage);
 
-  const token = process.env.VERCEL_TOKEN || '';
-  const teamId = process.env.VERCEL_TEAM_ID || DEFAULT_TEAM;
-  const projectId = process.env.VERCEL_PROJECT_ID || DEFAULT_PROJECT;
-  const branch = process.env.VERCEL_BRANCH || 'main';
+  const { token, teamId, projectId, branch } = readVercelEnv();
   const timeout = (process.env.VERCEL_PROMOTE_TIMEOUT || '5m').trim() || '5m';
   const sha = process.env.GITHUB_SHA || process.env.VERCEL_COMMIT_SHA || '';
-  const verifyTimeoutMs = Math.max(
-    5_000,
-    Number.parseInt(process.env.VERCEL_VERIFY_TIMEOUT_MS || '60000', 10) || 60_000,
-  );
-  const fetchTimeoutMs = Math.max(
-    5_000,
-    Number.parseInt(process.env.VERCEL_FETCH_TIMEOUT_MS || '15000', 10) || 15_000,
-  );
-  const pollIntervalMs = Math.max(
-    1_000,
-    Number.parseInt(process.env.VERCEL_POLL_INTERVAL_MS || '5000', 10) || 5_000,
-  );
+  const verifyTimeoutMs = envIntAtLeast('VERCEL_VERIFY_TIMEOUT_MS', 60_000, 5_000);
+  const fetchTimeoutMs = envIntAtLeast('VERCEL_FETCH_TIMEOUT_MS', 15_000, 5_000);
+  const pollIntervalMs = envIntAtLeast('VERCEL_POLL_INTERVAL_MS', 5_000, 1_000);
   const deploymentPromoteRef = deploymentPromoteRefFromEnv();
 
   if (!token) {
@@ -378,11 +350,4 @@ async function main() {
   process.exit(0);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main().catch((err) => {
-    process.stderr.write(
-      `::error title=promote-vercel-production::${err instanceof Error ? err.message : String(err)}\n`,
-    );
-    process.exit(1);
-  });
-}
+runAsCliEntry(import.meta.url, main, 'promote-vercel-production');
