@@ -12,6 +12,7 @@
 import { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import { decryptToken, getTokenEncryptionKey } from "./crypto.ts";
 import { requireSecret } from "./require-secret.ts";
+import { createRedactedLogStep } from "./redacted-logger.ts";
 
 const FUNCTION_NAME = "_shared/google-workspace-token";
 
@@ -68,16 +69,7 @@ export class GoogleWorkspaceTokenError extends Error {
   }
 }
 
-const logStep = (step: string, details?: Record<string, unknown>) => {
-  const safeDetails = details ? { ...details } : undefined;
-  // Never log tokens
-  if (safeDetails) {
-    delete safeDetails.access_token;
-    delete safeDetails.refresh_token;
-  }
-  const detailsStr = safeDetails ? ` - ${JSON.stringify(safeDetails)}` : "";
-  console.log(`[GOOGLE-WORKSPACE-TOKEN] ${step}${detailsStr}`);
-};
+const logStep = createRedactedLogStep("GOOGLE-WORKSPACE-TOKEN");
 
 /**
  * Refreshes a Google OAuth access token using a refresh token.

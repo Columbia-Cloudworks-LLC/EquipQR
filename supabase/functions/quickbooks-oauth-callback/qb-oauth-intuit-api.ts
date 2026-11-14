@@ -1,4 +1,5 @@
-import { QBO_TOKEN_URL, getIntuitTid } from "../_shared/quickbooks-config.ts";
+import { QBO_TOKEN_URL } from "../_shared/quickbooks-config.ts";
+import { postIntuitTokenRequest } from "../_shared/quickbooks-token-request.ts";
 import { logStep } from "./qb-oauth-validation.ts";
 
 export interface IntuitTokenResponse {
@@ -28,25 +29,15 @@ export async function exchangeAuthorizationCode(
     token_url: QBO_TOKEN_URL,
   });
 
-  const tokenRequestBody = new URLSearchParams({
-    grant_type: "authorization_code",
-    code,
-    redirect_uri: redirectUri,
-  });
-
-  const basicAuth = btoa(`${clientId}:${clientSecret}`);
-
-  const tokenResponse = await fetch(QBO_TOKEN_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      "Authorization": `Basic ${basicAuth}`,
-      "Accept": "application/json",
+  const { response: tokenResponse, intuitTid } = await postIntuitTokenRequest(
+    {
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: redirectUri,
     },
-    body: tokenRequestBody.toString(),
-  });
-
-  const intuitTid = getIntuitTid(tokenResponse);
+    clientId,
+    clientSecret,
+  );
 
   if (!tokenResponse.ok) {
     logStep("Token exchange failed", { status: tokenResponse.status, intuit_tid: intuitTid });
