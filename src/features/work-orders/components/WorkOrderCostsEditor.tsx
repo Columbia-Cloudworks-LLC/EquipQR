@@ -1,6 +1,3 @@
-// fallow-ignore-file code-duplication
-// Duplication rationale: Editable costs parallel read-only list layout
-
 import React, { useCallback } from 'react';
 import {
   calculateWorkOrderCostsSubtotal,
@@ -12,6 +9,7 @@ import { WorkOrderCostItem } from '@/features/work-orders/hooks/useWorkOrderCost
 import { useIsMobile } from '@/hooks/use-mobile';
 import MobileCostItem from './MobileCostItem';
 import DesktopCostItem from './DesktopCostItem';
+import { WorkOrderCostLineList } from './WorkOrderCostLineList';
 
 interface WorkOrderCostsEditorProps {
   costs: WorkOrderCostItem[];
@@ -64,50 +62,30 @@ const WorkOrderCostsEditor: React.FC<WorkOrderCostsEditorProps> = ({
         </p>
       ) : null}
 
-      <div className="space-y-3">
-        {/* Desktop Headers */}
-        {!isMobile && (
-          <div className="grid grid-cols-4 gap-4 text-sm font-medium text-muted-foreground px-3">
-            <div>Description</div>
-            <div>Quantity</div>
-            <div>Unit Price</div>
-            <div className="text-right">Total</div>
-          </div>
+      <WorkOrderCostLineList
+        costs={costs}
+        isMobile={isMobile}
+        formatCurrency={formatCurrency}
+        calculateSubtotal={calculateSubtotal}
+        renderMobileCost={(cost) => (
+          <MobileCostItem
+            cost={cost}
+            onRemoveCost={onRemoveCost}
+            onUpdateCost={onUpdateCost}
+            canRemove={canRemove}
+          />
         )}
-
-        {/* Cost Items */}
-        <div className="space-y-3">
-          {costs.map((cost) => (
-            <div key={cost.id}>
-              {isMobile ? (
-                <MobileCostItem 
-                  cost={cost}
-                  onRemoveCost={onRemoveCost}
-                  onUpdateCost={onUpdateCost}
-                  canRemove={canRemove}
-                />
-              ) : (
-                <DesktopCostItem 
-                  cost={cost}
-                  onRemoveCost={onRemoveCost}
-                  onUpdateCost={onUpdateCost}
-                  canRemove={canRemove}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Subtotal */}
-        {costs.length > 0 && (
-          <div className="border-t pt-4">
-            <div className="flex items-center justify-between text-lg font-semibold">
-              <span>Subtotal:</span>
-              <span>{formatCurrency(calculateSubtotal())}</span>
-            </div>
-          </div>
+        renderDesktopCost={(cost) => (
+          <DesktopCostItem
+            cost={cost}
+            onRemoveCost={onRemoveCost}
+            onUpdateCost={onUpdateCost}
+            canRemove={canRemove}
+          />
         )}
-      </div>
+        showSubtotal={costs.length > 0}
+        className="space-y-3"
+      />
     </div>
   );
 };

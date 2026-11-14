@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import {
   WorkOrderDetailsMobileContent,
+  type WorkOrderDetailsMobileAccess,
   type WorkOrderDetailsMobileContentProps,
 } from '@/features/work-orders/components/WorkOrderDetailsMobileContent';
 import {
@@ -89,6 +90,7 @@ const emptyRef = { current: null };
 
 function renderMobileContent(
   overrides: Partial<WorkOrderDetailsMobileContentProps> = {},
+  accessOverrides: Partial<WorkOrderDetailsMobileAccess> = {},
 ) {
   render(
     <WorkOrderDetailsMobileContent
@@ -99,13 +101,16 @@ function renderMobileContent(
       permissionLevels={{ isManager: true, isTechnician: true }}
       pmChecklist={{ progress: 1, total: 3 }}
       pmLoading={false}
-      isWorkOrderLocked={false}
-      canAddNotes={true}
-      canUsePrivateNotes={true}
-      canUpload={true}
-      canAddCosts={true}
-      canEditCosts={true}
-      canViewWorkOrderCosts={true}
+      access={{
+        isWorkOrderLocked: false,
+        canAddNotes: true,
+        canUsePrivateNotes: true,
+        canUpload: true,
+        canAddCosts: true,
+        canEditCosts: true,
+        canViewWorkOrderCosts: true,
+        ...accessOverrides,
+      }}
       hideInlineNoteAddButton={true}
       shouldAutoOpenNoteForm={false}
       openNoteFormTrigger={0}
@@ -172,11 +177,10 @@ describe('WorkOrderDetailsMobileContent', () => {
   it('shows Reopen work order on a locked completed work order', () => {
     renderMobileContent({
       workOrder: { ...workOrder, status: 'completed' },
-      isWorkOrderLocked: true,
       baseCanAddNotes: true,
       showMobileActionFooter: false,
       footerRoleEligible: false,
-    });
+    }, { isWorkOrderLocked: true });
 
     expect(screen.getByRole('button', { name: /reopen work order/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /revert to accepted/i })).not.toBeInTheDocument();
@@ -218,8 +222,7 @@ describe('WorkOrderDetailsMobileContent', () => {
   it('keeps work order costs hidden when the viewer cannot see shop costs', () => {
     renderMobileContent({
       permissionLevels: { isManager: false, isTechnician: false },
-      canViewWorkOrderCosts: false,
-    });
+    }, { canViewWorkOrderCosts: false });
 
     expect(screen.queryByText('Work order costs')).not.toBeInTheDocument();
   });
