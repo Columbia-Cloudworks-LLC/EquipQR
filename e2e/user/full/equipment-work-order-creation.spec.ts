@@ -7,7 +7,6 @@ import {
   fillWorkOrderBasics,
   openEquipmentDetailByName,
   openWorkOrderCreateDialog,
-  selectPmTemplateIfAvailable,
   selectWorkOrderEquipment,
   setPmTemplate,
   submitWorkOrderForm,
@@ -108,8 +107,10 @@ test.describe.serial('creation flows: equipment and work orders @full', () => {
       await expect(
         page.getByRole('heading', { name: new RegExp(data.pmWorkOrderWithDefault.title, 'i') }).first(),
       ).toBeVisible({ timeout: 60_000 });
+      // A checklist section only the Excavator PM template has. Text such as "PM checklist"
+      // would also match the "Add PM Checklist" button that non-PM work orders show.
       await expect(
-        page.getByText(/preventative maintenance|pm checklist|excavator pm|forklift pm/i).first(),
+        page.getByRole('button', { name: /Swing System/i }).first(),
       ).toBeVisible({ timeout: 60_000 });
     });
   });
@@ -132,10 +133,9 @@ test.describe.serial('creation flows: equipment and work orders @full', () => {
     await test.step('Create PM work order with manual template selection', async () => {
       await fillWorkOrderBasics(dialog, data.pmWorkOrderWithoutDefault);
       await selectWorkOrderEquipment(page, dialog, equipmentWithoutDefaultPmName);
-      await expect(dialog.getByRole('combobox', { name: /pm template/i })).toBeVisible({
-        timeout: 15_000,
-      });
-      await selectPmTemplateIfAvailable(page, dialog, /Forklift PM/i);
+      // Without an equipment default, "Include PM" starts off and the template select
+      // only renders once it is switched on; setPmTemplate asserts the select appears.
+      await setPmTemplate(page, dialog, /Forklift PM/i);
     });
 
     await test.step('Submit and verify PM checklist on detail page', async () => {
@@ -144,8 +144,10 @@ test.describe.serial('creation flows: equipment and work orders @full', () => {
       await expect(
         page.getByRole('heading', { name: new RegExp(data.pmWorkOrderWithoutDefault.title, 'i') }).first(),
       ).toBeVisible({ timeout: 60_000 });
+      // A checklist section only the Forklift PM template has. Text such as "PM checklist"
+      // would also match the "Add PM Checklist" button that non-PM work orders show.
       await expect(
-        page.getByText(/preventative maintenance|pm checklist|excavator pm|forklift pm/i).first(),
+        page.getByRole('button', { name: /Mast & Carriage/i }).first(),
       ).toBeVisible({ timeout: 60_000 });
     });
   });

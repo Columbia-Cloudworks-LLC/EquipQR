@@ -253,8 +253,12 @@ function equipmentOpenButtonForName(
   escapedName: string,
   options: { anchored: boolean },
 ): Locator {
-  // Dense list rows render the whole card as a button whose accessible name
-  // starts with the equipment name; legacy layouts used "Open details for X".
+  // EquipmentCard overlays a native button labelled "Open equipment X". Dense
+  // list rows render the whole card as a button whose accessible name starts
+  // with the equipment name; legacy layouts used "Open details for X".
+  const cardOverlayButton = page
+    .getByRole('button', { name: new RegExp(`^Open equipment ${escapedName}`, 'i') })
+    .first();
   const densePattern = options.anchored
     ? new RegExp(`^${escapedName}`, 'i')
     : new RegExp(escapedName, 'i');
@@ -262,7 +266,7 @@ function equipmentOpenButtonForName(
   const legacyOpenButton = page
     .getByRole('button', { name: new RegExp(`Open details for .*${escapedName}`, 'i') })
     .first();
-  return cardButton.or(legacyOpenButton).first();
+  return cardOverlayButton.or(cardButton).or(legacyOpenButton).first();
 }
 
 export async function assignPmTemplateOnEquipmentDetail(
@@ -322,7 +326,9 @@ export async function fillWorkOrderBasics(
     }
   }
   if (data.dueDate) {
-    const dueDate = dialog.getByLabel(/^Due Date/i);
+    // The scheduling redesign labels the date input "Complete by"; a sibling
+    // "Due date presets" button group would also match a /^Due Date/ label.
+    const dueDate = dialog.getByLabel(/^Complete by$/i);
     if (await dueDate.isVisible({ timeout: 2_000 }).catch(() => false)) {
       await fillWithDemoCue(dueDate, 'Fill due date', data.dueDate);
     }
