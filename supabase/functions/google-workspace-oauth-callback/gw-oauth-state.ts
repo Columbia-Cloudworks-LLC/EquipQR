@@ -1,18 +1,14 @@
+import {
+  decodeOAuthStateParam,
+  parseOAuthStateTimestamp,
+  type OAuthState,
+} from "../_shared/oauth-state.ts";
 import { logStep, MAX_CLOCK_SKEW_MS, STATE_TTL_MS } from "./gw-oauth-validation.ts";
 
-export interface OAuthState {
-  sessionToken: string;
-  nonce: string;
-  timestamp: number;
-}
+export type { OAuthState };
 
 export function parseOAuthState(stateParam: string): OAuthState {
-  let state: OAuthState;
-  try {
-    state = JSON.parse(atob(stateParam));
-  } catch {
-    throw new Error("Invalid state parameter");
-  }
+  const state = decodeOAuthStateParam(stateParam);
 
   if (!state?.sessionToken || !state?.nonce) {
     throw new Error("Missing state parameters");
@@ -27,10 +23,7 @@ export function parseOAuthState(stateParam: string): OAuthState {
  * the client, this server, and Google's servers.
  */
 export function validateOAuthStateTimestamp(state: OAuthState, nowMs = Date.now()): void {
-  const stateTimestamp = Number(state.timestamp);
-  if (isNaN(stateTimestamp)) {
-    throw new Error("Invalid timestamp in state parameter");
-  }
+  const stateTimestamp = parseOAuthStateTimestamp(state);
 
   const ageMs = nowMs - stateTimestamp;
 
