@@ -1,4 +1,3 @@
-// Duplication rationale: Create dialog shares native select styling with metadata editor
 
 import React, { useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";

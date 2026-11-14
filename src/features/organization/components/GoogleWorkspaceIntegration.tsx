@@ -11,6 +11,7 @@ import {
   getGoogleWorkspaceConnectionStatus,
   syncGoogleWorkspaceUsers,
 } from '@/services/google-workspace';
+import { describeGoogleWorkspaceSyncRevocations } from '@/features/organization/utils/googleWorkspaceSyncSummary';
 import {
   canSyncGoogleWorkspaceDirectory,
   evaluateGoogleWorkspaceConnectionHealth,
@@ -79,10 +80,7 @@ export const GoogleWorkspaceIntegration = ({ currentUserRole }: GoogleWorkspaceI
     setIsSyncing(true);
     try {
       const result = await syncGoogleWorkspaceUsers(organizationId);
-      const revocationSummary =
-        result.membersDeactivated > 0 || result.claimsRevoked > 0
-          ? ` Revoked access for ${result.membersDeactivated} member(s).`
-          : '';
+      const revocationSummary = describeGoogleWorkspaceSyncRevocations(result);
       toast({
         title: 'Directory synced',
         description: `${result.usersSynced} users loaded.${revocationSummary}`,

@@ -1,4 +1,3 @@
-// Duplication rationale: Notifications page reuses display formatting helpers
 import React, { useState } from 'react';
 import { handleKeyboardActivation } from '@/components/a11y/keyboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
