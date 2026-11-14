@@ -1,5 +1,3 @@
-// fallow-ignore-file code-duplication
-// Duplication rationale: Field worksheet PDF shares layout blocks with report PDF
 import type jsPDF from 'jspdf';
 import { logger } from '@/utils/logger';
 import { formatStatus, formatPriority } from '@/features/work-orders/utils/workOrderHelpers';
@@ -69,15 +67,14 @@ export class WorkOrderFieldWorksheetPDFGenerator {
   }
 
   private async init(): Promise<void> {
-    const { default: jsPDF } = await import('jspdf');
-    this.doc = new jsPDF();
-    this.textLayout = new WorkOrderPdfTextLayout(this.doc, {
+    this.textLayout = await WorkOrderPdfTextLayout.create({
       margin: this.margin,
       pageHeight: this.pageHeight,
       lineHeight: this.lineHeight,
       pageWidth: this.pageWidth,
       contentWidth: this.contentWidth,
     });
+    this.doc = this.textLayout.doc;
   }
 
   static async create(): Promise<WorkOrderFieldWorksheetPDFGenerator> {
@@ -103,10 +100,39 @@ export class WorkOrderFieldWorksheetPDFGenerator {
   private addSeparator(): void {
     this.textLayout.yPosition += 2;
     this.textLayout.checkPageBreak(6);
+    this.drawHorizontalRule();
+    this.textLayout.yPosition += 4;
+  }
+
+  /** Light grey full-width rule at the current y position. */
+  private drawHorizontalRule(): void {
     this.doc.setDrawColor(180, 180, 180);
     this.doc.setLineWidth(0.3);
     this.doc.line(this.margin, this.textLayout.yPosition, this.pageWidth - this.margin, this.textLayout.yPosition);
-    this.textLayout.yPosition += 4;
+  }
+
+  /** Item checkbox at the left edge, then the body font for the item title. */
+  private drawItemCheckbox(titleFontSize: number): void {
+    this.doc.setDrawColor(120, 120, 120);
+    this.doc.setLineWidth(0.3);
+    this.doc.rect(this.margin + 2, this.textLayout.yPosition - 3.5, 4, 4);
+
+    this.doc.setFontSize(titleFontSize);
+    this.doc.setFont('helvetica', 'normal');
+    this.doc.setTextColor(0, 0, 0);
+  }
+
+  /** Starts a new page headed by `title`. */
+  private startSectionPage(title: string): void {
+    this.doc.addPage();
+    this.textLayout.yPosition = 20;
+    this.addSectionHeader(title);
+  }
+
+  /** Number of rows of `rowHeight` that fit between the current y position and the page bottom. */
+  private rowsThatFitOnPage(rowHeight: number): number {
+    const availableHeight = this.pageHeight - this.textLayout.yPosition;
+    return Math.floor(availableHeight / rowHeight);
   }
 
   private addWriteLines(count: number, x: number = this.margin, width?: number): void {
@@ -233,11 +259,7 @@ export class WorkOrderFieldWorksheetPDFGenerator {
     }
 
     if (organizationName) {
-      this.doc.setFontSize(14);
-      this.doc.setFont('helvetica', 'bold');
-      const orgWidth = this.doc.getTextWidth(organizationName);
-      this.doc.text(organizationName, (this.pageWidth - orgWidth) / 2, this.textLayout.yPosition);
-      this.textLayout.yPosition += 7;
+      this.textLayout.addCenteredBoldText(organizationName, 14, 7);
     }
 
     this.doc.setFontSize(12);
@@ -419,10 +441,7 @@ export class WorkOrderFieldWorksheetPDFGenerator {
    * Serves as a quick-reference checklist the technician can scan at a glance.
    */
   private generatePMSummaryPage(checklist: PMChecklistItem[]): void {
-    this.doc.addPage();
-    this.textLayout.yPosition = 20;
-
-    this.addSectionHeader('PM Checklist \u2014 Summary');
+    this.startSectionPage('PM Checklist \u2014 Summary');
     this.generateConditionLegend();
 
     const sections = Array.from(new Set(checklist.map(item => item.section)));
@@ -435,13 +454,7 @@ export class WorkOrderFieldWorksheetPDFGenerator {
       for (const item of sectionItems) {
         this.textLayout.checkPageBreak(10);
 
-        this.doc.setDrawColor(120, 120, 120);
-        this.doc.setLineWidth(0.3);
-        this.doc.rect(this.margin + 2, this.textLayout.yPosition - 3.5, 4, 4);
-
-        this.doc.setFontSize(8);
-        this.doc.setFont('helvetica', 'normal');
-        this.doc.setTextColor(0, 0, 0);
+        this.drawItemCheckbox(8);
 
         const maxTitleWidth = this.contentWidth - this.getConditionBoxesWidth() - 14;
         const truncatedTitle = this.doc.splitTextToSize(item.title, maxTitleWidth)[0] ?? item.title;
@@ -461,10 +474,7 @@ export class WorkOrderFieldWorksheetPDFGenerator {
    * writing lines so the technician has room for handwritten observations.
    */
   private generatePMDetailPages(checklist: PMChecklistItem[]): void {
-    this.doc.addPage();
-    this.textLayout.yPosition = 20;
-
-    this.addSectionHeader('PM Checklist \u2014 Detail');
+    this.startSectionPage('PM Checklist \u2014 Detail');
     this.generateConditionLegend();
 
     const sections = Array.from(new Set(checklist.map(item => item.section)));
@@ -480,13 +490,7 @@ export class WorkOrderFieldWorksheetPDFGenerator {
         this.textLayout.checkPageBreak(itemHeight);
 
         // Checkbox + title
-        this.doc.setDrawColor(120, 120, 120);
-        this.doc.setLineWidth(0.3);
-        this.doc.rect(this.margin + 2, this.textLayout.yPosition - 3.5, 4, 4);
-
-        this.doc.setFontSize(9);
-        this.doc.setFont('helvetica', 'normal');
-        this.doc.setTextColor(0, 0, 0);
+        this.drawItemCheckbox(9);
 
         const titleLines = this.doc.splitTextToSize(item.title, this.contentWidth - 12);
         for (const titleLine of titleLines) {
@@ -541,14 +545,10 @@ export class WorkOrderFieldWorksheetPDFGenerator {
    * Fills the printable area so the page is useful edge-to-edge on paper.
    */
   private generateLaborSummaryPage(): void {
-    this.doc.addPage();
-    this.textLayout.yPosition = 20;
-
-    this.addSectionHeader('Labor Summary');
+    this.startSectionPage('Labor Summary');
 
     const rowHeight = 15;
-    const availableHeight = this.pageHeight - this.textLayout.yPosition;
-    const rowCount = Math.floor(availableHeight / rowHeight);
+    const rowCount = this.rowsThatFitOnPage(rowHeight);
 
     for (let i = 0; i < rowCount; i++) {
       const y = this.textLayout.yPosition;
@@ -571,14 +571,10 @@ export class WorkOrderFieldWorksheetPDFGenerator {
    * Fills the printable area so the page is useful edge-to-edge on paper.
    */
   private generatePartsMaterialsPage(): void {
-    this.doc.addPage();
-    this.textLayout.yPosition = 20;
-
-    this.addSectionHeader('Parts / Materials Used');
+    this.startSectionPage('Parts / Materials Used');
 
     const rowHeight = this.writeLineHeight;
-    const availableHeight = this.pageHeight - this.textLayout.yPosition;
-    const rowCount = Math.floor(availableHeight / rowHeight);
+    const rowCount = this.rowsThatFitOnPage(rowHeight);
 
     for (let i = 0; i < rowCount; i++) {
       const y = this.textLayout.yPosition;
@@ -606,10 +602,7 @@ export class WorkOrderFieldWorksheetPDFGenerator {
    * for manual entry.
    */
   private generateNotesPage(workOrder: WorkOrderForPDF): void {
-    this.doc.addPage();
-    this.textLayout.yPosition = 20;
-
-    this.addSectionHeader('Notes');
+    this.startSectionPage('Notes');
 
     // Reserve space at the bottom for the certification/signature block + re-entry footer.
     const signatureBlockHeight = 58;
@@ -663,9 +656,7 @@ export class WorkOrderFieldWorksheetPDFGenerator {
     this.textLayout.yPosition += 6;
 
     // ── Divider before re-entry section ──
-    this.doc.setDrawColor(180, 180, 180);
-    this.doc.setLineWidth(0.3);
-    this.doc.line(this.margin, this.textLayout.yPosition, this.pageWidth - this.margin, this.textLayout.yPosition);
+    this.drawHorizontalRule();
     this.textLayout.yPosition += 12;
 
     // ── Re-entry fields (same line, wider split for more writing room) ──

@@ -12,7 +12,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useInventoryAccess } from '@/features/inventory/hooks/useInventoryAccess';
 import { InventoryPartSelector } from './InventoryPartSelector';
 import WorkOrderCostsEditor from './WorkOrderCostsEditor';
-import { WorkOrderCostReadOnlyList } from './WorkOrderCostReadOnlyList';
+import { WorkOrderCostLineList } from './WorkOrderCostLineList';
 import { LaborCostDialog } from './LaborCostDialog';
 import {
   WorkOrderCostDesktopReadOnlyRow,
@@ -142,7 +142,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
     return (
       <div className="space-y-4">
         {costs.length > 0 && (
-          <WorkOrderCostReadOnlyList
+          <WorkOrderCostLineList
             costs={costs}
             isMobile={isMobile}
             formatCurrency={formatCurrency}
@@ -184,7 +184,7 @@ const InlineEditWorkOrderCosts: React.FC<InlineEditWorkOrderCostsProps> = ({
         </div>
 
         {costs.length > 0 ? (
-          <WorkOrderCostReadOnlyList
+          <WorkOrderCostLineList
             costs={costs}
             isMobile={isMobile}
             formatCurrency={formatCurrency}

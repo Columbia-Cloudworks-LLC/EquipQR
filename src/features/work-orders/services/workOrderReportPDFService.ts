@@ -1,5 +1,3 @@
-// fallow-ignore-file code-duplication
-// Duplication rationale: PDF report shares checklist row metadata with inline UI
 // jsPDF is loaded dynamically to reduce initial bundle size (~150KB)
 // It's only needed when a user explicitly triggers a PDF export
 import type jsPDF from 'jspdf';
@@ -128,15 +126,14 @@ export class WorkOrderReportPDFGenerator {
   }
 
   private async init(): Promise<void> {
-    const { default: jsPDF } = await import('jspdf');
-    this.doc = new jsPDF();
-    this.textLayout = new WorkOrderPdfTextLayout(this.doc, {
+    this.textLayout = await WorkOrderPdfTextLayout.create({
       margin: this.margin,
       pageHeight: this.pageHeight,
       lineHeight: this.lineHeight,
       pageWidth: this.pageWidth,
       defaultMultilineMaxWidth: 170,
     });
+    this.doc = this.textLayout.doc;
   }
 
   static async create(): Promise<WorkOrderReportPDFGenerator> {
@@ -227,11 +224,7 @@ export class WorkOrderReportPDFGenerator {
   private generateHeader(workOrder: WorkOrderForPDF, organizationName?: string): void {
     // Organization name (centered)
     if (organizationName) {
-      this.doc.setFontSize(14);
-      this.doc.setFont('helvetica', 'bold');
-      const orgWidth = this.doc.getTextWidth(organizationName);
-      this.doc.text(organizationName, (this.pageWidth - orgWidth) / 2, this.textLayout.yPosition);
-      this.textLayout.yPosition += 8;
+      this.textLayout.addCenteredBoldText(organizationName, 14, 8);
     }
 
     // Work Order Title (centered)

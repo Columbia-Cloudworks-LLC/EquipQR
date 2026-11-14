@@ -1,16 +1,12 @@
-// fallow-ignore-file code-duplication
-// Duplication rationale: Requestor status mirrors manager status controls
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Clock, Wrench, Clipboard } from 'lucide-react';
 import { WorkOrderDetailsData, EquipmentData, PermissionLevels, PMData } from '@/features/work-orders/types/workOrderDetails';
 import { formatDueDisplay, parseDue } from '@/features/work-orders/calendar';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
-import { formatStatus, getWorkOrderStatusColor } from '@/features/work-orders/utils/workOrderHelpers';
+import { WorkOrderCurrentStatusRow } from '@/features/work-orders/components/WorkOrderCurrentStatusRow';
 import { getWorkOrderAssignmentDisplay } from '@/features/work-orders/utils/workOrderAssignmentDisplay';
 
 interface WorkOrderDetailsRequestorStatusProps {
@@ -49,12 +45,7 @@ export const WorkOrderDetailsRequestorStatus: React.FC<WorkOrderDetailsRequestor
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Current Status */}
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">Current Status:</span>
-          <Badge className={getWorkOrderStatusColor(workOrder.status)}>
-            {formatStatus(workOrder.status)}
-          </Badge>
-        </div>
+        <WorkOrderCurrentStatusRow status={workOrder.status} />
 
         {/* Assignment Information */}
         <div className="space-y-2">

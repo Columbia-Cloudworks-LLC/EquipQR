@@ -1,5 +1,3 @@
-// fallow-ignore-file code-duplication
-// Duplication rationale: Large details page with repeated section chrome
 import React, { useState, useRef, useMemo } from 'react';
 import { useParams, useSearchParams, Navigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -422,14 +420,16 @@ const WorkOrderDetails = () => {
               permissionLevels={permissionLevels}
               pmChecklist={pmChecklist}
               pmLoading={pmLoading}
-              isWorkOrderLocked={isWorkOrderLocked}
-              canAddNotes={canAddNotes}
-              noteComposerLockMessage={noteComposerLockMessage}
-              canUsePrivateNotes={canUsePrivateNotes}
-              canUpload={canUpload}
-              canAddCosts={canAddCosts}
-              canEditCosts={canEditCosts}
-              canViewWorkOrderCosts={canViewWorkOrderCosts}
+              access={{
+                isWorkOrderLocked,
+                canAddNotes,
+                noteComposerLockMessage,
+                canUsePrivateNotes,
+                canUpload,
+                canAddCosts,
+                canEditCosts,
+                canViewWorkOrderCosts,
+              }}
               hideInlineNoteAddButton={hideInlineNoteAddButton}
               shouldAutoOpenNoteForm={shouldAutoOpenNoteForm}
               openNoteFormTrigger={openNoteFormTrigger}

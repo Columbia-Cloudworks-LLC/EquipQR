@@ -1,28 +1,32 @@
-// fallow-ignore-file code-duplication
-// Duplication rationale: Read-only costs mirror editable cost editor structure
 import React from 'react';
 import { cn } from '@/lib/utils';
-import type { WorkOrderCost } from '@/features/work-orders/services/workOrderCostsService';
 
-export type WorkOrderCostReadOnlyListProps = {
-  costs: WorkOrderCost[];
+export type WorkOrderCostLineListProps<T extends { id: string }> = {
+  costs: T[];
   isMobile: boolean;
   formatCurrency: (cents: number) => string;
   calculateSubtotal: () => number;
-  renderMobileCost: (cost: WorkOrderCost) => React.ReactNode;
-  renderDesktopCost: (cost: WorkOrderCost) => React.ReactNode;
+  renderMobileCost: (cost: T) => React.ReactNode;
+  renderDesktopCost: (cost: T) => React.ReactNode;
+  /** Defaults to true. The editor hides the subtotal while the list is empty. */
+  showSubtotal?: boolean;
   className?: string;
 };
 
-export function WorkOrderCostReadOnlyList({
+/**
+ * Cost line layout shared by the read-only cost list and the cost editor:
+ * desktop column headers, one row per cost, then the subtotal.
+ */
+export function WorkOrderCostLineList<T extends { id: string }>({
   costs,
   isMobile,
   formatCurrency,
   calculateSubtotal,
   renderMobileCost,
   renderDesktopCost,
+  showSubtotal = true,
   className,
-}: WorkOrderCostReadOnlyListProps) {
+}: WorkOrderCostLineListProps<T>) {
   return (
     <div className={cn(className)}>
       {!isMobile && (
@@ -42,12 +46,14 @@ export function WorkOrderCostReadOnlyList({
         ))}
       </div>
 
-      <div className="border-t pt-4">
-        <div className="flex items-center justify-between text-lg font-semibold">
-          <span>Subtotal:</span>
-          <span>{formatCurrency(calculateSubtotal())}</span>
+      {showSubtotal && (
+        <div className="border-t pt-4">
+          <div className="flex items-center justify-between text-lg font-semibold">
+            <span>Subtotal:</span>
+            <span>{formatCurrency(calculateSubtotal())}</span>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

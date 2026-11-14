@@ -60,6 +60,18 @@ type StaggerProps = (index: number) => {
 
 type WorkOrderDetailsEquipment = EquipmentWithTeam | WorkOrderEmbeddedEquipment;
 
+/** What the viewer may do on this work order (lock state plus note/photo/cost permissions). */
+export interface WorkOrderDetailsMobileAccess {
+  isWorkOrderLocked: boolean;
+  canAddNotes: boolean;
+  noteComposerLockMessage?: string;
+  canUsePrivateNotes: boolean;
+  canUpload: boolean;
+  canAddCosts: boolean;
+  canEditCosts: boolean;
+  canViewWorkOrderCosts: boolean;
+}
+
 export interface WorkOrderDetailsMobileContentProps {
   workOrder: WorkOrder;
   equipment?: WorkOrderDetailsEquipment;
@@ -71,14 +83,7 @@ export interface WorkOrderDetailsMobileContentProps {
   };
   pmChecklist: PMChecklistStats;
   pmLoading: boolean;
-  isWorkOrderLocked: boolean;
-  canAddNotes: boolean;
-  noteComposerLockMessage?: string;
-  canUsePrivateNotes: boolean;
-  canUpload: boolean;
-  canAddCosts: boolean;
-  canEditCosts: boolean;
-  canViewWorkOrderCosts: boolean;
+  access: WorkOrderDetailsMobileAccess;
   hideInlineNoteAddButton: boolean;
   shouldAutoOpenNoteForm: boolean;
   openNoteFormTrigger: number;
@@ -129,14 +134,7 @@ export function WorkOrderDetailsMobileContent({
   permissionLevels,
   pmChecklist,
   pmLoading,
-  isWorkOrderLocked,
-  canAddNotes,
-  noteComposerLockMessage,
-  canUsePrivateNotes,
-  canUpload,
-  canAddCosts,
-  canEditCosts,
-  canViewWorkOrderCosts,
+  access,
   hideInlineNoteAddButton,
   shouldAutoOpenNoteForm,
   openNoteFormTrigger,
@@ -173,6 +171,16 @@ export function WorkOrderDetailsMobileContent({
   baseCanAddNotes = false,
   onStatusUpdate,
 }: WorkOrderDetailsMobileContentProps) {
+  const {
+    isWorkOrderLocked,
+    canAddNotes,
+    noteComposerLockMessage,
+    canUsePrivateNotes,
+    canUpload,
+    canAddCosts,
+    canEditCosts,
+    canViewWorkOrderCosts,
+  } = access;
   const [showStatusSheet, setShowStatusSheet] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
 
