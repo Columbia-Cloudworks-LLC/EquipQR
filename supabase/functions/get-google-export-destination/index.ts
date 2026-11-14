@@ -1,5 +1,4 @@
 import {
-  requireAuthenticatedPost,
   handleCorsPreflightIfNeeded,
   createErrorResponse,
   createJsonResponse,
@@ -7,12 +6,8 @@ import {
 import {
   applyOrganizationScope,
   getGoogleExportDestinationRequestSchema,
-  parseRequestJson,
-  requireOrgAdminAccess,
 } from "../_shared/org-scoped-queries.ts";
-
-const ADMIN_FORBIDDEN_MESSAGE =
-  "Forbidden: Only owners and admins can manage export destinations";
+import { authorizeExportDestinationAdminRequest } from "../_shared/google-export-destination-request.ts";
 
 Deno.serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req, { useValidatedOrigin: true });
@@ -21,28 +16,13 @@ Deno.serve(async (req) => {
   const corsOpts = { req };
 
   try {
-    const authContext = await requireAuthenticatedPost(req);
-    if (authContext instanceof Response) {
-      return authContext;
-    }
-    const { supabase, user } = authContext;
-
-    const parsedBody = await parseRequestJson(req, getGoogleExportDestinationRequestSchema);
-    if (!parsedBody.success) {
-      return createErrorResponse(parsedBody.error, parsedBody.status, corsOpts);
-    }
-
-    const { organizationId, documentType } = parsedBody.data;
-
-    const adminAccess = await requireOrgAdminAccess(
-      supabase,
-      user.id,
-      organizationId,
-      ADMIN_FORBIDDEN_MESSAGE,
+    const gate = await authorizeExportDestinationAdminRequest(
+      req,
+      getGoogleExportDestinationRequestSchema,
     );
-    if ("error" in adminAccess) {
-      return createErrorResponse(adminAccess.error, adminAccess.status, corsOpts);
-    }
+    if (gate instanceof Response) return gate;
+    const { supabase } = gate;
+    const { organizationId, documentType } = gate.data;
 
     const { data, error } = await applyOrganizationScope(
       supabase

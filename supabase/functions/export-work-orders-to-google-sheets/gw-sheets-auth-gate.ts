@@ -2,30 +2,20 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import {
   createAdminSupabaseClient,
   createErrorResponse,
-  verifyOrgAdmin,
 } from "../_shared/supabase-clients.ts";
 import {
-  getGoogleWorkspaceAccessToken,
   GoogleWorkspaceTokenError,
   GOOGLE_SCOPES,
   hasScope,
 } from "../_shared/google-workspace-token.ts";
 import {
-  checkRateLimit,
-  createWorkOrderExportRateLimitResponse,
-} from "../_shared/work-orders-export-data.ts";
+  exportTokenErrorResponse,
+  getGoogleAccessTokenOrError,
+} from "../_shared/google-workspace-token-response.ts";
+import { enforceExportAdminAndRateLimit } from "../_shared/export-request-gate.ts";
+import { LOG_PREFIX, logStep } from "./gw-sheets-api.ts";
 
 const DOCUMENT_TYPE = "work-orders-internal-packet";
-const LOG_PREFIX = "[EXPORT-TO-GOOGLE-SHEETS]";
-
-const logStep = (step: string, details?: Record<string, unknown>) => {
-  const safeDetails = details ? { ...details } : undefined;
-  if (safeDetails) {
-    delete safeDetails.access_token;
-  }
-  const detailsStr = safeDetails ? ` - ${JSON.stringify(safeDetails)}` : "";
-  console.log(`${LOG_PREFIX} ${step}${detailsStr}`);
-};
 
 export interface SheetsAuthGateSuccess {
   accessToken: string;
@@ -49,45 +39,21 @@ export async function runSheetsAuthGate(
 ): Promise<Response | SheetsAuthGateSuccess> {
   const { supabase, userId, organizationId, corsHeaders, req } = params;
 
-  const isAdmin = await verifyOrgAdmin(supabase, userId, organizationId);
-  if (!isAdmin) {
-    return createErrorResponse(
-      "Forbidden: Only owners and admins can export reports",
-      403,
-      { req },
-    );
-  }
-
-  let rateLimitOk: boolean;
-  try {
-    rateLimitOk = await checkRateLimit(supabase, userId, organizationId);
-  } catch (rateLimitError) {
-    console.error("Rate limit check error:", rateLimitError);
-    return createErrorResponse("An internal error occurred", 500, { req });
-  }
-  if (!rateLimitOk) {
-    return createWorkOrderExportRateLimitResponse(corsHeaders);
-  }
+  const gateResponse = await enforceExportAdminAndRateLimit({
+    req,
+    corsHeaders,
+    supabase,
+    userId,
+    organizationId,
+    rateLimitErrorLabel: "Rate limit check error:",
+  });
+  if (gateResponse) return gateResponse;
 
   const adminClient = createAdminSupabaseClient();
-  let tokenResult;
-  try {
-    tokenResult = await getGoogleWorkspaceAccessToken(adminClient, organizationId);
-  } catch (tokenError) {
-    if (tokenError instanceof GoogleWorkspaceTokenError) {
-      logStep("Token error", { code: tokenError.code, message: tokenError.message });
-      return new Response(
-        JSON.stringify({
-          error: tokenError.message,
-          code: tokenError.code,
-        }),
-        {
-          status: tokenError.code === "not_connected" ? 400 : 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
-    throw tokenError;
+  const tokenResult = await getGoogleAccessTokenOrError(adminClient, organizationId);
+  if (tokenResult instanceof GoogleWorkspaceTokenError) {
+    logStep("Token error", { code: tokenResult.code, message: tokenResult.message });
+    return exportTokenErrorResponse(corsHeaders, tokenResult);
   }
 
   if (!hasRequiredSheetsExportScopes(tokenResult.scopes)) {

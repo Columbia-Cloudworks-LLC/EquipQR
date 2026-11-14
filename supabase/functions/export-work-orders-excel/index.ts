@@ -8,18 +8,19 @@
 
 // @deno-types="https://cdn.sheetjs.com/xlsx-0.20.3/package/types/index.d.ts"
 import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
+import { createErrorResponse } from "../_shared/supabase-clients.ts";
 import {
-  verifyOrgAdmin,
-  createErrorResponse,
-  handleCorsPreflightIfNeeded,
-  requireAuthenticatedPost,
-} from "../_shared/supabase-clients.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+  enforceExportAdminAndRateLimit,
+  handleAuthenticatedExportPost,
+  unexpectedExportErrorResponse,
+} from "../_shared/export-request-gate.ts";
+import {
+  finishExportRequestLog,
+  insertPendingExportRequestLog,
+} from "../_shared/export-request-log.ts";
 import {
   fetchWorkOrdersWithData,
   buildAllRows,
-  checkRateLimit,
-  createWorkOrderExportRateLimitResponse,
   WORKSHEET_NAMES,
   WORKSHEET_HEADERS,
   summaryRowToArray,
@@ -148,19 +149,9 @@ function generateWorkbook(
 // Main Handler
 // ============================================
 
-Deno.serve(async (req) => {
-  const corsResponse = handleCorsPreflightIfNeeded(req);
-  if (corsResponse) return corsResponse;
-  const corsHeaders = getCorsHeaders(req);
-
-  try {
-    const authContext = await requireAuthenticatedPost(req);
-    if (authContext instanceof Response) {
-      return authContext;
-    }
-
-    const { supabase, user } = authContext;
-
+Deno.serve((req) => handleAuthenticatedExportPost(
+  req,
+  async ({ corsHeaders, supabase, user }) => {
     let parsedBody: unknown;
     try {
       parsedBody = await req.json();
@@ -195,45 +186,28 @@ Deno.serve(async (req) => {
       worksheets: worksheetSelection.worksheets,
     };
 
-    const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
-    if (!isAdmin) {
-      return createErrorResponse('Forbidden: Only owners and admins can export reports', 403, { req });
-    }
+    const gateResponse = await enforceExportAdminAndRateLimit({
+      req,
+      corsHeaders,
+      supabase,
+      userId: user.id,
+      organizationId,
+      rateLimitErrorLabel: '[EXPORT-WORK-ORDERS-EXCEL] Rate limit check error:',
+    });
+    if (gateResponse) return gateResponse;
 
-    let rateLimitOk: boolean;
-    try {
-      rateLimitOk = await checkRateLimit(supabase, user.id, organizationId);
-    } catch (rateLimitError) {
-      console.error('[EXPORT-WORK-ORDERS-EXCEL] Rate limit check error:', rateLimitError);
-      return createErrorResponse('An internal error occurred', 500, { req });
-    }
-    if (!rateLimitOk) {
-      return createWorkOrderExportRateLimitResponse(corsHeaders);
-    }
-
-    const { data: exportLog } = await supabase
-      .from('export_request_log')
-      .insert({
-        user_id: user.id,
-        organization_id: organizationId,
-        report_type: 'work-orders-detailed',
-        row_count: 0,
-        status: 'pending',
-      })
-      .select('id')
-      .single();
-
-    const exportLogId = exportLog?.id;
+    const { id: exportLogId } = await insertPendingExportRequestLog(supabase, {
+      userId: user.id,
+      organizationId,
+      reportType: 'work-orders-detailed',
+    });
 
     try {
       const data = await fetchWorkOrdersWithData(supabase, organizationId, normalizedFilters);
 
       if (data.workOrders.length === 0) {
         if (exportLogId) {
-          await supabase
-            .from('export_request_log')
-            .update({ status: 'completed', row_count: 0, completed_at: new Date().toISOString() })
-            .eq('id', exportLogId);
+          await finishExportRequestLog(supabase, exportLogId, { status: 'completed', rowCount: 0 });
         }
         return new Response(
           JSON.stringify({ error: 'No work orders found matching the filters' }),
@@ -245,14 +219,10 @@ Deno.serve(async (req) => {
       const xlsxBuffer = generateWorkbook(allRows, normalizedFilters.worksheets);
 
       if (exportLogId) {
-        await supabase
-          .from('export_request_log')
-          .update({
-            status: 'completed',
-            row_count: data.workOrders.length,
-            completed_at: new Date().toISOString(),
-          })
-          .eq('id', exportLogId);
+        await finishExportRequestLog(supabase, exportLogId, {
+          status: 'completed',
+          rowCount: data.workOrders.length,
+        });
       }
 
       const dateStr = new Date().toISOString().split('T')[0];
@@ -265,15 +235,10 @@ Deno.serve(async (req) => {
       });
     } catch (exportError) {
       if (exportLogId) {
-        await supabase
-          .from('export_request_log')
-          .update({ status: 'failed', completed_at: new Date().toISOString() })
-          .eq('id', exportLogId);
+        await finishExportRequestLog(supabase, exportLogId, { status: 'failed' });
       }
       throw exportError;
     }
-  } catch (error) {
-    console.error('[EXPORT-WORK-ORDERS-EXCEL] Export error:', error);
-    return createErrorResponse("An unexpected error occurred", 500, { req });
-  }
-});
+  },
+  (error) => unexpectedExportErrorResponse(req, '[EXPORT-WORK-ORDERS-EXCEL] Export error:', error),
+));

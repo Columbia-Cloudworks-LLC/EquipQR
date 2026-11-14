@@ -70,6 +70,22 @@ export function mapFolderToBrowseItem(
   };
 }
 
+/** Throw the scope error for 401/403, otherwise a generic list failure; never returns. */
+async function throwDriveListError(
+  response: Response,
+  permissionAction: string,
+  failureMessage: string,
+): Promise<never> {
+  const errorBody = await response.text().catch(() => "");
+  if (response.status === 401 || response.status === 403) {
+    throw new GoogleWorkspaceTokenError(
+      `Google Workspace permissions do not allow ${permissionAction}. Please reconnect Google Workspace and try again.`,
+      "insufficient_scopes",
+    );
+  }
+  throw new Error(`${failureMessage}: ${response.status} ${errorBody}`);
+}
+
 async function listSharedDrives(accessToken: string): Promise<DriveDestinationBrowseItem[]> {
   const params = new URLSearchParams({
     pageSize: "100",
@@ -86,14 +102,7 @@ async function listSharedDrives(accessToken: string): Promise<DriveDestinationBr
   );
 
   if (!response.ok) {
-    const errorBody = await response.text().catch(() => "");
-    if (response.status === 401 || response.status === 403) {
-      throw new GoogleWorkspaceTokenError(
-        "Google Workspace permissions do not allow listing Shared Drives. Please reconnect Google Workspace and try again.",
-        "insufficient_scopes",
-      );
-    }
-    throw new Error(`Unable to list Shared Drives: ${response.status} ${errorBody}`);
+    await throwDriveListError(response, "listing Shared Drives", "Unable to list Shared Drives");
   }
 
   const data = await response.json() as { drives?: SharedDriveRecord[] };
@@ -132,14 +141,7 @@ async function listChildFolders(
   );
 
   if (!response.ok) {
-    const errorBody = await response.text().catch(() => "");
-    if (response.status === 401 || response.status === 403) {
-      throw new GoogleWorkspaceTokenError(
-        "Google Workspace permissions do not allow browsing Drive folders. Please reconnect Google Workspace and try again.",
-        "insufficient_scopes",
-      );
-    }
-    throw new Error(`Unable to list Drive folders: ${response.status} ${errorBody}`);
+    await throwDriveListError(response, "browsing Drive folders", "Unable to list Drive folders");
   }
 
   const data = await response.json() as { files?: DriveFileRecord[] };

@@ -23,6 +23,7 @@ import {
 import { resolveWorkOrderExportAccess } from "../_shared/work-order-export-auth.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { isAsyncExportReportType } from "../_shared/export-job.ts";
+import { finishExportRequestLog } from "../_shared/export-request-log.ts";
 import {
   checkRateLimit,
 } from "./rate-limit.ts";
@@ -193,14 +194,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       }
 
       if (exportLogId) {
-        await supabase
-          .from("export_request_log")
-          .update({
-            status: "completed",
-            row_count: rowCount,
-            completed_at: new Date().toISOString(),
-          })
-          .eq("id", exportLogId);
+        await finishExportRequestLog(supabase, exportLogId, { status: "completed", rowCount });
       }
 
       return new Response(csvContent, {
@@ -212,13 +206,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       });
     } catch (exportError) {
       if (exportLogId) {
-        await supabase
-          .from("export_request_log")
-          .update({
-            status: "failed",
-            completed_at: new Date().toISOString(),
-          })
-          .eq("id", exportLogId);
+        await finishExportRequestLog(supabase, exportLogId, { status: "failed" });
       }
       throw exportError;
     }

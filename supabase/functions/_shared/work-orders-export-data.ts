@@ -6,6 +6,12 @@
  */
 
 import { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
+import {
+  EXPORT_ORG_LIMIT_PER_HOUR,
+  EXPORT_USER_LIMIT_PER_MINUTE,
+  exportRateLimitWindowStarts,
+  logExportRequestLogMissing,
+} from "./export-rate-limit-window.ts";
 
 export { fetchWorkOrdersWithData } from "./work-orders-export-fetch.ts";
 
@@ -241,14 +247,13 @@ export async function checkRateLimit(
 
   if (tableCheckError) {
     if (tableCheckError.message?.includes("relation") && tableCheckError.message?.includes("does not exist")) {
-      console.log("export_request_log table not found, skipping rate limit check");
+      logExportRequestLogMissing();
       return true;
     }
     throw new Error(`Rate limit check failed unexpectedly: ${tableCheckError.message}`);
   }
 
-  const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
-  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { oneMinuteAgo, oneHourAgo } = exportRateLimitWindowStarts();
 
   const { count: userCount } = await supabase
     .from("export_request_log")
@@ -256,7 +261,7 @@ export async function checkRateLimit(
     .eq("user_id", userId)
     .gte("requested_at", oneMinuteAgo);
 
-  if ((userCount ?? 0) >= 5) return false;
+  if ((userCount ?? 0) >= EXPORT_USER_LIMIT_PER_MINUTE) return false;
 
   const { count: orgCount } = await supabase
     .from("export_request_log")
@@ -264,7 +269,7 @@ export async function checkRateLimit(
     .eq("organization_id", organizationId)
     .gte("requested_at", oneHourAgo);
 
-  if ((orgCount ?? 0) >= 50) return false;
+  if ((orgCount ?? 0) >= EXPORT_ORG_LIMIT_PER_HOUR) return false;
 
   return true;
 }

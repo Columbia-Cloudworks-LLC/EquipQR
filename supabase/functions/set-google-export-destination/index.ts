@@ -1,21 +1,19 @@
 import {
   createAdminSupabaseClient,
-  requireAuthenticatedPost,
   createErrorResponse,
   createJsonResponse,
   handleCorsPreflightIfNeeded,
 } from "../_shared/supabase-clients.ts";
 import {
-  parseRequestJson,
-  requireOrgAdminAccess,
   setGoogleExportDestinationRequestSchema,
   withOrgAdminScope,
 } from "../_shared/org-scoped-queries.ts";
 import { getGoogleWorkspaceAccessToken, GoogleWorkspaceTokenError } from "../_shared/google-workspace-token.ts";
+import {
+  authorizeExportDestinationAdminRequest,
+  EXPORT_DESTINATION_ADMIN_FORBIDDEN_MESSAGE,
+} from "../_shared/google-export-destination-request.ts";
 import { validateGoogleDriveDestination } from "../_shared/google-drive-picker-validation.ts";
-
-const ADMIN_FORBIDDEN_MESSAGE =
-  "Forbidden: Only owners and admins can manage export destinations";
 
 Deno.serve(async (req) => {
   const corsResponse = handleCorsPreflightIfNeeded(req, { useValidatedOrigin: true });
@@ -24,17 +22,12 @@ Deno.serve(async (req) => {
   const corsOpts = { req };
 
   try {
-    const authContext = await requireAuthenticatedPost(req);
-    if (authContext instanceof Response) {
-      return authContext;
-    }
-    const { supabase, user } = authContext;
-
-    const parsedBody = await parseRequestJson(req, setGoogleExportDestinationRequestSchema);
-    if (!parsedBody.success) {
-      return createErrorResponse(parsedBody.error, parsedBody.status, corsOpts);
-    }
-
+    const gate = await authorizeExportDestinationAdminRequest(
+      req,
+      setGoogleExportDestinationRequestSchema,
+    );
+    if (gate instanceof Response) return gate;
+    const { supabase, user } = gate;
     const {
       organizationId,
       documentType,
@@ -42,17 +35,7 @@ Deno.serve(async (req) => {
       parentId,
       folderByTeam,
       folderByEquipment,
-    } = parsedBody.data;
-
-    const adminAccess = await requireOrgAdminAccess(
-      supabase,
-      user.id,
-      organizationId,
-      ADMIN_FORBIDDEN_MESSAGE,
-    );
-    if ("error" in adminAccess) {
-      return createErrorResponse(adminAccess.error, adminAccess.status, corsOpts);
-    }
+    } = gate.data;
 
     const adminClient = createAdminSupabaseClient();
     let tokenResult;
@@ -121,7 +104,7 @@ Deno.serve(async (req) => {
           })
           .select("id, organization_id, document_type, selection_kind, drive_id, parent_id, display_name, web_view_link, configured_by, folder_by_team, folder_by_equipment, created_at, updated_at")
           .single(),
-      ADMIN_FORBIDDEN_MESSAGE,
+      EXPORT_DESTINATION_ADMIN_FORBIDDEN_MESSAGE,
     );
 
     if (!upsertResult.ok) {

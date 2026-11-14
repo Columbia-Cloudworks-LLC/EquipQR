@@ -9,6 +9,7 @@
  */
 
 import { googleApiFetch } from "./google-api-retry.ts";
+import { assertDriveResponseOk } from "./google-drive-response.ts";
 
 const DRIVE_FILES_URL = "https://www.googleapis.com/drive/v3/files";
 const FOLDER_MIME = "application/vnd.google-apps.folder";
@@ -47,10 +48,7 @@ async function findFolderByName(
     { label: "drive-find-folder" },
   );
 
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`Failed to search for folder "${name}": ${response.status} ${body}`);
-  }
+  await assertDriveResponseOk(response, `Failed to search for folder "${name}"`);
 
   const data = await response.json() as { files?: Array<{ id: string; name: string }> };
   return data.files?.[0]?.id ?? null;
@@ -84,10 +82,7 @@ async function createFolder(
     { label: "drive-create-folder" },
   );
 
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`Failed to create folder "${name}": ${response.status} ${body}`);
-  }
+  await assertDriveResponseOk(response, `Failed to create folder "${name}"`);
 
   const data = await response.json() as { id: string };
   return data.id;

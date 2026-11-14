@@ -7,10 +7,11 @@ import {
   withCorrelationId,
   requireAuthenticatedPost,
 } from "../_shared/supabase-clients.ts";
+import { GoogleWorkspaceTokenError } from "../_shared/google-workspace-token.ts";
 import {
-  getGoogleWorkspaceAccessToken,
-  GoogleWorkspaceTokenError,
-} from "../_shared/google-workspace-token.ts";
+  getGoogleAccessTokenOrError,
+  GOOGLE_TOKEN_ERROR_STATUS,
+} from "../_shared/google-workspace-token-response.ts";
 import { MissingSecretError } from "../_shared/require-secret.ts";
 import { googleApiFetch } from "../_shared/google-api-retry.ts";
 import {
@@ -107,24 +108,14 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
 
     // Get a valid Google Workspace access token using the shared helper.
     // This handles credential lookup, decryption, token refresh, and expiry updates.
-    let tokenResult;
-    try {
-      tokenResult = await getGoogleWorkspaceAccessToken(adminClient, organizationId);
-    } catch (tokenError) {
-      if (tokenError instanceof GoogleWorkspaceTokenError) {
-        logStep("Token error", { code: tokenError.code, message: tokenError.message });
-        const statusMap: Record<string, number> = {
-          not_connected: 400,
-          oauth_not_configured: 500,
-          encryption_config_error: 500,
-          token_corruption: 500,
-          token_refresh_failed: 502,
-          token_revoked: 401,
-          insufficient_scopes: 403,
-        };
-        return createErrorResponse(tokenError.message, statusMap[tokenError.code] ?? 500, { req });
-      }
-      throw tokenError;
+    const tokenResult = await getGoogleAccessTokenOrError(adminClient, organizationId);
+    if (tokenResult instanceof GoogleWorkspaceTokenError) {
+      logStep("Token error", { code: tokenResult.code, message: tokenResult.message });
+      return createErrorResponse(
+        tokenResult.message,
+        GOOGLE_TOKEN_ERROR_STATUS[tokenResult.code] ?? 500,
+        { req },
+      );
     }
 
     const { accessToken, domain } = tokenResult;

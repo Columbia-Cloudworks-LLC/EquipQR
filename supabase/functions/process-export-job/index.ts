@@ -13,11 +13,9 @@ import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.4
 import {
   createErrorResponse,
   createJsonResponse,
-  handleCorsPreflightIfNeeded,
   verifyOrgAdmin,
-  withCorrelationId,
 } from "../_shared/supabase-clients.ts";
-import { requireSecret } from "../_shared/require-secret.ts";
+import { serveServiceRolePostWorker } from "../_shared/service-role-post-preamble.ts";
 import {
   buildExportStoragePath,
   EXPORT_RESULTS_BUCKET,
@@ -333,18 +331,7 @@ async function runExportAndStore(
 }
 
 if (import.meta.main) {
-  Deno.serve(withCorrelationId(async (req, ctx) => {
-    const corsResponse = handleCorsPreflightIfNeeded(req);
-    if (corsResponse) return corsResponse;
-
-    if (req.method !== "POST") {
-      return createErrorResponse("Method not allowed", 405);
-    }
-
-    const supabaseUrl = requireSecret("SUPABASE_URL", { functionName: FUNCTION_NAME });
-    const serviceRoleKey = requireSecret("SUPABASE_SERVICE_ROLE_KEY", {
-      functionName: FUNCTION_NAME,
-    });
+  serveServiceRolePostWorker(FUNCTION_NAME, async (req, ctx, { supabaseUrl, serviceRoleKey }) => {
 
     if (!validateServiceRoleAuth(req)) {
       logExportJobStep("auth-rejected", { correlation_id: ctx.correlationId });
@@ -377,5 +364,5 @@ if (import.meta.main) {
       success: true,
       rowCount: result.rowCount ?? 0,
     });
-  }));
+  });
 }

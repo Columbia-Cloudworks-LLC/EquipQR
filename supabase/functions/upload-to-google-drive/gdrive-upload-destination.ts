@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
-import { resolveExportFolderPath } from "../_shared/google-drive-folder-routing.ts";
+import { resolveTeamEquipmentFolder } from "../_shared/google-docs-export-support.ts";
 import { buildSingleWorkOrderGoogleDocData } from "../_shared/work-order-google-docs-single-data.ts";
 
 export interface OrgExportDestination {
@@ -19,9 +19,6 @@ export async function resolvePdfUploadParentId(
 ): Promise<{ parentId: string; warnings: string[] }> {
   const warnings: string[] = [];
   let targetParentId = params.destination.parent_id;
-  const folderByTeam = params.destination.folder_by_team !== false;
-  const folderByEquipment = params.destination.folder_by_equipment !== false;
-
   try {
     const packetData = await buildSingleWorkOrderGoogleDocData(
       supabase,
@@ -29,13 +26,10 @@ export async function resolvePdfUploadParentId(
       params.workOrderId,
     );
 
-    targetParentId = await resolveExportFolderPath(
+    targetParentId = await resolveTeamEquipmentFolder(
       params.accessToken,
-      params.destination.parent_id,
-      [
-        { name: folderByTeam ? packetData.team.name : null },
-        { name: folderByEquipment ? packetData.equipment.name : null },
-      ],
+      params.destination,
+      packetData,
     );
   } catch (folderError) {
     const msg = folderError instanceof Error ? folderError.message : String(folderError);
