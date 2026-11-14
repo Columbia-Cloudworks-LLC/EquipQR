@@ -15,7 +15,6 @@ import {
   handleCorsPreflightIfNeeded,
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
-import { optionalSecret } from "../_shared/require-secret.ts";
 import { normalizeTextValue } from "../_shared/operator-checklist-validation.ts";
 import {
   buildQuickFormFieldValues,
@@ -23,7 +22,7 @@ import {
   validateQuickFormValues,
 } from "../_shared/quick-form-validation.ts";
 import { requireQuickFormToken } from "../_shared/quick-form-public-auth.ts";
-import { isCaptchaEnforced } from "../_shared/hcaptcha-gate.ts";
+import { isHcaptchaRequired, verifyEnforcedCaptcha } from "../_shared/hcaptcha-gate.ts";
 
 /** Public endpoint: Supabase session auth is intentionally omitted; access is gated by the form token hash. */
 
@@ -44,30 +43,6 @@ interface SubmitRequest {
 }
 
 type QuickFormRequest = LoadRequest | SubmitRequest;
-
-/** CAPTCHA is required when the secret exists (preview/prod fail-closed). */
-function isCaptchaRequired(): boolean {
-  return isCaptchaEnforced(optionalSecret("HCAPTCHA_SECRET_KEY"));
-}
-
-async function verifyCaptcha(token: string | undefined): Promise<boolean> {
-  if (!isCaptchaRequired()) return true;
-  const secret = optionalSecret("HCAPTCHA_SECRET_KEY");
-  if (!secret || !token) return false;
-
-  const form = new FormData();
-  form.append("secret", secret);
-  form.append("response", token);
-
-  try {
-    const res = await fetch("https://hcaptcha.com/siteverify", { method: "POST", body: form });
-    const result = await res.json();
-    return result.success === true;
-  } catch {
-    console.error("[QUICK-FORM] hCaptcha verification failed");
-    return false;
-  }
-}
 
 Deno.serve(withCorrelationId(async (req, _ctx) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
@@ -108,7 +83,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
         fields: formData.fields,
         collectLocation: formData.collectLocation === true,
       },
-      captchaRequired: isCaptchaRequired(),
+      captchaRequired: isHcaptchaRequired(),
     }, 200, { req });
   }
 
@@ -116,7 +91,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     return createErrorResponse("Unsupported action", 400, { req });
   }
 
-  const captchaOk = await verifyCaptcha(body.captchaToken);
+  const captchaOk = await verifyEnforcedCaptcha(body.captchaToken, "QUICK-FORM");
   if (!captchaOk) {
     return createErrorResponse("CAPTCHA verification failed", 403, { req });
   }

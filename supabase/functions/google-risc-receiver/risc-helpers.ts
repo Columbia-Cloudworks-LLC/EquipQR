@@ -249,6 +249,17 @@ async function resolveOrganizationsByRefreshTokenPrefix(
   return [...organizationIds];
 }
 
+function distinctOrganizationIds(
+  rows: { organization_id: string }[] | null,
+  error: { message: string } | null,
+  source: string,
+): string[] {
+  if (error) {
+    throw new Error(`Failed to resolve ${source} organizations: ${error.message}`);
+  }
+  return [...new Set((rows ?? []).map((row) => row.organization_id).filter(Boolean))];
+}
+
 async function resolveOrganizationsByGoogleUserId(
   supabaseClient: SupabaseClient,
   googleUserId: string,
@@ -258,11 +269,7 @@ async function resolveOrganizationsByGoogleUserId(
     .select("organization_id")
     .eq("google_user_id", googleUserId);
 
-  if (error) {
-    throw new Error(`Failed to resolve directory user organizations: ${error.message}`);
-  }
-
-  return [...new Set((data ?? []).map((row) => row.organization_id).filter(Boolean))];
+  return distinctOrganizationIds(data, error, "directory user");
 }
 
 async function resolveOrganizationsByEmailDomain(
@@ -279,11 +286,7 @@ async function resolveOrganizationsByEmailDomain(
     .select("organization_id, domain")
     .ilike("domain", domain);
 
-  if (error) {
-    throw new Error(`Failed to resolve credential domain organizations: ${error.message}`);
-  }
-
-  return [...new Set((data ?? []).map((row) => row.organization_id).filter(Boolean))];
+  return distinctOrganizationIds(data, error, "credential domain");
 }
 
 export async function resolveOrganizationIdsForRiscHints(

@@ -9,13 +9,12 @@
 
 import {
   createAdminSupabaseClient,
-  createUserSupabaseClient,
-  requireUser,
   createErrorResponse,
   createJsonResponse,
   handleCorsPreflightIfNeeded,
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
+import { authenticateUser } from "../_shared/user-request.ts";
 
 const CONFIRMATION_PHRASE = "DELETE MY ACCOUNT";
 const STORAGE_REMOVE_CHUNK_SIZE = 1000;
@@ -164,11 +163,8 @@ export async function handleDeleteAccountRequest(req: Request): Promise<Response
   }
 
   try {
-    const userClient = createUserSupabaseClient(req);
-    const auth = await requireUser(req, userClient);
-    if ("error" in auth) {
-      return createErrorResponse(auth.error, auth.status, { req });
-    }
+    const auth = await authenticateUser(req);
+    if (auth instanceof Response) return auth;
 
     const { user } = auth;
     const admin = createAdminSupabaseClient();
