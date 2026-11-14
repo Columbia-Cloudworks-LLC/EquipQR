@@ -76,6 +76,10 @@ export function parseOAuthSessionRpcResult(
   return { sessionToken, nonce };
 }
 
+/**
+ * Mirrors buildOAuthCallbackRedirectUri in supabase/functions/_shared/oauth-redirect-base.ts;
+ * the token exchange fails if the two disagree (guarded by oauth-redirect-base.vitest.test.ts).
+ */
 export function buildOAuthCallbackRedirectUri(
   oauthRedirectBaseUrl: string,
   callbackPath: string,

@@ -5,6 +5,7 @@
  */
 
 import { normalizeTextValue } from "./operator-checklist-validation.ts";
+import { validateRequiredInputFields } from "./public-form-validation.ts";
 
 export type QuickFormInputType = "text" | "textarea" | "number" | "date" | "checkbox";
 
@@ -30,6 +31,8 @@ export interface QuickFormFieldValue {
 
 export interface QuickFormValidationResult {
   isComplete: boolean;
+  // Deno mirror of src/features/quick-forms/types/quickForm.ts (the browser bundle cannot import edge modules); public-form-mirrors.vitest.test.ts fails on drift.
+  // fallow-ignore-next-line code-duplication
   errors: string[];
 }
 
@@ -72,26 +75,20 @@ export function assertQuickFormSnapshot(raw: unknown): QuickFormData {
   return parsed;
 }
 
-function isValuePresent(value: unknown, inputType: QuickFormInputType): boolean {
-  if (inputType === "checkbox") return typeof value === "boolean";
-  if (inputType === "number") return typeof value === "number" && Number.isFinite(value);
-  if (typeof value === "string") return value.trim().length > 0;
-  return value !== null && value !== undefined;
-}
-
+/**
+ * Fields default to required unless explicitly marked `required: false`
+ * (matching the admin editor default and the public page's `*` markers).
+ */
 export function validateQuickFormValues(
   fields: QuickFormField[],
   values: Record<string, unknown>,
 ): QuickFormValidationResult {
-  const errors: string[] = [];
-  for (const field of fields) {
-    // Match the admin editor + public page: fields are required unless
-    // explicitly marked `required: false`.
-    if (field.required !== false && !isValuePresent(values[field.id], field.inputType)) {
-      errors.push(`"${field.label}" is required.`);
-    }
-  }
-  return { isComplete: errors.length === 0, errors };
+  // Deno mirror of src/features/quick-forms/types/quickForm.ts (the browser bundle cannot import edge modules); public-form-mirrors.vitest.test.ts fails on drift.
+  // fallow-ignore-next-line code-duplication
+  const requiredFields = fields
+    .filter((field) => field.required !== false)
+    .map((field) => ({ id: field.id, label: field.label, inputType: field.inputType }));
+  return validateRequiredInputFields(requiredFields, values);
 }
 
 /** Normalize raw submitted values to the persisted field_values array shape. */

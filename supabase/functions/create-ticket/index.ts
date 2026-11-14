@@ -48,27 +48,8 @@ const MAX_METADATA_ARRAY_SIZE = 10;
 const RATE_LIMIT_MAX_TICKETS = 3;
 const RATE_LIMIT_WINDOW_MINUTES = 60;
 
-interface SanitizedMetadata {
-  appVersion: string;
-  userAgent: string;
-  currentUrl: string;
-  timestamp: string;
-  screenSize: string;
-  devicePixelRatio: number;
-  isOnline: boolean;
-  timezone: string;
-  sessionDuration: number;
-  organizationId: string | null;
-  organizationPlan: string | null;
-  userRole: string | null;
-  featureFlags: Record<string, boolean>;
-  recentErrors: string[];
-  failedQueries: string[];
-  performanceMetrics: {
-    pageLoadTime: number | null;
-    memoryUsage: number | null;
-  };
-}
+/** Shape persisted for ticket metadata; derived from what sanitizeMetadata() keeps. */
+type SanitizedMetadata = ReturnType<typeof sanitizeMetadata>;
 
 interface TicketRequestBody {
   title?: string;
@@ -192,7 +173,7 @@ function safeStringArray(
     .map((s) => s.slice(0, maxItemLen));
 }
 
-function sanitizeMetadata(raw: Record<string, unknown>): SanitizedMetadata {
+function sanitizeMetadata(raw: Record<string, unknown>) {
   const rawFlags = (typeof raw.featureFlags === "object" && raw.featureFlags !== null)
     ? raw.featureFlags as Record<string, unknown>
     : {};
