@@ -9,11 +9,10 @@
 import { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import {
   verifyOrgAdmin,
-  requireAuthenticatedPost,
   createErrorResponse,
   createJsonResponse,
-  handleCorsPreflightIfNeeded,
 } from "../_shared/supabase-clients.ts";
+import { handleAuthenticatedExportPost } from "../_shared/export-request-gate.ts";
 
 /** Chunk size for bulk inserts - provides better error isolation while maintaining performance */
 const BULK_INSERT_CHUNK_SIZE = 50;
@@ -80,18 +79,9 @@ interface ImportFailure {
   reason: string;
 }
 
-Deno.serve(async (req) => {
-  const corsResponse = handleCorsPreflightIfNeeded(req);
-  if (corsResponse) return corsResponse;
-
-  try {
-    const authContext = await requireAuthenticatedPost(req);
-    if (authContext instanceof Response) {
-      return authContext;
-    }
-
-    const { supabase, user } = authContext;
-
+Deno.serve((req) => handleAuthenticatedExportPost(
+  req,
+  async ({ supabase, user }) => {
     const body: ImportRequest = await req.json();
     const { dryRun, rows, mappings, importId, teamId, organizationId } = body;
 
@@ -115,11 +105,12 @@ Deno.serve(async (req) => {
       importId,
       teamId
     );
-  } catch (error) {
+  },
+  (error) => {
     console.error("[IMPORT-EQUIPMENT-CSV] Import error:", error);
     return createErrorResponse("An unexpected error occurred", 500);
-  }
-});
+  },
+));
 
 async function handleDryRun(
   supabase: SupabaseClient,

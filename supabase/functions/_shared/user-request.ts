@@ -85,3 +85,17 @@ export async function prepareAuthenticatedJsonPost<T>(
   if (rejected) return rejected;
   return authenticateAndParseJson(req, authenticate, schema);
 }
+
+/**
+ * POST-only variant of authenticateUser: 405 for any other method, otherwise
+ * the user-scoped client and authenticated user. (No CORS preflight handling;
+ * callers answer OPTIONS before calling this.)
+ */
+export async function requireUserPost(
+  req: Request,
+): Promise<{ supabase: SupabaseClient; user: User } | Response> {
+  if (req.method !== "POST") {
+    return createErrorResponse("Method not allowed", 405, { req });
+  }
+  return authenticateUser(req);
+}

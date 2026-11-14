@@ -23,10 +23,8 @@ import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 import {
   createErrorResponse,
   createJsonResponse,
-  handleCorsPreflightIfNeeded,
-  withCorrelationId,
 } from "../_shared/supabase-clients.ts";
-import { requireSecret } from "../_shared/require-secret.ts";
+import { serveServiceRolePostWorker } from "../_shared/service-role-post-preamble.ts";
 import { authorizeServiceRoleRequest } from "../_shared/service-role-auth.ts";
 import { EXPORTS_QUEUE_NAME } from "../_shared/export-job.ts";
 
@@ -319,16 +317,7 @@ export async function runDrainLoop(
 }
 
 if (import.meta.main) {
-  Deno.serve(withCorrelationId(async (req, ctx) => {
-    const corsResponse = handleCorsPreflightIfNeeded(req);
-    if (corsResponse) return corsResponse;
-
-    if (req.method !== "POST") {
-      return createErrorResponse("Method not allowed", 405);
-    }
-
-    const supabaseUrl = requireSecret("SUPABASE_URL", { functionName: FUNCTION_NAME });
-    const serviceRoleKey = requireSecret("SUPABASE_SERVICE_ROLE_KEY", { functionName: FUNCTION_NAME });
+  serveServiceRolePostWorker(FUNCTION_NAME, async (req, ctx, { supabaseUrl, serviceRoleKey }) => {
 
     const auth = authorizeServiceRoleRequest(req, serviceRoleKey);
     if (!auth.ok) {
@@ -366,5 +355,5 @@ if (import.meta.main) {
       queues: result.queues,
       elapsed_ms: elapsedMs,
     });
-  }));
+  });
 }

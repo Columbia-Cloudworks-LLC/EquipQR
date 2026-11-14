@@ -14,7 +14,7 @@ import {
 
 export const SHEETS_API_BASE = "https://sheets.googleapis.com/v4/spreadsheets";
 
-const LOG_PREFIX = "[EXPORT-TO-GOOGLE-SHEETS]";
+export const LOG_PREFIX = "[EXPORT-TO-GOOGLE-SHEETS]";
 
 export const logStep = (step: string, details?: Record<string, unknown>) => {
   const safeDetails = details ? { ...details } : undefined;

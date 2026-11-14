@@ -1,7 +1,5 @@
 import {
-  createUserSupabaseClient,
   createAdminSupabaseClient,
-  requireUser,
   verifyOrgAdmin,
   createErrorResponse,
   createJsonResponse,
@@ -9,11 +7,15 @@ import {
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
 import {
-  getGoogleWorkspaceAccessToken,
   GoogleWorkspaceTokenError,
   GOOGLE_SCOPES,
   hasScope,
 } from "../_shared/google-workspace-token.ts";
+import {
+  getGoogleAccessTokenOrError,
+  googleTokenErrorJsonResponse,
+} from "../_shared/google-workspace-token-response.ts";
+import { requireUserPost } from "../_shared/user-request.ts";
 import { browseGoogleDriveDestinations } from "../_shared/google-drive-destination-browser.ts";
 
 interface ListDestinationsRequest {
@@ -22,30 +24,14 @@ interface ListDestinationsRequest {
   driveId?: string | null;
 }
 
-const tokenErrorStatusMap: Record<string, number> = {
-  not_connected: 400,
-  oauth_not_configured: 500,
-  encryption_config_error: 500,
-  token_corruption: 500,
-  token_refresh_failed: 502,
-  token_revoked: 401,
-  insufficient_scopes: 403,
-};
-
 Deno.serve(withCorrelationId(async (req, _ctx) => {
   const corsResponse = handleCorsPreflightIfNeeded(req);
   if (corsResponse) return corsResponse;
 
   try {
-    if (req.method !== "POST") {
-      return createErrorResponse("Method not allowed", 405, { req });
-    }
-
-    const supabase = createUserSupabaseClient(req);
-    const auth = await requireUser(req, supabase);
-    if ("error" in auth) {
-      return createErrorResponse(auth.error, auth.status, { req });
-    }
+    const auth = await requireUserPost(req);
+    if (auth instanceof Response) return auth;
+    const { supabase } = auth;
 
     let body: ListDestinationsRequest;
     try {
@@ -65,19 +51,9 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     }
 
     const adminClient = createAdminSupabaseClient();
-    let tokenResult;
-    try {
-      tokenResult = await getGoogleWorkspaceAccessToken(adminClient, organizationId);
-    } catch (tokenError) {
-      if (tokenError instanceof GoogleWorkspaceTokenError) {
-        const status = tokenErrorStatusMap[tokenError.code] ?? 500;
-        return createJsonResponse(
-          { error: tokenError.message, code: tokenError.code },
-          status,
-          { req },
-        );
-      }
-      throw tokenError;
+    const tokenResult = await getGoogleAccessTokenOrError(adminClient, organizationId);
+    if (tokenResult instanceof GoogleWorkspaceTokenError) {
+      return googleTokenErrorJsonResponse(tokenResult, req);
     }
 
     if (!hasScope(tokenResult.scopes, GOOGLE_SCOPES.DRIVE_READONLY)) {

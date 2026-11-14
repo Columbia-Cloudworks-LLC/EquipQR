@@ -130,14 +130,18 @@ export function buildAllRows(data: WorkOrdersWithData): AllExportRows {
         { workOrderId: wo.id, workOrderTitle: wo.title },
       );
 
+      const pmRowBase = {
+        workOrderId: truncateId(wo.id),
+        workOrderTitle: wo.title,
+        equipmentName: equipment?.name || '',
+        pmStatus: woPM.status?.replace(/_/g, ' ').toUpperCase() || '',
+        completedDate: formatDateTime(woPM.completed_at),
+      };
+
       // If parsing failed, add a warning row to indicate the issue
       if (parseError) {
         pmRows.push({
-          workOrderId: truncateId(wo.id),
-          workOrderTitle: wo.title,
-          equipmentName: equipment?.name || '',
-          pmStatus: woPM.status?.replace(/_/g, ' ').toUpperCase() || '',
-          completedDate: formatDateTime(woPM.completed_at),
+          ...pmRowBase,
           section: 'PARSE ERROR',
           itemTitle: 'Unable to parse checklist data',
           condition: null,
@@ -150,11 +154,7 @@ export function buildAllRows(data: WorkOrdersWithData): AllExportRows {
 
       for (const item of checklistItems) {
         pmRows.push({
-          workOrderId: truncateId(wo.id),
-          workOrderTitle: wo.title,
-          equipmentName: equipment?.name || '',
-          pmStatus: woPM.status?.replace(/_/g, ' ').toUpperCase() || '',
-          completedDate: formatDateTime(woPM.completed_at),
+          ...pmRowBase,
           section: item.section,
           itemTitle: item.title,
           condition: item.condition,

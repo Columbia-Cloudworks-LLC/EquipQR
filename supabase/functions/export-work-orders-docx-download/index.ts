@@ -7,35 +7,32 @@
 
 import {
   createAdminSupabaseClient,
-  requireAuthenticatedPost,
-  verifyOrgAdmin,
   createErrorResponse,
   createJsonResponse,
-  handleCorsPreflightIfNeeded,
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
 import {
   getGoogleWorkspaceAccessToken,
   GoogleWorkspaceTokenError,
-  GOOGLE_SCOPES,
-  hasScope,
 } from "../_shared/google-workspace-token.ts";
 import {
-  checkRateLimit,
-  createWorkOrderExportRateLimitResponse,
-  type ExportRequest,
-} from "../_shared/work-orders-export-data.ts";
+  enforceExportAdminAndRateLimit,
+  handleAuthenticatedExportPost,
+} from "../_shared/export-request-gate.ts";
+import {
+  createInternalPacketDoc,
+  hasRequiredDocsExportScopes,
+  resolveTeamEquipmentFolder,
+} from "../_shared/google-docs-export-support.ts";
+import type { ExportRequest } from "../_shared/work-orders-export-data.ts";
 import { buildSingleWorkOrderGoogleDocData } from "../_shared/work-order-google-docs-single-data.ts";
 import {
   batchUpdateGoogleDoc,
-  createGoogleDocInFolder,
   deleteGoogleDriveFile,
   exportGoogleDriveFile,
   DOCX_MIME,
 } from "../_shared/google-docs-api.ts";
 import { buildExecutivePacketRequests } from "../_shared/work-order-google-docs-packet.ts";
-import { resolveExportFolderPath } from "../_shared/google-drive-folder-routing.ts";
 
 const DOCUMENT_TYPE = "work-orders-internal-packet";
 
@@ -49,25 +46,9 @@ function validateDocxExportRequest(body: ExportRequest): { code: string; error: 
   return null;
 }
 
-function hasRequiredDocsExportScopes(scopes: string | null | undefined): boolean {
-  return (
-    hasScope(scopes, GOOGLE_SCOPES.DRIVE_FILE)
-    && hasScope(scopes, GOOGLE_SCOPES.DOCUMENTS)
-  );
-}
-
-Deno.serve(withCorrelationId(async (req, _ctx) => {
-  const corsHeaders = getCorsHeaders(req);
-  const corsResponse = handleCorsPreflightIfNeeded(req);
-  if (corsResponse) return corsResponse;
-
-  try {
-    const authContext = await requireAuthenticatedPost(req);
-    if (authContext instanceof Response) {
-      return authContext;
-    }
-
-    const { supabase, user } = authContext;
+Deno.serve(withCorrelationId((req, _ctx) => handleAuthenticatedExportPost(
+  req,
+  async ({ corsHeaders, supabase, user }) => {
     const body: ExportRequest = await req.json();
     const { organizationId, filters } = body;
 
@@ -80,15 +61,14 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       return createJsonResponse(validationError, 400, { req });
     }
 
-    const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
-    if (!isAdmin) {
-      return createErrorResponse("Forbidden: Only owners and admins can export reports", 403, { req });
-    }
-
-    const rateLimitOk = await checkRateLimit(supabase, user.id, organizationId);
-    if (!rateLimitOk) {
-      return createWorkOrderExportRateLimitResponse(corsHeaders);
-    }
+    const gateResponse = await enforceExportAdminAndRateLimit({
+      req,
+      corsHeaders,
+      supabase,
+      userId: user.id,
+      organizationId,
+    });
+    if (gateResponse) return gateResponse;
 
     const { data: destination, error: destinationError } = await supabase
       .from("organization_google_export_destinations")
@@ -135,26 +115,25 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       workOrderId,
     );
 
-    const folderByTeam = destination.folder_by_team !== false;
-    const folderByEquipment = destination.folder_by_equipment !== false;
-
     let targetParentId = destination.parent_id;
     try {
-      targetParentId = await resolveExportFolderPath(
+      targetParentId = await resolveTeamEquipmentFolder(
         tokenResult.accessToken,
-        destination.parent_id,
-        [
-          { name: folderByTeam ? packetData.team.name : null },
-          { name: folderByEquipment ? packetData.equipment.name : null },
-        ],
+        destination,
+        packetData,
       );
     } catch (folderError) {
       console.error("[EXPORT-WORK-ORDERS-DOCX] Subfolder resolution failed, using root:", folderError);
     }
 
     const dateStr = new Date().toISOString().split("T")[0];
-    const title = `${packetData.workOrder.title} — Internal Packet ${dateStr} (download)`;
-    const doc = await createGoogleDocInFolder(tokenResult.accessToken, title, targetParentId);
+    const doc = await createInternalPacketDoc(
+      tokenResult.accessToken,
+      packetData,
+      targetParentId,
+      dateStr,
+      " (download)",
+    );
     try {
       const packet = buildExecutivePacketRequests(packetData);
 
@@ -185,7 +164,8 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
         console.error("[EXPORT-WORK-ORDERS-DOCX] Temp doc cleanup threw:", doc.id, cleanupError);
       }
     }
-  } catch (error) {
+  },
+  (error) => {
     if (error instanceof GoogleWorkspaceTokenError) {
       return createJsonResponse(
         { error: error.message, code: error.code },
@@ -196,7 +176,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
 
     console.error("[EXPORT-WORK-ORDERS-DOCX] Export error:", error);
     return createErrorResponse("An unexpected error occurred", 500, { req });
-  }
-}));
+  },
+)));
 
 export const __testables = { validateDocxExportRequest, hasRequiredDocsExportScopes };
