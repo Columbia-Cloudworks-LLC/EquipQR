@@ -14,13 +14,12 @@
 
 import { z } from "https://esm.sh/zod@4.4.3";
 import {
-  createUserSupabaseClient,
-  requireUser,
   createErrorResponse,
   createJsonResponse,
   handleCorsPreflightIfNeeded,
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
+import { authenticateUser } from "../_shared/user-request.ts";
 import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
 import { createStructuredLogger } from "../_shared/structured-logger.ts";
 
@@ -63,11 +62,8 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     });
 
     // Authenticate
-    const supabase = createUserSupabaseClient(req);
-    const auth = await requireUser(req, supabase);
-    if ("error" in auth) {
-      return createErrorResponse(auth.error, auth.status, { req });
-    }
+    const auth = await authenticateUser(req);
+    if (auth instanceof Response) return auth;
     logStep("User authenticated", ctx.correlationId);
 
     // Parse and validate request body with Zod

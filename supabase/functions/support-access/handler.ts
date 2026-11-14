@@ -20,12 +20,10 @@ import {
   createErrorResponse,
   createJsonResponse,
   createUserSupabaseClient,
-  handleCorsPreflightIfNeeded,
-  requireUser,
   type AuthError,
   type AuthResult,
 } from "../_shared/supabase-clients.ts";
-import { parseRequestJson } from "../_shared/org-scoped-queries.ts";
+import { prepareAuthenticatedJsonPost, requireUserWithUserClient } from "../_shared/user-request.ts";
 import { getOperatorUserIds } from "../_shared/dfy-operator.ts";
 import { optionalSecret } from "../_shared/require-secret.ts";
 import { sendResendEmail } from "../_shared/resend-send-email.ts";
@@ -139,7 +137,7 @@ export interface HandlerDeps {
 }
 
 const defaultDeps: HandlerDeps = {
-  authenticate: (req) => requireUser(req, createUserSupabaseClient(req)),
+  authenticate: requireUserWithUserClient,
   backend: liveBackend,
   operatorIds: getOperatorUserIds,
 };
@@ -149,25 +147,12 @@ export async function handleSupportAccess(
   correlationId: string,
   deps: HandlerDeps = defaultDeps,
 ): Promise<Response> {
-  const corsResponse = handleCorsPreflightIfNeeded(req, { useValidatedOrigin: true });
-  if (corsResponse) return corsResponse;
+  const authed = await prepareAuthenticatedJsonPost(req, deps.authenticate, requestSchema, {
+    useValidatedOrigin: true,
+  });
+  if (authed instanceof Response) return authed;
+  const { user, data: body } = authed;
   const opts = { req };
-
-  if (req.method !== "POST") {
-    return createErrorResponse("Method not allowed", 405, opts);
-  }
-
-  const auth = await deps.authenticate(req);
-  if ("error" in auth) {
-    return createErrorResponse(auth.error, auth.status, opts);
-  }
-  const { user } = auth;
-
-  const parsed = await parseRequestJson(req, requestSchema);
-  if (!parsed.success) {
-    return createErrorResponse(parsed.error, parsed.status, opts);
-  }
-  const body = parsed.data;
 
   const backend = deps.backend(req);
   if (!(await backend.isActiveOwner(body.organizationId, user.id))) {

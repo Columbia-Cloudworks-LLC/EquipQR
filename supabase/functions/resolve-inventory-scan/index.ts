@@ -15,10 +15,10 @@ import {
 } from "../_shared/supabase-clients.ts";
 import {
   applyOrganizationScope,
-  parseRequestJson,
   withOrgScope,
   resolveInventoryScanRequestSchema,
 } from "../_shared/org-scoped-queries.ts";
+import { authenticateAndParseJson } from "../_shared/user-request.ts";
 
 const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : "";
@@ -37,20 +37,15 @@ Deno.serve(async (req) => {
     // Create user-scoped client (RLS enforced)
     const supabase = createUserSupabaseClient(req);
 
-    // Validate user authentication
-    const auth = await requireUser(req, supabase);
-    if ("error" in auth) {
-      return createErrorResponse(auth.error, auth.status, corsOpts);
-    }
-
-    const { user } = auth;
-    logStep("User authenticated", { userId: user.id });
-
-    const parsedBody = await parseRequestJson(req, resolveInventoryScanRequestSchema);
-    if (!parsedBody.success) {
-      return createErrorResponse(parsedBody.error, parsedBody.status, corsOpts);
-    }
-    const { scanned_value, current_organization_id } = parsedBody.data;
+    // Validate user authentication and request body
+    const authed = await authenticateAndParseJson(
+      req,
+      (r) => requireUser(r, supabase),
+      resolveInventoryScanRequestSchema,
+      (authedUser) => logStep("User authenticated", { userId: authedUser.id }),
+    );
+    if (authed instanceof Response) return authed;
+    const { user, data: { scanned_value, current_organization_id } } = authed;
 
     logStep("Processing scan", {
       scanned_value: scanned_value.substring(0, 20) + "...",

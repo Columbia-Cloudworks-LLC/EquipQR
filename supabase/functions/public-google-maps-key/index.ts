@@ -31,14 +31,13 @@
  */
 
 import {
-  createUserSupabaseClient,
-  requireUser,
   createErrorResponse,
   createJsonResponse,
   handleCorsPreflightIfNeeded,
   withCorrelationId,
   type RequestContext,
 } from "../_shared/supabase-clients.ts";
+import { authenticateUser } from "../_shared/user-request.ts";
 import { MissingSecretError, optionalSecret, requireSecret } from "../_shared/require-secret.ts";
 import { createStructuredLogger } from "../_shared/structured-logger.ts";
 
@@ -76,11 +75,8 @@ async function handle(req: Request, ctx: RequestContext): Promise<Response> {
     // edge-functions-smoke-test workflow) reach this point and return 401
     // here, which after step 2 succeeds is a true positive signal that the
     // function is deployed AND its secrets are loaded.
-    const supabase = createUserSupabaseClient(req);
-    const auth = await requireUser(req, supabase);
-    if ("error" in auth) {
-      return createErrorResponse(auth.error, auth.status, { req });
-    }
+    const auth = await authenticateUser(req);
+    if (auth instanceof Response) return auth;
 
     logStep("User authenticated", ctx.correlationId, { userId: auth.user.id });
     logStep("Successfully returning API key", ctx.correlationId, { hasMapId: !!mapId });
