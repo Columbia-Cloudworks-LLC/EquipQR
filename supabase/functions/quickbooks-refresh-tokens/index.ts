@@ -1,21 +1,13 @@
 // Using Deno.serve (built-in)
-import { QBO_TOKEN_URL, getIntuitTid } from "../_shared/quickbooks-config.ts";
+import { postIntuitTokenRequest } from "../_shared/quickbooks-token-request.ts";
+import { createRedactedLogStep } from "../_shared/redacted-logger.ts";
 import { MissingSecretError } from "../_shared/require-secret.ts";
 import { serveQuickBooksFunction } from "../_shared/quickbooks-serve.ts";
 import { authorizeServiceRoleRequest } from "../_shared/service-role-auth.ts";
 
 const FUNCTION_NAME = "quickbooks-refresh-tokens";
 
-const logStep = (step: string, details?: Record<string, unknown>) => {
-  // Avoid logging sensitive data like tokens
-  const safeDetails = details ? { ...details } : undefined;
-  if (safeDetails) {
-    delete safeDetails.access_token;
-    delete safeDetails.refresh_token;
-  }
-  const detailsStr = safeDetails ? ` - ${JSON.stringify(safeDetails)}` : '';
-  console.log(`[QUICKBOOKS-REFRESH-TOKENS] ${step}${detailsStr}`);
-};
+const logStep = createRedactedLogStep("QUICKBOOKS-REFRESH-TOKENS");
 
 // Helper function to create unauthorized error responses
 const createUnauthorizedResponse = (message: string, corsHeaders: Record<string, string>) => {
@@ -69,25 +61,15 @@ async function refreshToken(
   clientSecret: string
 ): Promise<{ success: boolean; newTokens?: IntuitTokenResponse; intuitTid?: string | null; error?: string }> {
   try {
-    const tokenRequestBody = new URLSearchParams({
-      grant_type: "refresh_token",
-      refresh_token: credential.refresh_token,
-    });
-
-    const basicAuth = btoa(`${clientId}:${clientSecret}`);
-    
-    const tokenResponse = await fetch(QBO_TOKEN_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "Authorization": `Basic ${basicAuth}`,
-        "Accept": "application/json",
-      },
-      body: tokenRequestBody.toString(),
-    });
-
     // Capture intuit_tid for troubleshooting
-    const intuitTid = getIntuitTid(tokenResponse);
+    const { response: tokenResponse, intuitTid } = await postIntuitTokenRequest(
+      {
+        grant_type: "refresh_token",
+        refresh_token: credential.refresh_token,
+      },
+      clientId,
+      clientSecret,
+    );
 
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();

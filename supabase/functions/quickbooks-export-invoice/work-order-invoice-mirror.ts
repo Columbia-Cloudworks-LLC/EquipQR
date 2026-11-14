@@ -6,18 +6,10 @@ import {
   deriveQuickBooksInvoiceStatus,
   type QuickBooksInvoice,
 } from "./qbo-invoice-payload.ts";
+import { createRedactedLogStep } from "../_shared/redacted-logger.ts";
+import { deriveInvoiceMirrorTimestamps } from "../_shared/quickbooks-invoice-mirror-flags.ts";
 
-const LOG_PREFIX = "[QUICKBOOKS-EXPORT-INVOICE]";
-
-const logStep = (step: string, details?: Record<string, unknown>) => {
-  const safeDetails = details ? { ...details } : undefined;
-  if (safeDetails) {
-    delete safeDetails.access_token;
-    delete safeDetails.refresh_token;
-  }
-  const detailsStr = safeDetails ? ` - ${JSON.stringify(safeDetails)}` : "";
-  console.log(`${LOG_PREFIX} ${step}${detailsStr}`);
-};
+const logStep = createRedactedLogStep("QUICKBOOKS-EXPORT-INVOICE");
 
 export async function updateWorkOrderInvoiceMirror(
   supabaseClient: SupabaseClient,
@@ -60,10 +52,11 @@ export async function updateWorkOrderInvoiceMirror(
     return;
   }
 
-  const wasEmailed = params.invoice.EmailStatus?.toLowerCase() === "emailsent";
-  const shouldSetSent = wasEmailed && invoiceStatus !== "draft" && invoiceStatus !== "voided";
-  const shouldSetPaid = invoiceStatus === "paid";
-  const timestamp = now.toISOString();
+  const { shouldSetSent, shouldSetPaid, timestamp } = deriveInvoiceMirrorTimestamps(
+    params.invoice,
+    invoiceStatus,
+    now,
+  );
 
   if (shouldSetSent) {
     const { error: sentError } = await supabaseClient

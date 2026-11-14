@@ -7,7 +7,7 @@ import {
   getIntuitTid,
   withMinorVersion,
 } from "../_shared/quickbooks-config.ts";
-import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
+import { requireSecret } from "../_shared/require-secret.ts";
 import { authorizeServiceRoleRequest } from "../_shared/service-role-auth.ts";
 import {
   createErrorResponse,
@@ -26,19 +26,14 @@ import {
   refreshQuickBooksAccessTokenIfNeeded,
   type QuickBooksCredential,
 } from "../_shared/quickbooks-token.ts";
+import { createRedactedLogStep } from "../_shared/redacted-logger.ts";
+import { createInternalErrorResponse } from "../_shared/quickbooks-error-handling.ts";
 
 const FUNCTION_NAME = "quickbooks-sync-invoice-status";
 const EVENT_BATCH_SIZE = 25;
 const RECONCILE_BATCH_SIZE = 50;
 
-const logStep = (step: string, details?: Record<string, unknown>) => {
-  const safeDetails = details ? { ...details } : undefined;
-  if (safeDetails) {
-    delete safeDetails.access_token;
-    delete safeDetails.refresh_token;
-  }
-  console.log(`[QUICKBOOKS-INVOICE-STATUS] ${step}${safeDetails ? ` - ${JSON.stringify(safeDetails)}` : ""}`);
-};
+const logStep = createRedactedLogStep("QUICKBOOKS-INVOICE-STATUS");
 
 interface InvoiceEvent {
   id: string;
@@ -506,12 +501,7 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
       invoices_failed: reconcileResult.failed,
     }, 200, { req });
   } catch (error) {
-    if (error instanceof MissingSecretError) {
-      return createErrorResponse(error, 500, { req });
-    }
-    const message = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message, correlation_id: ctx.correlationId });
-    return createErrorResponse("An internal error occurred", 500, { req });
+    return createInternalErrorResponse(error, req, logStep, ctx.correlationId);
   }
 }));
 

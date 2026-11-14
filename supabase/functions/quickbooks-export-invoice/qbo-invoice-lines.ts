@@ -10,16 +10,9 @@ import {
   resolveQboInvoicePartsItemType,
   withMinorVersion,
 } from "../_shared/quickbooks-config.ts";
+import { createRedactedLogStep } from "../_shared/redacted-logger.ts";
 
-const logStep = (step: string, details?: Record<string, unknown>) => {
-  const safeDetails = details ? { ...details } : undefined;
-  if (safeDetails) {
-    delete safeDetails.access_token;
-    delete safeDetails.refresh_token;
-  }
-  const detailsStr = safeDetails ? ` - ${JSON.stringify(safeDetails)}` : "";
-  console.log(`[QUICKBOOKS-EXPORT-INVOICE] ${step}${detailsStr}`);
-};
+const logStep = createRedactedLogStep("QUICKBOOKS-EXPORT-INVOICE");
 
 export interface WorkOrderData {
   id: string;
