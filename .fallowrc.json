@@ -15,7 +15,6 @@
       "src/integrations/supabase/types.ts",
       "src/pages/PrivacyPolicy.tsx",
       "src/pages/TermsOfService.tsx",
-      "supabase/functions/**",
       "e2e/**/*.ts",
       "src/**/*.test.ts",
       "src/**/*.test.tsx",
