@@ -2,7 +2,8 @@
  * Quick Forms (#1184) — standalone public data-collection forms.
  * Canonical field/schema types shared by the admin editor, the public form
  * page, and the ledger. The edge function keeps a Deno mirror in
- * supabase/functions/_shared/quick-form-validation.ts.
+ * supabase/functions/_shared/quick-form-validation.ts;
+ * supabase/functions/_shared/public-form-mirrors.vitest.test.ts fails when they drift.
  */
 
 import { validateRequiredInputFields } from '@/features/public-forms/publicFormValidation';

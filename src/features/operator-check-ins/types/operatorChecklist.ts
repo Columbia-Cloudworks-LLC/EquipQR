@@ -1,5 +1,8 @@
 /**
  * Operator daily check-in template and submission field model (#1091).
+ * The edge functions keep a Deno mirror in
+ * supabase/functions/_shared/operator-checklist-validation.ts;
+ * supabase/functions/_shared/public-form-mirrors.vitest.test.ts fails when they drift.
  */
 
 import { validateRequiredInputFields } from '@/features/public-forms/publicFormValidation';

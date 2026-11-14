@@ -35,6 +35,8 @@
     "e2e/**/*.ts",
     "dev/csp.ts",
     "dev/screen-catalog/**/*.ts",
-    "dev/**/*.test.ts"
+    "dev/**/*.test.ts",
+    "supabase/functions/_shared/public-form-mirrors.vitest.test.ts",
+    "supabase/functions/_shared/oauth-redirect-base.vitest.test.ts"
   ]
 }

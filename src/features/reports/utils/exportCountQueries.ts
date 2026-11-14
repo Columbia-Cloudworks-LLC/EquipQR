@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Constants, type Database } from '@/integrations/supabase/types';
 import type { ExportFilters } from '@/features/reports/types/reports';
+import { applyDateRangeFilter } from '@/features/reports/utils/applyDateRangeFilter';
 
 type EquipmentStatus = Database['public']['Enums']['equipment_status'];
 type WorkOrderStatus = Database['public']['Enums']['work_order_status'];
@@ -83,13 +84,5 @@ export function buildWorkOrderExportCountQuery(
     query = query.eq('priority', priority);
   }
 
-  const dateField = filters.dateField ?? 'created_date';
-  if (filters.dateRange?.from) {
-    query = query.gte(dateField, filters.dateRange.from);
-  }
-  if (filters.dateRange?.to) {
-    query = query.lte(dateField, filters.dateRange.to);
-  }
-
-  return query;
+  return applyDateRangeFilter(query, filters.dateField ?? 'created_date', filters.dateRange);
 }
