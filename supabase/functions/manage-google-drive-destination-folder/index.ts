@@ -19,7 +19,7 @@ import {
   getGoogleAccessTokenOrError,
   googleTokenErrorJsonResponse,
 } from "../_shared/google-workspace-token-response.ts";
-import { requireUserPost } from "../_shared/user-post-request.ts";
+import { requireUserPost } from "../_shared/user-request.ts";
 import {
   countDriveFolderChildren,
   createDriveFolder,
