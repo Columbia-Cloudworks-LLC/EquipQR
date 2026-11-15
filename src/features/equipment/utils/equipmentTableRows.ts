@@ -3,7 +3,7 @@ import {
   getStatusDisplayInfo,
   safeFormatDate,
 } from '@/features/equipment/utils/equipmentHelpers';
-import type { UserSettings } from '@/types/settings';
+import { defaultUserSettings, type UserSettings } from '@/types/settings';
 
 export interface EquipmentTableRow {
   id: string;
@@ -13,18 +13,17 @@ export interface EquipmentTableRow {
   serial_number: string;
   status: string;
   location: string;
-  last_maintenance?: string;
-  image_url?: string;
+  last_maintenance?: string | null;
+  image_url?: string | null;
   team_name?: string;
   team_id?: string | null;
   working_hours?: number | null;
-  [key: string]: unknown;
 }
 
 export function getEquipmentTableCellDisplayValue(
   row: EquipmentTableRow,
   columnKey: EquipmentTableColumnKey,
-  settings?: UserSettings,
+  settings: UserSettings = defaultUserSettings,
 ): string {
   switch (columnKey) {
     case 'name':

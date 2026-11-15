@@ -27,17 +27,11 @@ export interface EquipmentNote {
   last_modified_by?: string;
   last_modified_at?: string;
   // Computed fields from joins
-  author_name?: string;
+  author_name: string;
   authorName?: string;
   lastModifiedByName?: string;
   images?: EquipmentNoteImage[];
 }
-
-/**
- * @deprecated Use EquipmentNote instead
- * Alias for backward compatibility
- */
-export type OptimizedEquipmentNote = EquipmentNote;
 
 // ============================================
 // Image Types
@@ -56,22 +50,4 @@ export interface EquipmentNoteImage {
   // Computed fields from joins
   uploaded_by_name?: string;
   uploadedByName?: string;
-}
-
-// ============================================
-// Create/Update Data Types
-// ============================================
-
-export interface CreateEquipmentNoteData {
-  equipmentId: string;
-  content: string;
-  isPrivate: boolean;
-  hoursWorked?: number;
-  machineHours?: number;
-}
-
-export interface UpdateEquipmentNoteData {
-  content?: string;
-  isPrivate?: boolean;
-  hoursWorked?: number;
 }

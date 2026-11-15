@@ -286,29 +286,6 @@ describe('useWorkOrderDetailsActions - Equipment ID Prioritization', () => {
   });
 
   describe('PM Creation Edge Cases', () => {
-    it('should handle PM creation when pmTemplateId is provided but equipmentId comes from parameter', async () => {
-      const capturedActions = await renderActionsHarness();
-
-      const formData = buildPmFormData();
-
-      await capturedActions!.handleUpdateWorkOrder(
-        formData,
-        false,
-        'eq-fallback' // Should use this since form equipmentId is omitted
-      );
-
-      await waitFor(() => {
-        expect(mockMutateAsync).toHaveBeenCalled();
-      });
-
-      expect(createPM).toHaveBeenCalledWith(
-        expect.objectContaining({
-          equipmentId: 'eq-fallback',
-          templateId: 'template-1',
-        })
-      );
-    });
-
     it('should not create PM when pmTemplateId is missing even if equipmentId is present', async () => {
       const capturedActions = await renderActionsHarness();
 

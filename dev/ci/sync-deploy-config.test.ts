@@ -225,10 +225,10 @@ type Call = { method: string; path: string; body?: unknown };
 
 function fakeApi(handlers: Record<string, (body?: unknown) => unknown>) {
   const calls: Call[] = [];
-  const fetchImpl = vi.fn(async (url: string, init?: { method?: string; body?: string }) => {
+  const fetchImpl = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
     const method = init?.method || 'GET';
-    const path = new URL(url).pathname;
-    const body = init?.body ? JSON.parse(init.body) : undefined;
+    const path = new URL(input instanceof Request ? input.url : input).pathname;
+    const body = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined;
     calls.push({ method, path, body });
     const handler = handlers[`${method} ${path}`];
     if (!handler) return new Response('not found', { status: 404 });

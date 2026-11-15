@@ -1,9 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { WorkOrderService } from '@/features/work-orders/services/workOrderService';
-import { workOrderKeys } from '@/features/work-orders/hooks/useWorkOrders';
-import { workOrders as workOrderQueryKeys, notifications as notificationQueryKeys } from '@/lib/queryKeys';
+import { notifications as notificationQueryKeys } from '@/lib/queryKeys';
 export type NotificationData = {
   work_order_id?: string;
   team_id?: string;
@@ -49,72 +46,6 @@ export const useMarkNotificationAsRead = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: notificationQueryKeys.root });
-    }
-  });
-};
-
-// Enhanced work order status update - using WorkOrderService
-export const useUpdateWorkOrderStatus = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      workOrderId,
-      status,
-      organizationId,
-      assigneeId
-    }: {
-      workOrderId: string;
-      status: string;
-      organizationId: string;
-      assigneeId?: string | null;
-    }) => {
-      const service = new WorkOrderService(organizationId);
-      const response = await service.updateStatus(
-        workOrderId, 
-        status as 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled',
-        assigneeId
-      );
-
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to update status');
-      }
-
-      // Notifications are now handled by the database trigger
-      return response.data;
-    },
-    onSuccess: (data, variables) => {
-      // Invalidate the specific work order detail query (used by details page)
-      queryClient.invalidateQueries({ 
-        queryKey: workOrderKeys.detail(variables.organizationId, variables.workOrderId) 
-      });
-      
-      // Invalidate all work order list queries for this organization
-      queryClient.invalidateQueries({ 
-        queryKey: workOrderKeys.lists() 
-      });
-      
-      // Invalidate all work order queries for this organization (catch-all)
-      queryClient.invalidateQueries({ 
-        queryKey: workOrderKeys.all 
-      });
-      
-      // Also invalidate legacy query keys for backward compatibility
-      queryClient.invalidateQueries({ queryKey: ['enhanced-work-orders', variables.organizationId] });
-      queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.list(variables.organizationId) });
-      queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.pagedList(variables.organizationId) });
-      queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.optimized(variables.organizationId) });
-      queryClient.invalidateQueries({ queryKey: workOrderQueryKeys.byId(variables.organizationId, variables.workOrderId) });
-      
-      // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: notificationQueryKeys.byOrg(variables.organizationId) });
-      queryClient.invalidateQueries({ queryKey: ['dashboardStats', variables.organizationId] });
-      
-      toast.success('Work order status updated successfully');
-    },
-    onError: (error) => {
-      console.error('Error updating work order status:', error);
-      toast.error('Failed to update work order status');
     }
   });
 };

@@ -1,8 +1,10 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const { mockUpdateEquipment } = vi.hoisted(() => ({ mockUpdateEquipment: vi.fn() }));
 
 // Vitest 3 requires a real `function` (constructable) mock implementation for
 // classes instantiated with `new` (#1148).
@@ -10,7 +12,7 @@ vi.mock('@/services/offlineAwareService', () => ({
   OfflineAwareWorkOrderService: vi.fn(function OfflineAwareWorkOrderServiceMock() {
     return {
       createEquipmentFull: vi.fn().mockResolvedValue({ data: { id: 'eq-new' }, queuedOffline: false }),
-      updateEquipment: vi.fn().mockResolvedValue({ data: { id: 'eq-1' }, queuedOffline: false }),
+      updateEquipment: mockUpdateEquipment,
     };
   }),
 }));
@@ -99,9 +101,18 @@ const createMockEquipment = (overrides: Partial<EquipmentRecord> = {}): Equipmen
   created_at: '2025-01-01T00:00:00Z',
   updated_at: '2025-01-01T00:00:00Z',
   working_hours: 0,
-  
+  customer_id: null,
+  import_id: null,
+  last_maintenance_work_order_id: null,
   default_pm_template_id: null,
-  
+  assigned_location_street: null,
+  assigned_location_city: null,
+  assigned_location_state: null,
+  assigned_location_country: null,
+  assigned_location_lat: null,
+  assigned_location_lng: null,
+  use_team_location: false,
+
   ...overrides,
 });
 
@@ -118,7 +129,7 @@ const baseValues: EquipmentFormData = {
   notes: '',
   custom_attributes: {},
   image_url: '',
-  last_known_location: null,
+  last_known_location: undefined,
   team_id: 'team-1',
   default_pm_template_id: ''
 };
@@ -127,6 +138,7 @@ describe('useEquipmentForm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockWarningToast.mockClear();
+    mockUpdateEquipment.mockResolvedValue({ data: { id: 'eq-1' }, queuedOffline: false });
   });
 
   it('creates equipment successfully', async () => {
@@ -180,6 +192,18 @@ describe('useEquipmentForm', () => {
     , { wrapper: createWrapper(client) });
 
     expect(result.current.isEdit).toBe(true);
+
+    act(() => {
+      result.current.onSubmit(baseValues);
+    });
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
+    expect(mockUpdateEquipment).toHaveBeenCalledWith(
+      'eq-1',
+      expect.objectContaining({ name: 'Eq Name', manufacturer: 'Acme', team_id: 'team-1' }),
+      mockEquipment.updated_at,
+    );
+    expect(toast.success).toHaveBeenCalledWith('Equipment updated successfully');
   });
 
   it('succeeds when post-create media upload fails', async () => {
@@ -207,8 +231,16 @@ describe('useEquipmentForm', () => {
   it('warns when post-create media returns no images', async () => {
     vi.mocked(createEquipmentNoteWithImages).mockResolvedValueOnce({
       id: 'note-1',
+      equipment_id: 'eq-new',
+      content: 'Equipment created',
+      author_id: 'user-1',
+      author_name: 'Test User',
+      is_private: false,
+      hours_worked: 0,
+      created_at: '2025-01-01T00:00:00Z',
+      updated_at: '2025-01-01T00:00:00Z',
       images: [],
-    } as Awaited<ReturnType<typeof createEquipmentNoteWithImages>>);
+    });
 
     const client = new QueryClient();
     const onSuccess = vi.fn();

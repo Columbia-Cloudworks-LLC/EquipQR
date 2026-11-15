@@ -21,7 +21,7 @@ export interface EquipmentTableColumnMeta {
   defaultVisible: boolean;
   defaultWidth: number;
   minWidth: number;
-  maxWidth?: number;
+  maxWidth: number;
   align?: 'left' | 'right' | 'center';
   mono?: boolean;
   sortable: boolean;

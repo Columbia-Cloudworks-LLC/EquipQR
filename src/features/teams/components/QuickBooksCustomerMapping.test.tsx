@@ -301,31 +301,29 @@ describe('QuickBooksCustomerMapping', () => {
     // Select the customer and confirm
     await user.click(screen.getByText('Bill Lucchini'));
 
-    const importBtn = screen.queryByRole('button', { name: /Import & link/i });
-    if (importBtn) {
-      await user.click(importBtn);
-      await waitFor(() => {
-        expect(mockImportFromQB).toHaveBeenCalledWith(
-          expect.objectContaining({
-            qb: expect.objectContaining({
-              GivenName: 'Bill',
-              FamilyName: 'Lucchini',
-              Mobile: '(415) 555-0001',
-              Fax: '(415) 555-0002',
-              contacts: expect.arrayContaining([
-                expect.objectContaining({ sourceField: 'primary_email' }),
-              ]),
-            }),
-          })
-        );
-        expect(mockLink).toHaveBeenCalledWith({ teamId: 'team-456', customerId: 'created-cust' });
-        expect(mockUpdateTeamCustomerMapping).toHaveBeenCalledWith(
-          'org-123',
-          'team-456',
-          'qb-1',
-          'Bill Lucchini',
-        );
-      });
-    }
+    await user.click(await screen.findByRole('button', { name: /Import & link/i }));
+
+    await waitFor(() => {
+      expect(mockImportFromQB).toHaveBeenCalledWith(
+        expect.objectContaining({
+          qb: expect.objectContaining({
+            GivenName: 'Bill',
+            FamilyName: 'Lucchini',
+            Mobile: '(415) 555-0001',
+            Fax: '(415) 555-0002',
+            contacts: expect.arrayContaining([
+              expect.objectContaining({ sourceField: 'primary_email' }),
+            ]),
+          }),
+        })
+      );
+    });
+    expect(mockLink).toHaveBeenCalledWith({ teamId: 'team-456', customerId: 'created-cust' });
+    expect(mockUpdateTeamCustomerMapping).toHaveBeenCalledWith(
+      'org-123',
+      'team-456',
+      'qb-1',
+      'Bill Lucchini',
+    );
   });
 });

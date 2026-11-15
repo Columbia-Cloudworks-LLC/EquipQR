@@ -26,18 +26,19 @@ vi.mock('@/features/inventory/services/inventoryService', async (importOriginal)
 
 type PlaceholderDataFn = (
   previousData: InventoryItem[] | undefined,
-  previousQuery: Query | undefined,
+  previousQuery: Pick<Query, 'queryKey'> | undefined,
 ) => InventoryItem[] | undefined;
 
 function getPlaceholderDataFromLastCall(): PlaceholderDataFn {
-  const config = useQueryMock.mock.calls.at(-1)?.[0] as { placeholderData: PlaceholderDataFn };
+  const calls = useQueryMock.mock.calls;
+  const config = calls[calls.length - 1]?.[0] as { placeholderData: PlaceholderDataFn };
   return config.placeholderData;
 }
 
-function makePreviousQuery(orgId: string): Query {
+function makePreviousQuery(orgId: string): Pick<Query, 'queryKey'> {
   return {
     queryKey: inventory.list(orgId, {}),
-  } as Query;
+  };
 }
 
 describe('useInventoryItems placeholderData', () => {

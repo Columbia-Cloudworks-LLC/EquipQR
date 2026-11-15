@@ -11,6 +11,31 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+## [3.40.1] - 2026-11-14
+
+### Security
+
+- **Equipment create and delete rules enforced by the database (#1738)** — Only org owners and admins, or managers and technicians on the equipment's team, can add equipment, and only owners, admins and that team's managers can delete it. The app already worked this way; the database now enforces it too.
+
+### Changed
+
+- **Database performance cleanup (#1737, #1738)** — Cleared the Supabase performance advisor warnings on access policies and a duplicate index. No change to how EquipQR works.
+- **Stronger server-side tests (#1717)** — Edge function tests now run on every pull request, and the checks that verify Google security alerts, export permissions and org admin access are tested against real signatures and filters. Unused server code and duplicate tests were removed. No change to how EquipQR works.
+- **Sharper browser tests (#1717)** — Browser tests that passed without checking anything (sidebar labels mistaken for page content, checks hidden behind "if visible") now check the real page, and nine one-off or duplicate test files were removed. No change to how EquipQR works.
+- **Sharper database tests (#1717)** — Three database checks that could never fail (storage totals for inventory photos, re-enabling an operator check-in template, and work order notifications going to the equipment's team) now test the real behaviour, and six duplicate checks were removed. No change to how EquipQR works.
+- **Removed more unused code (#1719)** — Deleted about 80 functions, hooks and service methods that only tests used, along with those tests. No change to how EquipQR works.
+- **Removed unused code (#1718)** — Deleted about 20 old files that nothing in the app used any more (leftover billing code, old data services, unused equipment screens, utilities and hooks) along with their tests. No change to how EquipQR works.
+- **Cleaner, better-tested app code (#1712–#1716, #1720–#1722, #1727)** — Tests that could not fail were rewritten or removed across the app, copied code was merged into shared pieces (the duplicate-code check now covers the whole codebase, including server functions), and the type check now runs on every pull request. No change to how EquipQR works.
+- **Quieter release checks (#1710)** — The production release check no longer reports a failure when a release was already promoted by hand. No change to how EquipQR works.
+
+### Fixed
+
+- **Equipment list download includes every column (#1736)** — Equipment CSV and JSON downloads now fill in warranty expiration, installation date, created and updated dates, which were blank.
+- **Assignee chip opens Quick Assignment (#1735)** — On desktop work order cards, clicking the assignee chip opens Quick Assignment instead of the work order.
+- **Team managers can manage work orders from the equipment page (#1730)** — On an equipment's Work Orders tab, the equipment team's managers now get the same edit and assign controls as on the Work Orders page.
+- **Small fixes found by stricter type checks (#1727)** — Saving PM settings no longer turns a timed due date into an all-day one. Clearing the "warranty expiring" filter chip turns the filter off. Location maps follow light/dark mode changes. An onboarding error now shows its message instead of failing silently.
+- **Work order status changes save offline on desktop (#1751)** — Start Work, Put on Hold, Complete and Cancel on the desktop work order page and the work orders list now save offline and sync when the connection returns, as they already did on mobile. Offline "Assign & Start" also keeps the assignee and acceptance date.
+
 ## [3.40.0] - 2026-11-10
 
 ### Added

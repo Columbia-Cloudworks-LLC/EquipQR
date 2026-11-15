@@ -6,13 +6,7 @@
  */
 
 import { z } from 'zod';
-import { Tables } from '@/integrations/supabase/types';
-
-// ============================================
-// Core Status Type
-// ============================================
-
-export type EquipmentStatus = 'active' | 'maintenance' | 'inactive';
+import type { Json, Tables } from '@/integrations/supabase/types';
 
 // ============================================
 // Location Types
@@ -25,23 +19,49 @@ export interface EquipmentLocation {
   timestamp?: string;
 }
 
-export interface AssignedLocation {
-  street?: string;
-  city?: string;
-  state?: string;
-  country?: string;
-  lat?: number;
-  lng?: number;
-}
-
-// Re-export EffectiveLocation from the shared utility (single source of truth)
-export type { EffectiveLocation } from '@/utils/effectiveLocation';
-
 // ============================================
 // Custom Attributes Type
 // ============================================
 
 export type CustomAttributes = Record<string, string | number | boolean | null>;
+
+/**
+ * Narrow a raw `custom_attributes` Json column to `CustomAttributes`.
+ * Non-object values yield an empty record; nested (non-scalar) values are dropped.
+ */
+export const parseCustomAttributes = (value: Json | null | undefined): CustomAttributes => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const result: CustomAttributes = {};
+  for (const [key, entry] of Object.entries(value)) {
+    if (
+      typeof entry === 'string' ||
+      typeof entry === 'number' ||
+      typeof entry === 'boolean' ||
+      entry === null
+    ) {
+      result[key] = entry;
+    }
+  }
+  return result;
+};
+
+/**
+ * Narrow a raw `last_known_location` Json column to `EquipmentLocation`.
+ * Returns undefined unless numeric latitude/longitude are present.
+ */
+export const parseEquipmentLocation = (
+  value: Json | null | undefined
+): EquipmentLocation | undefined => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const { latitude, longitude, address, timestamp } = value;
+  if (typeof latitude !== 'number' || typeof longitude !== 'number') return undefined;
+  return {
+    latitude,
+    longitude,
+    ...(typeof address === 'string' ? { address } : {}),
+    ...(typeof timestamp === 'string' ? { timestamp } : {}),
+  };
+};
 
 // ============================================
 // Zod Schemas for Validation
@@ -184,10 +204,22 @@ type EquipmentRow = Tables<'equipment'>;
  * 
  * This is the primary type for equipment data throughout the application.
  */
-export interface EquipmentRecord extends Omit<EquipmentRow, 'custom_attributes' | 'last_known_location'> {
-  // Transform Json fields to type-safe interfaces
-  custom_attributes?: CustomAttributes | null;
-  last_known_location?: EquipmentLocation | null;
+export interface EquipmentRecord extends Omit<
+  EquipmentRow,
+  | 'custom_attributes'
+  | 'last_known_location'
+  | 'assigned_location_street'
+  | 'assigned_location_city'
+  | 'assigned_location_state'
+  | 'assigned_location_country'
+  | 'assigned_location_lat'
+  | 'assigned_location_lng'
+  | 'use_team_location'
+> {
+  // Json columns stay `Json` here because rows come straight from Supabase;
+  // use `parseCustomAttributes` / `parseEquipmentLocation` to narrow them.
+  custom_attributes?: Json | null;
+  last_known_location?: Json | null;
   
   // Frontend-specific computed fields from joins
   team_name?: string;
@@ -200,42 +232,4 @@ export interface EquipmentRecord extends Omit<EquipmentRow, 'custom_attributes' 
   assigned_location_lat?: number | null;
   assigned_location_lng?: number | null;
   use_team_location?: boolean;
-}
-
-/**
- * Equipment with team information (from joins)
- * @deprecated Use EquipmentRecord directly - it now includes team_name
- */
-export interface EquipmentWithTeam extends EquipmentRecord {
-  team_name?: string;
-}
-
-// ============================================
-// Equipment Filter Types
-// ============================================
-
-export interface EquipmentFilters {
-  status?: EquipmentStatus;
-  location?: string;
-  manufacturer?: string;
-  model?: string;
-  team_id?: string | null;
-  search?: string;
-  // Team-based access control
-  userTeamIds?: string[];
-  isOrgAdmin?: boolean;
-}
-
-// ============================================
-// Equipment Scan Types
-// ============================================
-
-export interface EquipmentScan {
-  id: string;
-  equipment_id: string;
-  scanned_by: string;
-  scanned_at: string;
-  location?: string | null;
-  notes?: string | null;
-  scannedByName?: string;
 }

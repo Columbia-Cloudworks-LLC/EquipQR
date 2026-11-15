@@ -9,7 +9,7 @@ import { getOrganizationPreference } from '@/utils/sessionPersistence';
 import type { SessionData, SessionOrganization } from '@/types/session';
 import { permissionEngine } from '@/services/permissions/PermissionEngine';
 
-export type { SessionData, SessionOrganization } from '@/types/session';
+export type { SessionOrganization } from '@/types/session';
 
 interface SessionContextType {
   sessionData: SessionData | null;

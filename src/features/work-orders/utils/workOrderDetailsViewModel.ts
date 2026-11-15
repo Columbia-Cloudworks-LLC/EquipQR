@@ -62,18 +62,6 @@ export interface EquipmentPdfSource {
   customer_id?: string | null;
 }
 
-export interface MobileWorkOrderSummarySource {
-  status: string;
-  priority: string;
-  dueDate?: string | null;
-}
-
-export interface MobileEquipmentSummarySource {
-  id: string;
-  name: string;
-  status: string;
-}
-
 export interface OfflineQueueSnapshot {
   isOnline: boolean;
   isSyncing: boolean;
@@ -225,26 +213,6 @@ export function buildMobileWorkOrderAssigneeSummary(
   }
 
   return { id: '', name: assigneeName };
-}
-
-export function buildMobileWorkOrderSummary(
-  workOrder: MobileWorkOrderSummarySource,
-): { status: string; priority: string; due_date?: string | null } {
-  return {
-    status: workOrder.status,
-    priority: workOrder.priority,
-    due_date: workOrder.dueDate,
-  };
-}
-
-export function buildMobileEquipmentSummary(
-  equipment: MobileEquipmentSummarySource,
-): MobileEquipmentSummarySource {
-  return {
-    id: equipment.id,
-    name: equipment.name,
-    status: equipment.status,
-  };
 }
 
 export function buildOfflineSyncState(offlineQueue: OfflineQueueSnapshot) {

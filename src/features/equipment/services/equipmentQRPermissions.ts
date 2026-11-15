@@ -346,6 +346,13 @@ function getMembershipForTeam(
   return teamMemberships.find(membership => membership.teamId === teamId) ?? null;
 }
 
+const TEAM_ROLES: readonly TeamRole[] = ['owner', 'manager', 'technician', 'requestor', 'viewer'];
+
+/** The membership RPC types `role` as a plain string; narrow it to the team_member_role enum. */
+function isTeamRole(value: string): value is TeamRole {
+  return TEAM_ROLES.some(role => role === value);
+}
+
 /** Team roles that may create work orders from the QR scan flow (excludes read-only viewer). */
 const QR_WORK_ORDER_TEAM_ROLES: readonly TeamRole[] = ['owner', 'manager', 'technician', 'requestor'];
 
@@ -413,8 +420,7 @@ export async function fetchQRActionTeamMemberships(
 
   if (error) throw new Error(error.message);
 
-  return (data ?? []).map(membership => ({
-    teamId: membership.team_id,
-    role: membership.role,
-  }));
+  return (data ?? []).flatMap(membership =>
+    isTeamRole(membership.role) ? [{ teamId: membership.team_id, role: membership.role }] : [],
+  );
 }

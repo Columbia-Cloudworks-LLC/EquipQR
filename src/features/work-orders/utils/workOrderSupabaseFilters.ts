@@ -17,7 +17,7 @@ type WorkOrderFilterQuery<T> = {
   lt: (column: string, value: string) => WorkOrderFilterQuery<T> & T;
   lte: (column: string, value: string) => WorkOrderFilterQuery<T> & T;
   gte: (column: string, value: string) => WorkOrderFilterQuery<T> & T;
-  not: (column: string, operator: string, value: string) => WorkOrderFilterQuery<T> & T;
+  not: (column: string, operator: string, value: string | null) => WorkOrderFilterQuery<T> & T;
   or: (filters: string) => WorkOrderFilterQuery<T> & T;
   in: (column: string, values: readonly string[]) => WorkOrderFilterQuery<T> & T;
 };

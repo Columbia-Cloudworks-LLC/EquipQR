@@ -17,13 +17,10 @@ import {
   createAdminSupabaseClient,
   createErrorResponse,
   createJsonResponse,
-  createUserSupabaseClient,
-  handleCorsPreflightIfNeeded,
-  requireUser,
   type AuthError,
   type AuthResult,
 } from "../_shared/supabase-clients.ts";
-import { parseRequestJson } from "../_shared/org-scoped-queries.ts";
+import { prepareAuthenticatedJsonPost, requireUserWithUserClient } from "../_shared/user-request.ts";
 import { isDfyOperator } from "../_shared/dfy-operator.ts";
 import { resolvePublicSiteUrl } from "../_shared/public-site-url.ts";
 import { createStructuredLogger } from "../_shared/structured-logger.ts";
@@ -190,7 +187,7 @@ export interface HandlerDeps {
 }
 
 const defaultDeps: HandlerDeps = {
-  authenticate: (req) => requireUser(req, createUserSupabaseClient(req)),
+  authenticate: requireUserWithUserClient,
   createBackend: () => adminBackend(createAdminSupabaseClient()),
   isOperator: isDfyOperator,
 };
@@ -200,25 +197,12 @@ export async function handleDfyProvisioning(
   correlationId: string,
   deps: HandlerDeps = defaultDeps,
 ): Promise<Response> {
-  const corsResponse = handleCorsPreflightIfNeeded(req, { useValidatedOrigin: true });
-  if (corsResponse) return corsResponse;
   const opts = { req };
-
-  if (req.method !== "POST") {
-    return createErrorResponse("Method not allowed", 405, opts);
-  }
-
-  const auth = await deps.authenticate(req);
-  if ("error" in auth) {
-    return createErrorResponse(auth.error, auth.status, opts);
-  }
-  const { user } = auth;
-
-  const parsed = await parseRequestJson(req, requestSchema);
-  if (!parsed.success) {
-    return createErrorResponse(parsed.error, parsed.status, opts);
-  }
-  const body = parsed.data;
+  const authed = await prepareAuthenticatedJsonPost(req, deps.authenticate, requestSchema, {
+    useValidatedOrigin: true,
+  });
+  if (authed instanceof Response) return authed;
+  const { user, data: body } = authed;
 
   const operator = deps.isOperator(user);
   if (body.action === "whoami") {

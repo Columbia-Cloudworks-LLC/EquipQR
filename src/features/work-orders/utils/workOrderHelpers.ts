@@ -1,5 +1,3 @@
-// fallow-ignore-file code-duplication
-// Duplication rationale: Helpers duplicated in export dialog for stable import boundary
 /**
  * Work Order Presentation Helpers
  * 
@@ -7,9 +5,7 @@
  * All components should import from here instead of defining locally.
  */
 
-import type { UserSettings } from '@/types/settings';
 import type { WorkOrderStatus, WorkOrderPriority } from '@/features/work-orders/types/workOrder';
-import { formatDate as formatDateInTz } from '@/utils/dateFormatter';
 
 // ============================================
 // Color Utilities
@@ -34,7 +30,7 @@ export const getPriorityColor = (priority: string): string => {
 /**
  * Get Tailwind CSS classes for status badge styling
  */
-export const getStatusColor = (status: string): string => {
+export const getWorkOrderStatusColor = (status: string): string => {
   switch (status) {
     case 'submitted':
       return 'bg-info/20 text-info border-info/30';
@@ -149,21 +145,6 @@ export const formatPriority = (priority: string): string => {
   return priority.charAt(0).toUpperCase() + priority.slice(1);
 };
 
-
-/** Used by CSV/PDF/Excel and helpers where explicit settings are required (#768). */
-export type WorkOrderDateSettings = Pick<UserSettings, 'timezone' | 'dateFormat'>;
-
-export const formatDate = (
-  dateString: string | null | undefined,
-  settings: WorkOrderDateSettings
-): string => {
-  if (!dateString) return '—';
-  try {
-    return formatDateInTz(dateString, settings as UserSettings);
-  } catch {
-    return 'Invalid Date';
-  }
-};
 
 // ============================================
 // Status Logic Utilities

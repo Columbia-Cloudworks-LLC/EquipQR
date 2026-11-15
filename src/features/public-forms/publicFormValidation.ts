@@ -1,6 +1,8 @@
 /**
  * Shared required-field validation for public token-gated forms
- * (operator daily check-ins #1091, quick forms #1184).
+ * (operator daily check-ins #1091, quick forms #1184). The edge functions keep
+ * a Deno mirror in supabase/functions/_shared/public-form-validation.ts;
+ * supabase/functions/_shared/public-form-mirrors.vitest.test.ts fails when they drift.
  */
 
 export type PublicFormInputType = 'text' | 'textarea' | 'number' | 'date' | 'checkbox';

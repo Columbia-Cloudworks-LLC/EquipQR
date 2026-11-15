@@ -190,25 +190,12 @@ describe('useOfflineMergedNotes', () => {
     expect(result.current[0]._isPendingSync).toBeUndefined();
   });
 
-  it('sets _isPendingSync on offline notes', () => {
-    const queueItem = makeWONoteQueueItem();
-    mockQueuedItems.mockReturnValue([queueItem]);
-
-    const { result } = renderHook(
-      () => useOfflineMergedNotes([], 'work_order', 'wo-1'),
-      { wrapper: createWrapper() },
-    );
-
-    expect(result.current).toHaveLength(1);
-    expect(result.current[0]._isPendingSync).toBe(true);
-  });
-
   it('generates IDs with offline-note- prefix', () => {
     const queueItem = makeWONoteQueueItem();
     mockQueuedItems.mockReturnValue([queueItem]);
 
     const { result } = renderHook(
-      () => useOfflineMergedNotes([], 'work_order', 'wo-1'),
+      () => useOfflineMergedNotes<ServerNote>([], 'work_order', 'wo-1'),
       { wrapper: createWrapper() },
     );
 

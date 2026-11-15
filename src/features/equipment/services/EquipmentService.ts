@@ -1,6 +1,6 @@
 import { ApiResponse, PaginationParams, FilterParams } from '@/services/base/BaseService';
 import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/integrations/supabase/types';
+import type { Tables, TablesInsert } from '@/integrations/supabase/types';
 import { logger } from '@/utils/logger';
 import { getAuthClaims } from '@/lib/authClaims';
 import { withResolvedEquipmentImages } from '@/services/imageUploadService';
@@ -13,7 +13,7 @@ import {
   batchUpdateRowResult,
   collectBatchMutationResults,
 } from '@/services/batchMutationResultHelpers';
-import { queryOrgScopedEquipmentNotes, queryOrgScopedEquipmentScans } from '@/services/equipmentOrgScopedQueries';
+import { queryOrgScopedEquipmentScans } from '@/services/equipmentOrgScopedQueries';
 import { flattenAndResolveEquipmentImages } from '@/features/equipment/utils/equipmentTeamFlatten';
 import { applySelectedTeamFilter } from '@/features/dashboard/utils/dashboardTeamScope';
 import type { SelectedTeamId } from '@/contexts/selected-team-context';
@@ -81,7 +81,22 @@ export interface EquipmentSummary {
   default_pm_template_id: string | null;
 }
 
-export interface EquipmentFilters extends FilterParams {
+/**
+ * Team filter for team-scoped equipment reads. `undefined` means no team filter
+ * (org admins, or callers that don't pass memberships); an empty array means the
+ * user belongs to no teams and must see no equipment.
+ */
+function teamScopedIds(options: { userTeamIds?: string[]; isOrgAdmin?: boolean }): string[] | undefined {
+  return options.userTeamIds !== undefined && !options.isOrgAdmin ? options.userTeamIds : undefined;
+}
+
+/** Columns `EquipmentService.getExportDetails` adds to summary rows for export. */
+export type EquipmentExportDetails = Pick<
+  Tables<'equipment'>,
+  'id' | 'warranty_expiration' | 'installation_date' | 'created_at' | 'updated_at'
+>;
+
+export interface EquipmentServiceFilters extends FilterParams {
   status?: Equipment['status'];
   location?: string;
   manufacturer?: string;
@@ -94,7 +109,7 @@ export interface EquipmentFilters extends FilterParams {
 
 /**
  * Extended filter shape used by the dense equipment list page. Mirrors the
- * UI's `EquipmentFilters` shape one-for-one so the server query can do the
+ * UI's `EquipmentFilterState` shape one-for-one so the server query can do the
  * filtering work that used to happen in the browser.
  */
 export interface EquipmentListFilters {
@@ -124,8 +139,37 @@ export interface EquipmentListFilters {
   isOrgAdmin?: boolean;
 }
 
+/**
+ * Columns projected by `EquipmentService.getFilteredList`. It deliberately skips
+ * wide/rarely-needed columns (e.g. `last_known_location`, assigned-location
+ * fields), so list rows are narrower than a full `EquipmentWithTeam`.
+ */
+export type EquipmentListRow = Pick<
+  Equipment,
+  | 'id'
+  | 'organization_id'
+  | 'name'
+  | 'manufacturer'
+  | 'model'
+  | 'serial_number'
+  | 'status'
+  | 'team_id'
+  | 'location'
+  | 'image_url'
+  | 'working_hours'
+  | 'last_maintenance'
+  | 'installation_date'
+  | 'warranty_expiration'
+  | 'custom_attributes'
+  | 'created_at'
+  | 'updated_at'
+> & {
+  team?: EquipmentTeamSummary | null;
+  team_name?: string;
+};
+
 export interface EquipmentListResult {
-  data: EquipmentWithTeam[];
+  data: EquipmentListRow[];
   /** Total rows matching `filters` (NOT the page slice). Drives pagination. */
   count: number;
 }
@@ -137,7 +181,12 @@ export interface EquipmentListResult {
  */
 const MAX_LIST_PAGE_SIZE = 200;
 
-type EquipmentListQuery = ReturnType<ReturnType<typeof supabase.from>['select']>;
+/** Structural slice of the Supabase filter builder used by the list-filter helpers. */
+type EquipmentListQuery<Q> = {
+  gte: (column: string, value: string) => Q;
+  lte: (column: string, value: string) => Q;
+  not: (column: string, operator: string, value: null) => Q;
+};
 type EquipmentListPagination = {
   page?: number;
   pageSize?: number;
@@ -181,10 +230,10 @@ function isSpecificEquipmentFilter(value: string | undefined): value is string {
   return Boolean(value && value !== 'all');
 }
 
-function applyEquipmentListDateFilters(
-  query: EquipmentListQuery,
+function applyEquipmentListDateFilters<Q extends EquipmentListQuery<Q>>(
+  query: Q,
   filters: EquipmentListFilters,
-): EquipmentListQuery {
+): Q {
   let nextQuery = query;
 
   if (filters.maintenanceDateFrom) {
@@ -212,10 +261,10 @@ function getWarrantyExpirationWindow(now = new Date()) {
   };
 }
 
-function applyWarrantyExpiringFilter(
-  query: EquipmentListQuery,
+function applyWarrantyExpiringFilter<Q extends EquipmentListQuery<Q>>(
+  query: Q,
   filters: EquipmentListFilters,
-): EquipmentListQuery {
+): Q {
   if (!filters.warrantyExpiring) {
     return query;
   }
@@ -240,7 +289,7 @@ function getEquipmentListRange(page: number, pageSize: number) {
   return { from, to: from + pageSize - 1 };
 }
 
-export type EquipmentCreateData = Omit<Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>;
+export type EquipmentCreateData = Omit<TablesInsert<'equipment'>, 'id' | 'created_at' | 'updated_at' | 'organization_id'>;
 
 export type EquipmentUpdateData = Partial<Omit<Equipment, 'id' | 'created_at' | 'updated_at' | 'organization_id'>>;
 
@@ -272,10 +321,6 @@ export interface DuplicateEquipmentMatch {
   status: Equipment['status'];
   team_id: string | null;
   team_name: string | null;
-}
-
-export interface EquipmentNote extends Tables<'notes'> {
-  authorName?: string;
 }
 
 export interface EquipmentScan extends Tables<'scans'> {
@@ -313,7 +358,7 @@ export class EquipmentService {
    */
   static async getAll(
     organizationId: string,
-    filters: EquipmentFilters = {},
+    filters: EquipmentServiceFilters = {},
     pagination: PaginationParams = {}
   ): Promise<ApiResponse<EquipmentWithTeam[]>> {
     try {
@@ -393,6 +438,11 @@ export class EquipmentService {
     options: { userTeamIds?: string[]; isOrgAdmin?: boolean } = {}
   ): Promise<ApiResponse<EquipmentSummary[]>> {
     try {
+      const teamIds = teamScopedIds(options);
+      if (teamIds?.length === 0) {
+        return createServiceSuccessResponse([]);
+      }
+
       let query = supabase
         .from('equipment')
         .select(
@@ -401,11 +451,8 @@ export class EquipmentService {
         .eq('organization_id', organizationId)
         .order('name', { ascending: true });
 
-      if (options.userTeamIds !== undefined && !options.isOrgAdmin) {
-        if (options.userTeamIds.length === 0) {
-          return createServiceSuccessResponse([]);
-        }
-        query = query.in('team_id', options.userTeamIds);
+      if (teamIds) {
+        query = query.in('team_id', teamIds);
       }
 
       const { data, error } = await query;
@@ -438,6 +485,43 @@ export class EquipmentService {
       }));
 
       return createServiceSuccessResponse(flattened);
+    } catch (error) {
+      return createServiceErrorResponse(error, 'EquipmentService error');
+    }
+  }
+
+  /**
+   * Record-level columns the equipment export needs but `getSummaries` omits
+   * (it stays narrow for Slow 4G). Fetched only when the user exports, with the
+   * same organization and team-scoped RBAC filters as `getSummaries`.
+   */
+  static async getExportDetails(
+    organizationId: string,
+    options: { userTeamIds?: string[]; isOrgAdmin?: boolean } = {}
+  ): Promise<ApiResponse<EquipmentExportDetails[]>> {
+    try {
+      const teamIds = teamScopedIds(options);
+      if (teamIds?.length === 0) {
+        return createServiceSuccessResponse([]);
+      }
+
+      let query = supabase
+        .from('equipment')
+        .select('id, warranty_expiration, installation_date, created_at, updated_at')
+        .eq('organization_id', organizationId);
+
+      if (teamIds) {
+        query = query.in('team_id', teamIds);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        logger.error('Error fetching equipment export details:', error);
+        return createServiceErrorResponse(error, 'EquipmentService error');
+      }
+
+      return createServiceSuccessResponse(data ?? []);
     } catch (error) {
       return createServiceErrorResponse(error, 'EquipmentService error');
     }
@@ -813,95 +897,6 @@ export class EquipmentService {
       // throwing synchronously, malformed inputs that escape Promise.allSettled)
       // so callers always receive a normalized `ApiResponse` matching the rest
       // of this service — no caller has to handle a different failure shape.
-      return createServiceErrorResponse(error, 'EquipmentService error');
-    }
-  }
-
-  /**
-   * Delete equipment
-   */
-  static async delete(
-    organizationId: string,
-    id: string
-  ): Promise<ApiResponse<boolean>> {
-    try {
-      const { error } = await supabase
-        .from('equipment')
-        .delete()
-        .eq('id', id)
-        .eq('organization_id', organizationId);
-
-      if (error) {
-        logger.error('Error deleting equipment:', error);
-        return createServiceErrorResponse(error, 'EquipmentService error');
-      }
-
-      return createServiceSuccessResponse(true);
-    } catch (error) {
-      return createServiceErrorResponse(error, 'EquipmentService error');
-    }
-  }
-
-  /**
-   * Get status counts for equipment
-   */
-  static async getStatusCounts(
-    organizationId: string
-  ): Promise<ApiResponse<Record<Equipment['status'], number>>> {
-    try {
-      const { data, error } = await supabase
-        .from('equipment')
-        .select('status')
-        .eq('organization_id', organizationId);
-
-      if (error) {
-        logger.error('Error fetching equipment status counts:', error);
-        return createServiceErrorResponse(error, 'EquipmentService error');
-      }
-
-      const counts = (data || []).reduce((acc, eq) => {
-        acc[eq.status] = (acc[eq.status] || 0) + 1;
-        return acc;
-      }, {} as Record<Equipment['status'], number>);
-
-      // Ensure all statuses are present
-      const allStatuses: Equipment['status'][] = ['active', 'maintenance', 'inactive'];
-      allStatuses.forEach(status => {
-        if (!(status in counts)) {
-          counts[status] = 0;
-        }
-      });
-
-      return createServiceSuccessResponse(counts);
-    } catch (error) {
-      return createServiceErrorResponse(error, 'EquipmentService error');
-    }
-  }
-
-  /**
-   * Get notes for equipment with author names (optimized JOIN)
-   */
-  static async getNotesByEquipmentId(
-    organizationId: string,
-    equipmentId: string
-  ): Promise<ApiResponse<EquipmentNote[]>> {
-    try {
-      const { data, error } = await queryOrgScopedEquipmentNotes(organizationId, equipmentId, {
-        includeAuthor: true,
-      });
-
-      if (error) {
-        logger.error('Error fetching equipment notes:', error);
-        return createServiceErrorResponse(error, 'EquipmentService error');
-      }
-
-      const notes: EquipmentNote[] = (data || []).map(note => ({
-        ...note,
-        authorName: (note.author as { name?: string } | null | undefined)?.name || 'Unknown'
-      }));
-
-      return createServiceSuccessResponse(notes);
-    } catch (error) {
       return createServiceErrorResponse(error, 'EquipmentService error');
     }
   }

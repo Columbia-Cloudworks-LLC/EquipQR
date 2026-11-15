@@ -7,7 +7,7 @@
  */
 
 import type { WorkOrder, WorkOrderStatus, WorkOrderPriority } from '@/features/work-orders/types/workOrder';
-import type { EquipmentStatus } from '@/features/equipment/types/equipment';
+import type { Database } from '@/integrations/supabase/types';
 import type {
   ModelMatchType,
   VerificationStatus,
@@ -17,6 +17,8 @@ import type {
   PartIdentifier,
 } from '@/features/inventory/types/inventory';
 import { personas } from './personas';
+
+type EquipmentStatus = Database['public']['Enums']['equipment_status'];
 
 export type { ModelMatchType, VerificationStatus, PartIdentifierType };
 export type TestPartCompatibilityRule = PartCompatibilityRule;

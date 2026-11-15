@@ -1,11 +1,5 @@
-import type { LucideIcon } from 'lucide-react';
+import type { Capability } from '@/pages/features/data/featurePageTypes';
 import { CapabilityCard } from './CapabilityCard';
-
-export interface Capability {
-  name: string;
-  description: string;
-  icon: LucideIcon;
-}
 
 interface CapabilitiesGridProps {
   capabilities: Capability[];

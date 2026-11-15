@@ -42,6 +42,7 @@ describe('resolveDuplicateSerialAtSubmit', () => {
   it('performs immediate lookup when submit serial differs from debounced checkedSerial', async () => {
     mockFindBySerial.mockResolvedValueOnce({
       success: true,
+      error: null,
       data: {
         id: 'eq-2',
         name: 'New match',
@@ -68,6 +69,7 @@ describe('resolveDuplicateSerialAtSubmit', () => {
   it('performs immediate lookup when hook has not validated the submitted serial yet', async () => {
     mockFindBySerial.mockResolvedValueOnce({
       success: true,
+      error: null,
       data: {
         id: 'eq-3',
         name: 'Reopened form',

@@ -1,12 +1,28 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import type {
+  EquipmentCreateData,
+  QuickEquipmentCreateData,
+} from '@/features/equipment/services/EquipmentService';
+import { logger } from '@/utils/logger';
 import { OfflineAwareWorkOrderService } from './offlineAwareService';
-import { OfflineQueueService } from './offlineQueueService';
+import { OfflineQueueService, OfflineQueuePayloadError } from './offlineQueueService';
+import { stageQueueImageRefs } from './offlineQueueImageRefs';
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
-const { mockCreate, mockSupabaseFrom, mockCreatePM, mockUpdatePM, mockDeletePM } = vi.hoisted(() => ({
+const {
+  mockCreate,
+  mockSupabaseFrom,
+  mockCreatePM,
+  mockUpdatePM,
+  mockDeletePM,
+  mockEquipmentCreate,
+  mockEquipmentCreateQuick,
+} = vi.hoisted(() => ({
   mockCreate: vi.fn(),
+  mockEquipmentCreate: vi.fn(),
+  mockEquipmentCreateQuick: vi.fn(),
   mockSupabaseFrom: vi.fn(),
   mockCreatePM: vi.fn(),
   mockUpdatePM: vi.fn(),
@@ -26,6 +42,13 @@ vi.mock('@/features/work-orders/services/workOrderService', () => ({
       create: (...args: unknown[]) => mockCreate(...args),
     };
   }),
+}));
+
+vi.mock('@/features/equipment/services/EquipmentService', () => ({
+  EquipmentService: {
+    create: (...args: unknown[]) => mockEquipmentCreate(...args),
+    createQuick: (...args: unknown[]) => mockEquipmentCreateQuick(...args),
+  },
 }));
 
 vi.mock('@/features/pm-templates/services/preventativeMaintenanceService', () => ({
@@ -200,22 +223,6 @@ describe('OfflineAwareWorkOrderService', () => {
       expect(queueReader.getCount()).toBe(0);
     });
 
-    it('works without a queue service (offline queue not available)', async () => {
-      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
-
-      mockCreate.mockResolvedValueOnce({
-        success: true,
-        data: { id: 'wo-new' },
-        error: null,
-      });
-
-      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
-      const result = await svc.createWorkOrder(makeCreateData());
-
-      expect(result.queuedOffline).toBe(false);
-      expect(result.data).toEqual({ id: 'wo-new' });
-    });
-
     it('always has a queue service — offline pre-check never falls through', async () => {
       Object.defineProperty(navigator, 'onLine', { value: false, configurable: true, writable: true });
 
@@ -286,6 +293,213 @@ describe('OfflineAwareWorkOrderService', () => {
       expect(queueReader.getCount()).toBe(1);
 
       Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+    });
+
+    it('sends the status payload with completed_date when online', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+
+      const eqCalls: Array<[string, string]> = [];
+      const filter = {
+        eq: vi.fn((column: string, value: string) => {
+          eqCalls.push([column, value]);
+          return filter;
+        }),
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: { id: 'wo-1' }, error: null }),
+        }),
+      };
+      const update = vi.fn().mockReturnValue(filter);
+      mockSupabaseFrom.mockReturnValue({ update });
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      const result = await svc.updateStatus('wo-1', 'completed');
+
+      expect(result).toEqual({ data: { id: 'wo-1' }, queuedOffline: false });
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'completed', completed_date: expect.any(String) }),
+      );
+      expect(eqCalls).toEqual([
+        ['id', 'wo-1'],
+        ['organization_id', ORG_ID],
+      ]);
+    });
+
+    it('sends assignee_id and acceptance_date online for Assign & Start', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+
+      const filter = {
+        eq: vi.fn(() => filter),
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: { id: 'wo-1' }, error: null }),
+        }),
+      };
+      const update = vi.fn().mockReturnValue(filter);
+      mockSupabaseFrom.mockReturnValue({ update });
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      await svc.updateStatus('wo-1', 'in_progress', undefined, 'user-1');
+
+      expect(update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'in_progress',
+          assignee_id: 'user-1',
+          acceptance_date: expect.any(String),
+        }),
+      );
+    });
+
+    it('queues the assignee with the status when offline', async () => {
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true, writable: true });
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      await svc.updateStatus('wo-1', 'in_progress', '2026-01-01T00:00:00.000Z', 'user-1');
+
+      const [item] = queueReader.getAll();
+      expect(item.type).toBe('work_order_status');
+      expect(item.payload).toEqual({
+        workOrderId: 'wo-1',
+        newStatus: 'in_progress',
+        serverUpdatedAt: '2026-01-01T00:00:00.000Z',
+        assigneeId: 'user-1',
+      });
+
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+    });
+  });
+
+  // ── Equipment create ───────────────────────────────────────────────────────
+
+  describe('createEquipmentQuick / createEquipmentFull', () => {
+    const quickData: QuickEquipmentCreateData = {
+      name: 'Forklift',
+      manufacturer: 'Acme',
+      model: 'FL-1',
+      serial_number: 'SN-1',
+      team_id: 'team-1',
+    };
+    const fullData: EquipmentCreateData = {
+      name: 'Forklift',
+      manufacturer: 'Acme',
+      model: 'FL-1',
+      serial_number: 'SN-1',
+      installation_date: '2026-01-15',
+      location: 'Yard 2',
+    };
+
+    it.each([
+      ['createEquipmentQuick', 'equipment_create'],
+      ['createEquipmentFull', 'equipment_create_full'],
+    ] as const)('%s queues %s when offline', async (method, queueType) => {
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true, writable: true });
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      const result =
+        method === 'createEquipmentQuick'
+          ? await svc.createEquipmentQuick(quickData)
+          : await svc.createEquipmentFull(fullData);
+
+      expect(result.queuedOffline).toBe(true);
+      expect(queueReader.getAll().map(i => i.type)).toEqual([queueType]);
+      expect(mockEquipmentCreate).not.toHaveBeenCalled();
+      expect(mockEquipmentCreateQuick).not.toHaveBeenCalled();
+
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+    });
+
+    it('createEquipmentQuick calls EquipmentService.createQuick when online', async () => {
+      mockEquipmentCreateQuick.mockResolvedValueOnce({ success: true, data: { id: 'eq-1' } });
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      const result = await svc.createEquipmentQuick(quickData);
+
+      expect(result).toEqual({ data: { id: 'eq-1' }, queuedOffline: false });
+      expect(mockEquipmentCreateQuick).toHaveBeenCalledWith(ORG_ID, quickData);
+      expect(mockEquipmentCreate).not.toHaveBeenCalled();
+    });
+
+    it('createEquipmentFull queues equipment_create_full on a network error', async () => {
+      mockEquipmentCreate.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      const result = await svc.createEquipmentFull(fullData);
+
+      expect(result.queuedOffline).toBe(true);
+      expect(mockEquipmentCreate).toHaveBeenCalledWith(ORG_ID, fullData);
+      expect(queueReader.getAll().map(i => i.type)).toEqual(['equipment_create_full']);
+    });
+
+    it('throws the service error when the online create fails without a network error', async () => {
+      mockEquipmentCreate.mockResolvedValueOnce({ success: false, error: 'Duplicate serial number' });
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      await expect(svc.createEquipmentFull(fullData)).rejects.toThrow('Duplicate serial number');
+      expect(queueReader.getCount()).toBe(0);
+    });
+  });
+
+  // ── Enqueue failures ───────────────────────────────────────────────────────
+
+  describe('when the offline queue cannot store an item', () => {
+    beforeEach(() => {
+      Object.defineProperty(navigator, 'onLine', { value: false, configurable: true, writable: true });
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+      Object.defineProperty(navigator, 'onLine', { value: true, configurable: true, writable: true });
+    });
+
+    it('replaces an unexpected enqueue error with "Cannot save offline", keeping the cause', async () => {
+      const storageError = new Error('QuotaExceededError');
+      vi.spyOn(OfflineQueueService.prototype, 'enqueue').mockImplementation(() => {
+        throw storageError;
+      });
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      const failure = await svc.updateStatus('wo-1', 'completed').catch((err: unknown) => err);
+
+      expect(failure).toBeInstanceOf(Error);
+      expect((failure as Error).message).toBe('Cannot save offline — please try again when connected.');
+      expect((failure as Error).cause).toBe(storageError);
+      expect(logger.error).toHaveBeenCalledWith('Failed to enqueue offline status update', storageError);
+    });
+
+    it('rethrows payload validation errors unchanged', async () => {
+      const validationError = new OfflineQueuePayloadError('Payload too large');
+      vi.spyOn(OfflineQueueService.prototype, 'enqueue').mockImplementation(() => {
+        throw validationError;
+      });
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+
+      await expect(svc.deletePM('pm-1')).rejects.toBe(validationError);
+      expect(logger.error).not.toHaveBeenCalled();
+    });
+
+    it('treats a photo staging failure like an enqueue failure and queues nothing', async () => {
+      const blobError = new Error('IndexedDB unavailable');
+      vi.mocked(stageQueueImageRefs).mockRejectedValueOnce(blobError);
+
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      const failure = await svc
+        .createWorkOrderNote('wo-1', 'Replaced belt', 1, false, undefined, [jpegFile()])
+        .catch((err: unknown) => err);
+
+      expect((failure as Error).message).toBe('Cannot save offline — please try again when connected.');
+      expect((failure as Error).cause).toBe(blobError);
+      expect(logger.error).toHaveBeenCalledWith('Failed to enqueue offline work order note', blobError);
+      expect(queueReader.getCount()).toBe(0);
+    });
+
+    it('logs the queued item with its context fields', async () => {
+      const svc = new OfflineAwareWorkOrderService(ORG_ID, USER_ID);
+      const result = await svc.updateStatus('wo-1', 'on_hold');
+
+      expect(logger.info).toHaveBeenCalledWith('Work order status queued offline', {
+        queueItemId: result.queueItemId,
+        workOrderId: 'wo-1',
+        newStatus: 'on_hold',
+      });
     });
   });
 

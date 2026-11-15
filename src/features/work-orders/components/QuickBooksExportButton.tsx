@@ -1,5 +1,3 @@
-// fallow-ignore-file code-duplication
-// Duplication rationale: Export button repeats guarded action blocks per target
 /**
  * QuickBooks Export Button Component
  *
@@ -245,22 +243,26 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
     );
   }
 
+  const exportButtonWithTooltip = (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span>
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={isDisabled || isLoading}>
+            {buttonContent}
+          </Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p className="max-w-xs">{tooltipMessage}</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+
   if (alreadyExported && invoiceUrl) {
     return (
       <div className="flex items-center gap-1">
         <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span>
-                <Button variant="outline" size="sm" onClick={handleExport} disabled={isDisabled || isLoading}>
-                  {buttonContent}
-                </Button>
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="max-w-xs">{tooltipMessage}</p>
-            </TooltipContent>
-          </Tooltip>
+          {exportButtonWithTooltip}
         </TooltipProvider>
         <TooltipProvider>
           <Tooltip>
@@ -288,18 +290,7 @@ export const QuickBooksExportButton: React.FC<QuickBooksExportButtonProps> = ({
 
   return (
     <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span>
-            <Button variant="outline" size="sm" onClick={handleExport} disabled={isDisabled || isLoading}>
-              {buttonContent}
-            </Button>
-          </span>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p className="max-w-xs">{tooltipMessage}</p>
-        </TooltipContent>
-      </Tooltip>
+      {exportButtonWithTooltip}
       {statusDetails}
       {reviewDialog}
     </TooltipProvider>

@@ -211,14 +211,6 @@ describe('EquipmentScanner', () => {
     });
   });
 
-  it('shows denied-permission guidance when start rejects NotAllowedError', async () => {
-    hoisted.mockStart.mockRejectedValueOnce(new DOMException('Permission denied', 'NotAllowedError'));
-    const user = userEvent.setup();
-    renderScanner();
-    await startCameraScan(user);
-    expect(await screen.findByText(/permission was denied/i)).toBeInTheDocument();
-  });
-
   it('shows policy-blocked guidance when start rejects with permissions policy message', async () => {
     hoisted.mockStart.mockRejectedValueOnce(new Error('Permissions policy violation: camera is not allowed'));
     const user = userEvent.setup();

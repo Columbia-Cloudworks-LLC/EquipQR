@@ -118,7 +118,7 @@ const CostTrendWidget: React.FC = () => {
                 tickFormatter={(v: number) => formatCurrency(v)}
               />
               <Tooltip
-                formatter={(value: number) => [formatCurrency(value), 'Total Cost']}
+                formatter={(value) => [formatCurrency(Number(value)), 'Total Cost']}
                 contentStyle={{
                   backgroundColor: 'hsl(var(--popover))',
                   borderColor: 'hsl(var(--border))',

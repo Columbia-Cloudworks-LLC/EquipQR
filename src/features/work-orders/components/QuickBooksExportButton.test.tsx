@@ -167,19 +167,6 @@ describe('QuickBooksExportButton Component', () => {
       
       expect(container).toBeEmptyDOMElement();
     });
-
-    it('should render for users with QuickBooks access', async () => {
-      mockUseQuickBooksAccess.mockReturnValue({
-        data: true, // canExport = true
-        isLoading: false,
-      });
-      
-      renderComponent();
-      
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Export to QuickBooks/i })).toBeInTheDocument();
-      });
-    });
   });
 
   describe('QuickBooks Not Connected', () => {
@@ -238,20 +225,6 @@ describe('QuickBooksExportButton Component', () => {
       await waitFor(() => {
         const button = screen.getByRole('button', { name: /Export to QuickBooks/i });
         expect(button).toBeDisabled();
-      });
-    });
-
-    it('should be enabled when work order status is completed', async () => {
-      renderComponent({
-        workOrderId: 'wo-123',
-        teamId: 'team-456',
-        workOrderStatus: 'completed',
-        asMenuItem: false,
-      });
-      
-      await waitFor(() => {
-        const button = screen.getByRole('button', { name: /Export to QuickBooks/i });
-        expect(button).not.toBeDisabled();
       });
     });
 

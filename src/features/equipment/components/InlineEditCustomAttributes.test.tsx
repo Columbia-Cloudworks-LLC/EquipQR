@@ -60,18 +60,6 @@ describe('InlineEditCustomAttributes', () => {
   });
 
   describe('Edit Functionality', () => {
-    it('allows editing when canEdit is true', () => {
-      render(
-        <InlineEditCustomAttributes 
-          attributes={mockAttributes} 
-          onSave={mockOnSave} 
-          canEdit={true} 
-        />
-      );
-      
-      // Edit functionality should be available
-      expect(screen.getByText('Color')).toBeInTheDocument();
-    });
 
     it('calls onSave when attributes are updated', async () => {
       render(

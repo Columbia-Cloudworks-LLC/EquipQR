@@ -1,4 +1,5 @@
-import { render, createSettingsTestWrapper, SYDNEY_USER_SETTINGS } from '@vitest-harness/utils/test-utils';
+import { render } from '@testing-library/react';
+import { createSettingsTestWrapper, SYDNEY_USER_SETTINGS } from '@vitest-harness/utils/test-utils';
 import { describe, it, expect, vi } from 'vitest';
 import { formatDateTime } from '@/utils/dateFormatter';
 import type { InventoryTransaction } from '@/features/inventory/types/inventory';

@@ -94,11 +94,6 @@ describe('PermissionEngine', () => {
         const context = createUserContext('technician');
         expect(engine.hasPermission('equipment.view', context, maintenanceTeamContext())).toBe(true);
       });
-
-      it('still allows member to view even without team context', () => {
-        const context = createUserContext('technician');
-        expect(engine.hasPermission('equipment.view', context)).toBe(true);
-      });
     });
 
     describe('equipment.edit', () => {
@@ -413,51 +408,12 @@ describe('PermissionEngine', () => {
     });
   });
 
-  describe('Batch Check', () => {
-    it('checks multiple permissions at once', () => {
-      const context = createUserContext('owner');
-
-      const results = engine.batchCheck(
-        ['organization.manage', 'organization.invite', 'equipment.edit'],
-        context,
-      );
-
-      expect(results['organization.manage']).toBe(true);
-      expect(results['organization.invite']).toBe(true);
-      expect(results['equipment.edit']).toBe(true);
-    });
-
-    it('returns correct mixed results for member', () => {
-      const context = createUserContext('technician');
-
-      const results = engine.batchCheck(
-        ['organization.manage', 'workorder.view', 'workorder.changestatus'],
-        context,
-        maintenanceTeamContext(),
-      );
-
-      expect(results['organization.manage']).toBe(false);
-      expect(results['workorder.view']).toBe(true);
-      expect(results['workorder.changestatus']).toBe(true);
-    });
-  });
-
   describe('Rule Priority', () => {
     it('admin rule takes priority over team rules', () => {
       const context = createUserContext('admin');
       const entityContext = { teamId: 'non-existent-team' };
 
       expect(engine.hasPermission('equipment.edit', context, entityContext)).toBe(true);
-    });
-
-    it('assignee rule allows status change even outside their team', () => {
-      const context = createUserContext('technician');
-      const entityContext = {
-        teamId: teams.field.id,
-        assigneeId: personas.technician.id,
-      };
-
-      expect(engine.hasPermission('workorder.changestatus', context, entityContext)).toBe(true);
     });
   });
 

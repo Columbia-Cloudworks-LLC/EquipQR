@@ -12,7 +12,6 @@ import { clickButtonWhenReady } from '@vitest-harness/utils/rtl-helpers';
 // Mock the feature flags
 vi.mock('@/lib/flags', () => ({
   isQuickBooksEnabled: vi.fn(() => true),
-  isQuickBooksDisabled: vi.fn(() => false),
   QUICKBOOKS_ENABLED: true,
 }));
 
@@ -54,7 +53,9 @@ import { QuickBooksIntegration } from '@/features/organization/components/QuickB
 import { isQuickBooksEnabled } from '@/lib/flags';
 import { renderWithQuickBooksProviders } from '@/services/quickbooks/quickbooksTestUtils';
 
-const renderComponent = (props = { currentUserRole: 'admin' as const }) =>
+const renderComponent = (
+  props: { currentUserRole: 'owner' | 'admin' | 'member' } = { currentUserRole: 'admin' },
+) =>
   renderWithQuickBooksProviders(<QuickBooksIntegration {...props} />);
 
 describe('QuickBooksIntegration Component', () => {
@@ -94,34 +95,6 @@ describe('QuickBooksIntegration Component', () => {
       const { container } = renderComponent();
       
       expect(container).toBeEmptyDOMElement();
-    });
-
-    it('should render for users with can_manage_quickbooks permission (admin)', async () => {
-      // Admin with QuickBooks permission
-      mockUseQuickBooksAccess.mockReturnValue({
-        data: true,
-        isLoading: false,
-      });
-      
-      renderComponent({ currentUserRole: 'admin' });
-      
-      await waitFor(() => {
-        expect(screen.getByText('QuickBooks Online')).toBeInTheDocument();
-      });
-    });
-
-    it('should render for users with can_manage_quickbooks permission (owner)', async () => {
-      // Owner always has QuickBooks permission
-      mockUseQuickBooksAccess.mockReturnValue({
-        data: true,
-        isLoading: false,
-      });
-      
-      renderComponent({ currentUserRole: 'owner' });
-      
-      await waitFor(() => {
-        expect(screen.getByText('QuickBooks Online')).toBeInTheDocument();
-      });
     });
   });
 

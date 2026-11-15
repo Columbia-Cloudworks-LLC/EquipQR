@@ -1,16 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { isQuickBooksInvoiceStatus, toQuickBooksInvoiceStatus } from './workOrder';
+import { isQuickBooksInvoiceStatus } from './workOrder';
 
-describe('toQuickBooksInvoiceStatus', () => {
-  it('narrows known invoice statuses', () => {
-    expect(toQuickBooksInvoiceStatus('paid')).toBe('paid');
+describe('isQuickBooksInvoiceStatus', () => {
+  it('accepts known invoice statuses', () => {
+    expect(isQuickBooksInvoiceStatus('paid')).toBe(true);
     expect(isQuickBooksInvoiceStatus('overdue')).toBe(true);
   });
 
-  it('returns null for unknown or empty values', () => {
-    expect(toQuickBooksInvoiceStatus('not-a-status')).toBeNull();
-    expect(toQuickBooksInvoiceStatus(null)).toBeNull();
-    expect(toQuickBooksInvoiceStatus(undefined)).toBeNull();
+  it('rejects unknown or empty values', () => {
+    expect(isQuickBooksInvoiceStatus('not-a-status')).toBe(false);
+    expect(isQuickBooksInvoiceStatus(null)).toBe(false);
+    expect(isQuickBooksInvoiceStatus(undefined)).toBe(false);
     expect(isQuickBooksInvoiceStatus('draft-invoice')).toBe(false);
   });
 });

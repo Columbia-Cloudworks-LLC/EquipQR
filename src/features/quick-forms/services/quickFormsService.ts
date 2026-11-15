@@ -4,7 +4,7 @@ import {
   rotateQrTokenViaRpc,
 } from '@/features/public-forms/qrTokenSecretsService';
 import { parseQuickFormData, type QuickFormData } from '@/features/quick-forms/types/quickForm';
-import type { Database, Json, Tables } from '@/integrations/supabase/types';
+import type { Database, Tables } from '@/integrations/supabase/types';
 
 type QuickFormUpdate = Database['public']['Tables']['quick_forms']['Update'];
 
@@ -45,7 +45,7 @@ export async function createQuickForm(input: {
     p_organization_id: input.organizationId,
     p_name: input.name,
     p_description: input.description ?? '',
-    p_form_data: input.formData as Json,
+    p_form_data: input.formData,
   });
 
   if (error) throw error;
@@ -79,7 +79,7 @@ export async function updateQuickForm(input: {
   const updateData: QuickFormUpdate = { updated_at: new Date().toISOString() };
   if (input.name !== undefined) updateData.name = input.name;
   if (input.description !== undefined) updateData.description = input.description;
-  if (input.formData !== undefined) updateData.form_data = input.formData as Json;
+  if (input.formData !== undefined) updateData.form_data = input.formData;
   if (input.isActive !== undefined) updateData.is_active = input.isActive;
 
   const { data, error } = await supabase

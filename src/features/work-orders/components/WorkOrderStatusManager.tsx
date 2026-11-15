@@ -1,5 +1,3 @@
-// fallow-ignore-file code-duplication
-// Duplication rationale: Status manager shares transition UI with details page
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,15 +23,13 @@ import {
 import { WorkOrderAssigneeSelectItems } from '@/features/work-orders/components/WorkOrderAssigneeSelectItems';
 import { useWorkOrderStatusChangeHandlers } from '@/features/work-orders/hooks/useWorkOrderStatusChangeHandlers';
 import { useWorkOrderContextualAssignment, type AssignmentWorkOrderContext } from '@/features/work-orders/hooks/useWorkOrderContextualAssignment';
-import {
-  formatStatus,
-  getStatusColor,
-} from '@/features/work-orders/utils/workOrderHelpers';
 import { formatDueDisplay, isDueOverdue, parseDue } from '@/features/work-orders/calendar';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
 import { buildWorkOrderStatusActions } from '@/features/work-orders/utils/buildWorkOrderStatusActions';
 import WorkOrderAcceptanceModal from './WorkOrderAcceptanceModal';
 import WorkOrderAssigneeDisplay from './WorkOrderAssigneeDisplay';
+import { WorkOrderCompleteConfirmDialog } from './WorkOrderCompleteConfirmDialog';
+import { WorkOrderCurrentStatusRow } from './WorkOrderCurrentStatusRow';
 import ClickableAddress from '@/components/ui/ClickableAddress';
 type WorkOrderStatus = 'submitted' | 'accepted' | 'assigned' | 'in_progress' | 'on_hold' | 'completed' | 'cancelled';
 
@@ -43,6 +39,7 @@ type StatusWorkOrder = {
   has_pm?: boolean;
   assignee_id?: string | null;
   created_by?: string | null;
+  updated_at?: string | null;
   assigneeName?: string | null;
   teamName?: string | null;
   acceptance_date?: string | null;
@@ -124,8 +121,8 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     try {
       await updateStatusMutation.mutateAsync({
         workOrderId: workOrder.id,
-        status: 'cancelled',
-        organizationId
+        newStatus: 'cancelled',
+        serverUpdatedAt: workOrder.updated_at ?? undefined,
       });
       setShowCancelDialog(false);
     } catch (error) {
@@ -137,8 +134,8 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     try {
       await updateStatusMutation.mutateAsync({
         workOrderId: workOrder.id,
-        status: 'completed',
-        organizationId
+        newStatus: 'completed',
+        serverUpdatedAt: workOrder.updated_at ?? undefined,
       });
       setShowCompleteDialog(false);
     } catch (error) {
@@ -153,8 +150,8 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
     try {
       await updateStatusMutation.mutateAsync({
         workOrderId: workOrder.id,
-        status: 'in_progress',
-        organizationId,
+        newStatus: 'in_progress',
+        serverUpdatedAt: workOrder.updated_at ?? undefined,
         assigneeId: effectiveStartAssigneeId
       });
       setSelectedAssigneeForStart(''); // Reset after successful update
@@ -191,12 +188,7 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
           <CardTitle className="text-lg">Status Management</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Current Status:</span>
-            <Badge className={getStatusColor(workOrder.status)}>
-              {formatStatus(workOrder.status)}
-            </Badge>
-          </div>
+          <WorkOrderCurrentStatusRow status={workOrder.status} />
 
           {/* PM Status Check Warning */}
           {workOrder.has_pm && workOrder.status === 'in_progress' && pmData && pmData.status !== 'completed' && (
@@ -494,38 +486,12 @@ const WorkOrderStatusManager: React.FC<WorkOrderStatusManagerProps> = ({
       </AlertDialog>
 
       {/* Complete Confirmation Dialog */}
-      <AlertDialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-success" />
-              Complete Work Order
-            </AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-2">
-                <p>Are you sure you want to mark this work order as completed?</p>
-                <p className="text-sm font-medium text-foreground">Before completing, please confirm:</p>
-                <ul className="text-sm space-y-1 list-disc pl-4">
-                  <li>All hours have been logged</li>
-                  <li>All cost items have been recorded</li>
-                  <li>Notes and photos are up to date</li>
-                </ul>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={updateStatusMutation.isPending}>
-              Go Back
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmComplete}
-              disabled={updateStatusMutation.isPending}
-            >
-              {updateStatusMutation.isPending ? 'Completing...' : 'Mark as Complete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <WorkOrderCompleteConfirmDialog
+        open={showCompleteDialog}
+        onOpenChange={setShowCompleteDialog}
+        isPending={updateStatusMutation.isPending}
+        onConfirm={handleConfirmComplete}
+      />
     </div>
   );
 };

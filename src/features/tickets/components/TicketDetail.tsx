@@ -27,29 +27,29 @@ const TicketDetail: React.FC<TicketDetailProps> = ({ ticket }) => {
       </div>
 
       {/* Session diagnostics summary (if available) */}
-      {metadata && (metadata.appVersion || metadata.currentUrl) && (
+      {!!metadata && !!(metadata.appVersion || metadata.currentUrl) && (
         <div>
           <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Session Info</p>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground bg-muted/30 rounded-md p-3">
-            {metadata.appVersion && (
+            {!!metadata.appVersion && (
               <>
                 <span className="font-medium">Version</span>
                 <span>{String(metadata.appVersion)}</span>
               </>
             )}
-            {metadata.currentUrl && (
+            {!!metadata.currentUrl && (
               <>
                 <span className="font-medium">Route</span>
                 <span className="truncate">{String(metadata.currentUrl)}</span>
               </>
             )}
-            {metadata.organizationPlan && (
+            {!!metadata.organizationPlan && (
               <>
                 <span className="font-medium">Plan</span>
                 <span>{String(metadata.organizationPlan)}</span>
               </>
             )}
-            {metadata.userRole && (
+            {!!metadata.userRole && (
               <>
                 <span className="font-medium">Role</span>
                 <span>{String(metadata.userRole)}</span>

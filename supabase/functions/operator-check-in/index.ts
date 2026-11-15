@@ -15,9 +15,8 @@ import {
   handleCorsPreflightIfNeeded,
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
-import { optionalSecret } from "../_shared/require-secret.ts";
 import { requireOperatorCheckinAssignmentToken } from "../_shared/operator-checkin-public-auth.ts";
-import { isCaptchaEnforced } from "../_shared/hcaptcha-gate.ts";
+import { isHcaptchaRequired, verifyEnforcedCaptcha } from "../_shared/hcaptcha-gate.ts";
 import {
   normalizeTextValue,
   parseTemplateData,
@@ -52,44 +51,6 @@ interface SubmitRequest {
 }
 
 type OperatorCheckInRequest = LoadRequest | SubmitRequest;
-
-/** CAPTCHA is required when the secret exists (preview/prod fail-closed). */
-function isCaptchaRequired(): boolean {
-  return isCaptchaEnforced(optionalSecret("HCAPTCHA_SECRET_KEY"));
-}
-
-async function verifyCaptcha(token: string | undefined): Promise<boolean> {
-  if (!isCaptchaRequired()) return true;
-  const secret = optionalSecret("HCAPTCHA_SECRET_KEY");
-  if (!secret || !token) return false;
-
-  const form = new FormData();
-  form.append("secret", secret);
-  form.append("response", token);
-
-  try {
-    const res = await fetch("https://hcaptcha.com/siteverify", { method: "POST", body: form });
-    const result = await res.json();
-    return result.success === true;
-  } catch {
-    console.error("[OPERATOR-CHECKIN] hCaptcha verification failed");
-    return false;
-  }
-}
-
-function buildEquipmentPreviewFields(
-  dataFields: OperatorChecklistDataField[],
-  equipment: Record<string, unknown>,
-): CapturedFieldValue[] {
-  return dataFields
-    .filter((field) => field.source === "equipment_snapshot" && field.equipmentKey)
-    .map((field) => ({
-      field_id: field.id,
-      label: field.label,
-      source: "equipment_snapshot" as const,
-      value: resolveEquipmentSnapshotValue(field.equipmentKey!, equipment),
-    }));
-}
 
 function buildClientFieldValues(
   dataFields: OperatorChecklistDataField[],
@@ -209,7 +170,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
   );
 
   if (body.action === "load") {
-    const captchaRequired = isCaptchaRequired();
+    const captchaRequired = isHcaptchaRequired();
     const settingsId = typeof settings.id === "string" ? settings.id : null;
     let alreadySubmittedToday = false;
     let lastSubmittedAt: string | null = null;
@@ -240,7 +201,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
         checklistItems: templateData.checklistItems,
         dataFields: templateData.dataFields,
       },
-      equipmentPreviewFields: equipment ? buildEquipmentPreviewFields(templateData.dataFields, equipment) : [],
+      equipmentPreviewFields: equipment ? buildEquipmentFieldValues(templateData.dataFields, equipment) : [],
       locationCollectionEnabled: locationEnabled && gpsFieldSelected,
       captchaRequired,
       alreadySubmittedToday,
@@ -254,7 +215,7 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
     return createErrorResponse("Unsupported action", 400, { req });
   }
 
-  const captchaOk = await verifyCaptcha(body.captchaToken);
+  const captchaOk = await verifyEnforcedCaptcha(body.captchaToken, "OPERATOR-CHECKIN");
   if (!captchaOk) {
     return createErrorResponse("CAPTCHA verification failed", 403, { req });
   }

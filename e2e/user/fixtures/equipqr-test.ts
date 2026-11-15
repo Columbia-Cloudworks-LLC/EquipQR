@@ -54,5 +54,6 @@ export const test = base.extend<EquipQrFixtures>({
 });
 
 export { expect } from '@playwright/test';
+export type { Locator, Page } from '@playwright/test';
 export { quickLogin };
 export type { PersonaKey };

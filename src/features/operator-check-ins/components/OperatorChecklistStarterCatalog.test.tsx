@@ -69,13 +69,6 @@ describe('OperatorChecklistStarterCatalog', () => {
     );
   });
 
-  it('defaults to expanded when org has no templates and no stored preference', () => {
-    vi.mocked(catalogPreferences.getStarterCatalogExpandedPreference).mockReturnValue(null);
-    render(<OperatorChecklistStarterCatalog {...defaultProps} hasExistingTemplates={false} />);
-
-    expect(screen.getByText('Odometer Log')).toBeInTheDocument();
-  });
-
   it('defaults to collapsed when org already has templates and no stored preference', () => {
     vi.mocked(catalogPreferences.getStarterCatalogExpandedPreference).mockReturnValue(null);
     render(<OperatorChecklistStarterCatalog {...defaultProps} hasExistingTemplates />);

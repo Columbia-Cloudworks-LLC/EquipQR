@@ -1,5 +1,8 @@
 /**
  * Operator daily check-in template and submission field model (#1091).
+ * The edge functions keep a Deno mirror in
+ * supabase/functions/_shared/operator-checklist-validation.ts;
+ * supabase/functions/_shared/public-form-mirrors.vitest.test.ts fails when they drift.
  */
 
 import { validateRequiredInputFields } from '@/features/public-forms/publicFormValidation';
@@ -21,15 +24,15 @@ export type EquipmentSnapshotKey =
   | 'working_hours'
   | 'custom_attributes';
 
-export interface OperatorChecklistTemplateItem {
+export type OperatorChecklistTemplateItem = {
   id: string;
   title: string;
   description?: string;
   required: boolean;
   section: string;
-}
+};
 
-export interface OperatorChecklistDataField {
+export type OperatorChecklistDataField = {
   id: string;
   label: string;
   source: OperatorFieldSource;
@@ -38,12 +41,12 @@ export interface OperatorChecklistDataField {
   inputType?: OperatorInputFieldType;
   clientKey?: ClientContextKey;
   equipmentKey?: EquipmentSnapshotKey;
-}
+};
 
-export interface OperatorChecklistTemplateData {
+export type OperatorChecklistTemplateData = {
   checklistItems: OperatorChecklistTemplateItem[];
   dataFields: OperatorChecklistDataField[];
-}
+};
 
 export interface OperatorChecklistAnswer {
   item_id: string;

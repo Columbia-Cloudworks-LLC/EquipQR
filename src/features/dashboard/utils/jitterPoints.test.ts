@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { jitterPoints, getClusterMembers } from './jitterPoints';
+import { jitterPoints } from './jitterPoints';
 import type { FleetEfficiencyPoint } from '@/features/teams/services/teamFleetEfficiencyService';
 
 function makePoint(overrides: Partial<FleetEfficiencyPoint> & { teamId: string }): FleetEfficiencyPoint {
@@ -174,28 +174,5 @@ describe('jitterPoints', () => {
     expect(result[0].teamName).toBe('Alpha');
     expect(result[0].equipmentCount).toBe(7);
     expect(result[0].activeWorkOrdersCount).toBe(3);
-  });
-});
-
-describe('getClusterMembers', () => {
-  it('returns all points matching the cluster key', () => {
-    const input = [
-      makePoint({ teamId: 'a', equipmentCount: 10, activeWorkOrdersCount: 5 }),
-      makePoint({ teamId: 'b', equipmentCount: 10, activeWorkOrdersCount: 5 }),
-      makePoint({ teamId: 'c', equipmentCount: 20, activeWorkOrdersCount: 3 }),
-    ];
-    const jittered = jitterPoints(input);
-    const members = getClusterMembers(jittered, '10,5');
-
-    expect(members).toHaveLength(2);
-    expect(members.map((m) => m.teamId).sort()).toEqual(['a', 'b']);
-  });
-
-  it('returns empty array for non-existent cluster key', () => {
-    const input = [makePoint({ teamId: 'a', equipmentCount: 1, activeWorkOrdersCount: 1 })];
-    const jittered = jitterPoints(input);
-    const members = getClusterMembers(jittered, '99,99');
-
-    expect(members).toEqual([]);
   });
 });

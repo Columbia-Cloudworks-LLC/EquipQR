@@ -138,9 +138,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     return;
                   }
 
-                  supabase.rpc('apply_pending_admin_grants_for_user', {
-                    p_user_id: userIdAtSignIn,
-                  })
+                  // Promise.resolve() lifts the Supabase PromiseLike into a real
+                  // Promise so .catch() also covers errors thrown in .then().
+                  Promise.resolve(
+                    supabase.rpc('apply_pending_admin_grants_for_user', {
+                      p_user_id: userIdAtSignIn,
+                    }),
+                  )
                     .then(() => {
                       localStorage.setItem(adminGrantsCacheKey, String(Date.now()));
                     })

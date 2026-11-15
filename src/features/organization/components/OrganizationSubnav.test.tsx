@@ -10,7 +10,7 @@ import {
 
 describe('OrganizationSubnav', () => {
   it('renders members, settings, integrations, and audit log links for admins', () => {
-    customRender(<OrganizationSubnav />, { initialEntries: [ORGANIZATION_MEMBERS_PATH] });
+    customRender(<OrganizationSubnav />);
 
     expect(screen.getByRole('link', { name: /members/i })).toHaveAttribute('href', ORGANIZATION_MEMBERS_PATH);
     expect(screen.getByRole('link', { name: /settings/i })).toHaveAttribute('href', ORGANIZATION_SETTINGS_PATH);

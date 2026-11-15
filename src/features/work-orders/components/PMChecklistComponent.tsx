@@ -1,5 +1,3 @@
-// fallow-ignore-file code-duplication
-// Duplication rationale: Large PM checklist with repeated per-item render paths
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useFormatTimestamp } from '@/hooks/useFormatTimestamp';
@@ -16,7 +14,7 @@ import { toast } from 'sonner';
 import { useUpdatePM } from '@/features/pm-templates/hooks/usePMData';
 import { useQueryClient } from '@tanstack/react-query';
 import { workOrderRevertService } from '@/features/work-orders/services/workOrderRevertService';
-import { WorkOrderData, EquipmentData, TeamMemberData } from '@/features/work-orders/types/workOrderDetails';
+import { WorkOrderDetailsData, EquipmentData, TeamMemberData } from '@/features/work-orders/types/workOrderDetails';
 import { invalidateWorkOrderCaches } from '@/features/work-orders/utils/invalidateWorkOrderQueries';
 import { logger } from '@/utils/logger';
 import { usePMTemplates } from '@/features/pm-templates/hooks/usePMTemplates';
@@ -115,7 +113,7 @@ interface PMChecklistComponentProps {
   onUpdate: () => void;
   readOnly?: boolean;
   isAdmin?: boolean;
-  workOrder?: Pick<WorkOrderData, 'id' | 'organization_id' | 'status'> & { title?: string };
+  workOrder?: Pick<WorkOrderDetailsData, 'id' | 'organization_id' | 'status'> & { title?: string };
   equipment?: Pick<EquipmentData, 'id'>;
   team?: TeamMemberData;
   organization?: { id: string };
@@ -749,64 +747,53 @@ const PMChecklistComponent: React.FC<PMChecklistComponentProps> = ({
     triggerAutoSave('text'); // Use text trigger for longer debounce
   }, [triggerAutoSave]);
 
+  // Card shell for the empty-checklist states (loading placeholder or initialize prompt)
+  const renderEmptyChecklistCard = (content: React.ReactNode) => (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <PMChecklistStatusHeader
+              statusIcon={getStatusIcon()}
+              title={checklistTitle}
+              statusLabel={statusLabel}
+              statusColorClass={getStatusColor()}
+            />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">{content}</CardContent>
+    </Card>
+  );
+
   // Show empty state if checklist is empty and not initialized
   if (checklist.length === 0 && !isInitialized) {
-    return (
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <PMChecklistStatusHeader
-                statusIcon={getStatusIcon()}
-                title={checklistTitle}
-                statusLabel={statusLabel}
-                statusColorClass={getStatusColor()}
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="h-32 bg-muted animate-pulse rounded" />
-        </CardContent>
-      </Card>
+    return renderEmptyChecklistCard(
+      <div className="h-32 bg-muted animate-pulse rounded" />,
     );
   }
 
   // Show initialization option if checklist is empty but initialized
   if (checklist.length === 0 && isInitialized) {
-    return (
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <PMChecklistStatusHeader
-                statusIcon={getStatusIcon()}
-                title={checklistTitle}
-                statusLabel={statusLabel}
-                statusColorClass={getStatusColor()}
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Alert>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              PM checklist is empty. Initialize it with the default forklift maintenance checklist.
-            </AlertDescription>
-          </Alert>
-          {!readOnly && (
-            <Button 
-              onClick={handleInitializeChecklist}
-              disabled={isUpdating}
-              className="w-full"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              {isUpdating ? 'Initializing...' : 'Initialize Default Checklist'}
-            </Button>
-          )}
-        </CardContent>
-      </Card>
+    return renderEmptyChecklistCard(
+      <>
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            PM checklist is empty. Initialize it with the default forklift maintenance checklist.
+          </AlertDescription>
+        </Alert>
+        {!readOnly && (
+          <Button 
+            onClick={handleInitializeChecklist}
+            disabled={isUpdating}
+            className="w-full"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            {isUpdating ? 'Initializing...' : 'Initialize Default Checklist'}
+          </Button>
+        )}
+      </>,
     );
   }
 

@@ -72,7 +72,7 @@ ON CONFLICT (id) DO NOTHING;
 -- Insert images as superuser
 INSERT INTO inventory_item_images (id, inventory_item_id, organization_id, file_url, file_name, file_size, uploaded_by)
 VALUES
-  ('20000000-cccc-0000-0000-000000000001'::uuid, '20000000-bbbb-0000-0000-000000000001'::uuid, '20000000-aaaa-0000-0000-000000000001'::uuid, 'https://example.com/img1.jpg', 'img1.jpg', 1024, '20000000-0000-0000-0000-000000000001'::uuid),
+  ('20000000-cccc-0000-0000-000000000001'::uuid, '20000000-bbbb-0000-0000-000000000001'::uuid, '20000000-aaaa-0000-0000-000000000001'::uuid, 'https://example.com/img1.jpg', 'img1.jpg', 5242880, '20000000-0000-0000-0000-000000000001'::uuid),
   ('20000000-cccc-0000-0000-000000000002'::uuid, '20000000-bbbb-0000-0000-000000000002'::uuid, '20000000-aaaa-0000-0000-000000000002'::uuid, 'https://example.com/img2.jpg', 'img2.jpg', 2048, '20000000-0000-0000-0000-000000000002'::uuid);
 
 -- ============================================
@@ -127,8 +127,8 @@ SELECT is(
 RESET role;
 SELECT is(
   (SELECT get_organization_storage_mb('20000000-aaaa-0000-0000-000000000001'::uuid))::int,
-  0,
-  'Storage function returns 0 MB for small file sizes (1KB rounds to 0)'
+  5,
+  'Storage function counts inventory_item_images bytes (5 MiB image = 5 MB)'
 );
 
 SELECT * FROM finish();

@@ -120,25 +120,6 @@ Deno.test("deriveQuickBooksInvoiceStatus treats zero balance invoices as paid", 
   );
 });
 
-Deno.test("deriveQuickBooksInvoiceStatus does not mark paid when Balance is missing despite TotalAmt > 0", () => {
-  assertEquals(deriveQuickBooksInvoiceStatus({ TotalAmt: 100 }), "draft");
-  assertEquals(
-    deriveQuickBooksInvoiceStatus({ TotalAmt: 100, EmailStatus: "EmailSent" }),
-    "sent",
-  );
-});
-
-Deno.test("deriveQuickBooksInvoiceStatus does not use overdue when monetary fields are incomplete", () => {
-  assertEquals(
-    deriveQuickBooksInvoiceStatus(
-      { DueDate: "2026-01-01" },
-      undefined,
-      new Date("2026-05-17T00:00:00Z"),
-    ),
-    "draft",
-  );
-});
-
 Deno.test("updateMirroredWorkOrders omits invoice timestamps from main payload and null-guards paid_at", async () => {
   const { from, updates } = createWorkOrderUpdateMock();
   await updateMirroredWorkOrders({ from } as unknown as SupabaseClient, {

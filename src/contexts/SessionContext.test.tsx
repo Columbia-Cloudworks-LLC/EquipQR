@@ -3,7 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { SessionProvider, SessionContext } from './SessionContext';
-import type { SessionData, SessionOrganization } from './SessionContext';
+import type { SessionOrganization } from './SessionContext';
+import type { SessionData } from '@/types/session';
 import { createTestQueryClient } from '@vitest-harness/utils/query-client-wrapper';
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import { WorkOrderPMManagementActions } from '@/features/work-orders/components/WorkOrderPMManagementActions';
@@ -394,21 +395,6 @@ describe('SessionContext', () => {
     expect(mockSessionManager.refreshSession).not.toHaveBeenCalled();
     expect(result.current?.sessionData).toBe(null);
     expect(result.current?.isLoading).toBe(true);
-  });
-
-  it('should provide session management functions', async () => {
-    mockCachedSession();
-
-    const { result } = await renderLoadedSessionHook();
-
-    expect(typeof result.current?.getCurrentOrganization).toBe('function');
-    expect(typeof result.current?.switchOrganization).toBe('function');
-    expect(typeof result.current?.hasTeamRole).toBe('function');
-    expect(typeof result.current?.hasTeamAccess).toBe('function');
-    expect(typeof result.current?.canManageTeam).toBe('function');
-    expect(typeof result.current?.getUserTeamIds).toBe('function');
-    expect(typeof result.current?.refreshSession).toBe('function');
-    expect(typeof result.current?.clearSession).toBe('function');
   });
 
   it('should handle page visibility changes', async () => {

@@ -293,6 +293,33 @@ describe('OfflineQueueProcessor', () => {
     expect(eqCalls).toContainEqual(['organization_id', ORG_ID]);
   });
 
+  it('replays work_order_status with the same columns as an online status change', async () => {
+    const item = createPendingItem({
+      type: 'work_order_status',
+      payload: { workOrderId: 'wo-123', newStatus: 'in_progress', assigneeId: 'user-9' },
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([item]));
+
+    const eqMock = vi.fn(() => ({
+      eq: eqMock,
+      select: vi.fn().mockReturnValue({
+        single: vi.fn().mockResolvedValue({ data: {}, error: null }),
+      }),
+    }));
+    const updateMock = vi.fn().mockReturnValue({ eq: eqMock });
+    mockSupabaseFrom.mockReturnValue({ update: updateMock });
+
+    const result = await processor.processAll();
+    expect(result.succeeded).toBe(1);
+    expect(updateMock).toHaveBeenCalledWith({
+      status: 'in_progress',
+      updated_at: expect.any(String),
+      assignee_id: 'user-9',
+      acceptance_date: expect.any(String),
+      completed_date: null,
+    });
+  });
+
   it('invalidates query caches after successful sync', async () => {
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
@@ -498,7 +525,9 @@ describe('OfflineQueueProcessor', () => {
   });
 
   it('records syncedEquipmentId after a successful equipment_create_full so retries are idempotent', async () => {
+    const itemId = crypto.randomUUID();
     const item = createPendingItem({
+      id: itemId,
       type: 'equipment_create_full',
       retryCount: 0,
       maxRetries: 5,
@@ -507,29 +536,14 @@ describe('OfflineQueueProcessor', () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([item]));
 
     mockEquipmentCreate.mockResolvedValueOnce({ success: true, data: { id: 'eq-dup-1' } });
+    const markSynced = vi.spyOn(queueService, 'updateSyncedEquipmentId');
     const result = await processor.processAll();
 
     expect(result.succeeded).toBe(1);
     expect(mockEquipmentCreate).toHaveBeenCalledTimes(1);
+    expect(markSynced).toHaveBeenCalledTimes(1);
+    expect(markSynced).toHaveBeenCalledWith(itemId, 'eq-dup-1');
     expect(queueService.getCount()).toBe(0);
-  });
-
-  it('skips create on replay when syncedEquipmentId is persisted on the queue item', async () => {
-    const itemId = crypto.randomUUID();
-    const item = createPendingItem({
-      id: itemId,
-      type: 'equipment_create_full',
-      retryCount: 1,
-      maxRetries: 5,
-      syncedEquipmentId: 'eq-persisted',
-      payload: makeEquipmentCreatePayload({ serial_number: 'SN-REPLAY' }),
-    });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([item]));
-
-    const result = await processor.processAll();
-
-    expect(result.succeeded).toBe(1);
-    expect(mockEquipmentCreate).not.toHaveBeenCalled();
   });
 
   it('processes equipment_update via EquipmentService.update()', async () => {

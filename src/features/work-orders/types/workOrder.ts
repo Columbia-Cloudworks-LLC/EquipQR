@@ -33,12 +33,6 @@ export function isQuickBooksInvoiceStatus(
   return typeof status === 'string' && QUICKBOOKS_INVOICE_STATUS_SET.has(status);
 }
 
-export function toQuickBooksInvoiceStatus(
-  status: string | null | undefined,
-): QuickBooksInvoiceStatus | null {
-  return isQuickBooksInvoiceStatus(status) ? status : null;
-}
-
 // ============================================
 // Base Database Type
 // ============================================
@@ -163,18 +157,6 @@ export interface WorkOrder extends Omit<WorkOrderRow, 'quickbooks_sync_excluded'
   equipment?: WorkOrderEmbeddedEquipment | null;
 }
 
-/**
- * @deprecated Use WorkOrder instead
- * Alias for backward compatibility with components using EnhancedWorkOrder
- */
-export type EnhancedWorkOrder = WorkOrder;
-
-/**
- * @deprecated Use WorkOrder instead
- * Alias for backward compatibility
- */
-export type EnhancedWorkOrderData = WorkOrder;
-
 // ============================================
 // Filter Types (Service Layer)
 // ============================================
@@ -291,65 +273,11 @@ export interface WorkOrderCreateData {
   has_pm?: boolean;
 }
 
-export interface WorkOrderUpdateData {
-  title?: string;
-  description?: string;
-  equipment_id?: string;
-  priority?: WorkOrder['priority'];
-  status?: WorkOrder['status'];
-  assignee_id?: string | null;
-  due_date?: string | null;
-  due_date_has_time?: boolean;
-  estimated_hours?: number | null;
-  completed_date?: string | null;
-}
-
 // ============================================
 // UI State Types
 // ============================================
 
 export interface WorkOrderAcceptanceModalState {
   open: boolean;
-  workOrder: WorkOrderData | null;
-}
-
-// ============================================
-// Note Types
-// ============================================
-
-export interface WorkOrderNote {
-  id: string;
-  work_order_id: string;
-  author_id: string;
-  content: string;
-  hours_worked: number;
-  is_private: boolean;
-  created_at: string;
-  updated_at: string;
-  author_name?: string;
-  images?: WorkOrderImage[];
-}
-
-export interface WorkOrderNoteCreateData {
-  content: string;
-  hours_worked?: number;
-  is_private?: boolean;
-}
-
-// ============================================
-// Image Types
-// ============================================
-
-export interface WorkOrderImage {
-  id: string;
-  work_order_id: string;
-  note_id?: string | null;
-  file_name: string;
-  file_url: string;
-  file_size?: number | null;
-  mime_type?: string | null;
-  description?: string | null;
-  uploaded_by: string;
-  created_at: string;
-  uploaded_by_name?: string;
+  workOrder: WorkOrder | null;
 }

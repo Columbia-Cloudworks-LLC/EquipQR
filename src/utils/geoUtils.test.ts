@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseLatLng, normalizeAddress } from './geoUtils';
+import { parseLatLng } from './geoUtils';
 
 describe('geoUtils', () => {
   describe('parseLatLng', () => {
@@ -40,28 +40,4 @@ describe('geoUtils', () => {
       expect(parseLatLng('-90, -180')).toEqual({ lat: -90, lng: -180 }); // Valid boundaries
     });
   });
-
-  describe('normalizeAddress', () => {
-    it('should normalize address correctly', () => {
-      expect(normalizeAddress('123 Main St')).toBe('123 main st');
-      expect(normalizeAddress('  123 MAIN ST  ')).toBe('123 main st');
-    });
-
-    it('should collapse multiple spaces', () => {
-      expect(normalizeAddress('123   Main     St')).toBe('123 main st');
-      expect(normalizeAddress('123\tMain\nSt')).toBe('123 main st');
-    });
-
-    it('should handle empty input', () => {
-      expect(normalizeAddress('')).toBe('');
-      expect(normalizeAddress('   ')).toBe('');
-    });
-
-    it('should handle non-string input', () => {
-      expect(normalizeAddress(null as unknown as string)).toBe('');
-      expect(normalizeAddress(undefined as unknown as string)).toBe('');
-      expect(normalizeAddress(123 as unknown as string)).toBe('');
-    });
-  });
 });
-

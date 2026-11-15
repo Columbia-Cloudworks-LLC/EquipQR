@@ -30,12 +30,6 @@ export interface OrganizationMember {
 }
 
 /**
- * @deprecated Use OrganizationMember instead
- * Alias for backward compatibility with hooks using RealOrganizationMember
- */
-export type RealOrganizationMember = OrganizationMember;
-
-/**
  * Organization admin (subset of member data)
  */
 export interface OrganizationAdmin {
@@ -45,55 +39,9 @@ export interface OrganizationAdmin {
   role: string;
 }
 
-/**
- * Raw organization member data from database queries
- * Used internally by services
- */
-export interface OrganizationMemberRecord {
-  id: string;
-  user_id: string;
-  organization_id: string;
-  role: string;
-  status: string;
-  joined_date: string;
-  user_name?: string;
-  user_email?: string;
-  slot_purchase_id?: string;
-  activated_slot_at?: string;
-}
-
 // ============================================
 // Organization Types
 // ============================================
-
-export interface Organization {
-  id: string;
-  name: string;
-  plan: 'free' | 'premium';
-  memberCount: number;
-  maxMembers: number;
-  features: string[];
-  billingCycle?: 'monthly' | 'yearly';
-  nextBillingDate?: string;
-  logo?: string;
-  backgroundColor?: string;
-}
-
-/**
- * Organization with user's membership context
- */
-export interface OrganizationWithMembership {
-  id: string;
-  name: string;
-  plan: string;
-  member_count: number;
-  max_members: number;
-  features: unknown;
-  created_at: string;
-  updated_at: string;
-  user_role: string;
-  joined_date: string;
-}
 
 /**
  * Payload for updating organization settings
@@ -111,38 +59,3 @@ export interface OrganizationUpdatePayload {
   inventory_default_location_lat?: number | null;
   inventory_default_location_lng?: number | null;
 }
-
-// ============================================
-// Invitation Types
-// ============================================
-
-export interface InvitationData {
-  email: string;
-  role: 'admin' | 'member';
-  message?: string;
-}
-
-// ============================================
-// Storage Types
-// ============================================
-
-export interface StorageUsageData {
-  totalSizeBytes: number;
-  totalSizeMB: number;
-  totalSizeGB: number;
-  itemCount: number;
-  equipmentImageCount: number;
-  workOrderImageCount: number;
-  equipmentImageSizeBytes: number;
-  workOrderImageSizeBytes: number;
-}
-
-export interface StorageUsage extends StorageUsageData {
-  freeQuotaMB: number;
-  freeQuotaGB: number;
-  overageMB: number;
-  overageGB: number;
-  costPerGB: number;
-  overageCost: number;
-}
-

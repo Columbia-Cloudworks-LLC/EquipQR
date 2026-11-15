@@ -4,13 +4,12 @@
  */
 import {
   createAdminSupabaseClient,
-  createUserSupabaseClient,
-  requireUser,
   withCorrelationId,
   handleCorsPreflightIfNeeded,
   createJsonResponse,
   createErrorResponse,
 } from '../_shared/supabase-clients.ts';
+import { authenticateUser } from '../_shared/user-request.ts';
 import { MissingSecretError } from '../_shared/require-secret.ts';
 import {
   PRIVACY_VERSION_HASH,
@@ -34,11 +33,8 @@ Deno.serve(
     }
 
     try {
-      const userClient = createUserSupabaseClient(req);
-      const auth = await requireUser(req, userClient);
-      if ('error' in auth) {
-        return createErrorResponse(auth.error, auth.status, { req });
-      }
+      const auth = await authenticateUser(req);
+      if (auth instanceof Response) return auth;
 
       let body: Body;
       try {

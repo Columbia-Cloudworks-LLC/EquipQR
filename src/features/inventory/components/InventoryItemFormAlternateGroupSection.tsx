@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import type { UseFormReturn } from 'react-hook-form';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -22,11 +21,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Check, ChevronDown, ChevronRight, Layers } from 'lucide-react';
-import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
+import type { InventoryItemFormApi } from '@/features/inventory/schemas/inventorySchema';
 import type { PartAlternateGroup } from '@/features/inventory/types/inventory';
 
 type InventoryItemFormAlternateGroupSectionProps = {
-  form: UseFormReturn<InventoryItemFormData>;
+  form: InventoryItemFormApi;
   alternateGroups: PartAlternateGroup[];
   isFormDisabled: boolean;
 };

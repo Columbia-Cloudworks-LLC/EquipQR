@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildEquipmentPdfInput,
-  buildMobileEquipmentSummary,
   buildMobileWorkOrderAssigneeSummary,
-  buildMobileWorkOrderSummary,
   buildOfflineSyncState,
   buildWorkOrderAssigneeSummary,
   buildWorkOrderPdfInput,
@@ -13,7 +11,6 @@ import {
   MOBILE_WO_CONTENT_BOTTOM_PADDING_CLASS,
   shouldHideInlineNoteAddButton,
   shouldShowMobileSyncBanner,
-  MOBILE_WO_FAB_BOTTOM_CLASS,
   shouldShowMobileActionFooter,
 } from './workOrderDetailsViewModel';
 
@@ -220,32 +217,6 @@ describe('workOrderDetailsViewModel', () => {
   });
 
   describe('mobile summaries and sync state', () => {
-    it('builds compact mobile work order and equipment summaries', () => {
-      expect(
-        buildMobileWorkOrderSummary({
-          status: 'in_progress',
-          priority: 'high',
-          dueDate: '2024-01-05T00:00:00Z',
-        }),
-      ).toEqual({
-        status: 'in_progress',
-        priority: 'high',
-        due_date: '2024-01-05T00:00:00Z',
-      });
-
-      expect(
-        buildMobileEquipmentSummary({
-          id: 'eq-1',
-          name: 'Excavator',
-          status: 'active',
-        }),
-      ).toEqual({
-        id: 'eq-1',
-        name: 'Excavator',
-        status: 'active',
-      });
-    });
-
     it('builds offline sync state snapshot', () => {
       expect(
         buildOfflineSyncState({
@@ -284,10 +255,6 @@ describe('workOrderDetailsViewModel', () => {
           failedCount: 0,
         }),
       ).toBe(true);
-    });
-
-    it('raises FAB clearance when sync banner is visible', () => {
-      expect(MOBILE_WO_FAB_BOTTOM_CLASS.withSyncBanner).not.toBe(MOBILE_WO_FAB_BOTTOM_CLASS.default);
     });
   });
 });

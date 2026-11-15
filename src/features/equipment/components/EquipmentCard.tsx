@@ -29,10 +29,12 @@ interface Equipment {
   serial_number: string;
   status: string;
   location: string;
-  last_maintenance?: string;
-  image_url?: string;
+  last_maintenance?: string | null;
+  image_url?: string | null;
   default_pm_template_id?: string | null;
   working_hours?: number | null;
+  /** Raw JSON column; only string entries such as `unit_number` are read for display. */
+  custom_attributes?: unknown;
   // Populated by EquipmentService from the `team:team_id(id, name)` join.
   team_name?: string;
 }

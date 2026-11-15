@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import {
   fetchWorkOrderImagesWithUploaderProfiles,
   mapResolvedImagesForNote,
@@ -15,7 +15,7 @@ vi.mock('@/services/imageUploadService', () => ({
 }));
 
 const { supabase } = await import('@/integrations/supabase/client');
-const fromMock = vi.mocked(supabase.from);
+const fromMock = supabase.from as Mock;
 
 function makeImageQuery(data: unknown[]) {
   const q = {
@@ -41,8 +41,8 @@ describe('fetchWorkOrderImagesWithUploaderProfiles', () => {
   it('queries work_order_images with inner join on work_orders and org scope', async () => {
     const imageQuery = makeImageQuery([]);
     fromMock.mockImplementation((table: string) => {
-      if (table === 'work_order_images') return imageQuery as ReturnType<typeof makeImageQuery>;
-      return makeProfileQuery() as ReturnType<typeof makeProfileQuery>;
+      if (table === 'work_order_images') return imageQuery;
+      return makeProfileQuery();
     });
 
     await fetchWorkOrderImagesWithUploaderProfiles('wo-123', 'org-456');
@@ -56,7 +56,7 @@ describe('fetchWorkOrderImagesWithUploaderProfiles', () => {
 
   it('returns empty imagesList when no images match', async () => {
     const imageQuery = makeImageQuery([]);
-    fromMock.mockImplementation(() => imageQuery as ReturnType<typeof makeImageQuery>);
+    fromMock.mockImplementation(() => imageQuery);
 
     const result = await fetchWorkOrderImagesWithUploaderProfiles('wo-abc', 'org-xyz');
 

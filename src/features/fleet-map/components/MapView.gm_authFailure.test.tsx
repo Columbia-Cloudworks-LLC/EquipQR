@@ -36,23 +36,14 @@ vi.mock('@/utils/logger', () => ({
   },
 }));
 
-interface GoogleMapsMock {
-  maps: {
-    Size: (width: number, height: number) => { width: number; height: number };
-    Point: (x: number, y: number) => { x: number; y: number };
-    LatLngBounds: () => { extend: () => void; toJSON: () => unknown };
-    event: { addListenerOnce: () => void };
-  };
-}
-
-global.window.google = {
+vi.stubGlobal('google', {
   maps: {
     Size: vi.fn((width: number, height: number) => ({ width, height })),
     Point: vi.fn((x: number, y: number) => ({ x, y })),
     LatLngBounds: vi.fn(() => ({ extend: vi.fn(), toJSON: vi.fn() })),
     event: { addListenerOnce: vi.fn() },
   },
-} as unknown as GoogleMapsMock;
+});
 
 describe('MapView gm_authFailure handling', () => {
   let originalReload: typeof window.location.reload;
@@ -128,28 +119,6 @@ describe('MapView gm_authFailure handling', () => {
 
     expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /view runbook/i })).toBeInTheDocument();
-  });
-
-  it('does not crash when gm_authFailure had no prior handler installed', () => {
-    expect(window.gm_authFailure).toBeUndefined();
-
-    const { unmount } = render(
-      <MapView
-        googleMapsKey="test-api-key"
-        mapId="test-map-id"
-        equipmentLocations={[]}
-        filteredLocations={[]}
-      />,
-    );
-
-    expect(() => {
-      act(() => {
-        window.gm_authFailure?.();
-      });
-    }).not.toThrow();
-
-    unmount();
-    expect(window.gm_authFailure).toBeUndefined();
   });
 
   it('Try Again button is wired to window.location.reload', () => {

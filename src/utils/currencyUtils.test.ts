@@ -17,11 +17,4 @@ describe('currencyUtils', () => {
       expect(formatCurrency(-12345)).toBe('-$123.45');
     });
   });
-
-  // Add placeholder tests for future utility functions
-  describe('basic currency operations', () => {
-    it('should handle currency formatting', () => {
-      expect(formatCurrency(12345)).toBe('$123.45');
-    });
-  });
 });

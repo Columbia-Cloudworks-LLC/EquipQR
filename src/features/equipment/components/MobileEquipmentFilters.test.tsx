@@ -2,22 +2,22 @@ import React from 'react';
 import { render, screen, fireEvent } from '@vitest-harness/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MobileEquipmentFilters } from './MobileEquipmentFilters';
-import { EquipmentFilters } from '@/features/equipment/hooks/useEquipmentFiltering';
+import { EquipmentFilterState } from '@/features/equipment/hooks/useEquipmentFiltering';
 
 /**
  * Mobile wiring smoke tests. Filter/sort logic lives in useEquipmentFiltering
  * (unit-tested). Keep Radix Select/Sheet churn minimal here.
  */
-const defaultFilters: EquipmentFilters = {
+const defaultFilters: EquipmentFilterState = {
   search: '',
   status: 'all',
   manufacturer: 'all',
   location: 'all',
   team: 'all',
-  maintenanceDateFrom: null,
-  maintenanceDateTo: null,
-  installationDateFrom: null,
-  installationDateTo: null,
+  maintenanceDateFrom: '',
+  maintenanceDateTo: '',
+  installationDateFrom: '',
+  installationDateTo: '',
   warrantyExpiring: false,
 };
 

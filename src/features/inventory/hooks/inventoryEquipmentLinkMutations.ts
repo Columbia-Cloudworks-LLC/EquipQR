@@ -12,7 +12,7 @@ type LinkVariables = {
 
 export function invalidateEquipmentLinkQueries(
   queryClient: ReturnType<typeof useQueryClient>,
-  variables: LinkVariables,
+  variables: Pick<LinkVariables, 'organizationId' | 'itemId'>,
 ) {
   queryClient.invalidateQueries({
     queryKey: ['compatible-equipment', variables.organizationId, variables.itemId],

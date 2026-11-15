@@ -100,16 +100,18 @@ describe('team org scope (RT-13)', () => {
   });
 
   it('deleteTeam scopes the delete to the current organization', async () => {
+    const orgEq = vi.fn().mockResolvedValue({ error: null, count: 0 });
+    const idEq = vi.fn().mockReturnValue({ eq: orgEq });
     const chain = createMaybeSingleChain({ data: null, error: null });
     Object.assign(chain, {
-      delete: vi.fn().mockReturnValue({
-        eq: vi.fn().mockReturnValue({
-          eq: vi.fn().mockResolvedValue({ error: null, count: 0 }),
-        }),
-      }),
+      delete: vi.fn().mockReturnValue({ eq: idEq }),
     });
     vi.mocked(supabase.from).mockReturnValue(chain as never);
 
     await expect(deleteTeam('metro-team', 'apex-org')).rejects.toThrow(/could not be deleted/i);
+
+    expect(supabase.from).toHaveBeenCalledWith('teams');
+    expect(idEq).toHaveBeenCalledWith('id', 'metro-team');
+    expect(orgEq).toHaveBeenCalledWith('organization_id', 'apex-org');
   });
 });

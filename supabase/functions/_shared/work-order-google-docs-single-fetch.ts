@@ -3,15 +3,7 @@
  */
 
 import { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
-
-/** A work order's team is its equipment's team; PostgREST may return the to-one embed as an object or a one-element array. */
-function embeddedEquipmentTeamId(
-  equipment: { team_id: string | null } | Array<{ team_id: string | null }> | null | undefined,
-): string | null {
-  const row = Array.isArray(equipment) ? equipment[0] : equipment;
-  return row?.team_id ?? null;
-}
-
+import { embeddedEquipmentTeamId, fetchCostCreatorMap } from "./work-orders-export-fetch.ts";
 
 export interface SingleWorkOrderGoogleDocFetchResult {
   workOrder: {
@@ -222,17 +214,7 @@ export async function fetchSingleWorkOrderGoogleDocData(
     .order('created_at', { ascending: true });
 
   const rawCosts = costData || [];
-  const costCreatorIds = [...new Set(rawCosts.map(c => c.created_by))];
-  let costCreatorMap = new Map<string, string>();
-  if (costCreatorIds.length > 0) {
-    const { data: costProfiles } = await supabase
-      .from('profiles')
-      .select('id, name')
-      .in('id', costCreatorIds);
-    costCreatorMap = new Map(
-      (costProfiles || []).map((p: { id: string; name: string }) => [p.id, p.name]),
-    );
-  }
+  const costCreatorMap = await fetchCostCreatorMap(supabase, rawCosts);
 
   // 11. Build timeline from work_order_status_history with changer names
   // Defense in depth: work_order_status_history does not have organization_id column.

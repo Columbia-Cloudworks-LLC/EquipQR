@@ -13,10 +13,9 @@
 import { spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { resolveRepoRoot } from './lib/scriptRuntime.mjs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.join(__dirname, '..');
+const repoRoot = resolveRepoRoot(import.meta.url);
 
 const args = process.argv.slice(2);
 const shardsArg = args.find((a) => a.startsWith('--shards='));

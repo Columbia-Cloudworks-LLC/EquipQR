@@ -19,7 +19,7 @@ export type ResendSendEmailResult = {
 };
 
 export const RESEND_EMAILS_API_URL = "https://api.resend.com/emails";
-export const RESEND_FETCH_TIMEOUT_MS = 15_000;
+const RESEND_FETCH_TIMEOUT_MS = 15_000;
 
 function parseResendError(body: unknown): { name: string; message: string } {
   if (body && typeof body === "object") {

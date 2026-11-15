@@ -23,6 +23,7 @@ describe('CSVMappingStep', () => {
       />
     );
     
-    expect(screen.getByText(/mapping/i) || screen.queryByText(/column/i)).toBeDefined();
+    expect(screen.getByText('Team Assignment')).toBeInTheDocument();
+    expect(screen.getByText('Column Mapping')).toBeInTheDocument();
   });
 });

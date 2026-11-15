@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import type { Json } from '@/integrations/supabase/types';
 
 export type EquipmentLocationHistorySource = 'scan' | 'manual' | 'team_sync' | 'quickbooks';
 
@@ -34,7 +35,7 @@ export interface LocationChangeParams {
   addressState?: string | null;
   addressCountry?: string | null;
   formattedAddress?: string | null;
-  metadata?: Record<string, unknown>;
+  metadata?: { [key: string]: Json | undefined };
 }
 
 function formatAddress(parts: {
@@ -69,13 +70,13 @@ export async function logEquipmentLocationChange(params: LocationChangeParams): 
     const { error } = await supabase.rpc('log_equipment_location_change', {
       p_equipment_id: params.equipmentId,
       p_source: params.source,
-      p_latitude: params.latitude ?? null,
-      p_longitude: params.longitude ?? null,
-      p_address_street: params.addressStreet ?? null,
-      p_address_city: params.addressCity ?? null,
-      p_address_state: params.addressState ?? null,
-      p_address_country: params.addressCountry ?? null,
-      p_formatted_address: formattedAddress ?? null,
+      p_latitude: params.latitude ?? undefined,
+      p_longitude: params.longitude ?? undefined,
+      p_address_street: params.addressStreet ?? undefined,
+      p_address_city: params.addressCity ?? undefined,
+      p_address_state: params.addressState ?? undefined,
+      p_address_country: params.addressCountry ?? undefined,
+      p_formatted_address: formattedAddress ?? undefined,
       p_metadata: params.metadata ?? {},
     });
 

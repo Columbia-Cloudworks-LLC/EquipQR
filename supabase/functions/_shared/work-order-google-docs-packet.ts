@@ -1,8 +1,4 @@
-import type {
-  SingleWorkOrderGoogleDocData,
-  PhotoEvidenceEntry,
-  QuickFactEntry,
-} from "./work-order-google-docs-single-data.ts";
+import type { SingleWorkOrderGoogleDocData } from "./work-order-google-docs-single-data.ts";
 
 export interface PacketBuildResult {
   requests: Array<Record<string, unknown>>;

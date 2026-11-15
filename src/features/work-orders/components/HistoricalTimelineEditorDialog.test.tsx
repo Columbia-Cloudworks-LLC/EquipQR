@@ -3,10 +3,6 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HistoricalTimelineEditor } from '@/features/work-orders/components/HistoricalTimelineEditor';
 import { HistoricalTimelineEditorDialog } from '@/features/work-orders/components/HistoricalTimelineEditorDialog';
-import {
-  createInitialTimelineRow,
-  type HistoricalTimelineEditorRow,
-} from '@/features/work-orders/utils/historicalTimeline';
 import type { WorkOrderTimelineHistoryRow } from '@/features/work-orders/services/historicalTimelineService';
 
 vi.mock('@/features/work-orders/hooks/useWorkOrderContextualAssignment', () => ({
@@ -111,26 +107,6 @@ describe('HistoricalTimelineEditor', () => {
     expect(screen.getByRole('button', { name: /remove timeline event 2/i })).toBeInTheDocument();
   });
 
-  it('limits selectable statuses to the previous row in the chain', async () => {
-    const user = userEvent.setup();
-    const onChange = vi.fn();
-
-    render(
-      <HistoricalTimelineEditor
-        organizationId="org-1"
-        equipmentId="equipment-1"
-        initialEvents={submittedAcceptedEvents}
-        onChange={onChange}
-      />,
-    );
-
-    expect(screen.getByLabelText('Timeline step 1')).toBeInTheDocument();
-    expect(screen.getByRole('list', { name: /operational timeline events/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /add event/i })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /add event/i }));
-    expect(onChange).toHaveBeenCalled();
-  });
-
   it('shows numbered step indicators for each timeline event', () => {
     render(
       <HistoricalTimelineEditor
@@ -158,38 +134,6 @@ describe('HistoricalTimelineEditor', () => {
     expect(
       screen.getByRole('status', { name: /timeline ended at terminal status/i }),
     ).toBeInTheDocument();
-  });
-
-  it('clears downstream rows when an upstream status changes', () => {
-    const rows: HistoricalTimelineEditorRow[] = [
-      { ...createInitialTimelineRow(new Date('2024-01-01')), newStatus: 'submitted' },
-      {
-        id: 'row-2',
-        newStatus: 'accepted',
-        changedAt: new Date('2024-01-02'),
-        assigneeId: null,
-      },
-      {
-        id: 'row-3',
-        newStatus: 'assigned',
-        changedAt: new Date('2024-01-03'),
-        assigneeId: 'user-1',
-      },
-    ];
-
-    render(
-      <HistoricalTimelineEditor
-        organizationId="org-1"
-        equipmentId="equipment-1"
-        initialEvents={[
-          { newStatus: 'submitted', changedAt: rows[0].changedAt!.toISOString() },
-          { newStatus: 'accepted', changedAt: rows[1].changedAt!.toISOString() },
-          { newStatus: 'assigned', changedAt: rows[2].changedAt!.toISOString(), assigneeId: 'user-1' },
-        ]}
-      />,
-    );
-
-    expect(screen.getByText('Assignee')).toBeInTheDocument();
   });
 
   it('does not render reason fields for timeline events', () => {

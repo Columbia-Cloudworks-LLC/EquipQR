@@ -23,7 +23,7 @@ export function listContractWorkOrder(
 }
 
 export function parseInput(
-  overrides: Partial<WorkOrderListParseInput> & { filters?: Partial<WorkOrderFilters> } = {},
+  overrides: Omit<Partial<WorkOrderListParseInput>, 'filters'> & { filters?: Partial<WorkOrderFilters> } = {},
 ): WorkOrderListParseInput {
   const { filters, ...rest } = overrides
   return {

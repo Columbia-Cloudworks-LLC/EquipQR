@@ -66,7 +66,7 @@ production OAuth secrets into a development vault.
 | `dev/pr-evidence/Invoke-PrEvidence.ps1` | `dev/linux/pr-evidence.sh` |
 | `dev/pr-evidence/Invoke-PrEvidenceCapture.ps1` | `dev/linux/pr-evidence.sh capture` |
 | `dev/pr-evidence/PrEvidenceCommon.ps1` | `Retired implementation detail or Windows-only repair; use the shared Linux setup.` |
-| `dev/pr-evidence/Publish-PrEvidence.ps1` | `dev/linux/pr-evidence.sh upload` |
+| `dev/pr-evidence/Publish-PrEvidence.ps1` | `dev/linux/pr-evidence.sh publish` |
 | `dev/pr-feedback/Get-PrChecks.ps1` | `dev/pr-feedback/workflow.sh checks` |
 | `dev/pr-feedback/Get-PrContext.ps1` | `dev/pr-feedback/workflow.sh context` |
 | `dev/pr-feedback/Get-PrFeedbackThreads.ps1` | `dev/pr-feedback/workflow.sh threads` |

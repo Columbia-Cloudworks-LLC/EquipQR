@@ -142,7 +142,8 @@ describe('CompatibilityRulesEditor', () => {
       const removeButtons = screen.getAllByRole('button').filter(
         btn => btn.querySelector('svg.lucide-x')
       );
-      
+
+      expect(removeButtons).toHaveLength(1);
       removeButtons.forEach(btn => {
         expect(btn).toBeDisabled();
       });
@@ -220,36 +221,6 @@ describe('CompatibilityRulesEditor', () => {
   });
 
   describe('Match Type Support', () => {
-    it('adds rule with match_type and status when add button clicked', () => {
-      renderInventoryCompatibilityRulesEditor(defaultRules, mockOnChange);
-
-      const addButton = screen.getByRole('button', { name: /add rule/i });
-      fireEvent.click(addButton);
-
-      expect(mockOnChange).toHaveBeenCalledWith([
-        expect.objectContaining({
-          manufacturer: '',
-          model: null,
-          match_type: 'exact',
-          status: 'unverified'
-        })
-      ]);
-    });
-
-    it('displays rules with different match types', () => {
-      const rulesWithMatchTypes: PartCompatibilityRuleFormData[] = [
-        { manufacturer: 'Caterpillar', model: null, match_type: 'any', status: 'verified' },
-        { manufacturer: 'John Deere', model: '450J', match_type: 'exact', status: 'unverified' },
-        { manufacturer: 'JLG', model: 'JL-', match_type: 'prefix', status: 'unverified' }
-      ];
-
-      renderInventoryCompatibilityRulesEditor(rulesWithMatchTypes, mockOnChange);
-
-      // Should render all rules
-      const triggers = screen.getAllByRole('combobox');
-      expect(triggers.length).toBeGreaterThan(0);
-    });
-
     it('shows pattern input for prefix match type', () => {
       const rules: PartCompatibilityRuleFormData[] = [
         { manufacturer: 'JLG', model: 'JL-', match_type: 'prefix', status: 'unverified' }
@@ -345,20 +316,6 @@ describe('CompatibilityRulesEditor', () => {
     });
   });
 
-  describe('Verification Status', () => {
-    it('shows verified badge for verified status', () => {
-      const rules: PartCompatibilityRuleFormData[] = [
-        { manufacturer: 'Caterpillar', model: 'D6T', match_type: 'exact', status: 'verified' }
-      ];
-
-      renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
-
-      // The status dropdown should be present
-      const comboboxes = screen.getAllByRole('combobox');
-      expect(comboboxes.length).toBeGreaterThan(0);
-    });
-  });
-
   describe('Rule Changes', () => {
     it('updates manufacturer when selected', async () => {
       const rules: PartCompatibilityRuleFormData[] = [
@@ -389,23 +346,16 @@ describe('CompatibilityRulesEditor', () => {
 
       renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
-      // Find match type select (second combobox)
-      const triggers = screen.getAllByRole('combobox');
-      // Match type is typically the second combobox for the rule
-      const matchTypeTrigger = triggers.find(t => t.textContent?.includes('Specific'));
-      
-      if (matchTypeTrigger) {
-        fireEvent.click(matchTypeTrigger);
+      // Combobox order per rule: manufacturer, match type, model, status
+      const matchTypeTrigger = screen.getAllByRole('combobox')[1];
+      expect(matchTypeTrigger).toHaveTextContent('Specific Model');
+      fireEvent.click(matchTypeTrigger);
 
-        await waitFor(() => {
-          const anyOption = screen.getByText('Any Model');
-          fireEvent.click(anyOption);
-        });
+      fireEvent.click(await screen.findByText('Any Model'));
 
-        expect(mockOnChange).toHaveBeenCalledWith([
-          expect.objectContaining({ match_type: 'any', model: null })
-        ]);
-      }
+      expect(mockOnChange).toHaveBeenCalledWith([
+        expect.objectContaining({ match_type: 'any', model: null })
+      ]);
     });
 
     it('clears model when manufacturer changes with exact match type', async () => {
@@ -520,9 +470,10 @@ describe('CompatibilityRulesEditor', () => {
 
       renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
-      // Should have a select for model
+      // Manufacturer, match type, model, status — the model select only exists for exact matches
       const comboboxes = screen.getAllByRole('combobox');
-      expect(comboboxes.length).toBeGreaterThanOrEqual(3); // Manufacturer, Match Type, Model
+      expect(comboboxes).toHaveLength(4);
+      expect(comboboxes[2]).toHaveTextContent('Select model...');
     });
 
     it('updates model when selected from dropdown', async () => {
@@ -532,23 +483,15 @@ describe('CompatibilityRulesEditor', () => {
 
       renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
-      // Find model select (should be third combobox or one with "Any Model" placeholder-like text)
-      const triggers = screen.getAllByRole('combobox');
-      // Model select is typically the third
-      const modelTrigger = triggers[2] || triggers[3];
-      
-      if (modelTrigger) {
-        fireEvent.click(modelTrigger);
+      const modelTrigger = screen.getAllByRole('combobox')[2];
+      expect(modelTrigger).toHaveTextContent('Select model...');
+      fireEvent.click(modelTrigger);
 
-        await waitFor(() => {
-          const d6tOption = screen.getByText('D6T');
-          fireEvent.click(d6tOption);
-        });
+      fireEvent.click(await screen.findByText('D6T'));
 
-        expect(mockOnChange).toHaveBeenCalledWith([
-          expect.objectContaining({ model: 'D6T' })
-        ]);
-      }
+      expect(mockOnChange).toHaveBeenCalledWith([
+        expect.objectContaining({ model: 'D6T' })
+      ]);
     });
   });
 
@@ -560,22 +503,15 @@ describe('CompatibilityRulesEditor', () => {
 
       renderInventoryCompatibilityRulesEditor(rules, mockOnChange);
 
-      // Find status select (should have "Unverified" text)
-      const triggers = screen.getAllByRole('combobox');
-      const statusTrigger = triggers.find(t => t.textContent?.includes('Unverified'));
-      
-      if (statusTrigger) {
-        fireEvent.click(statusTrigger);
+      const statusTrigger = screen.getAllByRole('combobox')[3];
+      expect(statusTrigger).toHaveTextContent('Unverified');
+      fireEvent.click(statusTrigger);
 
-        await waitFor(() => {
-          const verifiedOption = screen.getByText('Verified');
-          fireEvent.click(verifiedOption);
-        });
+      fireEvent.click(await screen.findByText('Verified'));
 
-        expect(mockOnChange).toHaveBeenCalledWith([
-          expect.objectContaining({ status: 'verified' })
-        ]);
-      }
+      expect(mockOnChange).toHaveBeenCalledWith([
+        expect.objectContaining({ status: 'verified' })
+      ]);
     });
   });
 });

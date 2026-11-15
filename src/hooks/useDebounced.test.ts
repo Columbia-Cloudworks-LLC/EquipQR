@@ -1,5 +1,5 @@
 /**
- * useDebounced / useDebouncedSearch Hook Tests
+ * useDebounced Hook Tests
  *
  * Covers:
  * useDebounced:
@@ -12,21 +12,6 @@
  *   - cleans up the timeout when the component unmounts
  *   - resets the timer when delay changes
  *
- * useDebouncedSearch:
- *   - returns all items when searchTerm is empty
- *   - returns all items for whitespace-only searchTerm (after trim check)
- *   - does NOT filter items before the debounce delay fires
- *   - filters items after the debounce delay fires
- *   - performs case-insensitive matching
- *   - searches across multiple specified fields
- *   - returns an empty array when no items match
- *   - isSearching is true while the debounce is pending
- *   - isSearching becomes false once the debounce fires
- *   - exposes the debounced searchTerm value (not the live value)
- *   - uses the default delay of 300 ms when delay is omitted
- *   - handles an empty items array gracefully
- *   - matches substrings, not only exact whole-field values
- *
  * Intentionally deferred:
  *   - Race conditions where delay changes simultaneously with value changes
  *     on the same render tick (requires advanced concurrency control).
@@ -34,7 +19,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useDebounced, useDebouncedSearch } from './useDebounced';
+import { useDebounced } from './useDebounced';
 
 // ---------------------------------------------------------------------------
 // useDebounced
@@ -169,218 +154,5 @@ describe('useDebounced', () => {
     // The new 600 ms window completes — update fires
     act(() => { vi.advanceTimersByTime(300); });
     expect(result.current).toBe('updated');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// useDebouncedSearch
-// ---------------------------------------------------------------------------
-
-describe('useDebouncedSearch', () => {
-  interface Item {
-    id: number;
-    name: string;
-    category: string;
-  }
-
-  const sampleItems: Item[] = [
-    { id: 1, name: 'Alpha Widget', category: 'tools' },
-    { id: 2, name: 'Beta Gadget', category: 'electronics' },
-    { id: 3, name: 'Gamma Tool', category: 'tools' },
-    { id: 4, name: 'Delta Device', category: 'electronics' },
-  ];
-
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-    vi.restoreAllMocks();
-  });
-
-  it('returns all items immediately when searchTerm is empty', () => {
-    const { result } = renderHook(() =>
-      useDebouncedSearch(sampleItems, '', ['name'], 300)
-    );
-
-    expect(result.current.filteredItems).toEqual(sampleItems);
-  });
-
-  it('returns all items when searchTerm is whitespace only (trim check)', () => {
-    const { result } = renderHook(() =>
-      useDebouncedSearch(sampleItems, '   ', ['name'], 300)
-    );
-
-    // After debounce fires, debouncedSearchTerm = '   ' which trims to '' → all items
-    act(() => { vi.advanceTimersByTime(300); });
-
-    expect(result.current.filteredItems).toEqual(sampleItems);
-  });
-
-  it('does not filter items before the debounce delay fires', () => {
-    const { result, rerender } = renderHook(
-      ({ term }) => useDebouncedSearch(sampleItems, term, ['name'], 300),
-      { initialProps: { term: '' } }
-    );
-
-    rerender({ term: 'Alpha' });
-
-    // Timer has NOT advanced — debouncedSearchTerm is still ''
-    expect(result.current.filteredItems).toEqual(sampleItems);
-  });
-
-  it('filters items to matching results after the debounce delay fires', () => {
-    const { result, rerender } = renderHook(
-      ({ term }) => useDebouncedSearch(sampleItems, term, ['name'], 300),
-      { initialProps: { term: '' } }
-    );
-
-    rerender({ term: 'Alpha' });
-
-    act(() => { vi.advanceTimersByTime(300); });
-
-    expect(result.current.filteredItems).toHaveLength(1);
-    expect(result.current.filteredItems[0].name).toBe('Alpha Widget');
-  });
-
-  it('performs case-insensitive matching', () => {
-    const { result, rerender } = renderHook(
-      ({ term }) => useDebouncedSearch(sampleItems, term, ['name'], 300),
-      { initialProps: { term: '' } }
-    );
-
-    rerender({ term: 'ALPHA' });
-
-    act(() => { vi.advanceTimersByTime(300); });
-
-    expect(result.current.filteredItems).toHaveLength(1);
-    expect(result.current.filteredItems[0].name).toBe('Alpha Widget');
-  });
-
-  it('searches across all specified fields', () => {
-    const { result, rerender } = renderHook(
-      ({ term }) => useDebouncedSearch(sampleItems, term, ['name', 'category'], 300),
-      { initialProps: { term: '' } }
-    );
-
-    // 'tools' only appears in the category field
-    rerender({ term: 'tools' });
-
-    act(() => { vi.advanceTimersByTime(300); });
-
-    // id 1 (category: tools) and id 3 (category: tools, and name "Gamma Tool") both match
-    const ids = result.current.filteredItems.map(i => i.id);
-    expect(ids).toEqual(expect.arrayContaining([1, 3]));
-    expect(ids).not.toContain(2);
-    expect(ids).not.toContain(4);
-  });
-
-  it('returns an empty array when no items match the search term', () => {
-    const { result, rerender } = renderHook(
-      ({ term }) => useDebouncedSearch(sampleItems, term, ['name'], 300),
-      { initialProps: { term: '' } }
-    );
-
-    rerender({ term: 'zzz-no-match' });
-
-    act(() => { vi.advanceTimersByTime(300); });
-
-    expect(result.current.filteredItems).toHaveLength(0);
-  });
-
-  it('isSearching is true while the debounce is pending', () => {
-    const { result, rerender } = renderHook(
-      ({ term }) => useDebouncedSearch(sampleItems, term, ['name'], 300),
-      { initialProps: { term: '' } }
-    );
-
-    rerender({ term: 'Alpha' });
-
-    // Before delay fires: live term !== debounced term
-    expect(result.current.isSearching).toBe(true);
-  });
-
-  it('isSearching becomes false once the debounce fires and terms match', () => {
-    const { result, rerender } = renderHook(
-      ({ term }) => useDebouncedSearch(sampleItems, term, ['name'], 300),
-      { initialProps: { term: '' } }
-    );
-
-    rerender({ term: 'Alpha' });
-
-    act(() => { vi.advanceTimersByTime(300); });
-
-    expect(result.current.isSearching).toBe(false);
-  });
-
-  it('exposes the debounced searchTerm (lags behind the live input term)', () => {
-    const { result, rerender } = renderHook(
-      ({ term }) => useDebouncedSearch(sampleItems, term, ['name'], 300),
-      { initialProps: { term: '' } }
-    );
-
-    rerender({ term: 'Beta' });
-
-    // Before delay: returned searchTerm is still ''
-    expect(result.current.searchTerm).toBe('');
-
-    act(() => { vi.advanceTimersByTime(300); });
-
-    // After delay: returned searchTerm has caught up
-    expect(result.current.searchTerm).toBe('Beta');
-  });
-
-  it('defaults to a 300 ms delay when the delay argument is omitted', () => {
-    const { result, rerender } = renderHook(
-      ({ term }) => useDebouncedSearch(sampleItems, term, ['name']),
-      { initialProps: { term: '' } }
-    );
-
-    rerender({ term: 'Gamma' });
-
-    // 299 ms — should NOT have fired yet
-    act(() => { vi.advanceTimersByTime(299); });
-    expect(result.current.isSearching).toBe(true);
-
-    // 1 ms more — fires exactly at 300 ms
-    act(() => { vi.advanceTimersByTime(1); });
-    expect(result.current.isSearching).toBe(false);
-    expect(result.current.filteredItems).toHaveLength(1);
-    expect(result.current.filteredItems[0].name).toBe('Gamma Tool');
-  });
-
-  it('handles an empty items array gracefully', () => {
-    const { result } = renderHook(() =>
-      useDebouncedSearch([], 'anything', ['name' as keyof Item], 300)
-    );
-
-    act(() => { vi.advanceTimersByTime(300); });
-
-    expect(result.current.filteredItems).toEqual([]);
-  });
-
-  it('matches items containing the search term as a substring (partial match)', () => {
-    const { result, rerender } = renderHook(
-      ({ term }) => useDebouncedSearch(sampleItems, term, ['name'], 300),
-      { initialProps: { term: '' } }
-    );
-
-    // 'wid' is a substring of "Alpha Widget" only
-    rerender({ term: 'wid' });
-
-    act(() => { vi.advanceTimersByTime(300); });
-
-    expect(result.current.filteredItems).toHaveLength(1);
-    expect(result.current.filteredItems[0].name).toBe('Alpha Widget');
-  });
-
-  it('isSearching is false on initial render when searchTerm is empty', () => {
-    const { result } = renderHook(() =>
-      useDebouncedSearch(sampleItems, '', ['name'], 300)
-    );
-
-    // Initial searchTerm === initial debouncedSearchTerm → not searching
-    expect(result.current.isSearching).toBe(false);
   });
 });

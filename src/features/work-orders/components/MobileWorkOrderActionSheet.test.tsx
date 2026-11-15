@@ -173,20 +173,6 @@ describe('MobileWorkOrderActionSheet', () => {
     expect(screen.queryByRole('button', { name: 'XLSX' })).not.toBeInTheDocument();
   });
 
-  it('shows desktop-parity download formats for managers', () => {
-    render(
-      <MemoryRouter>
-        <MobileWorkOrderActionSheet {...baseProps} />
-      </MemoryRouter>,
-    );
-
-    expect(screen.getByRole('button', { name: 'DOCX' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'PDF' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'XLSX' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'CSV' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /field worksheet/i })).toBeInTheDocument();
-  });
-
   it('keeps delete as the last low-emphasis mobile action and still requires DELETE confirmation', async () => {
     const user = userEvent.setup({ delay: null });
     render(
@@ -224,17 +210,14 @@ describe('MobileWorkOrderActionSheet', () => {
     expect(deletePermanently).not.toBeDisabled();
   });
 
-  it.each([
-    ['technicians', 'customer-safe' as const],
-    ['viewers', 'customer-safe' as const],
-  ])('does not render delete for %s', (_roleLabel, exportAudience) => {
+  it('does not render delete for non-managers (technicians and viewers)', () => {
     mockHasRole.mockReturnValue(false);
 
     render(
       <MemoryRouter>
         <MobileWorkOrderActionSheet
           {...baseProps}
-          exportAudience={exportAudience}
+          exportAudience="customer-safe"
           quickActions={[
             { id: 'complete', label: 'Complete work order', icon: CheckCircle, tone: 'success', onSelect: vi.fn() },
           ]}

@@ -76,17 +76,69 @@ const mockParts: PartialInventoryItem[] = [
   }),
 ];
 
+type CompatiblePartsQuery = ReturnType<typeof useInventoryModule.useCompatibleInventoryItems>;
+
+const createSuccessQuery = (data: PartialInventoryItem[]): CompatiblePartsQuery => ({
+  data,
+  isLoading: false,
+  error: null,
+  isError: false,
+  isPending: false,
+  isSuccess: true,
+  status: 'success',
+  dataUpdatedAt: 0,
+  errorUpdatedAt: 0,
+  failureCount: 0,
+  failureReason: null,
+  errorUpdateCount: 0,
+  fetchStatus: 'idle',
+  isFetched: true,
+  isFetchedAfterMount: true,
+  isFetching: false,
+  isInitialLoading: false,
+  isLoadingError: false,
+  isPaused: false,
+  isPlaceholderData: false,
+  isRefetchError: false,
+  isRefetching: false,
+  isStale: false,
+  isEnabled: true,
+  refetch: vi.fn(),
+});
+
+const createLoadingQuery = (): CompatiblePartsQuery => ({
+  data: undefined,
+  isLoading: true,
+  error: null,
+  isError: false,
+  isPending: true,
+  isSuccess: false,
+  status: 'pending',
+  dataUpdatedAt: 0,
+  errorUpdatedAt: 0,
+  failureCount: 0,
+  failureReason: null,
+  errorUpdateCount: 0,
+  fetchStatus: 'fetching',
+  isFetched: false,
+  isFetchedAfterMount: false,
+  isFetching: true,
+  isInitialLoading: true,
+  isLoadingError: false,
+  isPaused: false,
+  isPlaceholderData: false,
+  isRefetchError: false,
+  isRefetching: false,
+  isStale: false,
+  isEnabled: true,
+  refetch: vi.fn(),
+});
+
 describe('EquipmentPartsTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    vi.mocked(useInventoryModule.useCompatibleInventoryItems).mockReturnValue({
-      data: mockParts,
-      isLoading: false,
-      error: null,
-      isError: false,
-      refetch: vi.fn(),
-    } as ReturnType<typeof useInventoryModule.useCompatibleInventoryItems>);
+    vi.mocked(useInventoryModule.useCompatibleInventoryItems).mockReturnValue(createSuccessQuery(mockParts));
   });
 
   it('renders header, search, and part cards with stock badges', () => {
@@ -103,13 +155,7 @@ describe('EquipmentPartsTab', () => {
   });
 
   it('shows loading skeletons when isLoading', () => {
-    vi.mocked(useInventoryModule.useCompatibleInventoryItems).mockReturnValue({
-      data: [],
-      isLoading: true,
-      error: null,
-      isError: false,
-      refetch: vi.fn(),
-    } as ReturnType<typeof useInventoryModule.useCompatibleInventoryItems>);
+    vi.mocked(useInventoryModule.useCompatibleInventoryItems).mockReturnValue(createLoadingQuery());
 
     const { container } = render(
       <EquipmentPartsTab equipmentId="eq-1" organizationId="org-1" />,
@@ -118,13 +164,7 @@ describe('EquipmentPartsTab', () => {
   });
 
   it('shows empty state when no compatible parts exist', () => {
-    vi.mocked(useInventoryModule.useCompatibleInventoryItems).mockReturnValue({
-      data: [],
-      isLoading: false,
-      error: null,
-      isError: false,
-      refetch: vi.fn(),
-    } as ReturnType<typeof useInventoryModule.useCompatibleInventoryItems>);
+    vi.mocked(useInventoryModule.useCompatibleInventoryItems).mockReturnValue(createSuccessQuery([]));
 
     render(<EquipmentPartsTab equipmentId="eq-1" organizationId="org-1" />);
     expect(screen.getByText('No compatible parts')).toBeInTheDocument();

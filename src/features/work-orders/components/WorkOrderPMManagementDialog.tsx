@@ -98,6 +98,7 @@ export function WorkOrderPMManagementDialog({
       equipmentId,
       priority: workOrder.priority,
       dueDate: workOrder.due_date ?? null,
+      dueDateHasTime: workOrder.due_date_has_time,
       estimatedHours: workOrder.estimated_hours ?? null,
       equipmentWorkingHours: null,
       quickBooksSyncReady: false,

@@ -1,7 +1,7 @@
 import { calendarDayToIso, type CalendarDay } from '@/features/work-orders/calendar/dueDate';
 import type { CalendarItem } from '@/features/work-orders/calendar/placement';
 import type { CalendarRange } from '@/features/work-orders/calendar/url';
-import { getStatusColor } from '@/features/work-orders/utils/workOrderHelpers';
+import { getWorkOrderStatusColor } from '@/features/work-orders/utils/workOrderHelpers';
 
 export type PrivateCalendarEvent = {
   id: string;
@@ -22,7 +22,7 @@ function nextCivilDay(day: CalendarDay): CalendarDay {
 }
 
 function eventClassNames(item: CalendarItem): string[] {
-  const classes = ['eq-cal-event', ...getStatusColor(item.status).split(/\s+/).filter(Boolean)];
+  const classes = ['eq-cal-event', ...getWorkOrderStatusColor(item.status).split(/\s+/).filter(Boolean)];
   if (item.placement.kind === 'unscheduled') classes.push('eq-cal-unscheduled', 'opacity-60');
   if (item.status === 'cancelled') classes.push('eq-cal-cancelled', 'opacity-60');
   if (item.overdue) classes.push('eq-cal-overdue');

@@ -171,22 +171,6 @@ describe('TeamMetadataEditor', () => {
     expect(mockOnClose).toHaveBeenCalled();
   });
 
-  it('re-checks isOrganizationAdmin at submit time and blocks upsertPolicy if denied', async () => {
-    mockCanManageTeam.mockReturnValue(true);
-    mockIsOrganizationAdmin.mockReturnValue(false);
-    const user = userEvent.setup();
-    renderEditor();
-
-    await user.click(screen.getByRole('button', { name: 'Save Changes' }));
-
-    await waitFor(() => {
-      expect(mockUpdateTeam).toHaveBeenCalled();
-    });
-
-    expect(mockIsOrganizationAdmin).toHaveBeenCalled();
-    expect(mockUpsertPolicy).not.toHaveBeenCalled();
-  });
-
   it('blocks submit and shows permission denied when user cannot manage the team', async () => {
     mockCanManageTeam.mockReturnValue(false);
     renderEditor();

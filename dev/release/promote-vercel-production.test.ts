@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   evaluateProductionDeployment,
+  isAlreadyProductionPromoteOutput,
   pickProductionDeployment,
   verifyProductionDeployment,
 } from '@/dev/release/promote-vercel-production.mjs';
@@ -93,6 +94,21 @@ describe('pickReadyDeployment and terminalErrorStates', () => {
     });
 
     expect(terminalErrorStates([canceledPreSync, buildingRedeploy], CURRENT_SHA, 'main')).toEqual([]);
+  });
+});
+
+describe('isAlreadyProductionPromoteOutput', () => {
+  it('recognises the Vercel 409 for a deployment that is already in production', () => {
+    expect(
+      isAlreadyProductionPromoteOutput(
+        'Error: The provided deploymentId (dpl_69nnjKLsRAErii8r1C3MKJ4UHcDE) is already the current production deployment. (409)',
+      ),
+    ).toBe(true);
+  });
+
+  it('does not treat other promote failures as success', () => {
+    expect(isAlreadyProductionPromoteOutput('Error: Deployment not found. (404)')).toBe(false);
+    expect(isAlreadyProductionPromoteOutput('')).toBe(false);
   });
 });
 

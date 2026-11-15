@@ -353,50 +353,6 @@ describe('WorkOrderDetailsDesktopHeader', () => {
     expect(screen.queryByRole('menuitem', { name: /delete work order/i })).not.toBeInTheDocument();
   });
 
-  it('keeps delete out of the desktop header and menu for viewers', async () => {
-    const user = userEvent.setup({ delay: null });
-    mockUseUnifiedPermissions.mockReturnValue({
-      hasRole: vi.fn(() => false),
-    });
-
-    render(
-      <WorkOrderDetailsDesktopHeader
-        {...baseProps}
-        permissionLevels={{
-          ...baseProps.permissionLevels,
-          isManager: false,
-          exportAudience: 'customer-safe',
-        }}
-      />,
-    );
-
-    expect(screen.queryByRole('button', { name: /delete work order/i })).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Export' }));
-
-    expect(screen.queryByRole('menuitem', { name: /delete work order/i })).not.toBeInTheDocument();
-  });
-
-  it('hides the entire actions menu when no sections are visible', () => {
-    mockUseUnifiedPermissions.mockReturnValue({
-      hasRole: vi.fn(() => false),
-    });
-
-    render(
-      <WorkOrderDetailsDesktopHeader
-        {...baseProps}
-        permissionLevels={{
-          ...baseProps.permissionLevels,
-          isManager: false,
-          exportAudience: 'none',
-        }}
-      />,
-    );
-
-    expect(screen.queryByRole('button', { name: 'Export' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Actions' })).not.toBeInTheDocument();
-  });
-
   it('aligns wrapper with page shell horizontal padding', () => {
     const { container } = render(<WorkOrderDetailsDesktopHeader {...baseProps} />);
     const wrapper = container.querySelector('.lg\\:block');

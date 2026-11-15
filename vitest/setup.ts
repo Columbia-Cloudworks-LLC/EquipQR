@@ -140,7 +140,6 @@ beforeAll(() => {
       message.includes('Error deleting template:') ||
       message.includes('Error cloning template:') ||
       message.includes('Error fetching equipment:') ||
-      message.includes('Error in getEquipmentByOrganization:') ||
       message.includes('Error fetching equipment by ID:') ||
       message.includes('Error in getEquipmentById:') ||
       message.includes('Error fetching teams:') ||

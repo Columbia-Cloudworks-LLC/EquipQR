@@ -55,8 +55,7 @@ Publishing does not merge a PR or resolve review threads automatically.
 bash dev/linux/user-regression.sh --suite critical --headless
 bash dev/linux/pr-evidence.sh capture --flow example
 bash dev/linux/pr-evidence.sh review --flow example --notes 'Reviewed screenshots and video.'
-bash dev/linux/pr-evidence.sh upload --flow example
-bash dev/linux/pr-evidence.sh comment --flow example --pr 789
+bash dev/linux/pr-evidence.sh publish --flow example --pr 789
 bash dev/docs-media/workflow.sh verify
 bash dev/docs-media/workflow.sh publish tmp/pr-evidence/example/manifest.json example desktop
 bash dev/ops/local-storage.sh equipment-images object.png /path/to/image.png
@@ -82,8 +81,10 @@ and `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET`, then run
 `bash dev/ops/bootstrap-google-auth.sh`. Restart the stack afterward.
 The bootstrap never retrieves production OAuth credentials.
 
-Evidence uploads require explicitly supplied destination credentials. Capture,
-visual review, upload, and posting are separate commands. A manifest hash prevents
-uploading or posting a newly captured artifact under an earlier visual approval.
+PR evidence publishing needs only `gh` auth: `publish` pushes the files to the
+orphan `pr-evidence` branch and creates or updates one PR comment per flow.
+Capture, visual review, and publish are separate commands. A manifest hash prevents
+publishing a newly captured artifact under an earlier visual approval. Docs-media
+uploads still need explicitly supplied Supabase credentials.
 The local fixture suites refuse hosted mode; cloud integration checks need the
 hosted development account and data rather than local seed identities.

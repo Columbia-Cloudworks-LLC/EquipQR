@@ -4,13 +4,13 @@ Local command matrix:
 
 | Command | Scope |
 |---------|--------|
-| `npm run test:e2e` / `dev-test.bat` | `@critical` smoke (fast) |
+| `npm run test:e2e` / VS Code task "EquipQR: E2E Critical (headless)" | `@critical` smoke (fast) |
 | `npm run test:e2e:full` | `@full` workflows (auto `db reset`) |
 | `npm run test:e2e:local-full` | `setup` + `critical` + `full` with `db reset` |
 | `npm run test:e2e:mobile-critical` | `@critical` smoke in the mobile viewport |
 | `npm run test:e2e:both-critical` | `@critical` smoke in desktop and mobile viewports |
-| `dev-test.bat critical demo` | 1080p desktop demo recording with step pacing and target highlights |
-| `dev-test.bat critical demo mobile` | Mobile demo recording with touch viewport and target highlights |
+| `npm run test:e2e:demo` | 1080p desktop demo recording with step pacing and target highlights |
+| VS Code task "EquipQR: E2E Mobile Watch + Record (demo, resets local DB)" | Mobile demo recording (`full` suite) with touch viewport and target highlights |
 
 Out of scope for default regression: live Google Workspace OAuth/sync, QuickBooks OAuth/connect/export success.
 
@@ -30,7 +30,7 @@ Opt-in real-auth project (`real-auth-integrations`, tag `@real-auth`): preview +
 | Dashboard sidebar/navigation shell | critical | `critical/dashboard-nav.spec.ts` | desktop + mobile critical via responsive helper |
 | RBAC sidebar / teams | critical | `critical/rbac.spec.ts` | desktop + mobile critical via responsive helper |
 | Org switching | full | `full/org-switching.spec.ts` | desktop full; mobile by explicit `full mobile` run |
-| Team roles / QR requestor | full | `full/team-roles.spec.ts` | desktop full; mobile by explicit `full mobile` run |
+| Team roles (technician cannot create teams) | full | `full/team-roles.spec.ts` | desktop full; mobile by explicit `full mobile` run |
 | Equipment list/detail/search | critical | `critical/equipment.spec.ts` | desktop + mobile critical |
 | Equipment detail tabs | full | `full/equipment-detail-tabs.spec.ts` | desktop full; mobile by explicit `full mobile` run |
 | Scan history tab | full | `full/equipment-scan-history.spec.ts` | desktop full; mobile by explicit `full mobile` run |
@@ -51,9 +51,9 @@ Opt-in real-auth project (`real-auth-integrations`, tag `@real-auth`): preview +
 | Real-auth integrations + QBO export | real-auth (opt-in) | `full/real-auth-integrations.spec.ts` | desktop only; manual storage state |
 | Teams list/detail | full | `full/org-integrations.spec.ts`, `full/team-detail-management.spec.ts` | desktop full; mobile by explicit `full mobile` run |
 | Fleet map | full | `full/fleet-map.spec.ts` | desktop full; mobile by explicit `full mobile` run |
-| Notifications/settings/reports shell | full | `full/notifications-settings.spec.ts` | desktop full; mobile by explicit `full mobile` run |
+| Notifications page shell | full | `full/notifications-settings.spec.ts` | desktop full; mobile by explicit `full mobile` run |
 | Reports export download | full | `full/reports-downloads.spec.ts` | desktop full; mobile by explicit `full mobile` run |
-| Settings profile | full | `full/settings-profile.spec.ts` | desktop full; mobile by explicit `full mobile` run |
+| Settings profile + Privacy → DSR cockpit link | full | `full/settings-profile.spec.ts` | desktop full; mobile by explicit `full mobile` run |
 | Support / audit / DSR cockpit | full | `full/support-audit-dsr.spec.ts` | desktop full; mobile by explicit `full mobile` run |
 | DSR case detail | full | `full/dsr-case.spec.ts` | desktop full; mobile by explicit `full mobile` run |
 | Mobile bottom nav | full | `full/mobile-navigation.spec.ts` | mobile dedicated |
@@ -61,7 +61,7 @@ Opt-in real-auth project (`real-auth-integrations`, tag `@real-auth`): preview +
 
 ## Mobile policy
 
-CI now runs the full local suite on desktop plus the critical suite in the mobile viewport. Full mobile mutation journeys remain opt-in with `dev-test.bat full mobile` or `dev-test.bat full both` because duplicating every full data-mutating workflow in CI would double runtime and reset churn. Treat the “mobile by explicit full mobile run” rows above as required for release/demo review when the touched workflow is technician-facing or layout-sensitive.
+CI runs only `critical/auth.spec.ts`, from `.github/workflows/linux-development.yml` (path-filtered); `ci.yml` runs no Playwright. Every other row above runs locally only: `npm run test:e2e` (critical), `npm run test:e2e:full` (full, desktop), `npm run test:e2e:mobile-critical` / `npm run test:e2e:both-critical`, or `bash dev/linux/user-regression.sh --suite full --viewport mobile|both` for full mobile journeys. Treat the “mobile by explicit full mobile run” rows above as required for release/demo review when the touched workflow is technician-facing or layout-sensitive.
 
 ## Vitest-only (not duplicated in Playwright)
 

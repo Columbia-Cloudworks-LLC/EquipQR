@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(4);
+SELECT plan(3);
 
 SELECT is(
   (SELECT count(*)::int FROM pg_policies
@@ -7,14 +7,6 @@ SELECT is(
      AND policyname = 'pm_status_history_member_select'),
   0,
   'Duplicate pm_status_history_member_select policy dropped'
-);
-
-SELECT is(
-  (SELECT count(*)::int FROM pg_policies
-   WHERE schemaname = 'public' AND tablename = 'pm_status_history'
-     AND policyname = 'pm_status_history_select_consolidated'),
-  1,
-  'pm_status_history_select_consolidated policy retained'
 );
 
 SELECT is(

@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
 import { 
   pmChecklistTemplatesService,
   generateSectionsSummary, 
@@ -15,10 +15,30 @@ interface SupabaseResponse<T> {
 let mockListResult: SupabaseResponse<PMTemplate[]>;
 let mockSingleResult: Promise<SupabaseResponse<PMTemplate>>;
 
+interface MockChain {
+  table: string;
+  select: Mock;
+  insert: Mock;
+  update: Mock;
+  delete: Mock;
+  eq: Mock;
+  or: Mock;
+  order: Mock;
+}
+
+// Every query builder handed out by the mocked `supabase.from`, in call order.
+const { createdChains } = vi.hoisted(() => ({ createdChains: [] as MockChain[] }));
+
+function onlyChain(): MockChain {
+  expect(createdChains).toHaveLength(1);
+  return createdChains[0];
+}
+
 // Mock Supabase client with proper fluent interface
 vi.mock('@/integrations/supabase/client', () => {
-  const createMockChain = () => {
+  const createMockChain = (table: string) => {
     const chain = {
+      table,
       select: vi.fn().mockReturnThis(),
       insert: vi.fn().mockReturnThis(),
       update: vi.fn().mockReturnThis(),
@@ -37,12 +57,13 @@ vi.mock('@/integrations/supabase/client', () => {
     
     // Add proper promise interface
     Object.setPrototypeOf(chain, Promise.prototype);
+    createdChains.push(chain);
     return chain;
   };
 
   return {
     supabase: {
-      from: vi.fn(() => createMockChain())
+      from: vi.fn((table: string) => createMockChain(table))
     }
   };
 });
@@ -80,6 +101,7 @@ const mockTemplate: PMTemplate = {
 describe('pmChecklistTemplatesService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    createdChains.length = 0;
     // Reset mock return values
     mockListResult = { data: [], error: null };
     mockSingleResult = Promise.resolve({ data: null, error: null });
@@ -91,6 +113,12 @@ describe('pmChecklistTemplatesService', () => {
       
       const result = await pmChecklistTemplatesService.listTemplates('org-1');
       expect(result).toEqual([mockTemplate]);
+
+      const chain = onlyChain();
+      expect(chain.table).toBe('pm_checklist_templates');
+      expect(chain.or).toHaveBeenCalledWith('organization_id.is.null,organization_id.eq.org-1');
+      expect(chain.order).toHaveBeenNthCalledWith(1, 'organization_id', { nullsFirst: true });
+      expect(chain.order).toHaveBeenNthCalledWith(2, 'name');
     });
 
     it('handles database errors', async () => {
@@ -106,6 +134,11 @@ describe('pmChecklistTemplatesService', () => {
       
       const result = await pmChecklistTemplatesService.getTemplate('template-1');
       expect(result).toEqual(mockTemplate);
+
+      const chain = onlyChain();
+      expect(chain.table).toBe('pm_checklist_templates');
+      expect(chain.eq).toHaveBeenCalledTimes(1);
+      expect(chain.eq).toHaveBeenCalledWith('id', 'template-1');
     });
 
     it('returns null when template not found', async () => {
@@ -130,10 +163,23 @@ describe('pmChecklistTemplatesService', () => {
         organizationId: 'org-1',
         name: 'Test Template',
         description: 'Test description',
-        template_data: [mockChecklistItem],
+        template_data: [{ ...mockChecklistItem, condition: 2, notes: 'carried over' }],
         created_by: 'user-1'
       });
       expect(result).toEqual(mockTemplate);
+
+      const chain = onlyChain();
+      expect(chain.table).toBe('pm_checklist_templates');
+      expect(chain.insert).toHaveBeenCalledWith({
+        organization_id: 'org-1',
+        name: 'Test Template',
+        description: 'Test description',
+        template_data: [{ ...mockChecklistItem, id: 'mock-id-123', condition: null, notes: '' }],
+        interval_value: null,
+        interval_type: null,
+        created_by: 'user-1',
+        updated_by: 'user-1',
+      });
     });
   });
 
@@ -149,6 +195,16 @@ describe('pmChecklistTemplatesService', () => {
 
       const result = await pmChecklistTemplatesService.updateTemplate('template-1', { ...updates, updated_by: 'user-1' });
       expect(result).toEqual(updatedTemplate);
+
+      const chain = onlyChain();
+      expect(chain.table).toBe('pm_checklist_templates');
+      expect(chain.update).toHaveBeenCalledWith({
+        name: 'Updated Template',
+        description: 'Updated description',
+        updated_by: 'user-1',
+      });
+      expect(chain.eq).toHaveBeenCalledTimes(1);
+      expect(chain.eq).toHaveBeenCalledWith('id', 'template-1');
     });
   });
 
@@ -157,6 +213,12 @@ describe('pmChecklistTemplatesService', () => {
       mockListResult = { data: null, error: null };
 
       await expect(pmChecklistTemplatesService.deleteTemplate('template-1')).resolves.toBeUndefined();
+
+      const chain = onlyChain();
+      expect(chain.table).toBe('pm_checklist_templates');
+      expect(chain.delete).toHaveBeenCalledTimes(1);
+      expect(chain.eq).toHaveBeenCalledTimes(1);
+      expect(chain.eq).toHaveBeenCalledWith('id', 'template-1');
     });
   });
 });

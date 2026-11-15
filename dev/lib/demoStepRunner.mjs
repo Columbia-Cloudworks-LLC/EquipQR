@@ -1,4 +1,4 @@
-import { spawn } from 'child_process';
+import { spawnCapture } from './spawnCapture.mjs';
 import { createDemoStepActions } from './demoStepActions.mjs';
 import { RECORDING_VIEWPORT } from './recording-quality.mjs';
 
@@ -25,24 +25,8 @@ function buildRouteUrl(baseUrl, route) {
  * @param {string} command
  * @param {string[]} [args]
  */
-async function runCommand(command, args = []) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { shell: false, stdio: ['ignore', 'pipe', 'pipe'] });
-    let stdout = '';
-    let stderr = '';
-    child.stdout.on('data', (data) => {
-      const text = data.toString();
-      stdout += text;
-      process.stdout.write(text);
-    });
-    child.stderr.on('data', (data) => {
-      const text = data.toString();
-      stderr += text;
-      process.stderr.write(text);
-    });
-    child.on('error', reject);
-    child.on('close', (code) => resolve({ code: typeof code === 'number' ? code : 1, stdout, stderr }));
-  });
+function runCommand(command, args = []) {
+  return spawnCapture(command, args, { echo: true });
 }
 
 /**

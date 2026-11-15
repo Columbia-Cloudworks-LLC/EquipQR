@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { InventoryItem } from '@/features/inventory/types/inventory';
 import {
-  getStockHealthListBadgeClassName,
   getStockHealthPresentation,
 } from './stockHealth';
 
@@ -29,20 +28,17 @@ describe('stockHealth', () => {
     const item = createItem({ quantity_on_hand: -1, low_stock_threshold: 5 });
 
     expect(getStockHealthPresentation(item).label).toBe('Negative stock');
-    expect(getStockHealthListBadgeClassName(item).label).toBe('Negative stock');
   });
 
   it('treats quantities equal to the threshold as low stock', () => {
     const item = createItem({ quantity_on_hand: 5, low_stock_threshold: 5 });
 
     expect(getStockHealthPresentation(item).label).toBe('Low stock');
-    expect(getStockHealthListBadgeClassName(item).label).toBe('Low stock');
   });
 
   it('keeps zero quantity in the out of stock state', () => {
     const item = createItem({ quantity_on_hand: 0, low_stock_threshold: 5 });
 
     expect(getStockHealthPresentation(item).label).toBe('Out of stock');
-    expect(getStockHealthListBadgeClassName(item).label).toBe('Out of stock');
   });
 });

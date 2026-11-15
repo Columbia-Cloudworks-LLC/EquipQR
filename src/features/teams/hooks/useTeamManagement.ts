@@ -62,7 +62,7 @@ export const useTeams = (
 };
 
 // Hook for managing a single team (scoped to the current organization)
-export const useTeam = (teamId: string | undefined) => {
+export const useTeamById = (teamId: string | undefined) => {
   const { currentOrganization } = useOrganization();
   const orgId = currentOrganization?.id;
 

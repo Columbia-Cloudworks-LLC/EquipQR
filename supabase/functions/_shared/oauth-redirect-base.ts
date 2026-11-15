@@ -34,6 +34,8 @@ export function resolveOAuthRedirectBaseUrl(
   );
 }
 
+// Deno mirror of src/services/oauthSessionHelpers.ts (the browser bundle cannot import edge modules); oauth-redirect-base.vitest.test.ts fails on drift.
+// fallow-ignore-next-line code-duplication
 export function buildOAuthCallbackRedirectUri(
   oauthRedirectBaseUrl: string,
   callbackPath: string,

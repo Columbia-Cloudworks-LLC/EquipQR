@@ -21,11 +21,16 @@
  * Does not run `vercel promote` — see promote-vercel-production.mjs.
  */
 
-
-import { pathToFileURL } from 'node:url';
-
-const DEFAULT_TEAM = 'team_78VeGDURoofThjZNJOKEBpP5';
-const DEFAULT_PROJECT = 'prj_P9hRun4B2OdGy8ACCnb0f7jNG6UA';
+import { runAsCliEntry } from '../lib/scriptRuntime.mjs';
+import {
+  DEFAULT_TEAM,
+  DEFAULT_PROJECT,
+  sleep,
+  envIntAtLeast,
+  exitIfHelpRequested,
+  readVercelEnv,
+  fetchVercelWithTimeout,
+} from '../lib/vercelDeployments.mjs';
 
 function usage() {
   process.stdout.write(`Usage: wait-for-vercel-deployment.mjs
@@ -115,60 +120,38 @@ async function listDeployments({ token, teamId, projectId, sha, branch, timeoutM
   u.searchParams.set('branch', branch);
   u.searchParams.set('limit', '25');
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  return fetchVercelWithTimeout(u, {
+    token,
+    timeoutMs,
+    handleResponse: (res, text) => {
+      if (!res.ok) {
+        if (res.status === 429 || res.status >= 500) {
+          return {
+            ok: false,
+            transient: true,
+            detail: `HTTP ${res.status}: ${text.slice(0, 300)}`,
+          };
+        }
+        return {
+          ok: false,
+          transient: false,
+          detail: `Vercel API ${res.status}: ${text.slice(0, 400)}`,
+        };
+      }
 
-  try {
-    const res = await fetch(u, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      signal: controller.signal,
-    });
-
-    const text = await res.text();
-
-    if (!res.ok) {
-      if (res.status === 429 || res.status >= 500) {
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
         return {
           ok: false,
           transient: true,
-          detail: `HTTP ${res.status}: ${text.slice(0, 300)}`,
+          detail: `invalid JSON (${text.slice(0, 200)})`,
         };
       }
-      return {
-        ok: false,
-        transient: false,
-        detail: `Vercel API ${res.status}: ${text.slice(0, 400)}`,
-      };
-    }
-
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      return {
-        ok: false,
-        transient: true,
-        detail: `invalid JSON (${text.slice(0, 200)})`,
-      };
-    }
-    return { ok: true, deployments: data.deployments || [] };
-  } catch (err) {
-    const message =
-      err && typeof err === 'object' && 'name' in err && err.name === 'AbortError'
-        ? `request timeout after ${timeoutMs}ms`
-        : err instanceof Error
-          ? err.message
-          : String(err);
-    return { ok: false, transient: true, detail: message };
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
+      return { ok: true, deployments: data.deployments || [] };
+    },
+  });
 }
 
 /** @param {string} name */
@@ -221,29 +204,13 @@ function formatGithubStepOutputLines(name, value) {
 }
 
 async function main() {
-  const argv = process.argv.slice(2);
-  if (argv.includes('--help') || argv.includes('-h')) {
-    usage();
-    process.exit(0);
-  }
+  exitIfHelpRequested(usage);
 
-  const token = process.env.VERCEL_TOKEN || '';
+  const { token, teamId, projectId, branch } = readVercelEnv();
   const sha = process.env.GITHUB_SHA || process.env.VERCEL_COMMIT_SHA || '';
-  const teamId = process.env.VERCEL_TEAM_ID || DEFAULT_TEAM;
-  const projectId = process.env.VERCEL_PROJECT_ID || DEFAULT_PROJECT;
-  const branch = process.env.VERCEL_BRANCH || 'main';
-  const intervalSec = Math.max(
-    5,
-    Number.parseInt(process.env.VERCEL_POLL_INTERVAL_SEC || '20', 10) || 20,
-  );
-  const timeoutMin = Math.max(
-    1,
-    Number.parseInt(process.env.VERCEL_WAIT_TIMEOUT_MINUTES || '45', 10) || 45,
-  );
-  const fetchTimeoutMs = Math.max(
-    5000,
-    Number.parseInt(process.env.VERCEL_FETCH_TIMEOUT_MS || '45000', 10) || 45000,
-  );
+  const intervalSec = envIntAtLeast('VERCEL_POLL_INTERVAL_SEC', 20, 5);
+  const timeoutMin = envIntAtLeast('VERCEL_WAIT_TIMEOUT_MINUTES', 45, 1);
+  const fetchTimeoutMs = envIntAtLeast('VERCEL_FETCH_TIMEOUT_MS', 45_000, 5_000);
 
   if (!token) {
     process.stderr.write(
@@ -361,11 +328,4 @@ async function main() {
   process.exit(1);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main().catch((err) => {
-    process.stderr.write(
-      `::error title=wait-for-vercel-deployment::${err instanceof Error ? err.message : String(err)}\n`,
-    );
-    process.exit(1);
-  });
-}
+runAsCliEntry(import.meta.url, main, 'wait-for-vercel-deployment');

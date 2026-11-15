@@ -22,7 +22,7 @@ const MobileEquipmentActionBar: React.FC<MobileEquipmentActionBarProps> = ({
       <div className="flex gap-1.5 xs:gap-2">
         <EquipmentCardWorkOrderMenu
           equipmentId={equipmentId}
-          pmStatus={pmStatus}
+          pmStatus={pmStatus ?? undefined}
           variant="mobile-bar"
           onCreateWorkOrder={onCreateWorkOrder}
         />

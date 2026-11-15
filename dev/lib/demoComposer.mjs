@@ -1,28 +1,14 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { spawn } from 'child_process';
+import { spawnCapture } from './spawnCapture.mjs';
 
 /**
  * @param {string} command
  * @param {string[]} args
  * @param {string} cwd
  */
-async function runProcess(command, args, cwd) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { cwd, shell: false, stdio: ['ignore', 'pipe', 'pipe'] });
-    let stdout = '';
-    let stderr = '';
-    child.stdout.on('data', (data) => {
-      stdout += data.toString();
-    });
-    child.stderr.on('data', (data) => {
-      stderr += data.toString();
-    });
-    child.on('error', reject);
-    child.on('close', (code) =>
-      resolve({ code: typeof code === 'number' ? code : 1, stdout, stderr })
-    );
-  });
+function runProcess(command, args, cwd) {
+  return spawnCapture(command, args, { cwd });
 }
 
 /**

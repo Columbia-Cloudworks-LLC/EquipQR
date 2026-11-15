@@ -13,7 +13,7 @@ import { getBulkDisplayValue } from '@/hooks/bulkGridDisplayValue';
 import { useBulkGridClickToSelect } from '@/hooks/useBulkGridClickToSelect';
 import { useBulkGridPendingApply } from '@/hooks/useBulkGridPendingApply';
 import { Checkbox } from '@/components/ui/checkbox';
-import type { EquipmentRecord } from '@/features/equipment/types/equipment';
+import type { EquipmentListRow } from '@/features/equipment/services/EquipmentService';
 
 import { BulkApplyConfirmDialog } from './BulkApplyConfirmDialog';
 import {
@@ -34,11 +34,11 @@ const STATUS_OPTIONS: BulkEditableCellSelectOption[] = [
 ];
 
 /**
- * Map from `EquipmentRecord` field key to the human-readable label shown in
+ * Map from `EquipmentListRow` field key to the human-readable label shown in
  * the Bulk Apply confirmation dialog when AC#4 broadcasts a single-cell edit
  * across selected rows.
  */
-const FIELD_LABELS: Partial<Record<keyof EquipmentRecord, string>> = {
+const FIELD_LABELS: Partial<Record<keyof EquipmentListRow, string>> = {
   status: 'Status',
   manufacturer: 'Manufacturer',
   model: 'Model',
@@ -48,18 +48,18 @@ const FIELD_LABELS: Partial<Record<keyof EquipmentRecord, string>> = {
 };
 
 export interface BulkEquipmentGridProps {
-  rows: EquipmentRecord[];
-  dirtyRows: Map<string, Partial<EquipmentRecord>>;
+  rows: EquipmentListRow[];
+  dirtyRows: Map<string, Partial<EquipmentListRow>>;
   selectedRowIds: Set<string>;
-  onSetCellValue: <K extends keyof EquipmentRecord>(
+  onSetCellValue: <K extends keyof EquipmentListRow>(
     id: string,
     field: K,
-    value: EquipmentRecord[K]
+    value: EquipmentListRow[K]
   ) => void;
-  onSetCellValueOnRows: <K extends keyof EquipmentRecord>(
+  onSetCellValueOnRows: <K extends keyof EquipmentListRow>(
     ids: string[],
     field: K,
-    value: EquipmentRecord[K]
+    value: EquipmentListRow[K]
   ) => void;
   onToggleSelected: (id: string) => void;
   onSelectAll: (ids: string[]) => void;
@@ -99,27 +99,27 @@ export const BulkEquipmentGrid: React.FC<BulkEquipmentGridProps> = ({
     handleApplyAll,
     handleApplyOne,
     clearPendingApply,
-  } = useBulkGridPendingApply<keyof EquipmentRecord>({
+  } = useBulkGridPendingApply<keyof EquipmentListRow>({
     selectedRowIds,
     fieldLabels: FIELD_LABELS,
     onSetCellValue: (rowId, field, value) =>
-      onSetCellValue(rowId, field, value as EquipmentRecord[keyof EquipmentRecord]),
+      onSetCellValue(rowId, field, value as EquipmentListRow[keyof EquipmentListRow]),
     onSetCellValueOnRows: (ids, field, value) =>
       onSetCellValueOnRows(ids, field, value as never),
   });
 
   const getDisplayValue = useCallback(
-    <K extends keyof EquipmentRecord>(row: EquipmentRecord, field: K): EquipmentRecord[K] =>
+    <K extends keyof EquipmentListRow>(row: EquipmentListRow, field: K): EquipmentListRow[K] =>
       getBulkDisplayValue(row, field, dirtyRows),
     [dirtyRows]
   );
 
-  const columns = useMemo<ColumnDef<EquipmentRecord>[]>(() => {
+  const columns = useMemo<ColumnDef<EquipmentListRow>[]>(() => {
     const editableTextCol = (
       key: 'manufacturer' | 'model' | 'serial_number' | 'location',
       title: string,
       extra: Partial<BulkEditableCellProps> = {}
-    ): ColumnDef<EquipmentRecord> => ({
+    ): ColumnDef<EquipmentListRow> => ({
       id: key,
       accessorKey: key,
       header: ({ column }) => <BulkGridSortableHeader column={column} title={title} />,
@@ -130,7 +130,7 @@ export const BulkEquipmentGrid: React.FC<BulkEquipmentGridProps> = ({
           type="text"
           value={(getDisplayValue(row.original, key) as string | null) ?? null}
           initialValue={(row.original[key] as string | null) ?? null}
-          onChange={(next) => handleCellChange(row.original.id, key, next as EquipmentRecord[typeof key])}
+          onChange={(next) => handleCellChange(row.original.id, key, next as EquipmentListRow[typeof key])}
           onSelectRow={onToggleSelected}
           onCancelPendingSelect={cancelPendingSelection}
           {...extra}
@@ -202,7 +202,7 @@ export const BulkEquipmentGrid: React.FC<BulkEquipmentGridProps> = ({
               STATUS_OPTIONS.find((o) => o.value === v)?.label ?? String(v ?? '')
             }
             onChange={(next) =>
-              handleCellChange(row.original.id, 'status', next as EquipmentRecord['status'])
+              handleCellChange(row.original.id, 'status', next as EquipmentListRow['status'])
             }
             onSelectRow={onToggleSelected}
             onCancelPendingSelect={cancelPendingSelection}

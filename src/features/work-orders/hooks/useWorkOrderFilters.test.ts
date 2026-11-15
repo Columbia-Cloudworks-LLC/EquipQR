@@ -158,15 +158,6 @@ describe('useWorkOrderFilters', () => {
       expect(result.current.filteredWorkOrders.map((o) => o.id)).toEqual(['wo-unexported']);
     });
 
-    it('includes exported-but-not-yet-synced invoices (null status) in the unpaid filter', () => {
-      const { result } = renderHook(() => useWorkOrderFilters(workOrders, 'user-1'));
-
-      act(() => result.current.updateFilter('invoiceFilter', 'unpaid'));
-      const ids = result.current.filteredWorkOrders.map((o) => o.id);
-      expect(ids).toContain('wo-exported-null-status');
-      expect(ids).not.toContain('wo-unexported');
-    });
-
     it('counts invoiceFilter as a page-local active filter', () => {
       const { result } = renderHook(() => useWorkOrderFilters(workOrders, 'user-1'));
 

@@ -99,7 +99,7 @@ npx playwright test e2e/user/full/google-workspace-local.integration.spec.ts \
   --config playwright.user.config.ts --project google-oauth-local --reporter=line
 ```
 
-Optional: set `E2E_GOOGLE_DOCS_WORK_ORDER_ID` to a **completed** work order UUID in your org; otherwise the spec picks the first completed row from the work orders list.
+Required: set `E2E_GOOGLE_DOCS_WORK_ORDER_ID` to a **completed** work order UUID in your org; the spec is skipped without it.
 
 The test exports a work order to Google Docs and opens the returned `document_url` on `docs.google.com` to confirm the session is authenticated. It does **not** exercise connect/disconnect flows.
 
@@ -113,7 +113,7 @@ The test exports a work order to Google Docs and opens the returned `document_ur
 | `E2E_QBO_WORK_ORDER_ID` | Export test only | Known-safe **completed** preview work order UUID (`1660137f-a803-4510-9a0a-96c7048d0eb4`) |
 | `E2E_ALLOW_QBO_DRAFTS` | QBO export test only | Must be `true` to opt in to **sandbox** draft invoice create/update on preview |
 | `E2E_ALLOW_QBO_PRODUCTION_DRAFTS` | Rare prod QBO export test | When `true`, export test expects production QBO and opens `app.qbo.intuit.com` |
-| `E2E_GOOGLE_DOCS_WORK_ORDER_ID` | Local Google Docs export | Optional completed work order UUID for `google-workspace-local.integration.spec.ts` |
+| `E2E_GOOGLE_DOCS_WORK_ORDER_ID` | Local Google Docs export | Required completed work order UUID for `google-workspace-local.integration.spec.ts` (skipped when unset) |
 | `E2E_QB_LOCAL_AUTH_STORAGE_STATE` | Local QB integration replay | Defaults to `tmp/playwright/auth/quickbooks-local.json` |
 | `E2E_QB_DEVELOPER_AUTH_STORAGE_STATE` | Developer portal replay | Defaults to `tmp/playwright/auth/quickbooks-developer-local.json` |
 | `E2E_QB_ORG_ID` | `bash dev/qbo/query.sh` | Organization UUID for credential lookup (defaults to first row) |

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calendarEditability, type CalendarEditability } from '@/features/work-orders/calendar';
+import { calendarEditability, type CalendarEditability } from '@/features/work-orders/calendar/editability';
 
 describe('calendarEditability', () => {
   it('is readOnly locked when the engine can edit a locked work order', () => {

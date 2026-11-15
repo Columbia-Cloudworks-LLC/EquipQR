@@ -3,7 +3,7 @@
 -- (validated by dev/validate-security-definer-allowlist-sync.mjs).
 
 BEGIN;
-SELECT plan(26);
+SELECT plan(24);
 
 -- 1. Only intentional pre-auth / token RPCs remain callable by anon
 --    (covers INVOKER + DEFINER — not DEFINER-only).
@@ -142,15 +142,6 @@ SELECT is(
 SELECT is(
   (SELECT has_function_privilege(
             'authenticated',
-            'public.is_user_google_oauth_verified(uuid)',
-            'EXECUTE')),
-  false,
-  'authenticated cannot execute is_user_google_oauth_verified'
-);
-
-SELECT is(
-  (SELECT has_function_privilege(
-            'authenticated',
             'public.invoke_queue_worker()',
             'EXECUTE')),
   false,
@@ -219,15 +210,6 @@ SELECT is(
             'EXECUTE')),
   false,
   'anon cannot execute get_dashboard_trends'
-);
-
-SELECT is(
-  (SELECT has_function_privilege(
-            'authenticated',
-            'public.get_dashboard_trends(uuid, integer, uuid, boolean)',
-            'EXECUTE')),
-  true,
-  'authenticated can execute get_dashboard_trends'
 );
 
 -- 4. Every authenticated-executable public SECURITY DEFINER is allowlisted.

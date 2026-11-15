@@ -54,7 +54,7 @@ const mockSession: Session = {
 
 describe('AuthContext', () => {
   let mockSubscription: { unsubscribe: () => void; id: string; callback: () => void };
-  let authStateChangeCallback: (event: string, session: Session | null) => void;
+  let authStateChangeCallback: Parameters<typeof supabase.auth.onAuthStateChange>[0];
   /** Session emitted on INITIAL_SESSION (mirrors SDK bootstrap after storage init). */
   let initialSession: Session | null;
 
@@ -93,13 +93,13 @@ describe('AuthContext', () => {
     );
     vi.mocked(supabase.auth.signInWithPassword).mockImplementation(() => 
       Promise.resolve({ 
-        data: { user: null, session: null },
+        data: { user: mockUser, session: mockSession },
         error: null 
       })
     );
     vi.mocked(supabase.auth.signInWithOAuth).mockImplementation(() => 
       Promise.resolve({ 
-        data: { provider: 'google' as const, url: null },
+        data: { provider: 'google' as const, url: 'https://accounts.example.com/oauth' },
         error: null 
       })
     );

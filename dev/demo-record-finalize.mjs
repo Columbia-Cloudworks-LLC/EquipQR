@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { spawn } from 'child_process';
+import { spawnInherit } from './lib/spawnCapture.mjs';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -73,15 +73,10 @@ async function findLatestPlaywrightVideo(startedAtMs) {
 /**
  * @returns {Promise<number>}
  */
-async function runPlaywrightTest() {
-  return new Promise((resolve, reject) => {
-    const child = spawn('playwright test e2e/demo-smoke.spec.ts', {
-      cwd: repoRoot,
-      stdio: 'inherit',
-      shell: true
-    });
-    child.on('error', reject);
-    child.on('close', (code) => resolve(typeof code === 'number' ? code : 1));
+function runPlaywrightTest() {
+  return spawnInherit('playwright test e2e/demo-smoke.spec.ts', [], {
+    cwd: repoRoot,
+    shell: true
   });
 }
 

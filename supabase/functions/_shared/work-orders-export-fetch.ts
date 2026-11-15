@@ -10,13 +10,28 @@ import { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import type { WorkOrderExcelFilters } from "./work-orders-export-data.ts";
 
 /** A work order's team is its equipment's team; PostgREST may return the to-one embed as an object or a one-element array. */
-function embeddedEquipmentTeamId(
+export function embeddedEquipmentTeamId(
   equipment: { team_id: string | null } | Array<{ team_id: string | null }> | null | undefined,
 ): string | null {
   const row = Array.isArray(equipment) ? equipment[0] : equipment;
   return row?.team_id ?? null;
 }
 
+/** Resolve cost creator ids to profile names (profiles are org-visible via RLS). */
+export async function fetchCostCreatorMap(
+  supabase: SupabaseClient,
+  costs: ReadonlyArray<{ created_by: string }>,
+): Promise<Map<string, string>> {
+  const costCreatorIds = [...new Set(costs.map(c => c.created_by))];
+  if (costCreatorIds.length === 0) return new Map<string, string>();
+  const { data: costProfiles } = await supabase
+    .from('profiles')
+    .select('id, name')
+    .in('id', costCreatorIds);
+  return new Map(
+    (costProfiles || []).map((p: { id: string; name: string }) => [p.id, p.name]),
+  );
+}
 
 /**
  * Maximum rows per export to prevent abuse.
@@ -264,15 +279,7 @@ export async function fetchWorkOrdersWithData(
     .order('created_at', { ascending: true });
 
   // Get cost creator names
-  const costCreatorIds = [...new Set((costs || []).map(c => c.created_by))];
-  let costCreatorMap = new Map<string, string>();
-  if (costCreatorIds.length > 0) {
-    const { data: costProfiles } = await supabase
-      .from('profiles')
-      .select('id, name')
-      .in('id', costCreatorIds);
-    costCreatorMap = new Map((costProfiles || []).map(p => [p.id, p.name]));
-  }
+  const costCreatorMap = await fetchCostCreatorMap(supabase, costs || []);
 
   // Fetch PM data
   // Defense in depth: preventative_maintenance has organization_id column, so we add explicit filter

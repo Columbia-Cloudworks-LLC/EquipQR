@@ -154,33 +154,3 @@ export const showErrorToast = (error: unknown, context?: string): StandardError 
   
   return standardError;
 };
-
-export const createRetryFunction = <T>(
-  fn: () => Promise<T>,
-  maxRetries = 3,
-  delay = 1000
-): (() => Promise<T>) => {
-  return async (): Promise<T> => {
-    let lastError: unknown;
-
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        return await fn();
-      } catch (error) {
-        lastError = error;
-        const standardError = classifyError(error);
-
-        if (!standardError.retryable || attempt === maxRetries) {
-          throw error;
-        }
-
-        // Exponential backoff
-        await new Promise(resolve =>
-          setTimeout(resolve, delay * Math.pow(2, attempt - 1))
-        );
-      }
-    }
-
-    throw lastError;
-  };
-};

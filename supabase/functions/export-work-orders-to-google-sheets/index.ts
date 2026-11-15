@@ -5,30 +5,17 @@
  * that have connected their Google Workspace.
  */
 
-import { getCorsHeaders } from "../_shared/cors.ts";
 import {
-  createErrorResponse,
-  handleCorsPreflightIfNeeded,
-  requireAuthenticatedPost,
-} from "../_shared/supabase-clients.ts";
+  handleAuthenticatedExportPost,
+  unexpectedExportErrorResponse,
+} from "../_shared/export-request-gate.ts";
 import { runSheetsAuthGate } from "./gw-sheets-auth-gate.ts";
 import { runSheetsExport } from "./gw-sheets-export-run.ts";
 import { parseSheetsExportRequest } from "./gw-sheets-request.ts";
 
-Deno.serve(async (req) => {
-  const corsResponse = handleCorsPreflightIfNeeded(req);
-  if (corsResponse) return corsResponse;
-
-  const corsHeaders = getCorsHeaders(req);
-
-  try {
-    const authContext = await requireAuthenticatedPost(req);
-    if (authContext instanceof Response) {
-      return authContext;
-    }
-
-    const { supabase, user } = authContext;
-
+Deno.serve((req) => handleAuthenticatedExportPost(
+  req,
+  async ({ corsHeaders, supabase, user }) => {
     const parsedRequest = await parseSheetsExportRequest(req);
     if (parsedRequest instanceof Response) {
       return parsedRequest;
@@ -56,8 +43,6 @@ Deno.serve(async (req) => {
       organizationFolderId: authGate.organizationFolderId,
       corsHeaders,
     });
-  } catch (error) {
-    console.error("[EXPORT-TO-GOOGLE-SHEETS] Export error:", error);
-    return createErrorResponse("An unexpected error occurred", 500, { req });
-  }
-});
+  },
+  (error) => unexpectedExportErrorResponse(req, "[EXPORT-TO-GOOGLE-SHEETS] Export error:", error),
+));

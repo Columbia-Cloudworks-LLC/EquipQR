@@ -33,7 +33,7 @@ export const CLARITY_CONSENT_DENIED = { ad_Storage: 'denied', analytics_Storage:
 const CLARITY_COOKIE_NAMES = ['_clck', '_clsk'] as const;
 
 let bootstrapStub: ClarityFn | null = null;
-const pendingClarityTimers = new Set<ReturnType<typeof globalThis.setTimeout>>();
+const pendingClarityTimers = new Set<number>();
 const guardedHistories = new WeakSet<History>();
 const guardedWindows = new WeakSet<Window>();
 const knownHistoryWrappers = new WeakSet<HistoryStateFn>();
@@ -58,9 +58,9 @@ function runWithClarityTimerCapture<T>(fn: () => T, cancelImmediately: boolean):
   if (typeof window === 'undefined') return fn();
   const originalDescriptor = Object.getOwnPropertyDescriptor(window, 'setTimeout');
   const originalSetTimeout = window.setTimeout.bind(window);
-  const captured: ReturnType<typeof globalThis.setTimeout>[] = [];
+  const captured: number[] = [];
 
-  const intercept = (...args: Parameters<typeof globalThis.setTimeout>) => {
+  const intercept = (...args: Parameters<typeof window.setTimeout>) => {
     const id = originalSetTimeout(...args);
     if (cancelImmediately) {
       captured.push(id);

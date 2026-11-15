@@ -207,11 +207,9 @@ describe('InventoryBulkGrid — dirty cell indicator', () => {
     ]);
     renderGrid({ dirtyRows });
 
-    // The virtualized list is rendered; the row container should have the dirty bg class
-    const list = screen.getByTestId('virtual-list');
-    expect(list).toBeInTheDocument();
-    // Dirty state is applied via CSS class — ensure the row is rendered
-    const rows = list.querySelectorAll('[role="row"]');
-    expect(rows.length).toBeGreaterThanOrEqual(2);
+    const dirtyRow = screen.getByRole('checkbox', { name: 'Select Item i-1' }).closest('[role="row"]');
+    const cleanRow = screen.getByRole('checkbox', { name: 'Select Item i-2' }).closest('[role="row"]');
+    expect(dirtyRow).toHaveClass('bg-primary/5');
+    expect(cleanRow).not.toHaveClass('bg-primary/5');
   });
 });

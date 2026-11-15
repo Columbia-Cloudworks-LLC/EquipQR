@@ -8,15 +8,4 @@ describe('HERO_SLIDES', () => {
       'scan-machine',
     ]);
   });
-
-  it('gives every story a label, description, preload, stage, still, and fallback', () => {
-    for (const slide of HERO_SLIDES) {
-      expect(slide.label.length).toBeGreaterThan(3);
-      expect(slide.description.length).toBeGreaterThan(20);
-      expect(slide.preload).toEqual(expect.any(Function));
-      expect(slide.Stage).toBeTruthy();
-      expect(slide.StaticFrame).toBeTypeOf('function');
-      expect(slide.Fallback).toBeTypeOf('function');
-    }
-  });
 });

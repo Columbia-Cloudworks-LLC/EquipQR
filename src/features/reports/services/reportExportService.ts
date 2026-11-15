@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { getInvokeErrorPayload } from '@/services/google-workspace/invokeError';
 import type { ReportType, ExportFilters, ExportRequest } from '@/features/reports/types/reports';
+import { applyDateRangeFilter } from '@/features/reports/utils/applyDateRangeFilter';
 import {
   buildEquipmentExportCountQuery,
   buildWorkOrderExportCountQuery,
@@ -174,12 +175,7 @@ export async function getReportRecordCount(
           .select('id', { count: 'exact', head: true })
           .in('equipment_id', equipmentIds);
 
-        if (filters.dateRange?.from) {
-          query = query.gte('scanned_at', filters.dateRange.from);
-        }
-        if (filters.dateRange?.to) {
-          query = query.lte('scanned_at', filters.dateRange.to);
-        }
+        query = applyDateRangeFilter(query, 'scanned_at', filters.dateRange);
 
         const { count } = await query;
         return count ?? 0;
@@ -191,12 +187,7 @@ export async function getReportRecordCount(
           .select('id', { count: 'exact', head: true })
           .eq('organization_id', organizationId);
 
-        if (filters.dateRange?.from) {
-          query = query.gte('submitted_at', filters.dateRange.from);
-        }
-        if (filters.dateRange?.to) {
-          query = query.lte('submitted_at', filters.dateRange.to);
-        }
+        query = applyDateRangeFilter(query, 'submitted_at', filters.dateRange);
 
         const { count } = await query;
         return count ?? 0;
@@ -208,12 +199,7 @@ export async function getReportRecordCount(
           .select('id', { count: 'exact', head: true })
           .eq('organization_id', organizationId);
 
-        if (filters.dateRange?.from) {
-          query = query.gte('submitted_at', filters.dateRange.from);
-        }
-        if (filters.dateRange?.to) {
-          query = query.lte('submitted_at', filters.dateRange.to);
-        }
+        query = applyDateRangeFilter(query, 'submitted_at', filters.dateRange);
 
         const { count } = await query;
         return count ?? 0;

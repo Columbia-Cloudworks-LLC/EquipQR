@@ -151,18 +151,6 @@ describe('StatsCard', () => {
     expect(screen.getByLabelText('Shows total equipment count')).toBeInTheDocument();
   });
 
-  it('generates correct test id for value element', () => {
-    render(
-      <StatsCard
-        icon={<Package />}
-        label="Total Equipment"
-        value={42}
-      />
-    );
-
-    expect(screen.getByTestId('total-equipment-value')).toBeInTheDocument();
-  });
-
   it('exposes sparkline data as screen-reader text (visual chart is decorative)', async () => {
     render(
       <React.Suspense fallback={null}>

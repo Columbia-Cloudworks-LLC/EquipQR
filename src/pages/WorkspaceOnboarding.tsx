@@ -1,5 +1,3 @@
-// fallow-ignore-file code-duplication
-// Duplication rationale: Onboarding reuses workspace member import table semantics
 import { useMemo, useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
@@ -7,9 +5,9 @@ import Page from '@/components/layout/Page';
 import PageHeader from '@/components/layout/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { GoogleWorkspaceMemberPickRow } from '@/features/organization/components/GoogleWorkspaceMemberPickRow';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useSession } from '@/hooks/useSession';
@@ -23,7 +21,10 @@ import {
 } from '@/services/google-workspace';
 import { generateGoogleWorkspaceAuthUrl, isGoogleWorkspaceConfigured } from '@/services/google-workspace/auth';
 import { isConsumerGoogleDomain } from '@/utils/google-workspace';
-import { getGoogleWorkspaceOAuthErrorMessage } from '@/utils/google-workspace-oauth-errors';
+import {
+  getGoogleWorkspaceOAuthErrorMessage,
+  withoutGoogleWorkspaceOAuthParams,
+} from '@/utils/google-workspace-oauth-errors';
 import { googleWorkspace } from '@/lib/queryKeys';
 import { useGoogleWorkspaceMemberSelection } from '@/features/organization/hooks/useGoogleWorkspaceMemberSelection';
 import { GoogleWorkspaceDisconnectDialog } from '@/features/organization/components/GoogleWorkspaceDisconnectDialog';
@@ -75,12 +76,7 @@ const WorkspaceOnboarding = () => {
         refreshSession();
       }
       // Clear the query params
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete('gw_error');
-      newParams.delete('gw_error_description');
-      newParams.delete('gw_ref');
-      newParams.delete('gw_connected');
-      setSearchParams(newParams, { replace: true });
+      setSearchParams(withoutGoogleWorkspaceOAuthParams(searchParams), { replace: true });
     }
   }, [gwError, gwConnected, searchParams, setSearchParams, toast, refetch, refreshSession]);
 
@@ -376,25 +372,18 @@ const WorkspaceOnboarding = () => {
                           const isSelected = selectedEmails.has(email);
                           const isAdmin = adminEmails.has(email);
                           return (
-                            <TableRow key={dirUser.id}>
-                              <TableCell>
-                                <Checkbox
-                                  checked={isSelected}
-                                  onCheckedChange={(checked) => toggleEmail(email, Boolean(checked))}
-                                  aria-label={`Select ${email}`}
-                                />
-                              </TableCell>
+                            <GoogleWorkspaceMemberPickRow
+                              key={dirUser.id}
+                              email={email}
+                              isSelected={isSelected}
+                              isAdmin={isAdmin}
+                              onToggleSelected={toggleEmail}
+                              onToggleAdmin={toggleAdmin}
+                              adminAriaLabel={`Make admin ${email}`}
+                            >
                               <TableCell>{email}</TableCell>
                               <TableCell>{dirUser.full_name || '-'}</TableCell>
-                              <TableCell>
-                                <Checkbox
-                                  checked={isAdmin}
-                                  disabled={!isSelected}
-                                  onCheckedChange={(checked) => toggleAdmin(email, Boolean(checked))}
-                                  aria-label={`Make admin ${email}`}
-                                />
-                              </TableCell>
-                            </TableRow>
+                            </GoogleWorkspaceMemberPickRow>
                           );
                         })}
                       </TableBody>

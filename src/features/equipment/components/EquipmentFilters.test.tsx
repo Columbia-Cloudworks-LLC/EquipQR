@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen } from '@vitest-harness/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EquipmentFilters as EquipmentFiltersComponent } from './EquipmentFilters';
-import { EquipmentFilters } from '@/features/equipment/hooks/useEquipmentFiltering';
+import type { EquipmentFilterState } from '@/features/equipment/hooks/useEquipmentFiltering';
 
 // Mock mobile hook
 vi.mock('@/hooks/use-mobile', () => ({
@@ -29,16 +29,16 @@ vi.mock('./EquipmentToolbar', () => ({
   )
 }));
 
-const defaultFilters: EquipmentFilters = {
+const defaultFilters: EquipmentFilterState = {
   search: '',
   status: 'all',
   manufacturer: 'all',
   location: 'all',
   team: 'all',
-  maintenanceDateFrom: null,
-  maintenanceDateTo: null,
-  installationDateFrom: null,
-  installationDateTo: null,
+  maintenanceDateFrom: '',
+  maintenanceDateTo: '',
+  installationDateFrom: '',
+  installationDateTo: '',
   warrantyExpiring: false
 };
 
@@ -257,28 +257,6 @@ describe('EquipmentFilters', () => {
     });
   });
 
-  describe('Props Passing', () => {
-    it('passes all props to desktop filters', async () => {
-      const { useIsMobile } = await import('@/hooks/use-mobile');
-      vi.mocked(useIsMobile).mockReturnValue(false);
-
-      render(<EquipmentFiltersComponent {...defaultProps} />);
-      
-      // Desktop filters should receive the props
-      expect(screen.getByTestId('desktop-filters')).toBeInTheDocument();
-    });
-
-    it('passes all props to mobile filters', async () => {
-      const { useIsMobile } = await import('@/hooks/use-mobile');
-      vi.mocked(useIsMobile).mockReturnValue(true);
-
-      render(<EquipmentFiltersComponent {...defaultProps} />);
-      
-      // Mobile filters should receive the props
-      expect(screen.getByTestId('mobile-filters')).toBeInTheDocument();
-    });
-  });
-
   describe('Edge Cases', () => {
     it('handles all filters active (team excluded — owned by global TopBar)', async () => {
       // `filters.team` is excluded from the page-local count by design (see the
@@ -304,7 +282,7 @@ describe('EquipmentFilters', () => {
       expect(screen.getByText('Active Count: 5')).toBeInTheDocument();
     });
 
-    it('handles null and undefined filter values', async () => {
+    it('handles empty date filter values', async () => {
       const { useIsMobile } = await import('@/hooks/use-mobile');
       vi.mocked(useIsMobile).mockReturnValue(true);
 
@@ -313,8 +291,8 @@ describe('EquipmentFilters', () => {
           {...defaultProps} 
           filters={{ 
             ...defaultFilters,
-            maintenanceDateFrom: null,
-            maintenanceDateTo: undefined
+            maintenanceDateFrom: '',
+            maintenanceDateTo: ''
           }}
         />
       );

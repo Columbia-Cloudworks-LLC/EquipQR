@@ -8,6 +8,7 @@ import {
   deriveQuickBooksInvoiceStatus,
   type QuickBooksInvoice,
 } from "../quickbooks-export-invoice/qbo-invoice-payload.ts";
+import { deriveInvoiceMirrorTimestamps } from "../_shared/quickbooks-invoice-mirror-flags.ts";
 
 export async function updateMirroredWorkOrders(
   supabaseClient: SupabaseClient,
@@ -42,10 +43,11 @@ export async function updateMirroredWorkOrders(
 
   if (error) throw error;
 
-  const wasEmailed = params.invoice.EmailStatus?.toLowerCase() === "emailsent";
-  const shouldSetSent = wasEmailed && invoiceStatus !== "draft" && invoiceStatus !== "voided";
-  const shouldSetPaid = invoiceStatus === "paid";
-  const timestamp = now.toISOString();
+  const { shouldSetSent, shouldSetPaid, timestamp } = deriveInvoiceMirrorTimestamps(
+    params.invoice,
+    invoiceStatus,
+    now,
+  );
 
   if (shouldSetSent) {
     const { error: sentError } = await supabaseClient

@@ -36,7 +36,7 @@ const mockUseTeam = vi.fn<(...args: unknown[]) => { data: typeof mockTeam | null
 );
 
 vi.mock('@/features/teams/hooks/useTeamManagement', () => ({
-  useTeam: (...args: unknown[]) => mockUseTeam(...args),
+  useTeamById: (...args: unknown[]) => mockUseTeam(...args),
   useTeamMutations: vi.fn(() => ({ deleteTeam: { mutateAsync: vi.fn() } })),
 }));
 
@@ -77,12 +77,6 @@ describe('TeamDetails permissions gating', () => {
 
   it('shows Add Member button for team managers', () => {
     perms.canManageTeam = () => true;
-    render(<TeamDetails />);
-    expect(screen.getByText('Add Member')).toBeInTheDocument();
-  });
-
-  it('shows Add Member button for organization admins (via permission hook)', () => {
-    perms.canManageTeam = () => true; // permission layer should return true for admins
     render(<TeamDetails />);
     expect(screen.getByText('Add Member')).toBeInTheDocument();
   });

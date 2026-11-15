@@ -15,17 +15,6 @@ describe('useIsMobile', () => {
     });
   });
 
-  it('imports without throwing when window.matchMedia is unavailable', async () => {
-    Object.defineProperty(window, 'matchMedia', {
-      writable: true,
-      configurable: true,
-      value: undefined,
-    });
-    vi.resetModules();
-
-    await expect(import('@/hooks/use-mobile')).resolves.toBeDefined();
-  });
-
   it('returns false when matchMedia is unavailable', async () => {
     Object.defineProperty(window, 'matchMedia', {
       writable: true,

@@ -2,6 +2,40 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@vitest-harness/utils/test-utils';
 import { EquipmentLocationMapPanel } from '@/components/location/EquipmentLocationMapPanel';
+import type { useLatestScanCoordinateFromHistory } from '@/features/equipment/hooks/useEquipmentLocationHistory';
+
+type LatestScanHistoryResult = ReturnType<typeof useLatestScanCoordinateFromHistory>;
+
+const mockLatestScanResult = (
+  latestScan: LatestScanHistoryResult['latestScan'],
+): LatestScanHistoryResult => ({
+  data: [],
+  error: null,
+  isError: false,
+  isPending: false,
+  isLoading: false,
+  isLoadingError: false,
+  isRefetchError: false,
+  isSuccess: true,
+  isPlaceholderData: false,
+  status: 'success',
+  fetchStatus: 'idle',
+  dataUpdatedAt: 0,
+  errorUpdatedAt: 0,
+  failureCount: 0,
+  failureReason: null,
+  errorUpdateCount: 0,
+  isFetched: true,
+  isFetchedAfterMount: true,
+  isFetching: false,
+  isInitialLoading: false,
+  isPaused: false,
+  isRefetching: false,
+  isStale: false,
+  isEnabled: true,
+  refetch: vi.fn(),
+  latestScan,
+});
 
 vi.mock('@/features/equipment/hooks/useEquipmentLocationHistory', () => ({
   useLatestScanCoordinateFromHistory: vi.fn(() => ({
@@ -128,12 +162,7 @@ describe('EquipmentLocationMapPanel', () => {
     const { useLatestScanCoordinateFromHistory } = await import(
       '@/features/equipment/hooks/useEquipmentLocationHistory'
     );
-    vi.mocked(useLatestScanCoordinateFromHistory).mockReturnValue({
-      data: [],
-      isLoading: false,
-      error: null,
-      latestScan: undefined,
-    });
+    vi.mocked(useLatestScanCoordinateFromHistory).mockReturnValue(mockLatestScanResult(undefined));
   });
 
   it('renders a visible map and location source header selector when assigned coords exist', () => {
@@ -211,17 +240,14 @@ describe('EquipmentLocationMapPanel', () => {
     const { useLatestScanCoordinateFromHistory } = await import(
       '@/features/equipment/hooks/useEquipmentLocationHistory'
     );
-    vi.mocked(useLatestScanCoordinateFromHistory).mockReturnValue({
-      data: [],
-      isLoading: false,
-      error: null,
-      latestScan: {
+    vi.mocked(useLatestScanCoordinateFromHistory).mockReturnValue(
+      mockLatestScanResult({
         lat: 40.919345,
         lng: -90.659318,
         updatedAt: '2026-04-15T08:30:00Z',
         formattedAddress: 'Scan point',
-      },
-    });
+      }),
+    );
 
     render(
       <EquipmentLocationMapPanel

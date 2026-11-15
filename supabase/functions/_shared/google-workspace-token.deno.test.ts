@@ -2,13 +2,13 @@ import { assertEquals } from "jsr:@std/assert@1";
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
 import { encryptToken } from "./crypto.ts";
 import {
-  __testables,
+  __gwTokenTestables,
   getGoogleWorkspaceAccessToken,
   GOOGLE_SCOPES,
 } from "./google-workspace-token.ts";
 
 const { mergeGoogleWorkspaceScopeStrings, resolveGoogleWorkspaceScopes, buildCredentialsRefreshUpdate } =
-  __testables;
+  __gwTokenTestables;
 
 const DIRECTORY_SCOPE = GOOGLE_SCOPES.DIRECTORY_READONLY;
 const STORED_SCOPES = [

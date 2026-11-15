@@ -1,5 +1,4 @@
 import fs from 'fs';
-import path from 'path';
 
 /** @typedef {{ version: string; name: string }} ProductionMigration */
 
@@ -111,34 +110,6 @@ export function readLocalMigrationVersions(migrationsDir) {
     .filter(Boolean);
 }
 
-/**
- * @param {{ migrationsDir: string; version: string; name: string }} params
- * @returns {'created' | 'exists'}
- */
-const PLACEHOLDER_MIGRATION_BODY = (name) => `-- Migration: ${name}
--- This migration was already applied to production
--- This is a placeholder file to sync local migrations with remote database
--- DO NOT modify this file - it exists only to match production state
-
-BEGIN;
--- Migration already applied - no-op
-COMMIT;
-`;
-
-export function createPlaceholderMigrationFile({ migrationsDir, version, name }) {
-  const filepath = path.join(migrationsDir, `${version}_${name}.sql`);
-
-  try {
-    fs.writeFileSync(filepath, PLACEHOLDER_MIGRATION_BODY(name), { encoding: 'utf8', flag: 'wx' });
-    return 'created';
-  } catch (err) {
-    if (err?.code === 'EEXIST') {
-      return 'exists';
-    }
-    throw err;
-  }
-}
-
 /** @returns {ProductionMigration[]} */
 function getMissingProductionMigrationEntries(migrationsDir) {
   const localFiles = readLocalMigrationVersions(migrationsDir);
@@ -160,147 +131,6 @@ export function getMissingProductionMigrationVersions(migrationsDir, { exitOnMis
   }
 
   return getMissingProductionMigrationEntries(migrationsDir).map((migration) => migration.version);
-}
-
-/**
- * @param {string} migrationsDir
- * @param {ProductionMigration[]} missingEntries
- * @param {(filename: string) => string} existsMessage
- */
-function createPlaceholdersForEntries(migrationsDir, missingEntries, existsMessage) {
-  let created = 0;
-
-  for (const { version, name } of missingEntries) {
-    const filename = `${version}_${name}.sql`;
-    const result = createPlaceholderMigrationFile({ migrationsDir, version, name });
-    const didCreate = result !== 'exists';
-
-    if (!didCreate) {
-      console.log(existsMessage(filename));
-      continue;
-    }
-
-    console.log(`✅ Created: ${filename}`);
-    created += 1;
-  }
-
-  return created;
-}
-
-/**
- * @param {{
- *   migrationsDir: string;
- *   opener: string;
- *   remoteCountLabel: string;
- *   remoteCount: number;
- *   successFooter: string;
- *   missingEntries: ProductionMigration[];
- *   existsMessage?: (filename: string) => string;
- *   exitWhenCreated?: boolean;
- * }} options
- */
-function runPlaceholderSyncCore({
-  migrationsDir,
-  opener,
-  remoteCountLabel,
-  remoteCount,
-  successFooter,
-  missingEntries,
-  existsMessage = (filename) => `⚠️  ${filename} already exists`,
-  exitWhenCreated = false,
-}) {
-  console.log(opener);
-
-  const localFiles = readLocalMigrationVersions(migrationsDir);
-  console.log(`📊 ${remoteCountLabel}: ${remoteCount}`);
-  console.log(`📊 Local migrations: ${localFiles.length}\n`);
-
-  if (missingEntries.length === 0) {
-    console.log('✅ All migrations are present locally!');
-    return 0;
-  }
-
-  console.log(`❌ Found ${missingEntries.length} missing migrations:\n`);
-  const created = createPlaceholdersForEntries(migrationsDir, missingEntries, existsMessage);
-  console.log(`\n📝 Created ${created} placeholder migration files.`);
-  console.log(successFooter);
-
-  if (exitWhenCreated && created > 0) {
-    process.exit(1);
-  }
-
-  return created;
-}
-
-/**
- * @param {{
- *   migrationsDir: string;
- *   opener: string;
- *   remoteCountLabel: string;
- *   successFooter: string;
- *   existsMessage?: (filename: string) => string;
- *   exitOnMissingDir?: boolean;
- * }} options
- */
-export function runProductionMigrationPlaceholderSync({
-  migrationsDir,
-  opener,
-  remoteCountLabel,
-  successFooter,
-  existsMessage = (filename) => `⚠️  ${filename} already exists`,
-  exitOnMissingDir = false,
-}) {
-  if (!fs.existsSync(migrationsDir)) {
-    console.log(opener);
-    console.log('❌ Migrations directory does not exist!');
-    if (exitOnMissingDir) {
-      process.exit(1);
-    }
-    return 0;
-  }
-
-  return runPlaceholderSyncCore({
-    migrationsDir,
-    opener,
-    remoteCountLabel,
-    remoteCount: productionMigrations.length,
-    successFooter,
-    existsMessage,
-    missingEntries: getMissingProductionMigrationEntries(migrationsDir),
-  });
-}
-
-/**
- * @param {{
- *   migrationsDir: string;
- *   opener: string;
- *   remoteCountLabel: string;
- *   successFooter: string;
- *   existsMessage?: (filename: string) => string;
- *   exitOnMissingDir?: boolean;
- *   exitWhenCreated?: boolean;
- * }} options
- */
-export function runProductionMigrationVersionsPlaceholderSync(options) {
-  const missingVersions = getMissingProductionMigrationVersions(options.migrationsDir, {
-    exitOnMissingDir: options.exitOnMissingDir,
-  });
-
-  if (missingVersions === null) {
-    console.log(options.opener);
-    return 0;
-  }
-
-  const missingEntries = missingVersions.map((version) => ({
-    version,
-    name: productionMigrationNamesByVersion[version] || 'unknown',
-  }));
-
-  return runPlaceholderSyncCore({
-    ...options,
-    remoteCount: productionMigrationVersions.length,
-    missingEntries,
-  });
 }
 
 function logProductionMigrationInventory(migrationsDir, remoteLabel, remoteCount) {

@@ -1,7 +1,7 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { __testables } from "./google-drive-destination-browser.ts";
+import { __driveDestinationBrowserTestables } from "./google-drive-destination-browser.ts";
 
-const { mapSharedDriveToBrowseItem, mapFolderToBrowseItem } = __testables;
+const { mapSharedDriveToBrowseItem, mapFolderToBrowseItem } = __driveDestinationBrowserTestables;
 
 Deno.test("mapSharedDriveToBrowseItem marks shared drives as navigable but not selectable", () => {
   assertEquals(

@@ -7,7 +7,6 @@ import {
 } from '@/features/organization/constants/routes';
 import {
   navigateForNotification,
-  notificationHasNavigableAction,
   resolveNotificationDestination,
   type NotificationDestination,
   type NotificationDestinationCta,
@@ -246,17 +245,6 @@ describe('resolveNotificationDestination', () => {
     expect(dest.navigable && dest.switchToOrganizationId, 'row organization_id is not a switch source').toBe(
       null,
     );
-  });
-});
-
-describe('notificationHasNavigableAction', () => {
-  it('mirrors resolve().navigable', () => {
-    expect(
-      notificationHasNavigableAction(buildNotification({ type: 'member_removed' })),
-    ).toBe(true);
-    expect(
-      notificationHasNavigableAction(buildNotification({ type: 'general' })),
-    ).toBe(false);
   });
 });
 

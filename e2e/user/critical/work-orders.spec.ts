@@ -23,12 +23,21 @@ test.describe('work orders @critical', () => {
   });
 
   test('navigate to work order from equipment context', async ({ page, assertHealthyShell }) => {
-    await page.goto(`/dashboard/equipment/${seedEquipment.cat320.id}`);
+    await page.goto(`/dashboard/equipment/${seedEquipment.cat320.id}?tab=work-orders`);
     await assertHealthyShell();
-    const woLink = page.getByRole('link', { name: /work orders/i }).first();
-    if (await woLink.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await woLink.click();
-      await expect(page).toHaveURL(/\/dashboard\/work-orders/);
-    }
+    // The tab reads "Work Orders" on desktop and "Orders" on mobile.
+    await expect(page.getByRole('tab', { name: /^(work )?orders/i })).toHaveAttribute(
+      'aria-selected',
+      'true',
+      { timeout: 60_000 },
+    );
+    await page
+      .getByRole('heading', { name: seedWorkOrders.oilChange.title, exact: true })
+      .first()
+      .click({ timeout: 60_000 });
+    await expect(page).toHaveURL(
+      new RegExp(`/dashboard/work-orders/${seedWorkOrders.oilChange.id}`),
+      { timeout: 60_000 },
+    );
   });
 });

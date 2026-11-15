@@ -14,6 +14,39 @@ vi.mock('@/features/equipment/hooks/useDeleteEquipment', () => ({
   useDeleteEquipment: vi.fn()
 }));
 
+type DeleteMutationResult = ReturnType<typeof useDeleteEquipmentModule.useDeleteEquipment>;
+
+/** Complete idle/pending mutation result so the hook mock satisfies `UseMutationResult`. */
+const createDeleteMutationResult = (
+  mutateAsync: DeleteMutationResult['mutateAsync'],
+  isPending: boolean,
+): DeleteMutationResult => {
+  const base = {
+    mutate: vi.fn(),
+    mutateAsync,
+    data: undefined,
+    error: null,
+    isError: false as const,
+    isSuccess: false as const,
+    reset: vi.fn(),
+    context: undefined,
+    failureCount: 0,
+    failureReason: null,
+    submittedAt: 0,
+    isPaused: false,
+  };
+  if (isPending) {
+    return {
+      ...base,
+      isPending: true,
+      isIdle: false,
+      status: 'pending',
+      variables: { equipmentId: 'eq-1', orgId: 'org-1' },
+    };
+  }
+  return { ...base, isPending: false, isIdle: true, status: 'idle', variables: undefined };
+};
+
 const mockImpact = {
   workOrders: 5,
   pmCount: 3,
@@ -39,10 +72,7 @@ describe('DeleteEquipmentDialog', () => {
     
     vi.mocked(deleteEquipmentServiceModule.getEquipmentDeletionImpact).mockResolvedValue(mockImpact);
     
-    vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue({
-      mutateAsync: vi.fn().mockResolvedValue(undefined),
-      isPending: false
-    });
+    vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue(createDeleteMutationResult(vi.fn().mockResolvedValue(undefined), false));
   });
 
   async function waitForEnabledContinueAndClick() {
@@ -146,22 +176,6 @@ describe('DeleteEquipmentDialog', () => {
       });
     });
 
-    it('shows acknowledgment checkbox', async () => {
-      render(<DeleteEquipmentDialog {...defaultProps} />);
-      
-      await waitFor(() => {
-        const continueButton = screen.getByText('Continue');
-        expect(continueButton).not.toBeDisabled();
-      });
-      
-      fireEvent.click(screen.getByText('Continue'));
-      
-      await waitFor(() => {
-        const checkbox = screen.getByLabelText(/I understand this will permanently delete/i);
-        expect(checkbox).toBeInTheDocument();
-      });
-    });
-
     it('enables delete button only when acknowledged', async () => {
       render(<DeleteEquipmentDialog {...defaultProps} />);
       
@@ -189,10 +203,7 @@ describe('DeleteEquipmentDialog', () => {
   describe('Deletion Process', () => {
     it('calls delete mutation when delete button is clicked', async () => {
       const mockMutateAsync = vi.fn().mockResolvedValue(undefined);
-      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue({
-        mutateAsync: mockMutateAsync,
-        isPending: false
-      });
+      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue(createDeleteMutationResult(mockMutateAsync, false));
       
       render(<DeleteEquipmentDialog {...defaultProps} />);
       await advanceToDeleteConfirmation();
@@ -210,10 +221,7 @@ describe('DeleteEquipmentDialog', () => {
 
     it('calls onSuccess after successful deletion', async () => {
       const mockMutateAsync = vi.fn().mockResolvedValue(undefined);
-      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue({
-        mutateAsync: mockMutateAsync,
-        isPending: false
-      });
+      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue(createDeleteMutationResult(mockMutateAsync, false));
       
       render(<DeleteEquipmentDialog {...defaultProps} />);
       await advanceToDeleteConfirmation();
@@ -230,10 +238,7 @@ describe('DeleteEquipmentDialog', () => {
 
     it('closes dialog after successful deletion', async () => {
       const mockMutateAsync = vi.fn().mockResolvedValue(undefined);
-      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue({
-        mutateAsync: mockMutateAsync,
-        isPending: false
-      });
+      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue(createDeleteMutationResult(mockMutateAsync, false));
       
       render(<DeleteEquipmentDialog {...defaultProps} />);
       await advanceToDeleteConfirmation();
@@ -249,11 +254,8 @@ describe('DeleteEquipmentDialog', () => {
     });
 
     it('shows loading state during deletion', async () => {
-      const mockMutateAsync = vi.fn(() => new Promise(() => {}));
-      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue({
-        mutateAsync: mockMutateAsync,
-        isPending: true
-      });
+      const mockMutateAsync = vi.fn(() => new Promise<void>(() => {}));
+      vi.mocked(useDeleteEquipmentModule.useDeleteEquipment).mockReturnValue(createDeleteMutationResult(mockMutateAsync, true));
       
       render(<DeleteEquipmentDialog {...defaultProps} />);
       await waitForEnabledContinueAndClick();
@@ -318,13 +320,17 @@ describe('DeleteEquipmentDialog', () => {
   });
 
   describe('Error Handling', () => {
-    it('handles error when fetching impact fails', async () => {
+    it('lets the user continue without an impact summary when fetching impact fails', async () => {
       vi.mocked(deleteEquipmentServiceModule.getEquipmentDeletionImpact).mockRejectedValue(new Error('Failed to fetch'));
-      
+
       render(<DeleteEquipmentDialog {...defaultProps} />);
-      
-      // Should still render the dialog
-      expect(screen.getByText('Delete this equipment?')).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Continue' })).not.toBeDisabled();
+      });
+      expect(deleteEquipmentServiceModule.getEquipmentDeletionImpact).toHaveBeenCalledWith('eq-1');
+      expect(screen.queryByText('Calculating impact...')).not.toBeInTheDocument();
+      expect(screen.queryByText('This will delete:')).not.toBeInTheDocument();
     });
   });
 });

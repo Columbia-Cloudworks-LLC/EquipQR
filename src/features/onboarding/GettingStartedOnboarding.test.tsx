@@ -16,7 +16,10 @@ const mockQueryState = vi.hoisted(() => ({
 }));
 const mockTeams = vi.hoisted(() => vi.fn(() => ({ teams: [] as Array<{ id: string; name: string }> })));
 const mockEquipmentList = vi.hoisted(() =>
-  vi.fn(() => ({ data: { data: [] as Array<{ id: string; name: string }>, count: 0 } })),
+  vi.fn((...args: unknown[]) => {
+    void args;
+    return { data: { data: [] as Array<{ id: string; name: string }>, count: 0 } };
+  }),
 );
 const mockCompleteMutation = vi.hoisted(() => ({
   mutateAsync: vi.fn(),

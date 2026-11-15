@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { WorkOrderDeleteConfirmDialog } from '@/features/work-orders/components/WorkOrderDeleteConfirmDialog';
 import { Info, Download, MoreHorizontal, Trash2, CheckCircle2 } from 'lucide-react';
-import { getStatusColor, formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
-import { WorkOrderData, PermissionLevels, EquipmentData, PMData } from '@/features/work-orders/types/workOrderDetails';
+import { getWorkOrderStatusColor, formatStatus } from '@/features/work-orders/utils/workOrderHelpers';
+import { WorkOrderDetailsData, PermissionLevels, EquipmentData, PMData } from '@/features/work-orders/types/workOrderDetails';
 import {
   Tooltip,
   TooltipContent,
@@ -38,7 +38,7 @@ import type { PreventativeMaintenance } from '@/features/pm-templates/services/p
 import { canExportWorkOrderGoogleDoc } from '@/features/work-orders/utils/googleDocsExportAvailability';
 
 interface WorkOrderDetailsDesktopHeaderProps {
-  workOrder: WorkOrderData;
+  workOrder: WorkOrderDetailsData;
   formMode: string;
   permissionLevels: PermissionLevels;
   /** Team ID derived from the equipment assigned to this work order */
@@ -180,7 +180,7 @@ export const WorkOrderDetailsDesktopHeader: React.FC<WorkOrderDetailsDesktopHead
           ]}
           meta={
             <>
-              <Badge className={getStatusColor(workOrder.status)}>
+              <Badge className={getWorkOrderStatusColor(workOrder.status)}>
                 {formatStatus(workOrder.status)}
               </Badge>
               <span className="text-sm text-muted-foreground capitalize">

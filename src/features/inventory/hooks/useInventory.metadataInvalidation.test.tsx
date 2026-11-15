@@ -35,6 +35,20 @@ vi.mock('@/hooks/useAppToast', () => ({
   })),
 }));
 
+type MutationSuccessHandler = (data: unknown, variables: unknown) => void;
+
+function isMutationSuccessHandler(value: unknown): value is MutationSuccessHandler {
+  return typeof value === 'function';
+}
+
+/** `useMutation` is mocked above to return its options, so read `onSuccess` back from them. */
+function getOnSuccess(mutation: object): MutationSuccessHandler {
+  if ('onSuccess' in mutation && isMutationSuccessHandler(mutation.onSuccess)) {
+    return mutation.onSuccess;
+  }
+  throw new Error('Expected the mocked mutation to expose onSuccess');
+}
+
 describe('inventory metadata invalidation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -43,7 +57,7 @@ describe('inventory metadata invalidation', () => {
   it('invalidates list metadata after creating an inventory item', () => {
     const { result } = renderHook(() => useCreateInventoryItem());
 
-    result.current.onSuccess(
+    getOnSuccess(result.current)(
       { name: 'New Part' },
       { organizationId: 'org-1', formData: {} }
     );
@@ -59,7 +73,7 @@ describe('inventory metadata invalidation', () => {
   it('invalidates list metadata after updating an inventory item', () => {
     const { result } = renderHook(() => useUpdateInventoryItem());
 
-    result.current.onSuccess(
+    getOnSuccess(result.current)(
       { name: 'Updated Part' },
       { organizationId: 'org-1', itemId: 'item-1', formData: {} }
     );
@@ -75,7 +89,7 @@ describe('inventory metadata invalidation', () => {
   it('invalidates list metadata after deleting an inventory item', () => {
     const { result } = renderHook(() => useDeleteInventoryItem());
 
-    result.current.onSuccess(undefined, {
+    getOnSuccess(result.current)(undefined, {
       organizationId: 'org-1',
       itemId: 'item-1',
     });
@@ -91,7 +105,7 @@ describe('inventory metadata invalidation', () => {
   it('invalidates list metadata after adjusting inventory quantity', () => {
     const { result } = renderHook(() => useAdjustInventoryQuantity());
 
-    result.current.onSuccess(6, {
+    getOnSuccess(result.current)(6, {
       organizationId: 'org-1',
       adjustment: {
         itemId: 'item-1',

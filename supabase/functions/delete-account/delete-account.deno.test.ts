@@ -5,10 +5,6 @@ Deno.test("normalizeEmail lowercases and trims", () => {
   assertEquals(__testables.normalizeEmail("  User@Example.COM "), "user@example.com");
 });
 
-Deno.test("CONFIRMATION_PHRASE matches product copy", () => {
-  assertEquals(__testables.CONFIRMATION_PHRASE, "DELETE MY ACCOUNT");
-});
-
 Deno.test("removeStoragePathsInChunks groups by bucket", async () => {
   const removedCalls: Array<{ bucket: string; paths: string[] }> = [];
   const admin = {

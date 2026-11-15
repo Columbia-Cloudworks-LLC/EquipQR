@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { usePermissions, useWorkOrderPermissions } from './usePermissions';
+import { usePermissions } from './usePermissions';
 import { 
   createMockUserContext,
   createMockSimpleOrganizationContext,
@@ -183,14 +183,6 @@ const renderPermissionsForRole = (
   return renderHook(() => usePermissions());
 };
 
-const renderWorkOrderPermissionsForRole = (
-  role: 'owner' | 'admin' | 'member',
-  workOrder?: WorkOrderData,
-) => {
-  setupPermissionsMocks(role);
-  return renderHook(() => useWorkOrderPermissions(workOrder));
-};
-
 const adminSubmittedWorkOrder = {
   teamId: 'team-1',
   assigneeId: 'user-1',
@@ -268,43 +260,6 @@ describe('usePermissions', () => {
       const { result } = renderPermissionsForRole('member');
       
       expect(result.current.canCreateTeam()).toBe(false);
-    });
-  });
-
-  describe('edge cases', () => {
-    it('should handle missing user', () => {
-      mockUseSimpleOrganization.mockReturnValue(
-        createMockSimpleOrganizationContext(createTestOrganization('admin')),
-      );
-      mockUseUser.mockReturnValue(createMockUserContext(null));
-
-      const { result } = renderHook(() => usePermissions());
-
-      expect(result.current.hasRole(['admin'])).toBe(false);
-    });
-
-    it('should handle missing organization', () => {
-      mockUseSimpleOrganization.mockReturnValue(createMockSimpleOrganizationContext(null));
-      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
-
-      const { result } = renderHook(() => usePermissions());
-
-      expect(result.current.hasRole(['admin'])).toBe(false);
-    });
-
-    it('should handle empty members array', () => {
-      const orgWithNoMembers = createTestOrganization('admin');
-      // Remove members property to test edge case
-      delete (orgWithNoMembers as unknown as { members?: unknown }).members;
-      
-      mockUseSimpleOrganization.mockReturnValue(
-        createMockSimpleOrganizationContext(orgWithNoMembers)
-      );
-      mockUseUser.mockReturnValue(createMockUserContext(createTestUser()));
-
-      const { result } = renderHook(() => usePermissions());
-      
-      expect(result.current.hasRole(['admin'])).toBe(false);
     });
   });
 
@@ -552,35 +507,5 @@ describe('usePermissions', () => {
       
       expect(result.current.isTeamManager('team-2')).toBe(false);
     });
-  });
-});
-
-describe('useWorkOrderPermissions', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('should return permissions for work order', () => {
-    const mockWorkOrder: Partial<WorkOrderData> = {
-      teamId: 'team-1',
-      assigneeId: 'user-1',
-      status: 'submitted',
-      createdByName: 'Test User'
-    };
-
-    const { result } = renderWorkOrderPermissionsForRole(
-      'admin',
-      mockWorkOrder as WorkOrderData,
-    );
-    
-    expect(result.current).toBeDefined();
-    expect(result.current.canView).toBeDefined();
-    expect(result.current.canEdit).toBeDefined();
-  });
-
-  it('should work without work order parameter', () => {
-    const { result } = renderWorkOrderPermissionsForRole('admin');
-    
-    expect(result.current).toBeDefined();
   });
 });

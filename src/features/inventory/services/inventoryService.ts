@@ -4,6 +4,7 @@ import {
   collectBatchMutationResults,
 } from '@/services/batchMutationResultHelpers';
 import { supabase } from '@/integrations/supabase/client';
+import type { TablesUpdate } from '@/integrations/supabase/types';
 import type {
   InventoryItem,
   InventoryItemRow,
@@ -69,7 +70,9 @@ const INVENTORY_DB_SORT_FIELDS = [
   'updated_at',
 ] as const;
 
-type InventoryListQuery = ReturnType<typeof supabase.from<'inventory_items'>>;
+const selectInventoryItems = () => supabase.from('inventory_items').select('*');
+
+type InventoryListQuery = ReturnType<typeof selectInventoryItems>;
 
 function sanitizeInventorySearchTerm(search: string): string {
   return search.trim().replace(/[,()]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -80,7 +83,7 @@ function applyInventoryListFilters(
   organizationId: string,
   filters: InventoryFilters,
 ): InventoryListQuery {
-  let nextQuery = query.select('*').eq('organization_id', organizationId);
+  let nextQuery = query.eq('organization_id', organizationId);
 
   if (filters.search) {
     const searchTerm = sanitizeInventorySearchTerm(filters.search);
@@ -116,7 +119,7 @@ function createInventoryListQuery(
   organizationId: string,
   filters: InventoryFilters,
 ): InventoryListQuery {
-  const baseQuery = supabase.from('inventory_items');
+  const baseQuery = selectInventoryItems();
   const filteredQuery = applyInventoryListFilters(baseQuery, organizationId, filters);
   return applyInventoryListSort(filteredQuery, filters);
 }
@@ -347,7 +350,7 @@ export const updateInventoryItem = async (
   formData: Partial<InventoryItemFormData>
 ): Promise<InventoryItem> => {
   try {
-    const updateData: Record<string, unknown> = {};
+    const updateData: TablesUpdate<'inventory_items'> = {};
 
     if (formData.name !== undefined) updateData.name = formData.name;
     if (formData.description !== undefined) updateData.description = formData.description || null;
@@ -475,7 +478,7 @@ export const adjustInventoryQuantity = async (
       p_item_id: adjustment.itemId,
       p_delta: adjustment.delta,
       p_reason: adjustment.reason,
-      p_work_order_id: adjustment.workOrderId || null
+      p_work_order_id: adjustment.workOrderId || undefined
     });
 
     if (error) throw error;
@@ -539,7 +542,7 @@ export const getInventoryTransactions = async (
     // Supabase's PostgREST relational queries require a direct FK to the target table for automatic joins.
     // Since profiles.id also references auth.users (no direct FK from transactions->profiles), we must
     // query profiles in a separate request. This adds one round-trip but ensures reliable user name lookups.
-    const userIds = [...new Set((data || []).map(t => t.user_id).filter(Boolean))];
+    const userIds = [...new Set((data || []).flatMap(t => (t.user_id ? [t.user_id] : [])))];
     let profiles: Record<string, { name: string }> = {};
     
     if (userIds.length > 0) {
@@ -569,7 +572,7 @@ export const getInventoryTransactions = async (
     const transactions = (data || []).map(transaction => ({
       ...transaction,
       inventoryItemName: (transaction.inventory_items as { name: string })?.name,
-      userName: profiles[transaction.user_id]?.name ?? 'Unknown User'
+      userName: (transaction.user_id ? profiles[transaction.user_id]?.name : undefined) ?? 'Unknown User'
     }));
 
     return {

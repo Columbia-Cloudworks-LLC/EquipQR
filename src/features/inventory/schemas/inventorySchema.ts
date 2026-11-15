@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { UseFormReturn } from 'react-hook-form';
 
 /**
  * Schema for a single compatibility rule (manufacturer/model pattern).
@@ -32,8 +33,6 @@ export const compatibilityRuleSchema = z.object({
     .optional()
     .transform(val => (typeof val === 'string' && val.trim() === '' ? null : val))
 });
-
-export type CompatibilityRuleFormData = z.infer<typeof compatibilityRuleSchema>;
 
 export const inventoryItemFormSchema = z.object({
   name: z.string()
@@ -114,4 +113,16 @@ export const inventoryItemFormSchema = z.object({
 );
 
 export type InventoryItemFormData = z.infer<typeof inventoryItemFormSchema>;
+
+/**
+ * Form input type. Zod `.default()` makes input and output differ, so the form
+ * is typed with both (see `InventoryItemFormApi`) to match `zodResolver`.
+ */
+export type InventoryItemFormInput = z.input<typeof inventoryItemFormSchema>;
+
+export type InventoryItemFormApi = UseFormReturn<
+  InventoryItemFormInput,
+  unknown,
+  InventoryItemFormData
+>;
 

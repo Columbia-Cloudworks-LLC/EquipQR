@@ -1,5 +1,3 @@
-// fallow-ignore-file code-duplication
-// Duplication rationale: Action hooks repeat permission-gated mutation setup
 import { useState, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -25,8 +23,8 @@ import { parseDue, persistDue } from '@/features/work-orders/calendar';
 interface PMData {
   id: string;
   status?: string;
-  notes?: string;
-  checklist_data?: unknown[];
+  notes?: string | null;
+  checklist_data?: unknown;
   equipment_id?: string;
   template_id?: string | null;
   /** Server `updated_at` — used for offline PM conflict detection when swapping templates. */

@@ -1,10 +1,3 @@
-// fallow-ignore-file code-duplication
-// Duplication rationale: Display utils mirror page-level notification rendering
-export {
-  navigateForNotification,
-  notificationHasNavigableAction,
-  resolveNotificationDestination,
-} from '@/utils/notifications/notificationDestination';
 
 /** Emoji icon for notification types (bell dropdown and notifications page). */
 export function getNotificationEmoji(type: string): string {

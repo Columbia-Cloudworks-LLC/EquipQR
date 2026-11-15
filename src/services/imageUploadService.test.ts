@@ -51,7 +51,6 @@ import imageCompression from 'browser-image-compression';
 import {
   generateFilePath,
   generateSingleFilePath,
-  extractStoragePath,
   validateImageFile,
   compressImageFile,
   uploadImageToStorage,
@@ -124,34 +123,6 @@ describe('imageUploadService', () => {
       const file = new File([''], 'my-logo.png', { type: 'image/png' });
       const path = generateSingleFilePath('org-123', 'logo', file);
       expect(path).toBe('org-123/logo.png');
-    });
-  });
-
-  describe('extractStoragePath', () => {
-    it('should extract path from a standard Supabase public URL', () => {
-      const url =
-        'https://example.supabase.co/storage/v1/object/public/organization-logos/org123/logo.png';
-      const path = extractStoragePath(url, 'organization-logos');
-      expect(path).toBe('org123/logo.png');
-    });
-
-    it('should return null for a URL that does not match the bucket', () => {
-      const url =
-        'https://example.supabase.co/storage/v1/object/public/other-bucket/file.png';
-      const path = extractStoragePath(url, 'organization-logos');
-      expect(path).toBeNull();
-    });
-
-    it('should return null for an invalid URL', () => {
-      const path = extractStoragePath('not-a-url', 'organization-logos');
-      expect(path).toBeNull();
-    });
-
-    it('should handle paths with multiple segments', () => {
-      const url =
-        'https://example.supabase.co/storage/v1/object/public/inventory-item-images/user1/item2/1234567890.jpg';
-      const path = extractStoragePath(url, 'inventory-item-images');
-      expect(path).toBe('user1/item2/1234567890.jpg');
     });
   });
 

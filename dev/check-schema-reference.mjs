@@ -27,6 +27,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { listChangedFiles } from './lib/scriptRuntime.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -135,19 +136,6 @@ export function evaluateSchemaReference(input) {
   return { ok: true, reason: 'Schema reference dump is at least as new as the latest migration commit.' };
 }
 
-/** @param {string} baseSha */
-function listChangedFiles(baseSha) {
-  const output = execFileSync(
-    'git',
-    ['diff', '--name-only', `${baseSha}..HEAD`],
-    { cwd: repoRoot, encoding: 'utf8' },
-  );
-  return output
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
-
 /** @param {string} trackedPath */
 function lastCommitEpoch(trackedPath) {
   const output = execFileSync(
@@ -164,7 +152,7 @@ function checkSchemaReference(options = {}) {
 
   const result = evaluateSchemaReference({
     referenceExists,
-    changedFiles: baseSha ? listChangedFiles(baseSha) : null,
+    changedFiles: baseSha ? listChangedFiles(repoRoot, baseSha) : null,
     readMigration: (filePath) => {
       try {
         return fs.readFileSync(path.join(repoRoot, filePath), 'utf8');

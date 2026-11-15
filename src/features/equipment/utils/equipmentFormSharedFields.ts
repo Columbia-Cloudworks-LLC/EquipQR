@@ -13,7 +13,7 @@ export function mapEquipmentFormSharedFields(data: EquipmentFormData) {
     warranty_expiration: data.warranty_expiration || null,
     last_maintenance: data.last_maintenance || null,
     notes: data.notes || null,
-    custom_attributes: (data.custom_attributes || {}) as Record<string, unknown>,
+    custom_attributes: data.custom_attributes || {},
     image_url: data.image_url || null,
     last_known_location: data.last_known_location || null,
     team_id:

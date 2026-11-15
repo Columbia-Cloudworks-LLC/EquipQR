@@ -30,6 +30,16 @@ export function formatSubmittedAt(dateString: string | null): string {
   return formatDateTime(dateString);
 }
 
+/** Append "label: value" for a captured field object; non-objects and fields without a string label are skipped. */
+function pushCapturedFieldPart(parts: string[], field: unknown): void {
+  if (typeof field !== "object" || field === null) return;
+  const label = (field as Record<string, unknown>).label;
+  const value = (field as Record<string, unknown>).value;
+  if (typeof label === "string") {
+    parts.push(`${label}: ${value ?? ""}`);
+  }
+}
+
 function formatCapturedFieldsSummary(row: ReportRow): string {
   const buckets = [
     row.operator_field_values,
@@ -39,44 +49,31 @@ function formatCapturedFieldsSummary(row: ReportRow): string {
   const parts: string[] = [];
   for (const bucket of buckets) {
     if (!Array.isArray(bucket)) continue;
-    for (const field of bucket) {
-      if (typeof field !== "object" || field === null) continue;
-      const label = (field as Record<string, unknown>).label;
-      const value = (field as Record<string, unknown>).value;
-      if (typeof label === "string") {
-        parts.push(`${label}: ${value ?? ""}`);
-      }
-    }
+    for (const field of bucket) pushCapturedFieldPart(parts, field);
   }
   return parts.join(" | ");
 }
 
-function formatTemplateName(row: ReportRow): string {
-  const snapshot = row.template_snapshot;
-  if (typeof snapshot !== "object" || snapshot === null) return "";
+/** Read `name` from a JSON snapshot object, or return `fallback` when absent or not a string. */
+function snapshotName(snapshot: unknown, fallback: string): string {
+  if (typeof snapshot !== "object" || snapshot === null) return fallback;
   const name = (snapshot as Record<string, unknown>).name;
-  return typeof name === "string" ? name : "";
+  return typeof name === "string" ? name : fallback;
+}
+
+function formatTemplateName(row: ReportRow): string {
+  return snapshotName(row.template_snapshot, "");
 }
 
 function formatQuickFormName(row: ReportRow): string {
-  const snapshot = row.form_snapshot;
-  if (typeof snapshot !== "object" || snapshot === null) return "Quick form";
-  const name = (snapshot as Record<string, unknown>).name;
-  return typeof name === "string" ? name : "Quick form";
+  return snapshotName(row.form_snapshot, "Quick form");
 }
 
 function formatQuickFormCapturedFieldsSummary(row: ReportRow): string {
   const fieldValues = row.field_values;
   if (!Array.isArray(fieldValues)) return "";
   const parts: string[] = [];
-  for (const field of fieldValues) {
-    if (typeof field !== "object" || field === null) continue;
-    const label = (field as Record<string, unknown>).label;
-    const value = (field as Record<string, unknown>).value;
-    if (typeof label === "string") {
-      parts.push(`${label}: ${value ?? ""}`);
-    }
-  }
+  for (const field of fieldValues) pushCapturedFieldPart(parts, field);
   return parts.join(" | ");
 }
 
@@ -130,14 +127,17 @@ function buildInventoryCsv(rows: ReportRow[], columns: string[]): ReportCsvResul
   };
 }
 
+function formatEquipmentNameCell(item: ReportRow): string {
+  return escapeCSVValue((item.equipment as Record<string, unknown>)?.name ?? "");
+}
+
 function buildScansCsv(rows: ReportRow[], columns: string[]): ReportCsvResult {
   if (rows.length === 0) {
     return { csvContent: "No data found", rowCount: 0 };
   }
 
   const columnMap: Record<string, (item: ReportRow) => string> = {
-    equipment_name: (item) =>
-      escapeCSVValue((item.equipment as Record<string, unknown>)?.name ?? ""),
+    equipment_name: formatEquipmentNameCell,
     scanned_by_name: (item) =>
       escapeCSVValue((item.profiles as Record<string, unknown>)?.full_name ?? ""),
     scanned_at: (item) => formatScannedAt(item.scanned_at as string),
@@ -157,8 +157,7 @@ function buildOperatorCheckinsCsv(rows: ReportRow[], columns: string[]): ReportC
   }
 
   const columnMap: Record<string, (item: ReportRow) => string> = {
-    equipment_name: (item) =>
-      escapeCSVValue((item.equipment as Record<string, unknown>)?.name ?? ""),
+    equipment_name: formatEquipmentNameCell,
     template_name: (item) => escapeCSVValue(formatTemplateName(item)),
     serial_number: (item) =>
       escapeCSVValue((item.equipment as Record<string, unknown>)?.serial_number ?? ""),

@@ -158,7 +158,8 @@ export async function compressImageFile(
 
   try {
     const { default: imageCompression } = await import('browser-image-compression');
-    const compressed = await imageCompression(file, {
+    // Typed as Blob: older browsers may return a Blob where File is unavailable.
+    const compressed: Blob = await imageCompression(file, {
       maxSizeMB: settings.maxSizeMB,
       maxWidthOrHeight: settings.maxWidthOrHeight,
       useWebWorker: settings.useWebWorker,
@@ -788,18 +789,6 @@ export async function deleteImagesFromStorage(
   if (error) {
     logger.error('Error deleting images from storage:', error);
   }
-}
-
-/**
- * Extract the storage object path from a Supabase **public** object URL.
- *
- * Returns the path portion (without query params), or null if extraction fails.
- */
-export function extractStoragePath(
-  publicUrl: string,
-  bucket: StorageBucket
-): string | null {
-  return extractPublicStoragePath(publicUrl, bucket);
 }
 
 function pathAfterStorageMarker(url: string, markers: readonly string[]): string | null {

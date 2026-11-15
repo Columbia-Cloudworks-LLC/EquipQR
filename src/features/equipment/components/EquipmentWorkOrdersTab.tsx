@@ -128,16 +128,24 @@ const EquipmentWorkOrdersTab: React.FC<EquipmentWorkOrdersTabProps> = ({
               estimatedHours: workOrder.estimated_hours,
               completedDate: workOrder.completed_date,
               assigneeId: workOrder.assignee_id,
-              teamId: undefined,
-              equipmentManufacturer: workOrder.equipmentManufacturer ?? equipmentManufacturer,
-              equipmentModel: workOrder.equipmentModel ?? equipmentModel,
-              equipmentSerialNumber: workOrder.equipmentSerialNumber ?? equipmentSerialNumber,
+              // A work order's team is its equipment's team (#1729). Without it,
+              // team managers fail the workorder.edit/assign checks on the cards.
+              equipmentTeamId: equipment?.team_id ?? undefined,
+              equipmentManufacturer,
+              equipmentModel,
+              equipmentSerialNumber,
             };
 
             return (
               <div key={workOrder.id} className="space-y-2">
                 {workOrder.is_historical && (
-                  <HistoricalWorkOrderBadge workOrder={workOrder} />
+                  <HistoricalWorkOrderBadge
+                    workOrder={{
+                      is_historical: workOrder.is_historical,
+                      historical_start_date: workOrder.historical_start_date ?? undefined,
+                      historical_notes: workOrder.historical_notes ?? undefined,
+                    }}
+                  />
                 )}
                 {isMobile ? (
                   <MobileWorkOrderCard 

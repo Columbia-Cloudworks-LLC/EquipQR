@@ -13,8 +13,8 @@ Always run these commands in the canonical Ubuntu WSL2 environment (`/home/viral
 
 ### 1. TypeScript & Lint
 ```bash
-# Frontend TypeScript check
-npx tsc --noEmit
+# TypeScript check (app + node projects; bare `npx tsc --noEmit` checks nothing)
+npm run type-check
 
 # Full repository lint (ESLint, Biome, markdownlint across .agents and AGENTS.md)
 npm run lint:all
@@ -40,8 +40,11 @@ npm test -- src/path/to/file.test.ts
 # Type-check edge function entrypoints
 deno check --config supabase/functions/deno.json supabase/functions/*/index.ts
 
-# Run Edge Function tests
-deno test --config supabase/functions/deno.json --allow-env --allow-net --allow-read supabase/functions/
+# Run Edge Function tests (every *.deno.test.ts; CI runs the same script)
+npm run test:edge
+
+# Run .github/scripts node:test suites (issue automation, schema drift)
+npm run test:gh-scripts
 ```
 
 ### 4. Schema & Migrations Reference
@@ -52,4 +55,4 @@ npm run verify:schema-reference
 
 ## Quality Rules
 1. **Zero `as unknown as`:** Do not bypass TypeScript types. Derive domain models from `Tables<'table_name'>` in `src/integrations/supabase/types.ts`.
-2. **Deterministic Checks:** Every change must exit code 0 on `tsc --noEmit` and `npm run lint:all`.
+2. **Deterministic Checks:** Every change must exit code 0 on `npm run type-check` and `npm run lint:all`.

@@ -6,19 +6,18 @@
  */
 
 import {
-  verifyOrgAdmin,
   createErrorResponse,
-  handleCorsPreflightIfNeeded,
-  requireAuthenticatedPost,
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import {
+  enforceExportAdminAndRateLimit,
+  handleAuthenticatedExportPost,
+  unexpectedExportErrorResponse,
+} from "../_shared/export-request-gate.ts";
 import { escapeCSVValue } from "../_shared/csv-export.ts";
 import {
   fetchWorkOrdersWithData,
   buildAllRows,
-  checkRateLimit,
-  createWorkOrderExportRateLimitResponse,
   summaryRowToArray,
   WORKSHEET_HEADERS,
   type ExportRequest,
@@ -32,18 +31,9 @@ function generateSummaryCsv(allRows: ReturnType<typeof buildAllRows>): string {
   return [headerLine, ...dataLines].join("\n");
 }
 
-Deno.serve(withCorrelationId(async (req, _ctx) => {
-  const corsHeaders = getCorsHeaders(req);
-  const corsResponse = handleCorsPreflightIfNeeded(req);
-  if (corsResponse) return corsResponse;
-
-  try {
-    const authContext = await requireAuthenticatedPost(req);
-    if (authContext instanceof Response) {
-      return authContext;
-    }
-
-    const { supabase, user } = authContext;
+Deno.serve(withCorrelationId((req, _ctx) => handleAuthenticatedExportPost(
+  req,
+  async ({ corsHeaders, supabase, user }) => {
     const body: ExportRequest = await req.json();
     const { organizationId, filters } = body;
 
@@ -51,15 +41,14 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
       return createErrorResponse("Missing required field: organizationId", 400, { req });
     }
 
-    const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
-    if (!isAdmin) {
-      return createErrorResponse("Forbidden: Only owners and admins can export reports", 403, { req });
-    }
-
-    const rateLimitOk = await checkRateLimit(supabase, user.id, organizationId);
-    if (!rateLimitOk) {
-      return createWorkOrderExportRateLimitResponse(corsHeaders);
-    }
+    const gateResponse = await enforceExportAdminAndRateLimit({
+      req,
+      corsHeaders,
+      supabase,
+      userId: user.id,
+      organizationId,
+    });
+    if (gateResponse) return gateResponse;
 
     const data = await fetchWorkOrdersWithData(supabase, organizationId, filters);
     if (data.workOrders.length === 0) {
@@ -78,8 +67,6 @@ Deno.serve(withCorrelationId(async (req, _ctx) => {
         "Content-Disposition": `attachment; filename="work_order_${shortId}_${dateStr}.csv"`,
       },
     });
-  } catch (error) {
-    console.error("[EXPORT-WORK-ORDERS-CSV] Export error:", error);
-    return createErrorResponse("An unexpected error occurred", 500, { req });
-  }
-}));
+  },
+  (error) => unexpectedExportErrorResponse(req, "[EXPORT-WORK-ORDERS-CSV] Export error:", error),
+)));

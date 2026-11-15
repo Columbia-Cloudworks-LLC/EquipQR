@@ -1,133 +1,191 @@
 /**
  * Regression tests: lazy-tab gating for the equipment QR scan path (#694).
  *
- * These tests assert that inactive tab content is NOT rendered on initial
- * page load (details tab is active by default), and that it IS rendered
- * only when the corresponding tab is selected.
- *
- * The gating pattern under test is:
- *   <TabsContent value="notes">
- *     {activeTab === 'notes' && <EquipmentNotesTab ... />}
- *   </TabsContent>
- *
- * Key guarantees:
- * - Secondary tab components do NOT appear in the DOM when a different tab is active.
- * - Selecting a tab causes only that tab's content to mount.
- * - Switching back to a previous tab unmounts the last tab's content.
+ * Renders the real EquipmentDetails page. Each secondary tab is a lazy module,
+ * mocked here with a stub that marks itself in the DOM when mounted. Inactive
+ * tabs must not mount (so their data hooks never run on a QR scan), and only
+ * the selected tab's content may be mounted at any time.
  */
 
 import React from 'react';
-import { render, screen } from '@vitest-harness/utils/test-utils';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { act, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { describe, it, expect, vi } from 'vitest';
+import EquipmentDetails from './EquipmentDetails';
 
-vi.mock('@/hooks/use-mobile', () => ({ useIsMobile: vi.fn(() => false) }));
+const LAZY_TAB_TEST_IDS = [
+  'notes-tab',
+  'work-orders-tab',
+  'parts-tab',
+  'images-tab',
+  'check-ins-tab',
+  'scan-history-tab',
+] as const;
 
-/**
- * Minimal inline gating component that mirrors the EquipmentDetails pattern
- * without depending on ResponsiveEquipmentTabs or lazy imports.
- * Controls `activeTab` via React state so we can assert gating directly.
- */
-function GatedTabContents({ activeTab }: { activeTab: string }) {
-  return (
-    <Tabs value={activeTab} onValueChange={() => undefined}>
-      <TabsContent value="details">
-        <div data-testid="details-content">Details panel</div>
-      </TabsContent>
-      <TabsContent value="notes">
-        {activeTab === 'notes' && <div data-testid="notes-content">Notes panel</div>}
-      </TabsContent>
-      <TabsContent value="work-orders">
-        {activeTab === 'work-orders' && <div data-testid="work-orders-content">Work Orders panel</div>}
-      </TabsContent>
-      <TabsContent value="parts">
-        {activeTab === 'parts' && <div data-testid="parts-content">Parts panel</div>}
-      </TabsContent>
-      <TabsContent value="images">
-        {activeTab === 'images' && <div data-testid="images-content">Images panel</div>}
-      </TabsContent>
-      <TabsContent value="scan-history">
-        {activeTab === 'scan-history' && <div data-testid="scan-history-content">Scan History panel</div>}
-      </TabsContent>
-    </Tabs>
+vi.mock('@/features/equipment/components/EquipmentNotesTab', () => ({
+  default: () => <div data-testid="notes-tab" />,
+}));
+vi.mock('@/features/equipment/components/EquipmentWorkOrdersTab', () => ({
+  default: () => <div data-testid="work-orders-tab" />,
+}));
+vi.mock('@/features/equipment/components/EquipmentPartsTab', () => ({
+  default: () => <div data-testid="parts-tab" />,
+}));
+vi.mock('@/features/equipment/components/EquipmentImagesTab', () => ({
+  default: () => <div data-testid="images-tab" />,
+}));
+vi.mock('@/features/equipment/components/EquipmentScanHistoryTab', () => ({
+  default: () => <div data-testid="scan-history-tab" />,
+}));
+vi.mock('@/features/equipment/components/EquipmentOperatorCheckinLedgerTab', () => ({
+  default: () => <div data-testid="check-ins-tab" />,
+}));
+vi.mock('@/features/equipment/components/EquipmentDetailsTab', () => ({
+  default: () => <div data-testid="details-tab" />,
+}));
+
+// Page chrome that is not under test.
+vi.mock('@/features/equipment/components/EquipmentDetailsDesktopSummary', () => ({
+  EquipmentDetailsDesktopSummary: () => null,
+}));
+vi.mock('@/features/equipment/components/EquipmentServiceSummaryBadge', () => ({
+  EquipmentServiceSummaryBadge: () => null,
+}));
+vi.mock('@/features/equipment/components/EquipmentDetailsModals', () => ({
+  EquipmentDetailsModals: () => null,
+}));
+vi.mock('@/features/equipment/components/EquipmentForm', () => ({ default: () => null }));
+vi.mock('@/features/equipment/components/MobileEquipmentHeader', () => ({ default: () => null }));
+vi.mock('@/features/equipment/components/MobileEquipmentActionBar', () => ({ default: () => null }));
+vi.mock('@/features/equipment/components/EquipmentQuickAccessDrawer', () => ({
+  EquipmentQuickAccessDrawer: () => null,
+}));
+vi.mock('@/components/location/EquipmentLocationMapPanel', () => ({
+  EquipmentLocationMapPanel: () => null,
+}));
+
+vi.mock('@/hooks/use-mobile', () => ({ useIsMobile: () => false }));
+vi.mock('@/contexts/OrganizationContext', () => ({
+  useOrganization: () => ({
+    currentOrganization: {
+      id: 'org-1',
+      name: 'Test Org',
+      userRole: 'owner',
+      scanLocationCollectionEnabled: false,
+    },
+    isLoading: false,
+  }),
+}));
+vi.mock('@/features/teams/hooks/useTeamMembership', () => ({
+  useTeamMembership: () => ({ getUserTeamIds: () => [], isLoading: false }),
+}));
+vi.mock('@/features/equipment/hooks/useEquipment', () => ({
+  useEquipmentById: () => ({
+    data: {
+      id: 'eq-1',
+      name: 'Forklift A1',
+      manufacturer: 'Toyota',
+      model: '8FGU25',
+      serial_number: 'SN-1',
+      team_id: null,
+      team: null,
+      image_url: null,
+    },
+    isLoading: false,
+  }),
+}));
+vi.mock('@/features/inventory/hooks/useInventoryAccess', () => ({
+  useInventoryAccess: () => ({ canView: true, isLoading: false }),
+}));
+vi.mock('@/features/equipment/hooks/useEquipmentScanLogger', () => ({
+  useEquipmentScanLogger: () => undefined,
+}));
+vi.mock('@/features/equipment/transitions/useScrollMainContentToTopOnMount', () => ({
+  useScrollMainContentToTopOnMount: () => undefined,
+}));
+vi.mock('@/hooks/useUnifiedPermissions', () => ({
+  useUnifiedPermissions: () => ({
+    equipment: { getPermissions: () => ({ canEdit: false }) },
+  }),
+}));
+vi.mock('@/features/equipment/hooks/useSaveEquipmentAssignedLocation', () => ({
+  useSaveEquipmentAssignedLocation: () => ({
+    saveAssignedLocation: vi.fn(),
+    isSavingLocation: false,
+  }),
+}));
+vi.mock('@/hooks/useGoogleMapsLoader', () => ({
+  useGoogleMapsLoader: () => ({ isLoaded: false }),
+}));
+vi.mock('@/hooks/usePermissions', () => ({
+  usePermissions: () => ({
+    canCreateEquipment: () => false,
+    canCreateEquipmentForTeam: () => false,
+  }),
+}));
+
+const renderPage = (search = '') =>
+  render(
+    <MemoryRouter initialEntries={[`/dashboard/equipment/eq-1${search}`]}>
+      <Routes>
+        <Route path="/dashboard/equipment/:equipmentId" element={<EquipmentDetails />} />
+      </Routes>
+    </MemoryRouter>,
   );
-}
+
+/** Lets pending React.lazy imports resolve so a wrongly mounted tab would show up. */
+const settleLazyTabs = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+
+/** Asserts that `mounted` is the only lazy tab whose content is in the DOM. */
+const expectOnlyLazyTabMounted = (mounted: (typeof LAZY_TAB_TEST_IDS)[number] | null) => {
+  // A mounted-but-suspended tab renders this skeleton (inside a possibly hidden panel).
+  expect(screen.queryByRole('status', { name: 'Loading tab content', hidden: true })).not.toBeInTheDocument();
+  for (const testId of LAZY_TAB_TEST_IDS) {
+    if (testId === mounted) {
+      expect(screen.getByTestId(testId)).toBeInTheDocument();
+    } else {
+      expect(screen.queryByTestId(testId)).not.toBeInTheDocument();
+    }
+  }
+};
 
 describe('EquipmentDetails lazy-tab gating (issue #694)', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  it('mounts only the details tab on initial load', async () => {
+    renderPage();
 
-  it('renders only the details tab content on initial load', () => {
-    const { rerender } = render(<GatedTabContents activeTab="details" />);
-    rerender(<GatedTabContents activeTab="details" />);
-
-    expect(screen.getByTestId('details-content')).toBeInTheDocument();
-    expect(screen.queryByTestId('notes-content')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('work-orders-content')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('parts-content')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('images-content')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('scan-history-content')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('details-tab')).toBeInTheDocument();
+    await settleLazyTabs();
+    expectOnlyLazyTabMounted(null);
   });
 
-  it('mounts notes content and not others when activeTab changes to notes', () => {
-    const { rerender } = render(<GatedTabContents activeTab="details" />);
+  it('mounts only the requested tab when opened with ?tab=', async () => {
+    renderPage('?tab=notes');
 
-    expect(screen.queryByTestId('notes-content')).not.toBeInTheDocument();
-
-    rerender(<GatedTabContents activeTab="notes" />);
-
-    expect(screen.getByTestId('notes-content')).toBeInTheDocument();
-    expect(screen.queryByTestId('work-orders-content')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('parts-content')).not.toBeInTheDocument();
+    expect(await screen.findByTestId('notes-tab')).toBeInTheDocument();
+    await settleLazyTabs();
+    expectOnlyLazyTabMounted('notes-tab');
+    expect(screen.queryByTestId('details-tab')).not.toBeInTheDocument();
   });
 
-  it('mounts work-orders content only when activeTab is work-orders', () => {
-    const { rerender } = render(<GatedTabContents activeTab="details" />);
+  it('mounts the selected tab and unmounts the previous one when switching tabs', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId('details-tab');
 
-    expect(screen.queryByTestId('work-orders-content')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: /Work Orders/ }));
+    expect(await screen.findByTestId('work-orders-tab')).toBeInTheDocument();
+    await settleLazyTabs();
+    expectOnlyLazyTabMounted('work-orders-tab');
 
-    rerender(<GatedTabContents activeTab="work-orders" />);
+    await user.click(screen.getByRole('tab', { name: /Notes/ }));
+    expect(await screen.findByTestId('notes-tab')).toBeInTheDocument();
+    await settleLazyTabs();
+    expectOnlyLazyTabMounted('notes-tab');
 
-    expect(screen.getByTestId('work-orders-content')).toBeInTheDocument();
-    expect(screen.queryByTestId('notes-content')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('parts-content')).not.toBeInTheDocument();
-  });
-
-  it('mounts parts content only when activeTab is parts', () => {
-    const { rerender } = render(<GatedTabContents activeTab="details" />);
-    rerender(<GatedTabContents activeTab="parts" />);
-    expect(screen.getByTestId('parts-content')).toBeInTheDocument();
-    expect(screen.queryByTestId('notes-content')).not.toBeInTheDocument();
-  });
-
-  it('mounts scan-history content only when activeTab is scan-history', () => {
-    const { rerender } = render(<GatedTabContents activeTab="details" />);
-    rerender(<GatedTabContents activeTab="scan-history" />);
-    expect(screen.getByTestId('scan-history-content')).toBeInTheDocument();
-    expect(screen.queryByTestId('notes-content')).not.toBeInTheDocument();
-  });
-
-  it('unmounts notes content and shows no secondary content when switching back to details', () => {
-    const { rerender } = render(<GatedTabContents activeTab="notes" />);
-    expect(screen.getByTestId('notes-content')).toBeInTheDocument();
-
-    rerender(<GatedTabContents activeTab="details" />);
-
-    expect(screen.queryByTestId('notes-content')).not.toBeInTheDocument();
-  });
-
-  it('switches content correctly when cycling through multiple tabs', () => {
-    const { rerender } = render(<GatedTabContents activeTab="details" />);
-
-    rerender(<GatedTabContents activeTab="work-orders" />);
-    expect(screen.getByTestId('work-orders-content')).toBeInTheDocument();
-    expect(screen.queryByTestId('notes-content')).not.toBeInTheDocument();
-
-    rerender(<GatedTabContents activeTab="notes" />);
-    expect(screen.getByTestId('notes-content')).toBeInTheDocument();
-    expect(screen.queryByTestId('work-orders-content')).not.toBeInTheDocument();
-
-    rerender(<GatedTabContents activeTab="details" />);
-    expect(screen.queryByTestId('notes-content')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('work-orders-content')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: /Details/ }));
+    await waitFor(() => expect(screen.getByTestId('details-tab')).toBeInTheDocument());
+    await settleLazyTabs();
+    expectOnlyLazyTabMounted(null);
   });
 });

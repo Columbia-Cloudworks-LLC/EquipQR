@@ -105,16 +105,6 @@ vi.mock('@/components/landing/features/FeatureCTA', () => ({
 
 describe('QRCodeIntegration Feature Page', () => {
   describe('Component Rendering', () => {
-    it('renders without crashing', () => {
-      render(
-        <TestProviders>
-          <QRCodeIntegration />
-        </TestProviders>
-      );
-
-      expect(screen.getByTestId('feature-page-layout')).toBeInTheDocument();
-    });
-
     it('renders the feature hero with correct content', () => {
       render(
         <TestProviders>
@@ -267,84 +257,6 @@ describe('QRCodeIntegration Feature Page', () => {
       expect(screen.getByRole('heading', { level: 2, name: content.ctaTitle })).toBeInTheDocument();
       expect(screen.getByText(content.ctaDescription)).toBeInTheDocument();
       expect(screen.getAllByRole('link', { name: qrPrimaryCta })).toHaveLength(2);
-    });
-  });
-
-  describe('Data Integrity', () => {
-    it('uses correct data from qrCodeIntegrationData', () => {
-      render(
-        <TestProviders>
-          <QRCodeIntegration />
-        </TestProviders>
-      );
-
-      // Verify the data structure matches what's expected
-      expect(benefits).toHaveLength(3);
-      expect(steps).toHaveLength(3);
-      expect(showcases).toHaveLength(2);
-
-      // Verify benefits have required properties
-      benefits.forEach((benefit) => {
-        expect(benefit).toHaveProperty('title');
-        expect(benefit).toHaveProperty('subtitle');
-        expect(benefit).toHaveProperty('description');
-        expect(benefit).toHaveProperty('benefits');
-        expect(Array.isArray(benefit.benefits)).toBe(true);
-      });
-
-      // Verify steps have required properties
-      steps.forEach((step) => {
-        expect(step).toHaveProperty('number');
-        expect(step).toHaveProperty('title');
-        expect(step).toHaveProperty('description');
-      });
-
-      // Verify showcases have required properties
-      showcases.forEach((screenshot) => {
-        expect(screenshot).toHaveProperty('title');
-        expect(screenshot).toHaveProperty('description');
-        expect(screenshot).toHaveProperty('imageUrl');
-        expect(screenshot).toHaveProperty('imageAlt');
-      });
-    });
-  });
-
-  describe('Accessibility', () => {
-    it('has proper heading hierarchy', () => {
-      render(
-        <TestProviders>
-          <QRCodeIntegration />
-        </TestProviders>
-      );
-
-      // Main title should be h1
-      const mainTitle = screen.getByText(qrSeo.heroTitle);
-      expect(mainTitle.tagName).toBe('H1');
-
-      // Section titles should be h2
-      const sectionTitles = [
-        content.benefitsTitle,
-        content.stepsTitle,
-        content.showcaseTitle,
-        content.ctaTitle,
-      ];
-
-      sectionTitles.forEach((title) => {
-        const element = screen.getByRole('heading', { level: 2, name: title });
-        expect(element.tagName).toBe('H2');
-      });
-    });
-
-    it('has accessible button text', () => {
-      render(
-        <TestProviders>
-          <QRCodeIntegration />
-        </TestProviders>
-      );
-
-      const ctaLinks = screen.getAllByRole('link', { name: qrPrimaryCta });
-      expect(ctaLinks).toHaveLength(2);
-      expect(ctaLinks[0].textContent).toBe(ctaLinks[1].textContent);
     });
   });
 });

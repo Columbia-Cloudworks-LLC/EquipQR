@@ -1,4 +1,4 @@
-import { getStatusColor, getStatusDisplayInfo, safeFormatDate } from "@/features/equipment/utils/equipmentHelpers";
+import { getEquipmentStatusColor, getStatusDisplayInfo, safeFormatDate } from "@/features/equipment/utils/equipmentHelpers";
 import type { UserSettings } from "@/types/settings";
 
 const EMPTY_READOUT = '—';
@@ -31,7 +31,7 @@ interface EquipmentCardDisplayInput {
   serial_number?: string | null;
   location?: string | null;
   status: string;
-  last_maintenance?: string;
+  last_maintenance?: string | null;
   working_hours?: number | null;
   custom_attributes?: unknown;
 }
@@ -77,7 +77,7 @@ function daysSinceDateOnly(value: string): number | null {
 }
 
 function buildLastMaintenanceMobileDisplay(
-  rawDate: string | undefined,
+  rawDate: string | null | undefined,
   formattedDate: string | null,
 ): string {
   if (!formattedDate || !rawDate?.trim()) return EMPTY_READOUT;
@@ -104,7 +104,7 @@ export function getEquipmentCardDisplayModel(
     imageAlt: `${equipment.name} equipment`,
     imageFallbackSrc: "/images/ui/placeholder.svg",
     statusLabel: statusInfo.label,
-    statusClassName: getStatusColor(equipment.status),
+    statusClassName: getEquipmentStatusColor(equipment.status),
     lastMaintenanceText: lastMaintenanceDate ? `Last maintenance: ${lastMaintenanceDate}` : undefined,
     lastMaintenanceDisplay: lastMaintenanceDate ?? EMPTY_READOUT,
     lastMaintenanceMobileDisplay: buildLastMaintenanceMobileDisplay(

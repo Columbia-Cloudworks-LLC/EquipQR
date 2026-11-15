@@ -147,16 +147,9 @@ SELECT throws_ok(
   'direct template deactivation blocked while enabled assignments exist'
 );
 
-INSERT INTO public.operator_checklist_templates (
-  id, organization_id, name, template_data, is_active, created_by
-) VALUES (
-  '31000000-cccc-0000-0000-000000000004'::uuid,
-  '31000000-aaaa-0000-0000-000000000001'::uuid,
-  'Persistence Check',
-  '{"checklistItems":[],"dataFields":[]}'::jsonb,
-  false,
-  '31000000-0000-0000-0000-000000000001'::uuid
-) ON CONFLICT (id) DO NOTHING;
+UPDATE public.operator_checklist_templates
+SET is_active = false
+WHERE id = '31000000-cccc-0000-0000-000000000004'::uuid;
 
 INSERT INTO public.equipment_operator_checkin_settings (
   id, organization_id, equipment_id, template_id, enabled, public_token_hash

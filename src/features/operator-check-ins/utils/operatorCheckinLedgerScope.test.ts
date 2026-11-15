@@ -5,7 +5,6 @@ import {
   buildLedgerSubmissionFilters,
   createDefaultLedgerDateRange,
   createLedgerShortcutDate,
-  createRelativeLedgerDateRange,
   formatLedgerDateRangeFilenamePart,
   formatLedgerDateRangeLabel,
   getAssignedEquipmentForTemplate,
@@ -66,18 +65,6 @@ describe('operatorCheckinLedgerScope', () => {
   it('defaults the date range to the same local calendar day', () => {
     const range = createDefaultLedgerDateRange(new Date(2026, 6, 4, 15, 30, 0));
     expect(range).toEqual({ startDate: '2026-07-04', endDate: '2026-07-04' });
-  });
-
-  it('builds relative ranges with inclusive day counts ending on the reference day', () => {
-    const referenceDate = new Date(2026, 6, 4, 15, 30, 0);
-    expect(createRelativeLedgerDateRange(7, referenceDate)).toEqual({
-      startDate: '2026-06-28',
-      endDate: '2026-07-04',
-    });
-    expect(createRelativeLedgerDateRange(30, referenceDate)).toEqual({
-      startDate: '2026-06-05',
-      endDate: '2026-07-04',
-    });
   });
 
   it('builds single-date shortcuts from today', () => {

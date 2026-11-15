@@ -4,6 +4,25 @@ import React from 'react';
 import { MFAProvider } from './MFAContext';
 import { useMFA } from '@/hooks/useMFA';
 import { supabase } from '@/integrations/supabase/client';
+import type { Factor } from '@supabase/supabase-js';
+
+type ListFactorsResult = Awaited<ReturnType<typeof supabase.auth.mfa.listFactors>>;
+type AssuranceLevelResult = Awaited<
+  ReturnType<typeof supabase.auth.mfa.getAuthenticatorAssuranceLevel>
+>;
+
+const buildListFactorsResult = (totp: Factor<'totp', 'verified'>[]): ListFactorsResult => ({
+  data: { all: totp, totp, phone: [], webauthn: [], recovery_code: [] },
+  error: null,
+});
+
+const buildAssuranceLevelResult = (
+  currentLevel: 'aal1' | 'aal2',
+  nextLevel: 'aal1' | 'aal2',
+): AssuranceLevelResult => ({
+  data: { currentLevel, nextLevel, currentAuthenticationMethods: [] },
+  error: null,
+});
 
 // Mock the auth hook
 const mockUser = { id: 'user-123', email: 'test@example.com' };
@@ -43,7 +62,7 @@ describe('MFAContext', () => {
   });
 
   it('derives isEnrolled=true when a verified factor exists', async () => {
-    const mockFactor = {
+    const mockFactor: Factor<'totp', 'verified'> = {
       id: 'factor-1',
       status: 'verified',
       friendly_name: 'Authenticator App',
@@ -52,10 +71,7 @@ describe('MFAContext', () => {
       updated_at: '2026-01-01T00:00:00Z',
     };
 
-    vi.mocked(supabase.auth.mfa.listFactors).mockResolvedValueOnce({
-      data: { totp: [mockFactor], phone: [] },
-      error: null,
-    } as unknown as ReturnType<typeof supabase.auth.mfa.listFactors>);
+    vi.mocked(supabase.auth.mfa.listFactors).mockResolvedValueOnce(buildListFactorsResult([mockFactor]));
 
     const { result } = renderHook(() => useMFA(), { wrapper });
 
@@ -68,10 +84,7 @@ describe('MFAContext', () => {
   });
 
   it('derives isVerified=true when currentLevel is aal2', async () => {
-    vi.mocked(supabase.auth.mfa.getAuthenticatorAssuranceLevel).mockResolvedValueOnce({
-      data: { currentLevel: 'aal2', nextLevel: 'aal2', currentAuthenticationMethods: [] },
-      error: null,
-    } as unknown as ReturnType<typeof supabase.auth.mfa.getAuthenticatorAssuranceLevel>);
+    vi.mocked(supabase.auth.mfa.getAuthenticatorAssuranceLevel).mockResolvedValueOnce(buildAssuranceLevelResult('aal2', 'aal2'));
 
     const { result } = renderHook(() => useMFA(), { wrapper });
 
@@ -83,7 +96,7 @@ describe('MFAContext', () => {
   });
 
   it('derives needsVerification when enrolled but at aal1', async () => {
-    const mockFactor = {
+    const mockFactor: Factor<'totp', 'verified'> = {
       id: 'factor-1',
       status: 'verified',
       friendly_name: 'Authenticator App',
@@ -92,15 +105,9 @@ describe('MFAContext', () => {
       updated_at: '2026-01-01T00:00:00Z',
     };
 
-    vi.mocked(supabase.auth.mfa.listFactors).mockResolvedValueOnce({
-      data: { totp: [mockFactor], phone: [] },
-      error: null,
-    } as unknown as ReturnType<typeof supabase.auth.mfa.listFactors>);
+    vi.mocked(supabase.auth.mfa.listFactors).mockResolvedValueOnce(buildListFactorsResult([mockFactor]));
 
-    vi.mocked(supabase.auth.mfa.getAuthenticatorAssuranceLevel).mockResolvedValueOnce({
-      data: { currentLevel: 'aal1', nextLevel: 'aal2', currentAuthenticationMethods: [] },
-      error: null,
-    } as unknown as ReturnType<typeof supabase.auth.mfa.getAuthenticatorAssuranceLevel>);
+    vi.mocked(supabase.auth.mfa.getAuthenticatorAssuranceLevel).mockResolvedValueOnce(buildAssuranceLevelResult('aal1', 'aal2'));
 
     const { result } = renderHook(() => useMFA(), { wrapper });
 

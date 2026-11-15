@@ -13,7 +13,6 @@ import {
   createErrorResponse,
   requireBearerUserJsonUnauthorized,
 } from "../_shared/supabase-clients.ts";
-import { MissingSecretError } from "../_shared/require-secret.ts";
 import type { QuickBooksHandlerContext } from "../_shared/quickbooks-serve.ts";
 import {
   type QuickBooksCredential,
@@ -35,6 +34,7 @@ import {
   loadWorkOrderExportContext,
 } from "./qbo-export-context.ts";
 import { syncInvoiceToQuickBooks } from "./qbo-invoice-sync.ts";
+import { logUnexpectedHandlerError } from "../_shared/quickbooks-error-handling.ts";
 
 export async function handleQuickBooksExportInvoice(
   context: QuickBooksHandlerContext,
@@ -417,13 +417,7 @@ export async function handleQuickBooksExportInvoice(
       },
     );
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    if (!(error instanceof MissingSecretError)) {
-      logStep("ERROR", {
-        message: errorMessage,
-        correlation_id: ctx.correlationId,
-      });
-    }
+    logUnexpectedHandlerError(error, logStep, ctx.correlationId);
 
     if (
       error instanceof TaxStatusUnconfirmedError ||

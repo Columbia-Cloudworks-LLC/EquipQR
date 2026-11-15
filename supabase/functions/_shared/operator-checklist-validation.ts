@@ -2,6 +2,8 @@
  * Deno mirror of operator checklist validation for edge function.
  */
 
+import { validateRequiredInputFields } from "./public-form-validation.ts";
+
 export type OperatorFieldSource = "operator_input" | "client_context" | "equipment_snapshot";
 export type OperatorInputFieldType = "text" | "textarea" | "number" | "date" | "checkbox";
 export type ClientContextKey = "submitted_timestamp" | "browser_timezone" | "gps_location";
@@ -40,6 +42,8 @@ export interface OperatorChecklistTemplateData {
   dataFields: OperatorChecklistDataField[];
 }
 
+// Deno mirror of src/features/operator-check-ins/types/operatorChecklist.ts (the browser bundle cannot import edge modules); public-form-mirrors.vitest.test.ts fails on drift.
+// fallow-ignore-next-line code-duplication
 export interface OperatorChecklistAnswer {
   item_id: string;
   passed: boolean;
@@ -79,6 +83,8 @@ export function parseTemplateData(raw: unknown): OperatorChecklistTemplateData {
   };
 }
 
+// Deno mirror of src/features/operator-check-ins/types/operatorChecklist.ts (the browser bundle cannot import edge modules); public-form-mirrors.vitest.test.ts fails on drift.
+// fallow-ignore-next-line code-duplication
 export function parseTemplateItems(raw: unknown): OperatorChecklistTemplateItem[] {
   if (!Array.isArray(raw)) return [];
   return raw.filter(
@@ -158,25 +164,16 @@ export function sanitizeOperatorChecklistAnswers(
   return [...deduped.values()];
 }
 
-function isOperatorValuePresent(value: unknown, inputType: OperatorInputFieldType): boolean {
-  if (inputType === "checkbox") return typeof value === "boolean";
-  if (inputType === "number") return typeof value === "number" && Number.isFinite(value);
-  if (typeof value === "string") return value.trim().length > 0;
-  return value !== null && value !== undefined;
-}
-
+// Deno mirror of src/features/operator-check-ins/types/operatorChecklist.ts (the browser bundle cannot import edge modules); public-form-mirrors.vitest.test.ts fails on drift.
+// fallow-ignore-next-line code-duplication
 export function validateOperatorInputFields(
   fields: OperatorChecklistDataField[],
   values: Record<string, unknown>,
 ): OperatorFieldValidationResult {
-  const errors: string[] = [];
-  for (const field of fields.filter((f) => f.source === "operator_input")) {
-    const inputType = field.inputType ?? "text";
-    if (field.required && !isOperatorValuePresent(values[field.id], inputType)) {
-      errors.push(`"${field.label}" is required.`);
-    }
-  }
-  return { isComplete: errors.length === 0, errors };
+  const requiredFields = fields
+    .filter((f) => f.source === "operator_input" && f.required === true)
+    .map((f) => ({ id: f.id, label: f.label, inputType: f.inputType ?? "text" }));
+  return validateRequiredInputFields(requiredFields, values);
 }
 
 export function normalizeTextValue(value: unknown, maxLen: number): string | null {

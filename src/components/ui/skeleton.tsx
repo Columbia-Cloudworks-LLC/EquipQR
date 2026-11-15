@@ -18,9 +18,9 @@ function Skeleton({
 }
 
 // Card skeleton for work orders and equipment lists
-function SkeletonCard({ className }: { className?: string }) {
+function SkeletonCard({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <div className={cn("rounded-lg border bg-card p-4 space-y-3", className)}>
+    <div className={cn("rounded-lg border bg-card p-4 space-y-3", className)} style={style}>
       <div className="flex items-start justify-between">
         <div className="space-y-2 flex-1">
           <Skeleton className="h-5 w-3/4" />
@@ -41,9 +41,9 @@ function SkeletonCard({ className }: { className?: string }) {
 }
 
 // Work order card skeleton matching WorkOrderCard identity-strip layout
-function SkeletonWorkOrderCard({ className }: { className?: string }) {
+function SkeletonWorkOrderCard({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <div className={cn("rounded-lg border-l-4 border-l-muted border bg-card", className)}>
+    <div className={cn("rounded-lg border-l-4 border-l-muted border bg-card", className)} style={style}>
       <div className="p-4 space-y-3">
         {/* Identity strip: photo + title/equipment + badges */}
         <div className="flex items-start gap-4">
@@ -80,9 +80,9 @@ function SkeletonWorkOrderCard({ className }: { className?: string }) {
 }
 
 // Equipment card skeleton matching EquipmentCard structure
-function SkeletonEquipmentCard({ className }: { className?: string }) {
+function SkeletonEquipmentCard({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <div className={cn("rounded-lg border-l-4 border-l-muted border bg-card", className)}>
+    <div className={cn("rounded-lg border-l-4 border-l-muted border bg-card", className)} style={style}>
       {/* Mobile layout */}
       <div className="md:hidden flex">
         <Skeleton className="h-24 w-24 flex-shrink-0 rounded-l-md" />
@@ -137,7 +137,7 @@ function SkeletonList({
     <div className="space-y-4" role="status" aria-label="Loading content">
       <span className="sr-only">Loading...</span>
       {Array.from({ length: count }).map((_, i) => (
-        <Component key={i} className="animate-stagger-in" style={{ animationDelay: `${i * 50}ms` } as React.CSSProperties} />
+        <Component key={i} className="animate-stagger-in" style={{ animationDelay: `${i * 50}ms` }} />
       ))}
     </div>
   )

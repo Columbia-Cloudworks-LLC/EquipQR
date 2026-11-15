@@ -137,14 +137,5 @@ export async function validateStorageQuota(
   }
 }
 
-/**
- * Format storage quota error message for UI
- */
-export function getStorageQuotaErrorMessage(quota: StorageQuotaCheck): string {
-  const remainingGB = (quota.remainingGB || 0).toFixed(2);
-  const maxGB = quota.maxStorageGB || MAX_STORAGE_GB;
-  return `Storage limit reached. You have ${remainingGB} GB remaining of ${maxGB} GB. Please delete some images to free up space.`;
-}
-
 export { MAX_STORAGE_GB };
 

@@ -40,7 +40,7 @@ describe('WorkOrderPMChecklist', () => {
       handleClearTemplate: vi.fn(),
       selectValue: ''
     };
-    render(<WorkOrderPMChecklist values={{ pmTemplateId: null }} setValue={vi.fn()} />);
+    render(<WorkOrderPMChecklist values={{ hasPM: true, pmTemplateId: null }} setValue={vi.fn()} />);
     
     expect(screen.getByText('No checklist selected. A PM checklist is optional.')).toBeInTheDocument();
   });
@@ -58,7 +58,7 @@ describe('WorkOrderPMChecklist', () => {
       handleClearTemplate: vi.fn(),
       selectValue: ''
     };
-    render(<WorkOrderPMChecklist values={{ pmTemplateId: null }} setValue={vi.fn()} />);
+    render(<WorkOrderPMChecklist values={{ hasPM: true, pmTemplateId: null }} setValue={vi.fn()} />);
     
     expect(screen.getByRole('alert')).toHaveTextContent('PM templates could not be loaded');
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('WorkOrderPMChecklist', () => {
       handleClearTemplate: vi.fn(),
       selectValue: ''
     };
-    render(<WorkOrderPMChecklist values={{ pmTemplateId: null }} setValue={vi.fn()} />);
+    render(<WorkOrderPMChecklist values={{ hasPM: true, pmTemplateId: null }} setValue={vi.fn()} />);
     
     expect(screen.getByText('Failed to refresh latest templates.')).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'PM template (optional)' })).toBeInTheDocument();

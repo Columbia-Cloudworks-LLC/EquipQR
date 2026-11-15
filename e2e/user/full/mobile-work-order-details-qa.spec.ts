@@ -13,7 +13,7 @@ const SLOW_4G_NETWORK_CONDITIONS = {
   latency: 400,
   downloadThroughput: (400 * 1024) / 8,
   uploadThroughput: (300 * 1024) / 8,
-  connectionType: 'cellular4g',
+  connectionType: 'cellular4g' as const,
 };
 
 test.use({

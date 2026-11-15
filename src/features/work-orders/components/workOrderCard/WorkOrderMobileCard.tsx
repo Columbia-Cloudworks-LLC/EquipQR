@@ -10,7 +10,7 @@ import {
 } from '@/features/work-orders/utils/workOrderEquipmentVisuals';
 import { cn } from '@/lib/utils';
 import {
-  getStatusColor,
+  getWorkOrderStatusColor,
   formatStatus,
   isOverdue,
   isTerminalStatus,
@@ -123,7 +123,7 @@ export const WorkOrderMobileCard: React.FC<WorkOrderMobileCardProps> = memo(({
             </CardTitle>
             <div className="mt-0.5 flex flex-wrap items-center gap-1">
               <Badge
-                className={cn(getStatusColor(workOrder.status), 'rounded-full px-1.5 py-0 text-[10px] leading-4')}
+                className={cn(getWorkOrderStatusColor(workOrder.status), 'rounded-full px-1.5 py-0 text-[10px] leading-4')}
                 variant="outline"
               >
                 {formatStatus(workOrder.status)}

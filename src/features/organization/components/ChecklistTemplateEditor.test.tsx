@@ -120,22 +120,6 @@ describe('ChecklistTemplateEditor', () => {
       const sectionHeaders = screen.getAllByText('Engine');
       expect(sectionHeaders[0]).toBeInTheDocument();
     });
-
-    it('populates form fields with existing template data', () => {
-      render(
-        <ChecklistTemplateEditor 
-          template={mockTemplate} 
-          {...defaultProps} 
-        />, 
-        { wrapper: TestProviders }
-      );
-
-      const nameInput = screen.getByDisplayValue('Test Template');
-      const descriptionInput = screen.getByDisplayValue('Test description');
-      
-      expect(nameInput).toBeInTheDocument();
-      expect(descriptionInput).toBeInTheDocument();
-    });
   });
 
   describe('Form Validation', () => {
@@ -365,7 +349,7 @@ describe('ChecklistTemplateEditor', () => {
       fireEvent.keyDown(titleInput, { key: 'Enter', code: 'Enter' });
 
       await waitFor(() => {
-        expect(screen.getAllByLabelText('Check name').length).toBeGreaterThanOrEqual(2);
+        expect(screen.getAllByLabelText('Check name')).toHaveLength(3);
       });
     });
   });

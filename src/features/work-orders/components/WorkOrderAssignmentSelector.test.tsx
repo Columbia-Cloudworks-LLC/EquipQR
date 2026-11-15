@@ -1,22 +1,23 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@vitest-harness/utils/test-utils';
+import { render, screen, fireEvent, within } from '@vitest-harness/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import WorkOrderAssignmentSelector from './WorkOrderAssignmentSelector';
+import { useWorkOrderContextualAssignment } from '@/features/work-orders/hooks/useWorkOrderContextualAssignment';
+import { useQuickWorkOrderAssignment } from '@/hooks/useQuickWorkOrderAssignment';
 
 // Mock hooks
-vi.mock('@/features/work-orders/hooks/useWorkOrderContextualAssignment', () => ({
-  useWorkOrderContextualAssignment: vi.fn(() => ({
-    assignmentOptions: [
-      { id: 'user-1', name: 'John Doe', role: 'Technician' },
-      { id: 'user-2', name: 'Jane Smith', role: 'Manager' }
-    ],
-    isLoading: false,
-    equipmentHasNoTeam: false
-  }))
-}));
+const defaultAssignmentOptions = () => ({
+  assignmentOptions: [
+    { id: 'user-1', name: 'John Doe', type: 'user' as const, role: 'Technician' },
+    { id: 'user-2', name: 'Jane Smith', type: 'user' as const, role: 'Manager' }
+  ],
+  isLoading: false,
+  error: null,
+  equipmentHasNoTeam: false
+});
 
-vi.mock('@/hooks/useQuickWorkOrderAssignment', () => ({
-  useQuickWorkOrderAssignment: vi.fn(() => ({
+const idleAssignmentMutation = () =>
+  ({
     mutate: vi.fn(),
     mutateAsync: vi.fn(),
     isPending: false,
@@ -33,7 +34,14 @@ vi.mock('@/hooks/useQuickWorkOrderAssignment', () => ({
     failureReason: null,
     submittedAt: 0,
     isPaused: false
-  }))
+  }) as ReturnType<typeof useQuickWorkOrderAssignment>;
+
+vi.mock('@/features/work-orders/hooks/useWorkOrderContextualAssignment', () => ({
+  useWorkOrderContextualAssignment: vi.fn()
+}));
+
+vi.mock('@/hooks/useQuickWorkOrderAssignment', () => ({
+  useQuickWorkOrderAssignment: vi.fn()
 }));
 
 const mockWorkOrder = {
@@ -42,11 +50,18 @@ const mockWorkOrder = {
   assignee_id: 'user-1'
 };
 
+const openAssignmentOptions = async () => {
+  fireEvent.click(screen.getByRole('combobox'));
+  return screen.findByRole('listbox');
+};
+
 describe('WorkOrderAssignmentSelector', () => {
   const mockOnCancel = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useWorkOrderContextualAssignment).mockReturnValue(defaultAssignmentOptions());
+    vi.mocked(useQuickWorkOrderAssignment).mockReturnValue(idleAssignmentMutation());
   });
 
   describe('Rendering', () => {
@@ -62,7 +77,7 @@ describe('WorkOrderAssignmentSelector', () => {
       expect(screen.getByText(/Change Assignment/i)).toBeInTheDocument();
     });
 
-    it('displays current assignment', () => {
+    it('marks the current assignee option as Current', async () => {
       render(
         <WorkOrderAssignmentSelector
           workOrder={mockWorkOrder}
@@ -71,11 +86,12 @@ describe('WorkOrderAssignmentSelector', () => {
         />
       );
 
-      // Component should render with current assignee
-      expect(screen.getByText(/Change Assignment/i)).toBeInTheDocument();
+      const listbox = await openAssignmentOptions();
+      expect(within(listbox).getByRole('option', { name: /John Doe/ })).toHaveTextContent('Current');
+      expect(within(listbox).getByRole('option', { name: /Jane Smith/ })).not.toHaveTextContent('Current');
     });
 
-    it('shows unassign option', () => {
+    it('shows unassign option', async () => {
       render(
         <WorkOrderAssignmentSelector
           workOrder={mockWorkOrder}
@@ -84,8 +100,8 @@ describe('WorkOrderAssignmentSelector', () => {
         />
       );
 
-      // Unassign option should be available
-      expect(screen.getByText(/Change Assignment/i)).toBeInTheDocument();
+      const listbox = await openAssignmentOptions();
+      expect(within(listbox).getByRole('option', { name: /Unassign/ })).toBeInTheDocument();
     });
   });
 
@@ -184,7 +200,7 @@ describe('WorkOrderAssignmentSelector', () => {
   });
 
   describe('Edge Cases', () => {
-    it('handles work order without current assignee', () => {
+    it('handles work order without current assignee', async () => {
       const unassignedOrder = {
         ...mockWorkOrder,
         assignee_id: null,
@@ -199,10 +215,12 @@ describe('WorkOrderAssignmentSelector', () => {
         />
       );
 
-      expect(screen.getByText(/Change Assignment/i)).toBeInTheDocument();
+      const listbox = await openAssignmentOptions();
+      expect(within(listbox).getByRole('option', { name: /John Doe/ })).toBeInTheDocument();
+      expect(within(listbox).queryByText('Current')).not.toBeInTheDocument();
     });
 
-    it('handles both assignee_id and assigneeId formats', () => {
+    it('falls back to assigneeId when assignee_id is missing', async () => {
       const orderWithAssigneeId = {
         ...mockWorkOrder,
         assignee_id: undefined,
@@ -217,7 +235,9 @@ describe('WorkOrderAssignmentSelector', () => {
         />
       );
 
-      expect(screen.getByText(/Change Assignment/i)).toBeInTheDocument();
+      const listbox = await openAssignmentOptions();
+      expect(within(listbox).getByRole('option', { name: /Jane Smith/ })).toHaveTextContent('Current');
+      expect(within(listbox).getByRole('option', { name: /John Doe/ })).not.toHaveTextContent('Current');
     });
   });
 });

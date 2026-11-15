@@ -94,7 +94,7 @@ describe('WorkOrderService', () => {
       const result = await service.getAll({ status: 'submitted' }, {});
       
       expect(result.success).toBe(true);
-      expect(result.data?.every(wo => wo.status === 'submitted')).toBe(true);
+      expect(mockQuery.eq).toHaveBeenCalledWith('status', 'submitted');
     });
 
     it('should filter work orders by priority', async () => {
@@ -122,7 +122,7 @@ describe('WorkOrderService', () => {
       const result = await service.getAll({ priority: 'high' }, {});
       
       expect(result.success).toBe(true);
-      expect(result.data?.every(wo => wo.priority === 'high')).toBe(true);
+      expect(mockQuery.eq).toHaveBeenCalledWith('priority', 'high');
     });
 
     it('should filter work orders by assignee', async () => {
@@ -152,7 +152,7 @@ describe('WorkOrderService', () => {
       const result = await service.getAll({ assigneeId }, {});
       
       expect(result.success).toBe(true);
-      expect(result.data?.every(wo => wo.assignee_id === assigneeId)).toBe(true);
+      expect(mockQuery.eq).toHaveBeenCalledWith('assignee_id', assigneeId);
     });
 
     it('should apply pagination correctly', async () => {
@@ -181,7 +181,7 @@ describe('WorkOrderService', () => {
       const result = await service.getAll({}, { page: 1, limit: 3 });
       
       expect(result.success).toBe(true);
-      expect(result.data?.length).toBeLessThanOrEqual(3);
+      expect(mockQuery.range).toHaveBeenCalledWith(0, 2);
     });
   });
 
@@ -390,73 +390,6 @@ describe('WorkOrderService', () => {
     });
   });
 
-  describe('update', () => {
-    it('should update work order successfully', async () => {
-      const updateData = {
-        title: 'Updated Work Order',
-        priority: 'high' as const
-      };
-
-      const mockUpdatedWorkOrder = { 
-        id: 'wo-1', 
-        title: updateData.title, 
-        priority: updateData.priority,
-        status: 'submitted',
-        organization_id: 'test-org',
-        equipment: null,
-        assignee: null,
-        creator: null
-      };
-
-      const mockUpdateQuery = {
-        update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis()
-      };
-      // Chain .eq('id', id).eq('organization_id', orgId) - second eq resolves
-      mockUpdateQuery.eq.mockReturnValueOnce(mockUpdateQuery);
-      mockUpdateQuery.eq.mockResolvedValueOnce({ data: null, error: null });
-
-      const mockSelectQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: mockUpdatedWorkOrder, error: null })
-      };
-
-      // First call is for update, second is for getById
-      (supabase.from as ReturnType<typeof vi.fn>)
-        .mockReturnValueOnce(mockUpdateQuery)
-        .mockReturnValueOnce(mockSelectQuery);
-
-      const result = await service.update('wo-1', updateData);
-      
-      expect(result.success).toBe(true);
-      expect(result.data?.title).toBe(updateData.title);
-      expect(result.data?.priority).toBe(updateData.priority);
-    });
-
-    it('should handle non-existent work order update', async () => {
-      const mockUpdateQuery = {
-        update: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({ data: null, error: null })
-      };
-
-      const mockSelectQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: null, error: { message: 'Not found' } })
-      };
-
-      (supabase.from as ReturnType<typeof vi.fn>)
-        .mockReturnValueOnce(mockUpdateQuery)
-        .mockReturnValueOnce(mockSelectQuery);
-
-      const result = await service.update('non-existent', { title: 'Updated' });
-      
-      expect(result.success).toBe(false);
-      expect(result.error).toBeDefined();
-    });
-  });
-
   describe('updateStatus', () => {
     it('should update work order status successfully', async () => {
       const newStatus = 'in_progress';
@@ -546,58 +479,4 @@ describe('WorkOrderService', () => {
       expect(result.error).toBeDefined();
     });
   });
-
-  describe('getStatusCounts', () => {
-    it('should return status counts', async () => {
-      const mockWorkOrders = [
-        { status: 'submitted' },
-        { status: 'submitted' },
-        { status: 'in_progress' },
-        { status: 'completed' }
-      ];
-
-      const mockQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({ data: mockWorkOrders, error: null })
-      };
-
-      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
-
-      const result = await service.getStatusCounts();
-      
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveProperty('submitted');
-      expect(result.data).toHaveProperty('in_progress');
-      expect(result.data).toHaveProperty('completed');
-      expect(typeof result.data?.submitted).toBe('number');
-    });
-  });
-
-  describe('getPriorityDistribution', () => {
-    it('should return priority distribution', async () => {
-      const mockWorkOrders = [
-        { priority: 'low' },
-        { priority: 'medium' },
-        { priority: 'medium' },
-        { priority: 'high' }
-      ];
-
-      const mockQuery = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockResolvedValue({ data: mockWorkOrders, error: null })
-      };
-
-      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue(mockQuery);
-
-      const result = await service.getPriorityDistribution();
-      
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveProperty('low');
-      expect(result.data).toHaveProperty('medium');
-      expect(result.data).toHaveProperty('high');
-      expect(typeof result.data?.low).toBe('number');
-    });
-  });
 });
-
-

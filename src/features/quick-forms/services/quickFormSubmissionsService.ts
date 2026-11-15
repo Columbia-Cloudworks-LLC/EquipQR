@@ -5,7 +5,7 @@ import type {
   QuickFormFieldValue,
 } from '@/features/quick-forms/types/quickForm';
 
-import type { Tables } from '@/integrations/supabase/types';
+import type { Json, Tables } from '@/integrations/supabase/types';
 
 export type QuickFormSubmission = Omit<
   Tables<'quick_form_submissions'>,
@@ -16,6 +16,16 @@ export type QuickFormSubmission = Omit<
   client_context: QuickFormClientContext | null;
 };
 
+/**
+ * field_values is stored as sent by the public submit RPC, which does not
+ * validate entry shapes. Keep every entry (do not hide submitted data); only a
+ * non-array column falls back to an empty list.
+ */
+function jsonArray<T>(value: Json): T[] {
+  const items: unknown[] = Array.isArray(value) ? value : [];
+  return items as T[];
+}
+
 function mapQuickFormSubmissionRow(
   row: Tables<'quick_form_submissions'>,
 ): QuickFormSubmission {
@@ -25,7 +35,7 @@ function mapQuickFormSubmissionRow(
     quick_form_id: row.quick_form_id,
     submitted_at: row.submitted_at,
     form_snapshot: (row.form_snapshot as QuickFormSubmission['form_snapshot']) ?? null,
-    field_values: (Array.isArray(row.field_values) ? row.field_values : []) as QuickFormFieldValue[],
+    field_values: jsonArray<QuickFormFieldValue>(row.field_values),
     client_context: (row.client_context as QuickFormClientContext | null) ?? null,
     request_fingerprint: row.request_fingerprint,
     created_at: row.created_at,

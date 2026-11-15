@@ -19,10 +19,9 @@
 import { spawn, execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { resolveRepoRoot } from './lib/scriptRuntime.mjs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.join(__dirname, '..');
+const repoRoot = resolveRepoRoot(import.meta.url);
 const isWindows = process.platform === 'win32';
 
 // 10 minutes per shard on Linux CI; Windows native IPC can be slower — allow 10 minutes.

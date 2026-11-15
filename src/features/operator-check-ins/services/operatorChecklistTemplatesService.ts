@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
 import { nanoid } from 'nanoid';
+import type { TablesUpdate } from '@/integrations/supabase/types';
 import {
   parseTemplateData,
   type OperatorChecklistDataField,
@@ -91,7 +92,7 @@ export async function updateOperatorChecklistTemplate(
   },
 ): Promise<OperatorChecklistTemplate> {
   const userId = await requireAuthUserIdFromClaims();
-  const payload: Record<string, unknown> = { updated_by: userId, updated_at: new Date().toISOString() };
+  const payload: TablesUpdate<'operator_checklist_templates'> = { updated_by: userId, updated_at: new Date().toISOString() };
   if (updates.name !== undefined) payload.name = updates.name.trim();
   if (updates.description !== undefined) payload.description = updates.description;
   if (updates.isActive !== undefined) payload.is_active = updates.isActive;

@@ -1,0 +1,44 @@
+name: Prune PR evidence
+
+# Weekly cleanup of the orphan pr-evidence branch written by `dev/linux/pr-evidence.sh publish`:
+# drops pr-<n>/ folders for PRs closed longer than the retention window and squashes history.
+
+on:
+  schedule:
+    - cron: '30 7 * * 1'
+  workflow_dispatch:
+    inputs:
+      retention_days:
+        description: Remove evidence for PRs closed more than this many days ago
+        default: '14'
+      dry_run:
+        description: Print the plan without pushing
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: prune-pr-evidence
+  cancel-in-progress: false
+
+jobs:
+  prune:
+    name: Prune closed-PR evidence
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Prune and squash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_EVIDENCE_RETENTION_DAYS: ${{ inputs.retention_days || '14' }}
+          DRY_RUN: ${{ inputs.dry_run && 'true' || 'false' }}
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: bash dev/ci/prune-pr-evidence.sh

@@ -18,6 +18,12 @@ export class WorkOrderPdfTextLayout {
   public yPosition: number;
   private readonly pageTopY: number;
 
+  /** Loads jsPDF on demand (keeps it out of the initial bundle) and starts a new document. */
+  static async create(options: WorkOrderPdfTextLayoutOptions): Promise<WorkOrderPdfTextLayout> {
+    const { default: JsPdf } = await import('jspdf');
+    return new WorkOrderPdfTextLayout(new JsPdf(), options);
+  }
+
   constructor(
     public readonly doc: jsPDF,
     private readonly options: WorkOrderPdfTextLayoutOptions
@@ -67,5 +73,15 @@ export class WorkOrderPdfTextLayout {
       this.doc.text(line, x, this.yPosition);
       this.yPosition += this.options.lineHeight;
     }
+  }
+
+  /** Bold line centred on the page (e.g. the organization name), then advances by `advance`. */
+  addCenteredBoldText(text: string, fontSize: number, advance: number): void {
+    const pageWidth = this.options.pageWidth ?? this.doc.internal.pageSize.getWidth();
+    this.doc.setFontSize(fontSize);
+    this.doc.setFont('helvetica', 'bold');
+    const textWidth = this.doc.getTextWidth(text);
+    this.doc.text(text, (pageWidth - textWidth) / 2, this.yPosition);
+    this.yPosition += advance;
   }
 }

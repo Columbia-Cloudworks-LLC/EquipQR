@@ -288,8 +288,16 @@ describe('useWorkOrderForm', () => {
       expect(result.current.form.values.equipmentId).toBe('eq-2');
     });
 
-    it('resets historical fields when a historical dialog opens', () => {
-      const { result } = render({ isOpen: true, initialIsHistorical: true });
+    it('resets historical fields when a historical dialog is reopened', async () => {
+      const { result, rerender } = render({ isOpen: true, initialIsHistorical: true });
+      await act(async () => {
+        result.current.form.setValue('historicalNotes', 'Left over from last time');
+        result.current.form.setValue('status', 'cancelled');
+      });
+      expect(result.current.form.values).toMatchObject({ status: 'cancelled', historicalNotes: 'Left over from last time' });
+
+      rerender({ isOpen: false, initialIsHistorical: true });
+      rerender({ isOpen: true, initialIsHistorical: true });
 
       expect(result.current.form.values).toMatchObject({ isHistorical: true, status: 'completed', historicalNotes: '' });
     });

@@ -39,8 +39,10 @@ function createThenableWorkOrdersQuery(rows: Array<{ id: string }>): Record<stri
   const thenable = builder as Record<string, unknown> & {
     then: typeof Promise.prototype.then;
   };
-  thenable.then = (onfulfilled: (value: unknown) => unknown) =>
-    Promise.resolve({ data: rows, error: null }).then(onfulfilled);
+  thenable.then = <TResult1 = unknown, TResult2 = never>(
+    onfulfilled?: ((value: unknown) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
+  ) => Promise.resolve<unknown>({ data: rows, error: null }).then(onfulfilled, onrejected);
   return thenable;
 }
 

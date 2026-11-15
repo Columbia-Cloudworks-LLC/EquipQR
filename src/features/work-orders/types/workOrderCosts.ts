@@ -55,14 +55,4 @@ export interface UpdateWorkOrderCostData {
   unit_price_cents?: number;
 }
 
-// ============================================
-// Cost Summary Types
-// ============================================
-
-export interface CostSummaryByUser {
-  userId: string;
-  userName: string;
-  totalCosts: number;
-  itemCount: number;
-}
 

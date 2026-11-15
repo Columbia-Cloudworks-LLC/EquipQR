@@ -3,6 +3,12 @@
  */
 
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.45.0";
+import {
+  EXPORT_ORG_LIMIT_PER_HOUR,
+  EXPORT_USER_LIMIT_PER_MINUTE,
+  exportRateLimitWindowStarts,
+  logExportRequestLogMissing,
+} from "../_shared/export-rate-limit-window.ts";
 
 export const MAX_ROWS = 50000;
 
@@ -46,7 +52,7 @@ export async function checkRateLimit(
 
   if (tableCheckError) {
     if (isMissingRelationError(tableCheckError)) {
-      console.log("export_request_log table not found, skipping rate limit check");
+      logExportRequestLogMissing();
       return true;
     }
 
@@ -54,8 +60,7 @@ export async function checkRateLimit(
     return false;
   }
 
-  const oneMinuteAgo = new Date(Date.now() - 60 * 1000).toISOString();
-  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { oneMinuteAgo, oneHourAgo } = exportRateLimitWindowStarts();
 
   const { count: userCount, error: userCountError } = await supabase
     .from("export_request_log")
@@ -69,7 +74,7 @@ export async function checkRateLimit(
     return false;
   }
 
-  if ((userCount ?? 0) >= 5) {
+  if ((userCount ?? 0) >= EXPORT_USER_LIMIT_PER_MINUTE) {
     return false;
   }
 
@@ -84,7 +89,7 @@ export async function checkRateLimit(
     return false;
   }
 
-  if ((orgCount ?? 0) >= 50) {
+  if ((orgCount ?? 0) >= EXPORT_ORG_LIMIT_PER_HOUR) {
     return false;
   }
 

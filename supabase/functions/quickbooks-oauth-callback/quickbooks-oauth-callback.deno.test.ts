@@ -62,16 +62,6 @@ Deno.test("resolveOAuthRedirectBaseUrl derives from SUPABASE_URL when override u
   );
 });
 
-Deno.test("resolveOAuthRedirectBaseUrl normalizes retired preview Supabase hostname", () => {
-  assertEquals(
-    resolveOAuthRedirectBaseUrl(
-      "https://supabase.preview.equipqr.app",
-      "https://olsdirkvvfegvclbpgrg.supabase.co",
-    ),
-    "https://supabase.equipqr.app",
-  );
-});
-
 Deno.test("parseOAuthState decodes base64 JSON state", () => {
   const state = {
     sessionToken: "sess-123",

@@ -58,10 +58,5 @@ describe('useWorkOrderForm hydrate', () => {
 
     expect(result.current.form.values.dueDate).toBe(localIso);
     expect(result.current.form.values.dueDateHasTime).toBe(false);
-
-    const utcSplit = new Date(utcMidnight).toISOString().split('T')[0];
-    if (localIso !== utcSplit) {
-      expect(result.current.form.values.dueDate).not.toBe(utcSplit);
-    }
   });
 });

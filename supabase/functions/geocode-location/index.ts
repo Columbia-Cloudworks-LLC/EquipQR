@@ -17,9 +17,9 @@ import {
 import {
   applyOrganizationScope,
   geocodeLocationRequestSchema,
-  parseRequestJson,
   requireOrgMembership,
 } from "../_shared/org-scoped-queries.ts";
+import { authenticateAndParseJson } from "../_shared/user-request.ts";
 import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
 import { createStructuredLogger } from "../_shared/structured-logger.ts";
 
@@ -51,20 +51,15 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     // Create user-scoped client (RLS enforced)
     const supabase = createUserSupabaseClient(req);
 
-    // Validate user authentication
-    const auth = await requireUser(req, supabase);
-    if ("error" in auth) {
-      return createErrorResponse(auth.error, auth.status, corsOpts);
-    }
-
-    const { user } = auth;
-    logStep("User authenticated", ctx.correlationId, { userId: user.id });
-
-    const parsedBody = await parseRequestJson(req, geocodeLocationRequestSchema);
-    if (!parsedBody.success) {
-      return createErrorResponse(parsedBody.error, parsedBody.status, corsOpts);
-    }
-    const { organizationId, input } = parsedBody.data;
+    // Validate user authentication and request body
+    const authed = await authenticateAndParseJson(
+      req,
+      (r) => requireUser(r, supabase),
+      geocodeLocationRequestSchema,
+      (authedUser) => logStep("User authenticated", ctx.correlationId, { userId: authedUser.id }),
+    );
+    if (authed instanceof Response) return authed;
+    const { user, data: { organizationId, input } } = authed;
 
     const orgAccess = await requireOrgMembership(supabase, user.id, organizationId);
     if ("error" in orgAccess) {

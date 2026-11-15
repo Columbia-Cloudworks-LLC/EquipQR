@@ -1,4 +1,6 @@
 import { vi } from 'vitest';
+import type { PostgrestError } from '@supabase/supabase-js';
+import type { supabase } from '@/integrations/supabase/client';
 
 export const mockSelect = vi.fn();
 export const mockInsert = vi.fn();
@@ -47,4 +49,22 @@ export function resetPartAlternatesMockChain(): void {
   mockLimit.mockReturnValue({ data: [], error: null });
   mockSingle.mockReturnValue({ data: null, error: null });
   mockIlike.mockReturnValue({ order: mockOrder });
+}
+
+type RpcResponse = Awaited<ReturnType<typeof supabase.rpc>>;
+
+/**
+ * Build a `supabase.rpc` response for `mockResolvedValue`. The generated RPC
+ * return types are a union of every function's rows, so test payloads (often
+ * partial rows) are accepted as `unknown` and cast once here.
+ */
+export function rpcResult(data: unknown, error: Pick<PostgrestError, 'message'> & Partial<PostgrestError> | null = null): RpcResponse {
+  return {
+    data: error ? null : data,
+    error,
+    count: null,
+    status: error ? 400 : 200,
+    statusText: error ? 'Bad Request' : 'OK',
+    success: error === null,
+  } as RpcResponse;
 }

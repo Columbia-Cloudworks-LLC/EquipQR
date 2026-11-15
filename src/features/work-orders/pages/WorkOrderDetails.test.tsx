@@ -73,10 +73,6 @@ vi.mock('@/features/work-orders/hooks/useWorkOrderEquipment', () => ({
   useWorkOrderEquipment: vi.fn(() => ({ data: [] })),
 }));
 
-vi.mock('@/features/work-orders/hooks/useWorkOrderData', () => ({
-  useUpdateWorkOrderStatus: vi.fn(() => ({ isPending: false, mutate: vi.fn() })),
-}));
-
 vi.mock('@/features/work-orders/hooks/useWorkOrderStatusUpdate', () => ({
   useWorkOrderStatusUpdate: vi.fn(() => ({ isPending: false, mutate: vi.fn() })),
 }));
@@ -136,10 +132,6 @@ vi.mock('@/features/work-orders/hooks/useWorkTimer', () => ({
     start: vi.fn(),
     isRunning: false,
   })),
-}));
-
-vi.mock('@/hooks/useOnlineStatus', () => ({
-  useOnlineStatus: vi.fn(() => ({ isOnline: true, isSyncing: false })),
 }));
 
 vi.mock('@/hooks/useDocumentTitle', () => ({
@@ -299,25 +291,6 @@ describe('WorkOrderDetails', () => {
     } as unknown as ReturnType<typeof useUnifiedPermissionsModule.useUnifiedPermissions>);
   });
 
-  it('does not pass a delete request handler to mobile details for non-managers', async () => {
-    render(<WorkOrderDetails />);
-
-    await waitFor(() => {
-      expect(mockWorkOrderDetailsMobile).toHaveBeenCalled();
-    });
-
-    const mobileCalls = mockWorkOrderDetailsMobile.mock.calls;
-    const latestProps = mobileCalls[mobileCalls.length - 1]?.[0] as {
-      onDeleteRequest?: unknown;
-    };
-
-    expect(latestProps.onDeleteRequest).toBeUndefined();
-
-    await waitFor(() => {
-      expect(screen.getByText('Next action')).toBeInTheDocument();
-    });
-  });
-
   it('shows mobile action footer with onAddNote for submitted work orders created by current user and keeps Next action', async () => {
     vi.mocked(useWorkOrderDetailsDataModule.useWorkOrderDetailsData).mockReturnValue({
       workOrder: {
@@ -416,7 +389,6 @@ describe('WorkOrderDetails', () => {
           teamName: 'Field Team',
           assigneeName: 'Matt Technician',
           team: null,
-          assignee: null,
           primary_image_id: 'primary-img-1',
         },
         pmData: {
@@ -500,7 +472,6 @@ describe('WorkOrderDetails', () => {
           teamName: 'Field Team',
           assigneeName: 'Matt Technician',
           team: null,
-          assignee: null,
           primary_image_id: 'primary-desktop-1',
         },
         pmData: null,
@@ -643,8 +614,6 @@ describe('WorkOrderDetails', () => {
           updated_at: '2024-01-02T00:00:00Z',
           due_date: null,
           has_pm: true,
-          teamName: null,
-          assigneeName: null,
           primary_image_id: null,
         },
         equipment: {
@@ -693,8 +662,6 @@ describe('WorkOrderDetails', () => {
           updated_at: '2024-01-02T00:00:00Z',
           due_date: null,
           has_pm: true,
-          teamName: null,
-          assigneeName: null,
           primary_image_id: null,
         },
         equipment: {

@@ -19,7 +19,7 @@ import {
 
 interface UseEquipmentMediaLibraryOptions {
   equipmentId: string;
-  organizationId: string;
+  organizationId: string | undefined;
   currentDisplayImage?: string | null;
   enabled?: boolean;
 }
@@ -36,7 +36,10 @@ export function useEquipmentMediaLibrary({
 
   const query = useQuery({
     queryKey: [...equipment.images(equipmentId), organizationId, userRole],
-    queryFn: () => getAllEquipmentImages(equipmentId, organizationId, userRole),
+    queryFn: () => {
+      if (!organizationId) throw new Error('Organization ID required');
+      return getAllEquipmentImages(equipmentId, organizationId, userRole);
+    },
     enabled: enabled && !!equipmentId && !!organizationId,
     staleTime: 2 * 60 * 1000,
   });

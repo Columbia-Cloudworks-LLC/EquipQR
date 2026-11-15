@@ -16,7 +16,7 @@ test.describe('bulk and parts @full', () => {
   test('part lookup page loads', async ({ gotoDashboard, page, assertHealthyShell }) => {
     await gotoDashboard('/part-lookup');
     await assertHealthyShell();
-    await expect(page.getByText(/part lookup|lookup/i).first()).toBeVisible({
+    await expect(page.getByRole('heading', { level: 1, name: 'Part Lookup' })).toBeVisible({
       timeout: 60_000,
     });
   });
@@ -27,16 +27,19 @@ test.describe('bulk and parts @full', () => {
     const search = page.getByPlaceholder(/part number|search/i).first();
     await search.fill('CAT-1R-0750');
     await search.press('Enter');
-    await expect(page.getByText(/CAT|WIX|Baldwin|alternate|compatible/i).first()).toBeVisible({
-      timeout: 60_000,
-    });
+    // Seeded group (supabase/seeds/25_part_alternate_groups.sql) and one of its aftermarket members.
+    await expect(
+      page.getByRole('heading', { name: /oil filter - cat\/komatsu heavy equipment/i }),
+    ).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText('BF7679-D').first()).toBeVisible();
   });
 
   test('alternate groups list loads', async ({ gotoDashboard, page, assertHealthyShell }) => {
     await gotoDashboard('/alternate-groups');
     await assertHealthyShell();
-    await expect(page.getByText(/alternate|group/i).first()).toBeVisible({
+    await expect(page.getByRole('heading', { level: 1, name: 'Alternate Part Groups' })).toBeVisible({
       timeout: 60_000,
     });
+    await expect(page.getByRole('heading', { name: 'Air Filter - CAT 320 Series' })).toBeVisible();
   });
 });

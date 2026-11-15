@@ -37,7 +37,7 @@ As the product and test suite scale:
 
 Shared Vitest harness (setup, fixtures, mocks, journey renderers) lives at repo-root **`vitest/`** and is imported as `@vitest-harness/...`. It is not a place for product suites.
 
-Playwright end-to-end specs stay under `e2e/` (separate from Vitest). Deno edge tests use `*.deno.test.ts` next to edge modules.
+Playwright end-to-end specs stay under `e2e/` (separate from Vitest). Deno edge tests use `*.deno.test.ts` next to edge modules; `npm run test:edge` runs all of them and CI runs it in the `Edge Function & Script Tests` job of `ci.yml`.
 
 ## Test Infrastructure
 
@@ -319,12 +319,8 @@ rewrite page text nodes in-browser:
 Keep US states. Names of public business partners (for example Matt,
 Nick) are OK to show.
 
-PR visual evidence also requires `GH_SESSION_TOKEN` (GitHub
-`user_session` browser cookie — not a PAT) to upload the demo MP4. Setup:
-`dev/pr-evidence/README.md`. On Windows, `gh image extract-token` often
-picks a stale browser profile — run `gh image check-token` before
-trusting it. If it fails, copy `user_session` from DevTools on the
-browser where github.com is logged in and set `$env:GH_SESSION_TOKEN` in
-the **current shell only**. Do not persist write-tier session cookies to
-User-scope env vars or commit them.
+PR visual evidence is published with `gh` auth only
+(`bash dev/linux/pr-evidence.sh publish --flow <flow> --pr <n>`). The files
+go to the public `pr-evidence` branch, so the visual review must confirm
+nothing sensitive is in frame.
 See `dev/pr-evidence/README.md` and `e2e/pr-evidence/README.md`.

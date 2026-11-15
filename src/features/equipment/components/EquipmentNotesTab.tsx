@@ -21,6 +21,7 @@ import { resolveNoteContentFromSubmit } from '@/components/common/noteContentHel
 import type { NoteSubmitPayload } from '@/components/common/noteSubmitTypes';
 import {
   createNoteCreateMutationCallbacks,
+  type NoteCreateMutationInput,
   runOfflineAwareNoteCreate,
   showQueuedNoteCreateToasts,
 } from '@/components/common/noteCreateHelpers';
@@ -95,8 +96,8 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
   };
 
   const createNoteMutation = useMutation({
-    mutationFn: (input) =>
-      runOfflineAwareNoteCreate({
+    mutationFn: (input: NoteCreateMutationInput) =>
+      runOfflineAwareNoteCreate<unknown>({
         input,
         organizationId: activeOrganizationId,
         userId: user?.id,
@@ -173,8 +174,9 @@ const EquipmentNotesTab: React.FC<EquipmentNotesTabProps> = ({
     deleteNote: (note) => deleteEquipmentNote(activeOrganizationId!, equipmentId, note.id),
     deleteNoteImage: (imageId) =>
       deleteEquipmentNoteImage(imageId, activeOrganizationId!, equipmentId),
-    addNoteImages: (note, files) =>
-      addImagesToEquipmentNote(equipmentId, note.id, files, activeOrganizationId!),
+    addNoteImages: async (note, files) => {
+      await addImagesToEquipmentNote(equipmentId, note.id, files, activeOrganizationId!);
+    },
   });
 
   const userDisplayName = user?.user_metadata?.name || user?.email?.split('@')[0] || 'User';

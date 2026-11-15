@@ -129,6 +129,9 @@ export const getEquipmentNotesWithImages = async (equipmentId: string): Promise<
 
   return notesData.map((note, noteIdx) => ({
     ...note,
+    author_id: note.author_id ?? '',
+    last_modified_by: note.last_modified_by ?? undefined,
+    last_modified_at: note.last_modified_at ?? undefined,
     hours_worked: Number(note.hours_worked) || 0,
     machine_hours: note.machine_hours != null ? Number(note.machine_hours) : null,
     author_name: (note.profiles as { name?: string } | null | undefined)?.name || 'Unknown',
@@ -175,6 +178,11 @@ export const createEquipmentNoteWithImages = async (
 
   return {
     ...note,
+    author_id: note.author_id ?? userId,
+    author_name: note.author_name || 'Unknown',
+    last_modified_by: note.last_modified_by ?? undefined,
+    last_modified_at: note.last_modified_at ?? undefined,
+    hours_worked: Number(note.hours_worked) || 0,
     images: uploadedImages,
   };
 };

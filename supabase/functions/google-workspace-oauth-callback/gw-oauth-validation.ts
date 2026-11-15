@@ -1,4 +1,7 @@
-import { isAllowedOrigin } from "../_shared/origin-validation.ts";
+import {
+  createOAuthCallbackLogStep,
+  isValidOAuthRedirectUrl,
+} from "../_shared/oauth-callback-validation.ts";
 import { resolvePublicSiteUrl } from "../_shared/public-site-url.ts";
 
 // OAuth state validation constants
@@ -7,16 +10,7 @@ import { resolvePublicSiteUrl } from "../_shared/public-site-url.ts";
 export const STATE_TTL_MS = 15 * 60 * 1000;
 export const MAX_CLOCK_SKEW_MS = 2 * 60 * 1000;
 
-export const logStep = (step: string, details?: Record<string, unknown>) => {
-  const safeDetails = details ? { ...details } : undefined;
-  if (safeDetails) {
-    delete safeDetails.access_token;
-    delete safeDetails.refresh_token;
-    delete safeDetails.nonce;
-  }
-  const detailsStr = safeDetails ? ` - ${JSON.stringify(safeDetails)}` : "";
-  console.log(`[GOOGLE-WORKSPACE-OAUTH-CALLBACK] ${step}${detailsStr}`);
-};
+export const logStep = createOAuthCallbackLogStep("GOOGLE-WORKSPACE-OAUTH-CALLBACK");
 
 /**
  * This mirrors the SQL normalize_domain() function for non-null inputs.
@@ -73,67 +67,8 @@ export function isPreviewEnvironment(): boolean {
   return publicSiteUrl.includes("preview.");
 }
 
-function resolveHostname(urlString: string): string | null {
-  try {
-    return new URL(urlString).hostname;
-  } catch {
-    return null;
-  }
-}
-
-function isLoopbackHostname(hostname: string): boolean {
-  return hostname === "localhost" || hostname === "127.0.0.1";
-}
-
-function isLocalDevelopmentContext(): boolean {
-  const publicSiteHostname = resolveHostname(resolvePublicSiteUrl());
-  return !!publicSiteHostname && isLoopbackHostname(publicSiteHostname);
-}
-
 export function isValidRedirectUrl(urlToValidate: string | null, productionUrl: string): boolean {
-  if (!urlToValidate) return true;
-
-  try {
-    if (urlToValidate.startsWith("/") && !urlToValidate.startsWith("//")) {
-      return true;
-    }
-
-    const url = new URL(urlToValidate);
-    const productionDomain = new URL(productionUrl).hostname;
-
-    const publicSiteDomain = resolveHostname(resolvePublicSiteUrl());
-    const isLoopbackRedirect = isLoopbackHostname(url.hostname);
-
-    if (isLoopbackRedirect) {
-      return isLocalDevelopmentContext();
-    }
-
-    const allowedDomains = new Set([
-      productionDomain,
-      publicSiteDomain,
-    ].filter((domain): domain is string => !!domain));
-
-    if (allowedDomains.has(url.hostname)) {
-      return true;
-    }
-
-    // Cloud preview and PR deployments store window.location.origin even when
-    // PUBLIC_SITE_URL points at production (shared Supabase project post-#1033).
-    if (isAllowedOrigin(url.origin)) {
-      return true;
-    }
-
-    logStep("Redirect URL validation failed", {
-      redirectUrl: urlToValidate.substring(0, 100),
-      hostname: url.hostname,
-      productionDomain,
-      publicSiteDomain,
-    });
-    return false;
-  } catch {
-    logStep("Redirect URL is malformed", { redirectUrl: urlToValidate.substring(0, 100) });
-    return false;
-  }
+  return isValidOAuthRedirectUrl(urlToValidate, productionUrl, logStep);
 }
 
 /**

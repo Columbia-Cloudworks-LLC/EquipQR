@@ -16,7 +16,7 @@ describe('InventoryAccessGuard', () => {
       isPartsManager: false,
       isPartsConsumer: false,
       isLoading: true,
-      currentOrganization: undefined,
+      currentOrganization: null,
     });
 
     render(
@@ -36,7 +36,7 @@ describe('InventoryAccessGuard', () => {
       isPartsManager: false,
       isPartsConsumer: false,
       isLoading: false,
-      currentOrganization: undefined,
+      currentOrganization: null,
     });
 
     render(
@@ -57,7 +57,7 @@ describe('InventoryAccessGuard', () => {
       isPartsManager: false,
       isPartsConsumer: true,
       isLoading: false,
-      currentOrganization: undefined,
+      currentOrganization: null,
     });
 
     render(

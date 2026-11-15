@@ -76,6 +76,9 @@ test.describe('organization and integrations @full', () => {
   test('teams list loads', async ({ gotoDashboard, page, assertHealthyShell }) => {
     await gotoDashboard('/teams');
     await assertHealthyShell();
-    await expect(page.getByText(/team/i).first()).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByRole('heading', { level: 1, name: 'Teams' })).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.getByRole('heading', { name: 'Heavy Equipment Team' })).toBeVisible();
   });
 });

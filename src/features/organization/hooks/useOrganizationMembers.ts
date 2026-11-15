@@ -9,7 +9,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { getAuthClaims } from '@/lib/authClaims';
-import { useMemo } from 'react';
 import type { Database } from '@/integrations/supabase/types';
 import { logger } from '@/utils/logger';
 import type { OrganizationMember } from '@/features/organization/types/organization';
@@ -17,9 +16,6 @@ import {
   batchResolveUserAvatarDisplayUrls,
   displayUrlForStoredPrivateImage,
 } from '@/services/imageUploadService';
-
-// Re-export the canonical type for backward compatibility
-export type RealOrganizationMember = OrganizationMember;
 
 type OrganizationMemberRow = Database['public']['Tables']['organization_members']['Row'];
 type ProfileRow = Pick<Database['public']['Tables']['profiles']['Row'], 'id' | 'name' | 'email'> & { avatar_url?: string | null };
@@ -100,27 +96,6 @@ export const useOrganizationMembersQuery = (organizationId: string) => {
  * @deprecated Use useOrganizationMembersQuery instead
  */
 export const useOrganizationMembers = useOrganizationMembersQuery;
-
-/**
- * Hook for computed organization member statistics
- */
-export const useOrganizationMemberStats = (organizationId: string) => {
-  const { data: members = [] } = useOrganizationMembersQuery(organizationId);
-  
-  return useMemo(() => {
-    const activeMembers = members.filter(m => m.status === 'active');
-    const pendingMembers = members.filter(m => m.status === 'pending');
-    const adminCount = members.filter(m => m.role === 'admin' || m.role === 'owner').length;
-    
-    return {
-      totalMembers: members.length,
-      activeMembers: activeMembers.length,
-      pendingMembers: pendingMembers.length,
-      adminCount,
-      members
-    };
-  }, [members]);
-};
 
 // Optimized mutation with optimistic updates
 interface UpdateMemberRoleVariables {

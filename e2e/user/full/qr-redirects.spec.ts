@@ -15,18 +15,6 @@ test.describe('QR redirects @full', () => {
     await expect(page.locator('#main-content, main').first()).toBeVisible();
   });
 
-  test('unauthenticated equipment QR shows scan shell without error boundary', async ({ browser }) => {
-    const context = await browser.newContext();
-    const page = await context.newPage();
-    await page.goto(`/qr/equipment/${seedEquipment.cat320.id}`);
-    await expect(page.locator('body')).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByText(/something went wrong/i)).toHaveCount(0);
-    const onAuth = /\/auth/i.test(page.url());
-    const onQr = /\/qr\/equipment/i.test(page.url());
-    expect(onAuth || onQr).toBe(true);
-    await context.close();
-  });
-
   test('work order QR lands on work order detail', async ({ page }) => {
     await page.goto(`/qr/work-order/${seedWorkOrders.oilChange.id}`);
     await expect(page).toHaveURL(

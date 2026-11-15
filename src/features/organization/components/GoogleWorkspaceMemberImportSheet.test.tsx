@@ -57,6 +57,7 @@ vi.mock('@/features/organization/hooks/useGoogleWorkspaceMemberClaims', () => ({
 import { GoogleWorkspaceMemberImportSheet } from './GoogleWorkspaceMemberImportSheet';
 import { useOrganizationMembersQuery } from '@/features/organization/hooks/useOrganizationMembers';
 import { useGoogleWorkspaceMemberClaims } from '@/features/organization/hooks/useGoogleWorkspaceMemberClaims';
+import { createSuccessQueryResult } from '@/features/organization/testing/createSuccessQueryResult';
 
 describe('GoogleWorkspaceMemberImportSheet', () => {
   const defaultProps = {
@@ -78,61 +79,9 @@ describe('GoogleWorkspaceMemberImportSheet', () => {
     mockSyncUsers.mockResolvedValue({ usersSynced: 5 });
     mockSelectMembers.mockResolvedValue({ members_added: 2, admin_applied: 1, admin_pending: 0 });
     
-    vi.mocked(useOrganizationMembersQuery).mockReturnValue({
-      data: [],
-      isLoading: false,
-      error: null,
-      isError: false,
-      isPending: false,
-      isSuccess: true,
-      status: 'success',
-      dataUpdatedAt: Date.now(),
-      errorUpdatedAt: 0,
-      failureCount: 0,
-      failureReason: null,
-      errorUpdateCount: 0,
-      fetchStatus: 'idle',
-      isFetched: true,
-      isFetchedAfterMount: true,
-      isFetching: false,
-      isInitialLoading: false,
-      isLoadingError: false,
-      isPaused: false,
-      isPlaceholderData: false,
-      isRefetchError: false,
-      isRefetching: false,
-      isStale: false,
-      refetch: vi.fn(),
-      promise: Promise.resolve([]),
-    } as ReturnType<typeof useOrganizationMembersQuery>);
+    vi.mocked(useOrganizationMembersQuery).mockReturnValue(createSuccessQueryResult([]));
     
-    vi.mocked(useGoogleWorkspaceMemberClaims).mockReturnValue({
-      data: [],
-      isLoading: false,
-      error: null,
-      isError: false,
-      isPending: false,
-      isSuccess: true,
-      status: 'success',
-      dataUpdatedAt: Date.now(),
-      errorUpdatedAt: 0,
-      failureCount: 0,
-      failureReason: null,
-      errorUpdateCount: 0,
-      fetchStatus: 'idle',
-      isFetched: true,
-      isFetchedAfterMount: true,
-      isFetching: false,
-      isInitialLoading: false,
-      isLoadingError: false,
-      isPaused: false,
-      isPlaceholderData: false,
-      isRefetchError: false,
-      isRefetching: false,
-      isStale: false,
-      refetch: vi.fn(),
-      promise: Promise.resolve([]),
-    });
+    vi.mocked(useGoogleWorkspaceMemberClaims).mockReturnValue(createSuccessQueryResult([]));
   });
 
   it('renders the sheet with title and description', async () => {
@@ -151,33 +100,7 @@ describe('GoogleWorkspaceMemberImportSheet', () => {
 
   describe('filtering existing members', () => {
     it('filters out existing organization members', async () => {
-      vi.mocked(useOrganizationMembersQuery).mockReturnValue({
-        data: [{ id: 'm-1', email: 'alice@example.com', name: 'Alice', role: 'member', status: 'active', joinedDate: '2024-01-01' }],
-        isLoading: false,
-        error: null,
-        isError: false,
-        isPending: false,
-        isSuccess: true,
-        status: 'success',
-        dataUpdatedAt: Date.now(),
-        errorUpdatedAt: 0,
-        failureCount: 0,
-        failureReason: null,
-        errorUpdateCount: 0,
-        fetchStatus: 'idle',
-        isFetched: true,
-        isFetchedAfterMount: true,
-        isFetching: false,
-        isInitialLoading: false,
-        isLoadingError: false,
-        isPaused: false,
-        isPlaceholderData: false,
-        isRefetchError: false,
-        isRefetching: false,
-        isStale: false,
-        refetch: vi.fn(),
-        promise: Promise.resolve([]),
-      } as ReturnType<typeof useOrganizationMembersQuery>);
+      vi.mocked(useOrganizationMembersQuery).mockReturnValue(createSuccessQueryResult([{ id: 'm-1', userId: 'user-m-1', email: 'alice@example.com', name: 'Alice', role: 'member', status: 'active', joinedDate: '2024-01-01' }]));
 
       customRender(<GoogleWorkspaceMemberImportSheet {...defaultProps} />);
 
@@ -194,33 +117,7 @@ describe('GoogleWorkspaceMemberImportSheet', () => {
     });
 
     it('filters out pending GWS claims', async () => {
-      vi.mocked(useGoogleWorkspaceMemberClaims).mockReturnValue({
-        data: [{ id: 'claim-1', email: 'bob@example.com', organizationId: 'org-123', source: 'google_workspace', status: 'selected', createdBy: 'admin', createdAt: '2024-01-01' }],
-        isLoading: false,
-        error: null,
-        isError: false,
-        isPending: false,
-        isSuccess: true,
-        status: 'success',
-        dataUpdatedAt: Date.now(),
-        errorUpdatedAt: 0,
-        failureCount: 0,
-        failureReason: null,
-        errorUpdateCount: 0,
-        fetchStatus: 'idle',
-        isFetched: true,
-        isFetchedAfterMount: true,
-        isFetching: false,
-        isInitialLoading: false,
-        isLoadingError: false,
-        isPaused: false,
-        isPlaceholderData: false,
-        isRefetchError: false,
-        isRefetching: false,
-        isStale: false,
-        refetch: vi.fn(),
-        promise: Promise.resolve([]),
-      });
+      vi.mocked(useGoogleWorkspaceMemberClaims).mockReturnValue(createSuccessQueryResult([{ id: 'claim-1', email: 'bob@example.com', organizationId: 'org-123', source: 'google_workspace', status: 'selected', createdBy: 'admin', createdAt: '2024-01-01' }]));
 
       customRender(<GoogleWorkspaceMemberImportSheet {...defaultProps} />);
 

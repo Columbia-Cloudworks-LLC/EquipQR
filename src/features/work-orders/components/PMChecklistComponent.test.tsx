@@ -1,7 +1,7 @@
 import { screen, fireEvent, waitFor, within } from '@vitest-harness/utils/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
-import type { WorkOrderData } from '@/features/work-orders/types/workOrderDetails';
+import type { WorkOrderDetailsData } from '@/features/work-orders/types/workOrderDetails';
 import { workOrderRevertService } from '@/features/work-orders/services/workOrderRevertService';
 import { toast } from 'sonner';
 import {
@@ -423,7 +423,7 @@ describe('PMChecklistComponent', () => {
       created_date: '2024-01-01T00:00:00Z',
       equipment_id: 'eq-1',
       organization_id: 'org-1',
-    } satisfies WorkOrderData;
+    } satisfies WorkOrderDetailsData;
 
     it('shows helper copy, the new label, and requires confirmation before reverting PM', async () => {
       const pm = createMockPM({ status: 'completed', notes: 'Completed PM summary' });

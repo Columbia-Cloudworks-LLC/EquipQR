@@ -141,29 +141,23 @@ describe('Organization page OAuth callbacks', () => {
     expect(options).toEqual({ replace: true });
   });
 
-  it.each(['owner', 'admin'] as const)(
-    'renders the organization tab bar and form for %s users',
-    (role) => {
-      mockOrganizationState.currentOrganization.userRole = role;
-      mockCanManageOrganization.mockReturnValue(true);
+  // Access is gated only by canManageOrganization(); the org role does not change what renders here.
+  it('renders the organization tab bar and form when the user can manage the organization', () => {
+    mockOrganizationState.currentOrganization.userRole = 'admin';
+    mockCanManageOrganization.mockReturnValue(true);
 
-      customRender(<Organization />);
+    customRender(<Organization />);
 
-      expect(
-        screen.getByRole('navigation', { name: 'Organization sections' }),
-      ).toBeInTheDocument();
-      expect(screen.getByRole('heading', { name: 'Organization Settings' })).toBeInTheDocument();
-      expect(screen.getByRole('textbox', { name: 'Organization Name' })).toBeInTheDocument();
-      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    },
-  );
+    expect(
+      screen.getByRole('navigation', { name: 'Organization sections' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Organization Settings' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Organization Name' })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
 
-  it.each([
-    { label: 'viewer', userRole: 'viewer' },
-    { label: 'technician', userRole: 'member' },
-    { label: 'team manager without org-admin', userRole: 'member' },
-  ])('renders denied state with no form fields for $label', ({ userRole }) => {
-    mockOrganizationState.currentOrganization.userRole = userRole;
+  it('renders denied state with no form fields when the user cannot manage the organization', () => {
+    mockOrganizationState.currentOrganization.userRole = 'member';
     mockCanManageOrganization.mockReturnValue(false);
 
     customRender(<Organization />);

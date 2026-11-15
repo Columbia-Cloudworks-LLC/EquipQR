@@ -1,19 +1,6 @@
 
 import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
-import { EquipmentNote } from '@/features/equipment/types/equipmentNotes';
-
-export interface EquipmentNotesPermissions {
-  canViewNotes: boolean;
-  canAddPublicNote: boolean;
-  canAddPrivateNote: boolean;
-  canEditOwnNote: (note: EquipmentNote) => boolean;
-  canEditAnyNote: boolean;
-  canDeleteOwnNote: (note: EquipmentNote) => boolean;
-  canDeleteAnyNote: boolean;
-  canUploadImages: boolean;
-  canDeleteImages: boolean;
-  canSetDisplayImage: boolean;
-}
+import type { EquipmentNotesPermissions } from '@/types/permissions';
 
 export const useEquipmentNotesPermissions = (
   equipmentTeamId?: string

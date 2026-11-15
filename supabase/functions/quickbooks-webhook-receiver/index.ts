@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
-import { MissingSecretError, requireSecret } from "../_shared/require-secret.ts";
+import { requireSecret } from "../_shared/require-secret.ts";
 import {
   createErrorResponse,
   createJsonResponse,
@@ -7,6 +7,7 @@ import {
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
 import { verifyIntuitSignature } from "./webhook-helpers.ts";
+import { createInternalErrorResponse } from "../_shared/quickbooks-error-handling.ts";
 
 const FUNCTION_NAME = "quickbooks-webhook-receiver";
 
@@ -139,12 +140,7 @@ Deno.serve(withCorrelationId(async (req, ctx) => {
     logStep("Webhook accepted", { inserted: rows.length, correlation_id: ctx.correlationId });
     return createJsonResponse({ success: true, inserted: rows.length }, 200, { req });
   } catch (error) {
-    if (error instanceof MissingSecretError) {
-      return createErrorResponse(error, 500, { req });
-    }
-    const message = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message, correlation_id: ctx.correlationId });
-    return createErrorResponse("An internal error occurred", 500, { req });
+    return createInternalErrorResponse(error, req, logStep, ctx.correlationId);
   }
 }));
 

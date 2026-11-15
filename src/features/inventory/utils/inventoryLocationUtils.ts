@@ -95,8 +95,8 @@ export function inventoryLocationToPlaceData(
     city: location.location_city ?? '',
     state: location.location_state ?? '',
     country: location.location_country ?? '',
-    lat: location.location_lat ?? undefined,
-    lng: location.location_lng ?? undefined,
+    lat: location.location_lat ?? null,
+    lng: location.location_lng ?? null,
   };
 }
 
@@ -118,8 +118,8 @@ export function organizationInventoryDefaultToPlaceData(
     city: org.inventory_default_location_city ?? '',
     state: org.inventory_default_location_state ?? '',
     country: org.inventory_default_location_country ?? '',
-    lat: org.inventory_default_location_lat ?? undefined,
-    lng: org.inventory_default_location_lng ?? undefined,
+    lat: org.inventory_default_location_lat ?? null,
+    lng: org.inventory_default_location_lng ?? null,
   };
 }
 

@@ -31,7 +31,7 @@ Human logins and personal MCP tokens are not automation configuration and are no
 
 Every write is idempotent. Labels are created on first use, adding a label that is present or removing one that is missing never fails the run, and the needs-info checklist comment is updated in place instead of reposted.
 
-Run the tests with `node --test .github/scripts/issue-automation.test.js`.
+Run the tests with `npm run test:gh-scripts` (all `.github/scripts/*.test.js` suites). CI runs them in the `Edge Function & Script Tests` job of `ci.yml`, alongside `npm run test:edge` for the Supabase Edge Function Deno tests.
 
 ### Label scheme
 

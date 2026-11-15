@@ -3,9 +3,13 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import {
   WorkOrderDetailsMobileContent,
+  type WorkOrderDetailsMobileAccess,
   type WorkOrderDetailsMobileContentProps,
 } from '@/features/work-orders/components/WorkOrderDetailsMobileContent';
-import type { WorkOrder } from '@/features/work-orders/types/workOrder';
+import {
+  createPreventativeMaintenanceFixture,
+  createWorkOrderFixture,
+} from '@/features/work-orders/utils/createWorkOrderFixture';
 
 vi.mock('@/features/work-orders/hooks/useWorkOrderStatusChangeHandlers', () => ({
   useWorkOrderStatusChangeHandlers: () => ({
@@ -60,8 +64,7 @@ vi.mock('@/features/teams/components/CustomerContactActions', () => ({
   ),
 }));
 
-const workOrder = {
-  id: 'wo-1',
+const workOrder = createWorkOrderFixture({
   title: 'Hydraulic repair',
   status: 'in_progress',
   priority: 'high',
@@ -71,11 +74,8 @@ const workOrder = {
   created_date: '2026-01-01T00:00:00Z',
   due_date: '2026-06-01T12:00:00Z',
   updated_at: '2026-01-02T00:00:00Z',
-  equipment_id: 'eq-1',
-  organization_id: 'org-1',
   equipmentTeamId: 'team-1',
-  is_historical: false,
-} as WorkOrder;
+});
 
 const equipment = {
   id: 'eq-1',
@@ -90,27 +90,27 @@ const emptyRef = { current: null };
 
 function renderMobileContent(
   overrides: Partial<WorkOrderDetailsMobileContentProps> = {},
+  accessOverrides: Partial<WorkOrderDetailsMobileAccess> = {},
 ) {
   render(
     <WorkOrderDetailsMobileContent
       workOrder={workOrder}
       equipment={equipment as WorkOrderDetailsMobileContentProps['equipment']}
-      pmData={{
-        id: 'pm-1',
-        status: 'in_progress',
-        checklist_data: [],
-      } as WorkOrderDetailsMobileContentProps['pmData']}
+      pmData={createPreventativeMaintenanceFixture({ status: 'in_progress' })}
       currentOrganization={{ id: 'org-1', name: 'Test Org' }}
       permissionLevels={{ isManager: true, isTechnician: true }}
       pmChecklist={{ progress: 1, total: 3 }}
       pmLoading={false}
-      isWorkOrderLocked={false}
-      canAddNotes={true}
-      canUsePrivateNotes={true}
-      canUpload={true}
-      canAddCosts={true}
-      canEditCosts={true}
-      canViewWorkOrderCosts={true}
+      access={{
+        isWorkOrderLocked: false,
+        canAddNotes: true,
+        canUsePrivateNotes: true,
+        canUpload: true,
+        canAddCosts: true,
+        canEditCosts: true,
+        canViewWorkOrderCosts: true,
+        ...accessOverrides,
+      }}
       hideInlineNoteAddButton={true}
       shouldAutoOpenNoteForm={false}
       openNoteFormTrigger={0}
@@ -137,6 +137,7 @@ function renderMobileContent(
       onAddNote={noop}
       onAddPhoto={noop}
       onComplete={noop}
+      onRetrySync={noop}
       baseCanAddNotes={false}
       {...overrides}
     />,
@@ -176,11 +177,10 @@ describe('WorkOrderDetailsMobileContent', () => {
   it('shows Reopen work order on a locked completed work order', () => {
     renderMobileContent({
       workOrder: { ...workOrder, status: 'completed' },
-      isWorkOrderLocked: true,
       baseCanAddNotes: true,
       showMobileActionFooter: false,
       footerRoleEligible: false,
-    });
+    }, { isWorkOrderLocked: true });
 
     expect(screen.getByRole('button', { name: /reopen work order/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /revert to accepted/i })).not.toBeInTheDocument();
@@ -222,8 +222,7 @@ describe('WorkOrderDetailsMobileContent', () => {
   it('keeps work order costs hidden when the viewer cannot see shop costs', () => {
     renderMobileContent({
       permissionLevels: { isManager: false, isTechnician: false },
-      canViewWorkOrderCosts: false,
-    });
+    }, { canViewWorkOrderCosts: false });
 
     expect(screen.queryByText('Work order costs')).not.toBeInTheDocument();
   });

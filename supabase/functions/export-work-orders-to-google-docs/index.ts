@@ -1,25 +1,28 @@
 import {
   createAdminSupabaseClient,
-  requireAuthenticatedPost,
-  verifyOrgAdmin,
   createErrorResponse,
-  handleCorsPreflightIfNeeded,
 } from "../_shared/supabase-clients.ts";
-import { getCorsHeaders } from "../_shared/cors.ts";
+import { GoogleWorkspaceTokenError } from "../_shared/google-workspace-token.ts";
 import {
-  getGoogleWorkspaceAccessToken,
-  GoogleWorkspaceTokenError,
-  GOOGLE_SCOPES,
-  hasScope,
-} from "../_shared/google-workspace-token.ts";
+  exportTokenErrorResponse,
+  getGoogleAccessTokenOrError,
+} from "../_shared/google-workspace-token-response.ts";
 import {
-  checkRateLimit,
-  createWorkOrderExportRateLimitResponse,
-  type ExportRequest,
-} from "../_shared/work-orders-export-data.ts";
+  enforceExportAdminAndRateLimit,
+  handleAuthenticatedExportPost,
+} from "../_shared/export-request-gate.ts";
+import {
+  finishExportRequestLog,
+  insertPendingExportRequestLog,
+} from "../_shared/export-request-log.ts";
+import {
+  createInternalPacketDoc,
+  hasRequiredDocsExportScopes,
+  resolveTeamEquipmentFolder,
+} from "../_shared/google-docs-export-support.ts";
+import type { ExportRequest } from "../_shared/work-orders-export-data.ts";
 import { buildSingleWorkOrderGoogleDocData } from "../_shared/work-order-google-docs-single-data.ts";
 import {
-  createGoogleDocInFolder,
   batchUpdateGoogleDoc,
   deleteGoogleDriveFile,
 } from "../_shared/google-docs-api.ts";
@@ -51,25 +54,9 @@ function validateDocsExportRequest(body: ExportRequest): { code: string; error: 
   return null;
 }
 
-function hasRequiredDocsExportScopes(scopes: string | null | undefined): boolean {
-  return (
-    hasScope(scopes, GOOGLE_SCOPES.DRIVE_FILE)
-    && hasScope(scopes, GOOGLE_SCOPES.DOCUMENTS)
-  );
-}
-
-Deno.serve(async (req) => {
-  const corsResponse = handleCorsPreflightIfNeeded(req);
-  if (corsResponse) return corsResponse;
-  const corsHeaders = getCorsHeaders(req);
-
-  try {
-    const authContext = await requireAuthenticatedPost(req);
-    if (authContext instanceof Response) {
-      return authContext;
-    }
-    const { supabase, user } = authContext;
-
+Deno.serve((req) => handleAuthenticatedExportPost(
+  req,
+  async ({ corsHeaders, supabase, user }) => {
     let body: ExportRequest;
     try {
       body = await req.json();
@@ -93,21 +80,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    const isAdmin = await verifyOrgAdmin(supabase, user.id, organizationId);
-    if (!isAdmin) {
-      return createErrorResponse("Forbidden: Only owners and admins can export reports", 403, { req });
-    }
-
-    let rateLimitOk: boolean;
-    try {
-      rateLimitOk = await checkRateLimit(supabase, user.id, organizationId);
-    } catch (rateLimitError) {
-      console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Rate limit check error:", rateLimitError);
-      return createErrorResponse("An internal error occurred", 500, { req });
-    }
-    if (!rateLimitOk) {
-      return createWorkOrderExportRateLimitResponse(corsHeaders);
-    }
+    const gateResponse = await enforceExportAdminAndRateLimit({
+      req,
+      corsHeaders,
+      supabase,
+      userId: user.id,
+      organizationId,
+      rateLimitErrorLabel: "[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Rate limit check error:",
+    });
+    if (gateResponse) return gateResponse;
 
     const { data: destination, error: destinationError } = await supabase
       .from("organization_google_export_destinations")
@@ -132,17 +113,9 @@ Deno.serve(async (req) => {
     }
 
     const adminClient = createAdminSupabaseClient();
-    let tokenResult;
-    try {
-      tokenResult = await getGoogleWorkspaceAccessToken(adminClient, organizationId);
-    } catch (tokenError) {
-      if (tokenError instanceof GoogleWorkspaceTokenError) {
-        return new Response(
-          JSON.stringify({ error: tokenError.message, code: tokenError.code }),
-          { status: tokenError.code === "not_connected" ? 400 : 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      }
-      throw tokenError;
+    const tokenResult = await getGoogleAccessTokenOrError(adminClient, organizationId);
+    if (tokenResult instanceof GoogleWorkspaceTokenError) {
+      return exportTokenErrorResponse(corsHeaders, tokenResult);
     }
 
     if (!hasRequiredDocsExportScopes(tokenResult.scopes)) {
@@ -155,21 +128,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { data: exportLog, error: exportLogInsertError } = await adminClient
-      .from("export_request_log")
-      .insert({
-        user_id: user.id,
-        organization_id: organizationId,
-        report_type: "work-orders-google-docs",
-        row_count: 0,
-        status: "pending",
-      })
-      .select("id")
-      .single();
+    const { id: exportLogId, error: exportLogInsertError } = await insertPendingExportRequestLog(adminClient, {
+      userId: user.id,
+      organizationId,
+      reportType: "work-orders-google-docs",
+    });
     if (exportLogInsertError) {
       console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Failed to create export log:", exportLogInsertError.message);
     }
-    const exportLogId = exportLog?.id;
     let createdDocId: string | undefined;
 
     try {
@@ -183,18 +149,12 @@ Deno.serve(async (req) => {
       );
 
       // --- Resolve subfolder path: Team / Equipment (respects org toggles) ---
-      const folderByTeam = destination.folder_by_team !== false;
-      const folderByEquipment = destination.folder_by_equipment !== false;
-
       let targetParentId = destination.parent_id;
       try {
-        targetParentId = await resolveExportFolderPath(
+        targetParentId = await resolveTeamEquipmentFolder(
           tokenResult.accessToken,
-          destination.parent_id,
-          [
-            { name: folderByTeam ? packetData.team.name : null },
-            { name: folderByEquipment ? packetData.equipment.name : null },
-          ],
+          destination,
+          packetData,
         );
       } catch (folderError) {
         const msg = folderError instanceof Error ? folderError.message : String(folderError);
@@ -221,12 +181,12 @@ Deno.serve(async (req) => {
 
       // --- Create new Google Doc first (safe: old doc stays intact on failure) ---
       const dateStr = new Date().toISOString().split("T")[0];
-      const title = `${packetData.workOrder.title} — Internal Packet ${dateStr}`;
 
-      const doc = await createGoogleDocInFolder(
+      const doc = await createInternalPacketDoc(
         tokenResult.accessToken,
-        title,
+        packetData,
         targetParentId,
+        dateStr,
       );
       createdDocId = doc.id;
 
@@ -282,14 +242,10 @@ Deno.serve(async (req) => {
       }
 
       if (exportLogId) {
-        const { error: logUpdateError } = await adminClient
-          .from("export_request_log")
-          .update({
-            status: "completed",
-            row_count: 1,
-            completed_at: new Date().toISOString(),
-          })
-          .eq("id", exportLogId);
+        const logUpdateError = await finishExportRequestLog(adminClient, exportLogId, {
+          status: "completed",
+          rowCount: 1,
+        });
         if (logUpdateError) {
           console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Failed to update export log:", logUpdateError.message);
         }
@@ -325,13 +281,7 @@ Deno.serve(async (req) => {
       }
 
       if (exportLogId) {
-        const { error: failLogError } = await adminClient
-          .from("export_request_log")
-          .update({
-            status: "failed",
-            completed_at: new Date().toISOString(),
-          })
-          .eq("id", exportLogId);
+        const failLogError = await finishExportRequestLog(adminClient, exportLogId, { status: "failed" });
         if (failLogError) {
           console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Failed to update export log on failure:", failLogError.message);
         }
@@ -352,11 +302,12 @@ Deno.serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-  } catch (error) {
+  },
+  (error) => {
     const errMsg = error instanceof Error ? error.message : String(error);
     console.error("[EXPORT-WORK-ORDERS-TO-GOOGLE-DOCS] Outer error:", errMsg);
     return createErrorResponse("An unexpected error occurred", 500, { req });
-  }
-});
+  },
+));
 
 export const __testables = { validateDocsExportRequest, hasRequiredDocsExportScopes };

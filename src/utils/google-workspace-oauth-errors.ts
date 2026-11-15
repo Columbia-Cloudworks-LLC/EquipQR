@@ -23,3 +23,15 @@ export function getGoogleWorkspaceOAuthErrorMessage(
 
   return supportRef ? `${base} Reference: ${supportRef}` : base;
 }
+
+/** Query params the Google Workspace OAuth callback appends to the return URL. */
+const GOOGLE_WORKSPACE_OAUTH_RETURN_PARAMS = ['gw_error', 'gw_error_description', 'gw_ref', 'gw_connected'] as const;
+
+/** Copy of `searchParams` without the Google Workspace OAuth return params. */
+export function withoutGoogleWorkspaceOAuthParams(searchParams: URLSearchParams): URLSearchParams {
+  const next = new URLSearchParams(searchParams);
+  for (const param of GOOGLE_WORKSPACE_OAUTH_RETURN_PARAMS) {
+    next.delete(param);
+  }
+  return next;
+}

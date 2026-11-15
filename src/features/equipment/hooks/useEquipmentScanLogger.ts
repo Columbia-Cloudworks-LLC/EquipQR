@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useCreateScan } from '@/features/equipment/hooks/useEquipment';
-import type { Equipment } from '@/features/equipment/types/equipment';
+import type { Equipment } from '@/features/equipment/services/EquipmentService';
 
 type UseEquipmentScanLoggerParams = {
   equipmentId: string | undefined;

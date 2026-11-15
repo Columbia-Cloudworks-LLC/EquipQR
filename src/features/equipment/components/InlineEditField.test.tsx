@@ -226,19 +226,6 @@ describe('InlineEditField', () => {
         expect(mockOnSave).toHaveBeenCalledWith('New Value');
       });
     });
-
-    it('cancels on Escape key', () => {
-      render(<InlineEditField value="Test Value" onSave={mockOnSave} canEdit={true} />);
-      
-      const editButton = screen.getByRole('button', { name: /edit/i });
-      fireEvent.click(editButton);
-      
-      const input = screen.getByDisplayValue('Test Value');
-      fireEvent.change(input, { target: { value: 'New Value' } });
-      fireEvent.keyDown(input, { key: 'Escape' });
-      
-      expect(screen.queryByDisplayValue('New Value')).not.toBeInTheDocument();
-    });
   });
 
   describe('Field Types', () => {

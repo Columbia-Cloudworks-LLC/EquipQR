@@ -5,7 +5,6 @@ import {
   withMinorVersion,
 } from "../_shared/quickbooks-config.ts";
 import { requireBearerUserJsonUnauthorized } from "../_shared/supabase-clients.ts";
-import { MissingSecretError } from "../_shared/require-secret.ts";
 import { serveQuickBooksFunction } from "../_shared/quickbooks-serve.ts";
 import { createRedactedLogStep } from "../_shared/redacted-logger.ts";
 import {
@@ -54,6 +53,7 @@ import {
   buildCustomerQueries,
   sanitizeCustomerSearchQuery,
 } from "./qbo-customer-query.ts";
+import { logUnexpectedHandlerError } from "../_shared/quickbooks-error-handling.ts";
 export { buildQBOContacts } from "./qbo-contacts.ts";
 
 interface CustomerQueryResponse {
@@ -298,10 +298,7 @@ serveQuickBooksFunction(FUNCTION_NAME, logStep, async ({
 
   } catch (error) {
     // Log detailed error server-side only - never expose to client
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    if (!(error instanceof MissingSecretError)) {
-      logStep("ERROR", { message: errorMessage, correlation_id: ctx.correlationId });
-    }
+    logUnexpectedHandlerError(error, logStep, ctx.correlationId);
 
     // Return generic error message to user to prevent information leakage
     return new Response(JSON.stringify({

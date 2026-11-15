@@ -5,6 +5,7 @@ import { productOnboarding } from '@/lib/queryKeys/organization';
 import {
   completeProductOnboarding,
   getProductOnboardingStatus,
+  type ProductOnboardingStatus,
 } from '@/features/onboarding/services/productOnboardingService';
 
 export function useProductOnboardingStatus() {
@@ -39,7 +40,7 @@ export function useCompleteProductOnboarding() {
     },
     onSuccess: async () => {
       const queryKey = productOnboarding(organizationId ?? '', userId);
-      queryClient.setQueryData(queryKey, (previous) => {
+      queryClient.setQueryData<ProductOnboardingStatus | null>(queryKey, (previous) => {
         if (!previous) {
           return {
             needs_onboarding: false,

@@ -145,12 +145,6 @@ export function resolveNotificationDestination(
   return NOT_NAVIGABLE;
 }
 
-export function notificationHasNavigableAction(
-  notification: Pick<Notification, 'type' | 'data'>,
-): boolean {
-  return resolveNotificationDestination(notification).navigable;
-}
-
 type NavigateNotificationOptions = {
   notification: Notification;
   organizationId: string | undefined;

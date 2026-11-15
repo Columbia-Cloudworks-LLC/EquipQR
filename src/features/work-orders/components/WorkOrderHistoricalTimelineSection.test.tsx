@@ -11,8 +11,20 @@ vi.mock('@/features/work-orders/components/WorkOrderTimeline', () => ({
 }));
 
 vi.mock('@/features/work-orders/components/HistoricalTimelineEditorDialog', () => ({
-  HistoricalTimelineEditorDialog: ({ open, title }: { open: boolean; title?: string }) =>
-    open ? <div data-testid="timeline-editor">{title}</div> : null,
+  HistoricalTimelineEditorDialog: ({
+    open,
+    title,
+    mode,
+  }: {
+    open: boolean;
+    title?: string;
+    mode: 'edit' | 'convert';
+  }) =>
+    open ? (
+      <div data-testid="timeline-editor" data-mode={mode}>
+        {title}
+      </div>
+    ) : null,
 }));
 
 vi.mock('@/features/work-orders/hooks/useHistoricalWorkOrders', () => ({
@@ -75,7 +87,7 @@ describe('WorkOrderHistoricalTimelineSection', () => {
 
     await user.click(screen.getByRole('button', { name: /edit timeline/i }));
 
-    expect(screen.getByTestId('timeline-editor')).toHaveTextContent(/timeline editor/i);
+    expect(screen.getByTestId('timeline-editor')).toHaveAttribute('data-mode', 'convert');
   });
 
   it('opens edit dialog when admin clicks Edit Timeline on a historical work order', async () => {
@@ -90,7 +102,7 @@ describe('WorkOrderHistoricalTimelineSection', () => {
 
     await user.click(screen.getByRole('button', { name: /edit timeline/i }));
 
-    expect(screen.getByTestId('timeline-editor')).toHaveTextContent(/timeline editor/i);
+    expect(screen.getByTestId('timeline-editor')).toHaveAttribute('data-mode', 'edit');
   });
 
   it('hides Edit Timeline when timeline editing is not allowed', () => {

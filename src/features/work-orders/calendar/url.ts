@@ -128,9 +128,9 @@ export function resolveWorkOrdersChrome(input: {
       surface: 'list',
       dueBucket: null,
       intendedView,
-      range: intendedView === 'calendar' ? inboundRange : null,
-      anchor: intendedView === 'calendar' ? inboundAnchor : null,
-      selectedWorkOrderId: intendedView === 'calendar' ? inboundWo : null,
+      range: null,
+      anchor: null,
+      selectedWorkOrderId: null,
     };
   }
 

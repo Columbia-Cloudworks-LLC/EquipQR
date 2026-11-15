@@ -19,6 +19,7 @@ import {
   handleCorsPreflightIfNeeded,
   withCorrelationId,
 } from "../_shared/supabase-clients.ts";
+import { verifyHcaptchaToken } from "../_shared/hcaptcha-gate.ts";
 import { optionalSecret } from "../_shared/require-secret.ts";
 import { privacyRequestSizeError } from "../_shared/privacy-request-validation.ts";
 
@@ -36,21 +37,7 @@ async function verifyCaptcha(token: string): Promise<boolean> {
   const secret = optionalSecret("HCAPTCHA_SECRET_KEY");
   if (!secret) return true;
 
-  const form = new FormData();
-  form.append("secret", secret);
-  form.append("response", token);
-
-  try {
-    const res = await fetch("https://hcaptcha.com/siteverify", {
-      method: "POST",
-      body: form,
-    });
-    const result = await res.json();
-    return result.success === true;
-  } catch {
-    console.error("[PRIVACY-REQUEST] hCaptcha verification failed");
-    return false;
-  }
+  return verifyHcaptchaToken(secret, token, "PRIVACY-REQUEST");
 }
 
 async function checkRateLimit(

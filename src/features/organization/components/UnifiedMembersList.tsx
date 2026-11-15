@@ -36,12 +36,8 @@ import { buildUnifiedMembers } from '@/features/organization/utils/buildUnifiedM
 import { UnifiedMembersDesktopTable } from '@/features/organization/components/UnifiedMembersDesktopTable';
 import { UnifiedMembersMobileList } from '@/features/organization/components/UnifiedMembersMobileList';
 
-// Re-export type for backward compatibility
-export type RealOrganizationMember = OrganizationMember;
-export type { UnifiedMember } from '@/features/organization/utils/buildUnifiedMembers';
-
 interface UnifiedMembersListProps {
-  members: RealOrganizationMember[];
+  members: OrganizationMember[];
   organizationId: string;
   currentUserRole: 'owner' | 'admin' | 'member';
   isLoading: boolean;

@@ -93,6 +93,21 @@ async function verifyBrowserInstalled() {
   }
 }
 
+/**
+ * @param {number} status
+ * @param {any} body
+ */
+function summarizeAuthResponse(status, body) {
+  return {
+    hostMatchesEnv: true,
+    status,
+    hasSession: Boolean(body?.session || body?.access_token),
+    hasUser: Boolean(body?.user || body?.id),
+    errorCode: body?.code || body?.error_code || body?.error || '[missing]',
+    errorMessage: body?.msg || body?.message || body?.error_description || '[missing]',
+  };
+}
+
 async function runSignupAndLoginProbe({ baseUrl, supabaseHost, supabaseAnonKey }) {
   const runId = `${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
   const signupEmail = `cloud-agent-${runId}@example.com`;
@@ -114,14 +129,7 @@ async function runSignupAndLoginProbe({ baseUrl, supabaseHost, supabaseAnonKey }
 
       if (url.pathname.includes('/auth/v1/signup')) {
         const body = await response.json().catch(() => ({}));
-        signupResponses.push({
-          hostMatchesEnv: true,
-          status: response.status(),
-          hasSession: Boolean(body?.session || body?.access_token),
-          hasUser: Boolean(body?.user || body?.id),
-          errorCode: body?.code || body?.error_code || body?.error || '[missing]',
-          errorMessage: body?.msg || body?.message || body?.error_description || '[missing]',
-        });
+        signupResponses.push(summarizeAuthResponse(response.status(), body));
       }
 
       if (
@@ -129,14 +137,7 @@ async function runSignupAndLoginProbe({ baseUrl, supabaseHost, supabaseAnonKey }
         url.searchParams.get('grant_type') === 'password'
       ) {
         const body = await response.json().catch(() => ({}));
-        loginResponses.push({
-          hostMatchesEnv: true,
-          status: response.status(),
-          hasSession: Boolean(body?.session || body?.access_token),
-          hasUser: Boolean(body?.user || body?.id),
-          errorCode: body?.code || body?.error_code || body?.error || '[missing]',
-          errorMessage: body?.msg || body?.message || body?.error_description || '[missing]',
-        });
+        loginResponses.push(summarizeAuthResponse(response.status(), body));
       }
     } catch {
       // Ignore non-URL responses and opaque bodies; the final assertions cover missing signup calls.

@@ -1,4 +1,3 @@
-// fallow-ignore-file unused-file
 /**
  * Screen catalog: deterministic mobile screenshots of every catalogued flow.
  * Use `npm run screens:capture` (dev/linux/screen-catalog.sh) rather than

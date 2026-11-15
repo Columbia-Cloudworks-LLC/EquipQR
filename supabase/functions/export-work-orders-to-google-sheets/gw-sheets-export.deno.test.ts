@@ -9,7 +9,6 @@ import { __gwSheetsExportRunTestables } from "./gw-sheets-export-run.ts";
 import { __gwSheetsRequestTestables } from "./gw-sheets-request.ts";
 
 const {
-  VALID_SHEETS_EXPORT_DATE_FIELDS,
   isValidSheetsExportDateField,
   validateSheetsExportRequest,
 } = __gwSheetsRequestTestables;
@@ -72,20 +71,12 @@ Deno.test("validateSheetsExportRequest allows filters without dateField", () => 
   assertEquals(result instanceof Response, false);
 });
 
-Deno.test("VALID_SHEETS_EXPORT_DATE_FIELDS lists both supported date fields", () => {
-  assertEquals(VALID_SHEETS_EXPORT_DATE_FIELDS, ["created_date", "completed_date"]);
-});
-
-const { hasRequiredSheetsExportScopes, DOCUMENT_TYPE } = __gwSheetsAuthGateTestables;
-const { buildSpreadsheetTitle, resolveSheetNames, REPORT_TYPE } = __gwSheetsExportRunTestables;
+const { hasRequiredSheetsExportScopes } = __gwSheetsAuthGateTestables;
+const { buildSpreadsheetTitle, resolveSheetNames } = __gwSheetsExportRunTestables;
 
 Deno.test("hasRequiredSheetsExportScopes requires spreadsheets scope", () => {
   assertEquals(hasRequiredSheetsExportScopes(GOOGLE_SCOPES.SPREADSHEETS), true);
   assertEquals(hasRequiredSheetsExportScopes("https://www.googleapis.com/auth/drive"), false);
-});
-
-Deno.test("DOCUMENT_TYPE targets work-orders internal packet folder", () => {
-  assertEquals(DOCUMENT_TYPE, "work-orders-internal-packet");
 });
 
 Deno.test("buildSpreadsheetTitle includes ISO date prefix", () => {
@@ -98,8 +89,4 @@ Deno.test("buildSpreadsheetTitle includes ISO date prefix", () => {
 Deno.test("resolveSheetNames omits PM sheet when there are no PM rows", () => {
   assertEquals(resolveSheetNames(0).includes(WORKSHEET_NAMES.PM_CHECKLISTS), false);
   assertEquals(resolveSheetNames(3).includes(WORKSHEET_NAMES.PM_CHECKLISTS), true);
-});
-
-Deno.test("REPORT_TYPE matches work-orders-google-sheets export log value", () => {
-  assertEquals(REPORT_TYPE, "work-orders-google-sheets");
 });

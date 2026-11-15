@@ -39,16 +39,19 @@ vi.mock('./InlineEditWorkOrderCosts', () => ({
     workOrderId,
     canEdit,
     compactMobile,
+    equipmentIds,
   }: {
     costs: unknown[];
     workOrderId: string;
     canEdit: boolean;
     compactMobile?: boolean;
+    equipmentIds: string[];
   }) => (
     <div data-testid="inline-edit-costs" data-compact-mobile={compactMobile ? 'true' : 'false'}>
       <div data-testid="costs-count">{costs.length}</div>
       <div data-testid="work-order-id">{workOrderId}</div>
       <div data-testid="can-edit">{canEdit ? 'true' : 'false'}</div>
+      <div data-testid="equipment-ids">{equipmentIds.join(',')}</div>
     </div>
   ),
 }));
@@ -76,16 +79,6 @@ describe('WorkOrderCostsSection', () => {
       expect(screen.getByText(/Itemized Costs/i)).toBeInTheDocument();
     });
 
-    it('can both add and edit costs', () => {
-      vi.mocked(useWorkOrderCosts).mockReturnValue(mockCostsQuery());
-
-      render(
-        <WorkOrderCostsSection workOrderId={woFixtures.assigned.id} canAddCosts={true} canEditCosts={true} />
-      );
-
-      expect(screen.getByTestId('can-edit')).toHaveTextContent('true');
-    });
-
     it('displays cost items with correct count', () => {
       const mockCosts = [
         { id: 'cost-1', description: 'Hydraulic hose replacement', quantity: 1, unit_price_cents: 8950 },
@@ -99,32 +92,6 @@ describe('WorkOrderCostsSection', () => {
 
       expect(screen.getByTestId('costs-count')).toHaveTextContent('2');
       expect(screen.getByTestId('work-order-id')).toHaveTextContent(woFixtures.inProgress.id);
-    });
-  });
-
-  // --------------------------------------------------------
-  // Carol Manager — can add costs but not edit existing ones
-  // --------------------------------------------------------
-  describe(`as ${personas.teamManager.name} (manager with add-only access)`, () => {
-    it('can add new costs (canAddCosts=true makes canEdit true)', () => {
-      render(
-        <WorkOrderCostsSection workOrderId={woFixtures.submitted.id} canAddCosts={true} canEditCosts={false} />
-      );
-
-      expect(screen.getByTestId('can-edit')).toHaveTextContent('true');
-    });
-  });
-
-  // --------------------------------------------------------
-  // Grace Viewer — read-only, cannot add or edit costs
-  // --------------------------------------------------------
-  describe(`as ${personas.viewer.name} (viewer with no cost access)`, () => {
-    it('renders in read-only mode', () => {
-      render(
-        <WorkOrderCostsSection workOrderId={woFixtures.completed.id} canAddCosts={false} canEditCosts={false} />
-      );
-
-      expect(screen.getByTestId('can-edit')).toHaveTextContent('false');
     });
   });
 
@@ -187,7 +154,7 @@ describe('WorkOrderCostsSection', () => {
   });
 
   describe('equipment data handling', () => {
-    it('handles equipment data including filtering null IDs', () => {
+    it('passes linked equipment IDs to the editor with null IDs filtered out', () => {
       vi.mocked(useWorkOrderCosts).mockReturnValue(mockCostsQuery());
       vi.mocked(useWorkOrderEquipment).mockReturnValue(mockEquipmentQuery([
         { equipment_id: 'eq-forklift-1' },
@@ -199,7 +166,7 @@ describe('WorkOrderCostsSection', () => {
         <WorkOrderCostsSection workOrderId={woFixtures.inProgress.id} canAddCosts={true} canEditCosts={true} />
       );
 
-      expect(screen.getByTestId('inline-edit-costs')).toBeInTheDocument();
+      expect(screen.getByTestId('equipment-ids')).toHaveTextContent(/^eq-forklift-1,eq-crane-1$/);
     });
   });
 });

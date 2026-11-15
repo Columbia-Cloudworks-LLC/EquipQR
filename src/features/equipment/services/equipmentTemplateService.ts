@@ -17,20 +17,6 @@ export class EquipmentTemplateService {
   }
 
   /**
-   * Remove PM template from a single equipment record
-   */
-  static async removeTemplateFromEquipment(equipmentId: string): Promise<void> {
-    const { error } = await supabase
-      .from('equipment')
-      .update({ default_pm_template_id: null })
-      .eq('id', equipmentId);
-
-    if (error) {
-      throw new Error(`Failed to remove template: ${error.message}`);
-    }
-  }
-
-  /**
    * Bulk assign a PM template to multiple equipment records
    */
   static async bulkAssignTemplate(equipmentIds: string[], templateId: string): Promise<{ successCount: number; errorCount: number }> {

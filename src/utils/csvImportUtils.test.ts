@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { normalizeHeader, autoMapHeaders } from './csvImportUtils';
-import { FIELD_SYNONYMS } from '@/types/csvImport';
 
 describe('csvImportUtils', () => {
   describe('normalizeHeader', () => {
@@ -62,12 +61,4 @@ describe('csvImportUtils', () => {
     });
   });
 
-  describe('FIELD_SYNONYMS', () => {
-    it('should include comprehensive serial number synonyms', () => {
-      expect(FIELD_SYNONYMS.serial).toContain('serial number');
-      expect(FIELD_SYNONYMS.serial).toContain('serial#');
-      expect(FIELD_SYNONYMS.serial).toContain('s/n');
-      expect(FIELD_SYNONYMS.serial).toContain('s n');
-    });
-  });
 });

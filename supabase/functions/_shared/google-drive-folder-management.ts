@@ -3,6 +3,7 @@
  */
 
 import { googleApiFetch } from "./google-api-retry.ts";
+import { assertDriveResponseOk } from "./google-drive-response.ts";
 
 const DRIVE_FILES_URL = "https://www.googleapis.com/drive/v3/files";
 const FOLDER_MIME = "application/vnd.google-apps.folder";
@@ -44,10 +45,7 @@ export async function countDriveFolderChildren(
     { label: "drive-count-folder-children" },
   );
 
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`Failed to inspect folder contents: ${response.status} ${body}`);
-  }
+  await assertDriveResponseOk(response, `Failed to inspect folder contents`);
 
   const data = await response.json() as {
     files?: Array<{ id: string }>;
@@ -83,10 +81,7 @@ export async function createDriveFolder(
     { label: "drive-create-destination-folder" },
   );
 
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`Failed to create folder "${name}": ${response.status} ${body}`);
-  }
+  await assertDriveResponseOk(response, `Failed to create folder "${name}"`);
 
   const data = await response.json() as { id: string; name?: string };
   return { id: data.id, name: data.name?.trim() || name };
@@ -105,8 +100,5 @@ export async function deleteDriveFolder(
     { label: "drive-delete-folder" },
   );
 
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`Failed to delete folder: ${response.status} ${body}`);
-  }
+  await assertDriveResponseOk(response, `Failed to delete folder`);
 }

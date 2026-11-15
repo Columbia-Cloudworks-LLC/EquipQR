@@ -1,5 +1,3 @@
-// fallow-ignore-file code-duplication
-// Duplication rationale: Repository queries share org-scoped filter prelude
 import {
   getOrganizationTeamsOptimized,
   getTeamMembersOptimized,
@@ -47,6 +45,21 @@ function toTeamWithMembers(
  * Unified Team Repository using optimized queries for better performance
  * Provides a single interface for all team-related operations
  */
+/** Team member row with the `profiles` shape that `toTeamWithMembers` expects. */
+function toMemberWithProfile(member: TeamMember) {
+  return {
+    id: member.id,
+    team_id: member.team_id,
+    user_id: member.user_id,
+    role: member.role as TeamMemberRole,
+    joined_date: member.joined_date,
+    profiles: {
+      name: member.user_name || 'Unknown User',
+      email: member.user_email || 'No email',
+    },
+  };
+}
+
 class TeamRepository {
   /**
    * Get teams by organization ID using optimized query with member counts
@@ -65,19 +78,7 @@ class TeamRepository {
 
     return optimizedTeams.map((team) => {
       const members = membersByTeamId.get(team.id) ?? [];
-      const formattedMembers = members.map((member) => ({
-        id: member.id,
-        team_id: member.team_id,
-        user_id: member.user_id,
-        role: member.role as TeamMemberRole,
-        joined_date: member.joined_date,
-        profiles: {
-          name: member.user_name || 'Unknown User',
-          email: member.user_email || 'No email',
-        },
-      }));
-
-      return toTeamWithMembers(team, formattedMembers);
+      return toTeamWithMembers(team, members.map(toMemberWithProfile));
     });
   }
 
@@ -89,19 +90,7 @@ class TeamRepository {
     if (!team) return null;
 
     const members = await getTeamMembersOptimized(teamId);
-    const formattedMembers = members.map(member => ({
-      id: member.id,
-      team_id: member.team_id,
-      user_id: member.user_id,
-      role: member.role as TeamMemberRole,
-      joined_date: member.joined_date,
-      profiles: {
-        name: member.user_name || 'Unknown User',
-        email: member.user_email || 'No email'
-      }
-    }));
-
-    return toTeamWithMembers(team, formattedMembers);
+    return toTeamWithMembers(team, members.map(toMemberWithProfile));
   }
 
   /**

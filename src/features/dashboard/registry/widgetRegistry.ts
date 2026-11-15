@@ -155,11 +155,6 @@ export function getAllWidgets(): WidgetDefinition[] {
   return Array.from(WIDGET_REGISTRY.values());
 }
 
-/** Get widgets filtered by category */
-export function getWidgetsByCategory(category: WidgetCategory): WidgetDefinition[] {
-  return getAllWidgets().filter((w) => w.category === category);
-}
-
 /**
  * Mobile dashboard prioritizes actionable queues first; desktop keeps hook-provided order.
  */

@@ -1,18 +1,14 @@
+import {
+  decodeOAuthStateParam,
+  parseOAuthStateTimestamp,
+  type OAuthState,
+} from "../_shared/oauth-state.ts";
 import { logStep, STATE_TTL_MS } from "./qb-oauth-validation.ts";
 
-export interface OAuthState {
-  sessionToken: string;
-  nonce: string;
-  timestamp: number;
-}
+export type { OAuthState };
 
 export function parseOAuthState(stateParam: string | null): OAuthState {
-  let state: OAuthState;
-  try {
-    state = stateParam ? JSON.parse(atob(stateParam)) : null;
-  } catch {
-    throw new Error("Invalid state parameter");
-  }
+  const state = stateParam ? decodeOAuthStateParam(stateParam) : null;
 
   if (!state?.sessionToken) {
     throw new Error("Missing session token in state parameter");
@@ -26,10 +22,7 @@ export function parseOAuthState(stateParam: string | null): OAuthState {
 }
 
 export function validateOAuthStateTimestamp(state: OAuthState, nowMs = Date.now()): void {
-  const stateTimestamp = Number(state.timestamp);
-  if (isNaN(stateTimestamp)) {
-    throw new Error("Invalid timestamp in state parameter");
-  }
+  const stateTimestamp = parseOAuthStateTimestamp(state);
 
   if (stateTimestamp > nowMs || nowMs - stateTimestamp > STATE_TTL_MS) {
     logStep("State timestamp validation failed", {

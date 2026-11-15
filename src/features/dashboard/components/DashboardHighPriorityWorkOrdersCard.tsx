@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 interface HighPriorityWorkOrder {
   id: string;
   title: string;
-  createdDate: string;
+  createdDate?: string;
   dueDate?: string | null;
   status: string;
   equipmentName?: string;
@@ -123,7 +123,7 @@ export const DashboardHighPriorityWorkOrdersCard: React.FC<DashboardHighPriority
                     )}
                     {!overdueLabel && (
                       <p className="text-xs text-muted-foreground">
-                        Created: {new Date(order.createdDate).toLocaleDateString()}
+                        {order.createdDate && <>Created: {new Date(order.createdDate).toLocaleDateString()}</>}
                         {order.dueDate && <> · Due: {new Date(order.dueDate).toLocaleDateString()}</>}
                       </p>
                     )}

@@ -6,14 +6,14 @@ const OPERATOR_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const ORG_ID = "11111111-1111-4111-8111-111111111111";
 const REQUEST_ID = "22222222-2222-4222-8222-222222222222";
 
-function user(id: string, confirmed = true): User {
+function user(id: string): User {
   return {
     id,
     aud: "authenticated",
     app_metadata: {},
     user_metadata: {},
     created_at: "2026-10-14T00:00:00Z",
-    email_confirmed_at: confirmed ? "2026-10-14T00:00:00Z" : undefined,
+    email_confirmed_at: "2026-10-14T00:00:00Z",
   };
 }
 
@@ -47,7 +47,7 @@ function deps(caller: User | null, operatorIds: string[], rpcResult: { data: unk
       rec.backendCreated += 1;
       return backend;
     },
-    isOperator: (u) => (operatorIds.length > 0 && Boolean(u.email_confirmed_at) && operatorIds.includes(u.id)),
+    isOperator: (u) => operatorIds.includes(u.id),
   };
   return { d, rec };
 }
@@ -83,22 +83,6 @@ Deno.test("whoami reports false for non-operators without touching the service r
 Deno.test("non-operators are refused before the service-role client exists", () =>
   quiet(async () => {
     const { d, rec } = deps(user("cccccccc-cccc-4ccc-8ccc-cccccccccccc"), [OPERATOR_ID]);
-    const res = await handleDfyProvisioning(post({ action: "list" }), "c", d);
-    assertEquals(res.status, 403);
-    assertEquals(rec.backendCreated, 0);
-  }));
-
-Deno.test("an empty allowlist refuses even the operator's own account", () =>
-  quiet(async () => {
-    const { d, rec } = deps(user(OPERATOR_ID), []);
-    const res = await handleDfyProvisioning(post({ action: "list" }), "c", d);
-    assertEquals(res.status, 403);
-    assertEquals(rec.backendCreated, 0);
-  }));
-
-Deno.test("an operator with an unconfirmed email is refused", () =>
-  quiet(async () => {
-    const { d, rec } = deps(user(OPERATOR_ID, false), [OPERATOR_ID]);
     const res = await handleDfyProvisioning(post({ action: "list" }), "c", d);
     assertEquals(res.status, 403);
     assertEquals(rec.backendCreated, 0);

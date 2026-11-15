@@ -4,29 +4,6 @@ import { useOrganization } from '@/contexts/OrganizationContext';
 import { toast } from 'sonner';
 import { queryKeys } from '@/lib/queryKeys';
 
-// Hook for removing template from single equipment
-export const useRemoveTemplateFromEquipment = () => {
-  const queryClient = useQueryClient();
-  const { currentOrganization } = useOrganization();
-
-  return useMutation({
-    mutationFn: (equipmentId: string) =>
-      EquipmentTemplateService.removeTemplateFromEquipment(equipmentId),
-    onSuccess: () => {
-      if (currentOrganization?.id) {
-        queryClient.invalidateQueries({ 
-          queryKey: queryKeys.equipment.list(currentOrganization.id) 
-        });
-      }
-      toast.success('Template removed successfully');
-    },
-    onError: (error) => {
-      console.error('Error removing template:', error);
-      toast.error('Failed to remove template');
-    }
-  });
-};
-
 // Hook for bulk template assignment
 export const useBulkAssignTemplate = () => {
   const queryClient = useQueryClient();

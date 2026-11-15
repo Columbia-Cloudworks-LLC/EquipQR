@@ -29,13 +29,14 @@
 
 ## Screenshots/Videos
 
-**Required for product/runtime PRs:** local-stack screenshots and at least one H.264 MP4 demo video, captured via `dev/pr-evidence/` and uploaded for inline GitHub display. Paste the generated section from `tmp/pr-evidence/<flow>/evidence-markdown.md` below (or confirm the `<!-- pr-visual-evidence -->` PR comment was posted).
+**Required for product/runtime PRs:** local-stack screenshots plus a short animated capture, posted with `bash dev/linux/pr-evidence.sh publish --flow <slug> --pr <number>` (needs only `gh auth`). The command posts or updates the `<!-- pr-visual-evidence:<slug> -->` PR comment; link it here or paste `tmp/pr-evidence/<slug>/evidence-markdown.md`.
+
+**No UI change?** Write `N/A – no UI change` and give other proof (tests, RPC output, logs) under Testing.
 
 <details open>
 <summary>📸 Visual evidence (local dev stack)</summary>
 
-<!-- Agent: run bash dev/linux/pr-evidence.sh -Flow "<slug>" -Spec "e2e/pr-evidence/<feature>.spec.ts" -->
-<!-- Paste evidence-markdown.md content here before opening the PR -->
+<!-- Agent: capture → review → publish, see e2e/pr-evidence/README.md -->
 
 </details>
 

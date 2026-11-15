@@ -36,7 +36,7 @@ export const WorkOrderDesktopCard: React.FC<WorkOrderCardProps> = memo(({
   const detailedPermissions = permissions.workOrders.getDetailedPermissions(workOrderData);
   const assignmentContext = getAssignmentContext(workOrder);
 
-  const dueDateValue = workOrder.due_date ?? workOrder.dueDate;
+  const dueDateValue = workOrder.due_date;
   const isTerminal = isTerminalStatus(workOrder.status);
   const isWorkOrderOverdue = isOverdue(dueDateValue, workOrder.status);
   const statusBorderClass = getWorkOrderStatusBorderWithOverdue(workOrder.status, isWorkOrderOverdue);
@@ -108,8 +108,9 @@ export const WorkOrderDesktopCard: React.FC<WorkOrderCardProps> = memo(({
                   has_pm: workOrder.has_pm,
                   assignee_id: resolveWorkOrderAssignment(workOrder).id,
                   created_by: workOrder.created_by,
+                  updated_at: workOrder.updated_at,
                 }}
-                organizationId={workOrder.organization_id ?? workOrder.organizationId}
+                organizationId={workOrder.organization_id}
               />
             ) : null}
           </div>

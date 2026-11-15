@@ -1,11 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
   "ignoreDependencies": [
-    "size-limit",
     "@size-limit/file",
     "tailwindcss-animate",
-    "us-atlas",
-    "xlsx"
+    "us-atlas"
   ],
   "ignorePatterns": [
     "vitest/**",
@@ -17,11 +15,6 @@
       "src/integrations/supabase/types.ts",
       "src/pages/PrivacyPolicy.tsx",
       "src/pages/TermsOfService.tsx",
-      "src/pages/features/**",
-      "src/pages/solutions/**",
-      "src/components/landing/**",
-      "supabase/functions/**",
-      "dev/**",
       "e2e/**/*.ts",
       "src/**/*.test.ts",
       "src/**/*.test.tsx",
@@ -40,10 +33,7 @@
     "playwright.user.config.ts",
     "src/sw.ts",
     "dev/check-root-layout.mjs",
-    "dev/check-main-branch-migrations.mjs",
     "dev/check-missing-migrations.mjs",
-    "dev/create-missing-migrations.mjs",
-    "dev/fix-main-branch-migrations.mjs",
     "dev/reconcile-advisor-rpc-warnings.mjs",
     "dev/supabase-fix-migrations.mjs",
     "dev/test-ci.mjs",
@@ -52,19 +42,17 @@
     "dev/upload-screenshot.ts",
     "dev/dfy/provision-yard.mjs",
     "dev/docs-media/print-storage-path.ts",
-    "dev/run-vitest-local.test.mjs",
-    "dev/vitest-perf/report-vitest-durations.test.mjs",
     "dev/vitest-perf/publish-duration-pr-comment.mjs",
     "dev/cloud-agent/seed-quick-login.mjs",
-    "dev/linux/prereq.mjs",
-    "dev/linux/sync-local-supabase-env.mjs",
-    "dev/linux/devcontainer-node-policy.test.mjs",
-    "dev/linux/prereq.test.mjs",
-    "dev/linux/sync-local-supabase-env.test.mjs",
     "dev/ci/check-github-environment-names.mjs",
-    "dev/ci/check-github-environment-names.test.mjs",
     "dev/ci/assert-preview-env-present.sh",
-    "dev/linux/stack.mjs"
+    "dev/linux/stack.mjs",
+    "dev/**/*.test.mjs",
+    "dev/pr-evidence/reset-fresh-start-onboarding.ts",
+    "dev/qbo/qbo-browser-signin.mjs",
+    "docs/public/sw.js",
+    "playwright.pr-evidence.config.ts",
+    "playwright.screen-catalog.config.ts"
   ],
   "ignoreExports": [
     {
@@ -74,189 +62,14 @@
       ]
     },
     {
-      "file": "src/components/landing/features/CapabilitiesGrid.tsx",
-      "exports": [
-        "*"
-      ]
-    },
-    {
       "file": "src/pages/features/data/*Data.ts",
       "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/services/supabaseDataService.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/services/syncDataService.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/equipment/components/EquipmentFilters.tsx",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/equipment/hooks/useEquipmentFiltering.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/equipment/services/EquipmentService.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/equipment/types/equipment.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/equipment/types/equipmentNotes.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/inventory/schemas/inventorySchema.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/inventory/types/inventory.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/work-orders/types/workOrder.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/services/quickbooks/types.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/organization/components/UnifiedMembersList.tsx",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/organization/hooks/useOrganizationMembers.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/organization/types/organization.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/work-orders/services/workOrderNotesService.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/services/google-workspace/index.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/utils/google-workspace.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "supabase/functions/_shared/google-drive-destination-browser.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "supabase/functions/_shared/google-drive-folder-routing.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "supabase/functions/_shared/google-workspace-token.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "supabase/functions/_shared/work-order-google-docs-single-data.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/pages/features/data/qrCodeIntegrationData.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/work-orders/utils/workOrderHelpers.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/utils/dateFormatter.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/equipment/utils/equipmentHelpers.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/equipment/hooks/useEquipment.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/work-orders/hooks/useWorkOrders.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/teams/hooks/useTeam.ts",
-      "exports": [
-        "*"
-      ]
-    },
-    {
-      "file": "src/features/teams/hooks/useTeamManagement.ts",
-      "exports": [
-        "*"
+        "benefits",
+        "capabilities",
+        "content",
+        "heroIcon",
+        "showcases",
+        "steps"
       ]
     },
     {
@@ -266,20 +79,13 @@
       ]
     },
     {
-      "file": "vitest/**",
+      "file": "supabase/functions/_shared/{operator-checklist-validation,quick-form-validation,public-form-validation,oauth-redirect-base}.ts",
       "exports": [
         "*"
       ]
     }
   ],
   "usedClassMembers": [
-    "getFailedCount",
-    "peek",
-    "getFailedItems",
-    "clear",
-    "updatePayload",
-    "getById",
-    "retryFailedItems",
     "invalidateOrganizationMemberRelated",
     "invalidateOrganizationInvitationRelated"
   ]
