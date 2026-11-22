@@ -18,6 +18,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 ### Fixed
 
 - **Offline changes sync reliably on a weak signal (#1770)** — A dropped connection during sync no longer marks changes as failed, changes interrupted by closing the app are picked up again, older queued changes are never dropped to make room, and two open tabs can no longer sync the same change twice.
+- **Offline photos are no longer lost on a weak signal (#1770)** — If the connection drops while photos taken offline are uploading, the photos that did not make it stay on the device and upload on the next sync, onto the same note. Previously the note could sync without them and the saved copies were removed.
 
 ## [3.40.2] - 2026-11-22
 

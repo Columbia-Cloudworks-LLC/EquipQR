@@ -87,6 +87,18 @@ interface OfflineQueueItemBase {
   syncedEquipmentId?: string;
 }
 
+/**
+ * Replay progress for an item with photos, saved after every step so a sync
+ * cut off by a lost connection resumes where it stopped instead of creating
+ * the note again or re-uploading photos that already made it.
+ */
+export type OfflineQueuePhotoSyncProgress = {
+  /** Server id of the note the photos attach to, once it has been created. */
+  syncedNoteId?: string;
+  /** `blobKey`s of photos confirmed uploaded. */
+  uploadedBlobKeys?: string[];
+};
+
 /** Queued work-order create payload — images stored as blob refs, not File[]. */
 export type OfflineQueuedWorkOrderCreatePayload = Omit<CreateWorkOrderData, 'images'> & {
   imageRefs?: OfflineQueueImageRef[];
@@ -94,7 +106,10 @@ export type OfflineQueuedWorkOrderCreatePayload = Omit<CreateWorkOrderData, 'ima
   syncedWorkOrderId?: string;
   /** Set after creation photos upload succeeds during replay. */
   creationImagesSynced?: boolean;
-};
+} & OfflineQueuePhotoSyncProgress & {
+    /** Server id of the first creation photo, used as the work order's main image. */
+    creationPrimaryImageId?: string;
+  };
 
 export interface OfflineQueueCreateItem extends OfflineQueueItemBase {
   type: 'work_order_create';
@@ -154,7 +169,7 @@ export interface OfflineQueueWorkOrderNoteItem extends OfflineQueueItemBase {
     machineHours?: number;
     isPrivate?: boolean;
     imageRefs?: OfflineQueueImageRef[];
-  };
+  } & OfflineQueuePhotoSyncProgress;
 }
 
 export interface OfflineQueueEquipmentCreateItem extends OfflineQueueItemBase {
@@ -193,7 +208,7 @@ export interface OfflineQueueEquipmentNoteItem extends OfflineQueueItemBase {
     machineHours?: number;
     isPrivate?: boolean;
     imageRefs?: OfflineQueueImageRef[];
-  };
+  } & OfflineQueuePhotoSyncProgress;
 }
 
 /**
@@ -705,7 +720,7 @@ export class OfflineQueueService {
   updatePayload(
     id: string,
     updates: Record<string, unknown>,
-    options: { keepTimestamp?: boolean } = {},
+    options: { syncBookkeeping?: boolean } = {},
   ): boolean {
     const queue = this.getAll();
     const idx = queue.findIndex(i => i.id === id);
@@ -716,7 +731,10 @@ export class OfflineQueueService {
     const serialized = JSON.stringify(mergedPayload);
     const sizeBytes = new Blob([serialized]).size;
 
-    if (sizeBytes > MAX_ITEM_SIZE_BYTES) {
+    // The size cap guards what users can queue. Replay progress markers
+    // (server ids, uploaded photo keys) must always be saved, even on an item
+    // accepted right at the cap — losing one means a duplicate on resume.
+    if (sizeBytes > MAX_ITEM_SIZE_BYTES && !options.syncBookkeeping) {
       logger.warn(`updatePayload: merged payload too large (${sizeBytes} bytes)`);
       return false;
     }
@@ -727,7 +745,7 @@ export class OfflineQueueService {
       payloadSizeBytes: sizeBytes,
       // A user edit bumps the timestamp so it re-sorts on next compact. Sync
       // bookkeeping keeps it so the item stays ahead of items that depend on it.
-      timestamp: options.keepTimestamp ? item.timestamp : Date.now(),
+      timestamp: options.syncBookkeeping ? item.timestamp : Date.now(),
     } as OfflineQueueItem;
 
     this.persist(queue);

@@ -327,6 +327,23 @@ describe('OfflineQueueService', () => {
     expect((merged?.payload as { notes: string }).notes.startsWith('45-')).toBe(true);
   });
 
+  it('saves sync progress markers on an item at the size limit without moving it', () => {
+    const svc = createService();
+    const item = svc.enqueue({
+      type: 'work_order_note',
+      // Within a few bytes of the 50 KB cap once serialized.
+      payload: { workOrderId: 'wo-1', content: 'word '.repeat(10230) },
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+    const marker = { syncedNoteId: crypto.randomUUID() };
+
+    expect(svc.updatePayload(item.id, marker)).toBe(false); // user edits stay capped
+    expect(svc.updatePayload(item.id, marker, { syncBookkeeping: true })).toBe(true);
+
+    expect(svc.getById(item.id)).toMatchObject({ payload: marker, timestamp: item.timestamp });
+  });
+
   // ── Interrupted sync recovery ───────────────────────────────────────────
 
   it('recoverInterrupted returns processing items to pending without touching others', () => {
