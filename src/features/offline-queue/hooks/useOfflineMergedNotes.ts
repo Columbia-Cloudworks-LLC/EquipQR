@@ -45,7 +45,10 @@ export function useOfflineMergedNotes<T extends { id: string }>(
       (item): item is OfflineQueueWorkOrderNoteItem | OfflineQueueEquipmentNoteItem =>
         item.type === queueType &&
         (item.status === 'pending' || item.status === 'processing') &&
-        (item.payload as Record<string, unknown>)[entityKey] === entityId,
+        (item.payload as Record<string, unknown>)[entityKey] === entityId &&
+        // Text already on the server (photos still uploading): the server note
+        // is in the list, so don't show the queued copy as well.
+        !serverNotes.some((note) => note.id === item.payload.syncedNoteId),
     );
 
     if (pendingNotes.length === 0) return serverNotes;

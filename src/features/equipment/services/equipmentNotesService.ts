@@ -44,10 +44,12 @@ async function uploadEquipmentNoteImages(
   noteId: string,
   images: File[],
   userId: string,
+  throwOnFailure = false,
 ): Promise<EquipmentNoteImage[]> {
   return uploadFilesToNoteImageBucket<EquipmentNoteImage>({
     bucket: 'equipment-note-images',
     imagesTable: 'equipment_note_images',
+    throwOnFailure,
     images,
     buildObjectKey: (file) => {
       const fileExt = file.name.split('.').pop();
@@ -140,6 +142,26 @@ export const getEquipmentNotesWithImages = async (equipmentId: string): Promise<
 };
 
 // Create a note with images
+/**
+ * Upload one photo onto an existing note. Unlike the batch path this throws
+ * when the photo does not make it, so offline replay can keep the local copy
+ * and try again.
+ */
+export async function uploadEquipmentNoteImage(
+  equipmentId: string,
+  noteId: string,
+  image: File,
+  organizationId: string,
+): Promise<EquipmentNoteImage> {
+  const userId = await requireAuthUserIdFromClaims();
+  await validateEquipmentNoteImageQuota(equipmentId, organizationId, [image]);
+  const [uploaded] = await uploadEquipmentNoteImages(equipmentId, noteId, [image], userId, true);
+  if (!uploaded) {
+    throw new Error(`Photo upload failed for ${image.name}`);
+  }
+  return uploaded;
+}
+
 export const createEquipmentNoteWithImages = async (
   equipmentId: string,
   content: string,

@@ -40,8 +40,15 @@ import type {
 import { OfflineQueueService } from './offlineQueueService';
 import { EquipmentService } from '@/features/equipment/services/EquipmentService';
 import { updateEquipmentWorkingHours } from '@/features/equipment/services/equipmentWorkingHoursService';
-import { createEquipmentNoteWithImages } from '@/features/equipment/services/equipmentNotesService';
-import { createWorkOrderNoteWithImages } from '@/features/work-orders/services/workOrderNotesService';
+import {
+  createEquipmentNoteWithImages,
+  uploadEquipmentNoteImage,
+} from '@/features/equipment/services/equipmentNotesService';
+import {
+  createWorkOrderNoteWithImages,
+  setWorkOrderPrimaryImage,
+  uploadWorkOrderNoteImage,
+} from '@/features/work-orders/services/workOrderNotesService';
 import {
   createPM,
   updatePM,
@@ -56,7 +63,6 @@ import {
   cleanupQueueItemBlobs,
   loadQueueItemImageFiles,
 } from './offlineQueueProcessorImages';
-import { attachWorkOrderCreationImages } from '@/features/work-orders/services/workOrderNotesService';
 import { buildWorkOrderStatusUpdatePayload } from '@/features/work-orders/utils/workOrderUpdatePayload';
 import {
   parseOfflineEquipPlaceholder,
@@ -136,6 +142,62 @@ function persistSyncedEquipmentId(
   item.syncedEquipmentId = serverId;
 }
 
+// ─── Resumable photo replay ──────────────────────────────────────────────────
+
+type PhotoQueueItem =
+  | OfflineQueueCreateItem
+  | OfflineQueueWorkOrderNoteItem
+  | OfflineQueueEquipmentNoteItem;
+
+/** Save replay progress on the item (in memory and in storage) without moving it in the queue. */
+function savePhotoProgress(
+  item: PhotoQueueItem,
+  queueService: OfflineQueueService,
+  progress: Partial<PhotoQueueItem['payload']>,
+): void {
+  Object.assign(item.payload, progress);
+  if (!queueService.updatePayload(item.id, progress, { keepTimestamp: true })) {
+    logger.warn('Could not persist offline photo sync progress', { queueItemId: item.id });
+  }
+}
+
+/** Create the note once; a retried replay reuses the note it already made. */
+async function ensureSyncedNote(
+  item: PhotoQueueItem,
+  queueService: OfflineQueueService,
+  createNote: () => Promise<{ id: string }>,
+): Promise<string> {
+  if (item.payload.syncedNoteId) return item.payload.syncedNoteId;
+  const note = await createNote();
+  savePhotoProgress(item, queueService, { syncedNoteId: note.id });
+  return note.id;
+}
+
+/**
+ * Upload the item's photos one at a time, recording each success. Throws on
+ * the first photo that does not upload so the item stays queued with its
+ * local copies; the next run continues from that photo.
+ */
+async function uploadPendingPhotos(
+  item: PhotoQueueItem,
+  queueService: OfflineQueueService,
+  uploadOne: (file: File) => Promise<{ id: string }>,
+): Promise<void> {
+  const uploaded = new Set(item.payload.uploadedBlobKeys ?? []);
+  for (const ref of item.payload.imageRefs ?? []) {
+    if (uploaded.has(ref.blobKey)) continue;
+    const [file] = await loadQueueItemImageFiles(item.userId, item.organizationId, [ref]);
+    const image = await uploadOne(file);
+    uploaded.add(ref.blobKey);
+    savePhotoProgress(item, queueService, {
+      uploadedBlobKeys: [...uploaded],
+      ...(item.type === 'work_order_create' && !item.payload.creationPrimaryImageId
+        ? { creationPrimaryImageId: image.id }
+        : {}),
+    });
+  }
+}
+
 // ─── Conflict info ───────────────────────────────────────────────────────────
 
 export interface ConflictInfo {
@@ -197,19 +259,28 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
     }
 
     if (payload.imageRefs?.length && !payload.creationImagesSynced) {
-      const images = await loadQueueItemImageFiles(
-        item.userId,
-        item.organizationId,
-        payload.imageRefs,
+      const creationWorkOrderId = workOrderId;
+      const noteId = await ensureSyncedNote(item, queueService, () =>
+        createWorkOrderNoteWithImages(
+          creationWorkOrderId,
+          payload.creationPhotoNote ?? 'Photos attached when this work order was created.',
+          0,
+          false,
+          [],
+          item.organizationId,
+        ),
       );
-      await attachWorkOrderCreationImages({
-        workOrderId,
-        organizationId: item.organizationId,
-        images,
-        noteContent: payload.creationPhotoNote,
-      });
-      queueService.updatePayload(item.id, { creationImagesSynced: true }, { keepTimestamp: true });
-      item.payload.creationImagesSynced = true;
+      await uploadPendingPhotos(item, queueService, (file) =>
+        uploadWorkOrderNoteImage(creationWorkOrderId, noteId, file, item.organizationId),
+      );
+      if (item.payload.creationPrimaryImageId) {
+        await setWorkOrderPrimaryImage(
+          creationWorkOrderId,
+          item.organizationId,
+          item.payload.creationPrimaryImageId,
+        );
+      }
+      savePhotoProgress(item, queueService, { creationImagesSynced: true });
     }
 
     // Initialize the PM record alongside the work order. This used to be a
@@ -372,20 +443,24 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
     return { success: true };
   }) as QueueItemHandler<never>,
 
-  work_order_note: (async (item: OfflineQueueWorkOrderNoteItem, replay) => {
+  work_order_note: (async (item: OfflineQueueWorkOrderNoteItem, replay, queueService) => {
     await requireAuthClaims('Session expired — please sign in again');
 
-    const { workOrderId, content, hoursWorked = 0, isPrivate = false, machineHours, imageRefs } =
-      item.payload;
-    const images = await loadQueueItemImageFiles(item.userId, item.organizationId, imageRefs);
-    await createWorkOrderNoteWithImages(
-      replay.resolveWorkOrderId(workOrderId),
-      content,
-      hoursWorked,
-      isPrivate,
-      images,
-      item.organizationId,
-      machineHours,
+    const { workOrderId, content, hoursWorked = 0, isPrivate = false, machineHours } = item.payload;
+    const resolvedWorkOrderId = replay.resolveWorkOrderId(workOrderId);
+    const noteId = await ensureSyncedNote(item, queueService, () =>
+      createWorkOrderNoteWithImages(
+        resolvedWorkOrderId,
+        content,
+        hoursWorked,
+        isPrivate,
+        [],
+        item.organizationId,
+        machineHours,
+      ),
+    );
+    await uploadPendingPhotos(item, queueService, (file) =>
+      uploadWorkOrderNoteImage(resolvedWorkOrderId, noteId, file, item.organizationId),
     );
     return { success: true };
   }) as QueueItemHandler<never>,
@@ -445,20 +520,24 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
     return { success: true };
   }) as QueueItemHandler<never>,
 
-  equipment_note: (async (item: OfflineQueueEquipmentNoteItem, replay) => {
+  equipment_note: (async (item: OfflineQueueEquipmentNoteItem, replay, queueService) => {
     await requireAuthClaims('Session expired — please sign in again');
 
-    const { equipmentId, content, hoursWorked = 0, isPrivate = false, machineHours, imageRefs } =
-      item.payload;
-    const images = await loadQueueItemImageFiles(item.userId, item.organizationId, imageRefs);
-    await createEquipmentNoteWithImages(
-      replay.resolveEquipmentId(equipmentId),
-      content,
-      hoursWorked,
-      isPrivate,
-      images,
-      item.organizationId,
-      machineHours,
+    const { equipmentId, content, hoursWorked = 0, isPrivate = false, machineHours } = item.payload;
+    const resolvedEquipmentId = replay.resolveEquipmentId(equipmentId);
+    const noteId = await ensureSyncedNote(item, queueService, () =>
+      createEquipmentNoteWithImages(
+        resolvedEquipmentId,
+        content,
+        hoursWorked,
+        isPrivate,
+        [],
+        item.organizationId,
+        machineHours,
+      ),
+    );
+    await uploadPendingPhotos(item, queueService, (file) =>
+      uploadEquipmentNoteImage(resolvedEquipmentId, noteId, file, item.organizationId),
     );
     return { success: true };
   }) as QueueItemHandler<never>,

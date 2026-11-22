@@ -45,7 +45,15 @@ const {
   mockCreateWorkOrderNote,
   mockDeletePM,
   mockCreatePM,
+  mockUploadWorkOrderNoteImage,
+  mockUploadEquipmentNoteImage,
+  mockSetWorkOrderPrimaryImage,
+  mockLoadQueueItemImageFiles,
 } = vi.hoisted(() => ({
+  mockUploadWorkOrderNoteImage: vi.fn(),
+  mockUploadEquipmentNoteImage: vi.fn(),
+  mockSetWorkOrderPrimaryImage: vi.fn(),
+  mockLoadQueueItemImageFiles: vi.fn(),
   mockCreatePM: vi.fn(),
   mockEquipmentCreateQuick: vi.fn(),
   mockEquipmentCreate: vi.fn(),
@@ -70,10 +78,13 @@ vi.mock('@/features/equipment/services/equipmentWorkingHoursService', () => ({
 
 vi.mock('@/features/equipment/services/equipmentNotesService', () => ({
   createEquipmentNoteWithImages: (...args: unknown[]) => mockCreateEquipmentNote(...args),
+  uploadEquipmentNoteImage: (...args: unknown[]) => mockUploadEquipmentNoteImage(...args),
 }));
 
 vi.mock('@/features/work-orders/services/workOrderNotesService', () => ({
   createWorkOrderNoteWithImages: (...args: unknown[]) => mockCreateWorkOrderNote(...args),
+  uploadWorkOrderNoteImage: (...args: unknown[]) => mockUploadWorkOrderNoteImage(...args),
+  setWorkOrderPrimaryImage: (...args: unknown[]) => mockSetWorkOrderPrimaryImage(...args),
 }));
 
 vi.mock('@/features/pm-templates/services/preventativeMaintenanceService', async () => {
@@ -88,7 +99,7 @@ vi.mock('@/features/pm-templates/services/preventativeMaintenanceService', async
 });
 
 vi.mock('@/services/offlineQueueProcessorImages', () => ({
-  loadQueueItemImageFiles: vi.fn(async () => []),
+  loadQueueItemImageFiles: (...args: unknown[]) => mockLoadQueueItemImageFiles(...args),
   cleanupQueueItemBlobs: vi.fn(async () => undefined),
 }));
 
@@ -175,6 +186,11 @@ describe('OfflineQueueProcessor', () => {
     // Defaults: valid session + valid user
     mockGetSession.mockResolvedValue({ data: { session: { access_token: 'tok' } } });
     mockSupabaseAuth.mockResolvedValue({ data: { claims: { sub: USER_ID } }, error: null });
+    // One File per requested photo ref, named after its blob key.
+    mockLoadQueueItemImageFiles.mockImplementation(
+      async (_userId: string, _orgId: string, refs: Array<{ blobKey: string }> = []) =>
+        refs.map(ref => new File(['x'], `${ref.blobKey}.jpg`, { type: 'image/jpeg' })),
+    );
   });
 
   // ── Basic processing ───────────────────────────────────────────────────
@@ -860,5 +876,121 @@ describe('OfflineQueueProcessor', () => {
 
     expect(second).toMatchObject({ succeeded: 2, failed: 0, remaining: 0 });
     expect(updateChain.eq).toHaveBeenCalledWith('id', 'server-pm-3');
+  });
+
+  // ── Photos ──────────────────────────────────────────────────────────────
+
+  function makeImageRefs(count: number) {
+    return Array.from({ length: count }, (_, i) => ({
+      blobKey: `photo-${i + 1}`,
+      fileName: `photo-${i + 1}.jpg`,
+      mimeType: 'image/jpeg',
+      sizeBytes: 1000,
+    }));
+  }
+
+  function uploadedFileNames(mock: typeof mockUploadWorkOrderNoteImage): string[] {
+    return mock.mock.calls.map(call => (call[2] as File).name);
+  }
+
+  it('resumes a 10-photo note from the photo where the connection dropped', async () => {
+    const item = queueService.enqueue({
+      type: 'work_order_note',
+      payload: { workOrderId: 'wo-1', content: 'Site photos', imageRefs: makeImageRefs(10) },
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+    mockCreateWorkOrderNote.mockResolvedValue({ id: 'note-1' });
+    mockUploadWorkOrderNoteImage
+      .mockResolvedValueOnce({ id: 'img-1' })
+      .mockResolvedValueOnce({ id: 'img-2' })
+      .mockResolvedValueOnce({ id: 'img-3' })
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValue({ id: 'img-n' });
+
+    const first = await processor.processAll();
+
+    expect(first).toMatchObject({ succeeded: 0, failed: 0, remaining: 1, interrupted: true });
+    expect(queueService.getById(item.id)).toMatchObject({
+      status: 'pending',
+      retryCount: 0,
+      payload: { syncedNoteId: 'note-1', uploadedBlobKeys: ['photo-1', 'photo-2', 'photo-3'] },
+    });
+
+    mockUploadWorkOrderNoteImage.mockClear();
+    const second = await processor.processAll();
+
+    expect(second).toMatchObject({ succeeded: 1, failed: 0, remaining: 0 });
+    expect(mockCreateWorkOrderNote).toHaveBeenCalledTimes(1); // note not created twice
+    expect(uploadedFileNames(mockUploadWorkOrderNoteImage)).toEqual(
+      [4, 5, 6, 7, 8, 9, 10].map(n => `photo-${n}.jpg`),
+    );
+    expect(mockUploadWorkOrderNoteImage.mock.calls[0].slice(0, 2)).toEqual(['wo-1', 'note-1']);
+    expect(queueService.getCount()).toBe(0);
+  });
+
+  it('keeps a note queued when a photo is rejected by the server', async () => {
+    const item = queueService.enqueue({
+      type: 'equipment_note',
+      payload: { equipmentId: 'equip-1', content: 'Damage', imageRefs: makeImageRefs(2) },
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+    mockCreateEquipmentNote.mockResolvedValue({ id: 'note-9' });
+    mockUploadEquipmentNoteImage
+      .mockResolvedValueOnce({ id: 'img-1' })
+      .mockRejectedValueOnce(new Error('Storage quota exceeded'));
+
+    const result = await processor.processAll();
+
+    expect(result).toMatchObject({ succeeded: 0, interrupted: false });
+    expect(queueService.getById(item.id)).toMatchObject({
+      status: 'pending',
+      retryCount: 1,
+      lastError: 'Storage quota exceeded',
+      payload: { syncedNoteId: 'note-9', uploadedBlobKeys: ['photo-1'] },
+    });
+  });
+
+  it('resumes work order creation photos and sets the main image once', async () => {
+    const item = queueService.enqueue({
+      type: 'work_order_create',
+      payload: {
+        title: 'Fix pump',
+        description: 'Broken',
+        equipmentId: 'equip-1',
+        priority: 'high',
+        imageRefs: makeImageRefs(3),
+      },
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+    mockCreate.mockResolvedValue({ success: true, data: { id: 'server-wo-1' } });
+    mockCreateWorkOrderNote.mockResolvedValue({ id: 'note-1' });
+    mockUploadWorkOrderNoteImage
+      .mockResolvedValueOnce({ id: 'img-1' })
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce({ id: 'img-2' })
+      .mockResolvedValueOnce({ id: 'img-3' });
+
+    const first = await processor.processAll();
+
+    expect(first.interrupted).toBe(true);
+    expect(mockSetWorkOrderPrimaryImage).not.toHaveBeenCalled();
+    expect(queueService.getById(item.id)?.payload).toMatchObject({
+      syncedWorkOrderId: 'server-wo-1',
+      syncedNoteId: 'note-1',
+      uploadedBlobKeys: ['photo-1'],
+      creationPrimaryImageId: 'img-1',
+    });
+
+    const second = await processor.processAll();
+
+    expect(second).toMatchObject({ succeeded: 1, remaining: 0 });
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockCreateWorkOrderNote).toHaveBeenCalledTimes(1);
+    expect(mockUploadWorkOrderNoteImage).toHaveBeenCalledTimes(4);
+    expect(mockSetWorkOrderPrimaryImage).toHaveBeenCalledTimes(1);
+    expect(mockSetWorkOrderPrimaryImage).toHaveBeenCalledWith('server-wo-1', ORG_ID, 'img-1');
   });
 });

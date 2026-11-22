@@ -18,6 +18,12 @@ export async function uploadFilesToNoteImageBucket<TImage extends { id: string; 
   buildObjectKey: (file: File) => string;
   insertImageRecord: (file: File, storedPath: string) => Promise<TImage | null>;
   signDisplayUrls: (paths: string[]) => Promise<Array<string | null>>;
+  /**
+   * Rethrow the first upload or record failure instead of skipping that file.
+   * Offline replay needs this: a skipped photo would be reported as synced and
+   * its only local copy deleted.
+   */
+  throwOnFailure?: boolean;
 }): Promise<TImage[]> {
   const insertedRecords: UploadedNoteImageRecord<TImage>[] = [];
 
@@ -25,10 +31,14 @@ export async function uploadFilesToNoteImageBucket<TImage extends { id: string; 
     try {
       const storedPath = await uploadImageToStorage(params.bucket, params.buildObjectKey(file), file);
       const imageRecord = await params.insertImageRecord(file, storedPath);
-      if (!imageRecord) continue;
+      if (!imageRecord) {
+        if (params.throwOnFailure) throw new Error(`Failed to save photo record for ${file.name}`);
+        continue;
+      }
       insertedRecords.push({ record: imageRecord, storedPath });
     } catch (error) {
       logger.error('Error processing note image upload:', error);
+      if (params.throwOnFailure) throw error;
     }
   }
 

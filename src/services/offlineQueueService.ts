@@ -87,6 +87,18 @@ interface OfflineQueueItemBase {
   syncedEquipmentId?: string;
 }
 
+/**
+ * Replay progress for an item with photos, saved after every step so a sync
+ * cut off by a lost connection resumes where it stopped instead of creating
+ * the note again or re-uploading photos that already made it.
+ */
+export type OfflineQueuePhotoSyncProgress = {
+  /** Server id of the note the photos attach to, once it has been created. */
+  syncedNoteId?: string;
+  /** `blobKey`s of photos confirmed uploaded. */
+  uploadedBlobKeys?: string[];
+};
+
 /** Queued work-order create payload — images stored as blob refs, not File[]. */
 export type OfflineQueuedWorkOrderCreatePayload = Omit<CreateWorkOrderData, 'images'> & {
   imageRefs?: OfflineQueueImageRef[];
@@ -94,7 +106,10 @@ export type OfflineQueuedWorkOrderCreatePayload = Omit<CreateWorkOrderData, 'ima
   syncedWorkOrderId?: string;
   /** Set after creation photos upload succeeds during replay. */
   creationImagesSynced?: boolean;
-};
+} & OfflineQueuePhotoSyncProgress & {
+    /** Server id of the first creation photo, used as the work order's main image. */
+    creationPrimaryImageId?: string;
+  };
 
 export interface OfflineQueueCreateItem extends OfflineQueueItemBase {
   type: 'work_order_create';
@@ -154,7 +169,7 @@ export interface OfflineQueueWorkOrderNoteItem extends OfflineQueueItemBase {
     machineHours?: number;
     isPrivate?: boolean;
     imageRefs?: OfflineQueueImageRef[];
-  };
+  } & OfflineQueuePhotoSyncProgress;
 }
 
 export interface OfflineQueueEquipmentCreateItem extends OfflineQueueItemBase {
@@ -193,7 +208,7 @@ export interface OfflineQueueEquipmentNoteItem extends OfflineQueueItemBase {
     machineHours?: number;
     isPrivate?: boolean;
     imageRefs?: OfflineQueueImageRef[];
-  };
+  } & OfflineQueuePhotoSyncProgress;
 }
 
 /**
