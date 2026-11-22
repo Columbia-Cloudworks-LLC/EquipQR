@@ -23,7 +23,7 @@ export function DashboardLoadingShell({
         <div className="border-b p-4">
           <div className="flex items-center gap-2 rounded-md px-2 py-2 text-sidebar-foreground">
             <Logo size="sm" title="" />
-            <span className="font-semibold text-base">EquipQR™</span>
+            <span className="font-semibold text-base">EquipQR</span>
           </div>
         </div>
 

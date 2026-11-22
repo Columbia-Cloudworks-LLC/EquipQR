@@ -145,13 +145,13 @@ Deno.test({
 
 Deno.test("buildInvitationEmailSubject uses raw organization name (not HTML-escaped)", () => {
   const subject = __testables.buildInvitationEmailSubject("A&B Corp");
-  assertEquals(subject, "You're invited to join A&B Corp on EquipQR™");
+  assertEquals(subject, "You're invited to join A&B Corp on EquipQR");
   assertEquals(subject.includes("&amp;"), false);
 });
 
 Deno.test("buildInvitationEmailSubject strips control characters from organization name", () => {
   const subject = __testables.buildInvitationEmailSubject("Line1\nLine2\tTab");
-  assertEquals(subject, "You're invited to join Line1 Line2 Tab on EquipQR™");
+  assertEquals(subject, "You're invited to join Line1 Line2 Tab on EquipQR");
 });
 
 Deno.test({

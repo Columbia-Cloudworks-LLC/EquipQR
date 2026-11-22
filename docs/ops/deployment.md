@@ -1,10 +1,10 @@
 # Deployment Guide
 
-This guide covers all aspects of deploying EquipQR™, including build processes, hosting platforms, runner management, and versioning.
+This guide covers all aspects of deploying EquipQR, including build processes, hosting platforms, runner management, and versioning.
 
 ## Deployment Overview
 
-EquipQR™ is designed as a modern single-page application (SPA) that can be deployed to various hosting platforms with minimal configuration.
+EquipQR is designed as a modern single-page application (SPA) that can be deployed to various hosting platforms with minimal configuration.
 
 ### Public documentation site (`equipqr.info`)
 
@@ -103,7 +103,7 @@ VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 # Optional Development Settings
-VITE_APP_TITLE=EquipQR™ Development
+VITE_APP_TITLE=EquipQR Development
 VITE_ENABLE_DEVTOOLS=true
 VITE_LOG_LEVEL=debug
 ```
@@ -129,7 +129,7 @@ VITE_GOOGLE_MAPS_API_KEY=your_maps_key
 // src/lib/config.ts
 export const config = {
   app: {
-    title: import.meta.env.VITE_APP_TITLE || 'EquipQR™',
+    title: import.meta.env.VITE_APP_TITLE || 'EquipQR',
     version: import.meta.env.VITE_APP_VERSION || '1.0.0',
   },
   supabase: {
@@ -189,7 +189,7 @@ passwords, Supabase keys, or session tokens.
 
 ## Hosting Platforms
 
-EquipQR™ is hosted on Vercel. The `main` branch promotes to `equipqr.app` after
+EquipQR is hosted on Vercel. The `main` branch promotes to `equipqr.app` after
 **Production Release Readiness** runs **`vercel promote`**. **`preview.equipqr.app`**
 is the stable pre-production hostname bound to git branch **`preview`** (integration
 train) — Vercel Preview deploys on merges/pushes to that branch. SSL, CDN, and custom
@@ -354,7 +354,7 @@ git push origin vX.Y.Z
 
 ### Version Display
 
-The version is displayed in the footer of all pages in the format: `© 2024 EquipQR™ v1.2.3 by COLUMBIA CLOUDWORKS LLC`
+The version is displayed in the footer of all pages in the format: `© 2024 EquipQR® v1.2.3 by COLUMBIA CLOUDWORKS LLC`, followed by the notice "EquipQR® is a registered trademark of Columbia Cloudworks LLC."
 
 ### Files Involved
 
@@ -434,7 +434,7 @@ Ensure all deployments use HTTPS:
 ## Database Integration
 
 ### Supabase Integration (Recommended)
-EquipQR™ is designed to work with Supabase for backend functionality:
+EquipQR is designed to work with Supabase for backend functionality:
 
 1. **Connect Supabase**: Configure project credentials via Vercel environment variables (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`)
 2. **Database Setup**: Create tables for equipment, work orders, teams
@@ -465,7 +465,7 @@ See `docs/ops/preview-persistent-branch.md`,
 `docs/ops/supabase-branch-secrets.md`.
 
 ### Supabase Configuration
-EquipQR™ uses Supabase for all backend functionality. Ensure proper configuration:
+EquipQR uses Supabase for all backend functionality. Ensure proper configuration:
 
 ```typescript
 // src/integrations/supabase/client.ts
@@ -641,4 +641,4 @@ The Supabase performance advisor flags absolute allocation because resizing the
 instance without updating the number manually leaves Auth underprovisioned. With
 percentage-based allocation the pool scales proportionally.
 
-This deployment guide provides comprehensive instructions for deploying EquipQR™ to various platforms while maintaining optimal performance, security, and reliability.
+This deployment guide provides comprehensive instructions for deploying EquipQR to various platforms while maintaining optimal performance, security, and reliability.

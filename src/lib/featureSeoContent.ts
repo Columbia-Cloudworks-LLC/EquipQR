@@ -239,7 +239,7 @@ export const FEATURE_SEO_BY_PATH: Record<string, FeatureSeoEntry> = {
     ],
     howTo: {
       name: 'How Google Workspace onboarding works',
-      description: 'Google Workspace integration connects your directory to EquipQR™ in a few steps.',
+      description: 'Google Workspace integration connects your directory to EquipQR in a few steps.',
     },
   },
   '/features/team-collaboration': {
@@ -363,7 +363,7 @@ export const FEATURE_SEO_BY_PATH: Record<string, FeatureSeoEntry> = {
     ],
     howTo: {
       name: 'How mobile-first workflows behave',
-      description: 'EquipQR™ works in the shop, in the field, or at a desk.',
+      description: 'EquipQR works in the shop, in the field, or at a desk.',
     },
   },
 };

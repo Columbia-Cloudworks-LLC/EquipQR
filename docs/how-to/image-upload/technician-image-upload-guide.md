@@ -6,7 +6,7 @@ Photos live on work-order notes. They also show on the equipment Images tab.
 
 ## Prerequisites
 
-- Access to EquipQR™ mobile app or web interface
+- Access to EquipQR mobile app or web interface
 - Equipment QR code scanned or equipment ID available
 - Camera or image files ready for upload
 - Valid technician account with appropriate permissions
@@ -15,7 +15,7 @@ Photos live on work-order notes. They also show on the equipment Images tab.
 
 ### Step 1: Access the Equipment Record
 
-1. **Scan the QR Code** on the equipment using the EquipQR™ mobile app
+1. **Scan the QR Code** on the equipment using the EquipQR mobile app
 2. **Or navigate directly** to the equipment page if you have the equipment ID
 3. The equipment page will display basic information about the machine
 

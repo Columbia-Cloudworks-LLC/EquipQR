@@ -1,6 +1,6 @@
 # Disaster Recovery Plan
 
-This document outlines the disaster recovery procedures for EquipQR™, including how to restore the Supabase database from backups and point-in-time recovery (PITR).
+This document outlines the disaster recovery procedures for EquipQR, including how to restore the Supabase database from backups and point-in-time recovery (PITR).
 
 ## Table of Contents
 
@@ -20,7 +20,7 @@ This document outlines the disaster recovery procedures for EquipQR™, includin
 
 ## Overview
 
-EquipQR™ uses Supabase as its backend platform, which provides robust backup and recovery capabilities:
+EquipQR uses Supabase as its backend platform, which provides robust backup and recovery capabilities:
 
 | Environment | Project Ref | Purpose |
 |-------------|-------------|---------|
@@ -521,5 +521,5 @@ curl -X POST "https://api.supabase.com/v1/projects/$PROJECT_REF/database/backups
 ---
 
 **Last Updated**: January 2026  
-**Document Owner**: EquipQR™ DevOps Team  
+**Document Owner**: EquipQR DevOps Team  
 **Review Frequency**: Quarterly

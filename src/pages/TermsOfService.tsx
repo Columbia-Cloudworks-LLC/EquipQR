@@ -26,9 +26,12 @@ export default function TermsOfService() {
             <p>
               These Terms of Service ("<strong>Terms</strong>") are a contract between <strong>Columbia Cloudworks LLC</strong>,
               an Illinois limited liability company ("<strong>Company</strong>", "<strong>we</strong>", "<strong>us</strong>", or "<strong>our</strong>"),
-              and the person or entity that creates an account or otherwise uses <strong>EquipQR™</strong> (the "<strong>Service</strong>")
+              and the person or entity that creates an account or otherwise uses <strong>EquipQR®</strong> (the "<strong>Service</strong>")
               ("<strong>Customer</strong>", "<strong>you</strong>", or "<strong>your</strong>"). If you are using the Service on behalf of an entity,
               you represent that you have authority to bind that entity, and "you" refers to that entity. By accessing or using the Service, you agree to these Terms.
+            </p>
+            <p>
+              EquipQR® is a registered trademark of Columbia Cloudworks LLC (U.S. Reg. No. 8537380).
             </p></LegalPolicySection>
 
         <LegalPolicySection title="1) The Service.">
