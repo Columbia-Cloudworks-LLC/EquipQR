@@ -11,6 +11,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Changed
+
+- **EquipQR is now a registered trademark (#1768)** — The ™ symbol is gone from the app, emails and documentation. Page footers, the QR scan page, the Terms of Service and the Privacy Policy now show EquipQR® with a registered trademark notice.
+
 ## [3.40.1] - 2026-11-14
 
 ### Security
