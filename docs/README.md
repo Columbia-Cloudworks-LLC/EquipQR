@@ -260,5 +260,5 @@ parallel policy in the index.
 ---
 
 **Last Updated**: January 2026  
-**Maintained by**: EquipQR™ Development Team  
+**Maintained by**: EquipQR Development Team  
 **Feedback**: Create GitHub issues for documentation improvements

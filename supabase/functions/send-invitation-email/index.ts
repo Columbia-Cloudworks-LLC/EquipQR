@@ -61,7 +61,7 @@ export function sanitizeSubjectOrganizationName(organizationName: string): strin
 }
 
 export function buildInvitationEmailSubject(organizationName: string): string {
-  return `You're invited to join ${sanitizeSubjectOrganizationName(organizationName)} on EquipQR™`;
+  return `You're invited to join ${sanitizeSubjectOrganizationName(organizationName)} on EquipQR`;
 }
 
 type SendInvitationEmailFn = typeof sendResendEmail;
@@ -83,7 +83,7 @@ export async function deliverInvitationEmail(
 
   const emailResponse = await sendEmail({
     apiKey: params.resendApiKey,
-    from: "EquipQR™ <invite@equipqr.app>",
+    from: "EquipQR <invite@equipqr.app>",
     to: [params.email],
     subject: buildInvitationEmailSubject(params.organizationName),
     html: params.emailHtml,
@@ -232,11 +232,11 @@ async function handle(req: Request, _ctx: RequestContext): Promise<Response> {
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <!-- EquipQR Logo Section -->
         <div style="text-align: center; margin-bottom: 16px; padding: 12px 0;">
-          <img src="${equipQRLogoUrl}" alt="EquipQR™ Logo" style="width: 100px; height: auto; display: block; margin: 0 auto;" />
+          <img src="${equipQRLogoUrl}" alt="EquipQR Logo" style="width: 100px; height: auto; display: block; margin: 0 auto;" />
         </div>
         
         <div style="text-align: center; margin-bottom: 32px;">
-          <h1 style="color: #1a1a1a; font-size: 28px; font-weight: bold; margin: 0;">EquipQR™</h1>
+          <h1 style="color: #1a1a1a; font-size: 28px; font-weight: bold; margin: 0;">EquipQR</h1>
           <p style="color: #666; font-size: 16px; margin: 8px 0 0 0;">Fleet Equipment Management</p>
         </div>
         
@@ -253,7 +253,7 @@ async function handle(req: Request, _ctx: RequestContext): Promise<Response> {
           }
           <h2 style="color: #1a1a1a; font-size: 24px; margin: 0 0 16px 0;">You're invited to join ${safeOrganizationName}</h2>
           <p style="color: #666; font-size: 16px; margin: 0 0 16px 0;">
-            ${safeInviterName} has invited you to join their organization as a <strong>${safeRole}</strong> on EquipQR™.
+            ${safeInviterName} has invited you to join their organization as a <strong>${safeRole}</strong> on EquipQR.
           </p>
           ${
             safeMessage

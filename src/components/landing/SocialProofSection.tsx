@@ -19,7 +19,7 @@ const SocialProofSection = () => {
             Trusted by Equipment Teams
           </h2>
           <p className="mx-auto max-w-2xl text-left text-xl text-muted-foreground sm:text-center">
-            Currently deployed at heavy equipment repair shops who rely on EquipQR™ for their daily operations.
+            Currently deployed at heavy equipment repair shops who rely on EquipQR for their daily operations.
           </p>
         </div>
 

@@ -1,10 +1,10 @@
 # Support
 
-Get help with **EquipQR™** — the fleet equipment management platform from Columbia Cloudworks LLC.
+Get help with **EquipQR** — the fleet equipment management platform from Columbia Cloudworks LLC.
 
 ## Overview
 
-EquipQR™ helps organizations track equipment, manage work orders, and coordinate maintenance teams. This document explains how to get support, where to report issues, and where to find answers.
+EquipQR helps organizations track equipment, manage work orders, and coordinate maintenance teams. This document explains how to get support, where to report issues, and where to find answers.
 
 ---
 
@@ -91,4 +91,4 @@ To contribute code or docs:
 
 ---
 
-**EquipQR™** · [Columbia Cloudworks LLC](https://columbiacloudworks.com) · [Repository](https://github.com/Columbia-Cloudworks-LLC/EquipQR)
+**EquipQR** · [Columbia Cloudworks LLC](https://columbiacloudworks.com) · [Repository](https://github.com/Columbia-Cloudworks-LLC/EquipQR)

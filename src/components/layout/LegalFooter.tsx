@@ -40,7 +40,7 @@ function LegalFooterView({ canManageDsr }: LegalFooterViewProps): JSX.Element {
       <div className="container mx-auto px-4 py-2">
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs leading-tight text-muted-foreground">
           <p className="inline-flex min-w-0 flex-wrap items-center gap-x-1">
-            <span className="whitespace-nowrap">© {currentYear} EquipQR™</span>
+            <span className="whitespace-nowrap">© {currentYear} EquipQR®</span>
             <Link
               to="/releases"
               className={`${linkClassName} font-medium`}
@@ -110,6 +110,9 @@ function LegalFooterView({ canManageDsr }: LegalFooterViewProps): JSX.Element {
             </ExternalLink>
           </nav>
         </div>
+        <p className="mt-1 text-[11px] leading-tight text-muted-foreground/80">
+          EquipQR® is a registered trademark of Columbia Cloudworks LLC.
+        </p>
       </div>
     </footer>
   );

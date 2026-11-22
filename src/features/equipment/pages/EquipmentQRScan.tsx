@@ -451,7 +451,7 @@ const EquipmentQRScan = (): React.JSX.Element => {
 
         <footer className="mt-5 text-center text-[11px] leading-relaxed text-muted-foreground">
           <p>© {currentYear} Columbia Cloudworks LLC. All rights reserved.</p>
-          <p>EquipQR™ is a trademark of Columbia Cloudworks LLC.</p>
+          <p>EquipQR® is a registered trademark of Columbia Cloudworks LLC.</p>
         </footer>
       </main>
     </div>

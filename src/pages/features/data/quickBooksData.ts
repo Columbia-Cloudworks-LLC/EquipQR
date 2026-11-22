@@ -45,7 +45,7 @@ export const benefits: Benefit[] = [
     title: 'Connect in Organization Settings',
     subtitle: 'Sign in with Intuit, then map customers',
     description:
-      'Connect QuickBooks via OAuth in Organization Settings. Sign in with your Intuit account, authorize EquipQR™, and you\'re done. Tokens refresh automatically. Reconnect only if needed.',
+      'Connect QuickBooks via OAuth in Organization Settings. Sign in with your Intuit account, authorize EquipQR, and you\'re done. Tokens refresh automatically. Reconnect only if needed.',
     benefits: ['Connect in Organization Settings', 'Auto token refresh', 'Sandbox & production'],
     benefitColor: 'warning',
   },

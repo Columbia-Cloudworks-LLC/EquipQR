@@ -1,8 +1,8 @@
 <div align="center">
 
-# <a href="https://equipqr.app">EquipQR</a>™
+# <a href="https://equipqr.app">EquipQR</a>
 
-<a href="https://equipqr.app"><img src="public/images/brand/icons/EquipQR-Icon-Purple-Medium.png" alt="EquipQR™ Logo" width="150" /></a>
+<a href="https://equipqr.app"><img src="public/images/brand/icons/EquipQR-Icon-Purple-Medium.png" alt="EquipQR Logo" width="150" /></a>
 
 ![Version](https://img.shields.io/badge/version-3.37.0-blue?style=for-the-badge)
 

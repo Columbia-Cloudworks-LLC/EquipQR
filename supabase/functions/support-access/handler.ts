@@ -120,7 +120,7 @@ function liveBackend(req: Request): SupportAccessBackend {
       if (!apiKey) return false;
       const result = await sendResendEmail({
         apiKey,
-        from: "EquipQR™ <notifications@equipqr.app>",
+        from: "EquipQR <notifications@equipqr.app>",
         to,
         subject,
         html,

@@ -6,7 +6,7 @@ export function PrivacyIntroductionSection() {
   return (
     <LegalPolicySection title="1. Introduction">
       <p>
-        EquipQR™ (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;), developed and operated by{' '}
+        EquipQR® (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;), developed and operated by{' '}
         <ExternalLink href="https://columbiacloudworks.com" className="hover:text-foreground">
           Columbia Cloudworks LLC
         </ExternalLink>
@@ -29,6 +29,9 @@ export function PrivacyIntroductionSection() {
           Terms of Service
         </Link>
         . Capitalized terms not defined in this policy have the meanings given in the Terms.
+      </p>
+      <p>
+        EquipQR® is a registered trademark of Columbia Cloudworks LLC (U.S. Reg. No. 8537380).
       </p>
     </LegalPolicySection>
   );
