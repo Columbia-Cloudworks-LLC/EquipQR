@@ -74,7 +74,7 @@ const footerSections: FooterSection[] = [
         label: 'Schedule a Demo',
         type: 'external',
       },
-      { href: EQUIPQR_APP_URL, label: 'EquipQR™.app', type: 'external' },
+      { href: EQUIPQR_APP_URL, label: 'EquipQR.app', type: 'external' },
       {
         href: GITHUB_REPO_URL,
         label: 'GitHub',
@@ -170,7 +170,10 @@ const LandingFooter = () => {
         </div>
 
         <div className="mt-8 pt-6 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-3 text-sm text-muted-foreground">
-          <span>© {currentYear} EquipQR™</span>
+          <div className="text-center sm:text-left">
+            <p>© {currentYear} EquipQR®</p>
+            <p className="text-xs">EquipQR® is a registered trademark of Columbia Cloudworks LLC.</p>
+          </div>
           <ExternalLink
             href={COLUMBIA_CLOUDWORKS_URL}
             className={`flex items-center gap-1.5 ${footerLinkDecorationClassName}`}

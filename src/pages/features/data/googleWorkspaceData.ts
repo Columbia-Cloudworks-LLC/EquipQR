@@ -25,7 +25,7 @@ export const benefits: Benefit[] = [
     title: 'Sync the Google directory',
     subtitle: 'Import the people who should have access',
     description:
-      'Connect your Workspace domain and sync users from your Google directory. Pull in everyone who belongs to your organization so you can add them as EquipQR™ members with a few clicks.',
+      'Connect your Workspace domain and sync users from your Google directory. Pull in everyone who belongs to your organization so you can add them as EquipQR members with a few clicks.',
     benefits: ['Sync from Google directory', 'Re-sync when roster changes', 'Domain-scoped access'],
     benefitColor: 'success',
   },
@@ -45,7 +45,7 @@ export const benefits: Benefit[] = [
     title: 'Google Sign-In',
     subtitle: 'Secure, familiar login',
     description:
-      'Members sign in with their Google account. Admin access is granted after they authenticate with a Workspace identity. No separate EquipQR™ passwords to manage. Just Google.',
+      'Members sign in with their Google account. Admin access is granted after they authenticate with a Workspace identity. No separate EquipQR passwords to manage. Just Google.',
     benefits: ['Sign in with Google', 'Workspace identity', 'No extra passwords'],
     benefitColor: 'warning',
   },
@@ -56,7 +56,7 @@ export const steps: Step[] = [
     number: 1,
     title: 'Connect Google Workspace',
     description:
-      'In Organization Settings → Integrations, connect your Google Workspace. Authorize EquipQR™ to access your organization\'s directory. Your domain is linked to your EquipQR™ org.',
+      'In Organization Settings → Integrations, connect your Google Workspace. Authorize EquipQR to access your organization\'s directory. Your domain is linked to your EquipQR org.',
   },
   {
     number: 2,
@@ -74,7 +74,7 @@ export const steps: Step[] = [
     number: 4,
     title: 'Sign In & Access',
     description:
-      'Invited users sign in with their Google account. Once authenticated, they\'re added to the organization and can access EquipQR™ based on their role. No manual invite emails required.',
+      'Invited users sign in with their Google account. Once authenticated, they\'re added to the organization and can access EquipQR based on their role. No manual invite emails required.',
   },
 ];
 
