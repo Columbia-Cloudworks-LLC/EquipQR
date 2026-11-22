@@ -156,7 +156,7 @@ function savePhotoProgress(
   progress: Partial<PhotoQueueItem['payload']>,
 ): void {
   Object.assign(item.payload, progress);
-  if (!queueService.updatePayload(item.id, progress, { keepTimestamp: true })) {
+  if (!queueService.updatePayload(item.id, progress, { syncBookkeeping: true })) {
     logger.warn('Could not persist offline photo sync progress', { queueItemId: item.id });
   }
 }
@@ -252,7 +252,7 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
 
       workOrderId = response.data.id;
       replay.registerWorkOrder(item.id, workOrderId, queueService);
-      queueService.updatePayload(item.id, { syncedWorkOrderId: workOrderId }, { keepTimestamp: true });
+      queueService.updatePayload(item.id, { syncedWorkOrderId: workOrderId }, { syncBookkeeping: true });
       item.payload.syncedWorkOrderId = workOrderId;
     } else {
       replay.registerWorkOrder(item.id, workOrderId, queueService);

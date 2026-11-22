@@ -720,7 +720,7 @@ export class OfflineQueueService {
   updatePayload(
     id: string,
     updates: Record<string, unknown>,
-    options: { keepTimestamp?: boolean } = {},
+    options: { syncBookkeeping?: boolean } = {},
   ): boolean {
     const queue = this.getAll();
     const idx = queue.findIndex(i => i.id === id);
@@ -731,7 +731,10 @@ export class OfflineQueueService {
     const serialized = JSON.stringify(mergedPayload);
     const sizeBytes = new Blob([serialized]).size;
 
-    if (sizeBytes > MAX_ITEM_SIZE_BYTES) {
+    // The size cap guards what users can queue. Replay progress markers
+    // (server ids, uploaded photo keys) must always be saved, even on an item
+    // accepted right at the cap — losing one means a duplicate on resume.
+    if (sizeBytes > MAX_ITEM_SIZE_BYTES && !options.syncBookkeeping) {
       logger.warn(`updatePayload: merged payload too large (${sizeBytes} bytes)`);
       return false;
     }
@@ -742,7 +745,7 @@ export class OfflineQueueService {
       payloadSizeBytes: sizeBytes,
       // A user edit bumps the timestamp so it re-sorts on next compact. Sync
       // bookkeeping keeps it so the item stays ahead of items that depend on it.
-      timestamp: options.keepTimestamp ? item.timestamp : Date.now(),
+      timestamp: options.syncBookkeeping ? item.timestamp : Date.now(),
     } as OfflineQueueItem;
 
     this.persist(queue);
