@@ -18,16 +18,25 @@ vi.mock('@/utils/logger', () => ({
 
 type TestImage = { id: string; file_url: string };
 
-function upload(images: File[], throwOnFailure?: boolean, insertFails = false) {
+const signDisplayUrls = vi.fn(async (paths: string[]) => paths.map(path => `signed:${path}`));
+
+function upload(
+  images: File[],
+  throwOnFailure?: boolean,
+  insertFails = false,
+  insertError?: unknown,
+) {
   return uploadFilesToNoteImageBucket<TestImage>({
     bucket: 'work-order-images',
     imagesTable: 'work_order_images',
     images,
     throwOnFailure,
     buildObjectKey: file => `key/${file.name}`,
-    insertImageRecord: async (file, storedPath) =>
-      insertFails ? null : { id: file.name, file_url: storedPath },
-    signDisplayUrls: async paths => paths.map(path => `signed:${path}`),
+    insertImageRecord: async (file, storedPath) => {
+      if (insertError) throw insertError;
+      return insertFails ? null : { id: file.name, file_url: storedPath };
+    },
+    signDisplayUrls,
   });
 }
 
@@ -55,5 +64,18 @@ describe('uploadFilesToNoteImageBucket throwOnFailure', () => {
 
   it('throws when the photo record cannot be saved', async () => {
     await expect(upload([photo('a.jpg')], true, true)).rejects.toThrow('a.jpg');
+  });
+
+  it('keeps the original error from a failed photo record insert', async () => {
+    const networkError = { message: 'TypeError: Failed to fetch' };
+
+    await expect(upload([photo('a.jpg')], true, false, networkError)).rejects.toBe(networkError);
+  });
+
+  it('returns stored photos without signing display URLs', async () => {
+    const result = await upload([photo('a.jpg')], true);
+
+    expect(result).toEqual([{ id: 'a.jpg', file_url: 'key/a.jpg' }]);
+    expect(signDisplayUrls).not.toHaveBeenCalled();
   });
 });

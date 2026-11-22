@@ -73,6 +73,8 @@ async function uploadWorkOrderNoteImages(
         } catch (cleanupError) {
           logger.error('Failed to delete orphaned work-order image after DB insert failure:', cleanupError);
         }
+        // Keep the original error (a dropped connection must stay recognisable).
+        if (throwOnFailure) throw error;
         return null;
       }
       return { ...data, note_id: noteId } as WorkOrderNoteImage;
@@ -188,7 +190,7 @@ export const createWorkOrderNoteWithImages = async (
 /**
  * Upload one photo onto an existing note. Unlike the batch path this throws
  * when the photo does not make it, so offline replay can keep the local copy
- * and try again.
+ * and try again. The returned `file_url` is the stored path, not a display URL.
  */
 export async function uploadWorkOrderNoteImage(
   workOrderId: string,

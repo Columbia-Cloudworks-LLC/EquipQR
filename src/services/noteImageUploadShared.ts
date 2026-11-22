@@ -22,6 +22,11 @@ export async function uploadFilesToNoteImageBucket<TImage extends { id: string; 
    * Rethrow the first upload or record failure instead of skipping that file.
    * Offline replay needs this: a skipped photo would be reported as synced and
    * its only local copy deleted.
+   *
+   * Also returns as soon as each file is stored and recorded, without signing
+   * display URLs (`file_url` stays the stored path). Replay does not show the
+   * image, and a signing failure after a durable upload must not look like a
+   * failed upload — the retry would store the same photo twice.
    */
   throwOnFailure?: boolean;
 }): Promise<TImage[]> {
@@ -40,6 +45,10 @@ export async function uploadFilesToNoteImageBucket<TImage extends { id: string; 
       logger.error('Error processing note image upload:', error);
       if (params.throwOnFailure) throw error;
     }
+  }
+
+  if (params.throwOnFailure) {
+    return insertedRecords.map((entry) => entry.record);
   }
 
   const signedBatch =

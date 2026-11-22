@@ -75,6 +75,8 @@ async function uploadEquipmentNoteImages(
         } catch (cleanupError) {
           logger.error('Failed to delete orphaned equipment note image after DB insert failure:', cleanupError);
         }
+        // Keep the original error (a dropped connection must stay recognisable).
+        if (throwOnFailure) throw error;
         return null;
       }
       return data as unknown as EquipmentNoteImage;
@@ -145,7 +147,7 @@ export const getEquipmentNotesWithImages = async (equipmentId: string): Promise<
 /**
  * Upload one photo onto an existing note. Unlike the batch path this throws
  * when the photo does not make it, so offline replay can keep the local copy
- * and try again.
+ * and try again. The returned `file_url` is the stored path, not a display URL.
  */
 export async function uploadEquipmentNoteImage(
   equipmentId: string,
