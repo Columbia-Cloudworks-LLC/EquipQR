@@ -1,6 +1,6 @@
-import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { AlertCircle, ArrowRight, Clock, Forklift, MapPin } from 'lucide-react';
+import { AlertCircle, ArrowRight, Clock, Forklift, MapPin, WifiOff } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,9 @@ import EquipmentQRLastPMCard from '@/features/equipment/components/qr/EquipmentQ
 import EquipmentQROpenWorkOrders from '@/features/equipment/components/qr/EquipmentQROpenWorkOrders';
 import { EquipmentServiceSummaryBadge } from '@/features/equipment/components/EquipmentServiceSummaryBadge';
 import { useBrowserOnline } from '@/hooks/useBrowserOnline';
-import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
+import { useEquipmentById, useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
+import { setActivePersistenceScope } from '@/lib/queryPersistence';
+import { queueNewWorkOrderForDashboard } from '@/features/work-orders/launcher/newWorkOrderLauncher';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
 import { isOrgAdminRole } from '@/features/teams/utils/teamAccessScope';
 
@@ -55,6 +57,15 @@ function getStatusClasses(status: EquipmentStatus): string {
   }
 }
 
+const OFFLINE_LOOKUP_MESSAGE = 'No connection';
+
+/** The live lookup failed because the server could not be reached, not because it said no. */
+function isConnectivityError(message: string | null, isOnline: boolean): boolean {
+  if (!message) return false;
+  if (!isOnline) return true;
+  return /failed to fetch|load failed|networkerror|network request failed/i.test(message);
+}
+
 function getStatusLabel(status: EquipmentStatus): string {
   return status.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
 }
@@ -70,24 +81,50 @@ const EquipmentQRScan = (): React.JSX.Element => {
   const organizations = orgContext?.organizations ?? [];
   const { sessionData } = useSession();
   const { getUserTeamIds, isLoading: teamsLoading } = useTeamMembership();
-  const isOrgAdmin = isOrgAdminRole(currentOrganization?.userRole);
-  const teamsReady = isOrgAdmin || !teamsLoading;
   const isOnline = useBrowserOnline();
   const allowedOrgIds = mergeAllowedOrganizationIds(
     organizations.map((org) => org.id),
     sessionData?.organizations?.map((org) => org.id) ?? [],
   );
-  const cacheOrgId = resolveValidatedOrganizationId({
-    currentOrganizationId: currentOrganization?.id,
-    sessionOrganizationId: sessionData?.currentOrganizationId,
-    persistedOrganizationId: organizationId,
-    allowedOrganizationIds: allowedOrgIds,
-  });
+  // The QR link names the organization the equipment belongs to; prefer it
+  // (when the user is a member) so saved offline data is read from the right
+  // organization even if another one was open last.
+  const cacheOrgId =
+    orgIdFromUrl && allowedOrgIds.includes(orgIdFromUrl)
+      ? orgIdFromUrl
+      : resolveValidatedOrganizationId({
+          currentOrganizationId: currentOrganization?.id,
+          sessionOrganizationId: sessionData?.currentOrganizationId,
+          persistedOrganizationId: organizationId,
+          allowedOrganizationIds: allowedOrgIds,
+        });
+  // This route has no organization provider, so the role comes from the
+  // session's organization list. It must match what the dashboard uses or the
+  // saved equipment would be looked up under a different cache entry.
+  const cacheOrganization = sessionData?.organizations?.find((org) => org.id === cacheOrgId) ?? null;
+  const cacheUserRole = currentOrganization?.userRole ?? cacheOrganization?.userRole;
+  const isOrgAdmin = isOrgAdminRole(cacheUserRole);
+  const teamsReady = isOrgAdmin || !teamsLoading;
+  const cacheUserTeamIds = isOrgAdmin ? undefined : getUserTeamIds();
   const { data: cachedEquipment } = useEquipmentById(cacheOrgId, equipmentId, {
-    userTeamIds: isOrgAdmin ? undefined : getUserTeamIds(),
+    userTeamIds: cacheUserTeamIds,
     isOrgAdmin,
     enabled: teamsReady,
   });
+  // Never fetched from here: this only reads the copy the equipment list
+  // saved, so any machine the user could see in the list opens offline, not
+  // just the ones whose record they happened to open before.
+  const { data: cachedSummaries } = useEquipmentSummaries(cacheOrgId ?? undefined, {
+    userTeamIds: cacheUserTeamIds,
+    isOrgAdmin,
+    enabled: false,
+  });
+
+  useEffect(() => {
+    if (user?.id && cacheOrgId) {
+      setActivePersistenceScope({ userId: user.id, orgId: cacheOrgId });
+    }
+  }, [user?.id, cacheOrgId]);
   const [payload, setPayload] = useState<EquipmentQRPayload | null>(null);
   const latestPmQuery = useLatestCompletedPMDetails(
     payload?.equipment.id,
@@ -116,6 +153,15 @@ const EquipmentQRScan = (): React.JSX.Element => {
   useEffect(() => {
     if (authLoading || !user || !equipmentId) return;
 
+    // With no connection the lookup can only fail, and the client retries for
+    // several seconds before it does. Go straight to the saved details; this
+    // effect runs again when the connection returns.
+    if (!isOnline) {
+      setError(OFFLINE_LOOKUP_MESSAGE);
+      setIsLoading(false);
+      return;
+    }
+
     let cancelled = false;
     setIsLoading(true);
     setError(null);
@@ -139,7 +185,7 @@ const EquipmentQRScan = (): React.JSX.Element => {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, equipmentId, user, orgIdFromUrl]);
+  }, [authLoading, equipmentId, user, orgIdFromUrl, isOnline]);
 
   const heroEquipmentId = payload?.equipment.id;
   const heroOrganizationId = payload?.organization.id;
@@ -252,17 +298,76 @@ const EquipmentQRScan = (): React.JSX.Element => {
     window.location.assign(`/dashboard/equipment/${payload.equipment.id}`);
   }, [payload, scanId]);
 
+  // With no connection the live lookup cannot succeed. Show what this device
+  // saved the last time it was online instead of an error.
+  const offlinePayload = useMemo((): EquipmentQRPayload | null => {
+    if (payload || !equipmentId || !cacheOrgId || !cacheOrganization || !cacheUserRole) return null;
+    if (!isConnectivityError(error, isOnline)) return null;
+
+    const saved =
+      cachedEquipment ?? cachedSummaries?.find((summary) => summary.id === equipmentId) ?? null;
+    if (!saved || saved.organization_id !== cacheOrgId) return null;
+
+    return {
+      equipment: {
+        id: saved.id,
+        name: saved.name,
+        manufacturer: saved.manufacturer ?? '',
+        model: saved.model ?? '',
+        serialNumber: saved.serial_number ?? '',
+        status: saved.status,
+        location: saved.location ?? null,
+        workingHours: saved.working_hours ?? null,
+        imageReference: null,
+        defaultPmTemplateId: saved.default_pm_template_id ?? null,
+        team: saved.team ? { id: saved.team.id, name: saved.team.name } : null,
+      },
+      organization: {
+        id: cacheOrganization.id,
+        name: cacheOrganization.name,
+        scan_location_collection_enabled: cacheOrganization.scanLocationCollectionEnabled,
+      },
+      userRole: cacheUserRole,
+    };
+  }, [
+    payload,
+    equipmentId,
+    cacheOrgId,
+    cacheOrganization,
+    cacheUserRole,
+    error,
+    isOnline,
+    cachedEquipment,
+    cachedSummaries,
+  ]);
+
+  const activePayload = payload ?? offlinePayload;
+  const isOfflineView = !payload && !!offlinePayload;
+
+  // The full record is only on this device if it was opened before; the
+  // equipment list alone saves enough to identify the machine and raise a
+  // work order against it.
+  const hasSavedFullRecord = !!cachedEquipment && cachedEquipment.id === offlinePayload?.equipment.id;
+
+  const openOfflineRecord = useCallback(() => {
+    if (!offlinePayload) return;
+    persistDashboardOrganizationSelection(offlinePayload.organization.id);
+    window.location.assign(`/dashboard/equipment/${offlinePayload.equipment.id}`);
+  }, [offlinePayload]);
+
+  const createOfflineWorkOrder = useCallback(() => {
+    if (!offlinePayload) return;
+    persistDashboardOrganizationSelection(offlinePayload.organization.id);
+    queueNewWorkOrderForDashboard({ equipmentId: offlinePayload.equipment.id });
+    window.location.assign('/dashboard/work-orders');
+  }, [offlinePayload]);
+
   if (authLoading || isLoading) {
     return <QrPageLoadingShell />;
   }
 
-  if (error || !payload) {
-    const canOpenCachedEquipment =
-      !isOnline &&
-      !!cachedEquipment &&
-      !!equipmentId &&
-      !!cacheOrgId &&
-      cachedEquipment.organization_id === cacheOrgId;
+  if (!activePayload) {
+    const couldNotReachServer = isConnectivityError(error, isOnline);
 
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
@@ -277,20 +382,12 @@ const EquipmentQRScan = (): React.JSX.Element => {
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                {canOpenCachedEquipment
-                  ? 'You are offline. Open the cached equipment record from your last session, or reconnect to load live QR details.'
+                {couldNotReachServer
+                  ? 'You have no connection and this equipment has not been saved on this device yet. Open the Equipment list once while connected to make it available offline.'
                   : error || 'Equipment not found'}
               </AlertDescription>
             </Alert>
-            {canOpenCachedEquipment ? (
-              <Button
-                className="w-full"
-                onClick={() => window.location.assign(`/dashboard/equipment/${equipmentId}`)}
-              >
-                Open Cached Equipment
-              </Button>
-            ) : null}
-            <Button className="w-full" variant={canOpenCachedEquipment ? 'outline' : 'default'} onClick={() => window.location.assign('/dashboard')}>
+            <Button className="w-full" onClick={() => window.location.assign('/dashboard')}>
               Go to Dashboard
             </Button>
           </CardContent>
@@ -299,11 +396,11 @@ const EquipmentQRScan = (): React.JSX.Element => {
     );
   }
 
-  const { equipment, organization } = payload;
+  const { equipment, organization } = activePayload;
   const currentYear = new Date().getFullYear();
   const heroImageSrc = heroImageUrl && !heroImageFailed ? heroImageUrl : null;
 
-  const quickActions = showQuickActions && (
+  const quickActions = showQuickActions && payload && (
     <Suspense fallback={<div className="h-44 rounded-lg border bg-muted/30" aria-hidden="true" />}>
       <EquipmentQRQuickActions
         equipment={{
@@ -377,7 +474,7 @@ const EquipmentQRScan = (): React.JSX.Element => {
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <EquipmentServiceSummaryBadge
                   equipmentId={equipment.id}
-                  organizationId={payload.organization.id}
+                  organizationId={organization.id}
                 />
                 <span className="inline-flex items-center gap-1.5 rounded-full border bg-muted/50 px-2.5 py-1 text-xs font-medium text-muted-foreground">
                   <Clock className="h-3.5 w-3.5" aria-hidden />
@@ -387,10 +484,31 @@ const EquipmentQRScan = (): React.JSX.Element => {
             </div>
           </CardHeader>
           <CardContent className="space-y-5">
+            {isOfflineView ? (
+              <div className="space-y-3">
+                <Alert>
+                  <WifiOff className="h-4 w-4" />
+                  <AlertDescription>
+                    No connection. These are the details saved on this device. Anything you
+                    create now is kept on this device and syncs when you are back online.
+                  </AlertDescription>
+                </Alert>
+                <Button className="w-full" size="lg" onClick={createOfflineWorkOrder}>
+                  Create Work Order
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+                {hasSavedFullRecord ? (
+                  <Button className="w-full" size="lg" variant="outline" onClick={openOfflineRecord}>
+                    Open Equipment Record
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
             {quickActions}
 
             <EquipmentQROpenWorkOrders
-              organizationId={payload.organization.id}
+              organizationId={organization.id}
               equipmentId={equipment.id}
             />
 
@@ -424,11 +542,13 @@ const EquipmentQRScan = (): React.JSX.Element => {
 
             <div className="rounded-lg border bg-muted/40 p-3 text-sm">
               <p className="font-medium">
-                {scanStatus === 'logged'
-                  ? 'Scan recorded'
-                  : scanStatus === 'failed'
-                    ? 'Equipment loaded, scan log failed'
-                    : 'Recording scan...'}
+                {isOfflineView
+                  ? 'Scan not recorded (no connection)'
+                  : scanStatus === 'logged'
+                    ? 'Scan recorded'
+                    : scanStatus === 'failed'
+                      ? 'Equipment loaded, scan log failed'
+                      : 'Recording scan...'}
               </p>
               <p className="mt-1 text-muted-foreground">
                 Use the actions above for field updates, or continue to the full dashboard record for parts, scans, and history.
@@ -436,16 +556,18 @@ const EquipmentQRScan = (): React.JSX.Element => {
             </div>
 
             <EquipmentQRLastPMCard
-              organizationId={payload.organization.id}
+              organizationId={organization.id}
               details={latestPmQuery.data ?? null}
               isLoading={latestPmQuery.isLoading}
               isError={latestPmQuery.isError}
             />
 
-            <Button className="w-full" size="lg" variant="outline" onClick={openDashboardRecord}>
-              Open Full Dashboard Record
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+            {isOfflineView ? null : (
+              <Button className="w-full" size="lg" variant="outline" onClick={openDashboardRecord}>
+                Open Full Dashboard Record
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            )}
           </CardContent>
         </Card>
 

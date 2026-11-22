@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { isMFAEnabled } from '@/lib/flags';
 import { logger } from '@/utils/logger';
+import { isAuthConnectivityFailure } from '@/lib/offlineSession';
 
 interface EnrollTOTPResult {
   qrCode: string;
@@ -74,6 +75,44 @@ export const MFAProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   return <MFAProviderInner>{children}</MFAProviderInner>;
 };
 
+interface RememberedMFAStatus {
+  factors: Factor[];
+  currentLevel: AuthenticatorAssuranceLevels | null;
+  nextLevel: AuthenticatorAssuranceLevels | null;
+}
+
+const mfaStatusStorageKey = (userId: string) => `equipqr_mfa_status_${userId}`;
+
+/**
+ * Last MFA status the server confirmed for this user on this device. Used
+ * only when the status cannot be checked because there is no connection, so
+ * an owner or admin who already passed MFA is not shown the enrollment screen
+ * (which cannot work offline) and locked out of their cached data.
+ */
+function rememberMFAStatus(userId: string, status: RememberedMFAStatus): void {
+  try {
+    localStorage.setItem(mfaStatusStorageKey(userId), JSON.stringify(status));
+  } catch {
+    // Best-effort.
+  }
+}
+
+function recallMFAStatus(userId: string): RememberedMFAStatus | null {
+  try {
+    const raw = localStorage.getItem(mfaStatusStorageKey(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<RememberedMFAStatus> | null;
+    if (!parsed || !Array.isArray(parsed.factors)) return null;
+    return {
+      factors: parsed.factors,
+      currentLevel: parsed.currentLevel ?? null,
+      nextLevel: parsed.nextLevel ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Inner MFA provider that actually manages state. Only rendered when MFA is enabled.
  * Separated to avoid calling hooks conditionally.
@@ -106,6 +145,20 @@ const MFAProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
         supabase.auth.mfa.listFactors(),
       ]);
 
+      const unreachable =
+        (aalResult.error && isAuthConnectivityFailure(aalResult.error)) ||
+        (factorsResult.error && isAuthConnectivityFailure(factorsResult.error));
+
+      if (unreachable) {
+        const remembered = recallMFAStatus(user.id);
+        if (remembered) {
+          setFactors(remembered.factors);
+          setCurrentLevel(remembered.currentLevel);
+          setNextLevel(remembered.nextLevel);
+        }
+        return;
+      }
+
       if (aalResult.data) {
         setCurrentLevel(aalResult.data.currentLevel);
         setNextLevel(aalResult.data.nextLevel);
@@ -113,6 +166,14 @@ const MFAProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
 
       if (factorsResult.data) {
         setFactors(factorsResult.data.totp ?? []);
+      }
+
+      if (aalResult.data && factorsResult.data) {
+        rememberMFAStatus(user.id, {
+          factors: factorsResult.data.totp ?? [],
+          currentLevel: aalResult.data.currentLevel,
+          nextLevel: aalResult.data.nextLevel,
+        });
       }
     } catch (error) {
       logger.error('Failed to refresh MFA status', error);

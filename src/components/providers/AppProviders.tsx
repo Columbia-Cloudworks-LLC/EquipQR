@@ -13,6 +13,7 @@ import { GoogleAnalyticsTelemetry } from '@/components/privacy/GoogleAnalyticsTe
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as SonnerToaster } from 'sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { attachOfflineReadCache } from '@/lib/queryPersistence';
 
 /**
  * Sonner toasts are used across the app (`import { toast } from 'sonner'`),
@@ -69,6 +70,10 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Saves field-critical reads to IndexedDB and restores them when there is no
+// connection. Attached once for the lifetime of the app's single QueryClient.
+attachOfflineReadCache(queryClient);
 
 interface AppProvidersProps {
   children: React.ReactNode;

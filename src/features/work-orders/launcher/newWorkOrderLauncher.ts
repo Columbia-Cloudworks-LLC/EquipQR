@@ -25,6 +25,34 @@ export function openNewWorkOrder(request: NewWorkOrderRequest = {}): void {
   window.dispatchEvent(new CustomEvent<NewWorkOrderRequest>(NEW_WORK_ORDER_EVENT, { detail: request }));
 }
 
+const QUEUED_NEW_WORK_ORDER_KEY = 'equipqr_queued_new_work_order';
+
+/**
+ * Ask the dashboard to open the New Work Order dialog after a full page load.
+ * Used by pages outside the dashboard (the QR scan page when offline), which
+ * cannot dispatch the window event because the launcher is not mounted yet.
+ */
+export function queueNewWorkOrderForDashboard(request: Pick<NewWorkOrderRequest, 'equipmentId'>): void {
+  try {
+    sessionStorage.setItem(QUEUED_NEW_WORK_ORDER_KEY, JSON.stringify(request));
+  } catch {
+    // Without session storage the dashboard simply opens without the dialog.
+  }
+}
+
+/** Read and clear a request left by `queueNewWorkOrderForDashboard`. */
+export function takeQueuedNewWorkOrder(): NewWorkOrderRequest | null {
+  try {
+    const raw = sessionStorage.getItem(QUEUED_NEW_WORK_ORDER_KEY);
+    if (!raw) return null;
+    sessionStorage.removeItem(QUEUED_NEW_WORK_ORDER_KEY);
+    const parsed = JSON.parse(raw) as { equipmentId?: unknown } | null;
+    return typeof parsed?.equipmentId === 'string' ? { equipmentId: parsed.equipmentId } : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * True when a keystroke should be left alone: the user is typing in a field,
  * holding a modifier, or a dialog/menu already owns the keyboard.

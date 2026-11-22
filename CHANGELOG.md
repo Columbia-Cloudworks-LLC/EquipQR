@@ -19,6 +19,8 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 - **Offline changes sync reliably on a weak signal (#1770)** — A dropped connection during sync no longer marks changes as failed, changes interrupted by closing the app are picked up again, older queued changes are never dropped to make room, and two open tabs can no longer sync the same change twice.
 - **Offline photos are no longer lost on a weak signal (#1770)** — If the connection drops while photos taken offline are uploading, the photos that did not make it stay on the device and upload on the next sync, onto the same note. Previously the note could sync without them and the saved copies were removed.
+- **The app opens and shows your data with no signal (#1770)** — Reopening or reloading the app without a connection no longer hangs on "Checking onboarding status" or sends you to the sign-in page, including after more than an hour offline. The equipment list, work order list, dashboard and team lists you loaded while connected are saved on the device and shown when there is no signal. Previously only individual records you had opened were saved, and even those were not shown when the device was fully offline.
+- **Scanning a QR code works with no signal (#1770)** — An offline scan now shows the equipment details saved on the device instead of a "User not authenticated" error, and lets you create a work order that syncs when you are back online. This works for any equipment that appeared in your equipment list while you were connected.
 
 ## [3.40.2] - 2026-11-22
 

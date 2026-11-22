@@ -172,6 +172,68 @@ describe('AuthContext', () => {
     expect(vi.mocked(supabase.auth.getSession)).not.toHaveBeenCalled();
   });
 
+  describe('with no connection', () => {
+    const storageKey = 'sb-projectref-auth-token';
+
+    beforeEach(() => {
+      vi.stubEnv('VITE_SUPABASE_URL', 'https://projectref.supabase.co');
+      localStorage.setItem(storageKey, JSON.stringify({ ...mockSession, expires_at: 1 }));
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+      localStorage.removeItem(storageKey);
+      Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => true });
+    });
+
+    it('keeps the user signed in when the SDK reports no session but one is still stored', async () => {
+      // The SDK cannot refresh an expired token offline, so INITIAL_SESSION is null.
+      initialSession = null;
+
+      const { result } = renderAuthHook();
+      await flushAuthTimers();
+
+      expect(result.current?.isLoading).toBe(false);
+      expect(result.current?.user?.id).toBe(mockUser.id);
+    });
+
+    it('does not wait for the SDK when the browser is offline', () => {
+      Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => false });
+      vi.mocked(supabase.auth.onAuthStateChange).mockImplementation((callback) => {
+        authStateChangeCallback = callback;
+        // The SDK is still retrying the refresh: no event yet.
+        return { data: { subscription: mockSubscription } };
+      });
+
+      const { result } = renderAuthHook();
+
+      expect(result.current?.isLoading).toBe(false);
+      expect(result.current?.user?.id).toBe(mockUser.id);
+    });
+
+    it('signs the user out when the SDK removed the stored session', async () => {
+      localStorage.removeItem(storageKey);
+      initialSession = null;
+
+      const { result } = renderAuthHook();
+      await flushAuthTimers();
+
+      expect(result.current?.user).toBe(null);
+    });
+
+    it('still signs out on an explicit SIGNED_OUT while a session is stored', async () => {
+      initialSession = mockSession;
+      const { result } = renderAuthHook();
+      await flushAuthTimers();
+
+      await act(async () => {
+        authStateChangeCallback('SIGNED_OUT', null);
+      });
+
+      expect(result.current?.user).toBe(null);
+    });
+  });
+
   it('should not call getSession on mount for bootstrap', async () => {
     const { result } = renderAuthHook();
 

@@ -4,6 +4,7 @@ import { useUnifiedPermissions } from '@/hooks/useUnifiedPermissions';
 import {
   NEW_WORK_ORDER_EVENT,
   shouldIgnoreNewWorkOrderShortcut,
+  takeQueuedNewWorkOrder,
   type NewWorkOrderRequest,
 } from '@/features/work-orders/launcher/newWorkOrderLauncher';
 
@@ -32,6 +33,14 @@ const GlobalWorkOrderLauncher: React.FC = () => {
 
     window.addEventListener(NEW_WORK_ORDER_EVENT, handleRequest);
     return () => window.removeEventListener(NEW_WORK_ORDER_EVENT, handleRequest);
+  }, [canCreate]);
+
+  // A page outside the dashboard (the offline QR scan page) asked for the
+  // dialog before navigating here.
+  useEffect(() => {
+    if (!canCreate) return;
+    const queued = takeQueuedNewWorkOrder();
+    if (queued) setState({ request: queued, nonce: Date.now() });
   }, [canCreate]);
 
   useEffect(() => {

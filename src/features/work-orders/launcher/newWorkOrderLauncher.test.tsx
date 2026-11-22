@@ -2,7 +2,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   NEW_WORK_ORDER_EVENT,
   openNewWorkOrder,
+  queueNewWorkOrderForDashboard,
   shouldIgnoreNewWorkOrderShortcut,
+  takeQueuedNewWorkOrder,
 } from './newWorkOrderLauncher';
 
 function keydownFrom(target: HTMLElement, init: KeyboardEventInit = {}): KeyboardEvent {
@@ -28,6 +30,19 @@ describe('newWorkOrderLauncher', () => {
       title: 'Repair: Horn',
     });
     window.removeEventListener(NEW_WORK_ORDER_EVENT, listener);
+  });
+
+  it('hands a queued request to the dashboard exactly once', () => {
+    queueNewWorkOrderForDashboard({ equipmentId: 'eq-1' });
+
+    expect(takeQueuedNewWorkOrder()).toEqual({ equipmentId: 'eq-1' });
+    expect(takeQueuedNewWorkOrder()).toBeNull();
+  });
+
+  it('ignores a queued request that is not an equipment id', () => {
+    sessionStorage.setItem('equipqr_queued_new_work_order', JSON.stringify({ equipmentId: 42 }));
+
+    expect(takeQueuedNewWorkOrder()).toBeNull();
   });
 
   it('allows the shortcut from non-editable page content', () => {
