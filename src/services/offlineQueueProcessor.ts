@@ -59,9 +59,56 @@ import {
 import { attachWorkOrderCreationImages } from '@/features/work-orders/services/workOrderNotesService';
 import { buildWorkOrderStatusUpdatePayload } from '@/features/work-orders/utils/workOrderUpdatePayload';
 import {
+  parseOfflineEquipPlaceholder,
   parseOfflinePmPlaceholder,
   parseOfflineWorkOrderPlaceholder,
 } from './offlineQueuePlaceholders';
+
+/**
+ * Most items replayed in one sync run. A queue built up over days without
+ * signal drains in runs of this size so a single run stays short, progress is
+ * saved between runs, and the device is not asked to do everything at once.
+ */
+export const OFFLINE_SYNC_BATCH_SIZE = 50;
+
+// ─── Connectivity failures ───────────────────────────────────────────────────
+
+const CONNECTIVITY_ERROR_PATTERN = /Failed to fetch|Load failed|NetworkError|ERR_INTERNET|ERR_NETWORK|net::/i;
+
+/**
+ * True when a replay failed because the request never reached the server.
+ * Deliberately narrower than `isNetworkError`, which also matches the generic
+ * "Operation failed" message services use for server-side rejections — those
+ * must keep counting toward the retry limit or they would block the queue.
+ */
+function isConnectivityFailure(error: unknown): boolean {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return true;
+  return CONNECTIVITY_ERROR_PATTERN.test(getErrorMessage(error));
+}
+
+const BLOCKED_BY_FAILED_PARENT_MESSAGE =
+  'Waiting on an earlier offline change that failed to sync. Retry after resolving it.';
+
+/** Queue item ids that the placeholder ids inside `value` still point at. */
+function collectUnresolvedParentIds(
+  value: unknown,
+  replay: OfflineReplayContext,
+  found: Set<string> = new Set(),
+): Set<string> {
+  if (typeof value === 'string') {
+    const equipParent = parseOfflineEquipPlaceholder(value);
+    if (equipParent && replay.resolveEquipmentId(value) === value) found.add(equipParent);
+    const pmParent = parseOfflinePmPlaceholder(value);
+    if (pmParent && replay.resolvePmId(value) === value) found.add(pmParent);
+    const workOrderParent = parseOfflineWorkOrderPlaceholder(value);
+    if (workOrderParent && replay.resolveWorkOrderId(value) === value) found.add(workOrderParent);
+  } else if (Array.isArray(value)) {
+    value.forEach(entry => collectUnresolvedParentIds(entry, replay, found));
+  } else if (value && typeof value === 'object') {
+    Object.values(value).forEach(entry => collectUnresolvedParentIds(entry, replay, found));
+  }
+  return found;
+}
 
 // ─── Equipment create idempotency ────────────────────────────────────────────
 
@@ -143,7 +190,7 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
 
       workOrderId = response.data.id;
       replay.registerWorkOrder(item.id, workOrderId, queueService);
-      queueService.updatePayload(item.id, { syncedWorkOrderId: workOrderId });
+      queueService.updatePayload(item.id, { syncedWorkOrderId: workOrderId }, { keepTimestamp: true });
       item.payload.syncedWorkOrderId = workOrderId;
     } else {
       replay.registerWorkOrder(item.id, workOrderId, queueService);
@@ -161,7 +208,7 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
         images,
         noteContent: payload.creationPhotoNote,
       });
-      queueService.updatePayload(item.id, { creationImagesSynced: true });
+      queueService.updatePayload(item.id, { creationImagesSynced: true }, { keepTimestamp: true });
       item.payload.creationImagesSynced = true;
     }
 
@@ -223,6 +270,7 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
                   workOrderId,
                   equipmentId: resolvedEquipmentId,
                   templateId: payload.pmTemplateId,
+                  placeholderParentId: item.id,
                 },
               } as OfflineQueueEnqueueInput,
             ],
@@ -247,6 +295,7 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
                 workOrderId,
                 equipmentId: resolvedEquipmentId,
                 templateId: payload.pmTemplateId,
+                placeholderParentId: item.id,
               },
             } as OfflineQueueEnqueueInput,
           ],
@@ -417,7 +466,8 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
   pm_init: (async (item: OfflineQueuePMInitItem, replay, queueService) => {
     await requireAuthClaims('Session expired — please sign in again');
 
-    const { workOrderId, equipmentId, templateId, checklistData, notes } = item.payload;
+    const { workOrderId, equipmentId, templateId, checklistData, notes, placeholderParentId } =
+      item.payload;
     const resolvedWorkOrderId = replay.resolveWorkOrderId(workOrderId);
     const resolvedEquipmentId = replay.resolveEquipmentId(equipmentId);
 
@@ -461,7 +511,9 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
     }
 
     if (pmRecord.id) {
-      replay.registerPm(item.id, pmRecord.id, queueService);
+      // Queued checklist edits address the PM as `offline-pm-<work order create id>`,
+      // so a retried init must resolve that same placeholder.
+      replay.registerPm(placeholderParentId ?? item.id, pmRecord.id, queueService);
     }
 
     return { success: true };
@@ -572,6 +624,8 @@ export interface ProcessResult {
   failed: number;
   remaining: number;
   conflicts: ConflictInfo[];
+  /** True when the run stopped early because the connection dropped. */
+  interrupted?: boolean;
 }
 
 export class OfflineQueueProcessor {
@@ -595,7 +649,8 @@ export class OfflineQueueProcessor {
    *
    * 1. Refreshes auth session (handles 8+ hour offline periods)
    * 2. Compacts the queue (merges duplicate updates)
-   * 3. Processes each item with conflict detection
+   * 3. Processes up to OFFLINE_SYNC_BATCH_SIZE items with conflict detection;
+   *    `remaining` tells the caller whether to run again for the next batch
    */
   async processAll(): Promise<ProcessResult> {
     if (!(await ensureActiveOfflineSession())) {
@@ -607,18 +662,31 @@ export class OfflineQueueProcessor {
       };
     }
 
+    // Anything still marked `processing` was cut off by a closed tab or crash.
+    this.queueService.recoverInterrupted();
     this.queueService.compact();
 
     const replay = new OfflineReplayContext();
-    const items = this.queueService.getAll().filter(i => i.status === 'pending');
+    const items = this.queueService
+      .getAll()
+      .filter(i => i.status === 'pending')
+      .slice(0, OFFLINE_SYNC_BATCH_SIZE);
     let succeeded = 0;
     let failed = 0;
     const conflicts: ConflictInfo[] = [];
+    let interrupted = false;
 
     for (const item of items) {
       const outcome = await this.processQueueItem(item, replay);
       if (!outcome) {
         continue;
+      }
+      if (outcome.outcome === 'interrupted') {
+        // The connection dropped. Later items would fail the same way, and
+        // running them out of order would break FIFO causality — stop here
+        // and leave everything pending for the next run.
+        interrupted = true;
+        break;
       }
       if (outcome.outcome === 'succeeded') {
         succeeded++;
@@ -635,15 +703,48 @@ export class OfflineQueueProcessor {
     }
 
     const remaining = this.queueService.getAll().filter(i => i.status === 'pending').length;
-    return { succeeded, failed, remaining, conflicts };
+    return { succeeded, failed, remaining, conflicts, interrupted };
+  }
+
+  /**
+   * An item that still references a placeholder id depends on an earlier
+   * create that has not synced. Replaying it now would send a fake id to the
+   * server and burn a retry, so hold it until the parent settles.
+   */
+  private findUnsyncedParent(
+    item: OfflineQueueItem,
+    replay: OfflineReplayContext,
+  ): OfflineQueueItem | undefined {
+    const parentIds = collectUnresolvedParentIds(item.payload, replay);
+    if (parentIds.size === 0) return undefined;
+    return this.queueService.getAll().find(
+      candidate =>
+        candidate.id !== item.id &&
+        (parentIds.has(candidate.id) ||
+          (candidate.type === 'pm_init' &&
+            candidate.payload.placeholderParentId !== undefined &&
+            parentIds.has(candidate.payload.placeholderParentId))),
+    );
   }
 
   private async processQueueItem(
     item: OfflineQueueItem,
     replay: OfflineReplayContext,
-  ): Promise<{ outcome: 'succeeded' | 'failed' | 'retry'; conflict?: ConflictInfo } | null> {
+  ): Promise<{
+    outcome: 'succeeded' | 'failed' | 'retry' | 'interrupted';
+    conflict?: ConflictInfo;
+  } | null> {
     if (this._processedInSession.has(item.id)) {
       return null;
+    }
+
+    const unsyncedParent = this.findUnsyncedParent(item, replay);
+    if (unsyncedParent) {
+      if (unsyncedParent.status !== 'failed') {
+        return null; // parent is still retrying — try again next run
+      }
+      this.queueService.updateStatus(item.id, 'failed', BLOCKED_BY_FAILED_PARENT_MESSAGE);
+      return { outcome: 'failed' };
     }
 
     this.queueService.updateStatus(item.id, 'processing');
@@ -689,6 +790,17 @@ export class OfflineQueueProcessor {
 
       return { outcome: 'succeeded', conflict: result.conflict };
     } catch (error) {
+      if (isConnectivityFailure(error)) {
+        // No signal is not the item's fault: keep it pending without using
+        // up one of its retries.
+        try {
+          this.queueService.releaseToPending(item.id);
+        } catch (persistErr) {
+          logger.error('Failed to release queue item after connection loss', persistErr);
+        }
+        return { outcome: 'interrupted' };
+      }
+
       const newRetryCount = item.retryCount + 1;
       if (newRetryCount >= item.maxRetries) {
         try {

@@ -11,6 +11,14 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Changed
+
+- **Longer offline window (#1770)** — Work orders, equipment and checklists you have opened stay available without signal for 14 days instead of 24 hours, and there is no longer a 50-item limit on changes saved offline. Large backlogs sync in batches of 50 once you are back in range.
+
+### Fixed
+
+- **Offline changes sync reliably on a weak signal (#1770)** — A dropped connection during sync no longer marks changes as failed, changes interrupted by closing the app are picked up again, older queued changes are never dropped to make room, and two open tabs can no longer sync the same change twice.
+
 ## [3.40.2] - 2026-11-22
 
 ### Changed

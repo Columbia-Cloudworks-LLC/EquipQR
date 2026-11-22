@@ -23,12 +23,23 @@ export function useOfflineQueuedPm(
     if (!queueItemId) return null;
 
     const pmPlaceholderId = offlinePmPlaceholder(queueItemId);
-    const pendingUpdate = offlineCtx.queuedItems.find(
-      (item): item is OfflineQueuePMUpdateItem =>
-        item.type === 'pm_update' &&
-        (item.status === 'pending' || item.status === 'processing') &&
-        item.payload.pmId === pmPlaceholderId,
-    );
+    // Several saves made offline sit in the queue as separate items until
+    // sync compacts them, so fold them oldest-to-newest to show the latest.
+    const pendingUpdate = offlineCtx.queuedItems
+      .filter(
+        (item): item is OfflineQueuePMUpdateItem =>
+          item.type === 'pm_update' &&
+          (item.status === 'pending' || item.status === 'processing') &&
+          item.payload.pmId === pmPlaceholderId,
+      )
+      .reduce<OfflineQueuePMUpdateItem | undefined>((merged, item) => {
+        if (!merged) return item;
+        const payload = { ...merged.payload };
+        for (const [key, value] of Object.entries(item.payload)) {
+          if (value !== undefined) Object.assign(payload, { [key]: value });
+        }
+        return { ...item, payload };
+      }, undefined);
 
     const checklistData =
       pendingUpdate?.payload.checklistData ??

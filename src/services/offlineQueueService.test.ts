@@ -272,21 +272,75 @@ describe('OfflineQueueService', () => {
     }).toThrow(OfflineQueuePayloadError);
   });
 
-  it('evicts the oldest pending item when at 50-item cap', () => {
+  it('has no item-count limit so days of offline work can queue', () => {
     const svc = createService();
 
-    // Fill to capacity
-    for (let i = 0; i < 50; i++) {
-      svc.enqueue(makeCreateInput());
-    }
-    expect(svc.getCount()).toBe(50);
+    const queued = enqueueItems(svc, 120);
 
-    // Enqueue one more — should evict the oldest
-    const newItem = svc.enqueue(makeCreateInput());
-    expect(svc.getCount()).toBe(50);
-    // The new item should be the last one
+    expect(svc.getAll().map(i => i.id)).toEqual(queued.map(i => i.id));
+  });
+
+  function fillToBudget(svc: OfflineQueueService, makeInput: (i: number) => OfflineQueueEnqueueInput) {
+    // 45 KB each (plain words, not base64-like); 46 of them sit just under the 2 MB budget.
+    for (let i = 0; i < 46; i++) svc.enqueue(makeInput(i));
+  }
+
+  it('refuses a new item over the storage budget instead of dropping queued work', () => {
+    const svc = createService();
+    fillToBudget(svc, i =>
+      makeCreateInput({
+        payload: { title: `WO ${i}`, description: 'word '.repeat(9000), equipmentId: 'equip-1', priority: 'high' },
+      }),
+    );
+    const before = svc.getAll().map(i => i.id);
+
+    expect(() =>
+      svc.enqueue(
+        makeCreateInput({
+          payload: { title: 'One more', description: 'word '.repeat(9000), equipmentId: 'equip-1', priority: 'high' },
+        }),
+      ),
+    ).toThrow(OfflineQueuePayloadError);
+
+    expect(svc.getAll().map(i => i.id)).toEqual(before);
+  });
+
+  it('folds repeat edits together to make room when the storage budget is hit', () => {
+    const svc = createService();
+    fillToBudget(svc, i => ({
+      type: 'pm_update',
+      payload: { pmId: 'pm-1', notes: `${i}-${'word '.repeat(9000)}` },
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    }));
+
+    const newItem = svc.enqueue(
+      makeCreateInput({
+        payload: { title: 'One more', description: 'word '.repeat(9000), equipmentId: 'equip-1', priority: 'high' },
+      }),
+    );
+
     const all = svc.getAll();
-    expect(all[all.length - 1].id).toBe(newItem.id);
+    expect(all).toHaveLength(2); // one merged pm_update + the new item
+    expect(all.some(i => i.id === newItem.id)).toBe(true);
+    const merged = all.find(i => i.type === 'pm_update');
+    expect((merged?.payload as { notes: string }).notes.startsWith('45-')).toBe(true);
+  });
+
+  // ── Interrupted sync recovery ───────────────────────────────────────────
+
+  it('recoverInterrupted returns processing items to pending without touching others', () => {
+    const svc = createService();
+    const [stuck, failed, pending] = enqueueItems(svc, 3);
+    svc.updateStatus(stuck.id, 'processing');
+    svc.updateStatus(failed.id, 'failed', 'boom');
+
+    expect(svc.recoverInterrupted()).toBe(1);
+
+    expect(svc.getById(stuck.id)?.status).toBe('pending');
+    expect(svc.getById(failed.id)?.status).toBe('failed');
+    expect(svc.getById(pending.id)?.status).toBe('pending');
+    expect(svc.recoverInterrupted()).toBe(0);
   });
 
   // ── Binary data detection ───────────────────────────────────────────────
