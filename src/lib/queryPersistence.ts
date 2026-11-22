@@ -15,8 +15,9 @@
  *  - Only an explicit allow-list of query-key prefixes is persisted. Auth,
  *    notifications, audit log, integrations, profile, billing, and any
  *    `'admin'` / `'audit'` namespace are excluded by construction.
- *  - The persister has a max age of 24h; anything older than that is
- *    discarded on hydration.
+ *  - The persister has a max age of 14 days (crews can be at a remote site
+ *    without signal for several days); anything older is discarded on
+ *    hydration.
  *  - `buster` includes the app version so a new deploy invalidates all
  *    persisted state automatically (no risk of replaying queries against a
  *    schema-incompatible build).
@@ -29,6 +30,9 @@ import type { Query } from '@tanstack/react-query';
 declare const __APP_VERSION__: string;
 
 const APP_VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev';
+
+/** How long cached reads stay usable without a connection. */
+const OFFLINE_READ_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
 
 /**
  * Query-key prefixes that are safe to persist for slow-cellular / offline
@@ -183,7 +187,7 @@ export function createScopedQueryPersister() {
       },
     },
     prefix,
-    maxAge: 24 * 60 * 60 * 1000, // 24h
+    maxAge: OFFLINE_READ_MAX_AGE_MS,
     // App version is part of the buster — a new deploy invalidates
     // everything regardless of maxAge.
     buster: APP_VERSION,

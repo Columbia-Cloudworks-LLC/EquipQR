@@ -27,6 +27,18 @@ import { OfflineQueueProcessor, type ProcessResult } from '@/services/offlineQue
 import { logger } from '@/utils/logger';
 import { toast } from 'sonner';
 import { useBrowserOnline } from '@/hooks/useBrowserOnline';
+import { offlineSyncLockName, runExclusiveAcrossTabs } from '@/services/offlineQueueLock';
+
+/** Delay before auto-sync when the last run made progress (lets the network settle). */
+const AUTO_SYNC_DELAY_MS = 1500;
+const AUTO_SYNC_BACKOFF_BASE_MS = 5000;
+const AUTO_SYNC_BACKOFF_MAX_MS = 60_000;
+
+/** Wait longer after each consecutive run that synced nothing (weak signal, server trouble). */
+function autoSyncDelayMs(stalledRuns: number): number {
+  if (stalledRuns === 0) return AUTO_SYNC_DELAY_MS;
+  return Math.min(AUTO_SYNC_BACKOFF_MAX_MS, AUTO_SYNC_BACKOFF_BASE_MS * 2 ** (stalledRuns - 1));
+}
 
 // ─── Context value ───────────────────────────────────────────────────────────
 
@@ -72,6 +84,8 @@ export const OfflineQueueProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [revision, setRevision] = useState(0);
   const syncLockRef = useRef(false);
   const bootSyncAttemptedRef = useRef(false);
+  // Consecutive sync runs that synced nothing — drives auto-sync backoff.
+  const stalledRunsRef = useRef(0);
 
   // Stable service & processor instances (re-created when user/org changes)
   const queueService = useMemo(() => {
@@ -83,6 +97,11 @@ export const OfflineQueueProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (!queueService) return null;
     return new OfflineQueueProcessor(queueService, queryClient);
   }, [queueService, queryClient]);
+
+  const syncLockName = useMemo(() => {
+    if (!user?.id || !currentOrganization?.id) return null;
+    return offlineSyncLockName(user.id, currentOrganization.id);
+  }, [user?.id, currentOrganization?.id]);
 
   // Derived state from localStorage
   const queuedItems = useMemo(() => {
@@ -106,19 +125,27 @@ export const OfflineQueueProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // ── Auto-sync when coming back online ──────────────────────────────────
 
   const syncNow = useCallback(async (): Promise<ProcessResult | null> => {
-    if (!processor || syncLockRef.current) return null;
+    if (!processor || !syncLockName || syncLockRef.current) return null;
     syncLockRef.current = true;
     setIsSyncing(true);
 
     try {
-      const result = await processor.processAll();
+      const run = await runExclusiveAcrossTabs(syncLockName, () => processor.processAll());
       refresh();
+      if (!run.ran) {
+        // Another tab is already syncing this queue; check back later.
+        stalledRunsRef.current += 1;
+        return null;
+      }
+      const result = run.value;
+      stalledRunsRef.current = result.succeeded > 0 ? 0 : stalledRunsRef.current + 1;
 
       if (result.succeeded > 0) {
         const conflictNote = result.conflicts && result.conflicts.length > 0
           ? ` (${result.conflicts.length} with conflicts resolved)`
           : '';
-        toast.success(`Synced ${result.succeeded} offline item${result.succeeded > 1 ? 's' : ''}${conflictNote}`);
+        const remainingNote = result.remaining > 0 ? `, ${result.remaining} still to sync` : '';
+        toast.success(`Synced ${result.succeeded} offline item${result.succeeded > 1 ? 's' : ''}${conflictNote}${remainingNote}`);
       }
       if (result.conflicts && result.conflicts.length > 0) {
         for (const conflict of result.conflicts) {
@@ -132,21 +159,44 @@ export const OfflineQueueProvider: React.FC<{ children: React.ReactNode }> = ({ 
       return result;
     } catch (error) {
       logger.error('Offline queue sync error', error);
+      stalledRunsRef.current += 1;
       toast.error('Sync failed', { description: 'Please try again.' });
       return null;
     } finally {
       setIsSyncing(false);
       syncLockRef.current = false;
     }
-  }, [processor, refresh]);
+  }, [processor, syncLockName, refresh]);
+
+  // A fresh connection (or a different queue) deserves an immediate attempt.
+  useEffect(() => {
+    stalledRunsRef.current = 0;
+  }, [isOnline, processor]);
+
+  // Items left `processing` by a closed tab or crash would never sync and are
+  // not counted as pending, so put them back before anything reads the queue.
+  // Skipped while a sync holds the lock: those items are genuinely in flight.
+  useEffect(() => {
+    if (!queueService || !syncLockName) return;
+    let cancelled = false;
+    runExclusiveAcrossTabs(syncLockName, () => queueService.recoverInterrupted())
+      .then(run => {
+        if (!cancelled && run.ran && run.value > 0) refresh();
+      })
+      .catch(error => logger.error('Failed to recover interrupted offline items', error));
+    return () => {
+      cancelled = true;
+    };
+  }, [queueService, syncLockName, refresh]);
 
   // Trigger auto-sync when we come back online and have pending items
   useEffect(() => {
     if (isOnline && pendingCount > 0 && !isSyncing) {
-      // Small delay to let the network stabilize
+      // Short delay to let the network stabilize; longer after runs that
+      // synced nothing so a weak signal is not hammered.
       const timer = setTimeout(() => {
         syncNow();
-      }, 1500);
+      }, autoSyncDelayMs(stalledRunsRef.current));
       return () => clearTimeout(timer);
     }
   }, [isOnline, pendingCount, isSyncing, syncNow]);

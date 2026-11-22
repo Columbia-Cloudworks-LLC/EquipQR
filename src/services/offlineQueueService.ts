@@ -31,7 +31,6 @@ import { collectImageRefIds } from './offlineQueueImageRefs';
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const STORAGE_KEY_PREFIX = 'equipqr_offline_queue';
-const MAX_ITEMS = 50;
 const MAX_ITEM_SIZE_BYTES = 50 * 1024; // 50 KB per item
 const MAX_QUEUE_SIZE_BYTES = 2 * 1024 * 1024; // 2 MB total budget
 
@@ -216,6 +215,12 @@ export interface OfflineQueuePMInitItem extends OfflineQueueItemBase {
     /** Optional explicit checklist data; falls back to template / default. */
     checklistData?: PMChecklistItem[];
     notes?: string;
+    /**
+     * Id of the `work_order_create` queue item this init was split off from.
+     * Queued PM edits use `offline-pm-<that id>`, so the init resolves the
+     * placeholder under the original id rather than its own.
+     */
+    placeholderParentId?: string;
   };
 }
 
@@ -454,6 +459,20 @@ function buildCompactedQueue(state: OfflineQueueCompactionState): OfflineQueueIt
   ].sort((a, b) => a.timestamp - b.timestamp);
 }
 
+function payloadSizeBytes(item: OfflineQueueItem): number {
+  return new Blob([JSON.stringify(item.payload)]).size;
+}
+
+function queueSizeBytes(queue: OfflineQueueItem[]): number {
+  return queue.reduce((sum, qi) => sum + qi.payloadSizeBytes, 0);
+}
+
+function compactItems(queue: OfflineQueueItem[]): OfflineQueueItem[] {
+  const state = createCompactionState();
+  queue.forEach(item => compactQueueItem(item, state));
+  return buildCompactedQueue(state);
+}
+
 // ─── Service ─────────────────────────────────────────────────────────────────
 
 export class OfflineQueueService {
@@ -550,23 +569,22 @@ export class OfflineQueueService {
       }
     }
 
-    // Guard: total queue storage budget
-    const currentTotalSize = currentQueue.reduce((sum, qi) => sum + qi.payloadSizeBytes, 0);
-    if (currentTotalSize + sizeBytes > MAX_QUEUE_SIZE_BYTES) {
-      logger.warn('Offline queue storage budget exceeded');
-      toast.error('Offline queue full', {
-        description: 'Clear synced items or wait for connection to free space.',
-      });
-      throw new OfflineQueuePayloadError('Queue storage budget exceeded');
-    }
-
-    // FIFO eviction if at item-count cap
-    const queue = [...currentQueue];
-    if (queue.length >= MAX_ITEMS) {
-      const oldestPendingIdx = queue.findIndex(qi => qi.status === 'pending');
-      if (oldestPendingIdx !== -1) {
-        queue.splice(oldestPendingIdx, 1);
-        toast.warning('Oldest offline item removed to make room for new item.');
+    // Guard: total queue storage budget. There is no item-count limit — a
+    // crew can be without signal for days — so when the budget is hit, first
+    // fold repeat edits to the same record together (what sync does anyway).
+    // An older item is never dropped to make room: that would lose work the
+    // user was told is saved and could remove a create later items depend on.
+    let queue = [...currentQueue];
+    if (queueSizeBytes(queue) + sizeBytes > MAX_QUEUE_SIZE_BYTES) {
+      if (!queue.some(qi => qi.status === 'processing')) {
+        queue = compactItems(queue).map(qi => ({ ...qi, payloadSizeBytes: payloadSizeBytes(qi) }));
+      }
+      if (queueSizeBytes(queue) + sizeBytes > MAX_QUEUE_SIZE_BYTES) {
+        logger.warn('Offline queue storage budget exceeded');
+        toast.error('Offline queue full', {
+          description: 'This change was not saved. Reconnect to sync your queued changes, then try again.',
+        });
+        throw new OfflineQueuePayloadError('Queue storage budget exceeded');
       }
     }
 
@@ -603,6 +621,9 @@ export class OfflineQueueService {
   replaceWithFollowUps(removeId: string, followUps: OfflineQueueEnqueueInput[]): OfflineQueueItem[] {
     const current = this.getAll();
     const remaining = current.filter(i => i.id !== removeId);
+    // Follow-ups keep the replaced item's place in line so items queued after
+    // it (which may depend on the follow-up) still replay in causal order.
+    const followUpTimestamp = current.find(i => i.id === removeId)?.timestamp ?? Date.now();
 
     // Build and validate each follow-up item before touching storage.
     const followUpItems: OfflineQueueItem[] = [];
@@ -624,7 +645,7 @@ export class OfflineQueueService {
         maxRetries: 5,
         status: 'pending' as const,
         payloadSizeBytes: sizeBytes,
-        timestamp: Date.now(),
+        timestamp: followUpTimestamp,
       } as OfflineQueueItem);
     }
 
@@ -681,7 +702,11 @@ export class OfflineQueueService {
     return true;
   }
 
-  updatePayload(id: string, updates: Record<string, unknown>): boolean {
+  updatePayload(
+    id: string,
+    updates: Record<string, unknown>,
+    options: { keepTimestamp?: boolean } = {},
+  ): boolean {
     const queue = this.getAll();
     const idx = queue.findIndex(i => i.id === id);
     if (idx === -1) return false;
@@ -700,7 +725,9 @@ export class OfflineQueueService {
       ...item,
       payload: mergedPayload,
       payloadSizeBytes: sizeBytes,
-      timestamp: Date.now(), // bump timestamp so it re-sorts on next compact
+      // A user edit bumps the timestamp so it re-sorts on next compact. Sync
+      // bookkeeping keeps it so the item stays ahead of items that depend on it.
+      timestamp: options.keepTimestamp ? item.timestamp : Date.now(),
     } as OfflineQueueItem;
 
     this.persist(queue);
@@ -729,9 +756,30 @@ export class OfflineQueueService {
     // PM updates collapse by pmId so a 50-item checklist edit session yields
     // one network call. PM inits are NOT compacted because each binds to a
     // distinct work-order/equipment pair.
-    const state = createCompactionState();
-    queue.forEach(item => compactQueueItem(item, state));
-    this.persist(buildCompactedQueue(state));
+    this.persist(compactItems(queue));
+  }
+
+  /**
+   * Return items left in `processing` to `pending`. An item stays `processing`
+   * only while a sync run is handling it, so any found outside a run were
+   * interrupted (tab closed, app killed, crash) and would otherwise never be
+   * picked up again. Returns how many items were recovered.
+   */
+  recoverInterrupted(): number {
+    const queue = this.getAll();
+    const interrupted = queue.filter(i => i.status === 'processing').length;
+    if (interrupted === 0) return 0;
+    this.persist(
+      queue.map(i => (i.status === 'processing' ? { ...i, status: 'pending' as const } : i)),
+    );
+    return interrupted;
+  }
+
+  /** Put an item back to `pending` without counting a retry (network dropped mid-sync). */
+  releaseToPending(id: string): void {
+    this.persist(
+      this.getAll().map(i => (i.id === id ? { ...i, status: 'pending' as const } : i)),
+    );
   }
 
   /** Reset all failed items back to pending so they can be retried. */
