@@ -1,9 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { createEquipmentNoteWithImages } from '@/features/equipment/services/equipmentNotesService';
-import {
-  updateEquipmentWorkingHours,
-  type UpdateWorkingHoursData,
-} from '@/features/equipment/services/equipmentWorkingHoursService';
+import type { UpdateWorkingHoursData } from '@/features/equipment/services/equipmentWorkingHoursService';
 import { createPM, type PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { WorkOrderService } from '@/features/work-orders/services/workOrderService';
 import { attachWorkOrderCreationImages } from '@/features/work-orders/services/workOrderNotesService';
@@ -13,6 +9,8 @@ import { resolvePMTemplateId } from '@/features/pm-templates/utils/resolvePMTemp
 import type { QRActionEquipment } from '@/features/equipment/services/equipmentQRPermissions';
 import { recordScanFollowUpEvent } from '@/features/equipment/services/scanFollowUpEventService';
 import { logger } from '@/utils/logger';
+import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
+import { OfflineQueueService } from '@/services/offlineQueueService';
 
 export interface CreateQRWorkOrderInput {
   equipment: QRActionEquipment;
@@ -30,8 +28,81 @@ export interface CreateQRWorkOrderInput {
 }
 
 export interface CreateQRWorkOrderResult {
-  workOrder: WorkOrder;
+  /** Null when the work order was saved on the device to sync later. */
+  workOrder: WorkOrder | null;
   creationPhotosAttached: boolean;
+  /** True when there was no connection and the work order is waiting to sync. */
+  queuedOffline: boolean;
+}
+
+/** A request that never reached the server (not a refusal from it). */
+const CONNECTION_LOST_PATTERN = /Failed to fetch|Load failed|NetworkError|ERR_INTERNET|ERR_NETWORK|net::/i;
+
+function isOffline(): boolean {
+  return typeof navigator !== 'undefined' && navigator.onLine === false;
+}
+
+/**
+ * The scan page must work the same with or without signal. With no
+ * connection the action goes into the same offline queue the dashboard uses
+ * (work order + PM checklist + photos are replayed together on sync).
+ */
+async function offlineServiceFor(organizationId: string): Promise<OfflineAwareWorkOrderService> {
+  const userId = await requireAuthUserIdFromClaims();
+  return new OfflineAwareWorkOrderService(organizationId, userId);
+}
+
+async function queueQRWorkOrder(input: CreateQRWorkOrderInput): Promise<CreateQRWorkOrderResult> {
+  const pmTemplateId = input.attachPM
+    ? resolvePMTemplateId({
+        explicitTemplateId: input.pmTemplateId,
+        equipmentDefaultTemplateId: input.equipment.defaultPmTemplateId,
+      })
+    : undefined;
+  if (input.attachPM && !pmTemplateId) {
+    throw new Error('Select a PM checklist template to create this work order.');
+  }
+
+  const offline = await offlineServiceFor(input.equipment.organizationId);
+  await offline.createWorkOrder({
+    title: input.title,
+    description: input.description,
+    equipmentId: input.equipment.id,
+    priority: input.priority,
+    dueDate: input.dueDate || undefined,
+    hasPM: input.attachPM,
+    pmTemplateId: pmTemplateId ?? undefined,
+    images: input.images,
+    creationPhotoNote: input.creationPhotoNote,
+  });
+
+  return { workOrder: null, creationPhotosAttached: true, queuedOffline: true };
+}
+
+/**
+ * Keep a scan made with no connection so it is recorded when the device is
+ * back online. Returns the id the scan will have on the server.
+ */
+export async function queueOfflineScan(scan: {
+  organizationId: string;
+  equipmentId: string;
+  scannedAt: string;
+  location?: string | null;
+}): Promise<string> {
+  const userId = await requireAuthUserIdFromClaims();
+  const scanId = crypto.randomUUID();
+  new OfflineQueueService(userId, scan.organizationId).enqueue({
+    type: 'equipment_scan',
+    payload: {
+      scanId,
+      equipmentId: scan.equipmentId,
+      scannedAt: scan.scannedAt,
+      location: scan.location ?? null,
+    },
+    organizationId: scan.organizationId,
+    userId,
+  });
+  return scanId;
 }
 
 async function getPMTemplateData(templateId: string, organizationId: string): Promise<{
@@ -55,6 +126,8 @@ async function getPMTemplateData(templateId: string, organizationId: string): Pr
 }
 
 export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<CreateQRWorkOrderResult> {
+  if (isOffline()) return queueQRWorkOrder(input);
+
   const createdBy = await requireAuthUserIdFromClaims();
   const service = new WorkOrderService(input.equipment.organizationId);
   const result = await service.create({
@@ -69,6 +142,9 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
   });
 
   if (!result.success || !result.data) {
+    // The connection dropped before anything was created: save it on the
+    // device instead of losing what the technician typed.
+    if (isOffline() || CONNECTION_LOST_PATTERN.test(result.error ?? '')) return queueQRWorkOrder(input);
     throw new Error(result.error || 'Failed to create work order.');
   }
 
@@ -153,17 +229,20 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
   return {
     workOrder: result.data,
     creationPhotosAttached,
+    queuedOffline: false,
   };
 }
 
 export async function updateQRWorkingHours(
   data: UpdateWorkingHoursData & { organizationId: string; scanId?: string | null }
-): Promise<unknown> {
+): Promise<{ queuedOffline: boolean }> {
   const { scanId, organizationId, ...workingHoursData } = data;
-  const result = await updateEquipmentWorkingHours({
+  const offline = await offlineServiceFor(organizationId);
+  const result = await offline.updateWorkingHours({
     ...workingHoursData,
     updateSource: 'manual',
   });
+  if (result.queuedOffline) return { queuedOffline: true };
 
   if (scanId) {
     try {
@@ -179,7 +258,7 @@ export async function updateQRWorkingHours(
     }
   }
 
-  return result;
+  return { queuedOffline: false };
 }
 
 export async function createQREquipmentNote(input: {
@@ -190,16 +269,17 @@ export async function createQREquipmentNote(input: {
   isPrivate: boolean;
   machineHours?: number | null;
   scanId?: string | null;
-}): Promise<unknown> {
-  const result = await createEquipmentNoteWithImages(
+}): Promise<{ queuedOffline: boolean }> {
+  const offline = await offlineServiceFor(input.organizationId);
+  const result = await offline.createEquipmentNote(
     input.equipmentId,
     input.content,
     0,
     input.isPrivate,
+    input.machineHours ?? undefined,
     input.images,
-    input.organizationId,
-    input.machineHours ?? undefined
   );
+  if (result.queuedOffline) return { queuedOffline: true };
 
   if (input.scanId) {
     try {
@@ -216,5 +296,5 @@ export async function createQREquipmentNote(input: {
     }
   }
 
-  return result;
+  return { queuedOffline: false };
 }

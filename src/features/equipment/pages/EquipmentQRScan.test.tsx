@@ -1,13 +1,15 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import EquipmentQRScan from '@/features/equipment/pages/EquipmentQRScan';
 import { useAuth } from '@/hooks/useAuth';
 import { useSession } from '@/hooks/useSession';
 import { useBrowserOnline } from '@/hooks/useBrowserOnline';
 import { useEquipmentById, useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
-import { fetchEquipmentQRPayload } from '@/features/equipment/services/equipmentQRPermissions';
+import { fetchEquipmentQRPayload, insertScan } from '@/features/equipment/services/equipmentQRPermissions';
+import { queueOfflineScan } from '@/features/equipment/services/equipmentQRActionService';
+import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 
 const replaceMock = vi.fn();
 const assignMock = vi.fn();
@@ -39,6 +41,28 @@ vi.mock('@/hooks/useBrowserOnline', () => ({
 vi.mock('@/features/equipment/hooks/useEquipment', () => ({
   useEquipmentById: vi.fn(() => ({ data: undefined })),
   useEquipmentSummaries: vi.fn(() => ({ data: undefined })),
+}));
+
+const quickActionsProps = vi.hoisted(() => ({ current: null as Record<string, unknown> | null }));
+
+vi.mock('@/features/equipment/components/qr/EquipmentQRQuickActions', () => ({
+  default: (props: Record<string, unknown>) => {
+    quickActionsProps.current = props;
+    return <div>Quick actions</div>;
+  },
+}));
+
+vi.mock('@/features/equipment/services/equipmentQRActionService', () => ({
+  queueOfflineScan: vi.fn(),
+}));
+
+vi.mock('@/features/offline-queue/hooks/useOfflineEquipmentDownload', () => ({
+  useOfflineEquipmentDownload: vi.fn(),
+}));
+
+vi.mock('@/contexts/OfflineQueueContext', () => ({
+  OfflineQueueProviderForOrganization: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useOfflineQueueOptional: vi.fn(() => null),
 }));
 
 vi.mock('@/lib/queryPersistence', () => ({
@@ -169,25 +193,91 @@ describe('EquipmentQRScan (#1074)', () => {
       } as ReturnType<typeof useEquipmentSummaries>);
     });
 
-    it('shows the saved equipment and offers a work order when there is no connection', async () => {
+    it('shows the same page and actions with no connection, and keeps the scan', async () => {
       vi.mocked(useBrowserOnline).mockReturnValue(false);
+      vi.mocked(queueOfflineScan).mockResolvedValue('offline-scan-1');
+      vi.mocked(useOfflineQueueOptional).mockReturnValue({
+        pendingCount: 1,
+        failedCount: 0,
+        isSyncing: false,
+      } as ReturnType<typeof useOfflineQueueOptional>);
 
       renderScan();
 
       expect(await screen.findByText('CAT 320 Excavator')).toBeInTheDocument();
-      expect(screen.getByText(/No connection\. These are the details saved on this device/)).toBeInTheDocument();
-      expect(screen.getByText('Scan not recorded (no connection)')).toBeInTheDocument();
+      // Same quick actions as online: no separate offline path.
+      expect(await screen.findByText('Quick actions')).toBeInTheDocument();
+      expect(quickActionsProps.current).toMatchObject({
+        equipment: expect.objectContaining({ id: EQUIPMENT_ID, organizationId: ORG_ID }),
+        userRole: 'member',
+        savedTeamMemberships: [],
+      });
       // The live lookup can only fail offline, so it is not attempted.
       expect(fetchEquipmentQRPayload).not.toHaveBeenCalled();
-      // The full record was never opened on this device, so only the work order path is offered.
-      expect(screen.queryByRole('button', { name: /Open Equipment Record/ })).not.toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole('button', { name: /Create Work Order/ }));
+      // The scan is kept with the time it happened, to be recorded on sync.
+      await waitFor(() => expect(queueOfflineScan).toHaveBeenCalledTimes(1));
+      const queued = vi.mocked(queueOfflineScan).mock.calls[0][0];
+      expect(queued).toMatchObject({ organizationId: ORG_ID, equipmentId: EQUIPMENT_ID });
+      expect(Math.abs(Date.now() - new Date(queued.scannedAt).getTime())).toBeLessThan(60_000);
+      expect(insertScan).not.toHaveBeenCalled();
+      expect(await screen.findByText('Scan saved on this device')).toBeInTheDocument();
+      expect(screen.getByText('1 change saved on this device, waiting to sync')).toBeInTheDocument();
+    });
 
-      expect(JSON.parse(sessionStorage.getItem('equipqr_queued_new_work_order') ?? 'null')).toEqual({
-        equipmentId: EQUIPMENT_ID,
+    it('keeps the scan when the connection drops before it is logged', async () => {
+      vi.mocked(useBrowserOnline).mockReturnValue(true);
+      vi.mocked(fetchEquipmentQRPayload).mockResolvedValue({
+        equipment: {
+          id: EQUIPMENT_ID,
+          name: 'CAT 320 Excavator',
+          manufacturer: 'CAT',
+          model: '320',
+          serialNumber: 'SN-1',
+          status: 'active',
+          location: null,
+          workingHours: 10,
+          imageReference: null,
+          defaultPmTemplateId: null,
+          team: null,
+        },
+        organization: { id: ORG_ID, name: 'Apex Construction', scan_location_collection_enabled: false },
+        userRole: 'member',
       });
-      expect(assignMock).toHaveBeenCalledWith('/dashboard/work-orders');
+      vi.mocked(insertScan).mockRejectedValue(new Error('TypeError: Failed to fetch'));
+      vi.mocked(queueOfflineScan).mockResolvedValue('offline-scan-2');
+
+      renderScan();
+
+      expect(await screen.findByText('Scan saved on this device')).toBeInTheDocument();
+      expect(queueOfflineScan).toHaveBeenCalledTimes(1);
+    });
+
+    it('reports a scan the server refused instead of queueing it', async () => {
+      vi.mocked(useBrowserOnline).mockReturnValue(true);
+      vi.mocked(fetchEquipmentQRPayload).mockResolvedValue({
+        equipment: {
+          id: EQUIPMENT_ID,
+          name: 'CAT 320 Excavator',
+          manufacturer: 'CAT',
+          model: '320',
+          serialNumber: 'SN-1',
+          status: 'active',
+          location: null,
+          workingHours: 10,
+          imageReference: null,
+          defaultPmTemplateId: null,
+          team: null,
+        },
+        organization: { id: ORG_ID, name: 'Apex Construction', scan_location_collection_enabled: false },
+        userRole: 'member',
+      });
+      vi.mocked(insertScan).mockRejectedValue(new Error('new row violates row-level security policy'));
+
+      renderScan();
+
+      expect(await screen.findByText('Equipment loaded, scan log failed')).toBeInTheDocument();
+      expect(queueOfflineScan).not.toHaveBeenCalled();
     });
 
     it('explains what to do when the equipment was never saved on this device', async () => {

@@ -677,6 +677,74 @@ export class EquipmentService {
   }
 
   /**
+   * Every equipment record the user can see, in the same shape `getById`
+   * returns, fetched a page at a time. Used to save full records on the
+   * device ahead of time so a machine opens with no signal even if its
+   * record was never opened before. Not for rendering lists: use
+   * `getSummaries` / `getFilteredList` for those.
+   */
+  static async getAllFullRecords(
+    organizationId: string,
+    options: { userTeamIds?: string[]; isOrgAdmin?: boolean } = {},
+  ): Promise<ApiResponse<EquipmentWithTeam[]>> {
+    try {
+      const teamIds = teamScopedIds(options);
+      if (teamIds?.length === 0) {
+        return createServiceSuccessResponse([]);
+      }
+
+      const pageSize = 200;
+      const rows: EquipmentWithTeam[] = [];
+
+      for (let from = 0; ; from += pageSize) {
+        let query = supabase
+          .from('equipment')
+          .select(`
+            *,
+            team:team_id(
+              id,
+              name,
+              description,
+              location_address,
+              location_city,
+              location_state,
+              location_country,
+              location_lat,
+              location_lng,
+              override_equipment_location
+            )
+          `)
+          .eq('organization_id', organizationId)
+          .order('id', { ascending: true })
+          .range(from, from + pageSize - 1);
+
+        if (teamIds) {
+          query = query.in('team_id', teamIds);
+        }
+
+        const { data, error } = await query;
+        if (error) {
+          logger.error('Error fetching equipment records for offline use:', error);
+          return createServiceErrorResponse(error, 'EquipmentService error');
+        }
+
+        for (const row of data ?? []) {
+          rows.push({
+            ...(row as EquipmentWithTeam),
+            team_name: (row.team as { name?: string } | null | undefined)?.name ?? undefined,
+          });
+        }
+        if (!data || data.length < pageSize) break;
+      }
+
+      const resolved = await withResolvedEquipmentImages(rows);
+      return createServiceSuccessResponse(resolved);
+    } catch (error) {
+      return createServiceErrorResponse(error, 'EquipmentService error');
+    }
+  }
+
+  /**
    * Create new equipment
    */
   static async create(

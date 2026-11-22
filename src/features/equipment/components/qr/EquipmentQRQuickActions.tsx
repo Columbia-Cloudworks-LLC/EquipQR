@@ -12,11 +12,15 @@ import type { Role } from '@/types/permissions';
 import {
   canRunQRAction,
   fetchQRActionTeamMemberships,
+  type QRActionTeamMembership,
 } from '@/features/equipment/services/equipmentQRPermissions';
 import { getAuthClaims } from '@/lib/authClaims';
 import { logger } from '@/utils/logger';
 
 type QRWorkOrderIntent = 'issue' | 'pm';
+
+/** The permission lookup never reached the server (not a refusal from it). */
+const CONNECTION_LOST_PATTERN = /Failed to fetch|Load failed|NetworkError|ERR_INTERNET|ERR_NETWORK|net::/i;
 
 const QRWorkOrderDialog = lazy(() => import('@/features/equipment/components/qr/QRWorkOrderDialog'));
 const QRUpdateHoursDialog = lazy(() => import('@/features/equipment/components/qr/QRWorkingHoursDialog'));
@@ -29,6 +33,12 @@ interface EquipmentQRQuickActionsProps {
   /** Scan that this action set originated from; used to attribute follow-up events. */
   scanId?: string | null;
   onWorkingHoursUpdated?: (newHours: number) => void;
+  /**
+   * Team memberships already known on this device (from the saved session).
+   * Used only when the live permission lookup cannot reach the server, so the
+   * actions keep working with no signal. The server checks again on sync.
+   */
+  savedTeamMemberships?: QRActionTeamMembership[];
 }
 
 type DialogState =
@@ -54,12 +64,26 @@ export default function EquipmentQRQuickActions({
   userDisplayName,
   scanId,
   onWorkingHoursUpdated,
+  savedTeamMemberships,
 }: EquipmentQRQuickActionsProps) {
   const [dialog, setDialog] = useState<DialogState>(null);
   const [activePermissionContext, setActivePermissionContext] = useState<QRActionPermissionContext | null>(null);
   const [permissionMessage, setPermissionMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<SuccessMessage>(null);
   const [checkingAction, setCheckingAction] = useState<QRActionType | null>(null);
+
+  const loadTeamMemberships = async (): Promise<QRActionTeamMembership[]> => {
+    const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+    if (offline && savedTeamMemberships) return savedTeamMemberships;
+    try {
+      return await fetchQRActionTeamMemberships(equipment.organizationId, userRole, equipment.teamId);
+    } catch (error) {
+      if (savedTeamMemberships && CONNECTION_LOST_PATTERN.test(error instanceof Error ? error.message : '')) {
+        return savedTeamMemberships;
+      }
+      throw error;
+    }
+  };
 
   const openAction = async (action: QRActionType, nextDialog: DialogState) => {
     setCheckingAction(action);
@@ -78,11 +102,7 @@ export default function EquipmentQRQuickActions({
         userRole,
         teamMemberships: [],
       };
-      const teamMemberships = await fetchQRActionTeamMemberships(
-        equipment.organizationId,
-        userRole,
-        equipment.teamId
-      );
+      const teamMemberships = await loadTeamMemberships();
       const nextPermissionContext = { ...permissionContext, teamMemberships };
 
       if (!canRunQRAction(action, nextPermissionContext, equipment.teamId)) {
@@ -197,13 +217,19 @@ export default function EquipmentQRQuickActions({
                   setActivePermissionContext(null);
                 }
               }}
-              onCreated={(workOrder) => {
+              onCreated={(workOrder, title) => {
                 setDialog(null);
                 setActivePermissionContext(null);
-                setSuccessMessage({
-                  message: `Work order "${workOrder.title}" was created.`,
-                  workOrderId: workOrder.id,
-                });
+                setSuccessMessage(
+                  workOrder
+                    ? {
+                        message: `Work order "${workOrder.title}" was created.`,
+                        workOrderId: workOrder.id,
+                      }
+                    : {
+                        message: `Work order "${title}" saved on this device. It will sync when you are back online.`,
+                      },
+                );
               }}
             />
           )}
@@ -219,11 +245,13 @@ export default function EquipmentQRQuickActions({
                   setActivePermissionContext(null);
                 }
               }}
-              onSuccess={(newHours) => {
+              onSuccess={(newHours, queuedOffline) => {
                 setDialog(null);
                 setActivePermissionContext(null);
                 setSuccessMessage({
-                  message: `Working hours updated to ${newHours} hours.`,
+                  message: queuedOffline
+                    ? `Working hours of ${newHours} saved on this device. They will sync when you are back online.`
+                    : `Working hours updated to ${newHours} hours.`,
                 });
                 onWorkingHoursUpdated?.(newHours);
               }}

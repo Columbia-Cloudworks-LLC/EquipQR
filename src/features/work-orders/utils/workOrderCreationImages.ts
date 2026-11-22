@@ -11,9 +11,6 @@ export const WORK_ORDER_CREATION_IMAGE_TYPES = [
 export const WORK_ORDER_CREATION_MAX_IMAGES = 5;
 export const WORK_ORDER_CREATION_MAX_FILE_BYTES = 10 * 1024 * 1024;
 
-export const OFFLINE_CREATION_PHOTOS_MESSAGE =
-  'Photos need a connection. Text notes can still be saved offline.';
-
 /**
  * Validates incoming files for creation-time work order photos.
  * Shows toast errors for rejections. Returns files safe to append.

@@ -22,7 +22,12 @@ import React, {
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { OfflineQueueService, type OfflineQueueItem, type OfflineQueueEnqueueInput } from '@/services/offlineQueueService';
+import {
+  OFFLINE_QUEUE_CHANGED_EVENT,
+  OfflineQueueService,
+  type OfflineQueueItem,
+  type OfflineQueueEnqueueInput,
+} from '@/services/offlineQueueService';
 import { OfflineQueueProcessor, type ProcessResult } from '@/services/offlineQueueProcessor';
 import { logger } from '@/utils/logger';
 import { toast } from 'sonner';
@@ -73,9 +78,27 @@ const OfflineQueueContext = createContext<OfflineQueueContextValue | null>(null)
 
 // ─── Provider ────────────────────────────────────────────────────────────────
 
+/** Dashboard provider: the queue belongs to the organization that is open. */
 export const OfflineQueueProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
   const { currentOrganization } = useOrganization();
+  return (
+    <OfflineQueueProviderForOrganization organizationId={currentOrganization?.id ?? null}>
+      {children}
+    </OfflineQueueProviderForOrganization>
+  );
+};
+
+/**
+ * The queue and its sync loop for one organization. Used directly by pages
+ * that have no organization provider (the QR scan page), so changes saved
+ * there with no signal are synced from that page too, not only after the
+ * technician happens to open the dashboard.
+ */
+export const OfflineQueueProviderForOrganization: React.FC<{
+  organizationId: string | null;
+  children: React.ReactNode;
+}> = ({ organizationId, children }) => {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const isOnline = useBrowserOnline();
@@ -89,9 +112,9 @@ export const OfflineQueueProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Stable service & processor instances (re-created when user/org changes)
   const queueService = useMemo(() => {
-    if (!user?.id || !currentOrganization?.id) return null;
-    return new OfflineQueueService(user.id, currentOrganization.id);
-  }, [user?.id, currentOrganization?.id]);
+    if (!user?.id || !organizationId) return null;
+    return new OfflineQueueService(user.id, organizationId);
+  }, [user?.id, organizationId]);
 
   const processor = useMemo(() => {
     if (!queueService) return null;
@@ -99,9 +122,9 @@ export const OfflineQueueProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [queueService, queryClient]);
 
   const syncLockName = useMemo(() => {
-    if (!user?.id || !currentOrganization?.id) return null;
-    return offlineSyncLockName(user.id, currentOrganization.id);
-  }, [user?.id, currentOrganization?.id]);
+    if (!user?.id || !organizationId) return null;
+    return offlineSyncLockName(user.id, organizationId);
+  }, [user?.id, organizationId]);
 
   // Derived state from localStorage
   const queuedItems = useMemo(() => {
@@ -121,6 +144,25 @@ export const OfflineQueueProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Bump revision to trigger state recalculation
   const refresh = useCallback(() => setRevision(r => r + 1), []);
+
+  // Anything that writes the queue through its own service instance (the
+  // offline-aware services, the QR scan page) announces it, so the pending
+  // count and auto-sync react without each caller having to call refresh().
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const onChanged = () => {
+      if (timer) return;
+      timer = setTimeout(() => {
+        timer = null;
+        refresh();
+      }, 250);
+    };
+    window.addEventListener(OFFLINE_QUEUE_CHANGED_EVENT, onChanged);
+    return () => {
+      window.removeEventListener(OFFLINE_QUEUE_CHANGED_EVENT, onChanged);
+      if (timer) clearTimeout(timer);
+    };
+  }, [refresh]);
 
   // ── Auto-sync when coming back online ──────────────────────────────────
 

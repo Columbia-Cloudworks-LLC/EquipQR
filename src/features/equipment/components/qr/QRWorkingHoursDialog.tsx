@@ -27,7 +27,7 @@ interface QRWorkingHoursDialogProps {
   equipment: QRActionEquipment;
   permissionContext: QRActionPermissionContext | null;
   scanId?: string | null;
-  onSuccess: (newHours: number) => void;
+  onSuccess: (newHours: number, queuedOffline: boolean) => void;
 }
 
 const QRWorkingHoursDialog: React.FC<QRWorkingHoursDialogProps> = ({
@@ -65,7 +65,7 @@ const QRWorkingHoursDialog: React.FC<QRWorkingHoursDialogProps> = ({
 
     setIsSubmitting(true);
     try {
-      await updateQRWorkingHours({
+      const { queuedOffline } = await updateQRWorkingHours({
         organizationId: equipment.organizationId,
         equipmentId: equipment.id,
         newHours: parsedHours,
@@ -73,7 +73,7 @@ const QRWorkingHoursDialog: React.FC<QRWorkingHoursDialogProps> = ({
         scanId,
       });
 
-      onSuccess(parsedHours);
+      onSuccess(parsedHours, queuedOffline);
       onOpenChange(false);
     } catch (submitError) {
       logger.error('Failed to update QR working hours', submitError);

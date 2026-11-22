@@ -36,6 +36,7 @@ import type {
   OfflineQueuePMInitItem,
   OfflineQueuePMUpdateItem,
   OfflineQueuePMDeleteItem,
+  OfflineQueueEquipmentScanItem,
 } from './offlineQueueService';
 import { OfflineQueueService } from './offlineQueueService';
 import { EquipmentService } from '@/features/equipment/services/EquipmentService';
@@ -58,6 +59,7 @@ import {
 } from '@/features/pm-templates/services/preventativeMaintenanceService';
 import { pmChecklistTemplatesService } from '@/features/pm-templates/services/pmChecklistTemplatesService';
 import { requireAuthClaims } from '@/lib/authClaims';
+import { insertOfflineScan } from '@/features/equipment/services/equipmentQRPermissions';
 import { OfflineReplayContext } from './offlineQueueReplayContext';
 import {
   cleanupQueueItemBlobs,
@@ -689,6 +691,14 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
       throw new Error(`Sync failed: PM delete returned false for ${resolvedPmId}`);
     }
 
+    return { success: true };
+  }) as QueueItemHandler<never>,
+
+  equipment_scan: (async (item: OfflineQueueEquipmentScanItem, replay) => {
+    await insertOfflineScan({
+      ...item.payload,
+      equipmentId: replay.resolveEquipmentId(item.payload.equipmentId),
+    });
     return { success: true };
   }) as QueueItemHandler<never>,
   };
