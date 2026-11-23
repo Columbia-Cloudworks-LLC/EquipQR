@@ -6,7 +6,7 @@ import EquipmentQRScan from '@/features/equipment/pages/EquipmentQRScan';
 import { useAuth } from '@/hooks/useAuth';
 import { useSession } from '@/hooks/useSession';
 import {
-  readRememberedTeamIds,
+  readRememberedTeamMemberships,
   useOfflineEquipmentDownload,
 } from '@/features/offline-queue/hooks/useOfflineEquipmentDownload';
 import { useBrowserOnline } from '@/hooks/useBrowserOnline';
@@ -62,7 +62,8 @@ vi.mock('@/features/equipment/services/equipmentQRActionService', () => ({
 
 vi.mock('@/features/offline-queue/hooks/useOfflineEquipmentDownload', () => ({
   useOfflineEquipmentDownload: vi.fn(),
-  readRememberedTeamIds: vi.fn(() => null),
+  readRememberedTeamMemberships: vi.fn(() => null),
+  useRememberTeamMemberships: vi.fn(),
 }));
 
 vi.mock('@/contexts/OfflineQueueContext', () => ({
@@ -297,16 +298,21 @@ describe('EquipmentQRScan (#1074)', () => {
           : null,
         getUserTeamIds: () => ['team-from-other-org'],
       });
-      vi.mocked(readRememberedTeamIds).mockReturnValue(['team-b']);
+      vi.mocked(readRememberedTeamMemberships).mockReturnValue([{ teamId: 'team-b', role: 'technician' }]);
 
       renderScan();
 
       expect(await screen.findByText('CAT 320 Excavator')).toBeInTheDocument();
-      expect(readRememberedTeamIds).toHaveBeenCalledWith('user-1', ORG_ID);
+      expect(readRememberedTeamMemberships).toHaveBeenCalledWith('user-1', ORG_ID);
       expect(useEquipmentSummaries).toHaveBeenLastCalledWith(
         ORG_ID,
         expect.objectContaining({ userTeamIds: ['team-b'], isOrgAdmin: false }),
       );
+      // The same actions are allowed as when that organization is open.
+      expect(await screen.findByText('Quick actions')).toBeInTheDocument();
+      expect(quickActionsProps.current).toMatchObject({
+        savedTeamMemberships: [{ teamId: 'team-b', role: 'technician' }],
+      });
       // The download needs the open organization's team ids, so it waits.
       expect(useOfflineEquipmentDownload).toHaveBeenLastCalledWith(
         'user-1',

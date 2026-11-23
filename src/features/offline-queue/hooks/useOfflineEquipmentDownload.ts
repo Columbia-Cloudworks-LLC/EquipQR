@@ -7,6 +7,7 @@ import { teamAccessQueryScope } from '@/features/teams/utils/teamAccessScope';
 import { useBrowserOnline } from '@/hooks/useBrowserOnline';
 import { OFFLINE_CACHE_VERSION } from '@/lib/queryPersistence';
 import { logger } from '@/utils/logger';
+import type { QRActionTeamMembership } from '@/features/equipment/services/equipmentQRPermissions';
 
 /** How often the saved copy is refreshed while the app is in use and connected. */
 export const OFFLINE_EQUIPMENT_DOWNLOAD_INTERVAL_MS = 6 * 60 * 60 * 1000;
@@ -27,29 +28,55 @@ const lastDownloadKey = (userId: string, organizationId: string, scope: string) 
 const teamScopeKey = (userId: string, organizationId: string) =>
   `equipqr_offline_team_scope_${userId}_${organizationId}`;
 
-/**
- * The session only holds team memberships for the organization that is open.
- * Remember them per organization so a QR code for another organization can
- * still find that organization's saved equipment with no signal.
- */
-function rememberTeamIds(userId: string, organizationId: string, teamIds: string[]): void {
-  try {
-    localStorage.setItem(teamScopeKey(userId, organizationId), JSON.stringify(teamIds));
-  } catch {
-    // Without storage only the open organization works offline.
-  }
+const TEAM_ROLES: readonly string[] = ['manager', 'technician', 'requestor', 'viewer'];
+
+function isTeamMembership(value: unknown): value is QRActionTeamMembership {
+  if (!value || typeof value !== 'object') return false;
+  const { teamId, role } = value as Partial<Record<keyof QRActionTeamMembership, unknown>>;
+  return typeof teamId === 'string' && typeof role === 'string' && TEAM_ROLES.includes(role);
 }
 
-/** Team ids last seen for this user in this organization, or null if never saved. */
-export function readRememberedTeamIds(userId: string, organizationId: string): string[] | null {
+/**
+ * Team memberships last seen for this user in this organization, or null if
+ * never saved. They only decide what is shown from saved data with no
+ * signal; the server checks every change again when it syncs.
+ */
+export function readRememberedTeamMemberships(
+  userId: string,
+  organizationId: string,
+): QRActionTeamMembership[] | null {
   try {
     const parsed: unknown = JSON.parse(localStorage.getItem(teamScopeKey(userId, organizationId)) ?? 'null');
-    return Array.isArray(parsed) && parsed.every((id): id is string => typeof id === 'string')
-      ? parsed
-      : null;
+    return Array.isArray(parsed) && parsed.every(isTeamMembership) ? parsed : null;
   } catch {
     return null;
   }
+}
+
+/**
+ * The session only holds team memberships for the organization that is open.
+ * Remember them per organization so a QR code for another organization can
+ * still find that organization's saved equipment, and allow the same
+ * actions, with no signal. Pass `undefined` until the memberships are known
+ * to belong to `organizationId`.
+ */
+export function useRememberTeamMemberships(
+  userId: string | undefined,
+  organizationId: string | undefined,
+  memberships: readonly QRActionTeamMembership[] | undefined,
+): void {
+  const serialized = memberships
+    ? JSON.stringify(memberships.map(({ teamId, role }) => ({ teamId, role })))
+    : null;
+
+  useEffect(() => {
+    if (!userId || !organizationId || serialized === null) return;
+    try {
+      localStorage.setItem(teamScopeKey(userId, organizationId), serialized);
+    } catch {
+      // Without storage only the open organization works offline.
+    }
+  }, [userId, organizationId, serialized]);
 }
 
 const LAST_DOWNLOAD_KEY_PREFIX = 'equipqr_offline_equipment_download_';
@@ -83,17 +110,25 @@ function downloadedRecently(key: string): boolean {
  * the query cache (the offline read cache then saves it to the device):
  * the equipment list, the full record of every machine they can see, and the
  * PM checklist templates. Returns false if any part could not be fetched.
+ *
+ * `isStillWanted` is checked once the requests return. The read cache saves
+ * to whichever organization is open at that moment, so results that arrive
+ * after the user switched organization must be dropped, not saved under the
+ * wrong one.
  */
 export async function downloadEquipmentForOffline(
   queryClient: QueryClient,
   organizationId: string,
   scope: DownloadScope,
+  isStillWanted: () => boolean = () => true,
 ): Promise<boolean> {
   const [summaries, records, templates] = await Promise.all([
     EquipmentService.getSummaries(organizationId, scope),
     EquipmentService.getAllFullRecords(organizationId, scope),
     pmChecklistTemplatesService.listTemplates(organizationId).catch(() => null),
   ]);
+
+  if (!isStillWanted()) return false;
 
   if (summaries.success && summaries.data) {
     queryClient.setQueryData(
@@ -138,11 +173,9 @@ export function useOfflineEquipmentDownload(
   const teamIdsKey = options.userTeamIds ? options.userTeamIds.join(',') : null;
 
   useEffect(() => {
-    if (!enabled || !userId || !organizationId) return;
+    if (!enabled || !isOnline || !userId || !organizationId) return;
 
     const userTeamIds = teamIdsKey === null ? undefined : teamIdsKey.split(',').filter(Boolean);
-    if (!isOrgAdmin && userTeamIds) rememberTeamIds(userId, organizationId, userTeamIds);
-    if (!isOnline) return;
     const storageKey = lastDownloadKey(
       userId,
       organizationId,
@@ -152,7 +185,7 @@ export function useOfflineEquipmentDownload(
 
     let cancelled = false;
     const timer = setTimeout(() => {
-      downloadEquipmentForOffline(queryClient, organizationId, { userTeamIds, isOrgAdmin })
+      downloadEquipmentForOffline(queryClient, organizationId, { userTeamIds, isOrgAdmin }, () => !cancelled)
         .then((complete) => {
           if (cancelled || !complete) return;
           try {

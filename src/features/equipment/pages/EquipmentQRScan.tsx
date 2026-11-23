@@ -40,8 +40,9 @@ import {
 } from '@/contexts/OfflineQueueContext';
 import { OFFLINE_QUEUE_ENABLED } from '@/lib/flags';
 import {
-  readRememberedTeamIds,
+  readRememberedTeamMemberships,
   useOfflineEquipmentDownload,
+  useRememberTeamMemberships,
 } from '@/features/offline-queue/hooks/useOfflineEquipmentDownload';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
 import { isOrgAdminRole } from '@/features/teams/utils/teamAccessScope';
@@ -162,16 +163,21 @@ const EquipmentQRScan = (): React.JSX.Element => {
   // last. For a QR code from another organization, use the team ids saved the
   // last time that organization was open, or its saved equipment is not found.
   const sessionCoversCacheOrg = !!cacheOrgId && sessionData?.currentOrganizationId === cacheOrgId;
-  const rememberedTeamIds = useMemo(
-    () => (user?.id && cacheOrgId ? readRememberedTeamIds(user.id, cacheOrgId) : null),
+  const rememberedTeamMemberships = useMemo(
+    () => (user?.id && cacheOrgId ? readRememberedTeamMemberships(user.id, cacheOrgId) : null),
     [user?.id, cacheOrgId],
+  );
+  useRememberTeamMemberships(
+    user?.id,
+    cacheOrgId ?? undefined,
+    sessionCoversCacheOrg && !teamsLoading ? sessionData?.teamMemberships : undefined,
   );
   const sessionTeamIds = getUserTeamIds();
   const cacheUserTeamIds = isOrgAdmin
     ? undefined
     : sessionCoversCacheOrg
       ? sessionTeamIds
-      : rememberedTeamIds ?? undefined;
+      : rememberedTeamMemberships?.map((membership) => membership.teamId);
   const { data: cachedEquipment } = useEquipmentById(cacheOrgId, equipmentId, {
     userTeamIds: cacheUserTeamIds,
     isOrgAdmin,
@@ -459,19 +465,18 @@ const EquipmentQRScan = (): React.JSX.Element => {
     window.location.assign(`/dashboard/equipment/${activePayload.equipment.id}`);
   }, [activePayload, scanId, scanStatus]);
 
-  // Team memberships from the saved session, for the permission check when
-  // the server cannot be reached. Only valid for the organization the session
-  // was loaded for.
-  const savedTeamMemberships = useMemo(
-    () =>
-      sessionData && sessionData.currentOrganizationId === scanOrganizationId
-        ? sessionData.teamMemberships.map((membership) => ({
-            teamId: membership.teamId,
-            role: membership.role,
-          }))
-        : undefined,
-    [sessionData, scanOrganizationId],
-  );
+  // Team memberships for the permission check when the server cannot be
+  // reached: the saved session's when it is for this organization, otherwise
+  // the ones remembered from the last time this organization was open.
+  const savedTeamMemberships = useMemo(() => {
+    if (sessionData && sessionData.currentOrganizationId === scanOrganizationId) {
+      return sessionData.teamMemberships.map((membership) => ({
+        teamId: membership.teamId,
+        role: membership.role,
+      }));
+    }
+    return scanOrganizationId === cacheOrgId ? rememberedTeamMemberships ?? undefined : undefined;
+  }, [sessionData, scanOrganizationId, cacheOrgId, rememberedTeamMemberships]);
 
   if (authLoading || isLoading) {
     return <QrPageLoadingShell />;

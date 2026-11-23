@@ -21,8 +21,9 @@ vi.mock('@/hooks/useBrowserOnline', () => ({
 
 import {
   downloadEquipmentForOffline,
-  readRememberedTeamIds,
+  readRememberedTeamMemberships,
   useOfflineEquipmentDownload,
+  useRememberTeamMemberships,
 } from './useOfflineEquipmentDownload';
 import { useBrowserOnline } from '@/hooks/useBrowserOnline';
 import { equipment as equipmentKeys, queryKeys } from '@/lib/queryKeys';
@@ -122,9 +123,8 @@ describe('offline equipment download', () => {
     expect(localStorage.getItem(previousVersionMarker)).toBeNull();
   });
 
-  it("remembers each organization's team ids, in the order the equipment list uses", async () => {
+  it('downloads with team ids in the order the equipment list uses', async () => {
     const { wrapper } = setup();
-    expect(readRememberedTeamIds('user-1', ORG_ID)).toBeNull();
 
     renderHook(
       () => useOfflineEquipmentDownload('user-1', ORG_ID, { userTeamIds: ['team-z', 'team-a'], isOrgAdmin: false }),
@@ -132,12 +132,40 @@ describe('offline equipment download', () => {
     );
     await vi.advanceTimersByTimeAsync(5000);
 
-    expect(readRememberedTeamIds('user-1', ORG_ID)).toEqual(['team-z', 'team-a']);
-    expect(readRememberedTeamIds('user-1', 'org-2')).toBeNull();
     expect(mockGetSummaries).toHaveBeenCalledWith(ORG_ID, {
       userTeamIds: ['team-z', 'team-a'],
       isOrgAdmin: false,
     });
+  });
+
+  it("remembers each organization's team memberships once they are known", () => {
+    const { wrapper } = setup();
+    expect(readRememberedTeamMemberships('user-1', ORG_ID)).toBeNull();
+
+    renderHook(() => useRememberTeamMemberships('user-1', ORG_ID, undefined), { wrapper });
+    expect(readRememberedTeamMemberships('user-1', ORG_ID)).toBeNull();
+
+    renderHook(
+      () => useRememberTeamMemberships('user-1', ORG_ID, [{ teamId: 'team-b', role: 'manager' }]),
+      { wrapper },
+    );
+
+    expect(readRememberedTeamMemberships('user-1', ORG_ID)).toEqual([{ teamId: 'team-b', role: 'manager' }]);
+    expect(readRememberedTeamMemberships('user-1', 'org-2')).toBeNull();
+  });
+
+  it('ignores remembered memberships that are not in the expected shape', () => {
+    localStorage.setItem('equipqr_offline_team_scope_user-1_org-1', JSON.stringify([{ teamId: 'team-b', role: 'owner' }]));
+    expect(readRememberedTeamMemberships('user-1', ORG_ID)).toBeNull();
+  });
+
+  it('drops results that arrive after the user moved to another organization', async () => {
+    const { queryClient } = setup();
+
+    const complete = await downloadEquipmentForOffline(queryClient, ORG_ID, { isOrgAdmin: true }, () => false);
+
+    expect(complete).toBe(false);
+    expect(queryClient.getQueryCache().getAll()).toHaveLength(0);
   });
 
   it('does nothing with no connection or before team access is known', async () => {
