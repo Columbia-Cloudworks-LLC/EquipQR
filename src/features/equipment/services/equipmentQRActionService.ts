@@ -292,8 +292,26 @@ export async function updateQRWorkingHours(
 ): Promise<{ queuedOffline: boolean }> {
   const { scanId, organizationId, ...workingHoursData } = data;
   if (OFFLINE_QUEUE_ENABLED) {
-    const offline = await offlineServiceFor(organizationId);
-    const result = await offline.updateWorkingHours({ ...workingHoursData, updateSource: 'manual' });
+    const userId = await requireAuthUserIdFromClaims();
+    const update: UpdateWorkingHoursData = { ...workingHoursData, updateSource: 'manual' };
+
+    // Readings are absolute and replayed in order. If an earlier one for this
+    // machine has not synced yet, sending this one straight to the server
+    // would let the older reading overwrite it afterwards. Put it in the
+    // queue behind the earlier one instead; the queue syncs it right away
+    // when there is a connection.
+    if (readPendingQRWorkingHours(userId, organizationId, workingHoursData.equipmentId) !== null) {
+      new OfflineQueueService(userId, organizationId).enqueue({
+        type: 'equipment_hours',
+        payload: update,
+        organizationId,
+        userId,
+      });
+      return { queuedOffline: true };
+    }
+
+    const offline = new OfflineAwareWorkOrderService(organizationId, userId);
+    const result = await offline.updateWorkingHours(update);
     if (result.queuedOffline) return { queuedOffline: true };
   } else {
     if (isOffline()) throw new Error(CONNECTION_REQUIRED_MESSAGE);

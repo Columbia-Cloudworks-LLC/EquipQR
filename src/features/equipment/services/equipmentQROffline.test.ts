@@ -2,9 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockInsert = vi.hoisted(() => vi.fn());
 const mockFrom = vi.hoisted(() => vi.fn(() => ({ insert: mockInsert })));
+const mockRpc = vi.hoisted(() => vi.fn());
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: { from: mockFrom },
+  supabase: { from: mockFrom, rpc: mockRpc },
 }));
 
 vi.mock('@/lib/authClaims', () => ({
@@ -43,6 +44,7 @@ describe('QR scan page actions with no connection', () => {
     localStorage.clear();
     mockInsert.mockReset();
     mockFrom.mockClear();
+    mockRpc.mockReset();
     setOnline(false);
   });
 
@@ -104,6 +106,20 @@ describe('QR scan page actions with no connection', () => {
 
     expect(readPendingQRWorkingHours('user-1', ORG_ID, 'eq-1')).toBe(112);
     expect(readPendingQRWorkingHours('user-1', ORG_ID, 'eq-2')).toBeNull();
+  });
+
+  it('queues a new reading behind an earlier one that has not synced, even with a connection', async () => {
+    await updateQRWorkingHours({ organizationId: ORG_ID, equipmentId: 'eq-1', newHours: 108 });
+    // Signal is back but the queue has not synced 108 yet.
+    setOnline(true);
+
+    const result = await updateQRWorkingHours({ organizationId: ORG_ID, equipmentId: 'eq-1', newHours: 112 });
+
+    expect(result).toEqual({ queuedOffline: true });
+    // Nothing went straight to the server, where 108 would later overwrite it.
+    expect(mockRpc).not.toHaveBeenCalled();
+    const hours = queued().filter((item) => item.type === 'equipment_hours');
+    expect(hours.at(-1)?.payload).toMatchObject({ equipmentId: 'eq-1', newHours: 112 });
   });
 
   it('queues a note', async () => {
