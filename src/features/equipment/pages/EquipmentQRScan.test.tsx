@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import EquipmentQRScan from '@/features/equipment/pages/EquipmentQRScan';
 import { useAuth } from '@/hooks/useAuth';
@@ -340,6 +340,79 @@ describe('EquipmentQRScan (#1074)', () => {
           equipment: expect.objectContaining({ workingHours: 1550 }),
         }),
       );
+    });
+
+    it('keeps a reading saved on this device over an older one from the live lookup', async () => {
+      vi.mocked(useBrowserOnline).mockReturnValue(true);
+      vi.mocked(insertScan).mockResolvedValue('scan-1');
+      // Reconnected: the lookup returns before the saved reading has synced.
+      vi.mocked(readPendingQRWorkingHours).mockReturnValue(108);
+      vi.mocked(fetchEquipmentQRPayload).mockResolvedValue({
+        equipment: {
+          id: EQUIPMENT_ID,
+          name: 'CAT 320 Excavator',
+          manufacturer: 'CAT',
+          model: '320',
+          serialNumber: 'SN-1',
+          status: 'active',
+          location: null,
+          workingHours: 100,
+          imageReference: null,
+          defaultPmTemplateId: null,
+          team: null,
+        },
+        organization: { id: ORG_ID, name: 'Apex Construction', scan_location_collection_enabled: false },
+        userRole: 'member',
+      });
+
+      renderScan();
+
+      expect(await screen.findByText('Quick actions')).toBeInTheDocument();
+      await waitFor(() =>
+        expect(quickActionsProps.current).toMatchObject({
+          equipment: expect.objectContaining({ workingHours: 108 }),
+        }),
+      );
+
+      // The reading syncs and leaves the queue; the page must not fall back to 100.
+      vi.mocked(readPendingQRWorkingHours).mockReturnValue(null);
+      act(() => {
+        window.dispatchEvent(new Event('equipqr:offline-queue-changed'));
+      });
+
+      expect(quickActionsProps.current).toMatchObject({
+        equipment: expect.objectContaining({ workingHours: 108 }),
+      });
+    });
+
+    it('uses the reading from the live lookup when nothing is waiting to sync', async () => {
+      vi.mocked(useBrowserOnline).mockReturnValue(true);
+      vi.mocked(insertScan).mockResolvedValue('scan-2');
+      vi.mocked(readPendingQRWorkingHours).mockReturnValue(null);
+      vi.mocked(fetchEquipmentQRPayload).mockResolvedValue({
+        equipment: {
+          id: EQUIPMENT_ID,
+          name: 'CAT 320 Excavator',
+          manufacturer: 'CAT',
+          model: '320',
+          serialNumber: 'SN-1',
+          status: 'active',
+          location: null,
+          workingHours: 120,
+          imageReference: null,
+          defaultPmTemplateId: null,
+          team: null,
+        },
+        organization: { id: ORG_ID, name: 'Apex Construction', scan_location_collection_enabled: false },
+        userRole: 'member',
+      });
+
+      renderScan();
+
+      expect(await screen.findByText('Quick actions')).toBeInTheDocument();
+      expect(quickActionsProps.current).toMatchObject({
+        equipment: expect.objectContaining({ workingHours: 120 }),
+      });
     });
 
     it('explains what to do when the equipment was never saved on this device', async () => {

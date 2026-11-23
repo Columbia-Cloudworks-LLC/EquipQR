@@ -228,12 +228,17 @@ const EquipmentQRScan = (): React.JSX.Element => {
 
   // An hours reading saved here earlier and not synced yet must still show
   // after the page is reopened, or the next update would start from the old
-  // downloaded value and lower the reading when both sync.
+  // downloaded value and lower the reading when both sync. It is kept once
+  // the reading has synced too: the equipment details on this page were
+  // loaded before that and still hold the older value. Only a lookup made
+  // with nothing waiting to sync replaces it (see the lookup effect).
   const userId = user?.id;
   useEffect(() => {
     if (!userId || !cacheOrgId || !equipmentId) return;
-    const readPending = () =>
-      setOfflineWorkingHours(readPendingQRWorkingHours(userId, cacheOrgId, equipmentId));
+    const readPending = () => {
+      const pending = readPendingQRWorkingHours(userId, cacheOrgId, equipmentId);
+      if (pending !== null) setOfflineWorkingHours(pending);
+    };
     readPending();
     window.addEventListener(OFFLINE_QUEUE_CHANGED_EVENT, readPending);
     return () => window.removeEventListener(OFFLINE_QUEUE_CHANGED_EVENT, readPending);
@@ -269,6 +274,11 @@ const EquipmentQRScan = (): React.JSX.Element => {
         if (!cancelled) {
           setPayload(result);
           setPayloadLoadGeneration(g => g + 1);
+          // With nothing waiting to sync the server's reading is the latest.
+          const organizationIdForQueue = result.organization.id;
+          if (readPendingQRWorkingHours(user.id, organizationIdForQueue, equipmentId) === null) {
+            setOfflineWorkingHours(null);
+          }
         }
       })
       .catch(loadError => {
@@ -372,7 +382,14 @@ const EquipmentQRScan = (): React.JSX.Element => {
     offlineWorkingHours,
   ]);
 
-  const activePayload = payload ?? offlinePayload;
+  // A reading saved on this device is newer than both the live lookup (which
+  // can return before the saved reading has synced) and the downloaded copy.
+  const activePayload = useMemo((): EquipmentQRPayload | null => {
+    const base = payload ?? offlinePayload;
+    if (!base || offlineWorkingHours === null) return base;
+    if (base.equipment.workingHours === offlineWorkingHours) return base;
+    return { ...base, equipment: { ...base.equipment, workingHours: offlineWorkingHours } };
+  }, [payload, offlinePayload, offlineWorkingHours]);
   const isOfflineView = !payload && !!offlinePayload;
   const scanEquipmentId = activePayload?.equipment.id;
   const scanOrganizationId = activePayload?.organization.id;
