@@ -28,7 +28,14 @@ const lastDownloadKey = (userId: string, organizationId: string, scope: string) 
 const teamScopeKey = (userId: string, organizationId: string) =>
   `equipqr_offline_team_scope_${userId}_${organizationId}`;
 
-const TEAM_ROLES: readonly string[] = ['manager', 'technician', 'requestor', 'viewer'];
+// Every value of the database's team_member_role, typed so a new role cannot be missed silently.
+const TEAM_ROLES: readonly string[] = [
+  'owner',
+  'manager',
+  'technician',
+  'requestor',
+  'viewer',
+] satisfies readonly QRActionTeamMembership['role'][];
 
 function isTeamMembership(value: unknown): value is QRActionTeamMembership {
   if (!value || typeof value !== 'object') return false;

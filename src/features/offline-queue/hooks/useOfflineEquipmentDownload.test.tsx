@@ -155,8 +155,20 @@ describe('offline equipment download', () => {
   });
 
   it('ignores remembered memberships that are not in the expected shape', () => {
-    localStorage.setItem('equipqr_offline_team_scope_user-1_org-1', JSON.stringify([{ teamId: 'team-b', role: 'owner' }]));
+    localStorage.setItem('equipqr_offline_team_scope_user-1_org-1', JSON.stringify([{ teamId: 'team-b', role: 'superuser' }]));
     expect(readRememberedTeamMemberships('user-1', ORG_ID)).toBeNull();
+  });
+
+  it('keeps every team role the database has, including team owner', () => {
+    const { wrapper } = setup();
+    const memberships = [
+      { teamId: 'team-a', role: 'owner' as const },
+      { teamId: 'team-b', role: 'viewer' as const },
+    ];
+
+    renderHook(() => useRememberTeamMemberships('user-1', ORG_ID, memberships), { wrapper });
+
+    expect(readRememberedTeamMemberships('user-1', ORG_ID)).toEqual(memberships);
   });
 
   it('drops results that arrive after the user moved to another organization', async () => {
