@@ -162,6 +162,28 @@ describe('createQRWorkOrder', () => {
     expect(mocks.mockDelete).not.toHaveBeenCalled();
   });
 
+  it('finishes the PM when a retry after a dropped connection reaches the server', async () => {
+    // The browser still reports a connection, so the fallback tries the server again.
+    Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => true });
+    mocks.mockCreate
+      .mockResolvedValueOnce({ success: false, error: 'TypeError: Failed to fetch' })
+      .mockResolvedValueOnce({ success: true, data: minimalWorkOrder });
+
+    const result = await createQRWorkOrder({
+      equipment: equipment(),
+      title: 'PM',
+      description: 'D',
+      priority: 'medium',
+      attachPM: true,
+    });
+
+    expect(mocks.mockCreate).toHaveBeenCalledTimes(2);
+    expect(mocks.mockCreatePM).toHaveBeenCalledWith(
+      expect.objectContaining({ workOrderId: 'wo-new', templateId: 'default-tpl' }),
+    );
+    expect(result).toMatchObject({ workOrder: minimalWorkOrder, queuedOffline: false });
+  });
+
   it('rolls back the work order when PM cannot be initialized', async () => {
     mocks.mockCreatePM.mockResolvedValue(null);
 

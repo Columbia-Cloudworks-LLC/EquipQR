@@ -22,6 +22,12 @@ vi.mock('@tanstack/react-query', () => ({
   ),
 }));
 
+const mockAttachOfflineReadCache = vi.hoisted(() => vi.fn());
+
+vi.mock('@/lib/queryPersistence', () => ({
+  attachOfflineReadCache: mockAttachOfflineReadCache,
+}));
+
 vi.mock('next-themes', () => ({
   ThemeProvider: vi.fn(({ children }: { children: React.ReactNode }) => (
     <div data-testid="theme-provider">{children}</div>
@@ -137,6 +143,8 @@ describe('AppProviders', () => {
       );
 
       expect(QueryClient).toHaveBeenCalledTimes(1);
+      // Field-critical reads are saved for offline use on the app's one QueryClient.
+      expect(mockAttachOfflineReadCache).toHaveBeenCalledTimes(1);
       const call = (QueryClient as unknown as { mock: { calls: unknown[][] } }).mock.calls[0]?.[0] as {
         defaultOptions: {
           queries: {

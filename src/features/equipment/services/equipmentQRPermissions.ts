@@ -306,6 +306,35 @@ export async function insertScan(
   return data.id;
 }
 
+const UNIQUE_VIOLATION = '23505';
+
+/**
+ * Record a scan that was made with no connection, once the device is back
+ * online. The row keeps the time the scan happened on the device, and its
+ * note says it was recorded offline so the timestamp can be read for what it
+ * is. The id comes from the device: if the first attempt reached the server
+ * but the reply was lost, the retry hits the primary key instead of adding a
+ * second scan.
+ */
+export async function insertOfflineScan(scan: {
+  scanId: string;
+  equipmentId: string;
+  scannedAt: string;
+  location?: string | null;
+}): Promise<void> {
+  const scannedBy = await requireAuthUserIdFromClaims();
+  const { error } = await supabase.from('scans').insert({
+    id: scan.scanId,
+    equipment_id: scan.equipmentId,
+    scanned_by: scannedBy,
+    scanned_at: scan.scannedAt,
+    location: scan.location ?? null,
+    notes: `QR code scan (recorded offline, synced ${new Date().toISOString()})`,
+  });
+
+  if (error && error.code !== UNIQUE_VIOLATION) throw new Error(error.message);
+}
+
 export type QRActionType = 'pm-work-order' | 'generic-work-order' | 'update-hours' | 'note-image';
 
 export interface QRActionTeamMembership {

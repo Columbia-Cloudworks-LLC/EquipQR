@@ -72,6 +72,11 @@ vi.mock('@/features/equipment/services/EquipmentService', () => ({
   },
 }));
 
+const mockInsertOfflineScan = vi.fn();
+vi.mock('@/features/equipment/services/equipmentQRPermissions', () => ({
+  insertOfflineScan: (...args: unknown[]) => mockInsertOfflineScan(...args),
+}));
+
 vi.mock('@/features/equipment/services/equipmentWorkingHoursService', () => ({
   updateEquipmentWorkingHours: (...args: unknown[]) => mockUpdateWorkingHours(...args),
 }));
@@ -594,6 +599,44 @@ describe('OfflineQueueProcessor', () => {
 
     expect(result.succeeded).toBe(1);
     expect(mockUpdateWorkingHours).toHaveBeenCalledWith(payload);
+  });
+
+  it('records a queued scan with the time it happened', async () => {
+    const payload = {
+      scanId: 'scan-1',
+      equipmentId: 'eq-1',
+      scannedAt: '2026-11-22T10:15:00.000Z',
+      location: null,
+    };
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify([createPendingItem({ type: 'equipment_scan', payload })]),
+    );
+    mockInsertOfflineScan.mockResolvedValueOnce(undefined);
+
+    const result = await processor.processAll();
+
+    expect(result.succeeded).toBe(1);
+    expect(mockInsertOfflineScan).toHaveBeenCalledWith(payload);
+  });
+
+  it('keeps a queued scan for the next sync when the connection drops again', async () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify([
+        createPendingItem({
+          type: 'equipment_scan',
+          payload: { scanId: 'scan-1', equipmentId: 'eq-1', scannedAt: '2026-11-22T10:15:00.000Z' },
+        }),
+      ]),
+    );
+    mockInsertOfflineScan.mockRejectedValueOnce(new Error('TypeError: Failed to fetch'));
+
+    const result = await processor.processAll();
+
+    expect(result.succeeded).toBe(0);
+    const [item] = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]');
+    expect(item).toMatchObject({ type: 'equipment_scan', status: 'pending', retryCount: 0 });
   });
 
   it('processes equipment_note with empty images array', async () => {

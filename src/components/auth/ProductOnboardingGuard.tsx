@@ -21,15 +21,24 @@ const ProductOnboardingGuard: React.FC<ProductOnboardingGuardProps> = ({
 }) => {
   const location = useLocation();
   const { organizationId, isLoading: orgContextLoading } = useOrganization();
-  const { data: status, isLoading, isError, isPending, isFetched } = useProductOnboardingStatus();
+  const { data: status, isLoading, isError, isPending, isFetched, fetchStatus } =
+    useProductOnboardingStatus();
 
   if (location.pathname.startsWith(GETTING_STARTED_PATH)) {
     return <>{children}</>;
   }
 
+  // With no connection the check cannot run at all (the query is paused, not
+  // loading). Waiting for it would lock a technician out of the whole
+  // dashboard until they find signal, so let them through; the check runs
+  // again as soon as the connection is back.
+  const cannotCheckOffline = fetchStatus === 'paused' && !status;
+
   const onboardingCheckPending =
     orgContextLoading ||
-    (Boolean(organizationId) && (isPending || isLoading || (!isFetched && !isError)));
+    (Boolean(organizationId) &&
+      !cannotCheckOffline &&
+      (isPending || isLoading || (!isFetched && !isError)));
 
   if (onboardingCheckPending) {
     if (loadingFallback) {

@@ -4,6 +4,7 @@ import React from 'react';
 import { MFAProvider } from './MFAContext';
 import { useMFA } from '@/hooks/useMFA';
 import { supabase } from '@/integrations/supabase/client';
+import { AuthRetryableFetchError } from '@supabase/supabase-js';
 import type { Factor } from '@supabase/supabase-js';
 
 type ListFactorsResult = Awaited<ReturnType<typeof supabase.auth.mfa.listFactors>>;
@@ -26,13 +27,20 @@ const buildAssuranceLevelResult = (
 
 // Mock the auth hook
 const mockUser = { id: 'user-123', email: 'test@example.com' };
+const authState = vi.hoisted(() => ({ accessToken: undefined as string | undefined }));
 vi.mock('@/hooks/useAuth', () => ({
   useAuth: () => ({
     user: mockUser,
-    session: { user: mockUser },
+    session: { user: mockUser, access_token: authState.accessToken },
     isLoading: false,
   }),
 }));
+
+/** An access token whose only meaningful claim is the session it belongs to. */
+const tokenForSession = (sessionId: string) =>
+  `header.${btoa(JSON.stringify({ session_id: sessionId }))}.signature`;
+
+const unreachable = () => new AuthRetryableFetchError('Failed to fetch', 0);
 
 // Mock isMFAEnabled to return true for these tests
 vi.mock('@/lib/flags', () => ({
@@ -46,6 +54,75 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 describe('MFAContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
+    authState.accessToken = undefined;
+  });
+
+  describe('when the auth server cannot be reached', () => {
+    const verifiedFactor: Factor<'totp', 'verified'> = {
+      id: 'factor-1',
+      status: 'verified',
+      friendly_name: 'Authenticator App',
+      factor_type: 'totp',
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    };
+    const factorsUnreachable: ListFactorsResult = { data: null, error: unreachable() };
+    const levelUnreachable: AssuranceLevelResult = { data: null, error: unreachable() };
+
+    /** Sign in, pass MFA and let the status be remembered for that session. */
+    const verifyOnce = async (sessionId: string) => {
+      authState.accessToken = tokenForSession(sessionId);
+      vi.mocked(supabase.auth.mfa.listFactors).mockResolvedValue(buildListFactorsResult([verifiedFactor]));
+      vi.mocked(supabase.auth.mfa.getAuthenticatorAssuranceLevel).mockResolvedValue(
+        buildAssuranceLevelResult('aal2', 'aal2'),
+      );
+      const first = renderHook(() => useMFA(), { wrapper });
+      await waitFor(() => expect(first.result.current.isVerified).toBe(true));
+      first.unmount();
+    };
+
+    it('keeps a verified session verified', async () => {
+      await verifyOnce('session-a');
+      vi.mocked(supabase.auth.mfa.listFactors).mockResolvedValue(factorsUnreachable);
+      vi.mocked(supabase.auth.mfa.getAuthenticatorAssuranceLevel).mockResolvedValue(levelUnreachable);
+
+      const { result } = renderHook(() => useMFA(), { wrapper });
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      expect(result.current.isVerified).toBe(true);
+      expect(result.current.needsVerification).toBe(false);
+    });
+
+    it('uses the level the new session really has, not the one remembered from an earlier sign-in', async () => {
+      await verifyOnce('session-a');
+      // Signed out and in again with a password only; the factor list cannot be loaded.
+      authState.accessToken = tokenForSession('session-b');
+      vi.mocked(supabase.auth.mfa.listFactors).mockResolvedValue(factorsUnreachable);
+      vi.mocked(supabase.auth.mfa.getAuthenticatorAssuranceLevel).mockResolvedValue(
+        buildAssuranceLevelResult('aal1', 'aal2'),
+      );
+
+      const { result } = renderHook(() => useMFA(), { wrapper });
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      expect(result.current.isEnrolled).toBe(true);
+      expect(result.current.isVerified).toBe(false);
+      expect(result.current.needsVerification).toBe(true);
+    });
+
+    it('asks for MFA again when a different sign-in cannot confirm its level', async () => {
+      await verifyOnce('session-a');
+      authState.accessToken = tokenForSession('session-b');
+      vi.mocked(supabase.auth.mfa.listFactors).mockResolvedValue(factorsUnreachable);
+      vi.mocked(supabase.auth.mfa.getAuthenticatorAssuranceLevel).mockResolvedValue(levelUnreachable);
+
+      const { result } = renderHook(() => useMFA(), { wrapper });
+
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      expect(result.current.isVerified).toBe(false);
+      expect(result.current.needsVerification).toBe(true);
+    });
   });
 
   it('provides default state when no factors are enrolled', async () => {

@@ -43,6 +43,9 @@ export class OfflineQueuePayloadError extends Error {
   }
 }
 
+/** Fired on `window` whenever a queue is written, from any service instance in this tab. */
+export const OFFLINE_QUEUE_CHANGED_EVENT = 'equipqr:offline-queue-changed';
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type OfflineQueueItemType =
@@ -57,7 +60,8 @@ export type OfflineQueueItemType =
   | 'equipment_note'
   | 'pm_init'
   | 'pm_update'
-  | 'pm_delete';
+  | 'pm_delete'
+  | 'equipment_scan';
 
 export type OfflineQueueItemStatus = 'pending' | 'processing' | 'failed';
 
@@ -282,6 +286,24 @@ export interface OfflineQueuePMDeleteItem extends OfflineQueueItemBase {
   };
 }
 
+/**
+ * A QR scan made with no connection. Scans are the record of who was at a
+ * machine and when, so they are kept and replayed with the time the scan
+ * actually happened.
+ */
+export interface OfflineQueueEquipmentScanItem extends OfflineQueueItemBase {
+  type: 'equipment_scan';
+  payload: {
+    /** Generated on the device so a retried insert cannot create a second scan. */
+    scanId: string;
+    equipmentId: string;
+    /** Device time of the scan (ISO). */
+    scannedAt: string;
+    /** "lat, lng" when the organization collects scan locations and the device provided one. */
+    location?: string | null;
+  };
+}
+
 export type OfflineQueueItem =
   | OfflineQueueCreateItem
   | OfflineQueueUpdateItem
@@ -294,7 +316,8 @@ export type OfflineQueueItem =
   | OfflineQueueEquipmentNoteItem
   | OfflineQueuePMInitItem
   | OfflineQueuePMUpdateItem
-  | OfflineQueuePMDeleteItem;
+  | OfflineQueuePMDeleteItem
+  | OfflineQueueEquipmentScanItem;
 
 /** The shape callers pass to enqueue — id, retryCount, status etc. are generated. */
 export type OfflineQueueEnqueueInput = {
@@ -841,6 +864,9 @@ export class OfflineQueueService {
   private persist(queue: OfflineQueueItem[]): void {
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(queue));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event(OFFLINE_QUEUE_CHANGED_EVENT));
+      }
     } catch (e) {
       if (e instanceof DOMException && e.name === 'QuotaExceededError') {
         logger.error('localStorage quota exceeded during offline queue write');

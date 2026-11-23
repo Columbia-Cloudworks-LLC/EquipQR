@@ -23,7 +23,6 @@ import { createQRWorkOrder } from '@/features/equipment/services/equipmentQRActi
 import { logger } from '@/utils/logger';
 import { workOrders, workOrderMetrics } from '@/lib/queryKeys';
 import WorkOrderCreationPhotoPicker from '@/features/work-orders/components/WorkOrderCreationPhotoPicker';
-import { OFFLINE_CREATION_PHOTOS_MESSAGE } from '@/features/work-orders/utils/workOrderCreationImages';
 import { toast } from 'sonner';
 import { WorkOrderPMChecklist } from '@/features/work-orders/components/WorkOrderPMChecklist';
 import type { WorkOrderPMChecklistSetValue } from '@/features/work-orders/hooks/useWorkOrderPMChecklist';
@@ -39,7 +38,8 @@ interface QRWorkOrderDialogProps {
   scanId?: string | null;
   /** 'pm' pre-fills a preventative maintenance work order ("Start PM"). */
   intent?: 'issue' | 'pm';
-  onCreated: (workOrder: WorkOrder) => void;
+  /** `workOrder` is null when it was saved on the device to sync later. */
+  onCreated: (workOrder: WorkOrder | null, title: string) => void;
 }
 
 function getDefaultTitle(equipmentName: string, intent: 'issue' | 'pm'): string {
@@ -140,11 +140,6 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
       return;
     }
 
-    if (images.length > 0 && typeof navigator !== 'undefined' && !navigator.onLine) {
-      setError(OFFLINE_CREATION_PHOTOS_MESSAGE);
-      return;
-    }
-
     setIsSubmitting(true);
     try {
       const { workOrder, creationPhotosAttached } = await createQRWorkOrder({
@@ -161,7 +156,7 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
           : undefined,
         scanId,
       });
-      if (images.length > 0) {
+      if (workOrder && images.length > 0) {
         queryClient.invalidateQueries({ queryKey: workOrders.images(workOrder.id) });
         queryClient.invalidateQueries({
           queryKey: workOrders.notesWithImages(workOrder.id),
@@ -180,7 +175,7 @@ const QRWorkOrderDialog: React.FC<QRWorkOrderDialogProps> = ({
       queryClient.invalidateQueries({
         queryKey: equipmentOpenWorkOrdersKey(equipment.organizationId, equipment.id),
       });
-      onCreated(workOrder);
+      onCreated(workOrder, title.trim());
       onOpenChange(false);
     } catch (submitError) {
       logger.error('QR work order creation failed', submitError);

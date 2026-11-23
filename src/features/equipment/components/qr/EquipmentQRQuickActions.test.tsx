@@ -381,7 +381,7 @@ describe('EquipmentQRQuickActions', () => {
 
   it('adds hours with a quick increment pill from the current reading', async () => {
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'manager' }]);
-    mockUpdateHours.mockResolvedValue(undefined);
+    mockUpdateHours.mockResolvedValue({ queuedOffline: false });
 
     renderQuickActions();
     fireEvent.click(screen.getByRole('button', { name: /update hours/i }));
@@ -429,7 +429,7 @@ describe('EquipmentQRQuickActions', () => {
 
   it('updates hours for an allowed team manager', async () => {
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'manager' }]);
-    mockUpdateHours.mockResolvedValue(undefined);
+    mockUpdateHours.mockResolvedValue({ queuedOffline: false });
 
     renderQuickActions();
     fireEvent.click(screen.getByRole('button', { name: /update hours/i }));
@@ -460,7 +460,7 @@ describe('EquipmentQRQuickActions', () => {
 
   it('adds an equipment note for an allowed team member', async () => {
     mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
-    mockCreateNote.mockResolvedValue(undefined);
+    mockCreateNote.mockResolvedValue({ queuedOffline: false });
 
     renderQuickActions();
     fireEvent.click(screen.getByRole('button', { name: /add note \/ upload image/i }));
@@ -479,6 +479,89 @@ describe('EquipmentQRQuickActions', () => {
         machineHours: undefined,
       });
       expect(screen.getByText(/note added to equipment/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('with no connection', () => {
+    const setOnline = (value: boolean) =>
+      Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => value });
+
+    afterEach(() => setOnline(true));
+
+    it('confirms a work order that was saved on the device', async () => {
+      mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'technician' }]);
+      mockCreateWorkOrder.mockResolvedValue({
+        workOrder: null,
+        creationPhotosAttached: true,
+        queuedOffline: true,
+      });
+
+      renderQuickActions();
+      await openWorkOrderDialog();
+      fireEvent.click(screen.getByRole('button', { name: /create work order/i }));
+
+      expect(
+        await screen.findByText(/saved on this device\. It will sync when you are back online/i),
+      ).toBeInTheDocument();
+      // Nothing exists on the server yet, so there is no work order to link to.
+      expect(screen.queryByRole('link', { name: /open work order/i })).not.toBeInTheDocument();
+    });
+
+    it('confirms hours that were saved on the device', async () => {
+      mockFetchMemberships.mockResolvedValue([{ teamId: 'team-1', role: 'manager' }]);
+      mockUpdateHours.mockResolvedValue({ queuedOffline: true });
+
+      renderQuickActions();
+      fireEvent.click(screen.getByRole('button', { name: /update hours/i }));
+      const hoursInput = await screen.findByLabelText(/new total hours/i);
+      fireEvent.change(hoursInput, { target: { value: '130' } });
+      const form = hoursInput.closest('form');
+      if (!(form instanceof HTMLFormElement)) throw new Error('Expected a form');
+      fireEvent.submit(form);
+
+      expect(
+        await screen.findByText(/working hours of 130 saved on this device/i),
+      ).toBeInTheDocument();
+    });
+
+    it('uses the team memberships saved on the device instead of asking the server', async () => {
+      setOnline(false);
+      mockUpdateHours.mockResolvedValue({ queuedOffline: true });
+
+      renderQuickActions({ savedTeamMemberships: [{ teamId: 'team-1', role: 'manager' }] });
+      fireEvent.click(screen.getByRole('button', { name: /update hours/i }));
+
+      expect(await screen.findByLabelText(/new total hours/i)).toBeInTheDocument();
+      expect(mockFetchMemberships).not.toHaveBeenCalled();
+    });
+
+    it('falls back to saved memberships when the permission lookup cannot reach the server', async () => {
+      mockFetchMemberships.mockRejectedValue(new Error('TypeError: Failed to fetch'));
+
+      renderQuickActions({ savedTeamMemberships: [{ teamId: 'team-1', role: 'manager' }] });
+      fireEvent.click(screen.getByRole('button', { name: /update hours/i }));
+
+      expect(await screen.findByLabelText(/new total hours/i)).toBeInTheDocument();
+    });
+
+    it('still denies an action the saved memberships do not allow', async () => {
+      setOnline(false);
+
+      renderQuickActions({ savedTeamMemberships: [{ teamId: 'team-1', role: 'technician' }] });
+      fireEvent.click(screen.getByRole('button', { name: /update hours/i }));
+
+      expect(
+        await screen.findByText(/only organization admins, owners, or managers/i),
+      ).toBeInTheDocument();
+    });
+
+    it('does not fall back when the server refuses the permission lookup', async () => {
+      mockFetchMemberships.mockRejectedValue(new Error('permission denied'));
+
+      renderQuickActions({ savedTeamMemberships: [{ teamId: 'team-1', role: 'manager' }] });
+      fireEvent.click(screen.getByRole('button', { name: /update hours/i }));
+
+      expect(await screen.findByText('permission denied')).toBeInTheDocument();
     });
   });
 
