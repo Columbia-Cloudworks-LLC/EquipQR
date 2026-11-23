@@ -240,6 +240,7 @@ export function useOfflineEquipmentDownload(
   // slow connection has already fetched.
   const wantedRef = useRef<string | null>(null);
   const runningRef = useRef<string | null>(null);
+  const ownerRef = useRef<string | null>(null);
 
   useEffect(
     () => () => {
@@ -268,6 +269,14 @@ export function useOfflineEquipmentDownload(
     if (!userId || !organizationId) {
       wantedRef.current = null;
       return;
+    }
+    // A download for another user or organization is abandoned even when
+    // downloading is switched off for the new one: its results would be
+    // saved under the new organization and marked complete for the old one.
+    const owner = `${userId}:${organizationId}`;
+    if (ownerRef.current !== owner) {
+      ownerRef.current = owner;
+      wantedRef.current = null;
     }
     if (!enabled) return;
 

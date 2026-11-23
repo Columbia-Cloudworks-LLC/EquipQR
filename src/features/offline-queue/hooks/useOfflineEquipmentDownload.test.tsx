@@ -258,6 +258,26 @@ describe('offline equipment download', () => {
     expect(mockGetAllFullRecords).toHaveBeenCalledTimes(1);
   });
 
+  it('abandons a download when the organization changes to one with downloading switched off', async () => {
+    const { wrapper } = setup();
+    let finishRecords: (value: { success: boolean; data: typeof records }) => void = () => {};
+    mockGetAllFullRecords.mockReturnValue(new Promise((resolve) => { finishRecords = resolve; }));
+
+    const { rerender } = renderHook(
+      ({ orgId, enabled }: { orgId: string; enabled: boolean }) =>
+        useOfflineEquipmentDownload('user-1', orgId, { isOrgAdmin: true, enabled }),
+      { wrapper, initialProps: { orgId: ORG_ID, enabled: true } },
+    );
+    await vi.advanceTimersByTimeAsync(5000);
+
+    rerender({ orgId: 'org-other', enabled: false });
+    finishRecords({ success: true, data: records });
+    await vi.advanceTimersByTimeAsync(100);
+
+    expect(readLastOfflineDownload('user-1', ORG_ID, { isOrgAdmin: true })).toBeNull();
+    expect(readLastOfflineDownload('user-1', 'org-other', { isOrgAdmin: true })).toBeNull();
+  });
+
   it('downloads with team ids in the order the equipment list uses', async () => {
     const { wrapper } = setup();
 
