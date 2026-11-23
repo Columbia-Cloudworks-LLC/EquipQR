@@ -207,6 +207,12 @@ export async function downloadEquipmentForOffline(
 /** Wait this long before trying again after a download that did not finish. */
 const RETRY_DELAY_MS = 60 * 1000;
 const MAX_RETRIES = 5;
+/**
+ * How often a screen that stays open looks at whether the saved copy is due
+ * for a refresh. A short check instead of one six-hour timer, because phones
+ * pause long timers while the app is in the background.
+ */
+const REFRESH_CHECK_INTERVAL_MS = 15 * 60 * 1000;
 
 /**
  * While connected, keep a full copy of what the user works from on the
@@ -227,6 +233,7 @@ export function useOfflineEquipmentDownload(
   // content. Their order is kept: it is part of the equipment list's cache key.
   const teamIdsKey = options.userTeamIds ? options.userTeamIds.join(',') : null;
   const [retry, setRetry] = useState(0);
+  const [refreshCheck, setRefreshCheck] = useState(0);
   // Whose data is on screen now, and whose download is in flight. A download
   // is only abandoned when the user or organization changes: a dropped
   // signal or a session refresh part-way through must not throw away what a
@@ -240,6 +247,22 @@ export function useOfflineEquipmentDownload(
     },
     [],
   );
+
+  // Nothing else re-runs the download while the app simply stays open, so
+  // look again on a timer and whenever the app comes back to the foreground.
+  useEffect(() => {
+    if (!enabled || !userId || !organizationId) return;
+    const check = () => setRefreshCheck((count) => count + 1);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') check();
+    };
+    const interval = setInterval(check, REFRESH_CHECK_INTERVAL_MS);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [enabled, userId, organizationId]);
 
   useEffect(() => {
     if (!userId || !organizationId) {
@@ -286,5 +309,5 @@ export function useOfflineEquipmentDownload(
     }, DOWNLOAD_START_DELAY_MS);
 
     return () => clearTimeout(timer);
-  }, [enabled, isOnline, userId, organizationId, isOrgAdmin, teamIdsKey, queryClient, retry]);
+  }, [enabled, isOnline, userId, organizationId, isOrgAdmin, teamIdsKey, queryClient, retry, refreshCheck]);
 }

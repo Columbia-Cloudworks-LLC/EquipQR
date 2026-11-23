@@ -150,6 +150,42 @@ describe('offline equipment download', () => {
     expect(mockGetAllFullRecords).toHaveBeenCalledTimes(2);
   });
 
+  it('refreshes the saved copy after six hours while the app simply stays open', async () => {
+    const { wrapper } = setup();
+
+    renderHook(() => useOfflineEquipmentDownload('user-1', ORG_ID, { isOrgAdmin: true }), { wrapper });
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(mockGetAllFullRecords).toHaveBeenCalledTimes(1);
+
+    // Still inside the six hours: the periodic check finds nothing to do.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60 * 60 * 1000);
+    });
+    expect(mockGetAllFullRecords).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5 * 60 * 60 * 1000 + 20 * 60 * 1000);
+    });
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(mockGetAllFullRecords).toHaveBeenCalledTimes(2);
+  });
+
+  it('checks for a due refresh when the app returns to the foreground', async () => {
+    const { wrapper } = setup();
+
+    renderHook(() => useOfflineEquipmentDownload('user-1', ORG_ID, { isOrgAdmin: true }), { wrapper });
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(mockGetAllFullRecords).toHaveBeenCalledTimes(1);
+
+    // A backgrounded phone pauses timers: only the clock moves.
+    vi.setSystemTime(Date.now() + 6 * 60 * 60 * 1000 + 1);
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(mockGetAllFullRecords).toHaveBeenCalledTimes(2);
+  });
+
   it('downloads again after an app update, because the saved copy is discarded with the old version', async () => {
     const { wrapper } = setup();
     const previousVersionMarker = 'equipqr_offline_data_download_0.0.1-previous_user-1_org-1_org-admin';
