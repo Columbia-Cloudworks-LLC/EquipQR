@@ -23,8 +23,23 @@ vi.mock('@/features/work-orders/services/workOrderService', () => ({
   },
 }));
 
-vi.mock('@/features/pm-templates/services/preventativeMaintenanceService', () => ({
-  getPMByWorkOrderAndEquipment: mocks.getPM,
+// The checklist is read directly so a failed request is not mistaken for
+// "no checklist". `getPM` receives the work order id and returns { data, error }.
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    from: () => {
+      const filters: Record<string, string> = {};
+      const chain = {
+        select: () => chain,
+        eq: (column: string, value: string) => {
+          filters[column] = value;
+          return chain;
+        },
+        limit: () => mocks.getPM(filters.work_order_id),
+      };
+      return chain;
+    },
+  },
 }));
 
 vi.mock('@/features/inventory/services/inventoryService', () => ({
@@ -65,7 +80,9 @@ describe('downloadWorkOrdersForOffline', () => {
     mocks.getById.mockImplementation((id: string) =>
       Promise.resolve({ success: true, data: { id, title: `Full record ${id}` } }),
     );
-    mocks.getPM.mockImplementation((workOrderId: string) => Promise.resolve({ id: `pm-${workOrderId}` }));
+    mocks.getPM.mockImplementation((workOrderId: string) =>
+      Promise.resolve({ data: [{ id: `pm-${workOrderId}` }], error: null }),
+    );
   });
 
   it('saves the list, and the full record and checklist of each open work order', async () => {
@@ -128,6 +145,24 @@ describe('downloadWorkOrdersForOffline', () => {
     await expect(
       downloadWorkOrdersForOffline(queryClient, ORG_ID, USER_ID, { isOrgAdmin: true }),
     ).resolves.toBe(false);
+  });
+
+  it('reports failure when a checklist could not be read, instead of treating it as no checklist', async () => {
+    mocks.getFilteredList.mockResolvedValue({ data: [listRow('wo-open', 'assigned', true)], count: 1 });
+    mocks.getPM.mockResolvedValue({ data: null, error: { message: 'TypeError: Failed to fetch' } });
+
+    await expect(
+      downloadWorkOrdersForOffline(queryClient, ORG_ID, USER_ID, { isOrgAdmin: true }),
+    ).resolves.toBe(false);
+  });
+
+  it('is complete when a PM work order simply has no checklist yet', async () => {
+    mocks.getFilteredList.mockResolvedValue({ data: [listRow('wo-open', 'assigned', true)], count: 1 });
+    mocks.getPM.mockResolvedValue({ data: [], error: null });
+
+    await expect(
+      downloadWorkOrdersForOffline(queryClient, ORG_ID, USER_ID, { isOrgAdmin: true }),
+    ).resolves.toBe(true);
   });
 
   it('saves nothing once the user has moved to another organization', async () => {

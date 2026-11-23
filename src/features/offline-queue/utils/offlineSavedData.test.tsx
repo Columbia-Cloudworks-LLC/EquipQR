@@ -8,7 +8,7 @@ vi.mock('@/hooks/useBrowserOnline', () => ({
 }));
 
 import { useBrowserOnline } from '@/hooks/useBrowserOnline';
-import { offlineSavedKeys, pageOf, useOfflineSavedList } from './offlineSavedData';
+import { offlineSavedKeys, pageOf, shouldUseSavedList, useOfflineSavedList } from './offlineSavedData';
 
 function setup() {
   const queryClient = new QueryClient();
@@ -28,7 +28,8 @@ describe('useOfflineSavedList', () => {
 
     const { result } = renderHook(() => useOfflineSavedList<{ id: string }>(key), { wrapper });
 
-    expect(result.current).toEqual([{ id: 'item-1' }]);
+    expect(result.current?.rows).toEqual([{ id: 'item-1' }]);
+    expect(result.current?.savedAt).toBeGreaterThan(0);
   });
 
   it('stays out of the way while connected, where the server is the source', () => {
@@ -47,6 +48,33 @@ describe('useOfflineSavedList', () => {
 
     expect(renderHook(() => useOfflineSavedList(key), { wrapper }).result.current).toBeUndefined();
     expect(renderHook(() => useOfflineSavedList(undefined), { wrapper }).result.current).toBeUndefined();
+  });
+});
+
+describe('shouldUseSavedList', () => {
+  const saved = { rows: [{ id: 'saved' }], savedAt: 1000 };
+  const loaded = (overrides: Partial<{ data: unknown; isPlaceholderData: boolean; dataUpdatedAt: number }>) => ({
+    data: [{ id: 'loaded' }],
+    isPlaceholderData: false,
+    dataUpdatedAt: 500,
+    ...overrides,
+  });
+
+  it('is never used when there is no saved copy', () => {
+    expect(shouldUseSavedList(undefined, loaded({ data: undefined }))).toBe(false);
+  });
+
+  it('is used when the screen has nothing for these filters, or only the previous filters\' rows', () => {
+    expect(shouldUseSavedList(saved, loaded({ data: undefined }))).toBe(true);
+    expect(shouldUseSavedList(saved, loaded({ isPlaceholderData: true, dataUpdatedAt: 5000 }))).toBe(true);
+  });
+
+  it('is used when what the screen loaded is older than the saved copy', () => {
+    expect(shouldUseSavedList(saved, loaded({ dataUpdatedAt: 500 }))).toBe(true);
+  });
+
+  it('does not replace a page loaded after the copy was saved, which can hold newer work', () => {
+    expect(shouldUseSavedList(saved, loaded({ dataUpdatedAt: 2000 }))).toBe(false);
   });
 });
 

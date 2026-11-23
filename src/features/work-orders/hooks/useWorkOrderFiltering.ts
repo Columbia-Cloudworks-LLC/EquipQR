@@ -35,6 +35,7 @@ import type { OfflineQueueCreateItem } from '@/services/offlineQueueService'
 import {
   offlineSavedKeys,
   pageOf,
+  shouldUseSavedList,
   useOfflineSavedList,
 } from '@/features/offline-queue/utils/offlineSavedData'
 import { teamAccessQueryScope } from '@/features/teams/utils/teamAccessScope'
@@ -240,17 +241,18 @@ export function useWorkOrderFiltering() {
       ? offlineSavedKeys.workOrderList(organizationId, teamAccessQueryScope(isManager, userTeamIds))
       : undefined,
   )
+  const useSaved = shouldUseSavedList(savedList, listQuery)
   const offlineList = useMemo(() => {
-    if (!savedList) {
+    if (!useSaved || !savedList) {
       return null
     }
     const matching = filterWorkOrders(
-      savedList,
+      savedList.rows,
       { ...filters, teamFilter: selectedTeamFilterValue(selectedTeamId) },
       currentUser?.id,
     )
     return sortWorkOrdersOffline(matching, sortField, sortDirection)
-  }, [currentUser?.id, filters, savedList, selectedTeamId, sortDirection, sortField])
+  }, [currentUser?.id, filters, savedList, selectedTeamId, sortDirection, sortField, useSaved])
 
   const workOrdersPage = useMemo(() => {
     const serverRows = offlineList
@@ -342,7 +344,7 @@ export function useWorkOrderFiltering() {
   return {
     workOrders: workOrdersPage,
     totalFilteredCount: offlineList ? offlineList.length : listQuery.data?.count ?? 0,
-    totalAccessibleCount: accessibleQuery.data ?? savedList?.length ?? 0,
+    totalAccessibleCount: accessibleQuery.data ?? savedList?.rows.length ?? 0,
     currentPage,
     pageSize,
     pageSizeOptions: WORK_ORDER_CARD_PAGE_SIZE_OPTIONS,

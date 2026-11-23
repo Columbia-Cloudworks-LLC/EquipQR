@@ -9,6 +9,7 @@ import { filterEquipmentListOffline } from '@/features/equipment/utils/offlineEq
 import {
   offlineSavedKeys,
   pageOf,
+  shouldUseSavedList,
   useOfflineSavedList,
 } from '@/features/offline-queue/utils/offlineSavedData';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
@@ -171,9 +172,13 @@ export const useEquipmentFiltering = (
         )
       : undefined,
   );
+  const useSaved = shouldUseSavedList(savedList, listQuery);
   const offlineEquipment = useMemo(
-    () => (savedList ? filterEquipmentListOffline(savedList, serverFilters, sortConfig) : null),
-    [savedList, serverFilters, sortConfig],
+    () =>
+      useSaved && savedList
+        ? filterEquipmentListOffline(savedList.rows, serverFilters, sortConfig)
+        : null,
+    [useSaved, savedList, serverFilters, sortConfig],
   );
 
   const paginatedEquipment = useMemo(

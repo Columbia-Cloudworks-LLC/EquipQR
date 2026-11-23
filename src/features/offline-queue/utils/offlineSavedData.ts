@@ -24,20 +24,51 @@ export const offlineSavedKeys = {
   inventoryList: (organizationId: string) => ['inventory', organizationId, 'offline-list'] as const,
 };
 
+export interface OfflineSavedList<T> {
+  rows: T[];
+  /** When the background download saved this copy (ms since epoch). */
+  savedAt: number;
+}
+
 /**
  * The saved copy of a list, but only while there is no connection (online
  * the server is the source). Never fetches: the offline read cache restores
  * it from the device, and the background download refreshes it.
  */
-export function useOfflineSavedList<T>(queryKey: readonly unknown[] | undefined): T[] | undefined {
+export function useOfflineSavedList<T>(
+  queryKey: readonly unknown[] | undefined,
+): OfflineSavedList<T> | undefined {
   const isOnline = useBrowserOnline();
-  const { data } = useQuery<T[]>({
+  const { data, dataUpdatedAt } = useQuery<T[]>({
     queryKey: queryKey ?? ['equipment', 'offline-list', 'none'],
     queryFn: skipToken,
     enabled: false,
     staleTime: Infinity,
   });
-  return !isOnline && queryKey ? data : undefined;
+  return !isOnline && queryKey && data ? { rows: data, savedAt: dataUpdatedAt } : undefined;
+}
+
+/** What a list screen already holds for the filters and page on screen. */
+interface LoadedList {
+  data: unknown;
+  isPlaceholderData: boolean;
+  dataUpdatedAt: number;
+}
+
+/**
+ * Whether the saved copy should be shown instead of what the screen already
+ * loaded. A page fetched after the copy was saved is newer (it can hold a
+ * work order created or updated since) and must not be replaced by the older
+ * copy just because the signal dropped. The saved copy is for everything
+ * else: filters and pages that were never loaded, or were loaded earlier.
+ */
+export function shouldUseSavedList<T>(
+  saved: OfflineSavedList<T> | undefined,
+  loaded: LoadedList,
+): saved is OfflineSavedList<T> {
+  if (!saved) return false;
+  if (loaded.data === undefined || loaded.isPlaceholderData) return true;
+  return loaded.dataUpdatedAt < saved.savedAt;
 }
 
 /** One page of a list that has already been filtered and sorted on the device. */

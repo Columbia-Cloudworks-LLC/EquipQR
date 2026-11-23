@@ -17,7 +17,8 @@ import {
 } from '@/features/work-orders/utils/workOrderListContract';
 import { MAX_LIST_PAGE_SIZE } from '@/features/work-orders/utils/workOrderListPagination';
 import { workOrders as workOrderKeys, inventory as inventoryKeys, queryKeys } from '@/lib/queryKeys';
-import { getPMByWorkOrderAndEquipment } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import type { PreventativeMaintenance } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import { supabase } from '@/integrations/supabase/client';
 import {
   getInventoryItems,
   getInventoryListMetadata,
@@ -46,6 +47,28 @@ export const OFFLINE_WORK_ORDER_DETAIL_LIMIT = 150;
 const DETAIL_REQUESTS_AT_ONCE = 6;
 
 const CLOSED_STATUSES: ReadonlySet<string> = new Set(['completed', 'cancelled']);
+
+/**
+ * The PM checklist of a work order, or null when it has none yet. The
+ * screens' own fetch answers null for a failed request as well; here a
+ * failure must be told apart from "no checklist", or the download would be
+ * marked complete with the checklist missing. A failed request throws.
+ */
+async function fetchPMChecklist(
+  workOrderId: string,
+  equipmentId: string,
+  organizationId: string,
+): Promise<PreventativeMaintenance | null> {
+  const { data, error } = await supabase
+    .from('preventative_maintenance')
+    .select('*')
+    .eq('work_order_id', workOrderId)
+    .eq('equipment_id', equipmentId)
+    .eq('organization_id', organizationId)
+    .limit(1);
+  if (error) throw new Error(error.message);
+  return data[0] ?? null;
+}
 
 /** Runs `task` over `items`, a few at a time, so a weak connection is not flooded. */
 async function inBatches<T>(items: readonly T[], size: number, task: (item: T) => Promise<void>): Promise<void> {
@@ -113,8 +136,8 @@ export async function downloadWorkOrdersForOffline(
       const [detail, pm] = await Promise.all([
         service.getById(row.id, { userTeamIds: scope.userTeamIds, isOrgAdmin }),
         row.has_pm && row.equipment_id
-          ? getPMByWorkOrderAndEquipment(row.id, row.equipment_id, organizationId)
-          : Promise.resolve(undefined),
+          ? fetchPMChecklist(row.id, row.equipment_id, organizationId)
+          : Promise.resolve(null),
       ]);
       if (!isStillWanted()) return;
       if (detail.success && detail.data) {
