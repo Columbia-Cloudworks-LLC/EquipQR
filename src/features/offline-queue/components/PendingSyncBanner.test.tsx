@@ -22,6 +22,11 @@ let mockContextValue = {
   retryFailed: mockRetryFailed,
 };
 
+// Has its own tests; it needs auth and organization context this banner does not.
+vi.mock('@/features/offline-queue/components/OfflineCopyStatus', () => ({
+  OfflineCopyStatus: () => null,
+}));
+
 vi.mock('@/contexts/OfflineQueueContext', () => ({
   useOfflineQueue: () => mockContextValue,
 }));

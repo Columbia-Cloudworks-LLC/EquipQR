@@ -98,6 +98,13 @@ const PERSISTABLE_KEY_PREFIXES: ReadonlySet<string> = new Set([
   'pm-interval-policies',
   'pm-template-matching',
   'product-onboarding',
+  // Parts are looked up in the field too. Org-scoped like everything above.
+  'inventory',
+  'inventory-item',
+  // The user's own yes/no parts-role answers, which gate the inventory
+  // screens. The lists of who holds those roles are not saved.
+  'is-parts-manager',
+  'is-parts-consumer',
 ]);
 
 /**

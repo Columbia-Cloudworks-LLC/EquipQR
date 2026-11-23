@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { EquipmentService } from '@/features/equipment/services/EquipmentService';
 import { pmChecklistTemplatesService } from '@/features/pm-templates/services/pmChecklistTemplatesService';
@@ -8,6 +8,11 @@ import { useBrowserOnline } from '@/hooks/useBrowserOnline';
 import { OFFLINE_CACHE_VERSION } from '@/lib/queryPersistence';
 import { logger } from '@/utils/logger';
 import type { QRActionTeamMembership } from '@/features/equipment/services/equipmentQRPermissions';
+import { offlineSavedKeys } from '@/features/offline-queue/utils/offlineSavedData';
+import {
+  downloadInventoryForOffline,
+  downloadWorkOrdersForOffline,
+} from '@/features/offline-queue/services/offlineWorkDataDownload';
 
 /** How often the saved copy is refreshed while the app is in use and connected. */
 export const OFFLINE_EQUIPMENT_DOWNLOAD_INTERVAL_MS = 6 * 60 * 60 * 1000;
@@ -19,11 +24,6 @@ interface DownloadScope {
   userTeamIds?: string[];
   isOrgAdmin?: boolean;
 }
-
-// The app version is part of the key: a new deploy discards the saved copy
-// (see queryPersistence), so the download must run again straight away.
-const lastDownloadKey = (userId: string, organizationId: string, scope: string) =>
-  `equipqr_offline_equipment_download_${OFFLINE_CACHE_VERSION}_${userId}_${organizationId}_${scope}`;
 
 const teamScopeKey = (userId: string, organizationId: string) =>
   `equipqr_offline_team_scope_${userId}_${organizationId}`;
@@ -86,7 +86,18 @@ export function useRememberTeamMemberships(
   }, [userId, organizationId, serialized]);
 }
 
-const LAST_DOWNLOAD_KEY_PREFIX = 'equipqr_offline_equipment_download_';
+/**
+ * Marker for "the saved copy is up to date". The app version is part of the
+ * key: a new deploy discards the saved copy (see queryPersistence), so the
+ * download must run again straight away. The prefix changed when work
+ * orders and inventory were added, so devices that only have equipment
+ * saved download the rest instead of waiting out the interval.
+ */
+const LAST_DOWNLOAD_KEY_PREFIX = 'equipqr_offline_data_download_';
+const RETIRED_DOWNLOAD_KEY_PREFIX = 'equipqr_offline_equipment_download_';
+
+const lastDownloadKey = (userId: string, organizationId: string, scope: string) =>
+  `${LAST_DOWNLOAD_KEY_PREFIX}${OFFLINE_CACHE_VERSION}_${userId}_${organizationId}_${scope}`;
 
 /** Drop markers left by other app versions so they do not pile up. */
 function removeOtherVersionMarkers(): void {
@@ -95,11 +106,32 @@ function removeOtherVersionMarkers(): void {
     const stale: string[] = [];
     for (let index = 0; index < localStorage.length; index += 1) {
       const key = localStorage.key(index);
-      if (key?.startsWith(LAST_DOWNLOAD_KEY_PREFIX) && !key.startsWith(current)) stale.push(key);
+      if (!key) continue;
+      const otherVersion = key.startsWith(LAST_DOWNLOAD_KEY_PREFIX) && !key.startsWith(current);
+      if (otherVersion || key.startsWith(RETIRED_DOWNLOAD_KEY_PREFIX)) stale.push(key);
     }
     stale.forEach((key) => localStorage.removeItem(key));
   } catch {
     // Storage unavailable: nothing to tidy.
+  }
+}
+
+/** When the saved copy for this user, organization and team scope was last completed, or null. */
+export function readLastOfflineDownload(
+  userId: string,
+  organizationId: string,
+  scope: DownloadScope,
+): number | null {
+  try {
+    const key = lastDownloadKey(
+      userId,
+      organizationId,
+      teamAccessQueryScope(scope.isOrgAdmin, scope.userTeamIds),
+    );
+    const last = Number(localStorage.getItem(key));
+    return Number.isFinite(last) && last > 0 ? last : null;
+  } catch {
+    return null;
   }
 }
 
@@ -129,10 +161,14 @@ export async function downloadEquipmentForOffline(
   scope: DownloadScope,
   isStillWanted: () => boolean = () => true,
 ): Promise<boolean> {
-  const [summaries, records, templates] = await Promise.all([
+  const [summaries, records, templates, pickerSummaries] = await Promise.all([
     EquipmentService.getSummaries(organizationId, scope),
     EquipmentService.getAllFullRecords(organizationId, scope),
     pmChecklistTemplatesService.listTemplates(organizationId).catch(() => null),
+    // The work order form and other pickers ask for the list without a team
+    // scope, which is a different cache entry. For an admin it is the same
+    // rows, so only other roles need the extra request.
+    scope.isOrgAdmin ? null : EquipmentService.getSummaries(organizationId),
   ]);
 
   if (!isStillWanted()) return false;
@@ -144,8 +180,15 @@ export async function downloadEquipmentForOffline(
     );
   }
 
+  const pickerRows = scope.isOrgAdmin ? summaries.data : pickerSummaries?.data;
+  if (pickerRows) {
+    queryClient.setQueryData(['equipment', organizationId, 'summaries', undefined, undefined], pickerRows);
+  }
+
   if (records.success && records.data) {
     const teamScope = teamAccessQueryScope(scope.isOrgAdmin, scope.userTeamIds);
+    // The whole list in one entry, for the Equipment screen with no signal.
+    queryClient.setQueryData(offlineSavedKeys.equipmentList(organizationId, teamScope), records.data);
     for (const record of records.data) {
       queryClient.setQueryData(
         equipmentKeys.byIdScoped(organizationId, record.id, teamScope),
@@ -158,14 +201,19 @@ export async function downloadEquipmentForOffline(
     queryClient.setQueryData(queryKeys.pmTemplates.list(organizationId), templates);
   }
 
-  return Boolean(summaries.success && records.success && templates);
+  return Boolean(summaries.success && records.success && templates && pickerRows);
 }
 
+/** Wait this long before trying again after a download that did not finish. */
+const RETRY_DELAY_MS = 60 * 1000;
+const MAX_RETRIES = 5;
+
 /**
- * While connected, keep a full copy of the user's equipment on the device so
- * any machine can be opened, scanned and worked on with no signal — not just
- * the ones whose record happened to be opened before. Runs at most once every
- * six hours per user, organization and team scope.
+ * While connected, keep a full copy of what the user works from on the
+ * device (equipment, PM templates, work orders, inventory) so any of it can
+ * be opened and worked on with no signal, not just what happened to be
+ * opened before. Runs at most once every six hours per user, organization
+ * and team scope.
  */
 export function useOfflineEquipmentDownload(
   userId: string | undefined,
@@ -178,9 +226,27 @@ export function useOfflineEquipmentDownload(
   // Team ids arrive as a new array on every render; key the effect on their
   // content. Their order is kept: it is part of the equipment list's cache key.
   const teamIdsKey = options.userTeamIds ? options.userTeamIds.join(',') : null;
+  const [retry, setRetry] = useState(0);
+  // Whose data is on screen now, and whose download is in flight. A download
+  // is only abandoned when the user or organization changes: a dropped
+  // signal or a session refresh part-way through must not throw away what a
+  // slow connection has already fetched.
+  const wantedRef = useRef<string | null>(null);
+  const runningRef = useRef<string | null>(null);
+
+  useEffect(
+    () => () => {
+      wantedRef.current = null;
+    },
+    [],
+  );
 
   useEffect(() => {
-    if (!enabled || !isOnline || !userId || !organizationId) return;
+    if (!userId || !organizationId) {
+      wantedRef.current = null;
+      return;
+    }
+    if (!enabled) return;
 
     const userTeamIds = teamIdsKey === null ? undefined : teamIdsKey.split(',').filter(Boolean);
     const storageKey = lastDownloadKey(
@@ -188,13 +254,24 @@ export function useOfflineEquipmentDownload(
       organizationId,
       teamAccessQueryScope(isOrgAdmin, userTeamIds),
     );
-    if (downloadedRecently(storageKey)) return;
+    wantedRef.current = storageKey;
+    if (!isOnline || downloadedRecently(storageKey) || runningRef.current === storageKey) return;
 
-    let cancelled = false;
+    const isStillWanted = () => wantedRef.current === storageKey;
+    const scope = { userTeamIds, isOrgAdmin };
     const timer = setTimeout(() => {
-      downloadEquipmentForOffline(queryClient, organizationId, { userTeamIds, isOrgAdmin }, () => !cancelled)
-        .then((complete) => {
-          if (cancelled || !complete) return;
+      runningRef.current = storageKey;
+      Promise.all([
+        downloadEquipmentForOffline(queryClient, organizationId, scope, isStillWanted),
+        downloadWorkOrdersForOffline(queryClient, organizationId, userId, scope, isStillWanted),
+        downloadInventoryForOffline(queryClient, organizationId, userId, scope, isStillWanted),
+      ])
+        .then((results) => {
+          if (!isStillWanted()) return;
+          if (!results.every(Boolean)) {
+            setTimeout(() => setRetry((count) => (count < MAX_RETRIES ? count + 1 : count)), RETRY_DELAY_MS);
+            return;
+          }
           try {
             removeOtherVersionMarkers();
             localStorage.setItem(storageKey, String(Date.now()));
@@ -202,12 +279,12 @@ export function useOfflineEquipmentDownload(
             // Without storage the download simply runs again next time.
           }
         })
-        .catch((error) => logger.error('Failed to save equipment for offline use', error));
+        .catch((error) => logger.error('Failed to save data for offline use', error))
+        .finally(() => {
+          if (runningRef.current === storageKey) runningRef.current = null;
+        });
     }, DOWNLOAD_START_DELAY_MS);
 
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [enabled, isOnline, userId, organizationId, isOrgAdmin, teamIdsKey, queryClient]);
+    return () => clearTimeout(timer);
+  }, [enabled, isOnline, userId, organizationId, isOrgAdmin, teamIdsKey, queryClient, retry]);
 }

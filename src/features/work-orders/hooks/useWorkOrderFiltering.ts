@@ -32,7 +32,57 @@ import {
 } from '@/features/work-orders/utils/workOrderListPagination'
 import type { WorkOrderFilters } from '@/features/work-orders/types/workOrder'
 import type { OfflineQueueCreateItem } from '@/services/offlineQueueService'
+import {
+  offlineSavedKeys,
+  pageOf,
+  shouldUseSavedList,
+  useOfflineSavedList,
+} from '@/features/offline-queue/utils/offlineSavedData'
+import { teamAccessQueryScope } from '@/features/teams/utils/teamAccessScope'
 import type { QuickFilterPreset, SortDirection, SortField } from '@/features/work-orders/hooks/useWorkOrderFilters'
+
+const PRIORITY_RANK: Record<string, number> = { low: 1, medium: 2, high: 3 }
+
+function offlineSortValue(order: TeamBasedWorkOrder, field: SortField): string | number | null {
+  switch (field) {
+    case 'due_date':
+      return order.due_date ?? order.dueDate ?? null
+    case 'priority':
+      return PRIORITY_RANK[order.priority] ?? 0
+    case 'status':
+      return order.status
+    default:
+      return order.created_date ?? order.createdDate ?? null
+  }
+}
+
+/** The list's sort, applied on the device to the saved copy (no connection). */
+function sortWorkOrdersOffline(
+  rows: TeamBasedWorkOrder[],
+  field: SortField,
+  direction: SortDirection,
+): TeamBasedWorkOrder[] {
+  const sign = direction === 'asc' ? 1 : -1
+  return [...rows].sort((a, b) => {
+    const left = offlineSortValue(a, field)
+    const right = offlineSortValue(b, field)
+    if (left === right) {
+      return a.id.localeCompare(b.id)
+    }
+    // Rows without a value go last whichever way the list is sorted.
+    if (left === null) {
+      return 1
+    }
+    if (right === null) {
+      return -1
+    }
+    const order =
+      typeof left === 'number' && typeof right === 'number'
+        ? left - right
+        : String(left).localeCompare(String(right))
+    return order * sign
+  })
+}
 
 function selectedTeamFilterValue(selectedTeamId: string | null): string {
   if (selectedTeamId === null) {
@@ -184,13 +234,35 @@ export function useWorkOrderFiltering() {
     )
   }, [allEquipment, currentUser?.id, filters, offlineCtx, selectedTeamId, user?.user_metadata?.full_name])
 
+  // With no connection the server cannot filter or page the list. Use the
+  // copy the background download saved on this device and do it here.
+  const savedList = useOfflineSavedList<TeamBasedWorkOrder>(
+    organizationId && rbacReady
+      ? offlineSavedKeys.workOrderList(organizationId, teamAccessQueryScope(isManager, userTeamIds))
+      : undefined,
+  )
+  const useSaved = shouldUseSavedList(savedList, listQuery)
+  const offlineList = useMemo(() => {
+    if (!useSaved || !savedList) {
+      return null
+    }
+    const matching = filterWorkOrders(
+      savedList.rows,
+      { ...filters, teamFilter: selectedTeamFilterValue(selectedTeamId) },
+      currentUser?.id,
+    )
+    return sortWorkOrdersOffline(matching, sortField, sortDirection)
+  }, [currentUser?.id, filters, savedList, selectedTeamId, sortDirection, sortField, useSaved])
+
   const workOrdersPage = useMemo(() => {
-    const serverRows = listQuery.data?.data ?? []
+    const serverRows = offlineList
+      ? pageOf(offlineList, currentPage, pageSize)
+      : listQuery.data?.data ?? []
     if (currentPage !== 1 || offlineRows.length === 0) {
       return serverRows
     }
     return [...offlineRows, ...serverRows]
-  }, [currentPage, listQuery.data?.data, offlineRows])
+  }, [currentPage, listQuery.data?.data, offlineList, offlineRows, pageSize])
 
   const updateFilter = useCallback(
     (key: keyof WorkOrderFilters, value: string) => {
@@ -271,8 +343,8 @@ export function useWorkOrderFiltering() {
 
   return {
     workOrders: workOrdersPage,
-    totalFilteredCount: listQuery.data?.count ?? 0,
-    totalAccessibleCount: accessibleQuery.data ?? 0,
+    totalFilteredCount: offlineList ? offlineList.length : listQuery.data?.count ?? 0,
+    totalAccessibleCount: accessibleQuery.data ?? savedList?.rows.length ?? 0,
     currentPage,
     pageSize,
     pageSizeOptions: WORK_ORDER_CARD_PAGE_SIZE_OPTIONS,
@@ -280,7 +352,7 @@ export function useWorkOrderFiltering() {
     sortField,
     sortDirection,
     activePresets,
-    isLoading: !rbacReady || listQuery.isLoading,
+    isLoading: offlineList ? false : !rbacReady || listQuery.isLoading,
     hasActiveFilters,
     unassignedSubmittedCount: unassignedQuery.data ?? 0,
     updateFilter,

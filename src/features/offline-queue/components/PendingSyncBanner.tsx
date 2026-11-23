@@ -19,6 +19,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { WifiOff, Wifi, RefreshCw, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
 import { useOfflineQueue } from '@/contexts/OfflineQueueContext';
+import { OfflineCopyStatus } from '@/features/offline-queue/components/OfflineCopyStatus';
 
 export const PendingSyncBanner: React.FC = () => {
   const {
@@ -63,6 +64,7 @@ export const PendingSyncBanner: React.FC = () => {
           <AlertDescription className="text-xs">
             {totalActionable} item{totalActionable !== 1 ? 's' : ''} saved locally.
             They will sync automatically when your connection returns.
+            <OfflineCopyStatus />
           </AlertDescription>
         </div>
       </BannerWrapper>
@@ -77,6 +79,7 @@ export const PendingSyncBanner: React.FC = () => {
         <div className="flex-1 min-w-0">
           <AlertDescription className="text-xs">
             You are currently offline. Changes will be saved locally.
+            <OfflineCopyStatus />
           </AlertDescription>
         </div>
       </BannerWrapper>

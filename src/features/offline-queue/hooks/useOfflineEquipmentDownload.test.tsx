@@ -1,6 +1,6 @@
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const mockGetSummaries = vi.hoisted(() => vi.fn());
@@ -15,18 +15,28 @@ vi.mock('@/features/pm-templates/services/pmChecklistTemplatesService', () => ({
   pmChecklistTemplatesService: { listTemplates: mockListTemplates },
 }));
 
+const mockDownloadWorkOrders = vi.hoisted(() => vi.fn());
+const mockDownloadInventory = vi.hoisted(() => vi.fn());
+
+vi.mock('@/features/offline-queue/services/offlineWorkDataDownload', () => ({
+  downloadWorkOrdersForOffline: mockDownloadWorkOrders,
+  downloadInventoryForOffline: mockDownloadInventory,
+}));
+
 vi.mock('@/hooks/useBrowserOnline', () => ({
   useBrowserOnline: vi.fn(() => true),
 }));
 
 import {
   downloadEquipmentForOffline,
+  readLastOfflineDownload,
   readRememberedTeamMemberships,
   useOfflineEquipmentDownload,
   useRememberTeamMemberships,
 } from './useOfflineEquipmentDownload';
 import { useBrowserOnline } from '@/hooks/useBrowserOnline';
 import { equipment as equipmentKeys, queryKeys } from '@/lib/queryKeys';
+import { offlineSavedKeys } from '@/features/offline-queue/utils/offlineSavedData';
 
 const ORG_ID = 'org-1';
 const records = [
@@ -50,6 +60,8 @@ describe('offline equipment download', () => {
     mockGetSummaries.mockReset().mockResolvedValue({ success: true, data: records });
     mockGetAllFullRecords.mockReset().mockResolvedValue({ success: true, data: records });
     mockListTemplates.mockReset().mockResolvedValue([{ id: 'template-1' }]);
+    mockDownloadWorkOrders.mockReset().mockResolvedValue(true);
+    mockDownloadInventory.mockReset().mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -73,6 +85,33 @@ describe('offline equipment download', () => {
       queryClient.getQueryData(equipmentKeys.byIdScoped(ORG_ID, 'eq-2', 'team-a,team-b')),
     ).toEqual(records[1]);
     expect(queryClient.getQueryData(queryKeys.pmTemplates.list(ORG_ID))).toEqual([{ id: 'template-1' }]);
+    // The whole list in one entry, for the Equipment screen with no signal.
+    expect(
+      queryClient.getQueryData(offlineSavedKeys.equipmentList(ORG_ID, 'team-a,team-b')),
+    ).toEqual(records);
+  });
+
+  it('saves the list the work order form and other pickers read, which has no team scope', async () => {
+    const everyMachine = [...records, { id: 'eq-3', name: 'Genie Lift' }];
+    mockGetSummaries.mockImplementation((_org: string, scope?: { userTeamIds?: string[] }) =>
+      Promise.resolve({ success: true, data: scope?.userTeamIds ? records : everyMachine }),
+    );
+    const { queryClient } = setup();
+
+    await downloadEquipmentForOffline(queryClient, ORG_ID, { userTeamIds: ['team-a'], isOrgAdmin: false });
+
+    expect(queryClient.getQueryData(['equipment', ORG_ID, 'summaries', undefined, undefined])).toEqual(
+      everyMachine,
+    );
+  });
+
+  it('reuses the admin list for the pickers instead of asking twice', async () => {
+    const { queryClient } = setup();
+
+    await downloadEquipmentForOffline(queryClient, ORG_ID, { isOrgAdmin: true });
+
+    expect(mockGetSummaries).toHaveBeenCalledTimes(1);
+    expect(queryClient.getQueryData(['equipment', ORG_ID, 'summaries', undefined, undefined])).toEqual(records);
   });
 
   it('saves admin records under the admin scope', async () => {
@@ -113,14 +152,74 @@ describe('offline equipment download', () => {
 
   it('downloads again after an app update, because the saved copy is discarded with the old version', async () => {
     const { wrapper } = setup();
-    const previousVersionMarker = 'equipqr_offline_equipment_download_0.0.1-previous_user-1_org-1_admin';
+    const previousVersionMarker = 'equipqr_offline_data_download_0.0.1-previous_user-1_org-1_org-admin';
+    // Left by the release that only saved equipment: it must not count as up to date.
+    const equipmentOnlyMarker = 'equipqr_offline_equipment_download_dev_user-1_org-1_org-admin';
     localStorage.setItem(previousVersionMarker, String(Date.now()));
+    localStorage.setItem(equipmentOnlyMarker, String(Date.now()));
 
     renderHook(() => useOfflineEquipmentDownload('user-1', ORG_ID, { isOrgAdmin: true }), { wrapper });
     await vi.advanceTimersByTimeAsync(5000);
 
     expect(mockGetAllFullRecords).toHaveBeenCalledTimes(1);
     expect(localStorage.getItem(previousVersionMarker)).toBeNull();
+    expect(localStorage.getItem(equipmentOnlyMarker)).toBeNull();
+  });
+
+  it('downloads work orders and inventory too, with the same access scope', async () => {
+    const { wrapper, queryClient } = setup();
+
+    renderHook(
+      () => useOfflineEquipmentDownload('user-1', ORG_ID, { userTeamIds: ['team-a'], isOrgAdmin: false }),
+      { wrapper },
+    );
+    await vi.advanceTimersByTimeAsync(5000);
+
+    const scope = { userTeamIds: ['team-a'], isOrgAdmin: false };
+    expect(mockDownloadWorkOrders).toHaveBeenCalledWith(queryClient, ORG_ID, 'user-1', scope, expect.any(Function));
+    expect(mockDownloadInventory).toHaveBeenCalledWith(queryClient, ORG_ID, 'user-1', scope, expect.any(Function));
+    expect(readLastOfflineDownload('user-1', ORG_ID, scope)).not.toBeNull();
+  });
+
+  it('tries again a minute later when part of the download did not finish', async () => {
+    const { wrapper } = setup();
+    mockDownloadWorkOrders.mockResolvedValueOnce(false);
+
+    renderHook(() => useOfflineEquipmentDownload('user-1', ORG_ID, { isOrgAdmin: true }), { wrapper });
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(readLastOfflineDownload('user-1', ORG_ID, { isOrgAdmin: true })).toBeNull();
+
+    // The retry is a state change, so let React apply it before the next wait.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+    await vi.advanceTimersByTimeAsync(5000);
+
+    expect(mockDownloadWorkOrders).toHaveBeenCalledTimes(2);
+    expect(readLastOfflineDownload('user-1', ORG_ID, { isOrgAdmin: true })).not.toBeNull();
+  });
+
+  it('keeps a download going when the signal drops part-way, and only abandons it for another user', async () => {
+    const { wrapper } = setup();
+    let finishRecords: (value: { success: boolean; data: typeof records }) => void = () => {};
+    mockGetAllFullRecords.mockReturnValue(new Promise((resolve) => { finishRecords = resolve; }));
+
+    const { rerender } = renderHook(
+      ({ userId }: { userId: string }) => useOfflineEquipmentDownload(userId, ORG_ID, { isOrgAdmin: true }),
+      { wrapper, initialProps: { userId: 'user-1' } },
+    );
+    await vi.advanceTimersByTimeAsync(5000);
+
+    // Signal flickers while the request is still out.
+    vi.mocked(useBrowserOnline).mockReturnValue(false);
+    rerender({ userId: 'user-1' });
+    vi.mocked(useBrowserOnline).mockReturnValue(true);
+    rerender({ userId: 'user-1' });
+    finishRecords({ success: true, data: records });
+    await vi.advanceTimersByTimeAsync(100);
+
+    expect(readLastOfflineDownload('user-1', ORG_ID, { isOrgAdmin: true })).not.toBeNull();
+    expect(mockGetAllFullRecords).toHaveBeenCalledTimes(1);
   });
 
   it('downloads with team ids in the order the equipment list uses', async () => {
