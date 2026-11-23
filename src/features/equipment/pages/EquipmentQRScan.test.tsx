@@ -12,7 +12,10 @@ import {
 import { useBrowserOnline } from '@/hooks/useBrowserOnline';
 import { useEquipmentById, useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
 import { fetchEquipmentQRPayload, insertScan } from '@/features/equipment/services/equipmentQRPermissions';
-import { queueOfflineScan } from '@/features/equipment/services/equipmentQRActionService';
+import {
+  queueOfflineScan,
+  readPendingQRWorkingHours,
+} from '@/features/equipment/services/equipmentQRActionService';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 
 const replaceMock = vi.fn();
@@ -58,6 +61,7 @@ vi.mock('@/features/equipment/components/qr/EquipmentQRQuickActions', () => ({
 
 vi.mock('@/features/equipment/services/equipmentQRActionService', () => ({
   queueOfflineScan: vi.fn(),
+  readPendingQRWorkingHours: vi.fn(() => null),
 }));
 
 vi.mock('@/features/offline-queue/hooks/useOfflineEquipmentDownload', () => ({
@@ -318,6 +322,23 @@ describe('EquipmentQRScan (#1074)', () => {
         'user-1',
         ORG_ID,
         expect.objectContaining({ enabled: false }),
+      );
+    });
+
+    it('shows an hours reading saved earlier and not synced yet when the page is reopened', async () => {
+      vi.mocked(useBrowserOnline).mockReturnValue(false);
+      vi.mocked(queueOfflineScan).mockResolvedValue('offline-scan-4');
+      vi.mocked(readPendingQRWorkingHours).mockReturnValue(1550);
+
+      renderScan();
+
+      expect(await screen.findByText('Quick actions')).toBeInTheDocument();
+      expect(readPendingQRWorkingHours).toHaveBeenCalledWith('user-1', ORG_ID, EQUIPMENT_ID);
+      // The saved copy says 1542; the next update must start from 1550.
+      await waitFor(() =>
+        expect(quickActionsProps.current).toMatchObject({
+          equipment: expect.objectContaining({ workingHours: 1550 }),
+        }),
       );
     });
 

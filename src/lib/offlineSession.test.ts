@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AuthRetryableFetchError } from '@supabase/supabase-js';
-import { isAuthConnectivityFailure, readStoredAuthSession } from './offlineSession';
+import { isAuthConnectivityFailure, readStoredAuthSession, sessionIdFromAccessToken } from './offlineSession';
 
 const STORAGE_KEY = 'sb-projectref-auth-token';
 
@@ -59,5 +59,20 @@ describe('offlineSession', () => {
 
   it('does not treat a rejected session as a connectivity failure', () => {
     expect(isAuthConnectivityFailure(new Error('Invalid Refresh Token'))).toBe(false);
+  });
+});
+
+describe('sessionIdFromAccessToken', () => {
+  const token = (claims: object) => `header.${btoa(JSON.stringify(claims))}.signature`;
+
+  it('reads the session a token belongs to', () => {
+    expect(sessionIdFromAccessToken(token({ session_id: 'session-a', sub: 'user-1' }))).toBe('session-a');
+  });
+
+  it('returns null for a missing, malformed or session-less token', () => {
+    expect(sessionIdFromAccessToken(undefined)).toBeNull();
+    expect(sessionIdFromAccessToken('not-a-token')).toBeNull();
+    expect(sessionIdFromAccessToken('header.%%%.signature')).toBeNull();
+    expect(sessionIdFromAccessToken(token({ sub: 'user-1' }))).toBeNull();
   });
 });

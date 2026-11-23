@@ -60,3 +60,21 @@ export function isAuthConnectivityFailure(error: unknown): boolean {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
   return isAuthRetryableFetchError(error);
 }
+
+/**
+ * The auth session an access token belongs to (its `session_id` claim), read
+ * without verifying the token. Only used to tell one sign-in from another on
+ * this device; it grants nothing.
+ */
+export function sessionIdFromAccessToken(accessToken: string | null | undefined): string | null {
+  const payload = accessToken?.split('.')[1];
+  if (!payload) return null;
+  try {
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    const claims: unknown = JSON.parse(json);
+    if (!claims || typeof claims !== 'object' || !('session_id' in claims)) return null;
+    return typeof claims.session_id === 'string' && claims.session_id ? claims.session_id : null;
+  } catch {
+    return null;
+  }
+}

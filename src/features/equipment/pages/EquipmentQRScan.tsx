@@ -33,7 +33,11 @@ import { EquipmentServiceSummaryBadge } from '@/features/equipment/components/Eq
 import { useBrowserOnline } from '@/hooks/useBrowserOnline';
 import { useEquipmentById, useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
 import { setActivePersistenceScope } from '@/lib/queryPersistence';
-import { queueOfflineScan } from '@/features/equipment/services/equipmentQRActionService';
+import {
+  queueOfflineScan,
+  readPendingQRWorkingHours,
+} from '@/features/equipment/services/equipmentQRActionService';
+import { OFFLINE_QUEUE_CHANGED_EVENT } from '@/services/offlineQueueService';
 import {
   OfflineQueueProviderForOrganization,
   useOfflineQueueOptional,
@@ -221,6 +225,19 @@ const EquipmentQRScan = (): React.JSX.Element => {
   const scanStartedRef = useRef(false);
   /** Hours entered on this page with no connection, so the page shows what was just saved. */
   const [offlineWorkingHours, setOfflineWorkingHours] = useState<number | null>(null);
+
+  // An hours reading saved here earlier and not synced yet must still show
+  // after the page is reopened, or the next update would start from the old
+  // downloaded value and lower the reading when both sync.
+  const userId = user?.id;
+  useEffect(() => {
+    if (!userId || !cacheOrgId || !equipmentId) return;
+    const readPending = () =>
+      setOfflineWorkingHours(readPendingQRWorkingHours(userId, cacheOrgId, equipmentId));
+    readPending();
+    window.addEventListener(OFFLINE_QUEUE_CHANGED_EVENT, readPending);
+    return () => window.removeEventListener(OFFLINE_QUEUE_CHANGED_EVENT, readPending);
+  }, [userId, cacheOrgId, equipmentId]);
 
   useEffect(() => {
     if (authLoading) return;

@@ -11,6 +11,9 @@ import { recordScanFollowUpEvent } from '@/features/equipment/services/scanFollo
 import { logger } from '@/utils/logger';
 import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
 import { OfflineQueueService } from '@/services/offlineQueueService';
+import { OFFLINE_QUEUE_ENABLED } from '@/lib/flags';
+import { updateEquipmentWorkingHours } from '@/features/equipment/services/equipmentWorkingHoursService';
+import { createEquipmentNoteWithImages } from '@/features/equipment/services/equipmentNotesService';
 
 export interface CreateQRWorkOrderInput {
   equipment: QRActionEquipment;
@@ -38,6 +41,12 @@ export interface CreateQRWorkOrderResult {
 /** A request that never reached the server (not a refusal from it). */
 const CONNECTION_LOST_PATTERN = /Failed to fetch|Load failed|NetworkError|ERR_INTERNET|ERR_NETWORK|net::/i;
 
+/**
+ * Shown instead of "saved on this device" when offline saving is switched off
+ * (VITE_ENABLE_OFFLINE_QUEUE=false): nothing would ever sync a queued change.
+ */
+export const CONNECTION_REQUIRED_MESSAGE = 'No connection. Reconnect and try again.';
+
 function isOffline(): boolean {
   return typeof navigator !== 'undefined' && navigator.onLine === false;
 }
@@ -61,6 +70,8 @@ async function offlineServiceFor(organizationId: string): Promise<OfflineAwareWo
  * returned for the caller to finish like any other online create.
  */
 async function queueQRWorkOrder(input: CreateQRWorkOrderInput): Promise<WorkOrder | null> {
+  if (!OFFLINE_QUEUE_ENABLED) throw new Error(CONNECTION_REQUIRED_MESSAGE);
+
   const pmTemplateId = input.attachPM
     ? resolvePMTemplateId({
         explicitTemplateId: input.pmTemplateId,
@@ -90,6 +101,29 @@ async function queueQRWorkOrder(input: CreateQRWorkOrderInput): Promise<WorkOrde
 }
 
 /**
+ * The latest hours reading saved on this device for this machine that has not
+ * synced yet, or null. Hours are saved as absolute readings, so the next
+ * update must start from this one and not from the older downloaded value.
+ */
+export function readPendingQRWorkingHours(
+  userId: string,
+  organizationId: string,
+  equipmentId: string,
+): number | null {
+  try {
+    let latest: number | null = null;
+    for (const item of new OfflineQueueService(userId, organizationId).getAll()) {
+      if (item.type === 'equipment_hours' && item.payload.equipmentId === equipmentId) {
+        latest = item.payload.newHours;
+      }
+    }
+    return latest;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Keep a scan made with no connection so it is recorded when the device is
  * back online. Returns the id the scan will have on the server.
  */
@@ -99,6 +133,7 @@ export async function queueOfflineScan(scan: {
   scannedAt: string;
   location?: string | null;
 }): Promise<string> {
+  if (!OFFLINE_QUEUE_ENABLED) throw new Error(CONNECTION_REQUIRED_MESSAGE);
   const userId = await requireAuthUserIdFromClaims();
   const scanId = crypto.randomUUID();
   new OfflineQueueService(userId, scan.organizationId).enqueue({
@@ -256,12 +291,14 @@ export async function updateQRWorkingHours(
   data: UpdateWorkingHoursData & { organizationId: string; scanId?: string | null }
 ): Promise<{ queuedOffline: boolean }> {
   const { scanId, organizationId, ...workingHoursData } = data;
-  const offline = await offlineServiceFor(organizationId);
-  const result = await offline.updateWorkingHours({
-    ...workingHoursData,
-    updateSource: 'manual',
-  });
-  if (result.queuedOffline) return { queuedOffline: true };
+  if (OFFLINE_QUEUE_ENABLED) {
+    const offline = await offlineServiceFor(organizationId);
+    const result = await offline.updateWorkingHours({ ...workingHoursData, updateSource: 'manual' });
+    if (result.queuedOffline) return { queuedOffline: true };
+  } else {
+    if (isOffline()) throw new Error(CONNECTION_REQUIRED_MESSAGE);
+    await updateEquipmentWorkingHours({ ...workingHoursData, updateSource: 'manual' });
+  }
 
   if (scanId) {
     try {
@@ -289,16 +326,29 @@ export async function createQREquipmentNote(input: {
   machineHours?: number | null;
   scanId?: string | null;
 }): Promise<{ queuedOffline: boolean }> {
-  const offline = await offlineServiceFor(input.organizationId);
-  const result = await offline.createEquipmentNote(
-    input.equipmentId,
-    input.content,
-    0,
-    input.isPrivate,
-    input.machineHours ?? undefined,
-    input.images,
-  );
-  if (result.queuedOffline) return { queuedOffline: true };
+  if (OFFLINE_QUEUE_ENABLED) {
+    const offline = await offlineServiceFor(input.organizationId);
+    const result = await offline.createEquipmentNote(
+      input.equipmentId,
+      input.content,
+      0,
+      input.isPrivate,
+      input.machineHours ?? undefined,
+      input.images,
+    );
+    if (result.queuedOffline) return { queuedOffline: true };
+  } else {
+    if (isOffline()) throw new Error(CONNECTION_REQUIRED_MESSAGE);
+    await createEquipmentNoteWithImages(
+      input.equipmentId,
+      input.content,
+      0,
+      input.isPrivate,
+      input.images,
+      input.organizationId,
+      input.machineHours ?? undefined,
+    );
+  }
 
   if (input.scanId) {
     try {

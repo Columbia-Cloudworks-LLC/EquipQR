@@ -17,6 +17,7 @@ import {
   createQREquipmentNote,
   createQRWorkOrder,
   queueOfflineScan,
+  readPendingQRWorkingHours,
   updateQRWorkingHours,
 } from './equipmentQRActionService';
 import { insertOfflineScan } from './equipmentQRPermissions';
@@ -93,6 +94,16 @@ describe('QR scan page actions with no connection', () => {
     const [item] = queued();
     expect(item.type).toBe('equipment_hours');
     expect(item.payload).toMatchObject({ equipmentId: 'eq-1', newHours: 125, updateSource: 'manual' });
+  });
+
+  it('reports the latest hours reading that is still waiting to sync', async () => {
+    expect(readPendingQRWorkingHours('user-1', ORG_ID, 'eq-1')).toBeNull();
+
+    await updateQRWorkingHours({ organizationId: ORG_ID, equipmentId: 'eq-1', newHours: 108 });
+    await updateQRWorkingHours({ organizationId: ORG_ID, equipmentId: 'eq-1', newHours: 112 });
+
+    expect(readPendingQRWorkingHours('user-1', ORG_ID, 'eq-1')).toBe(112);
+    expect(readPendingQRWorkingHours('user-1', ORG_ID, 'eq-2')).toBeNull();
   });
 
   it('queues a note', async () => {
