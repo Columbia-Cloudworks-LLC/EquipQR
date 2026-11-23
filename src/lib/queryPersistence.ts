@@ -31,6 +31,12 @@ declare const __APP_VERSION__: string;
 
 const APP_VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev';
 
+/**
+ * Saved reads written by a different app version are discarded. Anything that
+ * tracks "the saved copy is up to date" must be keyed on this too.
+ */
+export const OFFLINE_CACHE_VERSION = APP_VERSION;
+
 /** How long cached reads stay usable without a connection. */
 const OFFLINE_READ_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
 

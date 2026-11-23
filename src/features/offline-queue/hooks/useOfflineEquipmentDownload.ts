@@ -5,6 +5,7 @@ import { pmChecklistTemplatesService } from '@/features/pm-templates/services/pm
 import { equipment as equipmentKeys, queryKeys } from '@/lib/queryKeys';
 import { teamAccessQueryScope } from '@/features/teams/utils/teamAccessScope';
 import { useBrowserOnline } from '@/hooks/useBrowserOnline';
+import { OFFLINE_CACHE_VERSION } from '@/lib/queryPersistence';
 import { logger } from '@/utils/logger';
 
 /** How often the saved copy is refreshed while the app is in use and connected. */
@@ -18,8 +19,27 @@ interface DownloadScope {
   isOrgAdmin?: boolean;
 }
 
+// The app version is part of the key: a new deploy discards the saved copy
+// (see queryPersistence), so the download must run again straight away.
 const lastDownloadKey = (userId: string, organizationId: string, scope: string) =>
-  `equipqr_offline_equipment_download_${userId}_${organizationId}_${scope}`;
+  `equipqr_offline_equipment_download_${OFFLINE_CACHE_VERSION}_${userId}_${organizationId}_${scope}`;
+
+const LAST_DOWNLOAD_KEY_PREFIX = 'equipqr_offline_equipment_download_';
+
+/** Drop markers left by other app versions so they do not pile up. */
+function removeOtherVersionMarkers(): void {
+  try {
+    const current = `${LAST_DOWNLOAD_KEY_PREFIX}${OFFLINE_CACHE_VERSION}_`;
+    const stale: string[] = [];
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (key?.startsWith(LAST_DOWNLOAD_KEY_PREFIX) && !key.startsWith(current)) stale.push(key);
+    }
+    stale.forEach((key) => localStorage.removeItem(key));
+  } catch {
+    // Storage unavailable: nothing to tidy.
+  }
+}
 
 function downloadedRecently(key: string): boolean {
   try {
@@ -105,6 +125,7 @@ export function useOfflineEquipmentDownload(
         .then((complete) => {
           if (cancelled || !complete) return;
           try {
+            removeOtherVersionMarkers();
             localStorage.setItem(storageKey, String(Date.now()));
           } catch {
             // Without storage the download simply runs again next time.

@@ -52,7 +52,15 @@ async function offlineServiceFor(organizationId: string): Promise<OfflineAwareWo
   return new OfflineAwareWorkOrderService(organizationId, userId);
 }
 
-async function queueQRWorkOrder(input: CreateQRWorkOrderInput): Promise<CreateQRWorkOrderResult> {
+/**
+ * Saves the work order on the device. Returns null when it is waiting to sync.
+ *
+ * The offline-aware service tries the server once more when the browser still
+ * reports a connection. If that attempt gets through, the work order now
+ * exists on the server but has no PM checklist or photos yet, so it is
+ * returned for the caller to finish like any other online create.
+ */
+async function queueQRWorkOrder(input: CreateQRWorkOrderInput): Promise<WorkOrder | null> {
   const pmTemplateId = input.attachPM
     ? resolvePMTemplateId({
         explicitTemplateId: input.pmTemplateId,
@@ -64,7 +72,7 @@ async function queueQRWorkOrder(input: CreateQRWorkOrderInput): Promise<CreateQR
   }
 
   const offline = await offlineServiceFor(input.equipment.organizationId);
-  await offline.createWorkOrder({
+  const result = await offline.createWorkOrder({
     title: input.title,
     description: input.description,
     equipmentId: input.equipment.id,
@@ -76,7 +84,9 @@ async function queueQRWorkOrder(input: CreateQRWorkOrderInput): Promise<CreateQR
     creationPhotoNote: input.creationPhotoNote,
   });
 
-  return { workOrder: null, creationPhotosAttached: true, queuedOffline: true };
+  if (result.queuedOffline) return null;
+  if (!result.data) throw new Error('Failed to create work order.');
+  return result.data;
 }
 
 /**
@@ -125,11 +135,14 @@ async function getPMTemplateData(templateId: string, organizationId: string): Pr
   };
 }
 
-export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<CreateQRWorkOrderResult> {
+/** Creates the work order on the server, or returns null when it was saved on the device instead. */
+async function createOrQueueQRWorkOrder(
+  input: CreateQRWorkOrderInput,
+  service: WorkOrderService,
+): Promise<WorkOrder | null> {
   if (isOffline()) return queueQRWorkOrder(input);
 
   const createdBy = await requireAuthUserIdFromClaims();
-  const service = new WorkOrderService(input.equipment.organizationId);
   const result = await service.create({
     title: input.title,
     description: input.description,
@@ -141,12 +154,18 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
     has_pm: input.attachPM,
   });
 
-  if (!result.success || !result.data) {
-    // The connection dropped before anything was created: save it on the
-    // device instead of losing what the technician typed.
-    if (isOffline() || CONNECTION_LOST_PATTERN.test(result.error ?? '')) return queueQRWorkOrder(input);
-    throw new Error(result.error || 'Failed to create work order.');
-  }
+  if (result.success && result.data) return result.data;
+
+  // The connection dropped before anything was created: save it on the
+  // device instead of losing what the technician typed.
+  if (isOffline() || CONNECTION_LOST_PATTERN.test(result.error ?? '')) return queueQRWorkOrder(input);
+  throw new Error(result.error || 'Failed to create work order.');
+}
+
+export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<CreateQRWorkOrderResult> {
+  const service = new WorkOrderService(input.equipment.organizationId);
+  const workOrder = await createOrQueueQRWorkOrder(input, service);
+  if (!workOrder) return { workOrder: null, creationPhotosAttached: true, queuedOffline: true };
 
   if (input.attachPM) {
     let pmError: unknown;
@@ -165,7 +184,7 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
           input.equipment.organizationId
         );
         const pm = await createPM({
-          workOrderId: result.data.id,
+          workOrderId: workOrder.id,
           equipmentId: input.equipment.id,
           organizationId: input.equipment.organizationId,
           checklistData: template.checklistData,
@@ -182,7 +201,7 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
 
     if (pmError !== undefined) {
       try {
-        const deleteResult = await service.delete(result.data.id);
+        const deleteResult = await service.delete(workOrder.id);
         if (!deleteResult.success) {
           logger.error('Failed to rollback work order after PM initialization failure', deleteResult.error);
         }
@@ -198,7 +217,7 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
   if (input.images?.length) {
     try {
       const { primaryImageId } = await attachWorkOrderCreationImages({
-        workOrderId: result.data.id,
+        workOrderId: workOrder.id,
         organizationId: input.equipment.organizationId,
         images: input.images,
         noteContent: input.creationPhotoNote,
@@ -218,8 +237,8 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
         equipmentId: input.equipment.id,
         eventType: input.attachPM ? 'pm_work_order_created' : 'generic_work_order_created',
         entityType: 'work_order',
-        entityId: result.data.id,
-        metadata: { title: result.data.title },
+        entityId: workOrder.id,
+        metadata: { title: workOrder.title },
       });
     } catch (error) {
       logger.error('Failed to record work order scan follow-up event', error);
@@ -227,7 +246,7 @@ export async function createQRWorkOrder(input: CreateQRWorkOrderInput): Promise<
   }
 
   return {
-    workOrder: result.data,
+    workOrder,
     creationPhotosAttached,
     queuedOffline: false,
   };

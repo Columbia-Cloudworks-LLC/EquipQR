@@ -293,6 +293,50 @@ describe('EquipmentQRScan (#1074)', () => {
       ).toBeInTheDocument();
     });
 
+    it('removes equipment loaded earlier when a later lookup is refused', async () => {
+      vi.mocked(useBrowserOnline).mockReturnValue(true);
+      vi.mocked(insertScan).mockRejectedValue(new Error('not needed for this test'));
+      vi.mocked(fetchEquipmentQRPayload).mockResolvedValueOnce({
+        equipment: {
+          id: EQUIPMENT_ID,
+          name: 'CAT 320 Excavator',
+          manufacturer: 'CAT',
+          model: '320',
+          serialNumber: 'SN-1',
+          status: 'active',
+          location: null,
+          workingHours: 10,
+          imageReference: null,
+          defaultPmTemplateId: null,
+          team: null,
+        },
+        organization: { id: ORG_ID, name: 'Apex Construction', scan_location_collection_enabled: false },
+        userRole: 'member',
+      });
+      const page = (
+        <MemoryRouter initialEntries={[`/qr/equipment/${EQUIPMENT_ID}?org=${ORG_ID}`]}>
+          <Routes>
+            <Route path="/qr/equipment/:equipmentId" element={<EquipmentQRScan />} />
+          </Routes>
+        </MemoryRouter>
+      );
+      const { rerender } = render(page);
+      expect(await screen.findByText('CAT 320 Excavator')).toBeInTheDocument();
+
+      // Signal drops, then returns after access to the equipment was removed.
+      vi.mocked(useBrowserOnline).mockReturnValue(false);
+      rerender(page);
+      vi.mocked(fetchEquipmentQRPayload).mockRejectedValue(
+        new Error('You do not have access to this equipment'),
+      );
+      vi.mocked(useBrowserOnline).mockReturnValue(true);
+      rerender(page);
+
+      expect(await screen.findByText('You do not have access to this equipment')).toBeInTheDocument();
+      expect(screen.queryByText('CAT 320 Excavator')).not.toBeInTheDocument();
+      expect(screen.queryByText('Quick actions')).not.toBeInTheDocument();
+    });
+
     it('does not fall back to saved details when the server refuses access', async () => {
       vi.mocked(useBrowserOnline).mockReturnValue(true);
       vi.mocked(fetchEquipmentQRPayload).mockRejectedValue(

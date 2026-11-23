@@ -109,6 +109,18 @@ describe('offline equipment download', () => {
     expect(mockGetAllFullRecords).toHaveBeenCalledTimes(2);
   });
 
+  it('downloads again after an app update, because the saved copy is discarded with the old version', async () => {
+    const { wrapper } = setup();
+    const previousVersionMarker = 'equipqr_offline_equipment_download_0.0.1-previous_user-1_org-1_admin';
+    localStorage.setItem(previousVersionMarker, String(Date.now()));
+
+    renderHook(() => useOfflineEquipmentDownload('user-1', ORG_ID, { isOrgAdmin: true }), { wrapper });
+    await vi.advanceTimersByTimeAsync(5000);
+
+    expect(mockGetAllFullRecords).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem(previousVersionMarker)).toBeNull();
+  });
+
   it('does nothing with no connection or before team access is known', async () => {
     const { wrapper } = setup();
     vi.mocked(useBrowserOnline).mockReturnValue(false);

@@ -233,7 +233,12 @@ const EquipmentQRScan = (): React.JSX.Element => {
       })
       .catch(loadError => {
         if (!cancelled) {
-          setError(loadError instanceof Error ? loadError.message : 'Unable to load equipment');
+          const message = loadError instanceof Error ? loadError.message : 'Unable to load equipment';
+          setError(message);
+          // Only a lost connection may keep showing what was loaded before. If
+          // the server answered and said no (access removed, equipment gone),
+          // the earlier details and their actions must go.
+          if (!isConnectivityError(message, navigator.onLine)) setPayload(null);
         }
       })
       .finally(() => {
