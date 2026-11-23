@@ -29,6 +29,7 @@ import {
 import type {
   InventoryQuantityAdjustment,
   InventoryFilters,
+  InventoryItem,
   PartCompatibilityRule,
   PartCompatibilityRuleFormData,
   EquipmentMatchedByRules
@@ -36,6 +37,11 @@ import type {
 import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
 import { useAppToast } from '@/hooks/useAppToast';
 import { inventory as inventoryKeys } from '@/lib/queryKeys';
+import {
+  offlineSavedKeys,
+  shouldUseSavedList,
+  useOfflineSavedList,
+} from '@/features/offline-queue/utils/offlineSavedData';
 import { invalidateEquipmentLinkQueries } from '@/features/inventory/hooks/inventoryEquipmentLinkMutations';
 
 const DEFAULT_STALE_TIME = 5 * 60 * 1000; // 5 minutes
@@ -71,6 +77,62 @@ function useInventoryItemQuery<T>(
 // Query Hooks
 // ============================================
 
+/** Columns the server sorts by; the list page sorts the remaining ones itself. */
+const SERVER_SORTED_FIELDS = [
+  'name',
+  'sku',
+  'external_id',
+  'quantity_on_hand',
+  'low_stock_threshold',
+  'location',
+  'default_unit_cost',
+  'created_at',
+  'updated_at',
+] as const;
+
+type ServerSortedField = (typeof SERVER_SORTED_FIELDS)[number];
+
+function isServerSortedField(field: string): field is ServerSortedField {
+  return SERVER_SORTED_FIELDS.some((candidate) => candidate === field);
+}
+
+/**
+ * The inventory list's search, filters and server-side sort, applied on the
+ * device to the saved copy (no connection).
+ */
+export function filterInventoryOffline(items: readonly InventoryItem[], filters: InventoryFilters): InventoryItem[] {
+  const search = filters.search?.trim().toLowerCase();
+  const location = filters.location?.trim().toLowerCase();
+  const has = (value: string | null | undefined, needle: string) =>
+    !!value && value.toLowerCase().includes(needle);
+
+  const matching = items.filter((item) => {
+    if (search && !has(item.name, search) && !has(item.sku, search) && !has(item.external_id, search)) {
+      return false;
+    }
+    if (location && !has(item.location, location)) return false;
+    if (filters.lowStockOnly && !item.isLowStock) return false;
+    return true;
+  });
+
+  // Same rule as the server: an unknown column falls back to name, ascending.
+  const requested = filters.sortBy ?? 'name';
+  const field: ServerSortedField = isServerSortedField(requested) ? requested : 'name';
+  const sign = isServerSortedField(requested) && filters.sortOrder === 'desc' ? -1 : 1;
+
+  return matching.sort((a, b) => {
+    const left = a[field];
+    const right = b[field];
+    let order: number;
+    if (left === right) order = 0;
+    else if (left === null || left === undefined) order = 1;
+    else if (right === null || right === undefined) order = -1;
+    else if (typeof left === 'number' && typeof right === 'number') order = left - right;
+    else order = String(left).localeCompare(String(right), undefined, { numeric: true, sensitivity: 'base' });
+    return order === 0 ? a.id.localeCompare(b.id) * sign : order * sign;
+  });
+}
+
 export const useInventoryItems = (
   organizationId: string | undefined,
   filters: InventoryFilters = {},
@@ -80,7 +142,13 @@ export const useInventoryItems = (
 ) => {
   const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
 
-  return useQuery({
+  // With no connection the server cannot search the list. Use the copy the
+  // background download saved on this device and filter it here.
+  const savedList = useOfflineSavedList<InventoryItem>(
+    organizationId ? offlineSavedKeys.inventoryList(organizationId) : undefined,
+  );
+
+  const query = useQuery({
     queryKey: inventoryKeys.list(organizationId ?? '', filters),
     queryFn: async () => {
       if (!organizationId) return [];
@@ -99,6 +167,14 @@ export const useInventoryItems = (
       return previousData;
     },
   });
+  const useSaved = shouldUseSavedList(savedList, query);
+  const offlineItems = useMemo(
+    () => (useSaved && savedList ? filterInventoryOffline(savedList.rows, filters) : null),
+    [useSaved, savedList, filters],
+  );
+
+  if (!offlineItems) return query;
+  return { ...query, data: offlineItems, isPending: false, isLoading: false, isError: false, error: null };
 };
 
 export const useInventoryListMetadata = (

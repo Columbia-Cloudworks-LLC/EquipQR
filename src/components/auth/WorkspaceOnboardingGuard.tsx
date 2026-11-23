@@ -37,7 +37,9 @@ const WorkspaceOnboardingGuard: React.FC<WorkspaceOnboardingGuardProps> = ({
     );
   }
 
-  if (isError) {
+  // A failed re-check must not lock out someone whose last successful check
+  // is still on hand (for example on a weak signal).
+  if (isError && !onboardingState) {
     return <WorkspaceAccessGate mode="error" domain={null} onRetry={() => { void refetch(); }} />;
   }
 

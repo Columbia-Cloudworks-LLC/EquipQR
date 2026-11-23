@@ -11,6 +11,8 @@ import {
 } from '@/utils/redirectValidation';
 import { schedulePendingTermsAcceptanceFlush } from '@/lib/termsAcceptanceRecording';
 import { clearOfflineBlobsForUser } from '@/services/offlineBlobStore';
+import { readStoredAuthSession } from '@/lib/offlineSession';
+import { setActivePersistenceUser } from '@/lib/queryPersistence';
 import {
   applyPendingSignupOrganizationName,
   clearPendingSignupOrganizationName,
@@ -48,7 +50,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Failsafe if INITIAL_SESSION never arrives (storage/init failure).
     // Keep this after the listener so a normal bootstrap clears it first.
     const bootstrapTimeoutMs = 8_000;
+    let receivedAuthEvent = false;
+
+    // Keep a signed-in user signed in when the Auth server cannot be reached.
+    // Once the one-hour token has expired the SDK retries the refresh for up
+    // to 30 seconds before it reports anything, so waiting for it would leave
+    // an offline technician on a spinner and then on the sign-in page.
+    const fallBackToStoredSession = () => {
+      if (receivedAuthEvent) return;
+      const storedSession = readStoredAuthSession();
+      if (!storedSession) return;
+      setActivePersistenceUser(storedSession.user.id);
+      setSession(storedSession);
+      setUser(storedSession.user);
+      setIsLoading(false);
+    };
+
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      fallBackToStoredSession();
+    }
+
     const bootstrapTimeoutId = window.setTimeout(() => {
+      // Online but the Auth server is not answering (weak signal).
+      fallBackToStoredSession();
       setIsLoading((stillLoading) => {
         if (stillLoading) {
           logger.warn('Auth bootstrap timeout — clearing loading without INITIAL_SESSION');
@@ -68,12 +92,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
         }
         
+        receivedAuthEvent = true;
+
         // Distinguish between different types of auth events
         const isTokenRefresh = event === 'TOKEN_REFRESHED';
         const isSignIn = event === 'SIGNED_IN';
         
-        setSession(session);
-        setUser(session?.user ?? null);
+        // With no connection the SDK cannot refresh an expired token, so it
+        // reports no session at startup even though the user is still signed
+        // in. It only keeps the stored session when the refresh failed for
+        // connectivity reasons (a rejected session is removed), so use that
+        // one to keep the app open offline. The SDK swaps in a fresh session
+        // (TOKEN_REFRESHED) or signs out for real once it is back online.
+        const activeSession =
+          session ?? (event === 'INITIAL_SESSION' ? readStoredAuthSession() : null);
+
+        // Unlocks this user's saved offline reads (starting with their
+        // organization list) before any organization is known.
+        setActivePersistenceUser(activeSession?.user?.id ?? null);
+
+        setSession(activeSession);
+        setUser(activeSession?.user ?? null);
         setIsLoading(false);
         window.clearTimeout(bootstrapTimeoutId);
 

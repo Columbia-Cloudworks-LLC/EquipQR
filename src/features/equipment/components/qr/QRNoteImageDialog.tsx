@@ -75,7 +75,7 @@ const QRNoteImageDialog: React.FC<QRNoteImageDialogProps> = ({
     setError(null);
     setIsSubmitting(true);
     try {
-      await createQREquipmentNote({
+      const { queuedOffline } = await createQREquipmentNote({
         equipmentId,
         organizationId,
         content: finalContent,
@@ -84,7 +84,11 @@ const QRNoteImageDialog: React.FC<QRNoteImageDialogProps> = ({
         machineHours: data.machineHours,
         scanId,
       });
-      onSuccess('Note added to equipment.');
+      onSuccess(
+        queuedOffline
+          ? 'Note saved on this device. It will sync when you are back online.'
+          : 'Note added to equipment.',
+      );
       resetAndClose();
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Unable to add note.');

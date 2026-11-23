@@ -11,6 +11,21 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+## [3.41.0] - 2026-11-23
+
+### Changed
+
+- **Longer offline window (#1770)** — Work orders, equipment and checklists you have opened stay available without signal for 14 days instead of 24 hours, and there is no longer a 50-item limit on changes saved offline. Large backlogs sync in batches of 50 once you are back in range.
+
+### Fixed
+
+- **Offline changes sync reliably on a weak signal (#1770)** — A dropped connection during sync no longer marks changes as failed, changes interrupted by closing the app are picked up again, older queued changes are never dropped to make room, and two open tabs can no longer sync the same change twice.
+- **Offline photos are no longer lost on a weak signal (#1770)** — If the connection drops while photos taken offline are uploading, the photos that did not make it stay on the device and upload on the next sync, onto the same note. Previously the note could sync without them and the saved copies were removed.
+- **The app opens and shows your data with no signal (#1770)** — Reopening or reloading the app without a connection no longer hangs on "Checking onboarding status" or sends you to the sign-in page, including after more than an hour offline. The equipment list, work order list, dashboard and team lists you loaded while connected are saved on the device and shown when there is no signal. Previously only individual records you had opened were saved, and even those were not shown when the device was fully offline.
+- **The QR scan page works the same with no signal (#1770)** — Scanning a machine offline now opens the same page with the same buttons instead of a "User not authenticated" error. Report Issue, Start PM (with its checklist), Update Hours and Add Note with photos are saved on the device and sync automatically when the connection returns, from the scan page itself. The scan is saved too and recorded with the time it actually happened, marked as recorded offline.
+- **All your equipment is available offline (#1770)** — While connected, the app saves the full record of every machine you have access to, plus the PM checklist templates, and refreshes them every six hours. Any machine can be opened or scanned with no signal, not only the ones you had opened before.
+- **Work orders, inventory and the equipment list work with no signal without opening them first (#1770)** — While connected, the app now also saves your work order list, the full record and PM checklist of each open work order, and your inventory. The Equipment, Work Orders and Inventory screens use that saved copy when there is no signal, including search and filters. The equipment picker in the new work order form shows every machine offline. The offline banner now says when the copy was last saved, or that it has not been saved yet.
+
 ## [3.40.2] - 2026-11-22
 
 ### Changed

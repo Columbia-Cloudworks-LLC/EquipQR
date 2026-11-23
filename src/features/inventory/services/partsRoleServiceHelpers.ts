@@ -57,29 +57,48 @@ export async function fetchPartsRoleAssignees(
   }));
 }
 
+/**
+ * A check that could not reach the server is not an answer. It is thrown so
+ * the caller keeps what it knew before (a saved "yes" must survive having no
+ * signal) instead of being told the user has no parts role.
+ */
+const CONNECTION_LOST_PATTERN = /Failed to fetch|Load failed|NetworkError|ERR_INTERNET|ERR_NETWORK|net::/i;
+
+function couldNotReachServer(error: unknown): boolean {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+  const message =
+    error && typeof error === 'object' && 'message' in error && typeof error.message === 'string'
+      ? error.message
+      : '';
+  return CONNECTION_LOST_PATTERN.test(message);
+}
+
 export async function isUserInPartsRole(
   table: PartsRoleTable,
   organizationId: string,
   userId: string,
 ): Promise<boolean> {
+  let result;
   try {
-    const { data, error } = await supabase
+    result = await supabase
       .from(table)
       .select('user_id')
       .eq('organization_id', organizationId)
       .eq('user_id', userId)
       .maybeSingle();
-
-    if (error) {
-      logger.error(`Error checking ${table} status:`, error);
-      return false;
-    }
-
-    return !!data;
   } catch (error) {
+    if (couldNotReachServer(error)) throw error;
     logger.error(`Error in isUserInPartsRole (${table}):`, error);
     return false;
   }
+
+  if (result.error) {
+    if (couldNotReachServer(result.error)) throw new Error(result.error.message);
+    logger.error(`Error checking ${table} status:`, result.error);
+    return false;
+  }
+
+  return !!result.data;
 }
 
 export async function addPartsRoleAssignee(

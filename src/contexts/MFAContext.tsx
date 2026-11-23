@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { isMFAEnabled } from '@/lib/flags';
 import { logger } from '@/utils/logger';
+import { isAuthConnectivityFailure, sessionIdFromAccessToken } from '@/lib/offlineSession';
 
 interface EnrollTOTPResult {
   qrCode: string;
@@ -74,12 +75,57 @@ export const MFAProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   return <MFAProviderInner>{children}</MFAProviderInner>;
 };
 
+interface RememberedMFAStatus {
+  /**
+   * The sign-in this status was confirmed for. A verified level belongs to
+   * one session: a later password-only sign-in must not inherit it.
+   */
+  sessionId: string | null;
+  factors: Factor[];
+  currentLevel: AuthenticatorAssuranceLevels | null;
+  nextLevel: AuthenticatorAssuranceLevels | null;
+}
+
+const mfaStatusStorageKey = (userId: string) => `equipqr_mfa_status_${userId}`;
+
+/**
+ * Last MFA status the server confirmed for this user on this device. Used
+ * only when the status cannot be checked because there is no connection, so
+ * an owner or admin who already passed MFA is not shown the enrollment screen
+ * (which cannot work offline) and locked out of their cached data.
+ */
+function rememberMFAStatus(userId: string, status: RememberedMFAStatus): void {
+  try {
+    localStorage.setItem(mfaStatusStorageKey(userId), JSON.stringify(status));
+  } catch {
+    // Best-effort.
+  }
+}
+
+function recallMFAStatus(userId: string): RememberedMFAStatus | null {
+  try {
+    const raw = localStorage.getItem(mfaStatusStorageKey(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<RememberedMFAStatus> | null;
+    if (!parsed || !Array.isArray(parsed.factors)) return null;
+    return {
+      sessionId: typeof parsed.sessionId === 'string' ? parsed.sessionId : null,
+      factors: parsed.factors,
+      currentLevel: parsed.currentLevel ?? null,
+      nextLevel: parsed.nextLevel ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Inner MFA provider that actually manages state. Only rendered when MFA is enabled.
  * Separated to avoid calling hooks conditionally.
  */
 const MFAProviderInner: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
+  const sessionId = sessionIdFromAccessToken(session?.access_token);
   const [factors, setFactors] = useState<Factor[]>([]);
   const [currentLevel, setCurrentLevel] = useState<AuthenticatorAssuranceLevels | null>(null);
   const [nextLevel, setNextLevel] = useState<AuthenticatorAssuranceLevels | null>(null);
@@ -106,20 +152,50 @@ const MFAProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
         supabase.auth.mfa.listFactors(),
       ]);
 
+      const aalUnreachable = !!aalResult.error && isAuthConnectivityFailure(aalResult.error);
+      const factorsUnreachable =
+        !!factorsResult.error && isAuthConnectivityFailure(factorsResult.error);
+      const remembered =
+        aalUnreachable || factorsUnreachable ? recallMFAStatus(user.id) : null;
+
+      // Factors belong to the user, so the remembered list is safe to reuse
+      // when they cannot be listed.
+      const resolvedFactors = factorsResult.data
+        ? factorsResult.data.totp ?? []
+        : factorsUnreachable && remembered
+          ? remembered.factors
+          : null;
+      if (resolvedFactors) setFactors(resolvedFactors);
+
       if (aalResult.data) {
+        // The level this session actually has always wins over anything remembered.
         setCurrentLevel(aalResult.data.currentLevel);
         setNextLevel(aalResult.data.nextLevel);
+      } else if (aalUnreachable && remembered) {
+        if (remembered.sessionId !== null && remembered.sessionId === sessionId) {
+          setCurrentLevel(remembered.currentLevel);
+          setNextLevel(remembered.nextLevel);
+        } else if (remembered.factors.some((factor) => factor.status === 'verified')) {
+          // A different sign-in than the one that was verified: ask again.
+          setCurrentLevel('aal1');
+          setNextLevel('aal2');
+        }
       }
 
-      if (factorsResult.data) {
-        setFactors(factorsResult.data.totp ?? []);
+      if (aalResult.data && factorsResult.data) {
+        rememberMFAStatus(user.id, {
+          sessionId,
+          factors: factorsResult.data.totp ?? [],
+          currentLevel: aalResult.data.currentLevel,
+          nextLevel: aalResult.data.nextLevel,
+        });
       }
     } catch (error) {
       logger.error('Failed to refresh MFA status', error);
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, sessionId]);
 
   // Refresh MFA status when user changes (rule 5.6 — narrow dep on user?.id)
   const userId = user?.id;

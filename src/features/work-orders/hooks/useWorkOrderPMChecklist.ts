@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
+import { useBrowserOnline } from '@/hooks/useBrowserOnline';
 import { usePMTemplatesForOrganization } from '@/features/pm-templates/hooks/usePMTemplates';
 import { useMatchingPMTemplatesForOrganization } from '@/features/pm-templates/hooks/usePMTemplateCompatibility';
 import { useSimpleOrganizationSafe } from '@/hooks/useSimpleOrganization';
@@ -43,6 +44,7 @@ export const useWorkOrderPMChecklist = ({
 }: UseWorkOrderPMChecklistProps) => {
   const orgContext = useSimpleOrganizationSafe();
   const resolvedOrganizationId = organizationId ?? orgContext?.currentOrganization?.id;
+  const isOnline = useBrowserOnline();
   const templatesQuery = usePMTemplatesForOrganization(resolvedOrganizationId);
   const { data: allTemplates = [], isLoading: isLoadingTemplates } = templatesQuery;
   const restrictions = getSimplifiedOrganizationRestrictions();
@@ -56,8 +58,14 @@ export const useWorkOrderPMChecklist = ({
   );
 
   const { data: matchingTemplates = [], isLoading: isLoadingMatching } = matchingQuery;
-  const isLoading = isLoadingTemplates || isLoadingMatching;
-  const isError = templatesQuery.isError || matchingQuery.isError;
+  // The compatibility lookup only narrows the list. With no connection it
+  // cannot finish, and waiting for it (or reporting it as an error) would
+  // stop a technician from starting a PM from the saved templates.
+  const matchingUnavailableOffline = !isOnline;
+  const isLoading = isLoadingTemplates || (isLoadingMatching && !matchingUnavailableOffline);
+  const isError =
+    (templatesQuery.isError && allTemplates.length === 0) ||
+    (matchingQuery.isError && !matchingUnavailableOffline);
   const refreshTemplates = () => Promise.all([
     templatesQuery.refetch(),
     ...(selectedEquipment?.id ? [matchingQuery.refetch()] : []),

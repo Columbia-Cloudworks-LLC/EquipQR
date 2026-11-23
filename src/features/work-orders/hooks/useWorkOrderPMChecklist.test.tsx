@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import { vi, beforeEach, describe, it, expect } from 'vitest';
+import { vi, afterEach, beforeEach, describe, it, expect } from 'vitest';
 import {
   QueryClient,
   QueryClientProvider,
@@ -196,6 +196,44 @@ function renderPMChecklistHook(options: PMChecklistHookOptions = {}) {
   );
   return { result: hook.result, setValue };
 }
+
+describe('useWorkOrderPMChecklist with no connection', () => {
+  const setOnline = (value: boolean) =>
+    Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => value });
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    const { usePMTemplatesForOrganization } = await import('@/features/pm-templates/hooks/usePMTemplates');
+    const { useMatchingPMTemplatesForOrganization } = await import('@/features/pm-templates/hooks/usePMTemplateCompatibility');
+    vi.mocked(usePMTemplatesForOrganization).mockReturnValue(successQueryResult(mockTemplates));
+    // The lookup can never finish with no connection.
+    vi.mocked(useMatchingPMTemplatesForOrganization).mockReturnValue({
+      ...pendingQueryResult<MatchingPMTemplateResult[]>(),
+      isLoading: true,
+    });
+    vi.mocked(getSimplifiedOrganizationRestrictions).mockReturnValue(baseRestrictions);
+  });
+
+  afterEach(() => setOnline(true));
+
+  it('offers the saved templates instead of waiting on the compatibility lookup', () => {
+    setOnline(false);
+
+    const { result } = renderPMChecklistHook({ selectedEquipment: { id: 'eq-1', name: 'Loader' } });
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isError).toBe(false);
+    expect(result.current.templates).toHaveLength(3);
+  });
+
+  it('still waits for the compatibility lookup while connected', () => {
+    setOnline(true);
+
+    const { result } = renderPMChecklistHook({ selectedEquipment: { id: 'eq-1', name: 'Loader' } });
+
+    expect(result.current.isLoading).toBe(true);
+  });
+});
 
 describe('useWorkOrderPMChecklist', () => {
   beforeEach(async () => {

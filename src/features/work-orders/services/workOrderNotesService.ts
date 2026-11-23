@@ -40,10 +40,12 @@ async function uploadWorkOrderNoteImages(
   noteId: string,
   images: File[],
   userId: string,
+  throwOnFailure = false,
 ): Promise<WorkOrderNoteImage[]> {
   return uploadFilesToNoteImageBucket<WorkOrderNoteImage>({
     bucket: 'work-order-images',
     imagesTable: 'work_order_images',
+    throwOnFailure,
     images,
     buildObjectKey: (file) => {
       const fileExt = file.name.split('.').pop();
@@ -71,6 +73,8 @@ async function uploadWorkOrderNoteImages(
         } catch (cleanupError) {
           logger.error('Failed to delete orphaned work-order image after DB insert failure:', cleanupError);
         }
+        // Keep the original error (a dropped connection must stay recognisable).
+        if (throwOnFailure) throw error;
         return null;
       }
       return { ...data, note_id: noteId } as WorkOrderNoteImage;
@@ -182,6 +186,40 @@ export const createWorkOrderNoteWithImages = async (
     images: uploadedImages,
   });
 };
+
+/**
+ * Upload one photo onto an existing note. Unlike the batch path this throws
+ * when the photo does not make it, so offline replay can keep the local copy
+ * and try again. The returned `file_url` is the stored path, not a display URL.
+ */
+export async function uploadWorkOrderNoteImage(
+  workOrderId: string,
+  noteId: string,
+  image: File,
+  organizationId: string,
+): Promise<WorkOrderNoteImage> {
+  const { userId } = await prepareWorkOrderNoteImageUpload(workOrderId, organizationId, [image]);
+  const [uploaded] = await uploadWorkOrderNoteImages(workOrderId, noteId, [image], userId, true);
+  if (!uploaded) {
+    throw new Error(`Photo upload failed for ${image.name}`);
+  }
+  return uploaded;
+}
+
+/** Set the photo shown as the work order's main image. */
+export async function setWorkOrderPrimaryImage(
+  workOrderId: string,
+  organizationId: string,
+  imageId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('work_orders')
+    .update({ primary_image_id: imageId })
+    .eq('id', workOrderId)
+    .eq('organization_id', organizationId);
+
+  if (error) throw error;
+}
 
 /** Attach creation-time photos via the standard note+storage path and set work_orders.primary_image_id to the first uploaded image. */
 export async function attachWorkOrderCreationImages(params: {

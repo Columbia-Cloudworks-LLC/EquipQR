@@ -16,6 +16,7 @@ const mockQueryState = vi.hoisted(() => ({
   isError: false,
   isPending: false,
   isFetched: true,
+  fetchStatus: 'idle' as 'idle' | 'fetching' | 'paused',
 }));
 
 vi.mock('@/contexts/OrganizationContext', () => ({
@@ -32,6 +33,7 @@ vi.mock('@/features/onboarding/hooks/useProductOnboarding', () => ({
     isError: mockQueryState.isError,
     isPending: mockQueryState.isPending,
     isFetched: mockQueryState.isFetched,
+    fetchStatus: mockQueryState.fetchStatus,
   }),
 }));
 
@@ -80,6 +82,30 @@ describe('ProductOnboardingGuard', () => {
     mockQueryState.isError = false;
     mockQueryState.isPending = false;
     mockQueryState.isFetched = true;
+    mockQueryState.fetchStatus = 'idle';
+  });
+
+  it('lets the user in when the check cannot run because there is no connection', () => {
+    mockStatus.mockReturnValue(undefined);
+    mockQueryState.isPending = true;
+    mockQueryState.isFetched = false;
+    mockQueryState.fetchStatus = 'paused';
+
+    renderGuard('/dashboard');
+
+    expect(screen.getByText('Dashboard content')).toBeInTheDocument();
+  });
+
+  it('keeps waiting while the check is running', () => {
+    mockStatus.mockReturnValue(undefined);
+    mockQueryState.isPending = true;
+    mockQueryState.isLoading = true;
+    mockQueryState.isFetched = false;
+    mockQueryState.fetchStatus = 'fetching';
+
+    renderGuard('/dashboard');
+
+    expect(screen.queryByText('Dashboard content')).not.toBeInTheDocument();
   });
 
   it('redirects owners with incomplete onboarding to getting-started', async () => {

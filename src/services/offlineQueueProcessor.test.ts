@@ -44,7 +44,17 @@ const {
   mockCreateEquipmentNote,
   mockCreateWorkOrderNote,
   mockDeletePM,
+  mockCreatePM,
+  mockUploadWorkOrderNoteImage,
+  mockUploadEquipmentNoteImage,
+  mockSetWorkOrderPrimaryImage,
+  mockLoadQueueItemImageFiles,
 } = vi.hoisted(() => ({
+  mockUploadWorkOrderNoteImage: vi.fn(),
+  mockUploadEquipmentNoteImage: vi.fn(),
+  mockSetWorkOrderPrimaryImage: vi.fn(),
+  mockLoadQueueItemImageFiles: vi.fn(),
+  mockCreatePM: vi.fn(),
   mockEquipmentCreateQuick: vi.fn(),
   mockEquipmentCreate: vi.fn(),
   mockEquipmentUpdate: vi.fn(),
@@ -62,16 +72,24 @@ vi.mock('@/features/equipment/services/EquipmentService', () => ({
   },
 }));
 
+const mockInsertOfflineScan = vi.fn();
+vi.mock('@/features/equipment/services/equipmentQRPermissions', () => ({
+  insertOfflineScan: (...args: unknown[]) => mockInsertOfflineScan(...args),
+}));
+
 vi.mock('@/features/equipment/services/equipmentWorkingHoursService', () => ({
   updateEquipmentWorkingHours: (...args: unknown[]) => mockUpdateWorkingHours(...args),
 }));
 
 vi.mock('@/features/equipment/services/equipmentNotesService', () => ({
   createEquipmentNoteWithImages: (...args: unknown[]) => mockCreateEquipmentNote(...args),
+  uploadEquipmentNoteImage: (...args: unknown[]) => mockUploadEquipmentNoteImage(...args),
 }));
 
 vi.mock('@/features/work-orders/services/workOrderNotesService', () => ({
   createWorkOrderNoteWithImages: (...args: unknown[]) => mockCreateWorkOrderNote(...args),
+  uploadWorkOrderNoteImage: (...args: unknown[]) => mockUploadWorkOrderNoteImage(...args),
+  setWorkOrderPrimaryImage: (...args: unknown[]) => mockSetWorkOrderPrimaryImage(...args),
 }));
 
 vi.mock('@/features/pm-templates/services/preventativeMaintenanceService', async () => {
@@ -81,11 +99,12 @@ vi.mock('@/features/pm-templates/services/preventativeMaintenanceService', async
   return {
     ...actual,
     deletePM: (...args: unknown[]) => mockDeletePM(...args),
+    createPM: (...args: unknown[]) => mockCreatePM(...args),
   };
 });
 
 vi.mock('@/services/offlineQueueProcessorImages', () => ({
-  loadQueueItemImageFiles: vi.fn(async () => []),
+  loadQueueItemImageFiles: (...args: unknown[]) => mockLoadQueueItemImageFiles(...args),
   cleanupQueueItemBlobs: vi.fn(async () => undefined),
 }));
 
@@ -172,13 +191,18 @@ describe('OfflineQueueProcessor', () => {
     // Defaults: valid session + valid user
     mockGetSession.mockResolvedValue({ data: { session: { access_token: 'tok' } } });
     mockSupabaseAuth.mockResolvedValue({ data: { claims: { sub: USER_ID } }, error: null });
+    // One File per requested photo ref, named after its blob key.
+    mockLoadQueueItemImageFiles.mockImplementation(
+      async (_userId: string, _orgId: string, refs: Array<{ blobKey: string }> = []) =>
+        refs.map(ref => new File(['x'], `${ref.blobKey}.jpg`, { type: 'image/jpeg' })),
+    );
   });
 
   // ── Basic processing ───────────────────────────────────────────────────
 
   it('returns zero counts for an empty queue', async () => {
     const result = await processor.processAll();
-    expect(result).toEqual({ succeeded: 0, failed: 0, remaining: 0, conflicts: [] });
+    expect(result).toEqual({ succeeded: 0, failed: 0, remaining: 0, conflicts: [], interrupted: false });
   });
 
   it('processes a work_order_create item successfully', async () => {
@@ -577,6 +601,44 @@ describe('OfflineQueueProcessor', () => {
     expect(mockUpdateWorkingHours).toHaveBeenCalledWith(payload);
   });
 
+  it('records a queued scan with the time it happened', async () => {
+    const payload = {
+      scanId: 'scan-1',
+      equipmentId: 'eq-1',
+      scannedAt: '2026-11-22T10:15:00.000Z',
+      location: null,
+    };
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify([createPendingItem({ type: 'equipment_scan', payload })]),
+    );
+    mockInsertOfflineScan.mockResolvedValueOnce(undefined);
+
+    const result = await processor.processAll();
+
+    expect(result.succeeded).toBe(1);
+    expect(mockInsertOfflineScan).toHaveBeenCalledWith(payload);
+  });
+
+  it('keeps a queued scan for the next sync when the connection drops again', async () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify([
+        createPendingItem({
+          type: 'equipment_scan',
+          payload: { scanId: 'scan-1', equipmentId: 'eq-1', scannedAt: '2026-11-22T10:15:00.000Z' },
+        }),
+      ]),
+    );
+    mockInsertOfflineScan.mockRejectedValueOnce(new Error('TypeError: Failed to fetch'));
+
+    const result = await processor.processAll();
+
+    expect(result.succeeded).toBe(0);
+    const [item] = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]');
+    expect(item).toMatchObject({ type: 'equipment_scan', status: 'pending', retryCount: 0 });
+  });
+
   it('processes equipment_note with empty images array', async () => {
     const item = createPendingItem({
       type: 'equipment_note',
@@ -706,5 +768,272 @@ describe('OfflineQueueProcessor', () => {
       expect.objectContaining({ equipment_id: 'server-equip-999' }),
     );
     expect(queueService.getCount()).toBe(0);
+  });
+
+  // ── Weak signal / interrupted sync ──────────────────────────────────────
+
+  function enqueueWorkOrderNote(workOrderId: string, content = 'Replaced filter') {
+    return queueService.enqueue({
+      type: 'work_order_note',
+      payload: { workOrderId, content },
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+  }
+
+  it('stops at a dropped connection without using up retries', async () => {
+    const first = enqueueWorkOrderNote('wo-1');
+    const second = enqueueWorkOrderNote('wo-2');
+    mockCreateWorkOrderNote.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+    const result = await processor.processAll();
+
+    expect(result).toMatchObject({ succeeded: 0, failed: 0, remaining: 2, interrupted: true });
+    expect(mockCreateWorkOrderNote).toHaveBeenCalledTimes(1);
+    expect(queueService.getById(first.id)).toMatchObject({ status: 'pending', retryCount: 0 });
+    expect(queueService.getById(second.id)).toMatchObject({ status: 'pending', retryCount: 0 });
+
+    mockCreateWorkOrderNote.mockResolvedValue({ id: 'note-1' });
+    const retry = await processor.processAll();
+
+    expect(retry).toMatchObject({ succeeded: 2, failed: 0, remaining: 0, interrupted: false });
+  });
+
+  it('still counts a server rejection toward the retry limit', async () => {
+    const item = enqueueWorkOrderNote('wo-1');
+    mockCreateWorkOrderNote.mockRejectedValueOnce(new Error('Operation failed'));
+
+    const result = await processor.processAll();
+
+    expect(result.interrupted).toBe(false);
+    expect(queueService.getById(item.id)).toMatchObject({ status: 'pending', retryCount: 1 });
+  });
+
+  it('syncs an item left in processing by an interrupted run', async () => {
+    const stuck = createPendingItem({ status: 'processing' });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([stuck]));
+    mockCreate.mockResolvedValueOnce({ success: true, data: { id: 'server-wo-1' } });
+
+    const result = await processor.processAll();
+
+    expect(result.succeeded).toBe(1);
+    expect(queueService.getCount()).toBe(0);
+  });
+
+  it('holds a dependent item until its parent create syncs', async () => {
+    const parent = queueService.enqueue({
+      type: 'work_order_create',
+      payload: { title: 'Fix pump', description: 'Broken', equipmentId: 'equip-1', priority: 'high' },
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+    const note = enqueueWorkOrderNote(`offline-${parent.id}`);
+    mockCreate.mockResolvedValueOnce({ success: false, data: null, error: 'Server error' });
+
+    const first = await processor.processAll();
+
+    expect(first).toMatchObject({ succeeded: 0, failed: 0 });
+    expect(mockCreateWorkOrderNote).not.toHaveBeenCalled();
+    expect(queueService.getById(note.id)).toMatchObject({ status: 'pending', retryCount: 0 });
+
+    mockCreate.mockResolvedValueOnce({ success: true, data: { id: 'server-wo-7' } });
+    mockCreateWorkOrderNote.mockResolvedValueOnce({ id: 'note-1' });
+
+    const second = await processor.processAll();
+
+    expect(second.succeeded).toBe(2);
+    expect(mockCreateWorkOrderNote.mock.calls[0][0]).toBe('server-wo-7');
+    expect(queueService.getCount()).toBe(0);
+  });
+
+  it('fails a dependent item once its parent create has failed for good', async () => {
+    const parent = createPendingItem({ status: 'failed', retryCount: 5, timestamp: 1 });
+    const note = createPendingItem({
+      type: 'work_order_note',
+      payload: { workOrderId: `offline-${parent.id}`, content: 'Replaced filter' },
+      timestamp: 2,
+    } as Partial<OfflineQueueItem>);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([parent, note]));
+
+    const result = await processor.processAll();
+
+    expect(result.failed).toBe(1);
+    expect(mockCreateWorkOrderNote).not.toHaveBeenCalled();
+    expect(queueService.getById(note.id)?.status).toBe('failed');
+  });
+
+  it('drains a long queue in batches of 50', async () => {
+    for (let i = 0; i < 60; i++) enqueueWorkOrderNote(`wo-${i}`, `Note ${i}`);
+    mockCreateWorkOrderNote.mockResolvedValue({ id: 'note-1' });
+
+    const first = await processor.processAll();
+
+    expect(first).toMatchObject({ succeeded: 50, failed: 0, remaining: 10 });
+    expect(mockCreateWorkOrderNote.mock.calls[0][0]).toBe('wo-0');
+
+    const second = await processor.processAll();
+
+    expect(second).toMatchObject({ succeeded: 10, failed: 0, remaining: 0 });
+    expect(queueService.getCount()).toBe(0);
+  });
+
+  it('resolves queued PM edits after the PM init is retried separately', async () => {
+    const parent = queueService.enqueue({
+      type: 'work_order_create',
+      payload: {
+        title: 'PM service',
+        description: 'Quarterly',
+        equipmentId: 'equip-1',
+        priority: 'medium',
+        hasPM: true,
+      },
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+    const pmUpdate = queueService.enqueue({
+      type: 'pm_update',
+      payload: { pmId: `offline-pm-${parent.id}`, notes: 'Checked fluids' },
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+    mockCreate.mockResolvedValueOnce({ success: true, data: { id: 'server-wo-9' } });
+    mockCreatePM.mockResolvedValueOnce(null); // PM init fails alongside the work order
+
+    const first = await processor.processAll();
+
+    expect(first.succeeded).toBe(1);
+    const afterFirst = queueService.getAll();
+    expect(afterFirst.map(i => i.type).sort()).toEqual(['pm_init', 'pm_update']);
+    expect(queueService.getById(pmUpdate.id)).toMatchObject({ status: 'pending', retryCount: 0 });
+
+    mockCreatePM.mockResolvedValueOnce({ id: 'server-pm-3' });
+    const updateChain = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: { id: 'server-pm-3' }, error: null }),
+    };
+    mockSupabaseFrom.mockReturnValue(updateChain);
+
+    const second = await processor.processAll();
+
+    expect(second).toMatchObject({ succeeded: 2, failed: 0, remaining: 0 });
+    expect(updateChain.eq).toHaveBeenCalledWith('id', 'server-pm-3');
+  });
+
+  // ── Photos ──────────────────────────────────────────────────────────────
+
+  function makeImageRefs(count: number) {
+    return Array.from({ length: count }, (_, i) => ({
+      blobKey: `photo-${i + 1}`,
+      fileName: `photo-${i + 1}.jpg`,
+      mimeType: 'image/jpeg',
+      sizeBytes: 1000,
+    }));
+  }
+
+  function uploadedFileNames(mock: typeof mockUploadWorkOrderNoteImage): string[] {
+    return mock.mock.calls.map(call => (call[2] as File).name);
+  }
+
+  it('resumes a 10-photo note from the photo where the connection dropped', async () => {
+    const item = queueService.enqueue({
+      type: 'work_order_note',
+      payload: { workOrderId: 'wo-1', content: 'Site photos', imageRefs: makeImageRefs(10) },
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+    mockCreateWorkOrderNote.mockResolvedValue({ id: 'note-1' });
+    mockUploadWorkOrderNoteImage
+      .mockResolvedValueOnce({ id: 'img-1' })
+      .mockResolvedValueOnce({ id: 'img-2' })
+      .mockResolvedValueOnce({ id: 'img-3' })
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValue({ id: 'img-n' });
+
+    const first = await processor.processAll();
+
+    expect(first).toMatchObject({ succeeded: 0, failed: 0, remaining: 1, interrupted: true });
+    expect(queueService.getById(item.id)).toMatchObject({
+      status: 'pending',
+      retryCount: 0,
+      payload: { syncedNoteId: 'note-1', uploadedBlobKeys: ['photo-1', 'photo-2', 'photo-3'] },
+    });
+
+    mockUploadWorkOrderNoteImage.mockClear();
+    const second = await processor.processAll();
+
+    expect(second).toMatchObject({ succeeded: 1, failed: 0, remaining: 0 });
+    expect(mockCreateWorkOrderNote).toHaveBeenCalledTimes(1); // note not created twice
+    expect(uploadedFileNames(mockUploadWorkOrderNoteImage)).toEqual(
+      [4, 5, 6, 7, 8, 9, 10].map(n => `photo-${n}.jpg`),
+    );
+    expect(mockUploadWorkOrderNoteImage.mock.calls[0].slice(0, 2)).toEqual(['wo-1', 'note-1']);
+    expect(queueService.getCount()).toBe(0);
+  });
+
+  it('keeps a note queued when a photo is rejected by the server', async () => {
+    const item = queueService.enqueue({
+      type: 'equipment_note',
+      payload: { equipmentId: 'equip-1', content: 'Damage', imageRefs: makeImageRefs(2) },
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+    mockCreateEquipmentNote.mockResolvedValue({ id: 'note-9' });
+    mockUploadEquipmentNoteImage
+      .mockResolvedValueOnce({ id: 'img-1' })
+      .mockRejectedValueOnce(new Error('Storage quota exceeded'));
+
+    const result = await processor.processAll();
+
+    expect(result).toMatchObject({ succeeded: 0, interrupted: false });
+    expect(queueService.getById(item.id)).toMatchObject({
+      status: 'pending',
+      retryCount: 1,
+      lastError: 'Storage quota exceeded',
+      payload: { syncedNoteId: 'note-9', uploadedBlobKeys: ['photo-1'] },
+    });
+  });
+
+  it('resumes work order creation photos and sets the main image once', async () => {
+    const item = queueService.enqueue({
+      type: 'work_order_create',
+      payload: {
+        title: 'Fix pump',
+        description: 'Broken',
+        equipmentId: 'equip-1',
+        priority: 'high',
+        imageRefs: makeImageRefs(3),
+      },
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+    mockCreate.mockResolvedValue({ success: true, data: { id: 'server-wo-1' } });
+    mockCreateWorkOrderNote.mockResolvedValue({ id: 'note-1' });
+    mockUploadWorkOrderNoteImage
+      .mockResolvedValueOnce({ id: 'img-1' })
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce({ id: 'img-2' })
+      .mockResolvedValueOnce({ id: 'img-3' });
+
+    const first = await processor.processAll();
+
+    expect(first.interrupted).toBe(true);
+    expect(mockSetWorkOrderPrimaryImage).not.toHaveBeenCalled();
+    expect(queueService.getById(item.id)?.payload).toMatchObject({
+      syncedWorkOrderId: 'server-wo-1',
+      syncedNoteId: 'note-1',
+      uploadedBlobKeys: ['photo-1'],
+      creationPrimaryImageId: 'img-1',
+    });
+
+    const second = await processor.processAll();
+
+    expect(second).toMatchObject({ succeeded: 1, remaining: 0 });
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockCreateWorkOrderNote).toHaveBeenCalledTimes(1);
+    expect(mockUploadWorkOrderNoteImage).toHaveBeenCalledTimes(4);
+    expect(mockSetWorkOrderPrimaryImage).toHaveBeenCalledTimes(1);
+    expect(mockSetWorkOrderPrimaryImage).toHaveBeenCalledWith('server-wo-1', ORG_ID, 'img-1');
   });
 });

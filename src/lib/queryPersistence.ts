@@ -15,20 +15,30 @@
  *  - Only an explicit allow-list of query-key prefixes is persisted. Auth,
  *    notifications, audit log, integrations, profile, billing, and any
  *    `'admin'` / `'audit'` namespace are excluded by construction.
- *  - The persister has a max age of 24h; anything older than that is
- *    discarded on hydration.
+ *  - The persister has a max age of 14 days (crews can be at a remote site
+ *    without signal for several days); anything older is discarded on
+ *    hydration.
  *  - `buster` includes the app version so a new deploy invalidates all
  *    persisted state automatically (no risk of replaying queries against a
  *    schema-incompatible build).
  */
 
-import { get, set, del } from 'idb-keyval';
+import { get, set, del, entries } from 'idb-keyval';
 import { experimental_createQueryPersister } from '@tanstack/react-query-persist-client';
-import type { Query } from '@tanstack/react-query';
+import type { Query, QueryClient } from '@tanstack/react-query';
 
 declare const __APP_VERSION__: string;
 
 const APP_VERSION = typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : 'dev';
+
+/**
+ * Saved reads written by a different app version are discarded. Anything that
+ * tracks "the saved copy is up to date" must be keyed on this too.
+ */
+export const OFFLINE_CACHE_VERSION = APP_VERSION;
+
+/** How long cached reads stay usable without a connection. */
+const OFFLINE_READ_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
 
 /**
  * Query-key prefixes that are safe to persist for slow-cellular / offline
@@ -63,7 +73,52 @@ const PERSISTABLE_KEY_PREFIXES: ReadonlySet<string> = new Set([
   'team-stats',
   'teams',
   'team-fleet',
+  // Lists and detail panels the field screens read (equipment list, work
+  // order list, dashboard, team pickers). Without these a technician with no
+  // signal sees empty screens instead of what they last loaded.
+  'equipment-optimized',
+  'equipment-notes',
+  'equipment-work-orders',
+  'work-orders-optimized',
+  'work-orders-filtered-optimized',
+  'work-order-notes',
+  'work-order-costs',
+  'work-order-timeline',
+  'work-order-assignment-members',
+  'teamBasedWorkOrders',
+  'team-based-recent-work-orders',
+  'team-based-equipment',
+  'team-based-dashboard-stats',
+  'team-equipment-for-work-order',
+  'team',
+  'teams-optimized',
+  'dashboardStats',
+  'dashboard-stats',
+  'dashboard-optimized',
+  'pm-interval-policies',
+  'pm-template-matching',
+  'product-onboarding',
+  // Parts are looked up in the field too. Org-scoped like everything above.
+  'inventory',
+  'inventory-item',
+  // The user's own yes/no parts-role answers, which gate the inventory
+  // screens. The lists of who holds those roles are not saved.
+  'is-parts-manager',
+  'is-parts-consumer',
 ]);
+
+/**
+ * Query families that are needed before an organization is known (the list
+ * of organizations itself, and the Google Workspace access check). They are
+ * stored in a per-user bucket, and only when the key names that user.
+ */
+const USER_SCOPED_KEY_PREFIXES: ReadonlySet<string> = new Set([
+  'simple-organizations',
+  'google-workspace',
+]);
+
+/** Only this Google Workspace sub-family is user-scoped and safe to keep. */
+const GOOGLE_WORKSPACE_PERSISTABLE_SEGMENT = 'onboarding';
 
 /**
  * Query-key segments that, if present anywhere in the key, force exclusion
@@ -80,8 +135,7 @@ const FORBIDDEN_KEY_SEGMENTS: ReadonlySet<string> = new Set([
   'tickets',
 ]);
 
-function isPersistableQuery(query: Query): boolean {
-  const key = query.queryKey;
+function hasPersistableKey(key: readonly unknown[]): boolean {
   if (!Array.isArray(key) || key.length === 0) return false;
 
   const head = key[0];
@@ -93,6 +147,11 @@ function isPersistableQuery(query: Query): boolean {
       return false;
     }
   }
+  return true;
+}
+
+function isPersistableQuery(query: Query): boolean {
+  if (!hasPersistableKey(query.queryKey)) return false;
 
   // Skip any query that errored out on the last fetch — we don't want to
   // hydrate a stale error state from disk.
@@ -122,7 +181,199 @@ let cachedPersister: ScopedQueryPersister | null = null;
  * disk ages out via `maxAge`.
  */
 export function setActivePersistenceScope(scope: PersistenceScope | null): void {
+  const changed =
+    currentScope?.userId !== scope?.userId || currentScope?.orgId !== scope?.orgId;
   currentScope = scope;
+  if (changed) notifyScopeListeners();
+}
+
+let currentUserId: string | null = null;
+
+/**
+ * Announce the signed-in user. This is known before an organization is, and
+ * unlocks the per-user bucket that holds the organization list — without it
+ * an offline start can never work out which organization to open.
+ */
+export function setActivePersistenceUser(userId: string | null): void {
+  if (currentUserId === userId) return;
+  currentUserId = userId;
+  notifyScopeListeners();
+}
+
+const scopeListeners = new Set<() => void>();
+
+function notifyScopeListeners(): void {
+  for (const listener of scopeListeners) listener();
+}
+
+const STORAGE_NAMESPACE = 'equipqr:tq:';
+
+/**
+ * Storage bucket for a query key under the current scope, or null when the
+ * key must not be kept or its scope is not known yet.
+ */
+function bucketPrefixForKey(key: readonly unknown[]): string | null {
+  const head = key[0];
+  if (typeof head === 'string' && USER_SCOPED_KEY_PREFIXES.has(head)) {
+    if (!currentUserId || !key.includes(currentUserId)) return null;
+    if (head === 'google-workspace' && key[1] !== GOOGLE_WORKSPACE_PERSISTABLE_SEGMENT) {
+      return null;
+    }
+    return `${STORAGE_NAMESPACE}${currentUserId}:user`;
+  }
+  if (!currentScope || !hasPersistableKey(key)) return null;
+  return `${STORAGE_NAMESPACE}${currentScope.userId}:${currentScope.orgId}`;
+}
+
+/** Same on-disk shape `experimental_createQueryPersister` writes. */
+interface PersistedQueryRecord {
+  buster: string;
+  queryHash: string;
+  queryKey: readonly unknown[];
+  state: { data?: unknown; dataUpdatedAt?: number };
+}
+
+function isFreshRecord(record: PersistedQueryRecord): boolean {
+  const updatedAt = record.state?.dataUpdatedAt;
+  if (!updatedAt || record.buster !== APP_VERSION) return false;
+  return Date.now() - updatedAt <= OFFLINE_READ_MAX_AGE_MS;
+}
+
+function parseRecord(raw: unknown): PersistedQueryRecord | null {
+  if (typeof raw !== 'string') return null;
+  try {
+    const parsed = JSON.parse(raw) as PersistedQueryRecord;
+    return parsed && typeof parsed === 'object' && parsed.state ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+async function writeQueryRecord(prefix: string, query: Query): Promise<void> {
+  try {
+    const record: PersistedQueryRecord = {
+      buster: APP_VERSION,
+      queryHash: query.queryHash,
+      queryKey: query.queryKey,
+      state: { data: query.state.data, dataUpdatedAt: query.state.dataUpdatedAt },
+    };
+    await set(`${prefix}-${query.queryHash}`, JSON.stringify(record));
+  } catch {
+    // Best-effort: storage may be full or unavailable (private browsing).
+  }
+}
+
+async function readQueryRecord(
+  prefix: string,
+  queryHash: string,
+): Promise<{ data: unknown; dataUpdatedAt: number } | null> {
+  try {
+    const storageKey = `${prefix}-${queryHash}`;
+    const record = parseRecord(await get<string>(storageKey));
+    if (!record) return null;
+    if (!isFreshRecord(record) || record.state.data === undefined) {
+      await del(storageKey);
+      return null;
+    }
+    return { data: record.state.data, dataUpdatedAt: record.state.dataUpdatedAt ?? 0 };
+  } catch {
+    return null;
+  }
+}
+
+/** Remove saved reads that are too old or belong to a previous app version. */
+async function removeExpiredRecords(): Promise<void> {
+  try {
+    for (const [key, value] of await entries<IDBValidKey, unknown>()) {
+      if (typeof key !== 'string' || !key.startsWith(STORAGE_NAMESPACE)) continue;
+      const record = parseRecord(value);
+      if (!record || !isFreshRecord(record)) await del(key);
+    }
+  } catch {
+    // Best-effort cleanup.
+  }
+}
+
+const EXPIRED_RECORD_SWEEP_DELAY_MS = 30_000;
+
+/**
+ * Keep field-critical reads available with no connection.
+ *
+ * Every successful result for an allow-listed query is saved to IndexedDB,
+ * and a query that has nothing to show is filled from the saved copy while
+ * it waits for the network. This runs outside the query function on purpose:
+ * TanStack Query does not call the query function at all while the browser
+ * reports no connection, so a persister wired into the query function never
+ * gets the chance to restore anything in exactly the case that matters.
+ *
+ * Restored data keeps its original timestamp, so it is treated as stale and
+ * replaced as soon as a fetch succeeds.
+ *
+ * Call once for the app's QueryClient; returns a cleanup function.
+ */
+export function attachOfflineReadCache(queryClient: QueryClient): () => void {
+  const restoring = new Set<string>();
+  const applying = new Set<string>();
+
+  const restore = (query: Query): void => {
+    if (query.state.data !== undefined || restoring.has(query.queryHash)) return;
+    const prefix = bucketPrefixForKey(query.queryKey);
+    if (!prefix) return;
+
+    restoring.add(query.queryHash);
+    void readQueryRecord(prefix, query.queryHash)
+      .then((saved) => {
+        if (!saved) return;
+        // A fetch may have finished, or the user/org may have changed, while
+        // IndexedDB was being read.
+        if (query.state.data !== undefined) return;
+        if (bucketPrefixForKey(query.queryKey) !== prefix) return;
+        if (!queryClient.getQueryCache().get(query.queryHash)) return;
+
+        applying.add(query.queryHash);
+        try {
+          queryClient.setQueryData(query.queryKey, saved.data, {
+            updatedAt: saved.dataUpdatedAt,
+          });
+        } finally {
+          applying.delete(query.queryHash);
+        }
+      })
+      .finally(() => {
+        restoring.delete(query.queryHash);
+      });
+  };
+
+  const restoreAll = (): void => {
+    for (const query of queryClient.getQueryCache().getAll()) restore(query);
+  };
+
+  const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+    const { query } = event;
+    if (event.type === 'added' || event.type === 'observerAdded') {
+      restore(query);
+      return;
+    }
+    if (event.type !== 'updated' || event.action.type !== 'success') return;
+    if (applying.has(query.queryHash)) return;
+    if (query.state.data === undefined) return;
+
+    const prefix = bucketPrefixForKey(query.queryKey);
+    if (prefix) void writeQueryRecord(prefix, query);
+  });
+
+  // Queries usually mount before the user/org scope is announced, so fill
+  // them again whenever the scope becomes known or changes.
+  scopeListeners.add(restoreAll);
+  restoreAll();
+
+  const sweepTimer = setTimeout(() => void removeExpiredRecords(), EXPIRED_RECORD_SWEEP_DELAY_MS);
+
+  return () => {
+    unsubscribe();
+    scopeListeners.delete(restoreAll);
+    clearTimeout(sweepTimer);
+  };
 }
 
 /**
@@ -183,7 +434,7 @@ export function createScopedQueryPersister() {
       },
     },
     prefix,
-    maxAge: 24 * 60 * 60 * 1000, // 24h
+    maxAge: OFFLINE_READ_MAX_AGE_MS,
     // App version is part of the buster — a new deploy invalidates
     // everything regardless of maxAge.
     buster: APP_VERSION,
