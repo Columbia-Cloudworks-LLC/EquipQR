@@ -5,6 +5,10 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import EquipmentQRScan from '@/features/equipment/pages/EquipmentQRScan';
 import { useAuth } from '@/hooks/useAuth';
 import { useSession } from '@/hooks/useSession';
+import {
+  readRememberedTeamIds,
+  useOfflineEquipmentDownload,
+} from '@/features/offline-queue/hooks/useOfflineEquipmentDownload';
 import { useBrowserOnline } from '@/hooks/useBrowserOnline';
 import { useEquipmentById, useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
 import { fetchEquipmentQRPayload, insertScan } from '@/features/equipment/services/equipmentQRPermissions';
@@ -58,6 +62,7 @@ vi.mock('@/features/equipment/services/equipmentQRActionService', () => ({
 
 vi.mock('@/features/offline-queue/hooks/useOfflineEquipmentDownload', () => ({
   useOfflineEquipmentDownload: vi.fn(),
+  readRememberedTeamIds: vi.fn(() => null),
 }));
 
 vi.mock('@/contexts/OfflineQueueContext', () => ({
@@ -280,6 +285,36 @@ describe('EquipmentQRScan (#1074)', () => {
       expect(queueOfflineScan).not.toHaveBeenCalled();
     });
 
+    it("looks up another organization's saved equipment with that organization's team ids", async () => {
+      vi.mocked(useBrowserOnline).mockReturnValue(false);
+      vi.mocked(queueOfflineScan).mockResolvedValue('offline-scan-3');
+      // The session is for a different organization than the QR code.
+      const session = vi.mocked(useSession)();
+      vi.mocked(useSession).mockReturnValue({
+        ...session,
+        sessionData: session.sessionData
+          ? { ...session.sessionData, currentOrganizationId: 'org-last-open' }
+          : null,
+        getUserTeamIds: () => ['team-from-other-org'],
+      });
+      vi.mocked(readRememberedTeamIds).mockReturnValue(['team-b']);
+
+      renderScan();
+
+      expect(await screen.findByText('CAT 320 Excavator')).toBeInTheDocument();
+      expect(readRememberedTeamIds).toHaveBeenCalledWith('user-1', ORG_ID);
+      expect(useEquipmentSummaries).toHaveBeenLastCalledWith(
+        ORG_ID,
+        expect.objectContaining({ userTeamIds: ['team-b'], isOrgAdmin: false }),
+      );
+      // The download needs the open organization's team ids, so it waits.
+      expect(useOfflineEquipmentDownload).toHaveBeenLastCalledWith(
+        'user-1',
+        ORG_ID,
+        expect.objectContaining({ enabled: false }),
+      );
+    });
+
     it('explains what to do when the equipment was never saved on this device', async () => {
       vi.mocked(useBrowserOnline).mockReturnValue(false);
       vi.mocked(useEquipmentSummaries).mockReturnValue({
@@ -313,24 +348,25 @@ describe('EquipmentQRScan (#1074)', () => {
         organization: { id: ORG_ID, name: 'Apex Construction', scan_location_collection_enabled: false },
         userRole: 'member',
       });
-      const page = (
+      // A new element each time: React skips re-rendering an identical one.
+      const page = () => (
         <MemoryRouter initialEntries={[`/qr/equipment/${EQUIPMENT_ID}?org=${ORG_ID}`]}>
           <Routes>
             <Route path="/qr/equipment/:equipmentId" element={<EquipmentQRScan />} />
           </Routes>
         </MemoryRouter>
       );
-      const { rerender } = render(page);
+      const { rerender } = render(page());
       expect(await screen.findByText('CAT 320 Excavator')).toBeInTheDocument();
 
       // Signal drops, then returns after access to the equipment was removed.
       vi.mocked(useBrowserOnline).mockReturnValue(false);
-      rerender(page);
+      rerender(page());
       vi.mocked(fetchEquipmentQRPayload).mockRejectedValue(
         new Error('You do not have access to this equipment'),
       );
       vi.mocked(useBrowserOnline).mockReturnValue(true);
-      rerender(page);
+      rerender(page());
 
       expect(await screen.findByText('You do not have access to this equipment')).toBeInTheDocument();
       expect(screen.queryByText('CAT 320 Excavator')).not.toBeInTheDocument();

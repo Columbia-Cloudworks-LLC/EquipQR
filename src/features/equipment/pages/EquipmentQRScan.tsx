@@ -39,7 +39,10 @@ import {
   useOfflineQueueOptional,
 } from '@/contexts/OfflineQueueContext';
 import { OFFLINE_QUEUE_ENABLED } from '@/lib/flags';
-import { useOfflineEquipmentDownload } from '@/features/offline-queue/hooks/useOfflineEquipmentDownload';
+import {
+  readRememberedTeamIds,
+  useOfflineEquipmentDownload,
+} from '@/features/offline-queue/hooks/useOfflineEquipmentDownload';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
 import { isOrgAdminRole } from '@/features/teams/utils/teamAccessScope';
 
@@ -155,7 +158,20 @@ const EquipmentQRScan = (): React.JSX.Element => {
   const cacheUserRole = currentOrganization?.userRole ?? cacheOrganization?.userRole;
   const isOrgAdmin = isOrgAdminRole(cacheUserRole);
   const teamsReady = isOrgAdmin || !teamsLoading;
-  const cacheUserTeamIds = isOrgAdmin ? undefined : getUserTeamIds();
+  // The session's team memberships belong to the organization that was open
+  // last. For a QR code from another organization, use the team ids saved the
+  // last time that organization was open, or its saved equipment is not found.
+  const sessionCoversCacheOrg = !!cacheOrgId && sessionData?.currentOrganizationId === cacheOrgId;
+  const rememberedTeamIds = useMemo(
+    () => (user?.id && cacheOrgId ? readRememberedTeamIds(user.id, cacheOrgId) : null),
+    [user?.id, cacheOrgId],
+  );
+  const sessionTeamIds = getUserTeamIds();
+  const cacheUserTeamIds = isOrgAdmin
+    ? undefined
+    : sessionCoversCacheOrg
+      ? sessionTeamIds
+      : rememberedTeamIds ?? undefined;
   const { data: cachedEquipment } = useEquipmentById(cacheOrgId, equipmentId, {
     userTeamIds: cacheUserTeamIds,
     isOrgAdmin,
@@ -179,7 +195,8 @@ const EquipmentQRScan = (): React.JSX.Element => {
   useOfflineEquipmentDownload(user?.id, cacheOrgId ?? undefined, {
     userTeamIds: cacheUserTeamIds,
     isOrgAdmin,
-    enabled: teamsReady,
+    // Downloading needs the right team ids, which only the open organization has.
+    enabled: teamsReady && (isOrgAdmin || sessionCoversCacheOrg),
   });
   const [payload, setPayload] = useState<EquipmentQRPayload | null>(null);
   const latestPmQuery = useLatestCompletedPMDetails(

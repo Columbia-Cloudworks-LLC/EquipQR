@@ -21,6 +21,7 @@ vi.mock('@/hooks/useBrowserOnline', () => ({
 
 import {
   downloadEquipmentForOffline,
+  readRememberedTeamIds,
   useOfflineEquipmentDownload,
 } from './useOfflineEquipmentDownload';
 import { useBrowserOnline } from '@/hooks/useBrowserOnline';
@@ -119,6 +120,24 @@ describe('offline equipment download', () => {
 
     expect(mockGetAllFullRecords).toHaveBeenCalledTimes(1);
     expect(localStorage.getItem(previousVersionMarker)).toBeNull();
+  });
+
+  it("remembers each organization's team ids, in the order the equipment list uses", async () => {
+    const { wrapper } = setup();
+    expect(readRememberedTeamIds('user-1', ORG_ID)).toBeNull();
+
+    renderHook(
+      () => useOfflineEquipmentDownload('user-1', ORG_ID, { userTeamIds: ['team-z', 'team-a'], isOrgAdmin: false }),
+      { wrapper },
+    );
+    await vi.advanceTimersByTimeAsync(5000);
+
+    expect(readRememberedTeamIds('user-1', ORG_ID)).toEqual(['team-z', 'team-a']);
+    expect(readRememberedTeamIds('user-1', 'org-2')).toBeNull();
+    expect(mockGetSummaries).toHaveBeenCalledWith(ORG_ID, {
+      userTeamIds: ['team-z', 'team-a'],
+      isOrgAdmin: false,
+    });
   });
 
   it('does nothing with no connection or before team access is known', async () => {

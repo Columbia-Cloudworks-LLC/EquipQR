@@ -24,6 +24,34 @@ interface DownloadScope {
 const lastDownloadKey = (userId: string, organizationId: string, scope: string) =>
   `equipqr_offline_equipment_download_${OFFLINE_CACHE_VERSION}_${userId}_${organizationId}_${scope}`;
 
+const teamScopeKey = (userId: string, organizationId: string) =>
+  `equipqr_offline_team_scope_${userId}_${organizationId}`;
+
+/**
+ * The session only holds team memberships for the organization that is open.
+ * Remember them per organization so a QR code for another organization can
+ * still find that organization's saved equipment with no signal.
+ */
+function rememberTeamIds(userId: string, organizationId: string, teamIds: string[]): void {
+  try {
+    localStorage.setItem(teamScopeKey(userId, organizationId), JSON.stringify(teamIds));
+  } catch {
+    // Without storage only the open organization works offline.
+  }
+}
+
+/** Team ids last seen for this user in this organization, or null if never saved. */
+export function readRememberedTeamIds(userId: string, organizationId: string): string[] | null {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(teamScopeKey(userId, organizationId)) ?? 'null');
+    return Array.isArray(parsed) && parsed.every((id): id is string => typeof id === 'string')
+      ? parsed
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 const LAST_DOWNLOAD_KEY_PREFIX = 'equipqr_offline_equipment_download_';
 
 /** Drop markers left by other app versions so they do not pile up. */
@@ -105,13 +133,16 @@ export function useOfflineEquipmentDownload(
   const queryClient = useQueryClient();
   const isOnline = useBrowserOnline();
   const { isOrgAdmin, enabled = true } = options;
-  // Team ids arrive as a new array on every render; key the effect on their content.
-  const teamIdsKey = options.userTeamIds ? [...options.userTeamIds].sort().join(',') : null;
+  // Team ids arrive as a new array on every render; key the effect on their
+  // content. Their order is kept: it is part of the equipment list's cache key.
+  const teamIdsKey = options.userTeamIds ? options.userTeamIds.join(',') : null;
 
   useEffect(() => {
-    if (!enabled || !isOnline || !userId || !organizationId) return;
+    if (!enabled || !userId || !organizationId) return;
 
     const userTeamIds = teamIdsKey === null ? undefined : teamIdsKey.split(',').filter(Boolean);
+    if (!isOrgAdmin && userTeamIds) rememberTeamIds(userId, organizationId, userTeamIds);
+    if (!isOnline) return;
     const storageKey = lastDownloadKey(
       userId,
       organizationId,
