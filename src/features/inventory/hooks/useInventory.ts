@@ -29,6 +29,7 @@ import {
 import type {
   InventoryQuantityAdjustment,
   InventoryFilters,
+  InventoryItem,
   PartCompatibilityRule,
   PartCompatibilityRuleFormData,
   EquipmentMatchedByRules
@@ -36,6 +37,7 @@ import type {
 import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
 import { useAppToast } from '@/hooks/useAppToast';
 import { inventory as inventoryKeys } from '@/lib/queryKeys';
+import { offlineSavedKeys, useOfflineSavedList } from '@/features/offline-queue/utils/offlineSavedData';
 import { invalidateEquipmentLinkQueries } from '@/features/inventory/hooks/inventoryEquipmentLinkMutations';
 
 const DEFAULT_STALE_TIME = 5 * 60 * 1000; // 5 minutes
@@ -71,6 +73,23 @@ function useInventoryItemQuery<T>(
 // Query Hooks
 // ============================================
 
+/** The inventory list's search and filters, applied on the device (no connection). */
+function filterInventoryOffline(items: readonly InventoryItem[], filters: InventoryFilters): InventoryItem[] {
+  const search = filters.search?.trim().toLowerCase();
+  const location = filters.location?.trim().toLowerCase();
+  const has = (value: string | null | undefined, needle: string) =>
+    !!value && value.toLowerCase().includes(needle);
+
+  return items.filter((item) => {
+    if (search && !has(item.name, search) && !has(item.sku, search) && !has(item.external_id, search)) {
+      return false;
+    }
+    if (location && !has(item.location, location)) return false;
+    if (filters.lowStockOnly && !item.isLowStock) return false;
+    return true;
+  });
+}
+
 export const useInventoryItems = (
   organizationId: string | undefined,
   filters: InventoryFilters = {},
@@ -80,7 +99,13 @@ export const useInventoryItems = (
 ) => {
   const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
 
-  return useQuery({
+  // With no connection the server cannot search the list. Use the copy the
+  // background download saved on this device and filter it here.
+  const savedList = useOfflineSavedList<InventoryItem>(
+    organizationId ? offlineSavedKeys.inventoryList(organizationId) : undefined,
+  );
+
+  const query = useQuery({
     queryKey: inventoryKeys.list(organizationId ?? '', filters),
     queryFn: async () => {
       if (!organizationId) return [];
@@ -99,6 +124,13 @@ export const useInventoryItems = (
       return previousData;
     },
   });
+  const offlineItems = useMemo(
+    () => (savedList ? filterInventoryOffline(savedList, filters) : null),
+    [savedList, filters],
+  );
+
+  if (!offlineItems) return query;
+  return { ...query, data: offlineItems, isPending: false, isLoading: false, isError: false, error: null };
 };
 
 export const useInventoryListMetadata = (

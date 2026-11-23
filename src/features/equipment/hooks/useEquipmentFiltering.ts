@@ -1,9 +1,19 @@
 import { useState, useMemo, useCallback, useRef } from 'react';
 import { useEquipmentList, useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
-import type { EquipmentListFilters } from '@/features/equipment/services/EquipmentService';
+import type {
+  EquipmentListFilters,
+  EquipmentListRow,
+  EquipmentWithTeam,
+} from '@/features/equipment/services/EquipmentService';
+import { filterEquipmentListOffline } from '@/features/equipment/utils/offlineEquipmentList';
+import {
+  offlineSavedKeys,
+  pageOf,
+  useOfflineSavedList,
+} from '@/features/offline-queue/utils/offlineSavedData';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { isOrgAdminRole } from '@/features/teams/utils/teamAccessScope';
+import { isOrgAdminRole, teamAccessQueryScope } from '@/features/teams/utils/teamAccessScope';
 import type { EquipmentViewMode } from '@/features/equipment/components/EquipmentCard';
 import {
   DEFAULT_EQUIPMENT_CARD_PAGE_SIZE,
@@ -150,15 +160,35 @@ export const useEquipmentFiltering = (
     () => summariesQuery.data ?? [],
     [summariesQuery.data],
   );
-  const paginatedEquipment = useMemo(
-    () => listQuery.data?.data ?? [],
-    [listQuery.data],
+  // With no connection the server cannot filter or page the list. Use the
+  // copy the background download saved on this device and do it here, so
+  // every machine can still be found, not just the pages opened before.
+  const savedList = useOfflineSavedList<EquipmentWithTeam>(
+    organizationId && rbacReady
+      ? offlineSavedKeys.equipmentList(
+          organizationId,
+          teamAccessQueryScope(isOrgAdmin, rbacUserTeamIds),
+        )
+      : undefined,
   );
-  const totalFilteredCount = listQuery.data?.count ?? 0;
-  const isLoading =
-    !rbacReady ||
-    listQuery.isLoading ||
-    (summariesQuery.isLoading && !summariesQuery.data);
+  const offlineEquipment = useMemo(
+    () => (savedList ? filterEquipmentListOffline(savedList, serverFilters, sortConfig) : null),
+    [savedList, serverFilters, sortConfig],
+  );
+
+  const paginatedEquipment = useMemo(
+    (): EquipmentListRow[] =>
+      offlineEquipment
+        ? pageOf(offlineEquipment, currentPage, pageSize)
+        : listQuery.data?.data ?? [],
+    [offlineEquipment, currentPage, pageSize, listQuery.data],
+  );
+  const totalFilteredCount = offlineEquipment ? offlineEquipment.length : listQuery.data?.count ?? 0;
+  const isLoading = offlineEquipment
+    ? false
+    : !rbacReady ||
+      listQuery.isLoading ||
+      (summariesQuery.isLoading && !summariesQuery.data);
 
   // Filter option sources. Filter empty strings so the Radix Select doesn't
   // crash on an empty value.

@@ -167,6 +167,24 @@ describe('partsManagersService', () => {
       expect(result).toBe(false);
     });
 
+    it('reports a lost connection instead of answering no', async () => {
+      const mockChain = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: 'TypeError: Failed to fetch' },
+        }),
+      };
+
+      vi.mocked(supabase.from).mockReturnValue(mockChain as never);
+
+      // A saved "yes" must not be replaced by "no" just because there is no signal.
+      await expect(
+        isUserPartsManager(organizations.acme.id, personas.technician.id),
+      ).rejects.toThrow('Failed to fetch');
+    });
+
     it('returns false on database error', async () => {
       const mockChain = {
         select: vi.fn().mockReturnThis(),
