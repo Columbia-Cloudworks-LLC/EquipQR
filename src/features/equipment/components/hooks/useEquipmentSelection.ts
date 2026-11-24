@@ -1,5 +1,6 @@
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useEquipmentSummaries, useEquipmentById } from '@/features/equipment/hooks/useEquipment';
+import { useEquipmentSummariesWithQueued } from '@/features/offline-queue/hooks/useQueuedEquipment';
+import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
 import type { EquipmentSummary, EquipmentWithTeam } from '@/features/equipment/services/EquipmentService';
 import { useTeamMembership } from '@/features/teams/hooks/useTeamMembership';
 import { isOrgAdminRole } from '@/features/teams/utils/teamAccessScope';
@@ -33,7 +34,7 @@ export const useEquipmentSelection = ({
   const isOrgAdmin = isOrgAdminRole(currentOrganization?.userRole);
   const teamsReady = isOrgAdmin || !teamsLoading;
 
-  const { data: allEquipment = [] } = useEquipmentSummaries(currentOrganization?.id);
+  const allEquipment = useEquipmentSummariesWithQueued(currentOrganization?.id);
   const { data: preSelectedEquipment } = useEquipmentById(
     currentOrganization?.id,
     equipmentId || workOrder?.equipment_id,

@@ -42,9 +42,30 @@ import {
   shouldUseSavedList,
   useOfflineSavedList,
 } from '@/features/offline-queue/utils/offlineSavedData';
+import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
+import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
+import type { OfflineQueueItem } from '@/services/offlineQueueService';
+import { useQueuedItems } from '@/features/offline-queue/hooks/useQueuedLookups';
+import { downloadInventoryForOffline } from '@/features/offline-queue/services/offlineWorkDataDownload';
+import {
+  buildPendingInventoryItem,
+  mergeQueuedInventory,
+  resolveQueuedInventoryItem,
+  type QueuedInventoryItem,
+} from '@/features/offline-queue/utils/queuedInventory';
 import { invalidateEquipmentLinkQueries } from '@/features/inventory/hooks/inventoryEquipmentLinkMutations';
 
 const DEFAULT_STALE_TIME = 5 * 60 * 1000; // 5 minutes
+
+const QUEUED_INVENTORY_TYPES: ReadonlySet<string> = new Set([
+  'inventory_create',
+  'inventory_update',
+  'inventory_adjust',
+]);
+
+function isQueuedInventoryChange(item: OfflineQueueItem): boolean {
+  return QUEUED_INVENTORY_TYPES.has(item.type) && (item.status === 'pending' || item.status === 'processing');
+}
 
 type ItemScopedQueryOptions = {
   staleTime?: number;
@@ -168,10 +189,19 @@ export const useInventoryItems = (
     },
   });
   const useSaved = shouldUseSavedList(savedList, query);
-  const offlineItems = useMemo(
-    () => (useSaved && savedList ? filterInventoryOffline(savedList.rows, filters) : null),
-    [useSaved, savedList, filters],
-  );
+  // Items created, edited or counted with no connection are still in the
+  // offline queue; show the list as those changes will leave it.
+  const queuedItems = useQueuedItems();
+  const hasQueuedInventory = queuedItems.some(isQueuedInventoryChange);
+  const liveRows = query.data;
+  const offlineItems = useMemo(() => {
+    const rows = useSaved && savedList ? savedList.rows : hasQueuedInventory ? liveRows : undefined;
+    if (!rows) return null;
+    return filterInventoryOffline(
+      hasQueuedInventory ? mergeQueuedInventory(rows, queuedItems, organizationId) : rows,
+      filters,
+    );
+  }, [useSaved, savedList, hasQueuedInventory, liveRows, queuedItems, organizationId, filters]);
 
   if (!offlineItems) return query;
   return { ...query, data: offlineItems, isPending: false, isLoading: false, isError: false, error: null };
@@ -240,7 +270,7 @@ export const useInventoryItem = (
 ) => {
   const staleTime = options?.staleTime ?? DEFAULT_STALE_TIME;
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ['inventory-item', organizationId, itemId],
     queryFn: async () => {
       if (!organizationId || !itemId) return null;
@@ -249,6 +279,16 @@ export const useInventoryItem = (
     enabled: !!organizationId && !!itemId,
     staleTime
   });
+
+  // An item created offline is only in the queue; edits and stock changes
+  // made offline are shown on top of the saved record.
+  const queuedItems = useQueuedItems();
+  const resolved = useMemo(
+    () => resolveQueuedInventoryItem(itemId, query.data, queuedItems),
+    [itemId, query.data, queuedItems],
+  );
+  if (!resolved || resolved === query.data) return query;
+  return { ...query, data: resolved, isPending: false, isLoading: false, isError: false, error: null };
 };
 
 const EMPTY_PAGINATED_RESULT: PaginatedTransactionsResult = {
@@ -327,10 +367,26 @@ export const useCompatibleEquipmentForItem = (
 // Mutation Hooks
 // ============================================
 
-export const useCreateInventoryItem = () => {
+/** Sends an inventory change through the offline queue when there is no connection. */
+function useInventoryOfflineSupport() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const offlineCtx = useOfflineQueueOptional();
+
+  // After a change that reached the server, save a fresh copy of the list so
+  // it is what the device shows the next time the signal drops.
+  const refreshSavedInventory = (organizationId: string) => {
+    if (!user?.id) return;
+    void downloadInventoryForOffline(queryClient, organizationId, user.id, { isOrgAdmin: true });
+  };
+
+  return { user, offlineCtx, refreshSavedInventory };
+}
+
+export const useCreateInventoryItem = () => {
+  const queryClient = useQueryClient();
   const { toast } = useAppToast();
+  const { user, offlineCtx, refreshSavedInventory } = useInventoryOfflineSupport();
 
   return useMutation({
     mutationFn: async ({
@@ -341,9 +397,32 @@ export const useCreateInventoryItem = () => {
       formData: InventoryItemFormData;
     }) => {
       if (!user) throw new Error('User not authenticated');
-      return await createInventoryItem(organizationId, formData, user.id);
+      // The id is chosen here so an item created offline can be opened,
+      // edited and counted before it syncs.
+      const itemId = crypto.randomUUID();
+      const service = new OfflineAwareWorkOrderService(organizationId, user.id);
+      const result = await service.createInventoryItem(itemId, formData);
+      if (result.queuedOffline || !result.data) {
+        offlineCtx?.refresh();
+        return buildPendingInventoryItem({
+          itemId,
+          organizationId,
+          userId: user.id,
+          formData,
+          queuedAt: Date.now(),
+        });
+      }
+      return result.data satisfies QueuedInventoryItem;
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (data: QueuedInventoryItem, variables) => {
+      if (data._isPendingSync) {
+        toast({
+          title: 'Saved offline',
+          description: `${data.name} will be added to inventory when your connection returns.`
+        });
+        return;
+      }
+      refreshSavedInventory(variables.organizationId);
       // Invalidate inventory items list
       queryClient.invalidateQueries({
         queryKey: inventoryKeys.listPrefix(variables.organizationId),
@@ -369,6 +448,7 @@ export const useCreateInventoryItem = () => {
 export const useUpdateInventoryItem = () => {
   const queryClient = useQueryClient();
   const { toast } = useAppToast();
+  const { user, offlineCtx, refreshSavedInventory } = useInventoryOfflineSupport();
 
   return useMutation({
     mutationFn: async ({
@@ -380,9 +460,21 @@ export const useUpdateInventoryItem = () => {
       itemId: string;
       formData: Partial<InventoryItemFormData>;
     }) => {
-      return await updateInventoryItem(organizationId, itemId, formData);
+      if (!user) throw new Error('User not authenticated');
+      const service = new OfflineAwareWorkOrderService(organizationId, user.id);
+      const result = await service.updateInventoryItem(itemId, formData);
+      if (result.queuedOffline) offlineCtx?.refresh();
+      return result.data;
     },
     onSuccess: (data, variables) => {
+      if (!data) {
+        toast({
+          title: 'Saved offline',
+          description: 'Your changes will sync when your connection returns.'
+        });
+        return;
+      }
+      refreshSavedInventory(variables.organizationId);
       // Invalidate related queries
       queryClient.invalidateQueries({
         queryKey: inventoryKeys.listPrefix(variables.organizationId),
@@ -447,8 +539,8 @@ export const useDeleteInventoryItem = () => {
 
 export const useAdjustInventoryQuantity = () => {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
   const { toast } = useAppToast();
+  const { user, offlineCtx, refreshSavedInventory } = useInventoryOfflineSupport();
 
   return useMutation({
     mutationFn: async ({
@@ -459,9 +551,36 @@ export const useAdjustInventoryQuantity = () => {
       adjustment: InventoryQuantityAdjustment;
     }) => {
       if (!user) throw new Error('User not authenticated');
-      return await adjustInventoryQuantity(organizationId, adjustment);
+      // The server refuses to take more than is in stock. With no connection
+      // say so now, from the quantity on this device, instead of queueing a
+      // change that can only fail when it syncs.
+      if (!navigator.onLine && adjustment.delta < 0) {
+        const known = resolveQueuedInventoryItem(
+          adjustment.itemId,
+          queryClient.getQueryData<InventoryItem | null>(['inventory-item', organizationId, adjustment.itemId]),
+          offlineCtx?.queuedItems ?? [],
+        );
+        if (known && known.quantity_on_hand + adjustment.delta < 0) {
+          throw new Error(
+            `Insufficient stock: requested ${Math.abs(adjustment.delta)} units, but only ${known.quantity_on_hand} available`,
+          );
+        }
+      }
+      const service = new OfflineAwareWorkOrderService(organizationId, user.id);
+      const result = await service.adjustInventoryQuantity(adjustment);
+      if (result.queuedOffline) offlineCtx?.refresh();
+      return result.data;
     },
     onSuccess: (newQuantity, variables) => {
+      if (newQuantity === null) {
+        const { delta } = variables.adjustment;
+        toast({
+          title: 'Saved offline',
+          description: `${delta > 0 ? `+${delta}` : delta} will sync when your connection returns.`
+        });
+        return;
+      }
+      refreshSavedInventory(variables.organizationId);
       // Invalidate related queries
       queryClient.invalidateQueries({
         queryKey: inventoryKeys.listPrefix(variables.organizationId),

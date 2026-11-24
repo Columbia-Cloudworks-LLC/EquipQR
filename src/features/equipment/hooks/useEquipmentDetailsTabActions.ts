@@ -81,10 +81,13 @@ export function useEquipmentDetailsTabActions({
         if (import.meta.env.DEV) {
           logger.debug('Updating team assignment', { teamValue });
         }
-        await updateEquipmentMutation.mutateAsync({
+        const saved = await updateEquipmentMutation.mutateAsync({
           id: equipment.id,
           data: { team_id: teamValue },
         });
+        // `null` means the change was queued offline; the mutation has
+        // already said so, and there is nothing on the server to reload yet.
+        if (saved === null) return;
         invalidateInheritedPMSchedule();
         toast.success('Team assignment updated successfully');
       } catch (error) {

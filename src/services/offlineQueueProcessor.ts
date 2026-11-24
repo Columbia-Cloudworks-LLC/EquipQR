@@ -37,7 +37,16 @@ import type {
   OfflineQueuePMUpdateItem,
   OfflineQueuePMDeleteItem,
   OfflineQueueEquipmentScanItem,
+  OfflineQueueTeamCreateItem,
+  OfflineQueueInventoryCreateItem,
+  OfflineQueueInventoryUpdateItem,
+  OfflineQueueInventoryAdjustItem,
 } from './offlineQueueService';
+import {
+  adjustInventoryQuantity,
+  createInventoryItem,
+  updateInventoryItem,
+} from '@/features/inventory/services/inventoryService';
 import { OfflineQueueService } from './offlineQueueService';
 import { EquipmentService } from '@/features/equipment/services/EquipmentService';
 import { updateEquipmentWorkingHours } from '@/features/equipment/services/equipmentWorkingHoursService';
@@ -117,6 +126,9 @@ function collectUnresolvedParentIds(
   }
   return found;
 }
+
+/** Baseline for an inventory item that has no stock movements yet. */
+const NO_MOVEMENT_YET = '1970-01-01T00:00:00.000Z';
 
 // ─── Equipment create idempotency ────────────────────────────────────────────
 
@@ -699,6 +711,106 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
       ...item.payload,
       equipmentId: replay.resolveEquipmentId(item.payload.equipmentId),
     });
+    return { success: true };
+  }) as QueueItemHandler<never>,
+
+  team_create: (async (item: OfflineQueueTeamCreateItem) => {
+    const { team, creatorId } = item.payload;
+
+    // The id was generated on the device. If an earlier attempt already
+    // created the team (the answer was lost, or only the membership failed),
+    // do not create it again.
+    const { data: existing, error: lookupError } = await supabase
+      .from('teams')
+      .select('id')
+      .eq('id', team.id)
+      .eq('organization_id', item.organizationId)
+      .maybeSingle();
+    if (lookupError) throw lookupError;
+
+    if (!existing) {
+      const { error: teamError } = await supabase
+        .from('teams')
+        .insert({ ...team, organization_id: item.organizationId });
+      if (teamError) throw teamError;
+    }
+
+    const { data: membership, error: membershipLookupError } = await supabase
+      .from('team_members')
+      .select('id')
+      .eq('team_id', team.id)
+      .eq('user_id', creatorId)
+      .maybeSingle();
+    if (membershipLookupError) throw membershipLookupError;
+
+    if (!membership) {
+      const { error: memberError } = await supabase
+        .from('team_members')
+        .insert({ team_id: team.id, user_id: creatorId, role: 'manager' });
+      if (memberError) throw memberError;
+    }
+    return { success: true };
+  }) as QueueItemHandler<never>,
+
+  inventory_create: (async (item: OfflineQueueInventoryCreateItem) => {
+    const { itemId, formData } = item.payload;
+
+    // Same idempotency rule as team_create: the id comes from the device.
+    const { data: existing, error: lookupError } = await supabase
+      .from('inventory_items')
+      .select('id')
+      .eq('id', itemId)
+      .eq('organization_id', item.organizationId)
+      .maybeSingle();
+    if (lookupError) throw lookupError;
+
+    if (!existing) {
+      await createInventoryItem(item.organizationId, formData, item.userId, itemId);
+    }
+    return { success: true };
+  }) as QueueItemHandler<never>,
+
+  inventory_update: (async (item: OfflineQueueInventoryUpdateItem) => {
+    await updateInventoryItem(item.organizationId, item.payload.itemId, item.payload.formData);
+    return { success: true };
+  }) as QueueItemHandler<never>,
+
+  inventory_adjust: (async (item: OfflineQueueInventoryAdjustItem, _replay, queueService) => {
+    const { lastMovementBeforeReplay, ...adjustment } = item.payload;
+
+    // The server applies an adjustment as "add this much", so sending one
+    // twice would count the stock twice. Before the first attempt, note the
+    // newest movement already recorded for the item. If that attempt is cut
+    // off before its answer arrives, the next one looks for a matching
+    // movement recorded after that point: only this adjustment can be it.
+    if (lastMovementBeforeReplay === undefined) {
+      const { data: newest, error: newestError } = await supabase
+        .from('inventory_transactions')
+        .select('created_at')
+        .eq('inventory_item_id', adjustment.itemId)
+        .eq('organization_id', item.organizationId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (newestError) throw newestError;
+      const baseline = newest[0]?.created_at ?? NO_MOVEMENT_YET;
+      item.payload.lastMovementBeforeReplay = baseline;
+      queueService.updatePayload(item.id, { lastMovementBeforeReplay: baseline }, { syncBookkeeping: true });
+    } else {
+      const { data: recorded, error: lookupError } = await supabase
+        .from('inventory_transactions')
+        .select('id')
+        .eq('inventory_item_id', adjustment.itemId)
+        .eq('organization_id', item.organizationId)
+        .eq('user_id', item.userId)
+        .eq('change_amount', adjustment.delta)
+        .eq('notes', adjustment.reason)
+        .gt('created_at', lastMovementBeforeReplay)
+        .limit(1);
+      if (lookupError) throw lookupError;
+      if (recorded.length > 0) return { success: true };
+    }
+
+    await adjustInventoryQuantity(item.organizationId, adjustment);
     return { success: true };
   }) as QueueItemHandler<never>,
   };

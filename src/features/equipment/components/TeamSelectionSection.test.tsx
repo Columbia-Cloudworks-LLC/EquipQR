@@ -134,7 +134,7 @@ const createTeamsQuery = (
   if (isLoading) {
     return {
       ...base,
-      data: undefined,
+      data: [],
       isLoading: true,
       isPending: true,
       isSuccess: false,

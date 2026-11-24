@@ -277,13 +277,16 @@ export const getInventoryItemById = async (
 export const createInventoryItem = async (
   organizationId: string,
   formData: InventoryItemFormData,
-  userId: string
+  userId: string,
+  /** Id generated on the device (offline create), so a retried sync cannot add the item twice. */
+  itemId?: string
 ): Promise<InventoryItem> => {
   try {
     // Create the inventory item
     const { data: itemData, error: itemError } = await supabase
       .from('inventory_items')
       .insert({
+        ...(itemId ? { id: itemId } : {}),
         organization_id: organizationId,
         name: formData.name,
         description: formData.description || null,
@@ -344,33 +347,41 @@ export const createInventoryItem = async (
   }
 };
 
+/** The `inventory_items` columns an edit form changes. Fields left `undefined` are not touched. */
+export function toInventoryItemUpdate(
+  formData: Partial<InventoryItemFormData>,
+): TablesUpdate<'inventory_items'> {
+  const updateData: TablesUpdate<'inventory_items'> = {};
+
+  if (formData.name !== undefined) updateData.name = formData.name;
+  if (formData.description !== undefined) updateData.description = formData.description || null;
+  if (formData.sku !== undefined) updateData.sku = formData.sku || null;
+  if (formData.external_id !== undefined) updateData.external_id = formData.external_id || null;
+  if (formData.low_stock_threshold !== undefined) updateData.low_stock_threshold = formData.low_stock_threshold;
+  if (formData.location !== undefined) updateData.location = formData.location || null;
+  if (formData.location_address !== undefined) {
+    updateData.location_address = formData.location_address || null;
+  }
+  if (formData.location_city !== undefined) updateData.location_city = formData.location_city || null;
+  if (formData.location_state !== undefined) {
+    updateData.location_state = formData.location_state || null;
+  }
+  if (formData.location_country !== undefined) {
+    updateData.location_country = formData.location_country || null;
+  }
+  if (formData.location_lat !== undefined) updateData.location_lat = formData.location_lat ?? null;
+  if (formData.location_lng !== undefined) updateData.location_lng = formData.location_lng ?? null;
+  if (formData.default_unit_cost !== undefined) updateData.default_unit_cost = formData.default_unit_cost || null;
+  return updateData;
+}
+
 export const updateInventoryItem = async (
   organizationId: string,
   itemId: string,
   formData: Partial<InventoryItemFormData>
 ): Promise<InventoryItem> => {
   try {
-    const updateData: TablesUpdate<'inventory_items'> = {};
-
-    if (formData.name !== undefined) updateData.name = formData.name;
-    if (formData.description !== undefined) updateData.description = formData.description || null;
-    if (formData.sku !== undefined) updateData.sku = formData.sku || null;
-    if (formData.external_id !== undefined) updateData.external_id = formData.external_id || null;
-    if (formData.low_stock_threshold !== undefined) updateData.low_stock_threshold = formData.low_stock_threshold;
-    if (formData.location !== undefined) updateData.location = formData.location || null;
-    if (formData.location_address !== undefined) {
-      updateData.location_address = formData.location_address || null;
-    }
-    if (formData.location_city !== undefined) updateData.location_city = formData.location_city || null;
-    if (formData.location_state !== undefined) {
-      updateData.location_state = formData.location_state || null;
-    }
-    if (formData.location_country !== undefined) {
-      updateData.location_country = formData.location_country || null;
-    }
-    if (formData.location_lat !== undefined) updateData.location_lat = formData.location_lat ?? null;
-    if (formData.location_lng !== undefined) updateData.location_lng = formData.location_lng ?? null;
-    if (formData.default_unit_cost !== undefined) updateData.default_unit_cost = formData.default_unit_cost || null;
+    const updateData = toInventoryItemUpdate(formData);
 
     const { data, error } = await supabase
       .from('inventory_items')

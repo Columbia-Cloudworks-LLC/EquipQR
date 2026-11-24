@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient, UseQueryResult } from '@tanstack/react-query';
 import {
   EquipmentService,
@@ -18,6 +19,16 @@ import { createScopedQueryPersister } from '@/lib/queryPersistence';
 import { equipment as equipmentKeys } from '@/lib/queryKeys';
 import { getScanFollowUpEventsByEquipmentId } from '@/features/equipment/services/scanFollowUpEventService';
 import { teamAccessQueryScope, resolveTeamReadScope } from '@/features/teams/utils/teamAccessScope';
+import { useAuth } from '@/hooks/useAuth';
+import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
+import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
+import { parseOfflineEquipPlaceholder } from '@/services/offlineQueuePlaceholders';
+import { useQueuedItems, useQueuedTeamLookup } from '@/features/offline-queue/hooks/useQueuedLookups';
+import {
+  applyQueuedEquipmentUpdates,
+  buildQueuedEquipmentRecord,
+  findQueuedEquipmentCreate,
+} from '@/features/offline-queue/utils/queuedEquipment';
 
 /**
  * Stable references for the empty default arguments used by `useEquipment`.
@@ -177,6 +188,22 @@ export const useEquipmentById = (
   const { enableSync, staleTime } = resolveEquipmentQuerySyncOptions(options);
   const teamScope = resolveTeamReadScope(options);
 
+  // Equipment created offline has no server record yet: show it from the
+  // offline queue. Edits still waiting to sync (team, PM template, details)
+  // are shown on top of whichever record is on screen.
+  const queuedItems = useQueuedItems();
+  const teamFor = useQueuedTeamLookup();
+  const queuedRecord = useMemo(() => {
+    const created = findQueuedEquipmentCreate(equipmentId, queuedItems);
+    return created ? buildQueuedEquipmentRecord(created, teamFor) : undefined;
+  }, [equipmentId, queuedItems, teamFor]);
+  const isPlaceholder = !!equipmentId && parseOfflineEquipPlaceholder(equipmentId) !== null;
+  const withQueuedUpdates = useCallback(
+    (record: EquipmentWithTeam | undefined) =>
+      record ? applyQueuedEquipmentUpdates(record, queuedItems, teamFor) : record,
+    [queuedItems, teamFor],
+  );
+
   const query = useQuery({
     queryKey:
       organizationId && equipmentId
@@ -197,9 +224,12 @@ export const useEquipmentById = (
       }
       throw new Error(result.error || 'Equipment not found');
     },
-    enabled: !!organizationId && !!equipmentId && (options?.enabled ?? true),
+    // A placeholder id is never sent to the server.
+    enabled: !!organizationId && !!equipmentId && !isPlaceholder && (options?.enabled ?? true),
     staleTime,
     persister: fieldReadPersister(),
+    placeholderData: queuedRecord,
+    select: withQueuedUpdates,
   });
 
   useEquipmentOrgBackgroundSync(organizationId, enableSync, false);
@@ -296,10 +326,24 @@ export const useEquipmentWorkOrders = (
 export const useUpdateEquipment = (organizationId: string | undefined) => {
   const queryClient = useQueryClient();
   const { toast } = useAppToast();
+  const { user } = useAuth();
+  const offlineCtx = useOfflineQueueOptional();
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: EquipmentUpdateData }) => {
       if (!organizationId) throw new Error('Organization ID required');
+      // Goes through the offline-aware service so a change made with no
+      // connection (team, PM template, details) is queued instead of lost.
+      // Equipment created offline is addressed by its placeholder id, which
+      // sync swaps for the real one.
+      if (user?.id && (!navigator.onLine || parseOfflineEquipPlaceholder(id) !== null)) {
+        const service = new OfflineAwareWorkOrderService(organizationId, user.id);
+        const queued = await service.updateEquipment(id, data);
+        if (queued.queuedOffline) {
+          offlineCtx?.refresh();
+          return null;
+        }
+      }
       const result = await EquipmentService.update(organizationId, id, data);
       if (result.success && result.data) {
         return result.data;
@@ -307,6 +351,14 @@ export const useUpdateEquipment = (organizationId: string | undefined) => {
       throw new Error(result.error || 'Failed to update equipment');
     },
     onSuccess: (data, variables) => {
+      if (data === null) {
+        toast({
+          title: 'Saved offline',
+          description: 'This change will sync when your connection returns.',
+          variant: 'success',
+        });
+        return;
+      }
       // Invalidate equipment queries
       queryClient.invalidateQueries({ queryKey: ['equipment', organizationId] });
       queryClient.invalidateQueries({ queryKey: ['equipment', organizationId, variables.id] });

@@ -22,6 +22,11 @@ export const offlineSavedKeys = {
   workOrderList: (organizationId: string, teamScope: string) =>
     ['work-orders', organizationId, 'offline-list', teamScope] as const,
   inventoryList: (organizationId: string) => ['inventory', organizationId, 'offline-list'] as const,
+  /** Every team the user can see, with its members. */
+  teamList: (organizationId: string) => ['teams', organizationId, 'offline-list'] as const,
+  /** Organization owners and admins, who can be assigned any work order. */
+  orgAdmins: (organizationId: string) =>
+    ['work-order-assignment-members', organizationId, 'offline-admins'] as const,
 };
 
 export interface OfflineSavedList<T> {
@@ -46,6 +51,20 @@ export function useOfflineSavedList<T>(
     staleTime: Infinity,
   });
   return !isOnline && queryKey && data ? { rows: data, savedAt: dataUpdatedAt } : undefined;
+}
+
+/**
+ * A saved copy whether or not there is a connection. For lookups that have no
+ * request of their own (for example the name behind an assignee id).
+ */
+export function useSavedCopy<T>(queryKey: readonly unknown[] | undefined): T | undefined {
+  const { data } = useQuery<T>({
+    queryKey: queryKey ?? ['equipment', 'offline-list', 'none'],
+    queryFn: skipToken,
+    enabled: false,
+    staleTime: Infinity,
+  });
+  return queryKey ? data : undefined;
 }
 
 /** What a list screen already holds for the filters and page on screen. */

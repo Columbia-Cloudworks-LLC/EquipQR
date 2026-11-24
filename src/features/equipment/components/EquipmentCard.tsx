@@ -73,12 +73,8 @@ const EquipmentCard: React.FC<EquipmentCardProps> = ({
   const isTransitionActive = activeEquipmentId === equipment.id;
 
   const handleCardClick = () => {
-    if (isOfflineEquipmentId(equipment.id)) {
-      toast.info('Pending sync', {
-        description: 'This equipment will be available for viewing after it syncs.',
-      });
-      return;
-    }
+    // Equipment created offline opens from the offline queue, so its team and
+    // PM template can be set before it syncs.
     void beginTransition({
       equipmentId: equipment.id,
       to: `/dashboard/equipment/${equipment.id}`,

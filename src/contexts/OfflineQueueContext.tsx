@@ -32,6 +32,7 @@ import { OfflineQueueProcessor, type ProcessResult } from '@/services/offlineQue
 import { logger } from '@/utils/logger';
 import { toast } from 'sonner';
 import { useBrowserOnline } from '@/hooks/useBrowserOnline';
+import { requestOfflineDataRefresh } from '@/features/offline-queue/hooks/useOfflineEquipmentDownload';
 import { offlineSyncLockName, runExclusiveAcrossTabs } from '@/services/offlineQueueLock';
 
 /** Delay before auto-sync when the last run made progress (lets the network settle). */
@@ -188,6 +189,11 @@ export const OfflineQueueProviderForOrganization: React.FC<{
           : '';
         const remainingNote = result.remaining > 0 ? `, ${result.remaining} still to sync` : '';
         toast.success(`Synced ${result.succeeded} offline item${result.succeeded > 1 ? 's' : ''}${conflictNote}${remainingNote}`);
+        // Once everything is on the server, save a fresh copy for the next
+        // time the signal drops (the old copy predates these changes).
+        if (result.remaining === 0 && user?.id && organizationId) {
+          requestOfflineDataRefresh(user.id, organizationId);
+        }
       }
       if (result.conflicts && result.conflicts.length > 0) {
         for (const conflict of result.conflicts) {
@@ -208,7 +214,7 @@ export const OfflineQueueProviderForOrganization: React.FC<{
       setIsSyncing(false);
       syncLockRef.current = false;
     }
-  }, [processor, syncLockName, refresh]);
+  }, [processor, syncLockName, refresh, user?.id, organizationId]);
 
   // A fresh connection (or a different queue) deserves an immediate attempt.
   useEffect(() => {
