@@ -48,9 +48,15 @@ export function useInventoryItemFormEditingLoad({
   useEffect(() => {
     const abortController = new AbortController();
 
-    if (editingItemId && currentOrganizationId) {
+    if (open && editingItemId && currentOrganizationId) {
       const itemId = editingItemId;
       currentEditingItemIdRef.current = itemId;
+      // Each time the form opens for an item its links and rules are read
+      // again: the form starts from empty lists, and saving those without a
+      // fresh read would erase the real ones.
+      setIsEditingDataLoaded(false);
+      setEditingDataLoadError(false);
+      setRelationshipsLoaded(true);
 
       const loadEditingData = async () => {
         try {
@@ -63,6 +69,14 @@ export function useInventoryItemFormEditingLoad({
           }
 
           if (abortController.signal.aborted) return;
+
+          // No connection: do not wait on requests that cannot finish. The
+          // rest of the item can be edited; links and rules stay as they are.
+          if (!navigator.onLine) {
+            setRelationshipsLoaded(false);
+            setIsEditingDataLoaded(true);
+            return;
+          }
 
           const { data: compatibilityData, error: compatibilityError } = await supabase
             .from('equipment_part_compatibility')
@@ -134,17 +148,7 @@ export function useInventoryItemFormEditingLoad({
     return () => {
       abortController.abort();
     };
-  }, [editingItemId, editingItemOrgId, currentOrganizationId]);
-
-  const resetEditingLoadState = () => {
-    setIsEditingDataLoaded(false);
-    setEditingDataLoadError(false);
-    setRelationshipsLoaded(true);
-    // `currentEditingItemIdRef` is left alone: the form calls this right
-    // after the load for the item it just opened has started, and clearing
-    // the ref made that load discard its own result, leaving the form on
-    // "Loading..." for good. The load effect sets the ref for each new item.
-  };
+  }, [open, editingItemId, editingItemOrgId, currentOrganizationId]);
 
   const markNewItemReady = () => {
     setIsEditingDataLoaded(true);
@@ -156,7 +160,6 @@ export function useInventoryItemFormEditingLoad({
     isEditingDataLoaded,
     editingDataLoadError,
     relationshipsLoaded,
-    resetEditingLoadState,
     markNewItemReady,
   };
 }

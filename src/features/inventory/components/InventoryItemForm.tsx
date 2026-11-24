@@ -87,7 +87,6 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
     isEditingDataLoaded,
     editingDataLoadError,
     relationshipsLoaded,
-    resetEditingLoadState,
     markNewItemReady,
   } = useInventoryItemFormEditingLoad({
     open,
@@ -110,7 +109,6 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
     lastInitKeyRef.current = initKey;
 
     if (editingItem) {
-      resetEditingLoadState();
       form.reset({
         name: editingItem.name,
         description: editingItem.description || '',
