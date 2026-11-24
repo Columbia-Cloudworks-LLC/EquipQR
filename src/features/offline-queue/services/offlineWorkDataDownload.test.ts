@@ -9,6 +9,17 @@ const mocks = vi.hoisted(() => ({
   getInventoryListMetadata: vi.fn(),
   isManager: vi.fn(),
   isConsumer: vi.fn(),
+  getTeamsByOrgStrict: vi.fn(),
+  getCostsByWorkOrder: vi.fn(),
+  fetchOrgAdmins: vi.fn(),
+}));
+
+vi.mock('@/features/teams/services/repositories/TeamRepository', () => ({
+  default: { getTeamsByOrgStrict: mocks.getTeamsByOrgStrict },
+}));
+
+vi.mock('@/features/work-orders/services/workOrderAssigneeService', () => ({
+  fetchOrgAdminAssignees: mocks.fetchOrgAdmins,
 }));
 
 vi.mock('@/features/work-orders/services/workOrderListService', () => ({
@@ -42,6 +53,10 @@ vi.mock('@/integrations/supabase/client', () => ({
   },
 }));
 
+vi.mock('@/features/work-orders/services/workOrderCostsService', () => ({
+  getWorkOrderCostsByWorkOrder: mocks.getCostsByWorkOrder,
+}));
+
 vi.mock('@/features/inventory/services/inventoryService', () => ({
   getInventoryItems: mocks.getInventoryItems,
   getInventoryListMetadata: mocks.getInventoryListMetadata,
@@ -55,7 +70,11 @@ vi.mock('@/features/inventory/services/partsConsumersService', () => ({
   isUserPartsConsumer: mocks.isConsumer,
 }));
 
-import { downloadInventoryForOffline, downloadWorkOrdersForOffline } from './offlineWorkDataDownload';
+import {
+  downloadInventoryForOffline,
+  downloadTeamsForOffline,
+  downloadWorkOrdersForOffline,
+} from './offlineWorkDataDownload';
 import { offlineSavedKeys } from '@/features/offline-queue/utils/offlineSavedData';
 import { workOrders as workOrderKeys, inventory as inventoryKeys, queryKeys } from '@/lib/queryKeys';
 import { partsRoles } from '@/lib/queryKeys/misc';
@@ -83,6 +102,31 @@ describe('downloadWorkOrdersForOffline', () => {
     mocks.getPM.mockImplementation((workOrderId: string) =>
       Promise.resolve({ data: [{ id: `pm-${workOrderId}` }], error: null }),
     );
+    mocks.getCostsByWorkOrder.mockImplementation((ids: string[]) =>
+      Promise.resolve(new Map(ids.map((id) => [id, id === 'wo-open' ? [{ id: 'cost-1', work_order_id: id }] : []]))),
+    );
+  });
+
+  it('saves the costs of each open work order, including "none", so the cost list opens offline', async () => {
+    mocks.getFilteredList.mockResolvedValue({
+      data: [listRow('wo-open', 'in_progress'), listRow('wo-plain', 'submitted'), listRow('wo-done', 'completed')],
+      count: 3,
+    });
+
+    expect(await downloadWorkOrdersForOffline(queryClient, ORG_ID, USER_ID, { isOrgAdmin: true })).toBe(true);
+
+    expect(mocks.getCostsByWorkOrder).toHaveBeenCalledWith(['wo-open', 'wo-plain']);
+    expect(queryClient.getQueryData(['work-order-costs', 'wo-open'])).toEqual([{ id: 'cost-1', work_order_id: 'wo-open' }]);
+    expect(queryClient.getQueryData(['work-order-costs', 'wo-plain'])).toEqual([]);
+    expect(queryClient.getQueryData(['work-order-costs', 'wo-done'])).toBeUndefined();
+  });
+
+  it('reports failure when the costs could not be fetched, so it is tried again', async () => {
+    mocks.getFilteredList.mockResolvedValue({ data: [listRow('wo-open', 'in_progress')], count: 1 });
+    mocks.getCostsByWorkOrder.mockRejectedValue(new Error('Failed to fetch'));
+
+    expect(await downloadWorkOrdersForOffline(queryClient, ORG_ID, USER_ID, { isOrgAdmin: true })).toBe(false);
+    expect(queryClient.getQueryData(['work-order-costs', 'wo-open'])).toBeUndefined();
   });
 
   it('saves the list, and the full record and checklist of each open work order', async () => {
@@ -225,5 +269,38 @@ describe('downloadInventoryForOffline', () => {
     await expect(
       downloadInventoryForOffline(queryClient, ORG_ID, USER_ID, { isOrgAdmin: true }),
     ).resolves.toBe(false);
+  });
+});
+
+describe('downloadTeamsForOffline', () => {
+  let queryClient: QueryClient;
+  const admins = [{ id: 'owner-1', name: 'Olive Owner', type: 'user', role: 'owner' }];
+  const teams = [{ id: 'a', name: 'Team a', member_count: 1, members: [{ user_id: 'tech-1', role: 'technician' }] }];
+  const savedTeams = () => queryClient.getQueryData(offlineSavedKeys.teamList(ORG_ID));
+
+  beforeEach(() => {
+    queryClient = new QueryClient();
+    mocks.getTeamsByOrgStrict.mockReset().mockResolvedValue(teams);
+    mocks.fetchOrgAdmins.mockReset().mockResolvedValue(admins);
+  });
+
+  it('saves the teams with their members, and the organization admins', async () => {
+    expect(await downloadTeamsForOffline(queryClient, ORG_ID)).toBe(true);
+
+    expect(savedTeams()).toEqual(teams);
+    expect(queryClient.getQueryData(offlineSavedKeys.orgAdmins(ORG_ID))).toEqual(admins);
+  });
+
+  it('keeps the saved teams when they cannot be fetched', async () => {
+    queryClient.setQueryData(offlineSavedKeys.teamList(ORG_ID), teams);
+    mocks.getTeamsByOrgStrict.mockRejectedValue(new Error('Teams could not be loaded'));
+
+    expect(await downloadTeamsForOffline(queryClient, ORG_ID)).toBe(false);
+    expect(savedTeams()).toEqual(teams);
+  });
+
+  it('saves nothing once the user has moved to another organization', async () => {
+    expect(await downloadTeamsForOffline(queryClient, ORG_ID, () => false)).toBe(false);
+    expect(savedTeams()).toBeUndefined();
   });
 });

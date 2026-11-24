@@ -1,5 +1,9 @@
 import { useCallback, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
+import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
+import { findKnownInventoryItem } from '@/features/offline-queue/utils/queuedInventory';
 import { useAppToast } from '@/hooks/useAppToast';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -56,7 +60,12 @@ export function useInlineWorkOrderCostActions({
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
   const { toast } = useAppToast();
-  const adjustInventoryMutation = useAdjustInventoryQuantity();
+  const queryClient = useQueryClient();
+  const offlineCtx = useOfflineQueueOptional();
+  // Connected, the stock deduction and the cost line are two requests. The
+  // deduction must reach the server or fail here; it is never queued on its
+  // own (offline the pair is queued together, see handleAddFromInventory).
+  const adjustInventoryMutation = useAdjustInventoryQuantity({ requireServer: true });
   const createCostMutation = useCreateWorkOrderCost();
   const updateCostWithInventoryMutation = useUpdateWorkOrderCostWithInventory();
   const deleteCostWithInventoryMutation = useDeleteWorkOrderCostWithInventoryRestore();
@@ -166,6 +175,74 @@ export function useInlineWorkOrderCostActions({
     async (itemId: string, quantity: number, unitCost: number) => {
       if (!currentOrganization || !user) return;
 
+      // No connection (or earlier changes still waiting to sync): save the
+      // cost line and the stock deduction together as one queued item.
+      const offlineService = new OfflineAwareWorkOrderService(currentOrganization.id, user.id);
+      if (offlineService.shouldQueue(workOrderId)) {
+        const known = findKnownInventoryItem(
+          queryClient,
+          currentOrganization.id,
+          itemId,
+          offlineCtx?.queuedItems ?? [],
+        );
+        if (!known) {
+          toast({
+            title: 'Cannot add part',
+            description: 'This part is not saved on this device. Try again when you are connected.',
+            variant: 'error',
+          });
+          return;
+        }
+        // The server refuses to take more than is in stock; say so now.
+        if (known.quantity_on_hand < quantity) {
+          toast({
+            title: 'Cannot add part',
+            description: `Insufficient stock: Only ${known.quantity_on_hand} unit(s) available, but ${quantity} requested.`,
+            variant: 'error',
+          });
+          return;
+        }
+
+        const costId = crypto.randomUUID();
+        const unitPriceCents = Math.round(unitCost * 100);
+        try {
+          offlineService.queuePartUse({
+            costId,
+            workOrderId,
+            itemId,
+            description: known.name,
+            quantity,
+            unitPriceCents,
+          });
+        } catch (error) {
+          toast({
+            title: 'Cannot add part',
+            description: error instanceof Error ? error.message : 'Could not save this part on the device.',
+            variant: 'error',
+          });
+          return;
+        }
+        offlineCtx?.refresh();
+
+        if (isEditing) {
+          setCostValidationPhase('dirty');
+          addFilledCost({
+            id: costId,
+            work_order_id: workOrderId,
+            description: known.name,
+            quantity,
+            unit_price_cents: unitPriceCents,
+            inventory_item_id: itemId,
+            original_quantity: quantity,
+          });
+        }
+        toast({
+          title: 'Part saved offline',
+          description: `${quantity} unit(s) of ${known.name} will be added to the work order and taken from inventory when your connection returns.`,
+        });
+        return;
+      }
+
       try {
         const { data: currentItem, error: fetchError } = await supabase
           .from('inventory_items')
@@ -271,6 +348,8 @@ export function useInlineWorkOrderCostActions({
       adjustInventoryMutation,
       createCostMutation,
       currentOrganization,
+      offlineCtx,
+      queryClient,
       isEditing,
       setCostValidationPhase,
       toast,

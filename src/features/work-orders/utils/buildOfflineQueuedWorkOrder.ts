@@ -28,7 +28,8 @@ export function buildOfflineQueuedWorkOrder({
     title: payload.title,
     description: payload.description,
     priority: payload.priority,
-    status: 'submitted',
+    // Sync creates it as `assigned` when an assignee was chosen.
+    status: payload.assigneeId ? 'assigned' : 'submitted',
     assignee_id: payload.assigneeId ?? null,
     assignee_name: null,
     teamId: equipmentTeamId ?? undefined,

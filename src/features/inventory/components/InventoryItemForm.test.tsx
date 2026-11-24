@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@vitest-harness/utils/test-u
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InventoryItemForm } from './InventoryItemForm';
 import { inventoryItemFormSchema, compatibilityRuleSchema } from '@/features/inventory/schemas/inventorySchema';
+import type { InventoryItem } from '@/features/inventory/types/inventory';
 
 // Mock organization context
 vi.mock('@/contexts/OrganizationContext', () => ({
@@ -250,6 +251,85 @@ describe('InventoryItemForm', () => {
       // The rule row must still be present after the alternate-group interaction.
       expect(screen.getByText(/select manufacturer/i)).toBeInTheDocument();
     });
+  });
+});
+
+describe('InventoryItemForm editing an item whose compatibility data could not be loaded', () => {
+  const editingItem = {
+    id: 'item-1',
+    organization_id: 'org-1',
+    name: 'Air filter',
+    quantity_on_hand: 3,
+    low_stock_threshold: 2,
+  } as InventoryItem;
+
+  /** Every query the form makes for the item's links and rules answers with `result`. */
+  async function answerRelationshipQueriesWith(result: { data: unknown; error: unknown }) {
+    const { supabase } = await import('@/integrations/supabase/client');
+    const chain = {
+      select: () => chain,
+      eq: () => chain,
+      then: (resolve: (value: typeof result) => void) => resolve(result),
+    };
+    vi.mocked(supabase.from).mockImplementation((() => chain) as never);
+  }
+
+  async function saveWithNewName(item: InventoryItem = editingItem) {
+    const { useUpdateInventoryItem } = await import('@/features/inventory/hooks/useInventory');
+    const mutateAsync = vi.fn().mockResolvedValue({ id: 'item-1' });
+    vi.mocked(useUpdateInventoryItem).mockReturnValue({
+      mutateAsync,
+      isPending: false,
+    } as unknown as ReturnType<typeof useUpdateInventoryItem>);
+
+    render(<InventoryItemForm open onClose={vi.fn()} editingItem={item} />);
+    const save = await screen.findByRole('button', { name: /^update item$/i });
+    await waitFor(() => expect(save).toBeEnabled());
+    fireEvent.change(screen.getByLabelText(/^name/i), { target: { value: 'Air filter (cab)' } });
+    fireEvent.click(save);
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalled());
+    return mutateAsync.mock.calls[0][0].formData;
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('leaves equipment links and rules out of the save, so the real ones are not erased', async () => {
+    await answerRelationshipQueriesWith({ data: null, error: { message: 'TypeError: Failed to fetch' } });
+
+    const formData = await saveWithNewName();
+
+    expect(screen.getByRole('status')).toHaveTextContent(/will be left as they are/i);
+    // Nothing can be entered that would then be dropped.
+    expect(screen.queryByRole('button', { name: 'Add Rule' })).not.toBeInTheDocument();
+    expect(formData.name).toBe('Air filter (cab)');
+    expect(formData).not.toHaveProperty('compatibleEquipmentIds');
+    expect(formData).not.toHaveProperty('compatibilityRules');
+  });
+
+  it('leaves them out for an item created offline that has not synced, whose links are still in the queue', async () => {
+    // Connected again, so the read "succeeds", but the server has no record yet.
+    await answerRelationshipQueriesWith({ data: [], error: null });
+
+    const formData = await saveWithNewName({ ...editingItem, _isPendingSync: true } as InventoryItem);
+
+    expect(formData).not.toHaveProperty('compatibleEquipmentIds');
+    expect(formData).not.toHaveProperty('compatibilityRules');
+  });
+
+  it('saves them as loaded when they could be read', async () => {
+    await answerRelationshipQueriesWith({
+      data: [{ equipment_id: '11111111-1111-4111-8111-111111111111', manufacturer: 'Caterpillar', model: '320' }],
+      error: null,
+    });
+
+    const formData = await saveWithNewName();
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add Rule' })).toBeInTheDocument();
+    expect(formData.compatibleEquipmentIds).toEqual(['11111111-1111-4111-8111-111111111111']);
+    expect(formData.compatibilityRules).toHaveLength(1);
   });
 });
 

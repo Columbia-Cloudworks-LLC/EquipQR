@@ -11,6 +11,24 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+## [3.42.0] - 2026-11-24
+
+### Added
+
+- **Teams and inventory can be managed with no signal (#1770)** — Create a team, add an inventory item, edit it, and add or take stock while offline. Each change is saved on the device, shows on screen straight away and syncs when the connection returns. A team or item created offline can be used immediately: put equipment in the new team, or count stock on the new item, before either has synced.
+
+- **Parts can be added to a work order from inventory with no signal (#1777)** — The cost line and the stock it takes are saved together on the device and sync together, so stock is never taken without the cost being recorded. The work order shows the part straight away and the inventory count drops with it. Offline the part picker lists all saved inventory, because which parts fit the equipment can only be checked with a connection. Work order costs are now saved for offline use, so the cost list opens with no signal.
+
+### Fixed
+
+- **Work orders can be accepted, assigned, started, paused and completed offline (#1770)** — A status change made with no signal now shows on the work order and in the list, so the next step is offered instead of the old status staying on screen. Accepting and assigning are saved for sync like status changes, the assignee list is available offline, and a PM checklist finished offline lets its work order be completed.
+- **Equipment created offline can be used before it syncs (#1770)** — It opens from the Equipment list, its team and PM template can be set, and it appears in the equipment picker of the new work order form, including for PM work orders. Changing the team or PM template of existing equipment offline is now saved for sync instead of failing.
+- **Teams are available offline (#1770)** — The Teams screen and every team picker use a copy saved on the device when there is no signal. Previously they showed no teams, and could keep showing none for a couple of minutes after the signal returned.
+- **The inventory Edit form opens again** — Editing an item from the inventory list or its detail page left the form on "Loading..." with Save disabled. It now loads, online and offline. With no signal, the item's compatibility rules and linked equipment cannot be shown, so the form says so and leaves them unchanged when you save. Deleting an item that was created offline and has not synced yet removes it for good instead of letting it reappear after sync.
+- **Reloading right after a sync shows the new values** — A reload within a few minutes of syncing could keep showing what was saved on the device before the sync (an old stock count, for example) until the saved copy aged out. Saved data is now always refreshed from the server when there is a connection.
+- **An inventory item deleted before it synced stays deleted (#1777)** — If the item had already reached the server but the confirmation was lost, deleting it offline only removed it from the device, and it came back after reconnecting. The server copy is now deleted as soon as there is a connection.
+- **Records created offline stay visible on the next trip offline (#1770)** — After offline changes sync, the saved copy of your data is refreshed straight away instead of up to six hours later, and changes to inventory and teams made while connected refresh their saved copy too.
+
 ## [3.41.0] - 2026-11-23
 
 ### Changed

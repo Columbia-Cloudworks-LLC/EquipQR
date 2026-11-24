@@ -22,6 +22,7 @@ import React, {
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { SessionContext } from '@/contexts/SessionContext';
 import {
   OFFLINE_QUEUE_CHANGED_EVENT,
   OfflineQueueService,
@@ -32,6 +33,7 @@ import { OfflineQueueProcessor, type ProcessResult } from '@/services/offlineQue
 import { logger } from '@/utils/logger';
 import { toast } from 'sonner';
 import { useBrowserOnline } from '@/hooks/useBrowserOnline';
+import { requestOfflineDataRefresh } from '@/features/offline-queue/hooks/useOfflineEquipmentDownload';
 import { offlineSyncLockName, runExclusiveAcrossTabs } from '@/services/offlineQueueLock';
 
 /** Delay before auto-sync when the last run made progress (lets the network settle). */
@@ -106,6 +108,10 @@ export const OfflineQueueProviderForOrganization: React.FC<{
   // Bump this to force re-reads from localStorage after mutations
   const [revision, setRevision] = useState(0);
   const syncLockRef = useRef(false);
+  // Read without requiring the provider (it is absent in isolated renders).
+  const refreshSession = useContext(SessionContext)?.refreshSession;
+  const refreshSessionRef = useRef(refreshSession);
+  refreshSessionRef.current = refreshSession;
   const bootSyncAttemptedRef = useRef(false);
   // Consecutive sync runs that synced nothing — drives auto-sync backoff.
   const stalledRunsRef = useRef(0);
@@ -172,8 +178,18 @@ export const OfflineQueueProviderForOrganization: React.FC<{
     setIsSyncing(true);
 
     try {
+      const hasQueuedTeam = () => queueService?.getAll().some(item => item.type === 'team_create') ?? false;
+      const teamWasQueued = hasQueuedTeam();
       const run = await runExclusiveAcrossTabs(syncLockName, () => processor.processAll());
       refresh();
+      // A team created offline makes its creator a manager. Team memberships
+      // live in the session, so reload it once the team is on the server, or
+      // the new team stays out of the team switcher until the next sign-in.
+      if (run.ran && teamWasQueued && !hasQueuedTeam()) {
+        void refreshSessionRef.current?.(true)?.catch((error: unknown) =>
+          logger.error('Team synced but session refresh failed; team switcher may be stale', error),
+        );
+      }
       if (!run.ran) {
         // Another tab is already syncing this queue; check back later.
         stalledRunsRef.current += 1;
@@ -188,6 +204,11 @@ export const OfflineQueueProviderForOrganization: React.FC<{
           : '';
         const remainingNote = result.remaining > 0 ? `, ${result.remaining} still to sync` : '';
         toast.success(`Synced ${result.succeeded} offline item${result.succeeded > 1 ? 's' : ''}${conflictNote}${remainingNote}`);
+        // Once everything is on the server, save a fresh copy for the next
+        // time the signal drops (the old copy predates these changes).
+        if (result.remaining === 0 && user?.id && organizationId) {
+          requestOfflineDataRefresh(user.id, organizationId);
+        }
       }
       if (result.conflicts && result.conflicts.length > 0) {
         for (const conflict of result.conflicts) {
@@ -208,7 +229,7 @@ export const OfflineQueueProviderForOrganization: React.FC<{
       setIsSyncing(false);
       syncLockRef.current = false;
     }
-  }, [processor, syncLockName, refresh]);
+  }, [processor, syncLockName, refresh, user?.id, organizationId, queueService]);
 
   // A fresh connection (or a different queue) deserves an immediate attempt.
   useEffect(() => {

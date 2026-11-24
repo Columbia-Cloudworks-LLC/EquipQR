@@ -6,7 +6,7 @@ import { useMemo } from 'react';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
-import { useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment';
+import { useEquipmentSummariesWithQueued } from '@/features/offline-queue/hooks/useQueuedEquipment';
 import {
   isOfflineId,
   type MergedWorkOrder,
@@ -25,7 +25,7 @@ export function useOfflineQueuedWorkOrder(
   const offlineCtx = useOfflineQueueOptional();
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
-  const { data: allEquipment = [] } = useEquipmentSummaries(currentOrganization?.id);
+  const allEquipment = useEquipmentSummariesWithQueued(currentOrganization?.id);
 
   return useMemo(() => {
     if (!workOrderId || !offlineCtx) return null;

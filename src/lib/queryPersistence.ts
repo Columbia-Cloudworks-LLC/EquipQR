@@ -306,8 +306,8 @@ const EXPIRED_RECORD_SWEEP_DELAY_MS = 30_000;
  * reports no connection, so a persister wired into the query function never
  * gets the chance to restore anything in exactly the case that matters.
  *
- * Restored data keeps its original timestamp, so it is treated as stale and
- * replaced as soon as a fetch succeeds.
+ * Restored data keeps its original timestamp and is marked out of date, so
+ * while connected it is replaced as soon as a fetch succeeds.
  *
  * Call once for the app's QueryClient; returns a cleanup function.
  */
@@ -337,6 +337,14 @@ export function attachOfflineReadCache(queryClient: QueryClient): () => void {
           });
         } finally {
           applying.delete(query.queryHash);
+        }
+        // The saved copy is something to show while waiting, never the
+        // answer. A copy saved a minute ago would otherwise count as fresh
+        // and stop the screen from asking the server at all, so a reload
+        // right after offline changes synced kept showing the old values.
+        // With no connection there is nothing to ask, so leave it be.
+        if (typeof navigator === 'undefined' || navigator.onLine !== false) {
+          void queryClient.invalidateQueries({ queryKey: query.queryKey, exact: true });
         }
       })
       .finally(() => {

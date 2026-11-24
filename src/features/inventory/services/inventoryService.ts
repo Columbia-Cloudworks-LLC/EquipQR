@@ -277,13 +277,16 @@ export const getInventoryItemById = async (
 export const createInventoryItem = async (
   organizationId: string,
   formData: InventoryItemFormData,
-  userId: string
+  userId: string,
+  /** Id generated on the device (offline create), so a retried sync cannot add the item twice. */
+  itemId?: string
 ): Promise<InventoryItem> => {
   try {
     // Create the inventory item
     const { data: itemData, error: itemError } = await supabase
       .from('inventory_items')
       .insert({
+        ...(itemId ? { id: itemId } : {}),
         organization_id: organizationId,
         name: formData.name,
         description: formData.description || null,
@@ -344,33 +347,41 @@ export const createInventoryItem = async (
   }
 };
 
+/** The `inventory_items` columns an edit form changes. Fields left `undefined` are not touched. */
+export function toInventoryItemUpdate(
+  formData: Partial<InventoryItemFormData>,
+): TablesUpdate<'inventory_items'> {
+  const updateData: TablesUpdate<'inventory_items'> = {};
+
+  if (formData.name !== undefined) updateData.name = formData.name;
+  if (formData.description !== undefined) updateData.description = formData.description || null;
+  if (formData.sku !== undefined) updateData.sku = formData.sku || null;
+  if (formData.external_id !== undefined) updateData.external_id = formData.external_id || null;
+  if (formData.low_stock_threshold !== undefined) updateData.low_stock_threshold = formData.low_stock_threshold;
+  if (formData.location !== undefined) updateData.location = formData.location || null;
+  if (formData.location_address !== undefined) {
+    updateData.location_address = formData.location_address || null;
+  }
+  if (formData.location_city !== undefined) updateData.location_city = formData.location_city || null;
+  if (formData.location_state !== undefined) {
+    updateData.location_state = formData.location_state || null;
+  }
+  if (formData.location_country !== undefined) {
+    updateData.location_country = formData.location_country || null;
+  }
+  if (formData.location_lat !== undefined) updateData.location_lat = formData.location_lat ?? null;
+  if (formData.location_lng !== undefined) updateData.location_lng = formData.location_lng ?? null;
+  if (formData.default_unit_cost !== undefined) updateData.default_unit_cost = formData.default_unit_cost || null;
+  return updateData;
+}
+
 export const updateInventoryItem = async (
   organizationId: string,
   itemId: string,
   formData: Partial<InventoryItemFormData>
 ): Promise<InventoryItem> => {
   try {
-    const updateData: TablesUpdate<'inventory_items'> = {};
-
-    if (formData.name !== undefined) updateData.name = formData.name;
-    if (formData.description !== undefined) updateData.description = formData.description || null;
-    if (formData.sku !== undefined) updateData.sku = formData.sku || null;
-    if (formData.external_id !== undefined) updateData.external_id = formData.external_id || null;
-    if (formData.low_stock_threshold !== undefined) updateData.low_stock_threshold = formData.low_stock_threshold;
-    if (formData.location !== undefined) updateData.location = formData.location || null;
-    if (formData.location_address !== undefined) {
-      updateData.location_address = formData.location_address || null;
-    }
-    if (formData.location_city !== undefined) updateData.location_city = formData.location_city || null;
-    if (formData.location_state !== undefined) {
-      updateData.location_state = formData.location_state || null;
-    }
-    if (formData.location_country !== undefined) {
-      updateData.location_country = formData.location_country || null;
-    }
-    if (formData.location_lat !== undefined) updateData.location_lat = formData.location_lat ?? null;
-    if (formData.location_lng !== undefined) updateData.location_lng = formData.location_lng ?? null;
-    if (formData.default_unit_cost !== undefined) updateData.default_unit_cost = formData.default_unit_cost || null;
+    const updateData = toInventoryItemUpdate(formData);
 
     const { data, error } = await supabase
       .from('inventory_items')
@@ -488,6 +499,30 @@ export const adjustInventoryQuantity = async (
     logger.error('Error adjusting inventory quantity:', error);
     throw error;
   }
+};
+
+/** Stands in for "no stock movement yet" when an item has none. */
+const NO_MOVEMENT_YET = '1970-01-01T00:00:00.000Z';
+
+/**
+ * When the item's newest stock movement was recorded (server time). Taken
+ * before an adjustment is sent so that, if the answer is lost, a retry can
+ * tell whether the adjustment was recorded: only it can be a matching
+ * movement newer than this. Throws when the request fails.
+ */
+export const getNewestInventoryMovementTime = async (
+  organizationId: string,
+  itemId: string
+): Promise<string> => {
+  const { data, error } = await supabase
+    .from('inventory_transactions')
+    .select('created_at')
+    .eq('inventory_item_id', itemId)
+    .eq('organization_id', organizationId)
+    .order('created_at', { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  return data[0]?.created_at ?? NO_MOVEMENT_YET;
 };
 
 // ============================================

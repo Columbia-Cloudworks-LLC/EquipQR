@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+import { useApplyQueuedWorkOrderChanges } from '@/features/offline-queue/hooks/useQueuedWorkOrderChanges';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkOrderById } from '@/features/work-orders/hooks/useWorkOrders';
@@ -44,7 +46,13 @@ export const useWorkOrderDetailsData = (workOrderId: string, selectedEquipmentId
     },
   );
   const offlineWorkOrder = useOfflineQueuedWorkOrder(workOrderId);
-  const fetchedWorkOrder = serverWorkOrder ?? offlineWorkOrder ?? undefined;
+  // Show status changes, assignments and edits still waiting in the offline
+  // queue, so the next step (pause, complete) is offered without a connection.
+  const applyQueuedChanges = useApplyQueuedWorkOrderChanges();
+  const fetchedWorkOrder = useMemo(() => {
+    const base = serverWorkOrder ?? offlineWorkOrder ?? undefined;
+    return base ? applyQueuedChanges(base) : undefined;
+  }, [serverWorkOrder, offlineWorkOrder, applyQueuedChanges]);
   const workOrderAccessible = areRecordsOnAccessibleTeam(
     isOrgAdmin,
     getUserTeamIds(),

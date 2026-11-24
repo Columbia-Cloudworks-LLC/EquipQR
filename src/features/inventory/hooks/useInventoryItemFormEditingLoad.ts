@@ -8,6 +8,11 @@ import {
 } from '@/features/inventory/utils/inventoryItemEditingLoadHelpers';
 import type { ToastVariant } from '@/hooks/useAppToast';
 import { logger } from '@/utils/logger';
+import { useQueuedItems } from '@/features/offline-queue/hooks/useQueuedLookups';
+import {
+  hasQueuedRelationshipEdit,
+  isPendingSyncItem,
+} from '@/features/offline-queue/utils/queuedInventory';
 
 type ToastFn = (args: {
   title: string;
@@ -32,6 +37,10 @@ export function useInventoryItemFormEditingLoad({
 }: UseInventoryItemFormEditingLoadParams) {
   const [isEditingDataLoaded, setIsEditingDataLoaded] = useState(false);
   const [editingDataLoadError, setEditingDataLoadError] = useState(false);
+  // False when the item's equipment links and compatibility rules could not
+  // be read (no connection). The form then shows them as empty, and saving
+  // them would erase the real ones, so the caller must leave them out.
+  const [relationshipsLoaded, setRelationshipsLoaded] = useState(true);
   const currentEditingItemIdRef = useRef<string | null>(null);
   const formRef = useRef(form);
   formRef.current = form;
@@ -39,14 +48,25 @@ export function useInventoryItemFormEditingLoad({
   toastRef.current = toast;
 
   const editingItemId = editingItem?.id;
+  // The server cannot answer for an item created offline that has not synced,
+  // and holds out-of-date links and rules while an edit to them is queued.
+  const queuedItems = useQueuedItems();
+  const editingItemIsUnsynced =
+    isPendingSyncItem(editingItem) || hasQueuedRelationshipEdit(editingItem?.id, queuedItems);
   const editingItemOrgId = editingItem?.organization_id;
 
   useEffect(() => {
     const abortController = new AbortController();
 
-    if (editingItemId && currentOrganizationId) {
+    if (open && editingItemId && currentOrganizationId) {
       const itemId = editingItemId;
       currentEditingItemIdRef.current = itemId;
+      // Each time the form opens for an item its links and rules are read
+      // again: the form starts from empty lists, and saving those without a
+      // fresh read would erase the real ones.
+      setIsEditingDataLoaded(false);
+      setEditingDataLoadError(false);
+      setRelationshipsLoaded(true);
 
       const loadEditingData = async () => {
         try {
@@ -60,7 +80,18 @@ export function useInventoryItemFormEditingLoad({
 
           if (abortController.signal.aborted) return;
 
-          const { data: compatibilityData } = await supabase
+          // No connection: do not wait on requests that cannot finish. An
+          // item created offline that has not synced has nothing on the
+          // server to read either, and one with a queued edit to its links
+          // or rules would read the old ones. In each case the rest of the
+          // item can be edited, and links and rules stay as they are.
+          if (!navigator.onLine || editingItemIsUnsynced) {
+            setRelationshipsLoaded(false);
+            setIsEditingDataLoaded(true);
+            return;
+          }
+
+          const { data: compatibilityData, error: compatibilityError } = await supabase
             .from('equipment_part_compatibility')
             .select(`
               equipment_id,
@@ -75,7 +106,7 @@ export function useInventoryItemFormEditingLoad({
 
           const equipmentIds = (compatibilityData || []).map(row => row.equipment_id);
 
-          const { data: rulesData } = await supabase
+          const { data: rulesData, error: rulesError } = await supabase
             .from('part_compatibility_rules')
             .select(`
               manufacturer,
@@ -92,7 +123,15 @@ export function useInventoryItemFormEditingLoad({
             return;
           }
 
+          if (compatibilityError || rulesError) {
+            // The rest of the item can still be edited; these are left as they are.
+            setRelationshipsLoaded(false);
+            setIsEditingDataLoaded(true);
+            return;
+          }
+
           const rules = mapInventoryCompatibilityRules(rulesData);
+          setRelationshipsLoaded(true);
           formRef.current.setValue('compatibleEquipmentIds', equipmentIds);
           formRef.current.setValue('compatibilityRules', rules);
 
@@ -122,23 +161,18 @@ export function useInventoryItemFormEditingLoad({
     return () => {
       abortController.abort();
     };
-  }, [editingItemId, editingItemOrgId, currentOrganizationId]);
-
-  const resetEditingLoadState = () => {
-    setIsEditingDataLoaded(false);
-    setEditingDataLoadError(false);
-    currentEditingItemIdRef.current = null;
-  };
+  }, [open, editingItemId, editingItemOrgId, currentOrganizationId, editingItemIsUnsynced]);
 
   const markNewItemReady = () => {
     setIsEditingDataLoaded(true);
     setEditingDataLoadError(false);
+    setRelationshipsLoaded(true);
   };
 
   return {
     isEditingDataLoaded,
     editingDataLoadError,
-    resetEditingLoadState,
+    relationshipsLoaded,
     markNewItemReady,
   };
 }

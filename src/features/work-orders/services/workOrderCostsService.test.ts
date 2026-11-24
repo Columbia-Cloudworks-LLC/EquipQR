@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
   getWorkOrderCosts,
+  getWorkOrderCostsByWorkOrder,
   createWorkOrderCost,
   getWorkOrderCostById,
   deleteWorkOrderCostWithInventoryInfo,
@@ -516,5 +517,64 @@ describe('workOrderCostsService', () => {
       await expect(updateWorkOrderCostWithQuantityTracking('non-existent', { quantity: 5 }))
         .rejects.toThrow('Cost item not found');
     });
+  });
+});
+
+describe('getWorkOrderCostsByWorkOrder', () => {
+  /** One page of cost rows, answered by `.range()`. */
+  function costsPage(rows: unknown[]) {
+    return {
+      select: vi.fn().mockReturnThis(),
+      in: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      range: vi.fn().mockResolvedValue({ data: rows, error: null }),
+    };
+  }
+  const row = (id: string, workOrderId: string) => ({
+    id,
+    work_order_id: workOrderId,
+    created_by: 'user-1',
+    quantity: 1,
+    unit_price_cents: 100,
+    total_price_cents: 100,
+  });
+
+  beforeEach(() => {
+    vi.mocked(supabase.from).mockReset();
+  });
+
+  it('gives every work order an entry, empty when it has no costs', async () => {
+    vi.mocked(supabase.from)
+      .mockReturnValueOnce(costsPage([row('cost-1', 'wo-1')]) as never)
+      .mockReturnValueOnce(createProfilesInQuery([{ id: 'user-1', name: 'Alex' }]) as never);
+
+    const costs = await getWorkOrderCostsByWorkOrder(['wo-1', 'wo-2']);
+
+    expect(costs.get('wo-1')).toMatchObject([{ id: 'cost-1', created_by_name: 'Alex' }]);
+    expect(costs.get('wo-2')).toEqual([]);
+  });
+
+  it('reads every page, so a long list is not cut off at the API row limit', async () => {
+    const fullPage = Array.from({ length: 1000 }, (_, index) => row(`cost-${index}`, 'wo-1'));
+    const second = costsPage([row('cost-last', 'wo-2')]);
+    vi.mocked(supabase.from)
+      .mockReturnValueOnce(costsPage(fullPage) as never)
+      .mockReturnValueOnce(second as never)
+      .mockReturnValueOnce(createProfilesInQuery([]) as never);
+
+    const costs = await getWorkOrderCostsByWorkOrder(['wo-1', 'wo-2']);
+
+    expect(costs.get('wo-1')).toHaveLength(1000);
+    expect(costs.get('wo-2')).toMatchObject([{ id: 'cost-last' }]);
+    expect(second.range).toHaveBeenCalledWith(1000, 1999);
+  });
+
+  it('fails when a page cannot be read, instead of answering with part of the costs', async () => {
+    vi.mocked(supabase.from).mockReturnValueOnce({
+      ...costsPage([]),
+      range: vi.fn().mockResolvedValue({ data: null, error: new Error('Failed to fetch') }),
+    } as never);
+
+    await expect(getWorkOrderCostsByWorkOrder(['wo-1'])).rejects.toThrow('Failed to fetch');
   });
 });

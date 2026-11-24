@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import TeamRepository from '@/features/teams/services/repositories/TeamRepository';
@@ -11,6 +12,61 @@ import { useSession } from '@/hooks/useSession';
 import { useTeam as useTeamContext } from '@/features/teams/hooks/useTeam';
 import { team, teams } from '@/lib/queryKeys';
 import { logger } from '@/utils/logger';
+import { useAuth } from '@/hooks/useAuth';
+import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
+import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
+import type { OfflineQueueItem, OfflineQueueTeamCreateItem } from '@/services/offlineQueueService';
+import { downloadTeamsForOffline } from '@/features/offline-queue/services/offlineWorkDataDownload';
+import { offlineSavedKeys, useOfflineSavedList } from '@/features/offline-queue/utils/offlineSavedData';
+import type { TeamInsert, TeamWithMembers } from '@/features/teams/types/team';
+
+/** A team that exists only in the offline queue until it syncs. */
+export type PendingSyncTeam = TeamWithMembers & { _isPendingSync?: boolean };
+
+/** The team a queued `team_create` will produce, with its creator as manager. */
+export function buildQueuedTeam(
+  team: TeamInsert & { id: string },
+  creatorId: string,
+  queuedAt: number,
+  creator?: { name?: string | null; email?: string | null },
+): PendingSyncTeam {
+  const timestamp = new Date(queuedAt).toISOString();
+  return {
+    id: team.id,
+    organization_id: team.organization_id,
+    name: team.name,
+    description: team.description ?? null,
+    created_at: timestamp,
+    updated_at: timestamp,
+    customer_id: team.customer_id ?? null,
+    image_url: team.image_url ?? null,
+    location_address: team.location_address ?? null,
+    location_city: team.location_city ?? null,
+    location_state: team.location_state ?? null,
+    location_country: team.location_country ?? null,
+    location_lat: team.location_lat ?? null,
+    location_lng: team.location_lng ?? null,
+    override_equipment_location: team.override_equipment_location ?? false,
+    preferred_view: team.preferred_view ?? 'internal',
+    team_lead_id: team.team_lead_id ?? null,
+    members: [
+      {
+        id: `offline-member-${team.id}`,
+        team_id: team.id,
+        user_id: creatorId,
+        role: 'manager',
+        joined_date: timestamp,
+        profiles: { name: creator?.name || 'You', email: creator?.email || '' },
+      },
+    ],
+    member_count: 1,
+    _isPendingSync: true,
+  };
+}
+
+function isQueuedTeamCreate(item: OfflineQueueItem): item is OfflineQueueTeamCreateItem {
+  return item.type === 'team_create' && (item.status === 'pending' || item.status === 'processing');
+}
 
 /**
  * Primary hook for the Teams list — repository-backed with access-snapshot filtering.
@@ -35,7 +91,8 @@ export const useTeams = (
   const query = useQuery({
     queryKey: ['teams', orgId],
     queryFn: async () => {
-      const allTeams = await TeamRepository.getTeamsByOrg(orgId!);
+      // Strict: a failed request is an error, not a cached "no teams".
+      const allTeams = await TeamRepository.getTeamsByOrgStrict(orgId!);
 
       if (!isElevated) {
         if (!accessSnapshot) return [];
@@ -49,15 +106,50 @@ export const useTeams = (
     staleTime: 1000 * 60 * 2,
   });
 
-  const teams = query.data ?? [];
+  // With no connection, fall back to the copy the background download saved,
+  // and add teams created offline that are still waiting to sync.
+  const offlineCtx = useOfflineQueueOptional();
+  const { user } = useAuth();
+  const savedTeams = useOfflineSavedList<TeamWithMembers>(
+    orgId ? offlineSavedKeys.teamList(orgId) : undefined,
+  );
+  const queuedItems = offlineCtx?.queuedItems;
+  const creatorName: string | undefined = user?.user_metadata?.full_name ?? undefined;
+  const creatorEmail = user?.email;
+
+  const teams = useMemo<PendingSyncTeam[]>(() => {
+    // With no connection the saved copy is the source: the request cannot
+    // succeed, and what is cached may be older than the saved copy.
+    let base: PendingSyncTeam[] = query.data ?? [];
+    if (savedTeams) {
+      base = isElevated
+        ? savedTeams.rows
+        : savedTeams.rows.filter(saved => teamMemberships.some(m => m.team_id === saved.id));
+    }
+    const pending = (queuedItems ?? [])
+      .filter(isQueuedTeamCreate)
+      .filter(item => item.organizationId === orgId && !base.some(t => t.id === item.payload.team.id))
+      .map(item =>
+        buildQueuedTeam(item.payload.team, item.payload.creatorId, item.timestamp, {
+          name: creatorName,
+          email: creatorEmail,
+        }),
+      );
+    return pending.length > 0 ? [...base, ...pending] : base;
+  }, [query.data, savedTeams, isElevated, teamMemberships, queuedItems, orgId, creatorName, creatorEmail]);
+
   const managedTeams = teams.filter(team =>
     teamMemberships.some(m => m.team_id === team.id && m.role === 'manager')
   );
 
   return {
     ...query,
+    data: teams,
     teams,
     managedTeams,
+    // The saved copy is already on screen; do not hold it behind a request
+    // that cannot finish without a connection.
+    isLoading: savedTeams ? false : query.isLoading,
   };
 };
 
@@ -66,25 +158,60 @@ export const useTeamById = (teamId: string | undefined) => {
   const { currentOrganization } = useOrganization();
   const orgId = currentOrganization?.id;
 
-  return useQuery({
+  const query = useQuery({
     queryKey: team(teamId ?? '').byOrg(orgId ?? ''),
     queryFn: () => TeamRepository.getTeamById(teamId!, orgId!),
     enabled: !!teamId && !!orgId,
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
+
+  // A team that was never opened before, or was created offline, is not in
+  // this query's cache. Show it from the team list instead.
+  const { teams: listedTeams } = useTeams(orgId, { enabled: !!teamId && !query.data });
+  const listedTeam = query.data ? undefined : listedTeams.find(candidate => candidate.id === teamId);
+  if (!listedTeam) return query;
+  return { ...query, data: listedTeam, isLoading: false, isPending: false, isError: false, error: null };
 };
+
+/**
+ * After a team change that reached the server, save a fresh copy of the teams
+ * so pickers and the assignee list are right the next time the signal drops.
+ */
+function useRefreshSavedTeams(): (organizationId: string | undefined) => void {
+  const queryClient = useQueryClient();
+  return (organizationId) => {
+    if (organizationId) void downloadTeamsForOffline(queryClient, organizationId);
+  };
+}
 
 // Hook for team mutations
 export const useTeamMutations = () => {
   const queryClient = useQueryClient();
+  const refreshSavedTeams = useRefreshSavedTeams();
   const { toast } = useToast();
   const { refreshSession } = useSession();
 
+  const offlineCtx = useOfflineQueueOptional();
+
   const createTeamWithCreatorMutation = useMutation({
-    mutationFn: ({ teamData, creatorId }: { teamData: Parameters<typeof TeamRepository.createTeamWithCreator>[0]; creatorId: string }) =>
-      TeamRepository.createTeamWithCreator(teamData, creatorId),
-    onSuccess: async (_, variables) => {
+    mutationFn: async ({ teamData, creatorId }: { teamData: Parameters<typeof TeamRepository.createTeamWithCreator>[0]; creatorId: string }): Promise<PendingSyncTeam> => {
+      // The id is chosen here so a team created offline can be picked for
+      // equipment before it has synced.
+      const team = { ...teamData, id: teamData.id ?? crypto.randomUUID() };
+      const service = new OfflineAwareWorkOrderService(team.organization_id, creatorId);
+      const result = await service.createTeam(team, creatorId);
+      if (result.queuedOffline || !result.data) {
+        offlineCtx?.refresh();
+        return buildQueuedTeam(team, creatorId, Date.now());
+      }
+      return result.data;
+    },
+    onSuccess: async (created, variables) => {
+      // Nothing reached the server yet: there is no list to reload and no
+      // new membership for the session to pick up.
+      if (created._isPendingSync) return;
       queryClient.invalidateQueries({ queryKey: teams(variables.teamData.organization_id).root });
+      refreshSavedTeams(variables.teamData.organization_id);
       // Force-refresh the session so the new team membership (creator becomes
       // manager) shows up in TopBar/ContextBreadcrumb without requiring
       // logout/login. Guard the refresh: a transient session-refresh error
@@ -115,11 +242,22 @@ export const useTeamMutations = () => {
   });
 
   const deleteTeamMutation = useMutation({
-    mutationFn: ({ teamId, organizationId }: { teamId: string; organizationId: string }) =>
-      TeamRepository.deleteTeam(teamId, organizationId),
+    mutationFn: ({ teamId, organizationId }: { teamId: string; organizationId: string }) => {
+      // A team created offline is still in the queue, possibly with equipment
+      // queued behind it that points at it. Deleting it on the server now
+      // would be undone when the queued create syncs.
+      const stillQueued = (offlineCtx?.queuedItems ?? []).some(
+        item => isQueuedTeamCreate(item) && item.payload.team.id === teamId,
+      );
+      if (stillQueued) {
+        throw new Error('This team has not synced yet. Delete it once it has synced.');
+      }
+      return TeamRepository.deleteTeam(teamId, organizationId);
+    },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: teams(variables.organizationId).root });
       queryClient.removeQueries({ queryKey: team(variables.teamId).byOrg(variables.organizationId) });
+      refreshSavedTeams(variables.organizationId);
       toast({
         title: "Success",
         description: "Team deleted successfully",
@@ -143,6 +281,7 @@ export const useTeamMutations = () => {
 // Hook for team member management
 export const useTeamMembers = (teamId: string | undefined, organizationId: string | undefined) => {
   const queryClient = useQueryClient();
+  const refreshSavedTeams = useRefreshSavedTeams();
   const { toast } = useToast();
 
   // Query for available users
@@ -160,6 +299,7 @@ export const useTeamMembers = (teamId: string | undefined, organizationId: strin
       queryClient.invalidateQueries({ queryKey: ['team', teamId] });
       queryClient.invalidateQueries({ queryKey: ['teams', organizationId] });
       queryClient.invalidateQueries({ queryKey: ['availableUsers', organizationId, teamId] });
+      refreshSavedTeams(organizationId);
       toast({
         title: "Success",
         description: "Team member added successfully",
@@ -182,6 +322,7 @@ export const useTeamMembers = (teamId: string | undefined, organizationId: strin
       queryClient.invalidateQueries({ queryKey: ['team', teamId] });
       queryClient.invalidateQueries({ queryKey: ['teams', organizationId] });
       queryClient.invalidateQueries({ queryKey: ['availableUsers', organizationId, teamId] });
+      refreshSavedTeams(organizationId);
       toast({
         title: "Success",
         description: "Team member removed successfully",

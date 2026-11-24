@@ -19,7 +19,7 @@ import { updateEquipmentWorkingHours } from '@/features/equipment/services/equip
 import { createEquipmentNoteWithImages } from '@/features/equipment/services/equipmentNotesService';
 import { createWorkOrderNoteWithImages, type WorkOrderNote } from '@/features/work-orders/services/workOrderNotesService';
 import { logger } from '@/utils/logger';
-import { isNetworkError } from '@/utils/errorHandling';
+import { getErrorMessage, isNetworkError } from '@/utils/errorHandling';
 import type { CreateWorkOrderData } from '@/features/work-orders/hooks/useWorkOrderCreation';
 import type { UpdateWorkOrderData } from '@/features/work-orders/hooks/useWorkOrderUpdate';
 import {
@@ -36,11 +36,13 @@ import type {
 import type { UpdateWorkingHoursData } from '@/features/equipment/services/equipmentWorkingHoursService';
 import { OfflineQueueService, OfflineQueuePayloadError } from './offlineQueueService';
 import type {
+  OfflineQueuePartUseItem,
   OfflineQueueEnqueueInput,
   WorkOrderServerSnapshot,
   OfflineQueueImageRef,
 } from './offlineQueueService';
 import { stageQueueImageRefs } from './offlineQueueImageRefs';
+import { isOfflinePlaceholderId } from './offlineQueuePlaceholders';
 import type {
   PMChecklistItem,
   PreventativeMaintenance,
@@ -51,6 +53,17 @@ import {
   updatePM,
   deletePM,
 } from '@/features/pm-templates/services/preventativeMaintenanceService';
+
+import TeamRepository from '@/features/teams/services/repositories/TeamRepository';
+import type { TeamInsert, TeamWithMembers } from '@/features/teams/types/team';
+import {
+  adjustInventoryQuantity,
+  createInventoryItem,
+  getNewestInventoryMovementTime,
+  updateInventoryItem,
+} from '@/features/inventory/services/inventoryService';
+import type { InventoryItem, InventoryQuantityAdjustment } from '@/features/inventory/types/inventory';
+import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
 
 // ─── Result type ─────────────────────────────────────────────────────────────
 
@@ -92,6 +105,14 @@ function definedFieldNames(data: object): string[] {
     .map(([key]) => key);
 }
 
+/** Stand-in `serverUpdatedAt` for a queued status change made without knowing the work order's version. */
+export const UNKNOWN_SERVER_VERSION = 'unknown';
+
+/** Supabase reports a failed request as a plain object, not an Error, so check its message too. */
+function isConnectionFailure(error: unknown): boolean {
+  return isNetworkError(error) || isNetworkError(getErrorMessage(error));
+}
+
 // ─── Service ─────────────────────────────────────────────────────────────────
 
 export class OfflineAwareWorkOrderService {
@@ -114,6 +135,27 @@ export class OfflineAwareWorkOrderService {
     this.queueService = new OfflineQueueService(userId, orgId);
   }
 
+  /**
+   * True when a change must wait in the queue instead of being sent now:
+   *
+   * - there is no connection;
+   * - it targets a record created offline, which has only a placeholder id
+   *   (`offline-…`) until its own create syncs;
+   * - earlier changes are still waiting to sync. That is the moment right
+   *   after the signal returns. Sent straight away, a new change would reach
+   *   the server before the older ones it follows or depends on: an older
+   *   queued edit would then overwrite it, and a record it points at (a team
+   *   or equipment created offline) would not exist yet. Joining the queue
+   *   keeps everything in the order it was made; sync starts within seconds.
+   */
+  shouldQueue(recordId?: string): boolean {
+    if (!navigator.onLine) return true;
+    if (recordId && isOfflinePlaceholderId(recordId)) return true;
+    return this.queueService
+      .getAll()
+      .some(item => item.status === 'pending' || item.status === 'processing');
+  }
+
   // ── Create ─────────────────────────────────────────────────────────────
 
   async createWorkOrder(
@@ -121,7 +163,7 @@ export class OfflineAwareWorkOrderService {
     resolvedAssigneeId?: string,
   ): Promise<OfflineAwareResult<WorkOrder>> {
     // ── TIER 1: Fast pre-check — skip network entirely when offline ──
-    if (!navigator.onLine) {
+    if (this.shouldQueue(data.equipmentId)) {
       return this.queueCreate(data, resolvedAssigneeId);
     }
 
@@ -168,7 +210,7 @@ export class OfflineAwareWorkOrderService {
     serverSnapshot?: WorkOrderServerSnapshot,
   ): Promise<OfflineAwareResult<Record<string, unknown>>> {
     // ── TIER 1: Fast pre-check ──
-    if (!navigator.onLine) {
+    if (this.shouldQueue(workOrderId)) {
       return this.queueUpdate(workOrderId, data, serverUpdatedAt, serverSnapshot);
     }
 
@@ -206,7 +248,7 @@ export class OfflineAwareWorkOrderService {
     assigneeId?: string | null,
   ): Promise<OfflineAwareResult<Record<string, unknown>>> {
     // ── TIER 1: Fast pre-check ──
-    if (!navigator.onLine) {
+    if (this.shouldQueue(workOrderId)) {
       return this.queueStatus(workOrderId, newStatus, serverUpdatedAt, assigneeId);
     }
 
@@ -356,7 +398,7 @@ export class OfflineAwareWorkOrderService {
     create: () => ReturnType<typeof EquipmentService.create>,
     queue: () => OfflineAwareResult<{ id: string; [key: string]: unknown }>,
   ): Promise<OfflineAwareResult<{ id: string; [key: string]: unknown }>> {
-    if (!navigator.onLine) return queue();
+    if (this.shouldQueue()) return queue();
     try {
       const result = await create();
       if (!result.success || !result.data) throw new Error(result.error || 'Failed to create equipment');
@@ -374,7 +416,9 @@ export class OfflineAwareWorkOrderService {
     data: EquipmentUpdateData,
     serverUpdatedAt?: string,
   ): Promise<OfflineAwareResult<Record<string, unknown>>> {
-    if (!navigator.onLine) return this.queueEquipmentUpdate(equipmentId, data, serverUpdatedAt);
+    if (this.shouldQueue(equipmentId)) {
+      return this.queueEquipmentUpdate(equipmentId, data, serverUpdatedAt);
+    }
     try {
       const result = await EquipmentService.update(this.orgId, equipmentId, data);
       if (!result.success || !result.data) throw new Error(result.error || 'Failed to update equipment');
@@ -385,12 +429,171 @@ export class OfflineAwareWorkOrderService {
     }
   }
 
+  // ── Teams ────────────────────────────────────────────────────────────────
+
+  /**
+   * `team.id` is generated by the caller, so the team can be picked for
+   * equipment straight away and a replayed create cannot make a second team.
+   */
+  async createTeam(
+    team: TeamInsert & { id: string },
+    creatorId: string,
+  ): Promise<OfflineAwareResult<TeamWithMembers>> {
+    const queue = () =>
+      this.enqueueOffline<TeamWithMembers>(
+        { type: 'team_create', payload: { team, creatorId } },
+        {
+          queued: 'Team create queued offline',
+          failed: 'Failed to enqueue offline team create',
+          context: { teamId: team.id },
+        },
+      );
+    return this.runOrQueue(() => TeamRepository.createTeamWithCreator(team, creatorId), queue);
+  }
+
+  // ── Inventory ────────────────────────────────────────────────────────────
+
+  /** `itemId` is generated by the caller (see `createTeam`). */
+  async createInventoryItem(
+    itemId: string,
+    formData: InventoryItemFormData,
+  ): Promise<OfflineAwareResult<InventoryItem>> {
+    const queue = (createAttempted: boolean) =>
+      this.enqueueOffline<InventoryItem>(
+        {
+          type: 'inventory_create',
+          // Always stated, `false` included: a queued create without the
+          // marker predates it and has to be treated as possibly sent.
+          payload: { itemId, formData, createAttempted },
+        },
+        {
+          queued: 'Inventory item create queued offline',
+          failed: 'Failed to enqueue offline inventory item create',
+          context: { itemId },
+        },
+      );
+    if (this.shouldQueue()) return queue(false);
+    try {
+      return { data: await createInventoryItem(this.orgId, formData, this.userId, itemId), queuedOffline: false };
+    } catch (error) {
+      // The request went out and its answer was lost, so the item may exist
+      // on the server already. Queue it marked as such.
+      if (isConnectionFailure(error)) return queue(true);
+      throw error;
+    }
+  }
+
+  /**
+   * Queues deleting an inventory item on the server. For an item created
+   * offline that is deleted before its create is known to have failed: the
+   * create is taken out of the queue by the caller, and this removes any
+   * copy an earlier attempt left on the server.
+   */
+  queueInventoryDelete(itemId: string): OfflineAwareResult<null> {
+    return this.enqueueOffline(
+      { type: 'inventory_delete', payload: { itemId } },
+      {
+        queued: 'Inventory item delete queued offline',
+        failed: 'Failed to enqueue offline inventory item delete',
+        context: { itemId },
+      },
+    );
+  }
+
+  async updateInventoryItem(
+    itemId: string,
+    formData: Partial<InventoryItemFormData>,
+  ): Promise<OfflineAwareResult<InventoryItem>> {
+    const queue = () =>
+      this.enqueueOffline<InventoryItem>(
+        { type: 'inventory_update', payload: { itemId, formData } },
+        {
+          queued: 'Inventory item update queued offline',
+          failed: 'Failed to enqueue offline inventory item update',
+          context: { itemId },
+        },
+      );
+    return this.runOrQueue(() => updateInventoryItem(this.orgId, itemId, formData), queue);
+  }
+
+  /**
+   * Resolves to the new quantity when sent, or null when queued.
+   *
+   * The server adds the change to whatever is in stock, so a change that was
+   * recorded but whose answer was lost must not be sent again. The item's
+   * newest movement is read first: if that read fails nothing has been sent
+   * and the change is simply queued; if the adjustment itself is cut off, it
+   * is queued with that reading so sync can tell whether it was recorded.
+   */
+  async adjustInventoryQuantity(
+    adjustment: InventoryQuantityAdjustment,
+  ): Promise<OfflineAwareResult<number>> {
+    const queue = (lastMovementBeforeReplay?: string) =>
+      this.enqueueOffline<number>(
+        {
+          type: 'inventory_adjust',
+          payload: lastMovementBeforeReplay ? { ...adjustment, lastMovementBeforeReplay } : adjustment,
+        },
+        {
+          queued: 'Inventory adjustment queued offline',
+          failed: 'Failed to enqueue offline inventory adjustment',
+          context: { itemId: adjustment.itemId, delta: adjustment.delta },
+        },
+      );
+    if (this.shouldQueue()) return queue();
+
+    let newestMovement: string;
+    try {
+      newestMovement = await getNewestInventoryMovementTime(this.orgId, adjustment.itemId);
+    } catch (error) {
+      if (isConnectionFailure(error)) return queue();
+      throw error;
+    }
+    try {
+      return { data: await adjustInventoryQuantity(this.orgId, adjustment), queuedOffline: false };
+    } catch (error) {
+      if (isConnectionFailure(error)) return queue(newestMovement);
+      throw error;
+    }
+  }
+
+  /**
+   * Queues a part taken from inventory for a work order: the cost line and
+   * the stock deduction as one item, so neither can sync without the other.
+   * Call only when `shouldQueue(workOrderId)` is true; connected, the two
+   * writes are made directly.
+   */
+  queuePartUse(part: OfflineQueuePartUseItem['payload']): OfflineAwareResult<null> {
+    return this.enqueueOffline(
+      { type: 'work_order_part_use', payload: part },
+      {
+        queued: 'Work order part use queued offline',
+        failed: 'Failed to enqueue offline work order part use',
+        context: { workOrderId: part.workOrderId, itemId: part.itemId },
+      },
+    );
+  }
+
+  /** Send now when connected; queue when offline or when the request never reached the server. */
+  private async runOrQueue<T>(
+    run: () => Promise<T>,
+    queue: () => OfflineAwareResult<T>,
+  ): Promise<OfflineAwareResult<T>> {
+    if (this.shouldQueue()) return queue();
+    try {
+      return { data: await run(), queuedOffline: false };
+    } catch (error) {
+      if (isConnectionFailure(error)) return queue();
+      throw error;
+    }
+  }
+
   // ── Working Hours ────────────────────────────────────────────────────────
 
   async updateWorkingHours(
     data: UpdateWorkingHoursData,
   ): Promise<OfflineAwareResult<unknown>> {
-    if (!navigator.onLine) return this.queueEquipmentHours(data);
+    if (this.shouldQueue(data.equipmentId)) return this.queueEquipmentHours(data);
     try {
       await updateEquipmentWorkingHours(data);
       return { data: null, queuedOffline: false };
@@ -410,7 +613,7 @@ export class OfflineAwareWorkOrderService {
     machineHours?: number,
     images: File[] = [],
   ): Promise<OfflineAwareResult<EquipmentNote>> {
-    if (!navigator.onLine) {
+    if (this.shouldQueue(equipmentId)) {
       return this.queueEquipmentNote(equipmentId, content, hoursWorked, isPrivate, machineHours, images);
     }
     try {
@@ -449,7 +652,7 @@ export class OfflineAwareWorkOrderService {
     machineHours?: number,
     images: File[] = [],
   ): Promise<OfflineAwareResult<WorkOrderNote>> {
-    if (!navigator.onLine) {
+    if (this.shouldQueue(workOrderId)) {
       return this.queueWorkOrderNote(
         workOrderId,
         content,
@@ -650,7 +853,7 @@ export class OfflineAwareWorkOrderService {
     data: UpdatePMData,
     serverUpdatedAt?: string,
   ): Promise<OfflineAwareResult<PreventativeMaintenance>> {
-    if (!navigator.onLine) {
+    if (this.shouldQueue(pmId)) {
       return this.queuePMUpdate(pmId, data, serverUpdatedAt);
     }
     try {
@@ -668,7 +871,7 @@ export class OfflineAwareWorkOrderService {
   async deletePM(
     pmId: string,
   ): Promise<OfflineAwareResult<null>> {
-    if (!navigator.onLine) {
+    if (this.shouldQueue(pmId)) {
       return this.queuePMDelete(pmId);
     }
     try {

@@ -13,6 +13,11 @@ export const OFFLINE_WO_ID_PREFIX = 'offline-';
 export const OFFLINE_PM_ID_PREFIX = 'offline-pm-';
 export const OFFLINE_NOTE_ID_PREFIX = 'offline-note-';
 
+/** True for any id made up on the device for a record that has not synced yet. */
+export function isOfflinePlaceholderId(id: string): boolean {
+  return id.startsWith(OFFLINE_WO_ID_PREFIX);
+}
+
 export function offlineEquipPlaceholder(queueItemId: string): string {
   return `${OFFLINE_EQUIP_ID_PREFIX}${queueItemId}`;
 }
