@@ -1004,13 +1004,22 @@ export class OfflineQueueProcessor {
   }
 
   private async processQueueItem(
-    item: OfflineQueueItem,
+    listed: OfflineQueueItem,
     replay: OfflineReplayContext,
   ): Promise<{
     outcome: 'succeeded' | 'failed' | 'retry' | 'interrupted';
     conflict?: ConflictInfo;
   } | null> {
-    if (this._processedInSession.has(item.id)) {
+    if (this._processedInSession.has(listed.id)) {
+      return null;
+    }
+
+    // The run works through a list taken when it started. While earlier
+    // items were being sent, the user may have changed this one or removed
+    // it (a pending part, an item cleared from the pending banner). Send
+    // what is stored now, and nothing if it is gone.
+    const item = this.queueService.getById(listed.id);
+    if (!item || item.status !== 'pending') {
       return null;
     }
 

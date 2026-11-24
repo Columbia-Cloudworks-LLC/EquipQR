@@ -288,6 +288,32 @@ describe('offline replay of teams and inventory', () => {
     expect(mockAdjust).toHaveBeenCalledTimes(2);
   });
 
+  it('sends what is stored when its turn comes, not what was listed when the run started', async () => {
+    const { queue, processor } = setup();
+    const enqueue = (delta: number) =>
+      queue.enqueue({
+        type: 'inventory_adjust',
+        organizationId: ORG,
+        userId: USER,
+        payload: { itemId: ITEM_ID, delta, reason: 'Count' },
+      });
+    enqueue(-1);
+    const changed = enqueue(-2);
+    const removed = enqueue(-3);
+    // While the first one is being sent, the user edits the second and removes the third.
+    mockAdjust.mockImplementationOnce(async () => {
+      queue.updatePayload(changed.id, { delta: -5 });
+      queue.remove(removed.id);
+      return 0;
+    });
+
+    const result = await processor.processAll();
+
+    expect(result.succeeded).toBe(2);
+    expect(mockAdjust.mock.calls.map(([, adjustment]) => adjustment.delta)).toEqual([-1, -5]);
+    expect(queue.getAll()).toHaveLength(0);
+  });
+
   describe('a part used on a work order offline', () => {
     const part = {
       costId: '33333333-3333-4333-8333-333333333333',
