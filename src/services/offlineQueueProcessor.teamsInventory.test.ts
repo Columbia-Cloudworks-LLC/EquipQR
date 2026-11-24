@@ -6,8 +6,9 @@ import { OfflineQueueService } from './offlineQueueService';
 type Row = Record<string, unknown>;
 
 /** Rows each table answers a lookup with, and every insert the processor made. */
-const { lookupRows, inserts, failInsertsInto, insertFailure, mockCreateItem, mockUpdateItem, mockAdjust, mockNewestMovement } = vi.hoisted(() => ({
+const { lookupRows, inserts, failInsertsInto, insertFailure, mockDeleteItem, mockCreateItem, mockUpdateItem, mockAdjust, mockNewestMovement } = vi.hoisted(() => ({
   failInsertsInto: new Set<string>(),
+  mockDeleteItem: vi.fn(),
   insertFailure: { error: new Error('insert rejected') as Error },
   lookupRows: {} as Record<string, Row[]>,
   inserts: [] as Array<{ table: string; row: Row }>,
@@ -46,6 +47,7 @@ vi.mock('@/features/inventory/services/inventoryService', () => ({
   updateInventoryItem: (...args: unknown[]) => mockUpdateItem(...args),
   adjustInventoryQuantity: (...args: unknown[]) => mockAdjust(...args),
   getNewestInventoryMovementTime: (...args: unknown[]) => mockNewestMovement(...args),
+  deleteInventoryItem: (...args: unknown[]) => mockDeleteItem(...args),
 }));
 
 const USER = 'user-1';
@@ -78,6 +80,7 @@ describe('offline replay of teams and inventory', () => {
     mockCreateItem.mockReset().mockResolvedValue({ id: ITEM_ID });
     mockUpdateItem.mockReset().mockResolvedValue({ id: ITEM_ID });
     mockAdjust.mockReset().mockResolvedValue(5);
+    mockDeleteItem.mockReset().mockResolvedValue(undefined);
     mockNewestMovement.mockReset().mockResolvedValue('2026-11-24T12:00:00.000Z');
     Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
   });
@@ -140,6 +143,38 @@ describe('offline replay of teams and inventory', () => {
     const result = await second.processor.processAll();
     expect(result.succeeded).toBe(1);
     expect(mockCreateItem).not.toHaveBeenCalled();
+  });
+
+  it('marks a create as attempted before sending it, so a lost answer is not mistaken for "never sent"', async () => {
+    const { queue, processor } = setup();
+    queue.enqueue({
+      type: 'inventory_create',
+      organizationId: ORG,
+      userId: USER,
+      payload: { itemId: ITEM_ID, formData: itemForm },
+    });
+    mockCreateItem.mockRejectedValueOnce(new Error('TypeError: Failed to fetch'));
+
+    const result = await processor.processAll();
+
+    expect(result.interrupted).toBe(true);
+    expect(queue.getAll()[0]).toMatchObject({ status: 'pending', payload: { createAttempted: true } });
+  });
+
+  it('deletes on the server an item that was removed on the device while its create was in doubt', async () => {
+    const { queue, processor } = setup();
+    queue.enqueue({
+      type: 'inventory_delete',
+      organizationId: ORG,
+      userId: USER,
+      payload: { itemId: ITEM_ID },
+    });
+
+    const result = await processor.processAll();
+
+    expect(result.succeeded).toBe(1);
+    expect(mockDeleteItem).toHaveBeenCalledWith(ORG, ITEM_ID);
+    expect(queue.getAll()).toHaveLength(0);
   });
 
   it('finishes linking equipment when an earlier attempt created the item and was then cut off', async () => {

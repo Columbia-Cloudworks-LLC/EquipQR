@@ -51,7 +51,7 @@ import { downloadInventoryForOffline } from '@/features/offline-queue/services/o
 import {
   buildPendingInventoryItem,
   mergeQueuedInventory,
-  queuedEntriesForUnsyncedItem,
+  planUnsyncedItemDeletion,
   resolveQueuedInventoryItem,
   type QueuedInventoryItem,
 } from '@/features/offline-queue/utils/queuedInventory';
@@ -63,6 +63,7 @@ const QUEUED_INVENTORY_TYPES: ReadonlySet<string> = new Set([
   'inventory_create',
   'inventory_update',
   'inventory_adjust',
+  'inventory_delete',
   'work_order_part_use',
 ]);
 
@@ -536,7 +537,7 @@ export const useUpdateInventoryItem = () => {
 export const useDeleteInventoryItem = () => {
   const queryClient = useQueryClient();
   const { toast } = useAppToast();
-  const offlineCtx = useOfflineQueueOptional();
+  const { user, offlineCtx } = useInventoryOfflineSupport();
 
   return useMutation({
     mutationFn: async ({
@@ -546,16 +547,25 @@ export const useDeleteInventoryItem = () => {
       organizationId: string;
       itemId: string;
     }) => {
-      // An item created offline that has not synced exists only in the
-      // queue. Take it (and the changes made to it) out of the queue instead
-      // of asking the server to delete a record it does not have yet.
-      const queued = queuedEntriesForUnsyncedItem(itemId, offlineCtx?.queuedItems ?? []);
-      if (queued.length > 0) {
-        queued.forEach((queueItemId) => offlineCtx?.removeItem(queueItemId));
-        // An earlier sync attempt may have created the record and lost the
-        // answer, leaving the create queued. When connected, delete on the
-        // server as well (a no-op if the record was never created).
-        if (navigator.onLine) await deleteInventoryItem(organizationId, itemId);
+      // An item created offline that has not synced exists in the queue.
+      // Take it (and the changes made to it) out of the queue, or its create
+      // would bring it back on the next sync. The stored queue is read, not
+      // the list on screen, which can be a moment behind a running sync.
+      const stored = offlineCtx?.queueServiceInstance?.getAll() ?? offlineCtx?.queuedItems ?? [];
+      const unsynced = planUnsyncedItemDeletion(itemId, stored);
+      if (unsynced) {
+        unsynced.entryIds.forEach((queueItemId) => offlineCtx?.removeItem(queueItemId));
+        // Its create may still have reached the server (sent, answer lost).
+        // That copy has to go too: now when connected and nothing is being
+        // sent, otherwise as a queued delete that runs after what is in flight.
+        if (unsynced.mayExistOnServer && user) {
+          if (navigator.onLine && !unsynced.syncInFlight) {
+            await deleteInventoryItem(organizationId, itemId);
+          } else {
+            new OfflineAwareWorkOrderService(organizationId, user.id).queueInventoryDelete(itemId);
+            offlineCtx?.refresh();
+          }
+        }
         return;
       }
       return await deleteInventoryItem(organizationId, itemId);

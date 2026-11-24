@@ -21,6 +21,7 @@ const INVENTORY_ITEM_TYPES = new Set([
   'inventory_create',
   'inventory_update',
   'inventory_adjust',
+  'inventory_delete',
   // A part used on a work order also takes stock.
   'work_order_part_use',
 ]);

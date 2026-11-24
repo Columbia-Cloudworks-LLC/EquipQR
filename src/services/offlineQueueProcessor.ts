@@ -42,11 +42,13 @@ import type {
   OfflineQueueInventoryUpdateItem,
   OfflineQueueInventoryAdjustItem,
   OfflineQueuePartUseItem,
+  OfflineQueueInventoryDeleteItem,
 } from './offlineQueueService';
 import type { InventoryQuantityAdjustment } from '@/features/inventory/types/inventory';
 import {
   adjustInventoryQuantity,
   createInventoryItem,
+  deleteInventoryItem,
   getNewestInventoryMovementTime,
   updateInventoryItem,
 } from '@/features/inventory/services/inventoryService';
@@ -804,8 +806,15 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
     return { success: true };
   }) as QueueItemHandler<never>,
 
-  inventory_create: (async (item: OfflineQueueInventoryCreateItem) => {
+  inventory_create: (async (item: OfflineQueueInventoryCreateItem, _replay, queueService) => {
     const { itemId, formData } = item.payload;
+
+    // From here on the item may exist on the server even if this attempt's
+    // answer is lost. Deleting it while it is still queued relies on this.
+    if (!item.payload.createAttempted) {
+      item.payload.createAttempted = true;
+      queueService.updatePayload(item.id, { createAttempted: true }, { syncBookkeeping: true });
+    }
 
     // Same idempotency rule as team_create: the id comes from the device.
     const { data: existing, error: lookupError } = await supabase
@@ -832,6 +841,12 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
         compatibilityRules,
       });
     }
+    return { success: true };
+  }) as QueueItemHandler<never>,
+
+  inventory_delete: (async (item: OfflineQueueInventoryDeleteItem) => {
+    // Deleting a record that was never created is a no-op on the server.
+    await deleteInventoryItem(item.organizationId, item.payload.itemId);
     return { success: true };
   }) as QueueItemHandler<never>,
 

@@ -40,16 +40,31 @@ export function hasQueuedRelationshipEdit(
   );
 }
 
+/** What deleting an inventory item that has not synced involves. */
+export interface UnsyncedItemDeletion {
+  /** Queue entries that create, change or use the item; they go with it. */
+  entryIds: string[];
+  /**
+   * True when the item may already exist on the server although its create
+   * is still queued: the create was sent at least once (its answer may have
+   * been lost) or is being sent right now. The server copy then has to be
+   * deleted too, straight away when connected or by a queued delete.
+   */
+  mayExistOnServer: boolean;
+  /** True while sync is sending one of the entries; a direct server delete would race it. */
+  syncInFlight: boolean;
+}
+
 /**
- * Ids of the queue entries that create, change or use this item, when the item
- * itself is still waiting to be created. Deleting such an item means taking
- * these out of the queue: there is nothing on the server to delete, and left
- * in place the create would bring the item back on the next sync.
+ * How to delete this item if it is still waiting to be created, or `null`
+ * when it is not (it is on the server, so it is deleted there). Deleting an
+ * unsynced item means taking its entries out of the queue: left in place, the
+ * create would bring the item back on the next sync.
  */
-export function queuedEntriesForUnsyncedItem(
+export function planUnsyncedItemDeletion(
   itemId: string,
   queuedItems: readonly OfflineQueueItem[],
-): string[] {
+): UnsyncedItemDeletion | null {
   const entries = queuedItems.filter(
     item =>
       (item.type === 'inventory_create' ||
@@ -60,7 +75,23 @@ export function queuedEntriesForUnsyncedItem(
         item.type === 'work_order_part_use') &&
       item.payload.itemId === itemId,
   );
-  return entries.some(isQueuedInventoryCreate) ? entries.map(item => item.id) : [];
+  const creates = entries.filter(isQueuedInventoryCreate);
+  if (creates.length === 0) return null;
+  const syncInFlight = entries.some(item => item.status === 'processing');
+  return {
+    entryIds: entries.map(item => item.id),
+    mayExistOnServer: syncInFlight || creates.some(item => item.payload.createAttempted === true),
+    syncInFlight,
+  };
+}
+
+/** Ids of items with a delete waiting to sync; they are gone as far as the user is concerned. */
+function queuedDeletions(queuedItems: readonly OfflineQueueItem[]): ReadonlySet<string> {
+  const ids = new Set<string>();
+  for (const item of queuedItems) {
+    if (item.type === 'inventory_delete' && isLiveQueueItem(item)) ids.add(item.payload.itemId);
+  }
+  return ids;
 }
 
 function isQueuedInventoryCreate(item: OfflineQueueItem): item is OfflineQueueInventoryCreateItem {
@@ -148,6 +179,8 @@ export function resolveQueuedInventoryItem(
   queuedItems: readonly OfflineQueueItem[],
 ): QueuedInventoryItem | null | undefined {
   if (!itemId || queuedItems.length === 0) return saved;
+  // Deleted on this device, with the server delete still waiting to sync.
+  if (queuedDeletions(queuedItems).has(itemId)) return null;
   const created = saved
     ? undefined
     : queuedItems.filter(isQueuedInventoryCreate).find(item => item.payload.itemId === itemId);
@@ -161,7 +194,10 @@ export function mergeQueuedInventory(
   queuedItems: readonly OfflineQueueItem[],
   organizationId: string | undefined,
 ): QueuedInventoryItem[] {
-  const listed = items.map(item => applyQueuedInventoryChanges(item, queuedItems));
+  const deleted = queuedDeletions(queuedItems);
+  const listed = items
+    .filter(item => !deleted.has(item.id))
+    .map(item => applyQueuedInventoryChanges(item, queuedItems));
   const created = queuedItems
     .filter(isQueuedInventoryCreate)
     .filter(item => item.organizationId === organizationId)

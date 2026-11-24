@@ -156,6 +156,22 @@ describe('teams, inventory and equipment edits with no connection', () => {
     expect(mockUpdateItem).toHaveBeenCalledTimes(1);
   });
 
+  it('marks an item create whose answer was lost, because the item may exist on the server', async () => {
+    setOnline(true);
+    mockCreateItem.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+    const lost = await service.createInventoryItem('item-lost', form);
+    setOnline(false);
+    await service.createInventoryItem('item-offline', form);
+
+    expect(lost.queuedOffline).toBe(true);
+    expect(queue.getAll().map(item => item.payload)).toEqual([
+      { itemId: 'item-lost', formData: form, createAttempted: true },
+      // Never sent: nothing can be on the server.
+      { itemId: 'item-offline', formData: form },
+    ]);
+  });
+
   it('does not queue a change the server rejected', async () => {
     setOnline(true);
     mockCreateTeam.mockRejectedValueOnce(new Error('new row violates row-level security policy'));

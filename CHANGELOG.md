@@ -11,6 +11,10 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+### Fixed
+
+- **An inventory item deleted before it synced stays deleted (#1777)** — If the item had already reached the server but the confirmation was lost, deleting it offline only removed it from the device, and it came back after reconnecting. The server copy is now deleted as soon as there is a connection.
+
 ## [3.42.0] - 2026-11-24
 
 ### Added
