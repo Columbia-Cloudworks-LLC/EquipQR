@@ -41,7 +41,7 @@ export function hasQueuedRelationshipEdit(
 }
 
 /**
- * Ids of the queue entries that create or change this item, when the item
+ * Ids of the queue entries that create, change or use this item, when the item
  * itself is still waiting to be created. Deleting such an item means taking
  * these out of the queue: there is nothing on the server to delete, and left
  * in place the create would bring the item back on the next sync.
@@ -54,7 +54,10 @@ export function queuedEntriesForUnsyncedItem(
     item =>
       (item.type === 'inventory_create' ||
         item.type === 'inventory_update' ||
-        item.type === 'inventory_adjust') &&
+        item.type === 'inventory_adjust' ||
+        // A part taken from this item for a work order: it cannot sync
+        // without the item, so it goes with it.
+        item.type === 'work_order_part_use') &&
       item.payload.itemId === itemId,
   );
   return entries.some(isQueuedInventoryCreate) ? entries.map(item => item.id) : [];

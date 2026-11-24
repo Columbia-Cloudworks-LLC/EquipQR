@@ -60,7 +60,14 @@ function useQueuedPartActions() {
      * the item can no longer be changed or dropped from the queue.
      */
     findQueued: (costId: string) => {
-      const queued = findQueuedPartUse(costId, offlineCtx?.queuedItems ?? []);
+      const listed = findQueuedPartUse(costId, offlineCtx?.queuedItems ?? []);
+      // The list on screen can be a moment behind the stored queue (sync may
+      // have just picked the item up), so check the stored item itself.
+      const stored = listed ? offlineCtx?.queueServiceInstance?.getById(listed.id) : undefined;
+      const queued = stored ? findQueuedPartUse(costId, [stored]) : undefined;
+      if (listed && !queued) {
+        throw new Error('This part is syncing right now. Try again in a moment.');
+      }
       const sendingStarted =
         queued &&
         (queued.status === 'processing' ||

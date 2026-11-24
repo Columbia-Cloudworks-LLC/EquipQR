@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   updateCost: vi.fn(),
   removeItem: vi.fn(),
   updatePayload: vi.fn(),
+  getById: vi.fn(),
   queuedItems: [] as unknown[],
 }));
 
@@ -24,7 +25,7 @@ vi.mock('@/contexts/OfflineQueueContext', () => ({
     queuedItems: mocks.queuedItems,
     removeItem: mocks.removeItem,
     refresh: vi.fn(),
-    queueServiceInstance: { updatePayload: mocks.updatePayload },
+    queueServiceInstance: { updatePayload: mocks.updatePayload, getById: mocks.getById },
   }),
 }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
@@ -64,6 +65,8 @@ describe('work order costs with a part added offline', () => {
     mocks.getCosts.mockResolvedValue([]);
     mocks.updatePayload.mockReturnValue(true);
     mocks.queuedItems = [queuedPart()];
+    // The stored queue agrees with what is on screen unless a test says otherwise.
+    mocks.getById.mockImplementation(() => mocks.queuedItems[0]);
   });
 
   it('lists the part on a work order created offline without asking the server for its costs', () => {
@@ -113,6 +116,16 @@ describe('work order costs with a part added offline', () => {
       'syncing right now',
     );
     expect(mocks.removeItem).not.toHaveBeenCalled();
+  });
+
+  it('is refused when sync picked the part up a moment ago and the screen has not caught up', async () => {
+    mocks.getById.mockReturnValue(queuedPart({}, 'processing'));
+    const { result } = renderHook(() => useUpdateWorkOrderCostWithInventory(), { wrapper });
+
+    await expect(
+      result.current.mutateAsync({ costId: 'cost-new', updateData: { quantity: 3 }, organizationId: 'org-1' }),
+    ).rejects.toThrow('syncing right now');
+    expect(mocks.updatePayload).not.toHaveBeenCalled();
   });
 
   it('leaves cost lines that are on the server to the server', async () => {

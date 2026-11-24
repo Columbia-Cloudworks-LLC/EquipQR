@@ -244,6 +244,16 @@ describe('inventory waiting in the offline queue', () => {
       edit.id,
       count.id,
     ]);
+    // A part taken from it for a work order goes with it: it could never sync.
+    const used = queued('work_order_part_use', {
+      costId: 'cost-1',
+      workOrderId: 'wo-1',
+      itemId: 'item-new',
+      description: 'Hydraulic hose',
+      quantity: 1,
+      unitPriceCents: 500,
+    });
+    expect(queuedEntriesForUnsyncedItem('item-new', [create, used])).toEqual([create.id, used.id]);
     // An item that is already on the server is deleted there, not in the queue.
     expect(queuedEntriesForUnsyncedItem('item-1', [create, other])).toEqual([]);
   });

@@ -249,7 +249,19 @@ async function applyStockChangeOnce(
     if (recorded.length > 0) return;
   }
 
-  await adjustInventoryQuantity(item.organizationId, adjustment);
+  try {
+    await adjustInventoryQuantity(item.organizationId, adjustment);
+  } catch (error) {
+    // The server answered and refused (not enough stock, no permission), so
+    // nothing was recorded. Forget the reading: the next attempt takes a
+    // fresh one, and cannot take a later identical change made by another
+    // queued item for its own. Only a lost connection leaves it in doubt.
+    if (!isConnectivityFailure(error)) {
+      delete item.payload.lastMovementBeforeReplay;
+      queueService.updatePayload(item.id, { lastMovementBeforeReplay: undefined }, { syncBookkeeping: true });
+    }
+    throw error;
+  }
 }
 
 // ─── Conflict info ───────────────────────────────────────────────────────────

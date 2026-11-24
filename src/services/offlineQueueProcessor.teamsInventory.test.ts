@@ -219,6 +219,33 @@ describe('offline replay of teams and inventory', () => {
     expect(queue.getAll()[0]).toMatchObject({ status: 'pending', retryCount: 2 });
   });
 
+  it('does not take another identical change for its own after the server refused the first try', async () => {
+    const { queue, processor } = setup();
+    const enqueue = () =>
+      queue.enqueue({
+        type: 'inventory_adjust',
+        organizationId: ORG,
+        userId: USER,
+        payload: { itemId: ITEM_ID, delta: -1, reason: 'Manual adjustment' },
+      });
+    enqueue();
+    enqueue();
+    // Both refused: not enough stock yet. Nothing was recorded for either.
+    mockAdjust.mockRejectedValue(new Error('Insufficient stock: requested 1 units, but only 0 available'));
+    await processor.processAll();
+    expect(queue.getAll().every(item => !('lastMovementBeforeReplay' in item.payload))).toBe(true);
+
+    // Stock arrives. The first one's movement must not count as the second one's.
+    mockAdjust.mockReset().mockImplementation(async () => {
+      lookupRows.inventory_transactions = [{ id: 'movement-of-first' }];
+      return 0;
+    });
+    const second = await processor.processAll();
+
+    expect(second.succeeded).toBe(2);
+    expect(mockAdjust).toHaveBeenCalledTimes(2);
+  });
+
   it('does not count stock twice when the connection dropped before the first answer arrived', async () => {
     const { queue, processor } = setup();
     queue.enqueue({
