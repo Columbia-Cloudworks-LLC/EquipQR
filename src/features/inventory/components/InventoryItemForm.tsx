@@ -225,6 +225,9 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
     addToGroupMutation.isPending;
   const isEditingDataPending = !!editingItem && !isEditingDataLoaded;
   const isFormDisabled = isMutating || isEditingDataPending || editingDataLoadError;
+  // An item's compatibility rules and linked equipment cannot be read with no
+  // connection, or before an item created offline has synced.
+  const relationshipsAvailable = !editingItem || relationshipsLoaded;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -244,7 +247,7 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pb-safe-bottom">
             <InventoryItemFormBasicFields form={form} editingItem={editingItem} />
 
-            {editingItem && !relationshipsLoaded ? (
+            {!relationshipsAvailable ? (
               <p role="status" className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
                 Compatibility rules and linked equipment are not available right now (there is no
                 connection, or this item has not synced yet). They are not shown here and will be
@@ -252,28 +255,33 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
               </p>
             ) : null}
 
-            <FormField
-              control={form.control}
-              name="compatibilityRules"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <CompatibilityRulesEditor
-                      rules={(field.value || []) as PartCompatibilityRuleFormData[]}
-                      onChange={field.onChange}
-                      disabled={isFormDisabled}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Hidden while they cannot be read: anything entered would not be saved. */}
+            {relationshipsAvailable ? (
+              <>
+              <FormField
+                control={form.control}
+                name="compatibilityRules"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <CompatibilityRulesEditor
+                        rules={(field.value || []) as PartCompatibilityRuleFormData[]}
+                        onChange={field.onChange}
+                        disabled={isFormDisabled}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <InventoryItemFormDirectLinksSection
-              allEquipment={allEquipment}
-              selectedEquipmentIds={selectedEquipmentIds}
-              onEquipmentToggle={handleEquipmentToggle}
-            />
+              <InventoryItemFormDirectLinksSection
+                allEquipment={allEquipment}
+                selectedEquipmentIds={selectedEquipmentIds}
+                onEquipmentToggle={handleEquipmentToggle}
+              />
+              </>
+            ) : null}
 
             {!editingItem && (
               <InventoryItemFormAlternateGroupSection

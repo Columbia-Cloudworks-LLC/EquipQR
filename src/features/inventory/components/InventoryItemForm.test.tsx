@@ -301,6 +301,8 @@ describe('InventoryItemForm editing an item whose compatibility data could not b
     const formData = await saveWithNewName();
 
     expect(screen.getByRole('status')).toHaveTextContent(/will be left as they are/i);
+    // Nothing can be entered that would then be dropped.
+    expect(screen.queryByRole('button', { name: 'Add Rule' })).not.toBeInTheDocument();
     expect(formData.name).toBe('Air filter (cab)');
     expect(formData).not.toHaveProperty('compatibleEquipmentIds');
     expect(formData).not.toHaveProperty('compatibilityRules');
@@ -325,6 +327,7 @@ describe('InventoryItemForm editing an item whose compatibility data could not b
     const formData = await saveWithNewName();
 
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add Rule' })).toBeInTheDocument();
     expect(formData.compatibleEquipmentIds).toEqual(['11111111-1111-4111-8111-111111111111']);
     expect(formData.compatibilityRules).toHaveLength(1);
   });
