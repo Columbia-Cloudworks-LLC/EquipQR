@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -10,7 +11,13 @@ import {
   getPMsByWorkOrderId,
   getLatestCompletedPMDetails,
   UpdatePMData,
+  type PreventativeMaintenance,
 } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import { useQueuedItems } from '@/features/offline-queue/hooks/useQueuedLookups';
+import { applyQueuedPmUpdates } from '@/features/offline-queue/utils/queuedPm';
+import { useOfflineQueuedPm } from '@/features/work-orders/hooks/useOfflineQueuedPm';
+import { parseOfflineQueueItemId } from '@/features/work-orders/hooks/useOfflineQueuedWorkOrder';
+import { isOfflineId } from '@/features/work-orders/types/offlineMergedWorkOrder';
 import { preventiveMaintenance as preventiveMaintenanceKeys } from '@/lib/queryKeys';
 import { toast } from 'sonner';
 
@@ -21,19 +28,51 @@ function fieldReadPersister() {
 // Legacy hook - returns first PM found
 export const usePMByWorkOrderId = (workOrderId: string) => {
   const { currentOrganization } = useOrganization();
+  const withQueuedUpdates = useQueuedPmUpdates();
 
-  return useQuery({
+  // A work order created offline has no PM on the server yet; its checklist
+  // lives in the offline queue. Completing the work order checks this hook.
+  const queuedItems = useQueuedItems();
+  const queuedWorkOrderId = isOfflineId(workOrderId) ? parseOfflineQueueItemId(workOrderId) : null;
+  const queuedCreate = queuedWorkOrderId
+    ? queuedItems.find(item => item.id === queuedWorkOrderId && item.type === 'work_order_create')
+    : undefined;
+  const queuedPm = useOfflineQueuedPm(
+    queuedCreate?.type === 'work_order_create' && queuedCreate.payload.hasPM ? workOrderId : undefined,
+    queuedCreate?.type === 'work_order_create' ? queuedCreate.payload.equipmentId : undefined,
+  );
+
+  const query = useQuery({
     queryKey: ['preventativeMaintenance', workOrderId, currentOrganization?.id],
     queryFn: () => getPMByWorkOrderId(workOrderId, currentOrganization!.id),
-    enabled: !!workOrderId && !!currentOrganization?.id,
+    // A placeholder id is never sent to the server.
+    enabled: !!workOrderId && !!currentOrganization?.id && !queuedWorkOrderId,
     staleTime: 5 * 60 * 1000,  // 5 min — active work data
     gcTime: 30 * 60 * 1000,    // 30 min — survive offline
+    select: withQueuedUpdates,
   });
+
+  if (!queuedPm || query.data) return query;
+  return { ...query, data: queuedPm, isPending: false, isLoading: false, isError: false, error: null };
 };
+
+/**
+ * Applies PM edits still waiting in the offline queue to what a PM query
+ * returns, so a checklist finished with no connection reads as finished.
+ */
+function useQueuedPmUpdates() {
+  const queuedItems = useQueuedItems();
+  return useCallback(
+    <T extends PreventativeMaintenance | null | undefined>(pm: T): T | PreventativeMaintenance =>
+      pm ? applyQueuedPmUpdates(pm, queuedItems) : pm,
+    [queuedItems],
+  );
+}
 
 // Multi-equipment support - get PM by work order AND equipment
 export const usePMByWorkOrderAndEquipment = (workOrderId: string, equipmentId: string) => {
   const { currentOrganization } = useOrganization();
+  const withQueuedUpdates = useQueuedPmUpdates();
 
   return useQuery({
     queryKey: ['preventativeMaintenance', workOrderId, equipmentId, currentOrganization?.id],
@@ -49,6 +88,7 @@ export const usePMByWorkOrderAndEquipment = (workOrderId: string, equipmentId: s
     // Keep previous data when query fails - prevents clearing on 406 errors
     placeholderData: (previousData) => previousData,
     persister: fieldReadPersister(),
+    select: withQueuedUpdates,
   });
 };
 

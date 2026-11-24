@@ -5,6 +5,9 @@ import type { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
 import { logger } from '@/utils/logger';
+import { useAuth } from '@/hooks/useAuth';
+import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
+import { OfflineAwareWorkOrderService, UNKNOWN_SERVER_VERSION } from '@/services/offlineAwareService';
 import { workOrderKeys } from '@/features/work-orders/hooks/useWorkOrders';
 import { workOrders as workOrderQueryKeys, notifications as notificationQueryKeys } from '@/lib/queryKeys';
 
@@ -16,9 +19,28 @@ interface AcceptWorkOrderParams {
 
 export const useWorkOrderAcceptance = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const offlineCtx = useOfflineQueueOptional();
 
   return useMutation({
     mutationFn: async ({ workOrderId, organizationId, assigneeId }: AcceptWorkOrderParams) => {
+      // No connection (or earlier changes still waiting to sync): queue the
+      // acceptance. The organization's size cannot
+      // be checked, so a one-person organization lands on accepted/assigned
+      // here and starts the work as a separate step.
+      const service = user?.id ? new OfflineAwareWorkOrderService(organizationId, user.id) : null;
+      if (service?.shouldQueue(workOrderId)) {
+        await service.updateStatus(
+          workOrderId,
+          assigneeId ? 'assigned' : 'accepted',
+          // Version unknown: sync checks the current state before applying.
+          UNKNOWN_SERVER_VERSION,
+          assigneeId,
+        );
+        offlineCtx?.refresh();
+        return null;
+      }
+
       // Get organization member count to determine if single-user org
       const { data: orgMembers } = await supabase
         .from('organization_members')
@@ -64,6 +86,12 @@ export const useWorkOrderAcceptance = () => {
       return data;
     },
     onSuccess: (data, { workOrderId, organizationId }) => {
+      if (data === null) {
+        toast.success('Saved offline', {
+          description: 'The work order will be accepted when your connection returns.',
+        });
+        return;
+      }
       // Invalidate the specific work order detail so the details page re-renders immediately
       queryClient.invalidateQueries({
         queryKey: workOrderKeys.detail(organizationId, workOrderId),

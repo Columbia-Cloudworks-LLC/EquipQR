@@ -28,6 +28,8 @@ import { isUserPartsConsumer } from '@/features/inventory/services/partsConsumer
 import { partsRoles } from '@/lib/queryKeys/misc';
 import { teamAccessQueryScope } from '@/features/teams/utils/teamAccessScope';
 import { offlineSavedKeys } from '@/features/offline-queue/utils/offlineSavedData';
+import TeamRepository from '@/features/teams/services/repositories/TeamRepository';
+import { fetchOrgAdminAssignees } from '@/features/work-orders/services/workOrderAssigneeService';
 import { logger } from '@/utils/logger';
 
 export interface OfflineDownloadScope {
@@ -203,6 +205,33 @@ export async function downloadInventoryForOffline(
     return true;
   } catch (error) {
     logger.error('Failed to save inventory for offline use', error);
+    return false;
+  }
+}
+
+/**
+ * Saves the teams the user can see (with their members) and the
+ * organization's owners and admins. The Teams screen, every team picker and
+ * the work order assignee list are built from these with no signal.
+ * Returns false when it could not be fetched.
+ */
+export async function downloadTeamsForOffline(
+  queryClient: QueryClient,
+  organizationId: string,
+  isStillWanted: () => boolean = () => true,
+): Promise<boolean> {
+  try {
+    const [teams, admins] = await Promise.all([
+      // Strict: a failed request must not replace a good saved copy with "no teams".
+      TeamRepository.getTeamsByOrgStrict(organizationId),
+      fetchOrgAdminAssignees(organizationId),
+    ]);
+    if (!isStillWanted()) return false;
+    queryClient.setQueryData(offlineSavedKeys.teamList(organizationId), teams);
+    queryClient.setQueryData(offlineSavedKeys.orgAdmins(organizationId), admins);
+    return true;
+  } catch (error) {
+    logger.error('Failed to save teams for offline use', error);
     return false;
   }
 }

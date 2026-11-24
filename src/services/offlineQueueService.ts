@@ -22,6 +22,9 @@ import type {
 } from '@/features/equipment/services/EquipmentService';
 import type { UpdateWorkingHoursData } from '@/features/equipment/services/equipmentWorkingHoursService';
 import type { PMChecklistItem } from '@/features/pm-templates/services/preventativeMaintenanceService';
+import type { TeamInsert } from '@/features/teams/types/team';
+import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
+import type { InventoryQuantityAdjustment } from '@/features/inventory/types/inventory';
 import {
   rewriteQueueItemsPlaceholders,
   type PlaceholderRemap,
@@ -61,7 +64,11 @@ export type OfflineQueueItemType =
   | 'pm_init'
   | 'pm_update'
   | 'pm_delete'
-  | 'equipment_scan';
+  | 'equipment_scan'
+  | 'team_create'
+  | 'inventory_create'
+  | 'inventory_update'
+  | 'inventory_adjust';
 
 export type OfflineQueueItemStatus = 'pending' | 'processing' | 'failed';
 
@@ -304,6 +311,52 @@ export interface OfflineQueueEquipmentScanItem extends OfflineQueueItemBase {
   };
 }
 
+/**
+ * A team created with no connection. The team's id is generated on the
+ * device, so equipment queued afterwards can already point at it and a
+ * retried replay cannot create the team twice.
+ */
+export interface OfflineQueueTeamCreateItem extends OfflineQueueItemBase {
+  type: 'team_create';
+  payload: {
+    team: TeamInsert & { id: string };
+    /** Becomes the team's first manager, as when created online. */
+    creatorId: string;
+  };
+}
+
+/** An inventory item created with no connection. Its id is generated on the device. */
+export interface OfflineQueueInventoryCreateItem extends OfflineQueueItemBase {
+  type: 'inventory_create';
+  payload: {
+    itemId: string;
+    formData: InventoryItemFormData;
+  };
+}
+
+export interface OfflineQueueInventoryUpdateItem extends OfflineQueueItemBase {
+  type: 'inventory_update';
+  payload: {
+    itemId: string;
+    /** Only the fields the user changed. */
+    formData: Partial<InventoryItemFormData>;
+  };
+}
+
+/** Stock added or removed with no connection. Replayed as the same change, not as a final count. */
+export interface OfflineQueueInventoryAdjustItem extends OfflineQueueItemBase {
+  type: 'inventory_adjust';
+  payload: InventoryQuantityAdjustment & {
+    /**
+     * Time of the item's newest stock movement on the server just before
+     * replay first sent this adjustment. If the connection dropped before the
+     * answer arrived, the next attempt looks for a matching movement recorded
+     * after this before sending again.
+     */
+    lastMovementBeforeReplay?: string;
+  };
+}
+
 export type OfflineQueueItem =
   | OfflineQueueCreateItem
   | OfflineQueueUpdateItem
@@ -317,7 +370,11 @@ export type OfflineQueueItem =
   | OfflineQueuePMInitItem
   | OfflineQueuePMUpdateItem
   | OfflineQueuePMDeleteItem
-  | OfflineQueueEquipmentScanItem;
+  | OfflineQueueEquipmentScanItem
+  | OfflineQueueTeamCreateItem
+  | OfflineQueueInventoryCreateItem
+  | OfflineQueueInventoryUpdateItem
+  | OfflineQueueInventoryAdjustItem;
 
 /** The shape callers pass to enqueue — id, retryCount, status etc. are generated. */
 export type OfflineQueueEnqueueInput = {
@@ -334,6 +391,7 @@ interface OfflineQueueCompactionState {
   equipmentUpdateMap: Map<string, OfflineQueueEquipmentUpdateItem>;
   equipmentHoursMap: Map<string, OfflineQueueEquipmentHoursItem>;
   pmUpdateMap: Map<string, OfflineQueuePMUpdateItem>;
+  inventoryUpdateMap: Map<string, OfflineQueueInventoryUpdateItem>;
 }
 
 function createCompactionState(): OfflineQueueCompactionState {
@@ -344,6 +402,7 @@ function createCompactionState(): OfflineQueueCompactionState {
     equipmentUpdateMap: new Map(),
     equipmentHoursMap: new Map(),
     pmUpdateMap: new Map(),
+    inventoryUpdateMap: new Map(),
   };
 }
 
@@ -408,6 +467,22 @@ function compactEquipmentUpdate(
     ),
   };
   existing.timestamp = eqUpdateItem.timestamp;
+}
+
+function compactInventoryUpdate(
+  inventoryUpdateMap: Map<string, OfflineQueueInventoryUpdateItem>,
+  updateItem: OfflineQueueInventoryUpdateItem,
+): void {
+  const existing = inventoryUpdateMap.get(updateItem.payload.itemId);
+  if (!existing) {
+    inventoryUpdateMap.set(updateItem.payload.itemId, cloneQueueItem(updateItem));
+    return;
+  }
+  existing.payload = {
+    ...existing.payload,
+    formData: { ...existing.payload.formData, ...updateItem.payload.formData },
+  };
+  existing.timestamp = updateItem.timestamp;
 }
 
 function preferDefined<TValue>(
@@ -480,6 +555,9 @@ function compactQueueItem(item: OfflineQueueItem, state: OfflineQueueCompactionS
     case 'pm_update':
       compactPmUpdate(state.pmUpdateMap, item);
       break;
+    case 'inventory_update':
+      compactInventoryUpdate(state.inventoryUpdateMap, item);
+      break;
     default:
       state.compacted.push(item);
       break;
@@ -494,6 +572,7 @@ function buildCompactedQueue(state: OfflineQueueCompactionState): OfflineQueueIt
     ...state.equipmentUpdateMap.values(),
     ...state.equipmentHoursMap.values(),
     ...state.pmUpdateMap.values(),
+    ...state.inventoryUpdateMap.values(),
   ].sort((a, b) => a.timestamp - b.timestamp);
 }
 

@@ -17,10 +17,12 @@ vi.mock('@/features/pm-templates/services/pmChecklistTemplatesService', () => ({
 
 const mockDownloadWorkOrders = vi.hoisted(() => vi.fn());
 const mockDownloadInventory = vi.hoisted(() => vi.fn());
+const mockDownloadTeams = vi.hoisted(() => vi.fn());
 
 vi.mock('@/features/offline-queue/services/offlineWorkDataDownload', () => ({
   downloadWorkOrdersForOffline: mockDownloadWorkOrders,
   downloadInventoryForOffline: mockDownloadInventory,
+  downloadTeamsForOffline: mockDownloadTeams,
 }));
 
 vi.mock('@/hooks/useBrowserOnline', () => ({
@@ -30,6 +32,7 @@ vi.mock('@/hooks/useBrowserOnline', () => ({
 import {
   downloadEquipmentForOffline,
   readLastOfflineDownload,
+  requestOfflineDataRefresh,
   readRememberedTeamMemberships,
   useOfflineEquipmentDownload,
   useRememberTeamMemberships,
@@ -62,6 +65,7 @@ describe('offline equipment download', () => {
     mockListTemplates.mockReset().mockResolvedValue([{ id: 'template-1' }]);
     mockDownloadWorkOrders.mockReset().mockResolvedValue(true);
     mockDownloadInventory.mockReset().mockResolvedValue(true);
+    mockDownloadTeams.mockReset().mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -188,11 +192,14 @@ describe('offline equipment download', () => {
 
   it('downloads again after an app update, because the saved copy is discarded with the old version', async () => {
     const { wrapper } = setup();
-    const previousVersionMarker = 'equipqr_offline_data_download_0.0.1-previous_user-1_org-1_org-admin';
-    // Left by the release that only saved equipment: it must not count as up to date.
+    const previousVersionMarker = 'equipqr_offline_data_v2_download_0.0.1-previous_user-1_org-1_org-admin';
+    // Left by releases that saved less (equipment only, then without teams):
+    // they must not count as up to date.
     const equipmentOnlyMarker = 'equipqr_offline_equipment_download_dev_user-1_org-1_org-admin';
+    const withoutTeamsMarker = 'equipqr_offline_data_download_dev_user-1_org-1_org-admin';
     localStorage.setItem(previousVersionMarker, String(Date.now()));
     localStorage.setItem(equipmentOnlyMarker, String(Date.now()));
+    localStorage.setItem(withoutTeamsMarker, String(Date.now()));
 
     renderHook(() => useOfflineEquipmentDownload('user-1', ORG_ID, { isOrgAdmin: true }), { wrapper });
     await vi.advanceTimersByTimeAsync(5000);
@@ -200,6 +207,28 @@ describe('offline equipment download', () => {
     expect(mockGetAllFullRecords).toHaveBeenCalledTimes(1);
     expect(localStorage.getItem(previousVersionMarker)).toBeNull();
     expect(localStorage.getItem(equipmentOnlyMarker)).toBeNull();
+    expect(localStorage.getItem(withoutTeamsMarker)).toBeNull();
+  });
+
+  it('downloads again straight away when asked to, as after offline changes sync', async () => {
+    const { wrapper } = setup();
+    renderHook(() => useOfflineEquipmentDownload('user-1', ORG_ID, { isOrgAdmin: true }), { wrapper });
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(mockGetAllFullRecords).toHaveBeenCalledTimes(1);
+
+    // Another user's copy is not affected.
+    await act(async () => {
+      requestOfflineDataRefresh('user-2', ORG_ID);
+    });
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(mockGetAllFullRecords).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      requestOfflineDataRefresh('user-1', ORG_ID);
+    });
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(mockGetAllFullRecords).toHaveBeenCalledTimes(2);
+    expect(mockDownloadTeams).toHaveBeenCalledTimes(2);
   });
 
   it('downloads work orders and inventory too, with the same access scope', async () => {
@@ -214,6 +243,7 @@ describe('offline equipment download', () => {
     const scope = { userTeamIds: ['team-a'], isOrgAdmin: false };
     expect(mockDownloadWorkOrders).toHaveBeenCalledWith(queryClient, ORG_ID, 'user-1', scope, expect.any(Function));
     expect(mockDownloadInventory).toHaveBeenCalledWith(queryClient, ORG_ID, 'user-1', scope, expect.any(Function));
+    expect(mockDownloadTeams).toHaveBeenCalledWith(queryClient, ORG_ID, expect.any(Function));
     expect(readLastOfflineDownload('user-1', ORG_ID, scope)).not.toBeNull();
   });
 

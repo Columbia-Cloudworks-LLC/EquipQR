@@ -9,22 +9,100 @@
  * - equipmentId is REQUIRED for work order assignment
  */
 
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
+import {
+  fetchOrgAdminAssignees,
+  type AssignmentOption,
+} from '@/features/work-orders/services/workOrderAssigneeService';
+import { useBrowserOnline } from '@/hooks/useBrowserOnline';
+import { useEquipmentSummariesWithQueued } from '@/features/offline-queue/hooks/useQueuedEquipment';
+import { offlineSavedKeys, useSavedCopy } from '@/features/offline-queue/utils/offlineSavedData';
+import type { TeamWithMembers } from '@/features/teams/types/team';
 
-export interface AssignmentOption {
-  id: string;
-  name: string;
-  type: 'user';
-  email?: string | null;
-  role?: string;
-}
+export type { AssignmentOption };
 
 interface AssignmentQueryResult {
   assignees: AssignmentOption[];
   equipmentHasNoTeam: boolean;
   teamName: string | null;
+}
+
+/** One entry per person, sorted by name. */
+function uniqueSortedAssignees(assignees: AssignmentOption[]): AssignmentOption[] {
+  return assignees
+    .filter((assignee, index, self) => index === self.findIndex(a => a.id === assignee.id))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+const ASSIGNABLE_TEAM_ROLES: ReadonlySet<string> = new Set(['manager', 'technician']);
+
+/**
+ * The same list the server builds, worked out from the copies saved on the
+ * device: the equipment's team members who can do the work, plus the
+ * organization's owners and admins.
+ */
+export function buildOfflineAssignmentOptions(
+  teamId: string | null | undefined,
+  teams: readonly TeamWithMembers[],
+  admins: readonly AssignmentOption[],
+): AssignmentQueryResult {
+  if (!teamId) return { assignees: [], equipmentHasNoTeam: true, teamName: null };
+  const team = teams.find(candidate => candidate.id === teamId);
+  const teamOptions: AssignmentOption[] = (team?.members ?? [])
+    .filter(member => ASSIGNABLE_TEAM_ROLES.has(member.role))
+    .map(member => ({
+      id: member.user_id,
+      name: member.profiles?.name ?? 'Unknown',
+      email: member.profiles?.email ?? '',
+      role: member.role,
+      type: 'user' as const,
+    }));
+  return {
+    assignees: uniqueSortedAssignees([...admins, ...teamOptions]),
+    equipmentHasNoTeam: false,
+    teamName: team?.name ?? null,
+  };
+}
+
+/**
+ * Assignment options built on the device while there is no connection, or
+ * `undefined` when connected, not needed, or the equipment is not saved.
+ * Also covers equipment created offline, which the server has not seen.
+ */
+export function useOfflineAssignmentOptions(input: {
+  organizationId: string | undefined;
+  equipmentId: string | undefined;
+  /** False once the server's answer is available. */
+  needed: boolean;
+  /** The equipment's team, when the caller already knows it. */
+  knownTeamId?: string | null;
+  /** Offer owners and admins even when the equipment has no team. */
+  adminsWhenNoTeam?: boolean;
+}): AssignmentQueryResult | undefined {
+  const { organizationId, equipmentId, knownTeamId, adminsWhenNoTeam = false } = input;
+  const isOnline = useBrowserOnline();
+  const needsOffline = !isOnline && input.needed && !!organizationId && !!equipmentId;
+  const equipmentSummaries = useEquipmentSummariesWithQueued(organizationId, { enabled: needsOffline });
+  const savedTeams = useSavedCopy<TeamWithMembers[]>(
+    needsOffline && organizationId ? offlineSavedKeys.teamList(organizationId) : undefined,
+  );
+  const savedAdmins = useSavedCopy<AssignmentOption[]>(
+    needsOffline && organizationId ? offlineSavedKeys.orgAdmins(organizationId) : undefined,
+  );
+
+  return useMemo(() => {
+    if (!needsOffline) return undefined;
+    const equipment = equipmentSummaries.find(candidate => candidate.id === equipmentId);
+    const teamId = knownTeamId ?? equipment?.team_id;
+    if (!teamId && !equipment) return undefined;
+    const result = buildOfflineAssignmentOptions(teamId, savedTeams ?? [], savedAdmins ?? []);
+    return result.equipmentHasNoTeam && adminsWhenNoTeam
+      ? { ...result, assignees: [...(savedAdmins ?? [])].sort((a, b) => a.name.localeCompare(b.name)) }
+      : result;
+  }, [needsOffline, equipmentSummaries, equipmentId, knownTeamId, savedTeams, savedAdmins, adminsWhenNoTeam]);
 }
 
 /**
@@ -66,37 +144,7 @@ export const useWorkOrderAssignmentOptions = (organizationId?: string, equipment
 
       const assignees: AssignmentOption[] = [];
 
-      // Include organization administrators (owner/admin)
-      const { data: orgAdmins, error: orgAdminsError } = await supabase
-        .from('organization_members')
-        .select(`
-          user_id,
-          role,
-          profiles:user_id (
-            id,
-            name,
-            email
-          )
-        `)
-        .eq('organization_id', organizationId)
-        .eq('status', 'active')
-        .in('role', ['owner', 'admin']);
-
-      if (orgAdminsError) {
-        console.error('[useWorkOrderAssignmentOptions] Error fetching org admins:', orgAdminsError);
-        throw orgAdminsError;
-      }
-
-      if (orgAdmins) {
-        const adminOptions = orgAdmins.map(member => ({
-          id: member.user_id,
-          name: member.profiles?.name ?? 'Unknown',
-          email: member.profiles?.email ?? '',
-          role: member.role,
-          type: 'user' as const
-        }));
-        assignees.push(...adminOptions);
-      }
+      assignees.push(...(await fetchOrgAdminAssignees(organizationId)));
 
       // Get team members with manager or technician role
       const { data: teamMembers, error: teamError } = await supabase
@@ -129,13 +177,8 @@ export const useWorkOrderAssignmentOptions = (organizationId?: string, equipment
         assignees.push(...teamOptions);
       }
 
-      // Remove duplicates based on user ID
-      const uniqueAssignees = assignees.filter((assignee, index, self) =>
-        index === self.findIndex(a => a.id === assignee.id)
-      );
-
-      return { 
-        assignees: uniqueAssignees.sort((a, b) => a.name.localeCompare(b.name)),
+      return {
+        assignees: uniqueSortedAssignees(assignees),
         equipmentHasNoTeam: false,
         teamName
       };
@@ -146,13 +189,22 @@ export const useWorkOrderAssignmentOptions = (organizationId?: string, equipment
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  const queryResult = membersQuery.data || { assignees: [], equipmentHasNoTeam: false, teamName: null };
+  // With no connection the request above cannot run. Unless this equipment's
+  // list was loaded earlier, work it out from what is saved on the device.
+  const offlineResult = useOfflineAssignmentOptions({
+    organizationId,
+    equipmentId,
+    needed: !membersQuery.data,
+  });
+
+  const queryResult =
+    membersQuery.data || offlineResult || { assignees: [], equipmentHasNoTeam: false, teamName: null };
 
   return {
     assignmentOptions: queryResult.assignees,
     members: queryResult.assignees,
-    isLoading: membersQuery.isLoading,
-    error: membersQuery.error,
+    isLoading: offlineResult ? false : membersQuery.isLoading,
+    error: offlineResult ? null : membersQuery.error,
     equipmentHasNoTeam: queryResult.equipmentHasNoTeam,
     teamName: queryResult.teamName
   };

@@ -10,6 +10,7 @@ import type { EquipmentQRVariant } from '@/features/equipment/components/QRCodeD
 import { useGoogleMapsLoader } from '@/hooks/useGoogleMapsLoader';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useEquipmentById } from '@/features/equipment/hooks/useEquipment';
+import { isOfflineEquipmentId } from '@/features/equipment/hooks/useOfflineMergedEquipment';
 import { useSaveEquipmentAssignedLocation } from '@/features/equipment/hooks/useSaveEquipmentAssignedLocation';
 import type { EquipmentTeamSummary } from '@/features/equipment/services/EquipmentService';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -86,6 +87,14 @@ const EquipmentDetails = () => {
       enabled: teamsReady,
     },
   );
+  // Equipment created offline is shown under a placeholder id. Once it syncs
+  // that id is gone, so return to the list, where it now appears for real.
+  const placeholderGone =
+    !!equipmentId && isOfflineEquipmentId(equipmentId) && !equipment && !orgLoading && !equipmentLoading;
+  useEffect(() => {
+    if (placeholderGone) navigate('/dashboard/equipment', { replace: true });
+  }, [placeholderGone, navigate]);
+
   const isMobile = useIsMobile();
   const isQRScan = searchParams.get('qr') === 'true';
   const { canView: canViewInventory, isLoading: inventoryAccessLoading } = useInventoryAccess();

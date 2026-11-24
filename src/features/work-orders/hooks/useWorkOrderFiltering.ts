@@ -7,7 +7,7 @@ import { useSelectedTeam } from '@/hooks/useSelectedTeam'
 import { useTeamBasedAccess } from '@/features/teams/hooks/useTeamBasedWorkOrders'
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext'
 import { useAuth } from '@/hooks/useAuth'
-import { useEquipmentSummaries } from '@/features/equipment/hooks/useEquipment'
+import { useEquipmentSummariesWithQueued } from '@/features/offline-queue/hooks/useQueuedEquipment'
 import { workOrders } from '@/lib/queryKeys'
 import { buildOfflineQueuedWorkOrder } from '@/features/work-orders/utils/buildOfflineQueuedWorkOrder'
 import {
@@ -22,6 +22,7 @@ import {
   getUnassignedSubmittedCount,
 } from '@/features/work-orders/services/workOrderListService'
 import { useWorkOrderList } from '@/features/work-orders/hooks/useWorkOrderList'
+import { useApplyQueuedWorkOrderChanges } from '@/features/offline-queue/hooks/useQueuedWorkOrderChanges'
 import {
   parseWorkOrderListContract,
   type TeamBasedWorkOrder,
@@ -94,6 +95,24 @@ function selectedTeamFilterValue(selectedTeamId: string | null): string {
   return selectedTeamId
 }
 
+/** List rows carry camelCase copies of a few columns; keep them in step with queued changes. */
+function withQueuedChanges(
+  row: TeamBasedWorkOrder,
+  applyQueuedChanges: (workOrder: TeamBasedWorkOrder) => TeamBasedWorkOrder,
+): TeamBasedWorkOrder {
+  const changed = applyQueuedChanges(row)
+  if (changed === row) {
+    return row
+  }
+  return {
+    ...changed,
+    assigneeId: changed.assignee_id,
+    dueDate: changed.due_date,
+    estimatedHours: changed.estimated_hours,
+    completedDate: changed.completed_date,
+  }
+}
+
 function toOfflineListRow(order: ReturnType<typeof buildOfflineQueuedWorkOrder>): TeamBasedWorkOrder {
   return {
     ...order,
@@ -116,7 +135,7 @@ export function useWorkOrderFiltering() {
   const { selectedTeamId } = useSelectedTeam()
   const { userTeamIds, isManager, isLoading: teamAccessLoading } = useTeamBasedAccess()
   const offlineCtx = useOfflineQueueOptional()
-  const { data: allEquipment = [] } = useEquipmentSummaries(currentOrganization?.id)
+  const allEquipment = useEquipmentSummariesWithQueued(currentOrganization?.id)
 
   const [filters, setFilters] = useState<WorkOrderFilters>(DEFAULT_WORK_ORDER_FILTERS)
   const [activePresets, setActivePresets] = useState<Set<QuickFilterPreset>>(new Set())
@@ -203,6 +222,8 @@ export function useWorkOrderFiltering() {
     refetchOnWindowFocus: false,
   })
 
+  const applyQueuedChanges = useApplyQueuedWorkOrderChanges()
+
   const offlineRows = useMemo(() => {
     if (!offlineCtx) {
       return []
@@ -222,17 +243,20 @@ export function useWorkOrderFiltering() {
         userDisplayName: user?.user_metadata?.full_name ?? null,
       })
       const equipment = allEquipment.find((entry) => entry.id === queued.equipment_id)
-      return toOfflineListRow({
-        ...queued,
-        equipmentTeamId: queued.equipmentTeamId ?? equipment?.team_id ?? undefined,
-      })
+      return withQueuedChanges(
+        toOfflineListRow({
+          ...queued,
+          equipmentTeamId: queued.equipmentTeamId ?? equipment?.team_id ?? undefined,
+        }),
+        applyQueuedChanges,
+      )
     })
     return filterWorkOrders(
       rows,
       { ...filters, teamFilter: selectedTeamFilterValue(selectedTeamId) },
       currentUser?.id,
     )
-  }, [allEquipment, currentUser?.id, filters, offlineCtx, selectedTeamId, user?.user_metadata?.full_name])
+  }, [allEquipment, applyQueuedChanges, currentUser?.id, filters, offlineCtx, selectedTeamId, user?.user_metadata?.full_name])
 
   // With no connection the server cannot filter or page the list. Use the
   // copy the background download saved on this device and do it here.
@@ -246,23 +270,25 @@ export function useWorkOrderFiltering() {
     if (!useSaved || !savedList) {
       return null
     }
+    // Queued changes first, so a work order started offline is found under
+    // its new status.
     const matching = filterWorkOrders(
-      savedList.rows,
+      savedList.rows.map((row) => withQueuedChanges(row, applyQueuedChanges)),
       { ...filters, teamFilter: selectedTeamFilterValue(selectedTeamId) },
       currentUser?.id,
     )
     return sortWorkOrdersOffline(matching, sortField, sortDirection)
-  }, [currentUser?.id, filters, savedList, selectedTeamId, sortDirection, sortField, useSaved])
+  }, [applyQueuedChanges, currentUser?.id, filters, savedList, selectedTeamId, sortDirection, sortField, useSaved])
 
   const workOrdersPage = useMemo(() => {
     const serverRows = offlineList
       ? pageOf(offlineList, currentPage, pageSize)
-      : listQuery.data?.data ?? []
+      : (listQuery.data?.data ?? []).map((row) => withQueuedChanges(row, applyQueuedChanges))
     if (currentPage !== 1 || offlineRows.length === 0) {
       return serverRows
     }
     return [...offlineRows, ...serverRows]
-  }, [currentPage, listQuery.data?.data, offlineList, offlineRows, pageSize])
+  }, [applyQueuedChanges, currentPage, listQuery.data?.data, offlineList, offlineRows, pageSize])
 
   const updateFilter = useCallback(
     (key: keyof WorkOrderFilters, value: string) => {

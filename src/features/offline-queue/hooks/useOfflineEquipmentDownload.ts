@@ -11,6 +11,7 @@ import type { QRActionTeamMembership } from '@/features/equipment/services/equip
 import { offlineSavedKeys } from '@/features/offline-queue/utils/offlineSavedData';
 import {
   downloadInventoryForOffline,
+  downloadTeamsForOffline,
   downloadWorkOrdersForOffline,
 } from '@/features/offline-queue/services/offlineWorkDataDownload';
 
@@ -89,12 +90,13 @@ export function useRememberTeamMemberships(
 /**
  * Marker for "the saved copy is up to date". The app version is part of the
  * key: a new deploy discards the saved copy (see queryPersistence), so the
- * download must run again straight away. The prefix changed when work
- * orders and inventory were added, so devices that only have equipment
- * saved download the rest instead of waiting out the interval.
+ * download must run again straight away. The prefix changes whenever
+ * more is added to the download (work orders and inventory, then teams), so
+ * devices holding an older, smaller copy download the rest instead of
+ * waiting out the interval.
  */
-const LAST_DOWNLOAD_KEY_PREFIX = 'equipqr_offline_data_download_';
-const RETIRED_DOWNLOAD_KEY_PREFIX = 'equipqr_offline_equipment_download_';
+const LAST_DOWNLOAD_KEY_PREFIX = 'equipqr_offline_data_v2_download_';
+const RETIRED_DOWNLOAD_KEY_PREFIXES = ['equipqr_offline_equipment_download_', 'equipqr_offline_data_download_'];
 
 const lastDownloadKey = (userId: string, organizationId: string, scope: string) =>
   `${LAST_DOWNLOAD_KEY_PREFIX}${OFFLINE_CACHE_VERSION}_${userId}_${organizationId}_${scope}`;
@@ -108,7 +110,7 @@ function removeOtherVersionMarkers(): void {
       const key = localStorage.key(index);
       if (!key) continue;
       const otherVersion = key.startsWith(LAST_DOWNLOAD_KEY_PREFIX) && !key.startsWith(current);
-      if (otherVersion || key.startsWith(RETIRED_DOWNLOAD_KEY_PREFIX)) stale.push(key);
+      if (otherVersion || RETIRED_DOWNLOAD_KEY_PREFIXES.some((prefix) => key.startsWith(prefix))) stale.push(key);
     }
     stale.forEach((key) => localStorage.removeItem(key));
   } catch {
@@ -133,6 +135,29 @@ export function readLastOfflineDownload(
   } catch {
     return null;
   }
+}
+
+const OFFLINE_DATA_REFRESH_EVENT = 'equipqr:offline-data-refresh';
+
+/**
+ * Ask for the saved copy to be downloaded again now instead of waiting out
+ * the interval. Called after offline changes sync: the saved lists were
+ * downloaded before those changes existed on the server, so without this a
+ * record created offline would vanish the next time the signal drops.
+ */
+export function requestOfflineDataRefresh(userId: string, organizationId: string): void {
+  try {
+    const owned = `${LAST_DOWNLOAD_KEY_PREFIX}${OFFLINE_CACHE_VERSION}_${userId}_${organizationId}_`;
+    const markers: string[] = [];
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (key?.startsWith(owned)) markers.push(key);
+    }
+    markers.forEach((key) => localStorage.removeItem(key));
+  } catch {
+    // Without storage there is no marker to clear; the download runs anyway.
+  }
+  window.dispatchEvent(new Event(OFFLINE_DATA_REFRESH_EVENT));
 }
 
 function downloadedRecently(key: string): boolean {
@@ -259,9 +284,11 @@ export function useOfflineEquipmentDownload(
     };
     const interval = setInterval(check, REFRESH_CHECK_INTERVAL_MS);
     document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener(OFFLINE_DATA_REFRESH_EVENT, check);
     return () => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener(OFFLINE_DATA_REFRESH_EVENT, check);
     };
   }, [enabled, userId, organizationId]);
 
@@ -297,6 +324,7 @@ export function useOfflineEquipmentDownload(
         downloadEquipmentForOffline(queryClient, organizationId, scope, isStillWanted),
         downloadWorkOrdersForOffline(queryClient, organizationId, userId, scope, isStillWanted),
         downloadInventoryForOffline(queryClient, organizationId, userId, scope, isStillWanted),
+        downloadTeamsForOffline(queryClient, organizationId, isStillWanted),
       ])
         .then((results) => {
           if (!isStillWanted()) return;

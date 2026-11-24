@@ -11,7 +11,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import type { AssignmentOption } from '@/features/work-orders/hooks/useWorkOrderAssignment';
+import {
+  useOfflineAssignmentOptions,
+  type AssignmentOption,
+} from '@/features/work-orders/hooks/useWorkOrderAssignment';
+import { fetchOrgAdminAssignees } from '@/features/work-orders/services/workOrderAssigneeService';
 
 interface ContextualAssignmentResult {
   assignees: AssignmentOption[];
@@ -75,35 +79,7 @@ export function useWorkOrderContextualAssignment(workOrder?: AssignmentWorkOrder
       const assignees: AssignmentOption[] = [];
 
       // Always get org admins/owners - they can be assigned regardless of team
-      const { data: orgAdmins, error: orgAdminsError } = await supabase
-        .from('organization_members')
-        .select(`
-          user_id,
-          role,
-          profiles!inner(
-            id,
-            name,
-            email
-          )
-        `)
-        .eq('organization_id', organizationId)
-        .eq('status', 'active')
-        .in('role', ['owner', 'admin']);
-
-      if (orgAdminsError) {
-        logger.error('Error fetching org admins:', orgAdminsError);
-        throw orgAdminsError;
-      }
-
-      if (orgAdmins) {
-        assignees.push(...orgAdmins.map(member => ({
-          id: member.user_id,
-          name: member.profiles.name,
-          email: member.profiles.email,
-          role: member.role,
-          type: 'user' as const,
-        })));
-      }
+      assignees.push(...(await fetchOrgAdminAssignees(organizationId)));
 
       // Get team members (manager/technician) only if equipment has a team
       if (teamId) {
@@ -151,12 +127,22 @@ export function useWorkOrderContextualAssignment(workOrder?: AssignmentWorkOrder
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  const result = data || { assignees: [], equipmentHasNoTeam: false };
+  // With no connection the request above cannot run: build the same list
+  // from the teams and admins saved on the device.
+  const offlineResult = useOfflineAssignmentOptions({
+    organizationId: workOrder?.organization_id || workOrder?.organizationId,
+    equipmentId: workOrder?.equipment_id || workOrder?.equipmentId,
+    needed: !data,
+    knownTeamId: workOrder?.equipmentTeamId,
+    adminsWhenNoTeam: true,
+  });
+
+  const result = data || offlineResult || { assignees: [], equipmentHasNoTeam: false };
 
   return {
     assignmentOptions: result.assignees,
-    isLoading,
-    error,
+    isLoading: offlineResult ? false : isLoading,
+    error: offlineResult ? null : error,
     // Flag to indicate assignment is blocked because equipment has no team
     equipmentHasNoTeam: result.equipmentHasNoTeam
   };
