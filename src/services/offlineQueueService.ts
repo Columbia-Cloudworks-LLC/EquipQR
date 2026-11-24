@@ -69,7 +69,8 @@ export type OfflineQueueItemType =
   | 'inventory_create'
   | 'inventory_update'
   | 'inventory_adjust'
-  | 'work_order_part_use';
+  | 'work_order_part_use'
+  | 'inventory_delete';
 
 export type OfflineQueueItemStatus = 'pending' | 'processing' | 'failed';
 
@@ -332,6 +333,28 @@ export interface OfflineQueueInventoryCreateItem extends OfflineQueueItemBase {
   payload: {
     itemId: string;
     formData: InventoryItemFormData;
+    /**
+     * Set once the create has been sent at least once (by sync, or while
+     * connected before it was queued). From then on the item may exist on
+     * the server even though the create is still queued, because the answer
+     * can be lost. Deleting the item then has to delete it there too.
+     * `false` means it was never sent; absent means queued before this
+     * marker existed, which is treated like `true`.
+     */
+    createAttempted?: boolean;
+  };
+}
+
+/**
+ * Deletes an inventory item on the server once there is a connection. Queued
+ * when an item created offline is deleted while offline but its create may
+ * already have reached the server: taking the create out of the queue is not
+ * enough then, or the item would reappear.
+ */
+export interface OfflineQueueInventoryDeleteItem extends OfflineQueueItemBase {
+  type: 'inventory_delete';
+  payload: {
+    itemId: string;
   };
 }
 
@@ -400,7 +423,8 @@ export type OfflineQueueItem =
   | OfflineQueueInventoryCreateItem
   | OfflineQueueInventoryUpdateItem
   | OfflineQueueInventoryAdjustItem
-  | OfflineQueuePartUseItem;
+  | OfflineQueuePartUseItem
+  | OfflineQueueInventoryDeleteItem;
 
 /** The shape callers pass to enqueue — id, retryCount, status etc. are generated. */
 export type OfflineQueueEnqueueInput = {

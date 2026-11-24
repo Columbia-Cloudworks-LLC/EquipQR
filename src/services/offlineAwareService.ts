@@ -458,16 +458,46 @@ export class OfflineAwareWorkOrderService {
     itemId: string,
     formData: InventoryItemFormData,
   ): Promise<OfflineAwareResult<InventoryItem>> {
-    const queue = () =>
+    const queue = (createAttempted: boolean) =>
       this.enqueueOffline<InventoryItem>(
-        { type: 'inventory_create', payload: { itemId, formData } },
+        {
+          type: 'inventory_create',
+          // Always stated, `false` included: a queued create without the
+          // marker predates it and has to be treated as possibly sent.
+          payload: { itemId, formData, createAttempted },
+        },
         {
           queued: 'Inventory item create queued offline',
           failed: 'Failed to enqueue offline inventory item create',
           context: { itemId },
         },
       );
-    return this.runOrQueue(() => createInventoryItem(this.orgId, formData, this.userId, itemId), queue);
+    if (this.shouldQueue()) return queue(false);
+    try {
+      return { data: await createInventoryItem(this.orgId, formData, this.userId, itemId), queuedOffline: false };
+    } catch (error) {
+      // The request went out and its answer was lost, so the item may exist
+      // on the server already. Queue it marked as such.
+      if (isConnectionFailure(error)) return queue(true);
+      throw error;
+    }
+  }
+
+  /**
+   * Queues deleting an inventory item on the server. For an item created
+   * offline that is deleted before its create is known to have failed: the
+   * create is taken out of the queue by the caller, and this removes any
+   * copy an earlier attempt left on the server.
+   */
+  queueInventoryDelete(itemId: string): OfflineAwareResult<null> {
+    return this.enqueueOffline(
+      { type: 'inventory_delete', payload: { itemId } },
+      {
+        queued: 'Inventory item delete queued offline',
+        failed: 'Failed to enqueue offline inventory item delete',
+        context: { itemId },
+      },
+    );
   }
 
   async updateInventoryItem(

@@ -15,7 +15,7 @@ import {
   hasQueuedRelationshipEdit,
   isPendingSyncItem,
   mergeQueuedInventory,
-  queuedEntriesForUnsyncedItem,
+  planUnsyncedItemDeletion,
   resolveQueuedInventoryItem,
 } from './queuedInventory';
 
@@ -233,17 +233,10 @@ describe('inventory waiting in the offline queue', () => {
     expect(resolveQueuedInventoryItem('item-1', saved, [create])).toBe(saved);
   });
 
-  it('deleting an item that has not synced removes its create and later changes from the queue', () => {
-    const create = queued('inventory_create', { itemId: 'item-new', formData: form });
+  it('deleting an item that has not synced removes its create and everything queued for it', () => {
+    const create = queued('inventory_create', { itemId: 'item-new', formData: form, createAttempted: false });
     const edit = queued('inventory_update', { itemId: 'item-new', formData: { name: 'Renamed' } });
     const count = queued('inventory_adjust', { itemId: 'item-new', delta: -1, reason: 'Used' });
-    const other = queued('inventory_adjust', { itemId: 'item-1', delta: -1, reason: 'Used' });
-
-    expect(queuedEntriesForUnsyncedItem('item-new', [create, edit, count, other])).toEqual([
-      create.id,
-      edit.id,
-      count.id,
-    ]);
     // A part taken from it for a work order goes with it: it could never sync.
     const used = queued('work_order_part_use', {
       costId: 'cost-1',
@@ -253,9 +246,43 @@ describe('inventory waiting in the offline queue', () => {
       quantity: 1,
       unitPriceCents: 500,
     });
-    expect(queuedEntriesForUnsyncedItem('item-new', [create, used])).toEqual([create.id, used.id]);
+    const other = queued('inventory_adjust', { itemId: 'item-1', delta: -1, reason: 'Used' });
+
+    expect(planUnsyncedItemDeletion('item-new', [create, edit, count, used, other])).toEqual({
+      entryIds: [create.id, edit.id, count.id, used.id],
+      mayExistOnServer: false,
+      syncInFlight: false,
+    });
     // An item that is already on the server is deleted there, not in the queue.
-    expect(queuedEntriesForUnsyncedItem('item-1', [create, other])).toEqual([]);
+    expect(planUnsyncedItemDeletion('item-1', [create, other])).toBeNull();
+  });
+
+  it('knows when the item may be on the server although its create is still queued', () => {
+    // Sent once and the answer lost: back to pending, outcome unknown.
+    const attempted = queued('inventory_create', { itemId: 'item-new', formData: form, createAttempted: true });
+    expect(planUnsyncedItemDeletion('item-new', [attempted])).toMatchObject({
+      mayExistOnServer: true,
+      syncInFlight: false,
+    });
+
+    // Queued before the marker existed: nothing says it was never sent.
+    const legacy = queued('inventory_create', { itemId: 'item-new', formData: form });
+    expect(planUnsyncedItemDeletion('item-new', [legacy])).toMatchObject({ mayExistOnServer: true });
+
+    const sending = queued('inventory_create', { itemId: 'item-new', formData: form, createAttempted: false }, 'processing');
+    expect(planUnsyncedItemDeletion('item-new', [sending])).toMatchObject({
+      mayExistOnServer: true,
+      syncInFlight: true,
+    });
+  });
+
+  it('hides an item whose delete is waiting to sync, even if the server still lists it', () => {
+    const pendingDelete = queued('inventory_delete', { itemId: 'item-1' });
+    const other = { ...saved, id: 'item-2' };
+
+    expect(mergeQueuedInventory([saved, other], [pendingDelete], ORG).map(item => item.id)).toEqual(['item-2']);
+    expect(resolveQueuedInventoryItem('item-1', saved, [pendingDelete])).toBeNull();
+    expect(resolveQueuedInventoryItem('item-2', other, [pendingDelete])).toBe(other);
   });
 
   it('marks only items still waiting to be created as pending', () => {
