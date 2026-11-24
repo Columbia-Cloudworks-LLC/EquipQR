@@ -11,6 +11,8 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
+## [3.42.0] - 2026-11-24
+
 ### Added
 
 - **Teams and inventory can be managed with no signal (#1770)** — Create a team, add an inventory item, edit it, and add or take stock while offline. Each change is saved on the device, shows on screen straight away and syncs when the connection returns. A team or item created offline can be used immediately: put equipment in the new team, or count stock on the new item, before either has synced.
