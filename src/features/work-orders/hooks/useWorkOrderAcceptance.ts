@@ -7,7 +7,8 @@ import { showErrorToast, getErrorMessage } from '@/utils/errorHandling';
 import { logger } from '@/utils/logger';
 import { useAuth } from '@/hooks/useAuth';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
-import { OfflineAwareWorkOrderService } from '@/services/offlineAwareService';
+import { OfflineAwareWorkOrderService, UNKNOWN_SERVER_VERSION } from '@/services/offlineAwareService';
+import { isOfflinePlaceholderId } from '@/services/offlineQueuePlaceholders';
 import { workOrderKeys } from '@/features/work-orders/hooks/useWorkOrders';
 import { workOrders as workOrderQueryKeys, notifications as notificationQueryKeys } from '@/lib/queryKeys';
 
@@ -24,15 +25,17 @@ export const useWorkOrderAcceptance = () => {
 
   return useMutation({
     mutationFn: async ({ workOrderId, organizationId, assigneeId }: AcceptWorkOrderParams) => {
-      // No connection: queue the acceptance. The organization's size cannot
+      // No connection (or a work order created offline that has not synced):
+      // queue the acceptance. The organization's size cannot
       // be checked, so a one-person organization lands on accepted/assigned
       // here and starts the work as a separate step.
-      if (!navigator.onLine && user?.id) {
+      if (user?.id && (!navigator.onLine || isOfflinePlaceholderId(workOrderId))) {
         const service = new OfflineAwareWorkOrderService(organizationId, user.id);
         await service.updateStatus(
           workOrderId,
           assigneeId ? 'assigned' : 'accepted',
-          undefined,
+          // Version unknown: sync checks the current state before applying.
+          UNKNOWN_SERVER_VERSION,
           assigneeId,
         );
         offlineCtx?.refresh();

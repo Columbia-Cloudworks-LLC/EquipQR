@@ -152,6 +152,22 @@ describe('teams, inventory and equipment edits with no connection', () => {
     expect(queue.getCount()).toBe(0);
   });
 
+  it('queues a work order for equipment created offline even when connected, so sync can swap in the real id', async () => {
+    setOnline(true);
+
+    const result = await service.createWorkOrder({
+      title: 'Check new loader',
+      description: '',
+      equipmentId: 'offline-equip-queue-1',
+      priority: 'medium',
+    });
+    const started = await service.updateStatus(`offline-${result.queueItemId}`, 'in_progress');
+
+    expect(result.queuedOffline).toBe(true);
+    expect(started.queuedOffline).toBe(true);
+    expect(queue.getAll().map(item => item.type)).toEqual(['work_order_create', 'work_order_status']);
+  });
+
   it('queues an edit to equipment created offline even when connected, behind its create', async () => {
     setOnline(true);
 
