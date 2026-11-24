@@ -242,8 +242,18 @@ export const useTeamMutations = () => {
   });
 
   const deleteTeamMutation = useMutation({
-    mutationFn: ({ teamId, organizationId }: { teamId: string; organizationId: string }) =>
-      TeamRepository.deleteTeam(teamId, organizationId),
+    mutationFn: ({ teamId, organizationId }: { teamId: string; organizationId: string }) => {
+      // A team created offline is still in the queue, possibly with equipment
+      // queued behind it that points at it. Deleting it on the server now
+      // would be undone when the queued create syncs.
+      const stillQueued = (offlineCtx?.queuedItems ?? []).some(
+        item => isQueuedTeamCreate(item) && item.payload.team.id === teamId,
+      );
+      if (stillQueued) {
+        throw new Error('This team has not synced yet. Delete it once it has synced.');
+      }
+      return TeamRepository.deleteTeam(teamId, organizationId);
+    },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: teams(variables.organizationId).root });
       queryClient.removeQueries({ queryKey: team(variables.teamId).byOrg(variables.organizationId) });
