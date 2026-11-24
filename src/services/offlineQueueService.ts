@@ -338,6 +338,8 @@ export interface OfflineQueueInventoryCreateItem extends OfflineQueueItemBase {
      * connected before it was queued). From then on the item may exist on
      * the server even though the create is still queued, because the answer
      * can be lost. Deleting the item then has to delete it there too.
+     * `false` means it was never sent; absent means queued before this
+     * marker existed, which is treated like `true`.
      */
     createAttempted?: boolean;
   };

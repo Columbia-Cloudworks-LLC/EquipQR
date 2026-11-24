@@ -47,7 +47,7 @@ export interface UnsyncedItemDeletion {
   /**
    * True when the item may already exist on the server although its create
    * is still queued: the create was sent at least once (its answer may have
-   * been lost) or is being sent right now. The server copy then has to be
+   * been lost), is being sent right now, or predates the attempt marker. The server copy then has to be
    * deleted too, straight away when connected or by a queued delete.
    */
   mayExistOnServer: boolean;
@@ -80,7 +80,9 @@ export function planUnsyncedItemDeletion(
   const syncInFlight = entries.some(item => item.status === 'processing');
   return {
     entryIds: entries.map(item => item.id),
-    mayExistOnServer: syncInFlight || creates.some(item => item.payload.createAttempted === true),
+    // Only an explicit `false` means "never sent". A create queued before the
+    // marker existed carries none, and may have been sent.
+    mayExistOnServer: syncInFlight || creates.some(item => item.payload.createAttempted !== false),
     syncInFlight,
   };
 }

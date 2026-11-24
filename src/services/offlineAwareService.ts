@@ -462,7 +462,9 @@ export class OfflineAwareWorkOrderService {
       this.enqueueOffline<InventoryItem>(
         {
           type: 'inventory_create',
-          payload: createAttempted ? { itemId, formData, createAttempted } : { itemId, formData },
+          // Always stated, `false` included: a queued create without the
+          // marker predates it and has to be treated as possibly sent.
+          payload: { itemId, formData, createAttempted },
         },
         {
           queued: 'Inventory item create queued offline',

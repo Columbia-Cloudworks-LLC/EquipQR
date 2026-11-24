@@ -73,7 +73,7 @@ describe('teams, inventory and equipment edits with no connection', () => {
     expect(mockAdjust).not.toHaveBeenCalled();
     expect(queue.getAll().map(item => [item.type, item.payload])).toEqual([
       ['team_create', { team, creatorId: USER }],
-      ['inventory_create', { itemId: 'item-device-id', formData: form }],
+      ['inventory_create', { itemId: 'item-device-id', formData: form, createAttempted: false }],
       ['inventory_update', { itemId: 'item-device-id', formData: { name: 'Oil filter (long)' } }],
       ['inventory_adjust', { itemId: 'item-device-id', delta: -1, reason: 'Used' }],
     ]);
@@ -168,7 +168,7 @@ describe('teams, inventory and equipment edits with no connection', () => {
     expect(queue.getAll().map(item => item.payload)).toEqual([
       { itemId: 'item-lost', formData: form, createAttempted: true },
       // Never sent: nothing can be on the server.
-      { itemId: 'item-offline', formData: form },
+      { itemId: 'item-offline', formData: form, createAttempted: false },
     ]);
   });
 

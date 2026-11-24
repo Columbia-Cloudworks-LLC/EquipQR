@@ -291,7 +291,9 @@ export const useInventoryItem = (
     () => resolveQueuedInventoryItem(itemId, query.data, queuedItems),
     [itemId, query.data, queuedItems],
   );
-  if (!resolved || resolved === query.data) return query;
+  // `null` is a real answer here: the item was deleted on this device and its
+  // server delete is waiting to sync, so the screen must not keep showing it.
+  if (resolved === undefined || resolved === query.data) return query;
   return { ...query, data: resolved, isPending: false, isLoading: false, isError: false, error: null };
 };
 

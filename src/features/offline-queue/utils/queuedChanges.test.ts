@@ -234,7 +234,7 @@ describe('inventory waiting in the offline queue', () => {
   });
 
   it('deleting an item that has not synced removes its create and everything queued for it', () => {
-    const create = queued('inventory_create', { itemId: 'item-new', formData: form });
+    const create = queued('inventory_create', { itemId: 'item-new', formData: form, createAttempted: false });
     const edit = queued('inventory_update', { itemId: 'item-new', formData: { name: 'Renamed' } });
     const count = queued('inventory_adjust', { itemId: 'item-new', delta: -1, reason: 'Used' });
     // A part taken from it for a work order goes with it: it could never sync.
@@ -265,7 +265,11 @@ describe('inventory waiting in the offline queue', () => {
       syncInFlight: false,
     });
 
-    const sending = queued('inventory_create', { itemId: 'item-new', formData: form }, 'processing');
+    // Queued before the marker existed: nothing says it was never sent.
+    const legacy = queued('inventory_create', { itemId: 'item-new', formData: form });
+    expect(planUnsyncedItemDeletion('item-new', [legacy])).toMatchObject({ mayExistOnServer: true });
+
+    const sending = queued('inventory_create', { itemId: 'item-new', formData: form, createAttempted: false }, 'processing');
     expect(planUnsyncedItemDeletion('item-new', [sending])).toMatchObject({
       mayExistOnServer: true,
       syncInFlight: true,

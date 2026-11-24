@@ -1,12 +1,14 @@
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderHook } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const mocks = vi.hoisted(() => ({
   deleteItem: vi.fn(),
   removeItem: vi.fn(),
+  getItem: vi.fn(),
   stored: [] as unknown[],
+  listed: [] as unknown[],
 }));
 
 vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({ user: { id: 'user-1' } }) }));
@@ -18,10 +20,11 @@ vi.mock('@/features/offline-queue/services/offlineWorkDataDownload', () => ({
 vi.mock('@/features/inventory/services/inventoryService', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/features/inventory/services/inventoryService')>()),
   deleteInventoryItem: mocks.deleteItem,
+  getInventoryItemById: mocks.getItem,
 }));
 vi.mock('@/contexts/OfflineQueueContext', () => ({
   useOfflineQueueOptional: () => ({
-    queuedItems: [],
+    queuedItems: mocks.listed,
     removeItem: mocks.removeItem,
     refresh: vi.fn(),
     // The stored queue is what counts, not the list on screen.
@@ -29,7 +32,7 @@ vi.mock('@/contexts/OfflineQueueContext', () => ({
   }),
 }));
 
-import { useDeleteInventoryItem } from './useInventory';
+import { useDeleteInventoryItem, useInventoryItem } from './useInventory';
 import { OfflineQueueService } from '@/services/offlineQueueService';
 
 const ORG = 'org-1';
@@ -39,7 +42,7 @@ const queuedCreate = (payload: Record<string, unknown> = {}, status = 'pending')
   status,
   organizationId: ORG,
   userId: 'user-1',
-  payload: { itemId: 'item-new', formData: { name: 'Hose' }, ...payload },
+  payload: { itemId: 'item-new', formData: { name: 'Hose' }, createAttempted: false, ...payload },
 });
 const queuedDeletes = () =>
   new OfflineQueueService('user-1', ORG).getAll().filter(item => item.type === 'inventory_delete');
@@ -61,6 +64,7 @@ describe('deleting an inventory item that was created offline and has not synced
     vi.clearAllMocks();
     mocks.deleteItem.mockResolvedValue(undefined);
     mocks.stored = [queuedCreate()];
+    mocks.listed = [];
     setOnline(false);
   });
 
@@ -113,5 +117,27 @@ describe('deleting an inventory item that was created offline and has not synced
 
     expect(mocks.deleteItem).toHaveBeenCalledWith(ORG, 'item-new');
     expect(mocks.removeItem).not.toHaveBeenCalled();
+  });
+
+  it('treats a create queued before the attempt marker existed as possibly sent', async () => {
+    mocks.stored = [queuedCreate({ createAttempted: undefined })];
+
+    await deleteNewItem();
+
+    expect(queuedDeletes()).toHaveLength(1);
+  });
+
+  it('stops showing an item on its detail screen once its delete is waiting to sync', async () => {
+    setOnline(true);
+    mocks.getItem.mockResolvedValue({ id: 'item-new', organization_id: ORG, name: 'Hose', quantity_on_hand: 2, low_stock_threshold: 1 });
+    const { result, rerender } = renderHook(() => useInventoryItem(ORG, 'item-new'), { wrapper });
+    await waitFor(() => expect(result.current.data?.name).toBe('Hose'));
+
+    mocks.listed = [
+      { id: 'queue-delete', type: 'inventory_delete', status: 'pending', organizationId: ORG, userId: 'user-1', payload: { itemId: 'item-new' } },
+    ];
+    rerender();
+
+    expect(result.current.data).toBeNull();
   });
 });
