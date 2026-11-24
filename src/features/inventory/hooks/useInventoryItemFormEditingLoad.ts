@@ -32,6 +32,10 @@ export function useInventoryItemFormEditingLoad({
 }: UseInventoryItemFormEditingLoadParams) {
   const [isEditingDataLoaded, setIsEditingDataLoaded] = useState(false);
   const [editingDataLoadError, setEditingDataLoadError] = useState(false);
+  // False when the item's equipment links and compatibility rules could not
+  // be read (no connection). The form then shows them as empty, and saving
+  // them would erase the real ones, so the caller must leave them out.
+  const [relationshipsLoaded, setRelationshipsLoaded] = useState(true);
   const currentEditingItemIdRef = useRef<string | null>(null);
   const formRef = useRef(form);
   formRef.current = form;
@@ -60,7 +64,7 @@ export function useInventoryItemFormEditingLoad({
 
           if (abortController.signal.aborted) return;
 
-          const { data: compatibilityData } = await supabase
+          const { data: compatibilityData, error: compatibilityError } = await supabase
             .from('equipment_part_compatibility')
             .select(`
               equipment_id,
@@ -75,7 +79,7 @@ export function useInventoryItemFormEditingLoad({
 
           const equipmentIds = (compatibilityData || []).map(row => row.equipment_id);
 
-          const { data: rulesData } = await supabase
+          const { data: rulesData, error: rulesError } = await supabase
             .from('part_compatibility_rules')
             .select(`
               manufacturer,
@@ -92,7 +96,15 @@ export function useInventoryItemFormEditingLoad({
             return;
           }
 
+          if (compatibilityError || rulesError) {
+            // The rest of the item can still be edited; these are left as they are.
+            setRelationshipsLoaded(false);
+            setIsEditingDataLoaded(true);
+            return;
+          }
+
           const rules = mapInventoryCompatibilityRules(rulesData);
+          setRelationshipsLoaded(true);
           formRef.current.setValue('compatibleEquipmentIds', equipmentIds);
           formRef.current.setValue('compatibilityRules', rules);
 
@@ -127,17 +139,23 @@ export function useInventoryItemFormEditingLoad({
   const resetEditingLoadState = () => {
     setIsEditingDataLoaded(false);
     setEditingDataLoadError(false);
-    currentEditingItemIdRef.current = null;
+    setRelationshipsLoaded(true);
+    // `currentEditingItemIdRef` is left alone: the form calls this right
+    // after the load for the item it just opened has started, and clearing
+    // the ref made that load discard its own result, leaving the form on
+    // "Loading..." for good. The load effect sets the ref for each new item.
   };
 
   const markNewItemReady = () => {
     setIsEditingDataLoaded(true);
     setEditingDataLoadError(false);
+    setRelationshipsLoaded(true);
   };
 
   return {
     isEditingDataLoaded,
     editingDataLoadError,
+    relationshipsLoaded,
     resetEditingLoadState,
     markNewItemReady,
   };
