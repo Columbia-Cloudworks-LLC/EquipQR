@@ -2,11 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { OfflineAwareWorkOrderService } from './offlineAwareService';
 import { OfflineQueueService } from './offlineQueueService';
 
-const { mockCreateTeam, mockCreateItem, mockUpdateItem, mockAdjust, mockEquipmentUpdate } = vi.hoisted(() => ({
+const { mockCreateTeam, mockCreateItem, mockUpdateItem, mockAdjust, mockNewestMovement, mockEquipmentUpdate } = vi.hoisted(() => ({
   mockCreateTeam: vi.fn(),
   mockCreateItem: vi.fn(),
   mockUpdateItem: vi.fn(),
   mockAdjust: vi.fn(),
+  mockNewestMovement: vi.fn(),
   mockEquipmentUpdate: vi.fn(),
 }));
 
@@ -18,6 +19,7 @@ vi.mock('@/features/inventory/services/inventoryService', () => ({
   createInventoryItem: (...args: unknown[]) => mockCreateItem(...args),
   updateInventoryItem: (...args: unknown[]) => mockUpdateItem(...args),
   adjustInventoryQuantity: (...args: unknown[]) => mockAdjust(...args),
+  getNewestInventoryMovementTime: (...args: unknown[]) => mockNewestMovement(...args),
 }));
 vi.mock('@/features/equipment/services/EquipmentService', () => ({
   EquipmentService: { update: (...args: unknown[]) => mockEquipmentUpdate(...args) },
@@ -48,6 +50,7 @@ describe('teams, inventory and equipment edits with no connection', () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
+    mockNewestMovement.mockResolvedValue('2026-11-24T12:00:00.000Z');
     queue = new OfflineQueueService(USER, ORG);
     service = new OfflineAwareWorkOrderService(ORG, USER);
   });
@@ -90,14 +93,29 @@ describe('teams, inventory and equipment edits with no connection', () => {
     expect(queue.getCount()).toBe(0);
   });
 
-  it('queues a request that never reached the server, including errors Supabase reports as plain objects', async () => {
+  it('queues a stock change whose answer was lost, with what sync needs to avoid counting it twice', async () => {
     setOnline(true);
+    // Supabase reports a failed request as a plain object, not an Error.
     mockAdjust.mockRejectedValueOnce({ message: 'TypeError: Failed to fetch', details: '', hint: '', code: '' });
 
     const result = await service.adjustInventoryQuantity({ itemId: 'item-1', delta: 2, reason: 'Delivery' });
 
     expect(result.queuedOffline).toBe(true);
-    expect(queue.getAll()[0].type).toBe('inventory_adjust');
+    expect(queue.getAll()[0]).toMatchObject({
+      type: 'inventory_adjust',
+      payload: { itemId: 'item-1', delta: 2, reason: 'Delivery', lastMovementBeforeReplay: '2026-11-24T12:00:00.000Z' },
+    });
+  });
+
+  it('queues a stock change without sending it when the connection is already gone', async () => {
+    setOnline(true);
+    mockNewestMovement.mockRejectedValueOnce({ message: 'TypeError: Failed to fetch', details: '', hint: '', code: '' });
+
+    const result = await service.adjustInventoryQuantity({ itemId: 'item-1', delta: 2, reason: 'Delivery' });
+
+    expect(result.queuedOffline).toBe(true);
+    expect(mockAdjust).not.toHaveBeenCalled();
+    expect(queue.getAll()[0].payload).toEqual({ itemId: 'item-1', delta: 2, reason: 'Delivery' });
   });
 
   it('does not queue a change the server rejected', async () => {

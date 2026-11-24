@@ -58,6 +58,7 @@ import type { TeamInsert, TeamWithMembers } from '@/features/teams/types/team';
 import {
   adjustInventoryQuantity,
   createInventoryItem,
+  getNewestInventoryMovementTime,
   updateInventoryItem,
 } from '@/features/inventory/services/inventoryService';
 import type { InventoryItem, InventoryQuantityAdjustment } from '@/features/inventory/types/inventory';
@@ -101,6 +102,11 @@ function definedFieldNames(data: object): string[] {
   return Object.entries(data)
     .filter(([, value]) => value !== undefined)
     .map(([key]) => key);
+}
+
+/** Supabase reports a failed request as a plain object, not an Error, so check its message too. */
+function isConnectionFailure(error: unknown): boolean {
+  return isNetworkError(error) || isNetworkError(getErrorMessage(error));
 }
 
 // ─── Service ─────────────────────────────────────────────────────────────────
@@ -457,20 +463,45 @@ export class OfflineAwareWorkOrderService {
     return this.runOrQueue(() => updateInventoryItem(this.orgId, itemId, formData), queue);
   }
 
-  /** Resolves to the new quantity when sent, or null when queued. */
+  /**
+   * Resolves to the new quantity when sent, or null when queued.
+   *
+   * The server adds the change to whatever is in stock, so a change that was
+   * recorded but whose answer was lost must not be sent again. The item's
+   * newest movement is read first: if that read fails nothing has been sent
+   * and the change is simply queued; if the adjustment itself is cut off, it
+   * is queued with that reading so sync can tell whether it was recorded.
+   */
   async adjustInventoryQuantity(
     adjustment: InventoryQuantityAdjustment,
   ): Promise<OfflineAwareResult<number>> {
-    const queue = () =>
+    const queue = (lastMovementBeforeReplay?: string) =>
       this.enqueueOffline<number>(
-        { type: 'inventory_adjust', payload: adjustment },
+        {
+          type: 'inventory_adjust',
+          payload: lastMovementBeforeReplay ? { ...adjustment, lastMovementBeforeReplay } : adjustment,
+        },
         {
           queued: 'Inventory adjustment queued offline',
           failed: 'Failed to enqueue offline inventory adjustment',
           context: { itemId: adjustment.itemId, delta: adjustment.delta },
         },
       );
-    return this.runOrQueue(() => adjustInventoryQuantity(this.orgId, adjustment), queue);
+    if (!navigator.onLine) return queue();
+
+    let newestMovement: string;
+    try {
+      newestMovement = await getNewestInventoryMovementTime(this.orgId, adjustment.itemId);
+    } catch (error) {
+      if (isConnectionFailure(error)) return queue();
+      throw error;
+    }
+    try {
+      return { data: await adjustInventoryQuantity(this.orgId, adjustment), queuedOffline: false };
+    } catch (error) {
+      if (isConnectionFailure(error)) return queue(newestMovement);
+      throw error;
+    }
   }
 
   /** Send now when connected; queue when offline or when the request never reached the server. */
@@ -482,8 +513,7 @@ export class OfflineAwareWorkOrderService {
     try {
       return { data: await run(), queuedOffline: false };
     } catch (error) {
-      // Supabase reports a failed request as a plain object, not an Error.
-      if (isNetworkError(error) || isNetworkError(getErrorMessage(error))) return queue();
+      if (isConnectionFailure(error)) return queue();
       throw error;
     }
   }

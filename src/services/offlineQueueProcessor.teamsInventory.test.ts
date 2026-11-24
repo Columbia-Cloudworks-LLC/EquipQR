@@ -6,37 +6,23 @@ import { OfflineQueueService } from './offlineQueueService';
 type Row = Record<string, unknown>;
 
 /** Rows each table answers a lookup with, and every insert the processor made. */
-const { lookupRows, inserts, mockCreateItem, mockUpdateItem, mockAdjust } = vi.hoisted(() => ({
+const { lookupRows, inserts, mockCreateItem, mockUpdateItem, mockAdjust, mockNewestMovement } = vi.hoisted(() => ({
   lookupRows: {} as Record<string, Row[]>,
   inserts: [] as Array<{ table: string; row: Row }>,
   mockCreateItem: vi.fn(),
   mockUpdateItem: vi.fn(),
   mockAdjust: vi.fn(),
+  mockNewestMovement: vi.fn(),
 }));
 
 vi.mock('@/integrations/supabase/client', () => {
   const builder = (table: string) => {
     const rows = () => lookupRows[table] ?? [];
-    let newestOnly = false;
-    let newerOnly = false;
     const chain = {
       select: () => chain,
       eq: () => chain,
-      order: () => {
-        newestOnly = true;
-        return chain;
-      },
-      gt: () => {
-        newerOnly = true;
-        return chain;
-      },
-      // "Newest movement" answers with what was there before the replay;
-      // "anything newer" answers with what a cut-off attempt left behind.
-      limit: () =>
-        Promise.resolve({
-          data: newestOnly ? rows() : newerOnly ? (lookupRows[`${table}:newer`] ?? []) : rows(),
-          error: null,
-        }),
+      gt: () => chain,
+      limit: () => Promise.resolve({ data: rows(), error: null }),
       maybeSingle: () => Promise.resolve({ data: rows()[0] ?? null, error: null }),
       insert: (row: Row) => {
         inserts.push({ table, row });
@@ -56,6 +42,7 @@ vi.mock('@/features/inventory/services/inventoryService', () => ({
   createInventoryItem: (...args: unknown[]) => mockCreateItem(...args),
   updateInventoryItem: (...args: unknown[]) => mockUpdateItem(...args),
   adjustInventoryQuantity: (...args: unknown[]) => mockAdjust(...args),
+  getNewestInventoryMovementTime: (...args: unknown[]) => mockNewestMovement(...args),
 }));
 
 const USER = 'user-1';
@@ -86,6 +73,7 @@ describe('offline replay of teams and inventory', () => {
     mockCreateItem.mockReset().mockResolvedValue({ id: ITEM_ID });
     mockUpdateItem.mockReset().mockResolvedValue({ id: ITEM_ID });
     mockAdjust.mockReset().mockResolvedValue(5);
+    mockNewestMovement.mockReset().mockResolvedValue('2026-11-24T12:00:00.000Z');
     Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
   });
 
@@ -149,6 +137,45 @@ describe('offline replay of teams and inventory', () => {
     expect(mockCreateItem).not.toHaveBeenCalled();
   });
 
+  it('finishes linking equipment when an earlier attempt created the item and was then cut off', async () => {
+    const { queue, processor } = setup();
+    lookupRows.inventory_items = [{ id: ITEM_ID }];
+    const formData = { ...itemForm, compatibleEquipmentIds: ['equipment-1'] };
+    queue.enqueue({
+      type: 'inventory_create',
+      organizationId: ORG,
+      userId: USER,
+      payload: { itemId: ITEM_ID, formData },
+    });
+
+    await processor.processAll();
+
+    expect(mockCreateItem).not.toHaveBeenCalled();
+    expect(mockUpdateItem).toHaveBeenCalledWith(ORG, ITEM_ID, {
+      name: 'Oil filter',
+      compatibleEquipmentIds: ['equipment-1'],
+      compatibilityRules: [],
+    });
+  });
+
+  it('checks for an already recorded movement when the change was cut off while still online', async () => {
+    const { queue, processor } = setup();
+    // Queued by the online path, which had read the newest movement first.
+    queue.enqueue({
+      type: 'inventory_adjust',
+      organizationId: ORG,
+      userId: USER,
+      payload: { itemId: ITEM_ID, delta: 5, reason: 'Delivery', lastMovementBeforeReplay: '2026-11-24T11:00:00.000Z' },
+    });
+    lookupRows.inventory_transactions = [{ id: 'movement-1' }];
+
+    const result = await processor.processAll();
+
+    expect(result.succeeded).toBe(1);
+    expect(mockAdjust).not.toHaveBeenCalled();
+    expect(mockNewestMovement).not.toHaveBeenCalled();
+  });
+
   it('replays an edit and a stock change in the order they were made', async () => {
     const { queue, processor } = setup();
     queue.enqueue({
@@ -173,7 +200,6 @@ describe('offline replay of teams and inventory', () => {
 
   it('keeps retrying a stock change the server rejected instead of treating it as sent', async () => {
     const { queue, processor } = setup();
-    lookupRows.inventory_transactions = [{ id: 'earlier', created_at: '2026-11-24T12:00:00.000Z' }];
     queue.enqueue({
       type: 'inventory_adjust',
       organizationId: ORG,
@@ -206,7 +232,7 @@ describe('offline replay of teams and inventory', () => {
     expect(queue.getAll()[0].status).toBe('pending');
 
     // The server did record it. The retry finds the movement and stops there.
-    lookupRows['inventory_transactions:newer'] = [{ id: 'movement-1' }];
+    lookupRows.inventory_transactions = [{ id: 'movement-1' }];
     const second = await processor.processAll();
     expect(second.succeeded).toBe(1);
     expect(mockAdjust).toHaveBeenCalledTimes(1);
@@ -215,8 +241,6 @@ describe('offline replay of teams and inventory', () => {
 
   it('sends the stock change again when the cut-off attempt never reached the server', async () => {
     const { queue, processor } = setup();
-    // An identical adjustment made earlier is not mistaken for this one.
-    lookupRows.inventory_transactions = [{ id: 'earlier', created_at: '2026-11-24T12:00:00.000Z' }];
     queue.enqueue({
       type: 'inventory_adjust',
       organizationId: ORG,

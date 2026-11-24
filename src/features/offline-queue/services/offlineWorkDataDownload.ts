@@ -226,6 +226,17 @@ export async function downloadTeamsForOffline(
       fetchOrgAdminAssignees(organizationId),
     ]);
     if (!isStillWanted()) return false;
+    // The team service answers a failed request with an empty list, and a
+    // failed member request with no members. Neither may replace a good
+    // saved copy, so tell "none" apart from "could not be fetched".
+    if (teams.some((team) => team.member_count > 0 && team.members.length === 0)) return false;
+    if (teams.length === 0) {
+      const { count, error } = await supabase
+        .from('teams')
+        .select('id', { count: 'exact', head: true })
+        .eq('organization_id', organizationId);
+      if (error || (count ?? 0) > 0 || !isStillWanted()) return false;
+    }
     queryClient.setQueryData(offlineSavedKeys.teamList(organizationId), teams);
     queryClient.setQueryData(offlineSavedKeys.orgAdmins(organizationId), admins);
     return true;

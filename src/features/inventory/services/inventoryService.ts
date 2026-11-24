@@ -501,6 +501,30 @@ export const adjustInventoryQuantity = async (
   }
 };
 
+/** Stands in for "no stock movement yet" when an item has none. */
+const NO_MOVEMENT_YET = '1970-01-01T00:00:00.000Z';
+
+/**
+ * When the item's newest stock movement was recorded (server time). Taken
+ * before an adjustment is sent so that, if the answer is lost, a retry can
+ * tell whether the adjustment was recorded: only it can be a matching
+ * movement newer than this. Throws when the request fails.
+ */
+export const getNewestInventoryMovementTime = async (
+  organizationId: string,
+  itemId: string
+): Promise<string> => {
+  const { data, error } = await supabase
+    .from('inventory_transactions')
+    .select('created_at')
+    .eq('inventory_item_id', itemId)
+    .eq('organization_id', organizationId)
+    .order('created_at', { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  return data[0]?.created_at ?? NO_MOVEMENT_YET;
+};
+
 // ============================================
 // Transactions
 // ============================================

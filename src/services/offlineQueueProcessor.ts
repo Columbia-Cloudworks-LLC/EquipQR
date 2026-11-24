@@ -45,6 +45,7 @@ import type {
 import {
   adjustInventoryQuantity,
   createInventoryItem,
+  getNewestInventoryMovementTime,
   updateInventoryItem,
 } from '@/features/inventory/services/inventoryService';
 import { OfflineQueueService } from './offlineQueueService';
@@ -126,9 +127,6 @@ function collectUnresolvedParentIds(
   }
   return found;
 }
-
-/** Baseline for an inventory item that has no stock movements yet. */
-const NO_MOVEMENT_YET = '1970-01-01T00:00:00.000Z';
 
 // ─── Equipment create idempotency ────────────────────────────────────────────
 
@@ -766,6 +764,19 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
 
     if (!existing) {
       await createInventoryItem(item.organizationId, formData, item.userId, itemId);
+      return { success: true };
+    }
+
+    // An earlier attempt created the item but may have been cut off before
+    // linking its equipment or saving its compatibility rules. Both are
+    // "replace with this list", so setting them again is safe.
+    const { compatibleEquipmentIds, compatibilityRules } = formData;
+    if (compatibleEquipmentIds?.length || compatibilityRules?.length) {
+      await updateInventoryItem(item.organizationId, itemId, {
+        name: formData.name,
+        compatibleEquipmentIds,
+        compatibilityRules,
+      });
     }
     return { success: true };
   }) as QueueItemHandler<never>,
@@ -779,20 +790,13 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
     const { lastMovementBeforeReplay, ...adjustment } = item.payload;
 
     // The server applies an adjustment as "add this much", so sending one
-    // twice would count the stock twice. Before the first attempt, note the
-    // newest movement already recorded for the item. If that attempt is cut
-    // off before its answer arrives, the next one looks for a matching
-    // movement recorded after that point: only this adjustment can be it.
+    // twice would count the stock twice. Before the first attempt (here, or
+    // online before it was queued), the newest movement already recorded for
+    // the item is noted. If that attempt was cut off before its answer
+    // arrived, the next one looks for a matching movement recorded after
+    // that point: only this adjustment can be it.
     if (lastMovementBeforeReplay === undefined) {
-      const { data: newest, error: newestError } = await supabase
-        .from('inventory_transactions')
-        .select('created_at')
-        .eq('inventory_item_id', adjustment.itemId)
-        .eq('organization_id', item.organizationId)
-        .order('created_at', { ascending: false })
-        .limit(1);
-      if (newestError) throw newestError;
-      const baseline = newest[0]?.created_at ?? NO_MOVEMENT_YET;
+      const baseline = await getNewestInventoryMovementTime(item.organizationId, adjustment.itemId);
       item.payload.lastMovementBeforeReplay = baseline;
       queueService.updatePayload(item.id, { lastMovementBeforeReplay: baseline }, { syncBookkeeping: true });
     } else {
