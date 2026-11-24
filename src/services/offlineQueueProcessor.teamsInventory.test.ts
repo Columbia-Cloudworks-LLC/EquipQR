@@ -6,8 +6,9 @@ import { OfflineQueueService } from './offlineQueueService';
 type Row = Record<string, unknown>;
 
 /** Rows each table answers a lookup with, and every insert the processor made. */
-const { lookupRows, inserts, failInsertsInto, mockCreateItem, mockUpdateItem, mockAdjust, mockNewestMovement } = vi.hoisted(() => ({
+const { lookupRows, inserts, failInsertsInto, insertFailure, mockCreateItem, mockUpdateItem, mockAdjust, mockNewestMovement } = vi.hoisted(() => ({
   failInsertsInto: new Set<string>(),
+  insertFailure: { error: new Error('insert rejected') as Error },
   lookupRows: {} as Record<string, Row[]>,
   inserts: [] as Array<{ table: string; row: Row }>,
   mockCreateItem: vi.fn(),
@@ -26,7 +27,7 @@ vi.mock('@/integrations/supabase/client', () => {
       limit: () => Promise.resolve({ data: rows(), error: null }),
       maybeSingle: () => Promise.resolve({ data: rows()[0] ?? null, error: null }),
       insert: (row: Row) => {
-        if (failInsertsInto.has(table)) return Promise.resolve({ error: new Error('insert rejected') });
+        if (failInsertsInto.has(table)) return Promise.resolve({ error: insertFailure.error });
         inserts.push({ table, row });
         return Promise.resolve({ error: null });
       },
@@ -72,6 +73,7 @@ describe('offline replay of teams and inventory', () => {
     localStorage.clear();
     inserts.length = 0;
     failInsertsInto.clear();
+    insertFailure.error = new Error('insert rejected');
     for (const table of Object.keys(lookupRows)) delete lookupRows[table];
     mockCreateItem.mockReset().mockResolvedValue({ id: ITEM_ID });
     mockUpdateItem.mockReset().mockResolvedValue({ id: ITEM_ID });
@@ -369,12 +371,14 @@ describe('offline replay of teams and inventory', () => {
       expect(queue.getAll()[0]).toMatchObject({ status: 'pending', retryCount: 1 });
     });
 
-    it('does not take the stock again when only the cost line is left to write', async () => {
+    it('does not take the stock again when the connection dropped before the cost line was written', async () => {
       const { queue, processor } = setup();
       queuePart(queue);
-      // First run: stock deducted, then the cost line fails to save.
+      // First run: stock deducted, then the connection drops.
+      insertFailure.error = new Error('TypeError: Failed to fetch');
       failInsertsInto.add('work_order_costs');
-      await processor.processAll();
+      const first = await processor.processAll();
+      expect(first.interrupted).toBe(true);
       expect(mockAdjust).toHaveBeenCalledTimes(1);
       expect(queue.getAll()[0].payload).toMatchObject({ stockDeducted: true });
 
@@ -384,6 +388,25 @@ describe('offline replay of teams and inventory', () => {
       expect(second.succeeded).toBe(1);
       expect(mockAdjust).toHaveBeenCalledTimes(1);
       expect(inserts.map(insert => insert.table)).toEqual(['work_order_costs']);
+    });
+
+    it('puts the stock back when the server refuses the cost line, so no part leaves stock unrecorded', async () => {
+      const { queue, processor } = setup();
+      queuePart(queue);
+      // For example: the work order was closed by someone else meanwhile.
+      insertFailure.error = new Error('new row violates row-level security policy');
+      failInsertsInto.add('work_order_costs');
+
+      const result = await processor.processAll();
+
+      expect(result.succeeded).toBe(0);
+      expect(mockAdjust.mock.calls.map(([, adjustment]) => adjustment.delta)).toEqual([-2, 2]);
+      expect(mockAdjust.mock.calls[1][1].reason).toBe('Restored: part could not be added to work order wo-1');
+      // Back to "nothing done yet": a later attempt starts from the beginning.
+      const stored = queue.getAll()[0];
+      expect(stored.payload).not.toHaveProperty('stockDeducted');
+      expect(stored.payload).not.toHaveProperty('lastMovementBeforeReplay');
+      expect(stored).toMatchObject({ status: 'pending', retryCount: 1 });
     });
 
     it('leaves a cost line an earlier attempt already wrote', async () => {

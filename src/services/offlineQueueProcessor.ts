@@ -884,7 +884,28 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
         original_quantity: quantity,
         created_by: item.userId,
       });
-      if (insertError) throw insertError;
+      if (insertError) {
+        // The server refused the cost line (the work order may have been
+        // closed or removed meanwhile). The stock was already taken for it,
+        // so put it back: a part must never leave inventory with no cost
+        // recorded. A lost connection is different; the item just retries.
+        if (!isConnectivityFailure(insertError)) {
+          await adjustInventoryQuantity(item.organizationId, {
+            itemId,
+            delta: quantity,
+            reason: `Restored: part could not be added to work order ${workOrderId}`,
+            workOrderId,
+          });
+          delete item.payload.stockDeducted;
+          delete item.payload.lastMovementBeforeReplay;
+          queueService.updatePayload(
+            item.id,
+            { stockDeducted: undefined, lastMovementBeforeReplay: undefined },
+            { syncBookkeeping: true },
+          );
+        }
+        throw insertError;
+      }
     }
     return { success: true };
   }) as QueueItemHandler<never>,
