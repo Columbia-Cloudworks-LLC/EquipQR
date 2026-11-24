@@ -6,7 +6,8 @@ import { OfflineQueueService } from './offlineQueueService';
 type Row = Record<string, unknown>;
 
 /** Rows each table answers a lookup with, and every insert the processor made. */
-const { lookupRows, inserts, mockCreateItem, mockUpdateItem, mockAdjust, mockNewestMovement } = vi.hoisted(() => ({
+const { lookupRows, inserts, failInsertsInto, mockCreateItem, mockUpdateItem, mockAdjust, mockNewestMovement } = vi.hoisted(() => ({
+  failInsertsInto: new Set<string>(),
   lookupRows: {} as Record<string, Row[]>,
   inserts: [] as Array<{ table: string; row: Row }>,
   mockCreateItem: vi.fn(),
@@ -25,6 +26,7 @@ vi.mock('@/integrations/supabase/client', () => {
       limit: () => Promise.resolve({ data: rows(), error: null }),
       maybeSingle: () => Promise.resolve({ data: rows()[0] ?? null, error: null }),
       insert: (row: Row) => {
+        if (failInsertsInto.has(table)) return Promise.resolve({ error: new Error('insert rejected') });
         inserts.push({ table, row });
         return Promise.resolve({ error: null });
       },
@@ -69,6 +71,7 @@ describe('offline replay of teams and inventory', () => {
   beforeEach(() => {
     localStorage.clear();
     inserts.length = 0;
+    failInsertsInto.clear();
     for (const table of Object.keys(lookupRows)) delete lookupRows[table];
     mockCreateItem.mockReset().mockResolvedValue({ id: ITEM_ID });
     mockUpdateItem.mockReset().mockResolvedValue({ id: ITEM_ID });
@@ -256,5 +259,89 @@ describe('offline replay of teams and inventory', () => {
 
     expect(second.succeeded).toBe(1);
     expect(mockAdjust).toHaveBeenCalledTimes(2);
+  });
+
+  describe('a part used on a work order offline', () => {
+    const part = {
+      costId: '33333333-3333-4333-8333-333333333333',
+      workOrderId: 'wo-1',
+      itemId: ITEM_ID,
+      description: 'Oil filter',
+      quantity: 2,
+      unitPriceCents: 1250,
+    };
+    const queuePart = (queue: OfflineQueueService) =>
+      queue.enqueue({ type: 'work_order_part_use', organizationId: ORG, userId: USER, payload: part });
+
+    it('takes the stock and writes the cost line, under the id chosen on the device', async () => {
+      const { queue, processor } = setup();
+      queuePart(queue);
+
+      const result = await processor.processAll();
+
+      expect(result.succeeded).toBe(1);
+      expect(mockAdjust).toHaveBeenCalledWith(ORG, {
+        itemId: ITEM_ID,
+        delta: -2,
+        reason: 'Used in work order wo-1',
+        workOrderId: 'wo-1',
+      });
+      expect(inserts).toEqual([
+        {
+          table: 'work_order_costs',
+          row: {
+            id: part.costId,
+            work_order_id: 'wo-1',
+            description: 'Oil filter',
+            quantity: 2,
+            unit_price_cents: 1250,
+            inventory_item_id: ITEM_ID,
+            original_quantity: 2,
+            created_by: USER,
+          },
+        },
+      ]);
+      expect(queue.getAll()).toHaveLength(0);
+    });
+
+    it('writes no cost line when the server refuses the stock (not enough left)', async () => {
+      const { queue, processor } = setup();
+      queuePart(queue);
+      mockAdjust.mockRejectedValue(new Error('Insufficient stock: requested 2 units, but only 1 available'));
+
+      const result = await processor.processAll();
+
+      expect(result.succeeded).toBe(0);
+      expect(inserts).toEqual([]);
+      expect(queue.getAll()[0]).toMatchObject({ status: 'pending', retryCount: 1 });
+    });
+
+    it('does not take the stock again when only the cost line is left to write', async () => {
+      const { queue, processor } = setup();
+      queuePart(queue);
+      // First run: stock deducted, then the cost line fails to save.
+      failInsertsInto.add('work_order_costs');
+      await processor.processAll();
+      expect(mockAdjust).toHaveBeenCalledTimes(1);
+      expect(queue.getAll()[0].payload).toMatchObject({ stockDeducted: true });
+
+      failInsertsInto.clear();
+      const second = await processor.processAll();
+
+      expect(second.succeeded).toBe(1);
+      expect(mockAdjust).toHaveBeenCalledTimes(1);
+      expect(inserts.map(insert => insert.table)).toEqual(['work_order_costs']);
+    });
+
+    it('leaves a cost line an earlier attempt already wrote', async () => {
+      const { queue, processor } = setup();
+      queuePart(queue);
+      lookupRows.work_order_costs = [{ id: part.costId }];
+
+      const result = await processor.processAll();
+
+      expect(result.succeeded).toBe(1);
+      expect(inserts).toEqual([]);
+    });
   });
 });

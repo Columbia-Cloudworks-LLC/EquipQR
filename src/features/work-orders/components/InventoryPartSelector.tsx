@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { useCompatibleInventoryItems } from '@/features/inventory/hooks/useInventory';
+import { useWorkOrderPartPickerItems } from '@/features/inventory/hooks/useInventory';
 
 type SortOption = 'default' | 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc';
 
@@ -43,7 +43,7 @@ export const InventoryPartSelector: React.FC<InventoryPartSelectorProps> = ({
   const [quantity, setQuantity] = useState(1);
   const [sortBy, setSortBy] = useState<SortOption>('default');
 
-  const { data: compatibleItems = [], isLoading } = useCompatibleInventoryItems(
+  const { items: compatibleItems, isLoading, isOfflineFallback } = useWorkOrderPartPickerItems(
     currentOrganization?.id,
     equipmentIds
   );
@@ -119,7 +119,9 @@ export const InventoryPartSelector: React.FC<InventoryPartSelectorProps> = ({
         <DialogHeader>
           <DialogTitle>Add Part from Inventory</DialogTitle>
           <DialogDescription>
-            Select a compatible part from your inventory
+            {isOfflineFallback
+              ? 'You are offline, so all saved inventory is shown. Which parts fit this equipment cannot be checked without a connection.'
+              : 'Select a compatible part from your inventory'}
           </DialogDescription>
         </DialogHeader>
 

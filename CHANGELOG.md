@@ -15,6 +15,8 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 - **Teams and inventory can be managed with no signal (#1770)** — Create a team, add an inventory item, edit it, and add or take stock while offline. Each change is saved on the device, shows on screen straight away and syncs when the connection returns. A team or item created offline can be used immediately: put equipment in the new team, or count stock on the new item, before either has synced.
 
+- **Parts can be added to a work order from inventory with no signal (#1777)** — The cost line and the stock it takes are saved together on the device and sync together, so stock is never taken without the cost being recorded. The work order shows the part straight away and the inventory count drops with it. Offline the part picker lists all saved inventory, because which parts fit the equipment can only be checked with a connection. Work order costs are now saved for offline use, so the cost list opens with no signal.
+
 ### Fixed
 
 - **Work orders can be accepted, assigned, started, paused and completed offline (#1770)** — A status change made with no signal now shows on the work order and in the list, so the next step is offered instead of the old status staying on screen. Accepting and assigning are saved for sync like status changes, the assignee list is available offline, and a PM checklist finished offline lets its work order be completed.

@@ -1,4 +1,5 @@
 
+import { useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
@@ -10,15 +11,62 @@ import {
   type UpdateWorkOrderCostData
 } from '@/features/work-orders/services/workOrderCostsService';
 import { adjustInventoryQuantity } from '@/features/inventory/services/inventoryService';
+import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
+import { isOfflinePlaceholderId } from '@/services/offlineQueuePlaceholders';
+import { useQueuedItems } from '@/features/offline-queue/hooks/useQueuedLookups';
+import {
+  findQueuedPartUse,
+  mergeQueuedPartUseCosts,
+  queuedPartUseCosts,
+} from '@/features/offline-queue/utils/queuedPartUse';
+import type { WorkOrderCost } from '@/features/work-orders/types/workOrderCosts';
 import { inventory as inventoryQueryKeys } from '@/lib/queryKeys';
 
 export const useWorkOrderCosts = (workOrderId: string) => {
-  return useQuery({
+  // A work order created offline has no costs on the server yet, and its
+  // placeholder id is never sent there.
+  const isUnsynced = isOfflinePlaceholderId(workOrderId);
+  const query = useQuery({
     queryKey: ['work-order-costs', workOrderId],
     queryFn: () => getWorkOrderCosts(workOrderId),
-    enabled: !!workOrderId
+    enabled: !!workOrderId && !isUnsynced
   });
+
+  // Parts added from inventory with no connection wait in the offline queue;
+  // show their cost lines with the saved ones.
+  const queuedItems = useQueuedItems();
+  const saved = query.data ?? (isUnsynced ? NO_COSTS : undefined);
+  const withQueued = useMemo(() => {
+    const queued = queuedPartUseCosts(workOrderId, queuedItems);
+    if (queued.length === 0) return saved;
+    return mergeQueuedPartUseCosts(saved ?? NO_COSTS, workOrderId, queuedItems);
+  }, [saved, workOrderId, queuedItems]);
+
+  if (withQueued === query.data) return query;
+  return { ...query, data: withQueued, isPending: false, isLoading: false, isError: false, error: null };
 };
+
+const NO_COSTS: WorkOrderCost[] = [];
+
+/** Offline queue access for the cost mutations that have to act on a queued part. */
+function useQueuedPartActions() {
+  const offlineCtx = useOfflineQueueOptional();
+  return {
+    /**
+     * The queued part use behind a cost line, or `undefined` when the line is
+     * on the server. Throws while that part is being sent: its stock may
+     * already be deducted, so it can no longer be changed in the queue.
+     */
+    findQueued: (costId: string) => {
+      const queued = findQueuedPartUse(costId, offlineCtx?.queuedItems ?? []);
+      if (queued && (queued.status === 'processing' || queued.payload.stockDeducted)) {
+        throw new Error('This part is syncing right now. Try again in a moment.');
+      }
+      return queued;
+    },
+    offlineCtx,
+  };
+}
 
 export const useCreateWorkOrderCost = () => {
   const queryClient = useQueryClient();
@@ -42,6 +90,7 @@ export const useCreateWorkOrderCost = () => {
  */
 export const useDeleteWorkOrderCostWithInventoryRestore = () => {
   const queryClient = useQueryClient();
+  const { findQueued, offlineCtx } = useQueuedPartActions();
 
   return useMutation({
     mutationFn: async ({ 
@@ -51,6 +100,14 @@ export const useDeleteWorkOrderCostWithInventoryRestore = () => {
       costId: string; 
       organizationId: string;
     }) => {
+      // A part added offline that has not synced: take it out of the queue.
+      // Nothing was written or deducted, so there is nothing to restore.
+      const queued = findQueued(costId);
+      if (queued) {
+        offlineCtx?.removeItem(queued.id);
+        return { inventoryRestored: false, quantity: 0 };
+      }
+
       // Delete the cost and get inventory info if applicable
       const inventoryInfo = await deleteWorkOrderCostWithInventoryInfo(costId);
 
@@ -94,6 +151,7 @@ export const useDeleteWorkOrderCostWithInventoryRestore = () => {
  */
 export const useUpdateWorkOrderCostWithInventory = () => {
   const queryClient = useQueryClient();
+  const { findQueued, offlineCtx } = useQueuedPartActions();
 
   return useMutation({
     mutationFn: async ({ 
@@ -105,6 +163,26 @@ export const useUpdateWorkOrderCostWithInventory = () => {
       updateData: UpdateWorkOrderCostData;
       organizationId: string;
     }) => {
+      // A part added offline that has not synced: change it in the queue, so
+      // the quantity it will take from stock changes with it.
+      const queued = findQueued(costId);
+      if (queued) {
+        const quantity = updateData.quantity ?? queued.payload.quantity;
+        const changed = {
+          description: updateData.description ?? queued.payload.description,
+          quantity,
+          unitPriceCents: updateData.unit_price_cents ?? queued.payload.unitPriceCents,
+        };
+        if (!offlineCtx?.queueServiceInstance?.updatePayload(queued.id, changed)) {
+          throw new Error('Could not save the change on this device.');
+        }
+        offlineCtx.refresh();
+        const [cost] = queuedPartUseCosts(queued.payload.workOrderId, [
+          { ...queued, payload: { ...queued.payload, ...changed } },
+        ]);
+        return { cost, inventoryAdjusted: false, delta: 0 };
+      }
+
       // Update cost and get inventory adjustment info
       const result = await updateWorkOrderCostWithQuantityTracking(costId, updateData);
 

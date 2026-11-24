@@ -57,6 +57,35 @@ export const getWorkOrderCosts = async (
   }
 };
 
+/**
+ * Costs of several work orders in one request, grouped by work order. Every
+ * id asked for gets an entry (empty when it has no costs the user may see).
+ * Used to save costs for offline use. Throws when the request fails.
+ */
+export const getWorkOrderCostsByWorkOrder = async (
+  workOrderIds: readonly string[],
+): Promise<Map<string, WorkOrderCost[]>> => {
+  const byWorkOrder = new Map<string, WorkOrderCost[]>(workOrderIds.map(id => [id, []]));
+  if (workOrderIds.length === 0) return byWorkOrder;
+
+  const { data, error } = await supabase
+    .from('work_order_costs')
+    .select('*')
+    .in('work_order_id', [...workOrderIds])
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+
+  const profilesMap = await fetchCreatorNameMap([...new Set(data.map(cost => cost.created_by))]);
+  for (const cost of data) {
+    byWorkOrder.get(cost.work_order_id)?.push({
+      ...cost,
+      total_price_cents: resolveWorkOrderCostTotalCents(cost),
+      created_by_name: profilesMap[cost.created_by] || 'Unknown',
+    });
+  }
+  return byWorkOrder;
+};
+
 // Create a new cost item
 export const createWorkOrderCost = async (costData: CreateWorkOrderCostData): Promise<WorkOrderCost> => {
   try {

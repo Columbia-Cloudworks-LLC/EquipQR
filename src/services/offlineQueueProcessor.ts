@@ -41,7 +41,9 @@ import type {
   OfflineQueueInventoryCreateItem,
   OfflineQueueInventoryUpdateItem,
   OfflineQueueInventoryAdjustItem,
+  OfflineQueuePartUseItem,
 } from './offlineQueueService';
+import type { InventoryQuantityAdjustment } from '@/features/inventory/types/inventory';
 import {
   adjustInventoryQuantity,
   createInventoryItem,
@@ -208,6 +210,46 @@ async function uploadPendingPhotos(
         : {}),
     });
   }
+}
+
+// ─── Stock changes ───────────────────────────────────────────────────────────
+
+/**
+ * Applies a stock change exactly once across retries.
+ *
+ * The server applies a change as "add this much", so sending one twice would
+ * count the stock twice. Before the first attempt (here, or online before the
+ * item was queued) the newest movement already recorded for the inventory
+ * item is noted. If that attempt was cut off before its answer arrived, the
+ * next one looks for a matching movement recorded after that point: only
+ * this change can be it.
+ */
+async function applyStockChangeOnce(
+  item: OfflineQueueInventoryAdjustItem | OfflineQueuePartUseItem,
+  queueService: OfflineQueueService,
+  adjustment: InventoryQuantityAdjustment,
+): Promise<void> {
+  const baseline = item.payload.lastMovementBeforeReplay;
+  if (baseline === undefined) {
+    const newest = await getNewestInventoryMovementTime(item.organizationId, adjustment.itemId);
+    item.payload.lastMovementBeforeReplay = newest;
+    queueService.updatePayload(item.id, { lastMovementBeforeReplay: newest }, { syncBookkeeping: true });
+  } else {
+    const { data: recorded, error: lookupError } = await supabase
+      .from('inventory_transactions')
+      .select('id')
+      .eq('inventory_item_id', adjustment.itemId)
+      .eq('organization_id', item.organizationId)
+      .eq('user_id', item.userId)
+      .eq('change_amount', adjustment.delta)
+      .eq('notes', adjustment.reason)
+      .gt('created_at', baseline)
+      .limit(1);
+    if (lookupError) throw lookupError;
+    if (recorded.length > 0) return;
+  }
+
+  await adjustInventoryQuantity(item.organizationId, adjustment);
 }
 
 // ─── Conflict info ───────────────────────────────────────────────────────────
@@ -787,34 +829,51 @@ function createHandlerMap(): Record<OfflineQueueItem['type'], QueueItemHandler<n
   }) as QueueItemHandler<never>,
 
   inventory_adjust: (async (item: OfflineQueueInventoryAdjustItem, _replay, queueService) => {
-    const { lastMovementBeforeReplay, ...adjustment } = item.payload;
+    const adjustment = { ...item.payload };
+    delete adjustment.lastMovementBeforeReplay;
+    await applyStockChangeOnce(item, queueService, adjustment);
+    return { success: true };
+  }) as QueueItemHandler<never>,
 
-    // The server applies an adjustment as "add this much", so sending one
-    // twice would count the stock twice. Before the first attempt (here, or
-    // online before it was queued), the newest movement already recorded for
-    // the item is noted. If that attempt was cut off before its answer
-    // arrived, the next one looks for a matching movement recorded after
-    // that point: only this adjustment can be it.
-    if (lastMovementBeforeReplay === undefined) {
-      const baseline = await getNewestInventoryMovementTime(item.organizationId, adjustment.itemId);
-      item.payload.lastMovementBeforeReplay = baseline;
-      queueService.updatePayload(item.id, { lastMovementBeforeReplay: baseline }, { syncBookkeeping: true });
-    } else {
-      const { data: recorded, error: lookupError } = await supabase
-        .from('inventory_transactions')
-        .select('id')
-        .eq('inventory_item_id', adjustment.itemId)
-        .eq('organization_id', item.organizationId)
-        .eq('user_id', item.userId)
-        .eq('change_amount', adjustment.delta)
-        .eq('notes', adjustment.reason)
-        .gt('created_at', lastMovementBeforeReplay)
-        .limit(1);
-      if (lookupError) throw lookupError;
-      if (recorded.length > 0) return { success: true };
+  work_order_part_use: (async (item: OfflineQueuePartUseItem, replay, queueService) => {
+    const { costId, itemId, description, quantity, unitPriceCents } = item.payload;
+    const workOrderId = replay.resolveWorkOrderId(item.payload.workOrderId);
+
+    // Stock first, as when connected: if the server refuses (not enough in
+    // stock) nothing has been written and the whole item fails together.
+    if (!item.payload.stockDeducted) {
+      await applyStockChangeOnce(item, queueService, {
+        itemId,
+        delta: -quantity,
+        reason: `Used in work order ${workOrderId}`,
+        workOrderId,
+      });
+      item.payload.stockDeducted = true;
+      queueService.updatePayload(item.id, { stockDeducted: true }, { syncBookkeeping: true });
     }
 
-    await adjustInventoryQuantity(item.organizationId, adjustment);
+    // Then the cost line, under the id chosen on the device. If an earlier
+    // attempt already wrote it, there is nothing left to do.
+    const { data: existing, error: lookupError } = await supabase
+      .from('work_order_costs')
+      .select('id')
+      .eq('id', costId)
+      .maybeSingle();
+    if (lookupError) throw lookupError;
+
+    if (!existing) {
+      const { error: insertError } = await supabase.from('work_order_costs').insert({
+        id: costId,
+        work_order_id: workOrderId,
+        description,
+        quantity,
+        unit_price_cents: unitPriceCents,
+        inventory_item_id: itemId,
+        original_quantity: quantity,
+        created_by: item.userId,
+      });
+      if (insertError) throw insertError;
+    }
     return { success: true };
   }) as QueueItemHandler<never>,
   };
