@@ -1,5 +1,6 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { requireAuthUserIdFromClaims } from '@/lib/authClaims';
 import {
   fetchCreatorName,
@@ -55,6 +56,49 @@ export const getWorkOrderCosts = async (
     logger.error('Error fetching work order costs:', error);
     throw error;
   }
+};
+
+type WorkOrderCostRow = Tables<'work_order_costs'>;
+
+/** Rows asked for per request; no larger than the API's own row limit. */
+const COST_PAGE_SIZE = 1000;
+
+/**
+ * Costs of several work orders, grouped by work order. Every
+ * id asked for gets an entry (empty when it has no costs the user may see).
+ * Used to save costs for offline use. Throws when the request fails.
+ */
+export const getWorkOrderCostsByWorkOrder = async (
+  workOrderIds: readonly string[],
+): Promise<Map<string, WorkOrderCost[]>> => {
+  const byWorkOrder = new Map<string, WorkOrderCost[]>(workOrderIds.map(id => [id, []]));
+  if (workOrderIds.length === 0) return byWorkOrder;
+
+  // The API returns at most a page of rows per request, so read every page:
+  // a truncated answer would be saved as "these work orders have no costs".
+  const data: WorkOrderCostRow[] = [];
+  for (let from = 0; ; from += COST_PAGE_SIZE) {
+    const { data: page, error } = await supabase
+      .from('work_order_costs')
+      .select('*')
+      .in('work_order_id', [...workOrderIds])
+      .order('created_at', { ascending: true })
+      .order('id', { ascending: true })
+      .range(from, from + COST_PAGE_SIZE - 1);
+    if (error) throw error;
+    data.push(...page);
+    if (page.length < COST_PAGE_SIZE) break;
+  }
+
+  const profilesMap = await fetchCreatorNameMap([...new Set(data.map(cost => cost.created_by))]);
+  for (const cost of data) {
+    byWorkOrder.get(cost.work_order_id)?.push({
+      ...cost,
+      total_price_cents: resolveWorkOrderCostTotalCents(cost),
+      created_by_name: profilesMap[cost.created_by] || 'Unknown',
+    });
+  }
+  return byWorkOrder;
 };
 
 // Create a new cost item

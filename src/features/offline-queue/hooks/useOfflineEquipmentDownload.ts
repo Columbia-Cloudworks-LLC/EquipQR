@@ -91,12 +91,17 @@ export function useRememberTeamMemberships(
  * Marker for "the saved copy is up to date". The app version is part of the
  * key: a new deploy discards the saved copy (see queryPersistence), so the
  * download must run again straight away. The prefix changes whenever
- * more is added to the download (work orders and inventory, then teams), so
+ * more is added to the download (work orders and inventory, then teams, then
+ * work order costs), so
  * devices holding an older, smaller copy download the rest instead of
  * waiting out the interval.
  */
-const LAST_DOWNLOAD_KEY_PREFIX = 'equipqr_offline_data_v2_download_';
-const RETIRED_DOWNLOAD_KEY_PREFIXES = ['equipqr_offline_equipment_download_', 'equipqr_offline_data_download_'];
+const LAST_DOWNLOAD_KEY_PREFIX = 'equipqr_offline_data_v3_download_';
+const RETIRED_DOWNLOAD_KEY_PREFIXES = [
+  'equipqr_offline_equipment_download_',
+  'equipqr_offline_data_download_',
+  'equipqr_offline_data_v2_download_',
+];
 
 const lastDownloadKey = (userId: string, organizationId: string, scope: string) =>
   `${LAST_DOWNLOAD_KEY_PREFIX}${OFFLINE_CACHE_VERSION}_${userId}_${organizationId}_${scope}`;

@@ -68,7 +68,8 @@ export type OfflineQueueItemType =
   | 'team_create'
   | 'inventory_create'
   | 'inventory_update'
-  | 'inventory_adjust';
+  | 'inventory_adjust'
+  | 'work_order_part_use';
 
 export type OfflineQueueItemStatus = 'pending' | 'processing' | 'failed';
 
@@ -357,6 +358,30 @@ export interface OfflineQueueInventoryAdjustItem extends OfflineQueueItemBase {
   };
 }
 
+/**
+ * A part taken from inventory for a work order with no connection: the cost
+ * line on the work order and the stock deduction, kept together as one item
+ * so neither can sync without the other.
+ */
+export interface OfflineQueuePartUseItem extends OfflineQueueItemBase {
+  type: 'work_order_part_use';
+  payload: {
+    /** Id of the cost line, generated on the device so a retried sync cannot add it twice. */
+    costId: string;
+    /** May be an `offline-…` placeholder for a work order created offline. */
+    workOrderId: string;
+    itemId: string;
+    /** The part's name, used as the cost line's description. */
+    description: string;
+    quantity: number;
+    unitPriceCents: number;
+    /** See `OfflineQueueInventoryAdjustItem`. */
+    lastMovementBeforeReplay?: string;
+    /** Set once the stock has been deducted, so a retry only has the cost line left to write. */
+    stockDeducted?: boolean;
+  };
+}
+
 export type OfflineQueueItem =
   | OfflineQueueCreateItem
   | OfflineQueueUpdateItem
@@ -374,7 +399,8 @@ export type OfflineQueueItem =
   | OfflineQueueTeamCreateItem
   | OfflineQueueInventoryCreateItem
   | OfflineQueueInventoryUpdateItem
-  | OfflineQueueInventoryAdjustItem;
+  | OfflineQueueInventoryAdjustItem
+  | OfflineQueuePartUseItem;
 
 /** The shape callers pass to enqueue — id, retryCount, status etc. are generated. */
 export type OfflineQueueEnqueueInput = {

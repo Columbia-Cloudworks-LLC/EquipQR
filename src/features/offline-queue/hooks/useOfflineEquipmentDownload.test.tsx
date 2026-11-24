@@ -192,14 +192,16 @@ describe('offline equipment download', () => {
 
   it('downloads again after an app update, because the saved copy is discarded with the old version', async () => {
     const { wrapper } = setup();
-    const previousVersionMarker = 'equipqr_offline_data_v2_download_0.0.1-previous_user-1_org-1_org-admin';
-    // Left by releases that saved less (equipment only, then without teams):
+    const previousVersionMarker = 'equipqr_offline_data_v3_download_0.0.1-previous_user-1_org-1_org-admin';
+    // Left by releases that saved less (equipment only, without teams, without costs):
     // they must not count as up to date.
     const equipmentOnlyMarker = 'equipqr_offline_equipment_download_dev_user-1_org-1_org-admin';
     const withoutTeamsMarker = 'equipqr_offline_data_download_dev_user-1_org-1_org-admin';
+    const withoutCostsMarker = 'equipqr_offline_data_v2_download_dev_user-1_org-1_org-admin';
     localStorage.setItem(previousVersionMarker, String(Date.now()));
     localStorage.setItem(equipmentOnlyMarker, String(Date.now()));
     localStorage.setItem(withoutTeamsMarker, String(Date.now()));
+    localStorage.setItem(withoutCostsMarker, String(Date.now()));
 
     renderHook(() => useOfflineEquipmentDownload('user-1', ORG_ID, { isOrgAdmin: true }), { wrapper });
     await vi.advanceTimersByTimeAsync(5000);
@@ -208,6 +210,7 @@ describe('offline equipment download', () => {
     expect(localStorage.getItem(previousVersionMarker)).toBeNull();
     expect(localStorage.getItem(equipmentOnlyMarker)).toBeNull();
     expect(localStorage.getItem(withoutTeamsMarker)).toBeNull();
+    expect(localStorage.getItem(withoutCostsMarker)).toBeNull();
   });
 
   it('downloads again straight away when asked to, as after offline changes sync', async () => {

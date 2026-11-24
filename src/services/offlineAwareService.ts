@@ -36,6 +36,7 @@ import type {
 import type { UpdateWorkingHoursData } from '@/features/equipment/services/equipmentWorkingHoursService';
 import { OfflineQueueService, OfflineQueuePayloadError } from './offlineQueueService';
 import type {
+  OfflineQueuePartUseItem,
   OfflineQueueEnqueueInput,
   WorkOrderServerSnapshot,
   OfflineQueueImageRef,
@@ -524,6 +525,23 @@ export class OfflineAwareWorkOrderService {
       if (isConnectionFailure(error)) return queue(newestMovement);
       throw error;
     }
+  }
+
+  /**
+   * Queues a part taken from inventory for a work order: the cost line and
+   * the stock deduction as one item, so neither can sync without the other.
+   * Call only when `shouldQueue(workOrderId)` is true; connected, the two
+   * writes are made directly.
+   */
+  queuePartUse(part: OfflineQueuePartUseItem['payload']): OfflineAwareResult<null> {
+    return this.enqueueOffline(
+      { type: 'work_order_part_use', payload: part },
+      {
+        queued: 'Work order part use queued offline',
+        failed: 'Failed to enqueue offline work order part use',
+        context: { workOrderId: part.workOrderId, itemId: part.itemId },
+      },
+    );
   }
 
   /** Send now when connected; queue when offline or when the request never reached the server. */

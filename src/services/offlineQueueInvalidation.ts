@@ -17,7 +17,13 @@ const EQUIPMENT_ITEM_TYPES = new Set([
   'equipment_note',
 ]);
 
-const INVENTORY_ITEM_TYPES = new Set(['inventory_create', 'inventory_update', 'inventory_adjust']);
+const INVENTORY_ITEM_TYPES = new Set([
+  'inventory_create',
+  'inventory_update',
+  'inventory_adjust',
+  // A part used on a work order also takes stock.
+  'work_order_part_use',
+]);
 
 function hasPmItems(items: OfflineQueueItem[]): boolean {
   return items.some(
@@ -60,6 +66,10 @@ export function invalidateOfflineSyncQueries(queryClient: QueryClient, items: Of
       queryClient.invalidateQueries({ queryKey: ['teams', orgId] });
       queryClient.invalidateQueries({ queryKey: ['teams-optimized', orgId] });
       queryClient.invalidateQueries({ queryKey: ['access-snapshot'] });
+    }
+    if (items.some(i => i.type === 'work_order_part_use')) {
+      queryClient.invalidateQueries({ queryKey: ['work-order-costs'] });
+      queryClient.invalidateQueries({ queryKey: ['work-order-costs-subtotal'] });
     }
     if (items.some(i => INVENTORY_ITEM_TYPES.has(i.type))) {
       queryClient.invalidateQueries({ queryKey: ['inventory', orgId] });

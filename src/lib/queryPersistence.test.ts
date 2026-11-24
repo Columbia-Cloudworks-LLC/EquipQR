@@ -112,6 +112,35 @@ describe('attachOfflineReadCache', () => {
     expect(queryClient.getQueryState(queryKey)?.dataUpdatedAt).toBe(updatedAt);
   });
 
+  it('still asks the server after showing a saved copy, however recent', async () => {
+    setActivePersistenceScope({ userId: 'user-1', orgId: 'org-1' });
+    const queryKey = ['inventory', 'org-1', 'list'];
+    await seedSavedCopy(queryClient, 'equipqr:tq:user-1:org-1', queryKey, [{ id: 'item-1' }], Date.now() - 1000);
+
+    queryClient.getQueryCache().build(queryClient, { queryKey });
+    await flush();
+
+    // Shown, but marked out of date so the screen fetches when it mounts.
+    expect(queryClient.getQueryData(queryKey)).toEqual([{ id: 'item-1' }]);
+    expect(queryClient.getQueryState(queryKey)?.isInvalidated).toBe(true);
+  });
+
+  it('leaves the saved copy alone with no connection, when there is nothing to ask', async () => {
+    setActivePersistenceScope({ userId: 'user-1', orgId: 'org-1' });
+    const queryKey = ['inventory', 'org-1', 'list'];
+    await seedSavedCopy(queryClient, 'equipqr:tq:user-1:org-1', queryKey, [{ id: 'item-1' }], Date.now() - 1000);
+
+    Object.defineProperty(navigator, 'onLine', { value: false, configurable: true });
+    try {
+      queryClient.getQueryCache().build(queryClient, { queryKey });
+      await flush();
+      expect(queryClient.getQueryData(queryKey)).toEqual([{ id: 'item-1' }]);
+      expect(queryClient.getQueryState(queryKey)?.isInvalidated).toBe(false);
+    } finally {
+      Reflect.deleteProperty(navigator, 'onLine');
+    }
+  });
+
   it('fills queries that mounted before the scope was announced', async () => {
     const queryKey = ['equipment', 'org-1', 'summaries'];
     setActivePersistenceScope({ userId: 'user-1', orgId: 'org-1' });

@@ -6,7 +6,9 @@ import type {
   OfflineQueueInventoryCreateItem,
   OfflineQueueItem,
 } from '@/services/offlineQueueService';
+import type { QueryClient } from '@tanstack/react-query';
 import type { InventoryItem } from '@/features/inventory/types/inventory';
+import { offlineSavedKeys } from '@/features/offline-queue/utils/offlineSavedData';
 import type { InventoryItemFormData } from '@/features/inventory/schemas/inventorySchema';
 import { toInventoryItemUpdate } from '@/features/inventory/services/inventoryService';
 import { isLiveQueueItem } from '@/features/offline-queue/utils/queuedWorkOrderChanges';
@@ -39,7 +41,7 @@ export function hasQueuedRelationshipEdit(
 }
 
 /**
- * Ids of the queue entries that create or change this item, when the item
+ * Ids of the queue entries that create, change or use this item, when the item
  * itself is still waiting to be created. Deleting such an item means taking
  * these out of the queue: there is nothing on the server to delete, and left
  * in place the create would bring the item back on the next sync.
@@ -52,7 +54,10 @@ export function queuedEntriesForUnsyncedItem(
     item =>
       (item.type === 'inventory_create' ||
         item.type === 'inventory_update' ||
-        item.type === 'inventory_adjust') &&
+        item.type === 'inventory_adjust' ||
+        // A part taken from this item for a work order: it cannot sync
+        // without the item, so it goes with it.
+        item.type === 'work_order_part_use') &&
       item.payload.itemId === itemId,
   );
   return entries.some(isQueuedInventoryCreate) ? entries.map(item => item.id) : [];
@@ -128,6 +133,9 @@ export function applyQueuedInventoryChanges<T extends InventoryItem>(
       next = { ...next, ...toInventoryItemUpdate(item.payload.formData) };
     } else if (item.type === 'inventory_adjust' && item.payload.itemId === inventoryItem.id) {
       next = { ...next, quantity_on_hand: next.quantity_on_hand + item.payload.delta };
+    } else if (item.type === 'work_order_part_use' && item.payload.itemId === inventoryItem.id) {
+      // A part used on a work order offline: its stock deduction is queued with the cost line.
+      next = { ...next, quantity_on_hand: next.quantity_on_hand - item.payload.quantity };
     }
   }
   return next === inventoryItem ? inventoryItem : withLowStock(next);
@@ -160,4 +168,24 @@ export function mergeQueuedInventory(
     .filter(item => !items.some(existing => existing.id === item.payload.itemId))
     .map(item => applyQueuedInventoryChanges(buildQueuedInventoryItem(item), queuedItems));
   return [...created, ...listed];
+}
+
+/**
+ * What this device knows about an inventory item right now: its saved record
+ * (or the copy in the saved list) with queued changes applied. Used to name
+ * and stock-check a part with no connection. `undefined` when it is not saved.
+ */
+export function findKnownInventoryItem(
+  queryClient: QueryClient,
+  organizationId: string,
+  itemId: string,
+  queuedItems: readonly OfflineQueueItem[],
+): QueuedInventoryItem | undefined {
+  const saved =
+    queryClient.getQueryData<InventoryItem | null>(['inventory-item', organizationId, itemId]) ??
+    queryClient
+      .getQueryData<InventoryItem[]>(offlineSavedKeys.inventoryList(organizationId))
+      ?.find(item => item.id === itemId);
+  if (saved) return applyQueuedInventoryChanges(saved, queuedItems);
+  return resolveQueuedInventoryItem(itemId, undefined, queuedItems) ?? undefined;
 }

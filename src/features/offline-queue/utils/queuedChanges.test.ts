@@ -4,6 +4,8 @@ import type { WorkOrder } from '@/features/work-orders/types/workOrder';
 import type { InventoryItem } from '@/features/inventory/types/inventory';
 import type { EquipmentWithTeam } from '@/features/equipment/services/EquipmentService';
 import { applyQueuedWorkOrderChanges } from './queuedWorkOrderChanges';
+import { findQueuedPartUse, mergeQueuedPartUseCosts } from './queuedPartUse';
+import type { WorkOrderCost } from '@/features/work-orders/types/workOrderCosts';
 import {
   applyQueuedEquipmentUpdates,
   buildQueuedEquipmentRecord,
@@ -242,6 +244,16 @@ describe('inventory waiting in the offline queue', () => {
       edit.id,
       count.id,
     ]);
+    // A part taken from it for a work order goes with it: it could never sync.
+    const used = queued('work_order_part_use', {
+      costId: 'cost-1',
+      workOrderId: 'wo-1',
+      itemId: 'item-new',
+      description: 'Hydraulic hose',
+      quantity: 1,
+      unitPriceCents: 500,
+    });
+    expect(queuedEntriesForUnsyncedItem('item-new', [create, used])).toEqual([create.id, used.id]);
     // An item that is already on the server is deleted there, not in the queue.
     expect(queuedEntriesForUnsyncedItem('item-1', [create, other])).toEqual([]);
   });
@@ -261,5 +273,47 @@ describe('inventory waiting in the offline queue', () => {
     expect(hasQueuedRelationshipEdit('item-1', [rename, relink])).toBe(true);
     expect(hasQueuedRelationshipEdit('item-2', [relink])).toBe(false);
     expect(hasQueuedRelationshipEdit('item-1', [{ ...relink, status: 'failed' }])).toBe(false);
+  });
+});
+
+describe('parts used on a work order, waiting in the offline queue', () => {
+  const partUse = (costId: string, workOrderId: string, quantity: number) =>
+    queued('work_order_part_use', {
+      costId,
+      workOrderId,
+      itemId: 'item-1',
+      description: 'Air filter',
+      quantity,
+      unitPriceCents: 1250,
+    });
+  const savedCost = { id: 'cost-saved', work_order_id: 'wo-1', description: 'Labor' } as WorkOrderCost;
+
+  it('shows the cost line on its work order, after the saved ones', () => {
+    const costs = mergeQueuedPartUseCosts([savedCost], 'wo-1', [partUse('cost-new', 'wo-1', 2), partUse('cost-other', 'wo-2', 1)]);
+
+    expect(costs.map(cost => cost.id)).toEqual(['cost-saved', 'cost-new']);
+    expect(costs[1]).toMatchObject({
+      description: 'Air filter',
+      quantity: 2,
+      unit_price_cents: 1250,
+      total_price_cents: 2500,
+      inventory_item_id: 'item-1',
+      _isPendingSync: true,
+    });
+  });
+
+  it('does not show a line twice once the server copy has arrived, and can be found by its id', () => {
+    const queuedPart = partUse('cost-saved', 'wo-1', 2);
+    expect(mergeQueuedPartUseCosts([savedCost], 'wo-1', [queuedPart])).toHaveLength(1);
+    expect(findQueuedPartUse('cost-saved', [queuedPart])).toBe(queuedPart);
+    expect(findQueuedPartUse('cost-saved', [{ ...queuedPart, status: 'failed' }])).toBeUndefined();
+  });
+
+  it('takes the parts off the stock shown for the item', () => {
+    const item = { id: 'item-1', organization_id: ORG, name: 'Air filter', quantity_on_hand: 5, low_stock_threshold: 3 } as InventoryItem;
+    const [shown] = mergeQueuedInventory([item], [partUse('cost-a', 'wo-1', 2), partUse('cost-b', 'wo-2', 1)], ORG);
+
+    expect(shown.quantity_on_hand).toBe(2);
+    expect(shown.isLowStock).toBe(true);
   });
 });

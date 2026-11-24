@@ -10,6 +10,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { getFilteredList } from '@/features/work-orders/services/workOrderListService';
 import { WorkOrderService } from '@/features/work-orders/services/workOrderService';
+import { getWorkOrderCostsByWorkOrder } from '@/features/work-orders/services/workOrderCostsService';
 import { DEFAULT_WORK_ORDER_FILTERS } from '@/features/work-orders/hooks/workOrderFilterUtils';
 import {
   parseWorkOrderListContract,
@@ -47,6 +48,9 @@ export const OFFLINE_WORK_ORDER_LIST_LIMIT = 1000;
 export const OFFLINE_WORK_ORDER_DETAIL_LIMIT = 150;
 
 const DETAIL_REQUESTS_AT_ONCE = 6;
+
+/** Work orders per cost request; keeps the id list well inside URL length limits. */
+const COST_REQUEST_WORK_ORDERS = 50;
 
 const CLOSED_STATUSES: ReadonlySet<string> = new Set(['completed', 'cancelled']);
 
@@ -161,6 +165,22 @@ export async function downloadWorkOrdersForOffline(
       logger.error('Failed to save a work order for offline use', error);
     }
   });
+
+  // The costs of each open work order, so the cost list opens with no signal
+  // and a part can be added to it offline. A few requests for all of them.
+  try {
+    for (let start = 0; start < open.length; start += COST_REQUEST_WORK_ORDERS) {
+      const ids = open.slice(start, start + COST_REQUEST_WORK_ORDERS).map((row) => row.id);
+      const costs = await getWorkOrderCostsByWorkOrder(ids);
+      if (!isStillWanted()) return false;
+      for (const [workOrderId, list] of costs) {
+        queryClient.setQueryData(['work-order-costs', workOrderId], list);
+      }
+    }
+  } catch (error) {
+    allDetailsSaved = false;
+    logger.error('Failed to save work order costs for offline use', error);
+  }
 
   return allDetailsSaved && isStillWanted();
 }

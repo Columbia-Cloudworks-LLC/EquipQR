@@ -30,6 +30,7 @@ import type {
   InventoryQuantityAdjustment,
   InventoryFilters,
   InventoryItem,
+  PartialInventoryItem,
   PartCompatibilityRule,
   PartCompatibilityRuleFormData,
   EquipmentMatchedByRules
@@ -62,6 +63,7 @@ const QUEUED_INVENTORY_TYPES: ReadonlySet<string> = new Set([
   'inventory_create',
   'inventory_update',
   'inventory_adjust',
+  'work_order_part_use',
 ]);
 
 function isQueuedInventoryChange(item: OfflineQueueItem): boolean {
@@ -349,6 +351,36 @@ export const useCompatibleInventoryItems = (
     staleTime
   });
 };
+
+/**
+ * The parts offered when adding a part to a work order: the ones that fit its
+ * equipment. Which parts fit is worked out by the server, so with no
+ * connection the whole saved inventory is offered instead (with queued stock
+ * changes applied) and `isOfflineFallback` tells the picker to say so.
+ */
+export const useWorkOrderPartPickerItems = (
+  organizationId: string | undefined,
+  equipmentIds: string[],
+): { items: PartialInventoryItem[]; isLoading: boolean; isOfflineFallback: boolean } => {
+  const compatible = useCompatibleInventoryItems(organizationId, equipmentIds);
+  const savedList = useOfflineSavedList<InventoryItem>(
+    organizationId ? offlineSavedKeys.inventoryList(organizationId) : undefined,
+  );
+  const queuedItems = useQueuedItems();
+  const savedRows = savedList?.rows;
+  const allSavedItems = useMemo<PartialInventoryItem[] | undefined>(
+    () =>
+      savedRows
+        ? mergeQueuedInventory(savedRows, queuedItems, organizationId).sort((a, b) => a.name.localeCompare(b.name))
+        : undefined,
+    [savedRows, queuedItems, organizationId],
+  );
+
+  if (allSavedItems) return { items: allSavedItems, isLoading: false, isOfflineFallback: true };
+  return { items: compatible.data ?? NO_PARTS, isLoading: compatible.isLoading, isOfflineFallback: false };
+};
+
+const NO_PARTS: PartialInventoryItem[] = [];
 
 export const useCompatibleEquipmentForItem = (
   organizationId: string | undefined,
