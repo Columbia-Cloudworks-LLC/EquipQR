@@ -56,7 +56,10 @@ export function useInlineWorkOrderCostActions({
   const { currentOrganization } = useOrganization();
   const { user } = useAuth();
   const { toast } = useAppToast();
-  const adjustInventoryMutation = useAdjustInventoryQuantity();
+  // The stock deduction and the cost line belong together, and the cost line
+  // cannot be saved offline. So the deduction must reach the server now or
+  // fail: queued on its own it would take stock later with no cost recorded.
+  const adjustInventoryMutation = useAdjustInventoryQuantity({ requireServer: true });
   const createCostMutation = useCreateWorkOrderCost();
   const updateCostWithInventoryMutation = useUpdateWorkOrderCostWithInventory();
   const deleteCostWithInventoryMutation = useDeleteWorkOrderCostWithInventoryRestore();

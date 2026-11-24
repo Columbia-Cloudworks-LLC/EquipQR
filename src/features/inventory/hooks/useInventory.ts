@@ -551,7 +551,14 @@ export const useDeleteInventoryItem = () => {
   });
 };
 
-export const useAdjustInventoryQuantity = () => {
+/**
+ * @param options.requireServer - Send the change to the server or fail; never
+ *   queue it. For callers that pair the stock change with another write that
+ *   cannot be queued (a work order cost line): queueing only the stock change
+ *   would deduct stock later with nothing to show for it.
+ */
+export const useAdjustInventoryQuantity = (options: { requireServer?: boolean } = {}) => {
+  const { requireServer = false } = options;
   const queryClient = useQueryClient();
   const { toast } = useAppToast();
   const { user, offlineCtx, refreshSavedInventory } = useInventoryOfflineSupport();
@@ -565,6 +572,7 @@ export const useAdjustInventoryQuantity = () => {
       adjustment: InventoryQuantityAdjustment;
     }) => {
       if (!user) throw new Error('User not authenticated');
+      if (requireServer) return await adjustInventoryQuantity(organizationId, adjustment);
       // The server refuses to take more than is in stock. With no connection
       // say so now, from the quantity on this device, instead of queueing a
       // change that can only fail when it syncs.
