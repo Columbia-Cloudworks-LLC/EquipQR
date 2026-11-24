@@ -460,7 +460,25 @@ export class OfflineAwareWorkOrderService {
           context: { itemId },
         },
       );
+    if (this.hasQueuedInventoryChange(itemId)) return queue();
     return this.runOrQueue(() => updateInventoryItem(this.orgId, itemId, formData), queue);
+  }
+
+  /**
+   * True while an earlier change to this item is still waiting to sync. A
+   * newer change must then wait behind it even when connected: sent straight
+   * away it would reach the server first, and the older queued change would
+   * later overwrite it (an edit) or be mistaken for it (a stock change).
+   */
+  private hasQueuedInventoryChange(itemId: string): boolean {
+    return this.queueService.getAll().some(
+      item =>
+        (item.status === 'pending' || item.status === 'processing') &&
+        (item.type === 'inventory_create' ||
+          item.type === 'inventory_update' ||
+          item.type === 'inventory_adjust') &&
+        item.payload.itemId === itemId,
+    );
   }
 
   /**
@@ -487,7 +505,7 @@ export class OfflineAwareWorkOrderService {
           context: { itemId: adjustment.itemId, delta: adjustment.delta },
         },
       );
-    if (!navigator.onLine) return queue();
+    if (!navigator.onLine || this.hasQueuedInventoryChange(adjustment.itemId)) return queue();
 
     let newestMovement: string;
     try {
