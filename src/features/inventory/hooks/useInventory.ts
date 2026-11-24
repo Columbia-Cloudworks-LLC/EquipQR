@@ -520,6 +520,10 @@ export const useDeleteInventoryItem = () => {
       const queued = queuedEntriesForUnsyncedItem(itemId, offlineCtx?.queuedItems ?? []);
       if (queued.length > 0) {
         queued.forEach((queueItemId) => offlineCtx?.removeItem(queueItemId));
+        // An earlier sync attempt may have created the record and lost the
+        // answer, leaving the create queued. When connected, delete on the
+        // server as well (a no-op if the record was never created).
+        if (navigator.onLine) await deleteInventoryItem(organizationId, itemId);
         return;
       }
       return await deleteInventoryItem(organizationId, itemId);

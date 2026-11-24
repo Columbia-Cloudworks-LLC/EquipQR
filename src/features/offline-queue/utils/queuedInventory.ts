@@ -20,6 +20,25 @@ export function isPendingSyncItem(item: InventoryItem | null | undefined): boole
 }
 
 /**
+ * True while a queued edit to this item changes its equipment links or
+ * compatibility rules. Until it syncs the server still holds the old ones,
+ * so an edit form must not read them back and save them over the queued change.
+ */
+export function hasQueuedRelationshipEdit(
+  itemId: string | undefined,
+  queuedItems: readonly OfflineQueueItem[],
+): boolean {
+  return queuedItems.some(
+    item =>
+      item.type === 'inventory_update' &&
+      isLiveQueueItem(item) &&
+      item.payload.itemId === itemId &&
+      (item.payload.formData.compatibleEquipmentIds !== undefined ||
+        item.payload.formData.compatibilityRules !== undefined),
+  );
+}
+
+/**
  * Ids of the queue entries that create or change this item, when the item
  * itself is still waiting to be created. Deleting such an item means taking
  * these out of the queue: there is nothing on the server to delete, and left

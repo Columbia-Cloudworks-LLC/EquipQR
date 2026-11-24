@@ -10,6 +10,7 @@ import {
   findQueuedEquipmentCreate,
 } from './queuedEquipment';
 import {
+  hasQueuedRelationshipEdit,
   isPendingSyncItem,
   mergeQueuedInventory,
   queuedEntriesForUnsyncedItem,
@@ -250,5 +251,15 @@ describe('inventory waiting in the offline queue', () => {
     expect(isPendingSyncItem(pending)).toBe(true);
     expect(isPendingSyncItem(saved)).toBe(false);
     expect(isPendingSyncItem(null)).toBe(false);
+  });
+
+  it('knows when a queued edit changes an item\'s equipment links or rules', () => {
+    const rename = queued('inventory_update', { itemId: 'item-1', formData: { name: 'Renamed' } });
+    const relink = queued('inventory_update', { itemId: 'item-1', formData: { compatibleEquipmentIds: [] } });
+
+    expect(hasQueuedRelationshipEdit('item-1', [rename])).toBe(false);
+    expect(hasQueuedRelationshipEdit('item-1', [rename, relink])).toBe(true);
+    expect(hasQueuedRelationshipEdit('item-2', [relink])).toBe(false);
+    expect(hasQueuedRelationshipEdit('item-1', [{ ...relink, status: 'failed' }])).toBe(false);
   });
 });

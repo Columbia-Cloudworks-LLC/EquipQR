@@ -8,7 +8,11 @@ import {
 } from '@/features/inventory/utils/inventoryItemEditingLoadHelpers';
 import type { ToastVariant } from '@/hooks/useAppToast';
 import { logger } from '@/utils/logger';
-import { isPendingSyncItem } from '@/features/offline-queue/utils/queuedInventory';
+import { useQueuedItems } from '@/features/offline-queue/hooks/useQueuedLookups';
+import {
+  hasQueuedRelationshipEdit,
+  isPendingSyncItem,
+} from '@/features/offline-queue/utils/queuedInventory';
 
 type ToastFn = (args: {
   title: string;
@@ -44,7 +48,11 @@ export function useInventoryItemFormEditingLoad({
   toastRef.current = toast;
 
   const editingItemId = editingItem?.id;
-  const editingItemIsUnsynced = isPendingSyncItem(editingItem);
+  // The server cannot answer for an item created offline that has not synced,
+  // and holds out-of-date links and rules while an edit to them is queued.
+  const queuedItems = useQueuedItems();
+  const editingItemIsUnsynced =
+    isPendingSyncItem(editingItem) || hasQueuedRelationshipEdit(editingItem?.id, queuedItems);
   const editingItemOrgId = editingItem?.organization_id;
 
   useEffect(() => {
@@ -74,9 +82,9 @@ export function useInventoryItemFormEditingLoad({
 
           // No connection: do not wait on requests that cannot finish. An
           // item created offline that has not synced has nothing on the
-          // server to read either (its links and rules are in the queue).
-          // Either way the rest of the item can be edited, and links and
-          // rules stay as they are.
+          // server to read either, and one with a queued edit to its links
+          // or rules would read the old ones. In each case the rest of the
+          // item can be edited, and links and rules stay as they are.
           if (!navigator.onLine || editingItemIsUnsynced) {
             setRelationshipsLoaded(false);
             setIsEditingDataLoaded(true);
