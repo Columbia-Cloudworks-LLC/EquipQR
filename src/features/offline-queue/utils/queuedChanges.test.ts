@@ -9,7 +9,12 @@ import {
   buildQueuedEquipmentRecord,
   findQueuedEquipmentCreate,
 } from './queuedEquipment';
-import { mergeQueuedInventory, resolveQueuedInventoryItem } from './queuedInventory';
+import {
+  isPendingSyncItem,
+  mergeQueuedInventory,
+  queuedEntriesForUnsyncedItem,
+  resolveQueuedInventoryItem,
+} from './queuedInventory';
 
 const ORG = 'org-1';
 const USER = 'user-1';
@@ -223,5 +228,27 @@ describe('inventory waiting in the offline queue', () => {
     expect(resolveQueuedInventoryItem('item-new', undefined, [create])).toMatchObject({ name: 'Hydraulic hose' });
     expect(resolveQueuedInventoryItem('item-x', null, [create])).toBeNull();
     expect(resolveQueuedInventoryItem('item-1', saved, [create])).toBe(saved);
+  });
+
+  it('deleting an item that has not synced removes its create and later changes from the queue', () => {
+    const create = queued('inventory_create', { itemId: 'item-new', formData: form });
+    const edit = queued('inventory_update', { itemId: 'item-new', formData: { name: 'Renamed' } });
+    const count = queued('inventory_adjust', { itemId: 'item-new', delta: -1, reason: 'Used' });
+    const other = queued('inventory_adjust', { itemId: 'item-1', delta: -1, reason: 'Used' });
+
+    expect(queuedEntriesForUnsyncedItem('item-new', [create, edit, count, other])).toEqual([
+      create.id,
+      edit.id,
+      count.id,
+    ]);
+    // An item that is already on the server is deleted there, not in the queue.
+    expect(queuedEntriesForUnsyncedItem('item-1', [create, other])).toEqual([]);
+  });
+
+  it('marks only items still waiting to be created as pending', () => {
+    const [pending] = mergeQueuedInventory([], [queued('inventory_create', { itemId: 'item-new', formData: form })], ORG);
+    expect(isPendingSyncItem(pending)).toBe(true);
+    expect(isPendingSyncItem(saved)).toBe(false);
+    expect(isPendingSyncItem(null)).toBe(false);
   });
 });

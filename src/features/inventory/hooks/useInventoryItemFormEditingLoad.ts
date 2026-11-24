@@ -8,6 +8,7 @@ import {
 } from '@/features/inventory/utils/inventoryItemEditingLoadHelpers';
 import type { ToastVariant } from '@/hooks/useAppToast';
 import { logger } from '@/utils/logger';
+import { isPendingSyncItem } from '@/features/offline-queue/utils/queuedInventory';
 
 type ToastFn = (args: {
   title: string;
@@ -43,6 +44,7 @@ export function useInventoryItemFormEditingLoad({
   toastRef.current = toast;
 
   const editingItemId = editingItem?.id;
+  const editingItemIsUnsynced = isPendingSyncItem(editingItem);
   const editingItemOrgId = editingItem?.organization_id;
 
   useEffect(() => {
@@ -70,9 +72,12 @@ export function useInventoryItemFormEditingLoad({
 
           if (abortController.signal.aborted) return;
 
-          // No connection: do not wait on requests that cannot finish. The
-          // rest of the item can be edited; links and rules stay as they are.
-          if (!navigator.onLine) {
+          // No connection: do not wait on requests that cannot finish. An
+          // item created offline that has not synced has nothing on the
+          // server to read either (its links and rules are in the queue).
+          // Either way the rest of the item can be edited, and links and
+          // rules stay as they are.
+          if (!navigator.onLine || editingItemIsUnsynced) {
             setRelationshipsLoaded(false);
             setIsEditingDataLoaded(true);
             return;
@@ -148,7 +153,7 @@ export function useInventoryItemFormEditingLoad({
     return () => {
       abortController.abort();
     };
-  }, [open, editingItemId, editingItemOrgId, currentOrganizationId]);
+  }, [open, editingItemId, editingItemOrgId, currentOrganizationId, editingItemIsUnsynced]);
 
   const markNewItemReady = () => {
     setIsEditingDataLoaded(true);

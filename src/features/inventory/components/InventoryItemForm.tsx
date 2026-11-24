@@ -246,8 +246,9 @@ export const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
 
             {editingItem && !relationshipsLoaded ? (
               <p role="status" className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
-                Compatibility rules and linked equipment could not be loaded without a connection.
-                They are not shown here and will be left as they are when you save.
+                Compatibility rules and linked equipment are not available right now (there is no
+                connection, or this item has not synced yet). They are not shown here and will be
+                left as they are when you save.
               </p>
             ) : null}
 

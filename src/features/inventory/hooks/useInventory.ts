@@ -50,6 +50,7 @@ import { downloadInventoryForOffline } from '@/features/offline-queue/services/o
 import {
   buildPendingInventoryItem,
   mergeQueuedInventory,
+  queuedEntriesForUnsyncedItem,
   resolveQueuedInventoryItem,
   type QueuedInventoryItem,
 } from '@/features/offline-queue/utils/queuedInventory';
@@ -503,6 +504,7 @@ export const useUpdateInventoryItem = () => {
 export const useDeleteInventoryItem = () => {
   const queryClient = useQueryClient();
   const { toast } = useAppToast();
+  const offlineCtx = useOfflineQueueOptional();
 
   return useMutation({
     mutationFn: async ({
@@ -512,6 +514,14 @@ export const useDeleteInventoryItem = () => {
       organizationId: string;
       itemId: string;
     }) => {
+      // An item created offline that has not synced exists only in the
+      // queue. Take it (and the changes made to it) out of the queue instead
+      // of asking the server to delete a record it does not have yet.
+      const queued = queuedEntriesForUnsyncedItem(itemId, offlineCtx?.queuedItems ?? []);
+      if (queued.length > 0) {
+        queued.forEach((queueItemId) => offlineCtx?.removeItem(queueItemId));
+        return;
+      }
       return await deleteInventoryItem(organizationId, itemId);
     },
     onSuccess: (_, variables) => {

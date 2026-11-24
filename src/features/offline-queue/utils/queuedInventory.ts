@@ -14,6 +14,31 @@ import { isLiveQueueItem } from '@/features/offline-queue/utils/queuedWorkOrderC
 /** An item that exists only in the offline queue until it syncs. */
 export type QueuedInventoryItem = InventoryItem & { _isPendingSync?: boolean };
 
+/** True for an item that was created offline and is still waiting to sync. */
+export function isPendingSyncItem(item: InventoryItem | null | undefined): boolean {
+  return !!item && '_isPendingSync' in item && item._isPendingSync === true;
+}
+
+/**
+ * Ids of the queue entries that create or change this item, when the item
+ * itself is still waiting to be created. Deleting such an item means taking
+ * these out of the queue: there is nothing on the server to delete, and left
+ * in place the create would bring the item back on the next sync.
+ */
+export function queuedEntriesForUnsyncedItem(
+  itemId: string,
+  queuedItems: readonly OfflineQueueItem[],
+): string[] {
+  const entries = queuedItems.filter(
+    item =>
+      (item.type === 'inventory_create' ||
+        item.type === 'inventory_update' ||
+        item.type === 'inventory_adjust') &&
+      item.payload.itemId === itemId,
+  );
+  return entries.some(isQueuedInventoryCreate) ? entries.map(item => item.id) : [];
+}
+
 function isQueuedInventoryCreate(item: OfflineQueueItem): item is OfflineQueueInventoryCreateItem {
   return item.type === 'inventory_create' && isLiveQueueItem(item);
 }

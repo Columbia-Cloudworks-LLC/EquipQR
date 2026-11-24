@@ -274,7 +274,7 @@ describe('InventoryItemForm editing an item whose compatibility data could not b
     vi.mocked(supabase.from).mockImplementation((() => chain) as never);
   }
 
-  async function saveWithNewName() {
+  async function saveWithNewName(item: InventoryItem = editingItem) {
     const { useUpdateInventoryItem } = await import('@/features/inventory/hooks/useInventory');
     const mutateAsync = vi.fn().mockResolvedValue({ id: 'item-1' });
     vi.mocked(useUpdateInventoryItem).mockReturnValue({
@@ -282,7 +282,7 @@ describe('InventoryItemForm editing an item whose compatibility data could not b
       isPending: false,
     } as unknown as ReturnType<typeof useUpdateInventoryItem>);
 
-    render(<InventoryItemForm open onClose={vi.fn()} editingItem={editingItem} />);
+    render(<InventoryItemForm open onClose={vi.fn()} editingItem={item} />);
     const save = await screen.findByRole('button', { name: /^update item$/i });
     await waitFor(() => expect(save).toBeEnabled());
     fireEvent.change(screen.getByLabelText(/^name/i), { target: { value: 'Air filter (cab)' } });
@@ -302,6 +302,16 @@ describe('InventoryItemForm editing an item whose compatibility data could not b
 
     expect(screen.getByRole('status')).toHaveTextContent(/will be left as they are/i);
     expect(formData.name).toBe('Air filter (cab)');
+    expect(formData).not.toHaveProperty('compatibleEquipmentIds');
+    expect(formData).not.toHaveProperty('compatibilityRules');
+  });
+
+  it('leaves them out for an item created offline that has not synced, whose links are still in the queue', async () => {
+    // Connected again, so the read "succeeds", but the server has no record yet.
+    await answerRelationshipQueriesWith({ data: [], error: null });
+
+    const formData = await saveWithNewName({ ...editingItem, _isPendingSync: true } as InventoryItem);
+
     expect(formData).not.toHaveProperty('compatibleEquipmentIds');
     expect(formData).not.toHaveProperty('compatibilityRules');
   });
