@@ -91,7 +91,8 @@ export const useTeams = (
   const query = useQuery({
     queryKey: ['teams', orgId],
     queryFn: async () => {
-      const allTeams = await TeamRepository.getTeamsByOrg(orgId!);
+      // Strict: a failed request is an error, not a cached "no teams".
+      const allTeams = await TeamRepository.getTeamsByOrgStrict(orgId!);
 
       if (!isElevated) {
         if (!accessSnapshot) return [];
@@ -118,8 +119,7 @@ export const useTeams = (
 
   const teams = useMemo<PendingSyncTeam[]>(() => {
     // With no connection the saved copy is the source: the request cannot
-    // succeed, and the team service answers a failed request with an empty
-    // list, which would otherwise read as "no teams".
+    // succeed, and what is cached may be older than the saved copy.
     let base: PendingSyncTeam[] = query.data ?? [];
     if (savedTeams) {
       base = isElevated

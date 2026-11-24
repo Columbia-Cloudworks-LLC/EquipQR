@@ -9,13 +9,12 @@ const mocks = vi.hoisted(() => ({
   getInventoryListMetadata: vi.fn(),
   isManager: vi.fn(),
   isConsumer: vi.fn(),
-  getTeamsByOrg: vi.fn(),
+  getTeamsByOrgStrict: vi.fn(),
   fetchOrgAdmins: vi.fn(),
-  countTeams: vi.fn(),
 }));
 
 vi.mock('@/features/teams/services/repositories/TeamRepository', () => ({
-  default: { getTeamsByOrg: mocks.getTeamsByOrg },
+  default: { getTeamsByOrgStrict: mocks.getTeamsByOrgStrict },
 }));
 
 vi.mock('@/features/work-orders/services/workOrderAssigneeService', () => ({
@@ -38,12 +37,8 @@ vi.mock('@/features/work-orders/services/workOrderService', () => ({
 // "no checklist". `getPM` receives the work order id and returns { data, error }.
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
-    from: (table: string) => {
+    from: () => {
       const filters: Record<string, string> = {};
-      if (table === 'teams') {
-        // The "are there really no teams?" count, awaited straight off `.eq()`.
-        return { select: () => ({ eq: () => mocks.countTeams() }) };
-      }
       const chain = {
         select: () => chain,
         eq: (column: string, value: string) => {
@@ -250,59 +245,32 @@ describe('downloadInventoryForOffline', () => {
 describe('downloadTeamsForOffline', () => {
   let queryClient: QueryClient;
   const admins = [{ id: 'owner-1', name: 'Olive Owner', type: 'user', role: 'owner' }];
-  const team = (id: string, memberCount: number, members: unknown[]) => ({
-    id,
-    name: `Team ${id}`,
-    member_count: memberCount,
-    members,
-  });
+  const teams = [{ id: 'a', name: 'Team a', member_count: 1, members: [{ user_id: 'tech-1', role: 'technician' }] }];
   const savedTeams = () => queryClient.getQueryData(offlineSavedKeys.teamList(ORG_ID));
 
   beforeEach(() => {
     queryClient = new QueryClient();
-    mocks.getTeamsByOrg.mockReset();
+    mocks.getTeamsByOrgStrict.mockReset().mockResolvedValue(teams);
     mocks.fetchOrgAdmins.mockReset().mockResolvedValue(admins);
-    mocks.countTeams.mockReset().mockResolvedValue({ count: 0, error: null });
   });
 
   it('saves the teams with their members, and the organization admins', async () => {
-    const teams = [team('a', 1, [{ user_id: 'tech-1', role: 'technician' }]), team('b', 0, [])];
-    mocks.getTeamsByOrg.mockResolvedValue(teams);
-
     expect(await downloadTeamsForOffline(queryClient, ORG_ID)).toBe(true);
 
     expect(savedTeams()).toEqual(teams);
     expect(queryClient.getQueryData(offlineSavedKeys.orgAdmins(ORG_ID))).toEqual(admins);
   });
 
-  it('keeps the saved teams when the team request failed and came back as an empty list', async () => {
-    const earlier = [team('a', 1, [{ user_id: 'tech-1', role: 'technician' }])];
-    queryClient.setQueryData(offlineSavedKeys.teamList(ORG_ID), earlier);
-    // The team service answers a failed request with [], so only the count can tell.
-    mocks.getTeamsByOrg.mockResolvedValue([]);
-    mocks.countTeams.mockResolvedValue({ count: null, error: { message: 'TypeError: Failed to fetch' } });
+  it('keeps the saved teams when they cannot be fetched', async () => {
+    queryClient.setQueryData(offlineSavedKeys.teamList(ORG_ID), teams);
+    mocks.getTeamsByOrgStrict.mockRejectedValue(new Error('Teams could not be loaded'));
 
     expect(await downloadTeamsForOffline(queryClient, ORG_ID)).toBe(false);
-    expect(savedTeams()).toEqual(earlier);
-
-    mocks.countTeams.mockResolvedValue({ count: 3, error: null });
-    expect(await downloadTeamsForOffline(queryClient, ORG_ID)).toBe(false);
-    expect(savedTeams()).toEqual(earlier);
+    expect(savedTeams()).toEqual(teams);
   });
 
-  it('keeps the saved teams when the members could not be fetched', async () => {
-    const earlier = [team('a', 2, [{ user_id: 'tech-1', role: 'technician' }])];
-    queryClient.setQueryData(offlineSavedKeys.teamList(ORG_ID), earlier);
-    mocks.getTeamsByOrg.mockResolvedValue([team('a', 2, [])]);
-
-    expect(await downloadTeamsForOffline(queryClient, ORG_ID)).toBe(false);
-    expect(savedTeams()).toEqual(earlier);
-  });
-
-  it('saves an empty list for an organization that really has no teams', async () => {
-    mocks.getTeamsByOrg.mockResolvedValue([]);
-
-    expect(await downloadTeamsForOffline(queryClient, ORG_ID)).toBe(true);
-    expect(savedTeams()).toEqual([]);
+  it('saves nothing once the user has moved to another organization', async () => {
+    expect(await downloadTeamsForOffline(queryClient, ORG_ID, () => false)).toBe(false);
+    expect(savedTeams()).toBeUndefined();
   });
 });

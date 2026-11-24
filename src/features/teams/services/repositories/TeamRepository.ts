@@ -9,6 +9,7 @@ import {
   deleteTeam as deleteTeamService,
   updateTeam as updateTeamService
 } from '@/features/teams/services/teamService';
+import { supabase } from '@/integrations/supabase/client';
 import type { 
   Team,
   TeamWithMembers,
@@ -80,6 +81,31 @@ class TeamRepository {
       const members = membersByTeamId.get(team.id) ?? [];
       return toTeamWithMembers(team, members.map(toMemberWithProfile));
     });
+  }
+
+  /**
+   * Teams with members, or an error when they could not be fetched.
+   *
+   * `getTeamsByOrg` answers a failed request with an empty list (and failed
+   * member requests with no members), which is indistinguishable from an
+   * organization without teams. Anything that keeps the answer (the query
+   * cache, the copy saved for offline use) must use this instead, or a
+   * dropped connection is remembered as "no teams".
+   */
+  static async getTeamsByOrgStrict(orgId: string): Promise<TeamWithMembers[]> {
+    const teams = await TeamRepository.getTeamsByOrg(orgId);
+    if (teams.some((team) => team.member_count > 0 && team.members.length === 0)) {
+      throw new Error('Team members could not be loaded');
+    }
+    if (teams.length === 0) {
+      const { count, error } = await supabase
+        .from('teams')
+        .select('id', { count: 'exact', head: true })
+        .eq('organization_id', orgId);
+      if (error) throw error;
+      if ((count ?? 0) > 0) throw new Error('Teams could not be loaded');
+    }
+    return teams;
   }
 
   /**
