@@ -332,14 +332,13 @@ export const useUpdateEquipment = (organizationId: string | undefined) => {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: EquipmentUpdateData }) => {
       if (!organizationId) throw new Error('Organization ID required');
-      // Goes through the offline-aware service so a change made with no
-      // connection (team, PM template, details) is queued instead of lost.
-      // Equipment created offline is addressed by its placeholder id, which
-      // sync swaps for the real one.
-      if (user?.id && (!navigator.onLine || parseOfflineEquipPlaceholder(id) !== null)) {
+      // A change made with no connection (team, PM template, details) is
+      // queued instead of lost. So is one that must wait for something else
+      // in the queue: equipment or a team created offline, or an earlier edit.
+      if (user?.id) {
         const service = new OfflineAwareWorkOrderService(organizationId, user.id);
-        const queued = await service.updateEquipment(id, data);
-        if (queued.queuedOffline) {
+        if (service.shouldQueue(id)) {
+          await service.updateEquipment(id, data);
           offlineCtx?.refresh();
           return null;
         }

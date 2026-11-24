@@ -6,7 +6,6 @@ import { logger } from '@/utils/logger';
 import { useAuth } from '@/hooks/useAuth';
 import { useOfflineQueueOptional } from '@/contexts/OfflineQueueContext';
 import { OfflineAwareWorkOrderService, UNKNOWN_SERVER_VERSION } from '@/services/offlineAwareService';
-import { isOfflinePlaceholderId } from '@/services/offlineQueuePlaceholders';
 import { invalidateWorkOrderCaches } from '@/features/work-orders/utils/invalidateWorkOrderQueries';
 
 type WorkOrderStatus = Database['public']['Enums']['work_order_status'];
@@ -50,10 +49,10 @@ export const useQuickWorkOrderAssignment = () => {
     mutationFn: async ({ workOrderId, assigneeId, currentStatus, organizationId }: QuickAssignmentVariables) => {
       const newStatus = resolveStatusAfterAssignment(currentStatus, assigneeId);
 
-      // No connection, or a work order created offline that has not synced:
-      // queue the assignment with its status so it is sent in order.
-      if (user?.id && (!navigator.onLine || isOfflinePlaceholderId(workOrderId))) {
-        const service = new OfflineAwareWorkOrderService(organizationId, user.id);
+      // No connection, or earlier changes still waiting to sync: queue the
+      // assignment with its status so it is sent in order.
+      const service = user?.id ? new OfflineAwareWorkOrderService(organizationId, user.id) : null;
+      if (service?.shouldQueue(workOrderId)) {
         // The work order's version is not known here, so sync checks its
         // current state: it must not reopen one completed in the meantime.
         await service.updateStatus(workOrderId, newStatus, UNKNOWN_SERVER_VERSION, assigneeId || null);

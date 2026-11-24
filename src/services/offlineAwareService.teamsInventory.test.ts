@@ -118,29 +118,41 @@ describe('teams, inventory and equipment edits with no connection', () => {
     expect(queue.getAll()[0].payload).toEqual({ itemId: 'item-1', delta: 2, reason: 'Delivery' });
   });
 
-  it('queues a change behind an earlier one for the same item that has not synced yet, even when connected', async () => {
+  it('queues new changes behind ones still waiting to sync, even when connected again', async () => {
     setOnline(false);
     await service.updateInventoryItem('item-1', { name: 'First name' });
-    await service.adjustInventoryQuantity({ itemId: 'item-1', delta: -1, reason: 'Manual adjustment' });
+    await service.createTeam(team, USER);
 
     // Signal is back, but the queue has not synced yet.
     setOnline(true);
     const edit = await service.updateInventoryItem('item-1', { name: 'Second name' });
     const count = await service.adjustInventoryQuantity({ itemId: 'item-1', delta: -1, reason: 'Manual adjustment' });
-    mockUpdateItem.mockResolvedValue({ id: 'item-2' });
-    const otherItem = await service.updateInventoryItem('item-2', { name: 'Unrelated' });
+    // Existing equipment moved into the team that only exists in the queue.
+    const move = await service.updateEquipment('equipment-1', { team_id: team.id });
 
-    expect(edit.queuedOffline).toBe(true);
-    expect(count.queuedOffline).toBe(true);
+    expect([edit, count, move].every(result => result.queuedOffline)).toBe(true);
+    expect(mockUpdateItem).not.toHaveBeenCalled();
     expect(mockAdjust).not.toHaveBeenCalled();
+    expect(mockEquipmentUpdate).not.toHaveBeenCalled();
     expect(queue.getAll().map(item => item.type)).toEqual([
       'inventory_update',
-      'inventory_adjust',
+      'team_create',
       'inventory_update',
       'inventory_adjust',
+      'equipment_update',
     ]);
-    // Other items are not held back.
-    expect(otherItem.queuedOffline).toBe(false);
+  });
+
+  it('sends changes straight to the server again once the queue has drained or only holds failed items', async () => {
+    setOnline(false);
+    await service.updateInventoryItem('item-1', { name: 'First name' });
+    setOnline(true);
+    queue.updateStatus(queue.getAll()[0].id, 'failed', 'rejected by the server');
+    mockUpdateItem.mockResolvedValue({ id: 'item-2' });
+
+    const result = await service.updateInventoryItem('item-2', { name: 'Unrelated' });
+
+    expect(result.queuedOffline).toBe(false);
     expect(mockUpdateItem).toHaveBeenCalledTimes(1);
   });
 
