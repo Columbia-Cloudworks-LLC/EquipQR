@@ -11,10 +11,6 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 
 ## [Unreleased]
 
-### Fixed
-
-- **An inventory item deleted before it synced stays deleted (#1777)** — If the item had already reached the server but the confirmation was lost, deleting it offline only removed it from the device, and it came back after reconnecting. The server copy is now deleted as soon as there is a connection.
-
 ## [3.42.0] - 2026-11-24
 
 ### Added
@@ -30,6 +26,7 @@ Entries through 3.28.0 are more verbose than the current policy. Newer notes are
 - **Teams are available offline (#1770)** — The Teams screen and every team picker use a copy saved on the device when there is no signal. Previously they showed no teams, and could keep showing none for a couple of minutes after the signal returned.
 - **The inventory Edit form opens again** — Editing an item from the inventory list or its detail page left the form on "Loading..." with Save disabled. It now loads, online and offline. With no signal, the item's compatibility rules and linked equipment cannot be shown, so the form says so and leaves them unchanged when you save. Deleting an item that was created offline and has not synced yet removes it for good instead of letting it reappear after sync.
 - **Reloading right after a sync shows the new values** — A reload within a few minutes of syncing could keep showing what was saved on the device before the sync (an old stock count, for example) until the saved copy aged out. Saved data is now always refreshed from the server when there is a connection.
+- **An inventory item deleted before it synced stays deleted (#1777)** — If the item had already reached the server but the confirmation was lost, deleting it offline only removed it from the device, and it came back after reconnecting. The server copy is now deleted as soon as there is a connection.
 - **Records created offline stay visible on the next trip offline (#1770)** — After offline changes sync, the saved copy of your data is refreshed straight away instead of up to six hours later, and changes to inventory and teams made while connected refresh their saved copy too.
 
 ## [3.41.0] - 2026-11-23
