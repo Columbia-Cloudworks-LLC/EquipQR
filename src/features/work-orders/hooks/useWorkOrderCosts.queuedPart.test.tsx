@@ -104,8 +104,9 @@ describe('work order costs with a part added offline', () => {
     expect(outcome.cost).toMatchObject({ id: 'cost-new', quantity: 3, total_price_cents: 3750 });
   });
 
-  it('cannot be changed or removed while it is being sent, when its stock may already be deducted', async () => {
-    mocks.queuedItems = [queuedPart({ stockDeducted: true })];
+  it('cannot be changed or removed once sync has started sending it, when its stock may already be deducted', async () => {
+    // A first attempt was made and its answer lost: back to pending, outcome unknown.
+    mocks.queuedItems = [queuedPart({ lastMovementBeforeReplay: '2026-11-24T12:00:00.000Z' })];
     const { result } = renderHook(() => useDeleteWorkOrderCostWithInventoryRestore(), { wrapper });
 
     await expect(result.current.mutateAsync({ costId: 'cost-new', organizationId: 'org-1' })).rejects.toThrow(

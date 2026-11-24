@@ -54,12 +54,19 @@ function useQueuedPartActions() {
   return {
     /**
      * The queued part use behind a cost line, or `undefined` when the line is
-     * on the server. Throws while that part is being sent: its stock may
-     * already be deducted, so it can no longer be changed in the queue.
+     * on the server. Throws once sync has started sending that part: from
+     * the first attempt on (`lastMovementBeforeReplay` is set just before
+     * it) the stock may already be deducted, even if the answer was lost, so
+     * the item can no longer be changed or dropped from the queue.
      */
     findQueued: (costId: string) => {
       const queued = findQueuedPartUse(costId, offlineCtx?.queuedItems ?? []);
-      if (queued && (queued.status === 'processing' || queued.payload.stockDeducted)) {
+      const sendingStarted =
+        queued &&
+        (queued.status === 'processing' ||
+          queued.payload.stockDeducted ||
+          queued.payload.lastMovementBeforeReplay !== undefined);
+      if (sendingStarted) {
         throw new Error('This part is syncing right now. Try again in a moment.');
       }
       return queued;
